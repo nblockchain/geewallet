@@ -16,7 +16,7 @@ module Config =
             configDir.Create()
         configDir
 
-    let Add(currencyAccount: CurrencyAccount) =
-        let configFile = Path.Combine(GetConfigPathForThisProgram().FullName, fst currencyAccount)
-        File.WriteAllText(configFile, snd currencyAccount)
+    let Add(account: Account) =
+        let configFile = Path.Combine(GetConfigPathForThisProgram().FullName, account.Currency)
+        File.WriteAllText(configFile, account.HexPrivateKey)
 

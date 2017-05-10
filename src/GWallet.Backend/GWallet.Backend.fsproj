@@ -51,8 +51,9 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Config.fs" />
     <Compile Include="Account.fs" />
+    <Compile Include="Config.fs" />
+    <Compile Include="AccountApi.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
