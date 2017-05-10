@@ -6,6 +6,6 @@ open Nethereum.Core.Signing.Crypto
 type Account =
     {
         HexPrivateKey: string;
-        Currency: string;
+        Currency: Currency;
     }
     member this.PublicKey = EthECKey.GetPublicAddress(this.HexPrivateKey)

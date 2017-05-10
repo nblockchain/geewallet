@@ -9,10 +9,14 @@ module AccountApi =
     let ToHexString(byteArray: byte array) =
         BitConverter.ToString(byteArray).Replace("-", String.Empty)
 
-    let CreateAccount(currency): Account =
-        let key = EthECKey.GenerateKey()
-        let privKeyBytes = key.GetPrivateKeyAsBytes()
-        let privKeyInHex = privKeyBytes |> ToHexString
-        let account = { Currency = "ETH"; HexPrivateKey = privKeyInHex }
-        Config.Add account
-        account
+    let CreateOrGetMainAccount(currency): Account =
+        let maybeAccount = Config.GetMainAccount(currency)
+        match maybeAccount with
+        | Some(account) -> account
+        | None ->
+            let key = EthECKey.GenerateKey()
+            let privKeyBytes = key.GetPrivateKeyAsBytes()
+            let privKeyInHex = privKeyBytes |> ToHexString
+            let account = { Currency = Currency.ETH; HexPrivateKey = privKeyInHex }
+            Config.Add account
+            account

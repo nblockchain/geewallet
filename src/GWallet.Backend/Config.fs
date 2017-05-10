@@ -3,20 +3,29 @@
 open System
 open System.IO
 
-type Currency = string
-type PrivateKey = string
-type CurrencyAccount = Currency * PrivateKey
-
 module Config =
 
-    let GetConfigPathForThisProgram() =
+    let private GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
         if not configDir.Exists then
             configDir.Create()
         configDir
 
+    let private GetConfigFileForThisProgram(currency: Currency) =
+        Path.Combine(GetConfigDirForThisProgram().FullName, currency.ToString())
+
+    let GetMainAccount(currency: Currency): Option<Account> =
+        let configFile = GetConfigFileForThisProgram(currency)
+        let maybePrivateKeyInHex: Option<string> =
+            try
+                Some(File.ReadAllText(configFile))
+            with
+            | :? FileNotFoundException -> None
+        match maybePrivateKeyInHex with
+        | Some(privKey) -> Some({ HexPrivateKey = privKey; Currency = currency })
+        | None -> None
+
     let Add(account: Account) =
-        let configFile = Path.Combine(GetConfigPathForThisProgram().FullName, account.Currency)
-        File.WriteAllText(configFile, account.HexPrivateKey)
+        File.WriteAllText(GetConfigFileForThisProgram(account.Currency), account.HexPrivateKey)
 
