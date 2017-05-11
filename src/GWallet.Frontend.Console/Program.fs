@@ -13,30 +13,50 @@ let ConvertPascalCaseToSentence(pascalCaseElement: string) =
 
 exception NoOptionFound
 
-let rec AskOption(): Options =
-    let rec findMatchingOption (optIntroduced, allOptions) =
-        match Int32.TryParse(optIntroduced) with
-        | false, _ -> raise NoOptionFound
-        | true, optionParsed ->
-            match allOptions with
-            | [] -> raise NoOptionFound
-            | head::tail ->
-                if (int head = optionParsed) then
-                    head
-                else
-                    findMatchingOption(optIntroduced, tail)
+let rec FindMatchingOption<'T> (optIntroduced, allOptions: ('T*int) list): 'T =
+    match Int32.TryParse(optIntroduced) with
+    | false, _ -> raise NoOptionFound
+    | true, optionParsed ->
+        match allOptions with
+        | [] -> raise NoOptionFound
+        | (head,i)::tail ->
+            if (i = optionParsed) then
+                head
+            else
+                FindMatchingOption(optIntroduced, tail)
 
+let rec AskOption(): Options =
     Console.WriteLine()
     Console.WriteLine("Available options:")
+
+    // TODO: move these 2 lines below to FSharpUtil?
     let allOptions = Enum.GetValues(typeof<Options>).Cast<Options>() |> List.ofSeq
+    let allOptionsMappedToTheirIntValues = List.map (fun x -> (x, int x)) allOptions
+
     for option in allOptions do
         Console.WriteLine(sprintf "%d: %s" (int option) (ConvertPascalCaseToSentence (option.ToString())))
     Console.Write("Choose option to perform: ")
     let optIntroduced = System.Console.ReadLine()
     try
-        findMatchingOption(optIntroduced, allOptions)
+        FindMatchingOption(optIntroduced, allOptionsMappedToTheirIntValues)
     with
     | :? NoOptionFound -> AskOption()
+
+let rec AskCurrency(): Currency =
+    Console.WriteLine()
+
+    // TODO: move these 2 lines below to FSharpUtil?
+    let allCurrencies = Enum.GetValues(typeof<Currency>).Cast<Currency>() |> List.ofSeq
+    let allCurrenciesMappedToTheirIntValues = List.map (fun x -> (x, int x)) allCurrencies
+
+    for option in allCurrencies do
+        Console.WriteLine(sprintf "%d: %s" (int option) (option.ToString()))
+    Console.Write("Select currency: ")
+    let optIntroduced = System.Console.ReadLine()
+    try
+        FindMatchingOption(optIntroduced, allCurrenciesMappedToTheirIntValues)
+    with
+    | :? NoOptionFound -> AskCurrency()
 
 let DisplayStatus() =
     Console.WriteLine("** STATUS **")
@@ -53,8 +73,9 @@ let rec PerformOptions() =
     match AskOption() with
     | Options.Exit -> exit 0
     | Options.CreateAccount ->
-        AccountApi.Create(Currency.ETH) |> ignore
+        AccountApi.Create(AskCurrency()) |> ignore
         Console.WriteLine("Account created")
+    | _ -> failwith "Unreachable"
 
 let rec ProgramMainLoop() =
     DisplayStatus()

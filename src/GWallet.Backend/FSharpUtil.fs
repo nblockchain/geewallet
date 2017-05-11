@@ -1,5 +1,7 @@
 ﻿namespace GWallet.Backend
 
+open System
+open System.Linq
 open Microsoft.FSharp.Reflection
 
 // http://stackoverflow.com/a/28466431/6503091
