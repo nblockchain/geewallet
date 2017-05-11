@@ -12,6 +12,7 @@ module AccountApi =
         BitConverter.ToString(byteArray).Replace("-", String.Empty)
 
     let GetBalance(account: Account) =
+        // TODO: to prevent having MyEtherApi as a SPOF, use more services, like https://infura.io/
         // https://www.myetherapi.com/
         let web3 = Web3("https://api.myetherapi.com/eth")
         let balanceTask = web3.Eth.GetBalance.SendRequestAsync(account.PublicAddress)
