@@ -19,10 +19,19 @@ module AccountApi =
         balanceTask.Wait()
         UnitConversion.Convert.FromWei(balanceTask.Result.Value, UnitConversion.EthUnit.Ether)
 
-    let CreateOrGetMainAccount(currency): Account =
+    let GetAllAccounts(): seq<Account> =
+        seq {
+            for currency in FSharpUtil.GetAllElementsFromDiscriminatedUnion<Currency>() do
+                let maybeAccount = Config.GetMainAccount(currency)
+                match maybeAccount with
+                | Some(account) -> yield account
+                | _ -> ()
+        }
+
+    let Create(currency): Account =
         let maybeAccount = Config.GetMainAccount(currency)
         match maybeAccount with
-        | Some(account) -> account
+        | Some(account) -> failwith (sprintf "Account already exists for currency %s" (currency.ToString()))
         | None ->
             let key = EthECKey.GenerateKey()
             let privKeyBytes = key.GetPrivateKeyAsBytes()
