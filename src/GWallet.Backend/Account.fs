@@ -8,4 +8,4 @@ type Account =
         HexPrivateKey: string;
         Currency: Currency;
     }
-    member this.PublicKey = EthECKey.GetPublicAddress(this.HexPrivateKey)
+    member this.PublicAddress = EthECKey.GetPublicAddress(this.HexPrivateKey)

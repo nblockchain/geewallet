@@ -8,7 +8,7 @@ let main argv =
     let account = AccountApi.CreateOrGetMainAccount(ethCurrency)
 
     Console.WriteLine("** STATUS **")
-    let ethStatus = sprintf "%s: Address=[%s]" (ethCurrency.ToString()) account.PublicKey
+    let ethStatus = sprintf "%s: Address=[%s]" (ethCurrency.ToString()) account.PublicAddress
     Console.WriteLine(ethStatus)
     System.Console.ReadLine() |> ignore
     0 // return an integer exit code
