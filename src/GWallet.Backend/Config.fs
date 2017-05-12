@@ -12,11 +12,18 @@ module Config =
             configDir.Create()
         configDir
 
-    let private GetConfigFileForThisProgram(currency: Currency) =
-        Path.Combine(GetConfigDirForThisProgram().FullName, currency.ToString())
+    let private GetConfigDirForWallets() =
+        let configPath = GetConfigDirForThisProgram().FullName
+        let configDir = DirectoryInfo(Path.Combine(configPath, "accounts"))
+        if not configDir.Exists then
+            configDir.Create()
+        configDir
+
+    let private GetConfigFileForThisCurrency(currency: Currency) =
+        Path.Combine(GetConfigDirForWallets().FullName, currency.ToString())
 
     let GetMainAccount(currency: Currency): Option<Account> =
-        let configFile = GetConfigFileForThisProgram(currency)
+        let configFile = GetConfigFileForThisCurrency(currency)
         let maybePrivateKeyInHex: Option<string> =
             try
                 Some(File.ReadAllText(configFile))
@@ -27,5 +34,5 @@ module Config =
         | None -> None
 
     let Add(account: Account) =
-        File.WriteAllText(GetConfigFileForThisProgram(account.Currency), account.HexPrivateKey)
+        File.WriteAllText(GetConfigFileForThisCurrency(account.Currency), account.HexPrivateKey)
 
