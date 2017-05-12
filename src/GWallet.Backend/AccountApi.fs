@@ -34,20 +34,15 @@ module AccountApi =
             let allCurrencies = Enum.GetValues(typeof<Currency>).Cast<Currency>() |> List.ofSeq
 
             for currency in allCurrencies do
-                let maybeAccount = Config.GetMainAccount(currency)
-                match maybeAccount with
-                | Some(account) -> yield account
-                | _ -> ()
+                for account in Config.GetAllAccounts(currency) do
+                    yield account
         }
 
     let Create(currency): Account =
-        let maybeAccount = Config.GetMainAccount(currency)
-        match maybeAccount with
-        | Some(account) -> failwith (sprintf "Account already exists for currency %s" (currency.ToString()))
-        | None ->
-            let key = EthECKey.GenerateKey()
-            let privKeyBytes = key.GetPrivateKeyAsBytes()
-            let privKeyInHex = privKeyBytes |> ToHexString
-            let account = { Currency = currency; HexPrivateKey = privKeyInHex }
-            Config.Add account
-            account
+        let key = EthECKey.GenerateKey()
+        let privKeyBytes = key.GetPrivateKeyAsBytes()
+        let privKeyInHex = privKeyBytes |> ToHexString
+        let account = { Id = Guid.NewGuid(); Currency = currency; HexPrivateKey = privKeyInHex }
+        Config.Add account
+        account
+

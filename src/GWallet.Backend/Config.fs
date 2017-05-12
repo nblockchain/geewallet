@@ -19,20 +19,23 @@ module Config =
             configDir.Create()
         configDir
 
-    let private GetConfigFileForThisCurrency(currency: Currency) =
-        Path.Combine(GetConfigDirForWallets().FullName, currency.ToString())
+    let private GetConfigDirForThisCurrency(currency: Currency) =
+        let configDir = DirectoryInfo(Path.Combine(GetConfigDirForWallets().FullName, currency.ToString()))
+        if not configDir.Exists then
+            configDir.Create()
+        configDir
 
-    let GetMainAccount(currency: Currency): Option<Account> =
-        let configFile = GetConfigFileForThisCurrency(currency)
-        let maybePrivateKeyInHex: Option<string> =
-            try
-                Some(File.ReadAllText(configFile))
-            with
-            | :? FileNotFoundException -> None
-        match maybePrivateKeyInHex with
-        | Some(privKey) -> Some({ HexPrivateKey = privKey; Currency = currency })
-        | None -> None
+    let GetAllAccounts(currency: Currency): seq<Account> =
+        let configDir = GetConfigDirForThisCurrency(currency)
+        seq {
+            for file in Directory.GetFiles(configDir.FullName) do
+                let privKey = File.ReadAllText(file)
+                let guid = Guid.Parse(Path.GetFileName(file))
+                yield ({ Id = guid; HexPrivateKey = privKey; Currency = currency })
+        }
 
     let Add(account: Account) =
-        File.WriteAllText(GetConfigFileForThisCurrency(account.Currency), account.HexPrivateKey)
+        let configDir = GetConfigDirForThisCurrency(account.Currency)
+        let configFile = Path.Combine(configDir.FullName, account.Id.ToString())
+        File.WriteAllText(configFile, account.HexPrivateKey)
 

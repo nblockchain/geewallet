@@ -5,6 +5,7 @@ open Nethereum.Core.Signing.Crypto
 
 type Account =
     {
+        Id: Guid;
         HexPrivateKey: string;
         Currency: Currency;
     }
