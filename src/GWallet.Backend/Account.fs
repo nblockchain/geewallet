@@ -11,4 +11,4 @@ type Account =
         Currency: Currency;
     }
     member this.PublicAddress: string =
-        KeyStoreService().GetAddressFromKeyStore(this.Json)
+        "0x" + KeyStoreService().GetAddressFromKeyStore(this.Json)
