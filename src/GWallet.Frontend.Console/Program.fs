@@ -6,7 +6,8 @@ open GWallet.Backend
 
 type Options =
     | Exit          = 0
-    | CreateAccount = 1
+    | Refresh       = 1
+    | CreateAccount = 2
 
 let ConvertPascalCaseToSentence(pascalCaseElement: string) =
     Regex.Replace(pascalCaseElement, "[a-z][A-Z]", (fun (m: Match) -> m.Value.[0].ToString() + " " + Char.ToLower(m.Value.[1]).ToString()))
@@ -113,6 +114,7 @@ let rec PerformOptions() =
         let password = AskPassword()
         let account = AccountApi.Create currency password
         Console.WriteLine("Account created: " + account.PublicAddress)
+    | Options.Refresh -> ()
     | _ -> failwith "Unreachable"
 
 let rec ProgramMainLoop() =
