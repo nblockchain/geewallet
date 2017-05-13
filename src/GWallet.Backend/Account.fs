@@ -1,12 +1,14 @@
 ﻿namespace GWallet.Backend
 
 open System
+open NBitcoin.Crypto
 open Nethereum.Core.Signing.Crypto
+open Nethereum.KeyStore
 
 type Account =
     {
-        Id: Guid;
-        HexPrivateKey: string;
+        Json: string;
         Currency: Currency;
     }
-    member this.PublicAddress = EthECKey.GetPublicAddress(this.HexPrivateKey)
+    member this.PublicAddress: string =
+        KeyStoreService().GetAddressFromKeyStore(this.Json)

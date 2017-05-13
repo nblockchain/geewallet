@@ -3,6 +3,8 @@
 open System
 open System.IO
 
+open Nethereum.KeyStore
+
 module Config =
 
     let private GetConfigDirForThisProgram() =
@@ -29,13 +31,13 @@ module Config =
         let configDir = GetConfigDirForThisCurrency(currency)
         seq {
             for file in Directory.GetFiles(configDir.FullName) do
-                let privKey = File.ReadAllText(file)
-                let guid = Guid.Parse(Path.GetFileName(file))
-                yield ({ Id = guid; HexPrivateKey = privKey; Currency = currency })
+                yield ({ Json = File.ReadAllText(file); Currency = currency })
         }
 
-    let Add(account: Account) =
+    let Add (account: Account) =
         let configDir = GetConfigDirForThisCurrency(account.Currency)
-        let configFile = Path.Combine(configDir.FullName, account.Id.ToString())
-        File.WriteAllText(configFile, account.HexPrivateKey)
+        let keyStoreService = KeyStoreService()
+        let fileName = keyStoreService.GenerateUTCFileName(account.PublicAddress)
+        let configFile = Path.Combine(configDir.FullName, fileName)
+        File.WriteAllText(configFile, account.Json)
 

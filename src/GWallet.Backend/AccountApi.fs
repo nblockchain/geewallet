@@ -5,6 +5,7 @@ open System.Linq
 
 open Nethereum.Web3
 open Nethereum.Core.Signing.Crypto
+open Nethereum.KeyStore
 
 module AccountApi =
 
@@ -38,11 +39,22 @@ module AccountApi =
                     yield account
         }
 
-    let Create(currency): Account =
-        let key = EthECKey.GenerateKey()
-        let privKeyBytes = key.GetPrivateKeyAsBytes()
-        let privKeyInHex = privKeyBytes |> ToHexString
-        let account = { Id = Guid.NewGuid(); Currency = currency; HexPrivateKey = privKeyInHex }
+    let Create currency password =
+        let privateKey = EthECKey.GenerateKey()
+        let privateKeyAsBytes = EthECKey.GetPrivateKeyAsBytes(privateKey)
+
+        // FIXME: don't ask me why sometimes this version of NEthereum generates 33 bytes instead of the required 32...
+        let privateKeyTrimmed =
+            if privateKeyAsBytes.Length = 33 then
+                privateKeyAsBytes |> Array.skip 1
+            else
+                privateKeyAsBytes
+
+        let keyStoreService = KeyStoreService()
+        let publicAddress = EthECKey.GetPublicAddress(privateKey)
+
+        let accountSerializedJson = keyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password, privateKeyTrimmed, publicAddress)
+        let account = { Currency = currency; Json = accountSerializedJson }
         Config.Add account
         account
 

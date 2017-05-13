@@ -42,6 +42,42 @@ let rec AskOption(): Options =
     with
     | :? NoOptionFound -> AskOption()
 
+// taken from InfraLib
+let ConsoleReadPasswordLine() =
+    // taken from http://stackoverflow.com/questions/3404421/password-masking-console-application
+    let rec ConsoleReadPasswordLineInternal(pwd: string) =
+        let key = Console.ReadKey(true)
+
+        if (key.Key = ConsoleKey.Enter) then
+            Console.WriteLine()
+            pwd
+        else
+
+            let newPwd =
+                if (key.Key = ConsoleKey.Backspace && pwd.Length > 0) then
+                    Console.Write("\b \b")
+                    pwd.Substring(0, pwd.Length - 1)
+                else
+                    Console.Write("*")
+                    pwd + key.KeyChar.ToString()
+            ConsoleReadPasswordLineInternal(newPwd)
+
+    ConsoleReadPasswordLineInternal(String.Empty)
+
+
+let rec AskPassword(): string =
+    Console.WriteLine()
+
+    Console.Write("Write a password to unlock your account: ")
+    let password = ConsoleReadPasswordLine()
+    Console.Write("Repeat the password: ")
+    let password2 = ConsoleReadPasswordLine()
+    if (password <> password2) then
+        Console.Error.WriteLine("Passwords are not the same, please try again.")
+        AskPassword()
+    else
+        password
+
 let rec AskCurrency(): Currency =
     Console.WriteLine()
 
@@ -73,8 +109,10 @@ let rec PerformOptions() =
     match AskOption() with
     | Options.Exit -> exit 0
     | Options.CreateAccount ->
-        AccountApi.Create(AskCurrency()) |> ignore
-        Console.WriteLine("Account created")
+        let currency = AskCurrency()
+        let password = AskPassword()
+        let account = AccountApi.Create currency password
+        Console.WriteLine("Account created: " + account.PublicAddress)
     | _ -> failwith "Unreachable"
 
 let rec ProgramMainLoop() =
