@@ -10,7 +10,8 @@ type Options =
     | CreateAccount = 2
 
 let ConvertPascalCaseToSentence(pascalCaseElement: string) =
-    Regex.Replace(pascalCaseElement, "[a-z][A-Z]", (fun (m: Match) -> m.Value.[0].ToString() + " " + Char.ToLower(m.Value.[1]).ToString()))
+    Regex.Replace(pascalCaseElement, "[a-z][A-Z]",
+                  (fun (m: Match) -> m.Value.[0].ToString() + " " + Char.ToLower(m.Value.[1]).ToString()))
 
 exception NoOptionFound
 
@@ -101,7 +102,9 @@ let DisplayStatus() =
     if (accounts.Any()) then
         for account in accounts do
             let status = sprintf "%s: Address=[%s] Balance=[%s]"
-                            (account.Currency.ToString()) account.PublicAddress (AccountApi.GetBalance(account).ToString())
+                            (account.Currency.ToString())
+                            account.PublicAddress
+                            (AccountApi.GetBalance(account).ToString())
             Console.WriteLine(status)
     else
         Console.WriteLine("No accounts have been created so far.")
