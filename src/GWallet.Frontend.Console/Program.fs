@@ -117,7 +117,12 @@ let DisplayStatus() =
                                   (account.Currency.ToString())
                                   account.PublicAddress
             Console.WriteLine(accountInfo)
-            let status = sprintf "Balance=[%s]" (AccountApi.GetBalance(account).ToString())
+
+            let balance = AccountApi.GetBalance(account)
+            let balanceInUsd = (FiatValueEstimation.UsdValue account.Currency) * balance
+            let status = sprintf "Balance=[%s]  ~ %s USD"
+                             (balance.ToString())
+                             (balanceInUsd.ToString())
             Console.WriteLine(status)
 
             Console.WriteLine()
