@@ -77,12 +77,20 @@ module AccountApi =
 
         gasPriceTask.Wait()
         let gasPrice = gasPriceTask.Result
-        let trans = web3.OfflineTransactionSigning.SignTransaction(privKeyInHexString,
-                                                                   destination,
-                                                                   amountInWei,
-                                                                   transCount.Value,
-                                                                   gasPrice.Value,
-                                                                   BigInteger(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION))
+
+        let trans = web3.OfflineTransactionSigning.SignTransaction(
+                        privKeyInHexString,
+                        destination,
+                        amountInWei,
+                        transCount.Value,
+
+                        // we use the SignTransaction() overload that has these 2 arguments because if we don't, we depend on
+                        // how well the defaults are of Geth node we're connected to, e.g. with the myEtherWallet server I
+                        // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
+                        // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
+                        gasPrice.Value,
+                        BigInteger(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION))
+
         if not (web3.OfflineTransactionSigning.VerifyTransaction(trans)) then
             failwith "Transaction could not be verified?"
 
