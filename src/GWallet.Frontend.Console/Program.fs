@@ -164,6 +164,18 @@ let rec AskAmount() =
     | (true, parsedAdmount) ->
         parsedAdmount
 
+let rec TrySendAmount account destination amount =
+    let password = AskPassword false
+    try
+        let txId = AccountApi.SendPayment account destination amount password
+        Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
+    with
+    | :? InsufficientFunds ->
+        Console.Error.WriteLine("Insufficient funds")
+    | :? InvalidPassword ->
+        Console.Error.WriteLine("Invalid password, try again.")
+        TrySendAmount account destination amount
+
 let rec PerformOptions(numAccounts: int) =
     match AskOption(numAccounts) with
     | Options.Exit -> exit 0
@@ -177,13 +189,7 @@ let rec PerformOptions(numAccounts: int) =
         let account = AskAccount()
         let destination = AskDestination()
         let amount = AskAmount()
-        let password = AskPassword false
-        try
-            let txId = AccountApi.SendPayment account destination amount password
-            Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
-        with
-        | :? InsufficientFunds ->
-            Console.Error.WriteLine("Insufficient funds")
+        TrySendAmount account destination amount
     | _ -> failwith "Unreachable"
 
 let rec ProgramMainLoop() =

@@ -11,6 +11,7 @@ open NBitcoin.Crypto
 
 
 exception InsufficientFunds
+exception InvalidPassword
 
 module AccountApi =
 
@@ -60,7 +61,14 @@ module AccountApi =
 
         let transCountTask = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(account.PublicAddress)
 
-        let privKeyInBytes = keyStoreService.DecryptKeyStoreFromJson(password, account.Json)
+        let privKeyInBytes =
+            try
+                keyStoreService.DecryptKeyStoreFromJson(password, account.Json)
+            with
+            // FIXME: I don't like to parse exception messages... https://github.com/Nethereum/Nethereum/pull/122
+            | ex when ex.Message.StartsWith("Cannot derive") ->
+                raise (InvalidPassword)
+
         let privKeyInHexString = ToHexString(privKeyInBytes)
         let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
 
