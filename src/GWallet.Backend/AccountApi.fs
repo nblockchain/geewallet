@@ -49,15 +49,26 @@ module AccountApi =
                     yield account
         }
 
-    let private GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION = 21000
+    let EstimateFee (currency: Currency): EtherMinerFee =
+        let web3 =
+            match currency with
+            | Currency.ETH -> ethWeb3
+            | Currency.ETC -> etcWeb3
+            | _ -> failwith("currency unknown")
+        let gasPriceTask = web3.Eth.GasPrice.SendRequestAsync()
+        gasPriceTask.Wait()
+        let gasPrice = gasPriceTask.Result
+        { GasPriceInWei = gasPrice.Value; EstimationTime = DateTime.Now; Currency = currency }
 
-    let SendPayment (account: Account) (destination: string) (amount: decimal) (password: string) =
+    let SendPayment (account: Account) (destination: string) (amount: decimal) (password: string) (minerFee: EtherMinerFee) =
+        if (minerFee.Currency <> account.Currency) then
+            invalidArg "account" "currency of account param must be equal to currency of minerFee param"
+
         let web3 =
             match account.Currency with
             | Currency.ETH -> ethWeb3
             | Currency.ETC -> etcWeb3
             | _ -> failwith("currency unknown")
-        let gasPriceTask = web3.Eth.GasPrice.SendRequestAsync()
 
         let transCountTask = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(account.PublicAddress)
 
@@ -75,9 +86,6 @@ module AccountApi =
         transCountTask.Wait()
         let transCount = transCountTask.Result
 
-        gasPriceTask.Wait()
-        let gasPrice = gasPriceTask.Result
-
         let trans = web3.OfflineTransactionSigning.SignTransaction(
                         privKeyInHexString,
                         destination,
@@ -88,8 +96,8 @@ module AccountApi =
                         // how well the defaults are of Geth node we're connected to, e.g. with the myEtherWallet server I
                         // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
                         // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
-                        gasPrice.Value,
-                        BigInteger(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION))
+                        minerFee.GasPriceInWei,
+                        minerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
         if not (web3.OfflineTransactionSigning.VerifyTransaction(trans)) then
             failwith "Transaction could not be verified?"

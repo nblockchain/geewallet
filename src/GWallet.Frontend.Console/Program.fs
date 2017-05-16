@@ -169,17 +169,34 @@ let rec AskAmount() =
     | (true, parsedAdmount) ->
         parsedAdmount
 
-let rec TrySendAmount account destination amount =
+let rec AskFee(currency: Currency): Option<EtherMinerFee> =
+    let estimatedFee = AccountApi.EstimateFee(currency)
+    let estimatedFeeInUsd = FiatValueEstimation.UsdValue(currency) * estimatedFee.EtherPriceForNormalTransaction
+    Console.Write(sprintf "Estimated fee for this transaction would be:%s %s Ether (~%s USD) %s Do you accept? (Y/N): "
+                      Environment.NewLine
+                      (estimatedFee.EtherPriceForNormalTransaction.ToString())
+                      (estimatedFeeInUsd.ToString())
+                      Environment.NewLine
+                 )
+    let yesNoAnswer = Console.ReadLine().ToLowerInvariant()
+    if (yesNoAnswer = "y") then
+        Some(estimatedFee)
+    else if (yesNoAnswer = "n") then
+        None
+    else
+        AskFee(currency)
+
+let rec TrySendAmount account destination amount fee =
     let password = AskPassword false
     try
-        let txId = AccountApi.SendPayment account destination amount password
+        let txId = AccountApi.SendPayment account destination amount password fee
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
     with
     | :? InsufficientFunds ->
         Console.Error.WriteLine("Insufficient funds")
     | :? InvalidPassword ->
         Console.Error.WriteLine("Invalid password, try again.")
-        TrySendAmount account destination amount
+        TrySendAmount account destination amount fee
 
 let rec PerformOptions(numAccounts: int) =
     match AskOption(numAccounts) with
@@ -194,7 +211,10 @@ let rec PerformOptions(numAccounts: int) =
         let account = AskAccount()
         let destination = AskDestination()
         let amount = AskAmount()
-        TrySendAmount account destination amount
+        let maybeFee = AskFee(account.Currency)
+        match maybeFee with
+        | None -> ()
+        | Some(fee) -> TrySendAmount account destination amount fee
     | _ -> failwith "Unreachable"
 
 let rec ProgramMainLoop() =

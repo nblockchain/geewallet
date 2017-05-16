@@ -55,6 +55,7 @@
     <Compile Include="Account.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="FSharpUtil.fs" />
+    <Compile Include="EtherMinerFee.fs" />
     <Compile Include="AccountApi.fs" />
     <Content Include="packages.config" />
     <Compile Include="FiatValueEstimation.fs" />
