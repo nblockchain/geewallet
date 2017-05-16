@@ -191,6 +191,7 @@ let rec TrySendAmount account destination amount fee =
     try
         let txId = AccountApi.SendPayment account destination amount password fee
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
+        Console.WriteLine()
     with
     | :? InsufficientFunds ->
         Console.Error.WriteLine("Insufficient funds")
