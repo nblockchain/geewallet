@@ -25,7 +25,7 @@ module AccountApi =
 
     let private keyStoreService = KeyStoreService()
 
-    // TODO: propose this func to NEthereum's EthECKey class as method name GetPrivateKeyAsHexString()
+    // TODO: stop using this method below, in favour of new overloads proposed here: https://github.com/Nethereum/Nethereum/pull/124
     let ToHexString(byteArray: byte array) =
         BitConverter.ToString(byteArray).Replace("-", String.Empty)
 
