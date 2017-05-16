@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend
 
 open System
+open System.Net
 open System.Linq
 open System.Numerics
 
@@ -29,16 +30,32 @@ module AccountApi =
     let ToHexString(byteArray: byte array) =
         BitConverter.ToString(byteArray).Replace("-", String.Empty)
 
-    let GetBalance(account: Account) =
+    let rec private IsOfTypeOrItsInner<'T>(ex: Exception) =
+        if (ex = null) then
+            false
+        else if (ex.GetType() = typeof<'T>) then
+            true
+        else
+            IsOfTypeOrItsInner<'T>(ex.InnerException)
+
+    let GetBalance(account: Account): Option<decimal> =
         let web3 =
             match account.Currency with
             | Currency.ETH -> ethWeb3
             | Currency.ETC -> etcWeb3
             | _ -> failwith("currency unknown")
 
-        let balanceTask = web3.Eth.GetBalance.SendRequestAsync(account.PublicAddress)
-        balanceTask.Wait()
-        UnitConversion.Convert.FromWei(balanceTask.Result.Value, UnitConversion.EthUnit.Ether)
+        let maybeBalance =
+            try
+                let balanceTask = web3.Eth.GetBalance.SendRequestAsync(account.PublicAddress)
+                balanceTask.Wait()
+                Some(balanceTask.Result.Value)
+            with
+            | ex when IsOfTypeOrItsInner<WebException>(ex) -> None
+
+        match maybeBalance with
+        | None -> None
+        | Some(balance) -> Some(UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether))
 
     let GetAllAccounts(): seq<Account> =
         seq {

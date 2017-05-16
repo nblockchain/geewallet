@@ -26,15 +26,24 @@ module FiatValueEstimation =
 ]
     """>
 
-    let UsdValue(currency: Currency) =
+    let UsdValue(currency: Currency): Option<decimal> =
         use webClient = new WebClient()
         let tickerName =
             match currency with
             | Currency.ETH -> "ethereum"
             | Currency.ETC -> "ethereum-classic"
             | _ -> "Unsupported currency"
-        let json = webClient.DownloadString(sprintf "https://api.coinmarketcap.com/v1/ticker/%s/" tickerName)
-        let ticker = CoinMarketCapJsonProvider.Parse(json)
-        if (ticker.Length <> 1) then
-            failwith ("Unexpected length of json main array: " + json)
-        ticker.[0].PriceUsd
+
+        let maybeJson =
+            try
+                Some(webClient.DownloadString(sprintf "https://api.coinmarketcap.com/v1/ticker/%s/" tickerName))
+            with
+            | :? WebException -> None
+
+        match maybeJson with
+        | None -> None
+        | Some(json) ->
+            let ticker = CoinMarketCapJsonProvider.Parse(json)
+            if (ticker.Length <> 1) then
+                failwith ("Unexpected length of json main array: " + json)
+            Some(ticker.[0].PriceUsd)

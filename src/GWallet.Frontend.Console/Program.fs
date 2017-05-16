@@ -118,12 +118,23 @@ let DisplayStatus() =
                                   account.PublicAddress
             Console.WriteLine(accountInfo)
 
-            let balance = AccountApi.GetBalance(account)
-            let balanceInUsd = (FiatValueEstimation.UsdValue account.Currency) * balance
-            let status = sprintf "Balance=[%s]  ~ %s USD"
-                             (balance.ToString())
-                             (balanceInUsd.ToString())
-            Console.WriteLine(status)
+            let maybeBalance = AccountApi.GetBalance(account)
+            match maybeBalance with
+            | None ->
+                Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
+            | Some(balance) ->
+                let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
+
+                let balanceInUsd =
+                    match maybeUsdValue with
+                    | None -> " (fiat price server unreachable... off-line?)"
+                    | Some(usdValue) ->
+                        sprintf "~ %s USD" ((balance * usdValue).ToString())
+
+                let status = sprintf "Balance=[%s] %s"
+                                 (balance.ToString())
+                                 (balanceInUsd)
+                Console.WriteLine(status)
 
             Console.WriteLine()
     else
@@ -171,11 +182,14 @@ let rec AskAmount() =
 
 let rec AskFee(currency: Currency): Option<EtherMinerFee> =
     let estimatedFee = AccountApi.EstimateFee(currency)
-    let estimatedFeeInUsd = FiatValueEstimation.UsdValue(currency) * estimatedFee.EtherPriceForNormalTransaction
-    Console.Write(sprintf "Estimated fee for this transaction would be:%s %s Ether (~%s USD) %s Do you accept? (Y/N): "
+    let estimatedFeeInUsd =
+        match FiatValueEstimation.UsdValue(currency) with
+        | Some(usdValue) -> sprintf "(~%s USD)" ((usdValue * estimatedFee.EtherPriceForNormalTransaction).ToString())
+        | None -> "(USD exchange rate unreachable... offline?)"
+    Console.Write(sprintf "Estimated fee for this transaction would be:%s %s Ether %s %s Do you accept? (Y/N): "
                       Environment.NewLine
                       (estimatedFee.EtherPriceForNormalTransaction.ToString())
-                      (estimatedFeeInUsd.ToString())
+                      estimatedFeeInUsd
                       Environment.NewLine
                  )
     let yesNoAnswer = Console.ReadLine().ToLowerInvariant()
