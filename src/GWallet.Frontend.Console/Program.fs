@@ -108,7 +108,9 @@ let rec AskCurrency(): Currency =
     | :? NoOptionFound -> AskCurrency()
 
 let DisplayStatus() =
-    Console.WriteLine("** STATUS **")
+    Console.WriteLine ()
+    Console.WriteLine "*** STATUS ***"
+
     let accounts = AccountApi.GetAllAccounts()
     if (accounts.Any()) then
         for i = 0 to accounts.Count() - 1 do
