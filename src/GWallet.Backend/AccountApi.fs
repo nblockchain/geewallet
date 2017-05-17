@@ -38,7 +38,7 @@ module AccountApi =
         else
             IsOfTypeOrItsInner<'T>(ex.InnerException)
 
-    let GetBalance(account: Account): Option<decimal> =
+    let GetBalance(account: IAccount): Option<decimal> =
         let web3 =
             match account.Currency with
             | Currency.ETH -> ethWeb3
@@ -57,7 +57,7 @@ module AccountApi =
         | None -> None
         | Some(balance) -> Some(UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether))
 
-    let GetAllAccounts(): seq<Account> =
+    let GetAllAccounts(): seq<IAccount> =
         seq {
             let allCurrencies = Enum.GetValues(typeof<Currency>).Cast<Currency>() |> List.ofSeq
 
@@ -77,17 +77,18 @@ module AccountApi =
         let gasPrice = gasPriceTask.Result
         { GasPriceInWei = gasPrice.Value; EstimationTime = DateTime.Now; Currency = currency }
 
-    let SendPayment (account: Account) (destination: string) (amount: decimal) (password: string) (minerFee: EtherMinerFee) =
-        if (minerFee.Currency <> account.Currency) then
+    let SendPayment (account: NormalAccount) (destination: string) (amount: decimal) (password: string) (minerFee: EtherMinerFee) =
+        let currency = (account :> IAccount).Currency
+        if (minerFee.Currency <> currency) then
             invalidArg "account" "currency of account param must be equal to currency of minerFee param"
 
         let web3 =
-            match account.Currency with
+            match currency with
             | Currency.ETH -> ethWeb3
             | Currency.ETC -> etcWeb3
             | _ -> failwith("currency unknown")
 
-        let transCountTask = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(account.PublicAddress)
+        let transCountTask = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync((account :> IAccount).PublicAddress)
 
         let privKeyInBytes =
             try
@@ -129,6 +130,11 @@ module AccountApi =
         | ex when ex.Message.StartsWith(insufficientFundsMsg) || ex.InnerException.Message.StartsWith(insufficientFundsMsg) ->
             raise (InsufficientFunds)
 
+    let AddPublicWatcher currency (publicAddress: string) =
+        let readOnlyAccount = ReadOnlyAccount(currency, publicAddress)
+        Config.AddReadonly readOnlyAccount
+        readOnlyAccount
+
     let Create currency password =
         let privateKey = EthECKey.GenerateKey()
         let privateKeyAsBytes = EthECKey.GetPrivateKeyAsBytes(privateKey)
@@ -143,7 +149,7 @@ module AccountApi =
         let publicAddress = EthECKey.GetPublicAddress(privateKey)
 
         let accountSerializedJson = keyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password, privateKeyTrimmed, publicAddress)
-        let account = { Currency = currency; Json = accountSerializedJson }
+        let account = NormalAccount(currency, accountSerializedJson)
         Config.Add account
         account
 

@@ -5,10 +5,11 @@ open System.Text.RegularExpressions
 open GWallet.Backend
 
 type Options =
-    | Exit          = 0
-    | Refresh       = 1
-    | CreateAccount = 2
-    | SendPayment   = 3
+    | Exit               = 0
+    | Refresh            = 1
+    | CreateAccount      = 2
+    | SendPayment        = 3
+    | AddReadonlyAccount = 4
 
 let ConvertPascalCaseToSentence(pascalCaseElement: string) =
     Regex.Replace(pascalCaseElement, "[a-z][A-Z]",
@@ -112,8 +113,13 @@ let DisplayStatus() =
     if (accounts.Any()) then
         for i = 0 to accounts.Count() - 1 do
             let account = accounts.ElementAt(i)
-            let accountInfo = sprintf "Account %d:%sCurrency=[%s] Address=[%s]"
-                                  (i+1) Environment.NewLine
+            let maybeReadOnly =
+                match account with
+                | :? ReadOnlyAccount -> "(READ-ONLY)"
+                | _ -> String.Empty
+
+            let accountInfo = sprintf "Account %d: %s%sCurrency=[%s] Address=[%s]"
+                                  (i+1) maybeReadOnly Environment.NewLine
                                   (account.Currency.ToString())
                                   account.PublicAddress
             Console.WriteLine(accountInfo)
@@ -141,7 +147,7 @@ let DisplayStatus() =
         Console.WriteLine("No accounts have been created so far.")
     accounts.Count()
 
-let rec AskAccount(): Account =
+let rec AskAccount(): IAccount =
     let allAccounts = AccountApi.GetAllAccounts()
     Console.Write("Write the account number: ")
     let accountNumber = Console.ReadLine()
@@ -156,19 +162,19 @@ let rec AskAccount(): Account =
         theAccountChosen
 
 let ETHEREUM_ADDRESSES_LENGTH = 42
-let rec AskDestination() =
-    Console.Write("Destination address: ")
-    let destAddress = Console.ReadLine()
-    if not (destAddress.StartsWith("0x")) then
-        Console.Error.WriteLine("Error: destination address should start with '0x', please try again.")
-        AskDestination()
-    else if (destAddress.Length <> ETHEREUM_ADDRESSES_LENGTH) then
+let rec AskPublicAddress (askText: string) =
+    Console.Write askText
+    let publicAddress = Console.ReadLine()
+    if not (publicAddress.StartsWith("0x")) then
+        Console.Error.WriteLine("Error: address should start with '0x', please try again.")
+        AskPublicAddress askText
+    else if (publicAddress.Length <> ETHEREUM_ADDRESSES_LENGTH) then
         Console.Error.WriteLine(
-            sprintf "Error: destination address should have a length of %d characters, please try again."
+            sprintf "Error: address should have a length of %d characters, please try again."
                 ETHEREUM_ADDRESSES_LENGTH)
-        AskDestination()
+        AskPublicAddress askText
     else
-        destAddress
+        publicAddress
 
 let rec AskAmount() =
     Console.Write("Amount of ether: ")
@@ -220,16 +226,28 @@ let rec PerformOptions(numAccounts: int) =
         let currency = AskCurrency()
         let password = AskPassword true
         let account = AccountApi.Create currency password
-        Console.WriteLine("Account created: " + account.PublicAddress)
+        Console.WriteLine("Account created: " + (account:>IAccount).PublicAddress)
     | Options.Refresh -> ()
     | Options.SendPayment ->
         let account = AskAccount()
-        let destination = AskDestination()
-        let amount = AskAmount()
-        let maybeFee = AskFee(account.Currency)
-        match maybeFee with
-        | None -> ()
-        | Some(fee) -> TrySendAmount account destination amount fee
+        match account with
+        | :? ReadOnlyAccount as readOnlyAccount ->
+            Console.Error.WriteLine("Cannot send payments from readonly accounts (as you don't own the private key)")
+            ()
+        | :? NormalAccount as normalAccount ->
+            let destination = AskPublicAddress "Destination address: "
+            let amount = AskAmount()
+            let maybeFee = AskFee(account.Currency)
+            match maybeFee with
+            | None -> ()
+            | Some(fee) -> TrySendAmount normalAccount destination amount fee
+        | _ ->
+            failwith ("Account type not recognized: " + account.GetType().FullName)
+    | Options.AddReadonlyAccount ->
+        let currency = AskCurrency()
+        let accountPublicInfo = AskPublicAddress "Public address: "
+        let roAccount = AccountApi.AddPublicWatcher currency accountPublicInfo
+        ()
     | _ -> failwith "Unreachable"
 
 let rec ProgramMainLoop() =

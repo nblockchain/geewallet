@@ -7,6 +7,8 @@ open Nethereum.KeyStore
 
 module Config =
 
+    let keyStoreService = KeyStoreService()
+
     let private GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
@@ -14,30 +16,48 @@ module Config =
             configDir.Create()
         configDir
 
-    let private GetConfigDirForWallets() =
+    let private GetConfigDirForAccounts() =
         let configPath = GetConfigDirForThisProgram().FullName
         let configDir = DirectoryInfo(Path.Combine(configPath, "accounts"))
         if not configDir.Exists then
             configDir.Create()
         configDir
 
-    let private GetConfigDirForThisCurrency(currency: Currency) =
-        let configDir = DirectoryInfo(Path.Combine(GetConfigDirForWallets().FullName, currency.ToString()))
+    let private GetConfigDirForAccountsOfThisCurrency(currency: Currency) =
+        let configDir = DirectoryInfo(Path.Combine(GetConfigDirForAccounts().FullName, currency.ToString()))
         if not configDir.Exists then
             configDir.Create()
         configDir
 
-    let GetAllAccounts(currency: Currency): seq<Account> =
-        let configDir = GetConfigDirForThisCurrency(currency)
+    let private GetConfigDirForReadonlyAccountsOfThisCurrency(currency: Currency) =
+        let configDir = DirectoryInfo(Path.Combine(GetConfigDirForAccounts().FullName,
+                                                   "readonly", currency.ToString()))
+        if not configDir.Exists then
+            configDir.Create()
+        configDir
+
+    let GetAllAccounts(currency: Currency): seq<IAccount> =
+        let configDirForNormalAccounts = GetConfigDirForAccountsOfThisCurrency(currency)
+        let configDirForReadonlyAccounts = GetConfigDirForReadonlyAccountsOfThisCurrency(currency)
         seq {
-            for file in Directory.GetFiles(configDir.FullName) do
-                yield ({ Json = File.ReadAllText(file); Currency = currency })
+            for filePath in Directory.GetFiles(configDirForNormalAccounts.FullName) do
+                let json = File.ReadAllText(filePath)
+                yield NormalAccount(currency, json) :> IAccount
+
+            for filePath in Directory.GetFiles(configDirForReadonlyAccounts.FullName) do
+                let fileName = Path.GetFileName(filePath)
+                yield ReadOnlyAccount(currency, fileName) :> IAccount
         }
 
-    let Add (account: Account) =
-        let configDir = GetConfigDirForThisCurrency(account.Currency)
-        let keyStoreService = KeyStoreService()
-        let fileName = keyStoreService.GenerateUTCFileName(account.PublicAddress)
+    let Add (account: NormalAccount) =
+        let configDir = GetConfigDirForAccountsOfThisCurrency((account:>IAccount).Currency)
+        let fileName = keyStoreService.GenerateUTCFileName((account:>IAccount).PublicAddress)
         let configFile = Path.Combine(configDir.FullName, fileName)
         File.WriteAllText(configFile, account.Json)
+
+    let AddReadonly (account: ReadOnlyAccount) =
+        let configDir = GetConfigDirForReadonlyAccountsOfThisCurrency((account:>IAccount).Currency)
+        let fileName = (account:>IAccount).PublicAddress
+        let configFile = Path.Combine(configDir.FullName, fileName)
+        File.WriteAllText(configFile, String.Empty)
 
