@@ -107,6 +107,8 @@ let rec AskCurrency(): Currency =
     with
     | :? NoOptionFound -> AskCurrency()
 
+let exchangeRateUnreachableMsg = " (USD exchange rate unreachable... offline?)"
+
 let DisplayStatus() =
     Console.WriteLine ()
     Console.WriteLine "*** STATUS ***"
@@ -135,7 +137,7 @@ let DisplayStatus() =
 
                 let balanceInUsd =
                     match maybeUsdValue with
-                    | None -> " (fiat price server unreachable... off-line?)"
+                    | None -> exchangeRateUnreachableMsg
                     | Some(usdValue) ->
                         sprintf "~ %s USD" ((balance * usdValue).ToString())
 
@@ -193,7 +195,7 @@ let rec AskFee(currency: Currency): Option<EtherMinerFee> =
     let estimatedFeeInUsd =
         match FiatValueEstimation.UsdValue(currency) with
         | Some(usdValue) -> sprintf "(~%s USD)" ((usdValue * estimatedFee.EtherPriceForNormalTransaction).ToString())
-        | None -> "(USD exchange rate unreachable... offline?)"
+        | None -> exchangeRateUnreachableMsg
     Console.Write(sprintf "Estimated fee for this transaction would be:%s %s Ether %s %s Do you accept? (Y/N): "
                       Environment.NewLine
                       (estimatedFee.EtherPriceForNormalTransaction.ToString())
