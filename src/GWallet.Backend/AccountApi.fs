@@ -38,7 +38,7 @@ module AccountApi =
         else
             IsOfTypeOrItsInner<'T>(ex.InnerException)
 
-    let GetBalance(account: IAccount): Option<decimal> =
+    let GetBalance(account: IAccount): MaybeLoadedFromCache<decimal> =
         let web3 =
             match account.Currency with
             | Currency.ETH -> ethWeb3
@@ -54,8 +54,11 @@ module AccountApi =
             | ex when IsOfTypeOrItsInner<WebException>(ex) -> None
 
         match maybeBalance with
-        | None -> None
-        | Some(balance) -> Some(UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether))
+        | None -> NotFresh(Caching.RetreiveLastBalance(account.PublicAddress))
+        | Some(balanceInWei) ->
+            let balanceInEth = UnitConversion.Convert.FromWei(balanceInWei, UnitConversion.EthUnit.Ether)
+            Caching.StoreLastBalance(account.PublicAddress, balanceInEth)
+            Fresh(balanceInEth)
 
     let GetAllAccounts(): seq<IAccount> =
         seq {

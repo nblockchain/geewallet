@@ -9,7 +9,7 @@ module Config =
 
     let keyStoreService = KeyStoreService()
 
-    let private GetConfigDirForThisProgram() =
+    let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
         if not configDir.Exists then

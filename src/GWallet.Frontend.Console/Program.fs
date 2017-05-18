@@ -128,22 +128,33 @@ let DisplayStatus() =
                                   account.PublicAddress
             Console.WriteLine(accountInfo)
 
+            let balanceInUsdString balance maybeUsdValue =
+                match maybeUsdValue with
+                | NotFresh(NotAvailable) -> exchangeRateUnreachableMsg
+                | Fresh(usdValue) ->
+                    sprintf "~ %s USD" ((balance * usdValue).ToString())
+                | NotFresh(Cached(usdValue,time)) ->
+                    sprintf "~ %s USD (last known rate as of %s)"
+                        ((balance * usdValue).ToString())
+                        (time.ToString())
+
+            let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
+
             let maybeBalance = AccountApi.GetBalance(account)
             match maybeBalance with
-            | None ->
+            | NotFresh(NotAvailable) ->
                 Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
-            | Some(balance) ->
-                let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
-
-                let balanceInUsd =
-                    match maybeUsdValue with
-                    | None -> exchangeRateUnreachableMsg
-                    | Some(usdValue) ->
-                        sprintf "~ %s USD" ((balance * usdValue).ToString())
-
+            | NotFresh(Cached(balance,time)) ->
+                let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
+                                 (balance.ToString())
+                                 (time.ToString())
+                                 Environment.NewLine
+                                 (balanceInUsdString balance maybeUsdValue)
+                Console.WriteLine(status)
+            | Fresh(balance) ->
                 let status = sprintf "Balance=[%s] %s"
                                  (balance.ToString())
-                                 (balanceInUsd)
+                                 (balanceInUsdString balance maybeUsdValue)
                 Console.WriteLine(status)
 
             Console.WriteLine()
@@ -194,8 +205,13 @@ let rec AskFee(currency: Currency): Option<EtherMinerFee> =
     let estimatedFee = AccountApi.EstimateFee(currency)
     let estimatedFeeInUsd =
         match FiatValueEstimation.UsdValue(currency) with
-        | Some(usdValue) -> sprintf "(~%s USD)" ((usdValue * estimatedFee.EtherPriceForNormalTransaction).ToString())
-        | None -> exchangeRateUnreachableMsg
+        | Fresh(usdValue) ->
+            sprintf "(~%s USD)" ((usdValue * estimatedFee.EtherPriceForNormalTransaction).ToString())
+        | NotFresh(Cached(usdValue,time)) ->
+            sprintf "(~%s USD [last known rate at %s])"
+                ((usdValue * estimatedFee.EtherPriceForNormalTransaction).ToString())
+                (time.ToString())
+        | NotFresh(NotAvailable) -> exchangeRateUnreachableMsg
     Console.Write(sprintf "Estimated fee for this transaction would be:%s %s Ether %s %s Do you accept? (Y/N): "
                       Environment.NewLine
                       (estimatedFee.EtherPriceForNormalTransaction.ToString())

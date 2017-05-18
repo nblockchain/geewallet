@@ -1,5 +1,6 @@
 ﻿namespace GWallet.Backend
 
+open System
 open System.Net
 
 open FSharp.Data
@@ -26,7 +27,7 @@ module FiatValueEstimation =
 ]
     """>
 
-    let UsdValue(currency: Currency): Option<decimal> =
+    let UsdValue(currency: Currency): MaybeLoadedFromCache<decimal> =
         use webClient = new WebClient()
         let tickerName =
             match currency with
@@ -41,9 +42,14 @@ module FiatValueEstimation =
             | :? WebException -> None
 
         match maybeJson with
-        | None -> None
+        | None ->
+            NotFresh(Caching.RetreiveLastFiatUsdPrice(currency))
         | Some(json) ->
             let ticker = CoinMarketCapJsonProvider.Parse(json)
             if (ticker.Length <> 1) then
                 failwith ("Unexpected length of json main array: " + json)
-            Some(ticker.[0].PriceUsd)
+
+            let usdPrice = ticker.[0].PriceUsd
+            let result = usdPrice
+            Caching.StoreLastFiatUsdPrice(currency, usdPrice)
+            Fresh(result)
