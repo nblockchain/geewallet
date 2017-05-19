@@ -250,19 +250,29 @@ let rec PerformOptions(numAccounts: int) =
     | Options.Refresh -> ()
     | Options.SendPayment ->
         let account = AskAccount()
-        match account with
-        | :? ReadOnlyAccount as readOnlyAccount ->
-            Console.Error.WriteLine("Cannot send payments from readonly accounts (as you don't own the private key)")
-            ()
-        | :? NormalAccount as normalAccount ->
-            let destination = AskPublicAddress "Destination address: "
-            let amount = AskAmount()
-            let maybeFee = AskFee(account.Currency)
-            match maybeFee with
-            | None -> ()
-            | Some(fee) -> TrySendAmount normalAccount destination amount fee
-        | _ ->
-            failwith ("Account type not recognized: " + account.GetType().FullName)
+        let destination = AskPublicAddress "Destination address: "
+        let amount = AskAmount()
+        let maybeFee = AskFee(account.Currency)
+        match maybeFee with
+        | None -> ()
+        | Some(fee) ->
+            match account with
+            | :? ReadOnlyAccount as readOnlyAccount ->
+                Console.WriteLine("Cannot send payments from readonly accounts.")
+                Console.Write("Introduce a file name to save the unsigned transaction: ")
+                let filePath = Console.ReadLine()
+                let proposal = {
+                    Currency = (readOnlyAccount:>IAccount).Currency;
+                    OriginAddress = (readOnlyAccount:>IAccount).PublicAddress;
+                    Amount = amount;
+                    DestinationAddress = destination;
+                }
+                AccountApi.SaveUnsignedTransaction proposal fee filePath
+                Console.WriteLine("Transaction saved. Now copy it to the device with the private key.")
+            | :? NormalAccount as normalAccount ->
+                TrySendAmount normalAccount destination amount fee
+            | _ ->
+                failwith ("Account type not recognized: " + account.GetType().FullName)
     | Options.AddReadonlyAccount ->
         let currency = AskCurrency()
         let accountPublicInfo = AskPublicAddress "Public address: "

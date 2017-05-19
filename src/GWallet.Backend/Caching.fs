@@ -41,6 +41,11 @@ module internal Caching =
     let mutable private sessionCachedNetworkData: Option<CachedNetworkData> = LoadFromDisk ()
     let private lockObject = Object()
 
+    let internal GetLastCachedData (): CachedNetworkData =
+        lock lockObject (fun _ ->
+            sessionCachedNetworkData.Value
+        )
+
     let private SaveToDisk (newCachedData: Option<CachedNetworkData>) =
         let json =
             JsonConvert.SerializeObject(sessionCachedNetworkData, FSharpUtil.OptionConverter())

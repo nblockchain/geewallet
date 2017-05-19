@@ -4,12 +4,13 @@ open System
 open System.Net
 open System.Linq
 open System.Numerics
+open System.IO
 
 open Nethereum.Web3
 open Nethereum.Core.Signing.Crypto
 open Nethereum.KeyStore
 open NBitcoin.Crypto
-
+open Newtonsoft.Json
 
 exception InsufficientFunds
 exception InvalidPassword
@@ -26,6 +27,12 @@ module AccountApi =
 
     let private keyStoreService = KeyStoreService()
 
+    let private Web3(currency: Currency) =
+        match currency with
+        | Currency.ETH -> ethWeb3
+        | Currency.ETC -> etcWeb3
+        | _ -> failwith("currency unknown")
+
     // TODO: stop using this method below, in favour of new overloads proposed here: https://github.com/Nethereum/Nethereum/pull/124
     let ToHexString(byteArray: byte array) =
         BitConverter.ToString(byteArray).Replace("-", String.Empty)
@@ -39,11 +46,7 @@ module AccountApi =
             IsOfTypeOrItsInner<'T>(ex.InnerException)
 
     let GetBalance(account: IAccount): MaybeLoadedFromCache<decimal> =
-        let web3 =
-            match account.Currency with
-            | Currency.ETH -> ethWeb3
-            | Currency.ETC -> etcWeb3
-            | _ -> failwith("currency unknown")
+        let web3 = Web3(account.Currency)
 
         let maybeBalance =
             try
@@ -70,28 +73,24 @@ module AccountApi =
         }
 
     let EstimateFee (currency: Currency): EtherMinerFee =
-        let web3 =
-            match currency with
-            | Currency.ETH -> ethWeb3
-            | Currency.ETC -> etcWeb3
-            | _ -> failwith("currency unknown")
+        let web3 = Web3(currency)
         let gasPriceTask = web3.Eth.GasPrice.SendRequestAsync()
         gasPriceTask.Wait()
         let gasPrice = gasPriceTask.Result
         { GasPriceInWei = gasPrice.Value; EstimationTime = DateTime.Now; Currency = currency }
+
+    let private GetTransactionCount (currency: Currency, publicAddress: string) =
+        let web3 = Web3(currency)
+        let transCountTask = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(publicAddress)
+        transCountTask.Wait()
+        transCountTask.Result
 
     let SendPayment (account: NormalAccount) (destination: string) (amount: decimal) (password: string) (minerFee: EtherMinerFee) =
         let currency = (account :> IAccount).Currency
         if (minerFee.Currency <> currency) then
             invalidArg "account" "currency of account param must be equal to currency of minerFee param"
 
-        let web3 =
-            match currency with
-            | Currency.ETH -> ethWeb3
-            | Currency.ETC -> etcWeb3
-            | _ -> failwith("currency unknown")
-
-        let transCountTask = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync((account :> IAccount).PublicAddress)
+        let web3 = Web3(currency)
 
         let privKeyInBytes =
             try
@@ -104,8 +103,7 @@ module AccountApi =
         let privKeyInHexString = ToHexString(privKeyInBytes)
         let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
 
-        transCountTask.Wait()
-        let transCount = transCountTask.Result
+        let transCount = GetTransactionCount(currency, (account:>IAccount).PublicAddress)
 
         let trans = web3.OfflineTransactionSigning.SignTransaction(
                         privKeyInHexString,
@@ -155,4 +153,29 @@ module AccountApi =
         let account = NormalAccount(currency, accountSerializedJson)
         Config.Add account
         account
+
+    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
+        let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
+        if (transCount.Value > BigInteger(Int64.MaxValue)) then
+            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
+                          (transCount.Value.ToString()))
+        if (fee.GasPriceInWei > BigInteger(Int64.MaxValue)) then
+            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
+                          (fee.GasPriceInWei.ToString()))
+
+        let unsignedTransaction =
+            {
+                Proposal = transProposal;
+                TransactionCount = BigInteger.op_Explicit transCount.Value;
+                Cache = Caching.GetLastCachedData();
+                GasPriceInWei = BigInteger.op_Explicit fee.GasPriceInWei;
+            }
+        let json =
+            JsonConvert.SerializeObject(unsignedTransaction)
+        File.WriteAllText(filePath, json)
+
+        // TODO: this line below works without the UnionConverter() or any other, should we get rid of it from FSharpUtils then?
+        //let deserObj = JsonConvert.DeserializeObject<UnsignedTransaction>(json)
+
+        ()
 
