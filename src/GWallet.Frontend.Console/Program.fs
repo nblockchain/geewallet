@@ -310,6 +310,8 @@ let BroadcastPayment() =
     let filePathToReadFrom = Console.ReadLine()
     let signedTransaction = AccountApi.LoadSignedTransactionFromFile filePathToReadFrom
     //TODO: check if nonce matches, if not, reject trans
+
+    // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
     ShowTransactionData(signedTransaction.TransactionInfo)
     if AskAccept() then
         let txId = AccountApi.BroadcastTransaction signedTransaction
