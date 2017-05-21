@@ -89,7 +89,7 @@ module AccountApi =
         transCountTask.Wait()
         transCountTask.Result
 
-    let private BroadcastTransaction (web3: Web3) trans =
+    let private BroadcastRawTransaction (web3: Web3) trans =
         let insufficientFundsMsg = "Insufficient funds"
         try
             let sendRawTransTask = web3.Eth.Transactions.SendRawTransaction.SendRequestAsync("0x" + trans)
@@ -99,6 +99,10 @@ module AccountApi =
         with
         | ex when ex.Message.StartsWith(insufficientFundsMsg) || ex.InnerException.Message.StartsWith(insufficientFundsMsg) ->
             raise (InsufficientFunds)
+
+    let BroadcastTransaction (trans: SignedTransaction) =
+        let web3 = Web3(trans.TransactionInfo.Proposal.Currency)
+        BroadcastRawTransaction web3 trans.RawTransaction
 
     let SignTransaction (account: NormalAccount)
                         (transCount: BigInteger)
@@ -148,7 +152,7 @@ module AccountApi =
         let trans = SignTransaction account transCount.Value destination amount minerFee password
 
         let web3 = Web3(currency)
-        BroadcastTransaction web3 trans
+        BroadcastRawTransaction web3 trans
 
     let SignUnsignedTransaction account (unsignedTrans: UnsignedTransaction) password =
         let rawTransaction = SignTransaction account
@@ -203,6 +207,12 @@ module AccountApi =
         let json =
             JsonConvert.SerializeObject(unsignedTransaction)
         File.WriteAllText(filePath, json)
+
+    let LoadSignedTransactionFromFile (filePath: string) =
+        let signedTransInJson = File.ReadAllText(filePath)
+
+        // TODO: this line below works without the UnionConverter() or any other, should we get rid of it from FSharpUtils then?
+        JsonConvert.DeserializeObject<SignedTransaction>(signedTransInJson)
 
     let LoadUnsignedTransactionFromFile (filePath: string) =
         let unsignedTransInJson = File.ReadAllText(filePath)

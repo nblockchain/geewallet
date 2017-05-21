@@ -11,6 +11,7 @@ type Options =
     | SendPayment        = 3
     | AddReadonlyAccount = 4
     | SignOffPayment     = 5
+    | BroadcastPayment   = 6
 
 let ConvertPascalCaseToSentence(pascalCaseElement: string) =
     Regex.Replace(pascalCaseElement, "[a-z][A-Z]",
@@ -283,6 +284,38 @@ let rec TrySign account unsignedTrans =
         Console.Error.WriteLine("Invalid password, try again.")
         TrySign account unsignedTrans
 
+let ShowTransactionData trans =
+    let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Currency)
+    let estimatedAmountInUsd =
+        match maybeUsdPrice with
+        | Fresh(usdPrice) ->
+            Some(sprintf "~ %s USD" ((trans.Proposal.Amount * usdPrice).ToString()))
+        | NotFresh(Cached(usdPrice, time)) ->
+            Some(sprintf "~ %s USD (last exchange rate known at %s)"
+                    ((trans.Proposal.Amount * usdPrice).ToString())
+                    (time.ToString()))
+        | NotFresh(NotAvailable) -> None
+
+    Console.WriteLine("Transaction data:")
+    Console.WriteLine("Sender: " + trans.Proposal.OriginAddress)
+    Console.WriteLine("Recipient: " + trans.Proposal.DestinationAddress)
+    Console.Write("Amount: " + trans.Proposal.Amount.ToString())
+    if (estimatedAmountInUsd.IsSome) then
+        Console.Write("  " + estimatedAmountInUsd.Value.ToString())
+    Console.WriteLine()
+    ShowFee trans.Proposal.Currency trans.Fee
+
+let BroadcastPayment() =
+    Console.Write("Introduce a file name to load the signed transaction: ")
+    let filePathToReadFrom = Console.ReadLine()
+    let signedTransaction = AccountApi.LoadSignedTransactionFromFile filePathToReadFrom
+    //TODO: check if nonce matches, if not, reject trans
+    ShowTransactionData(signedTransaction.TransactionInfo)
+    if AskAccept() then
+        let txId = AccountApi.BroadcastTransaction signedTransaction
+        Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
+        Console.WriteLine()
+
 let SignOffPayment() =
     Console.Write("Introduce a file name to load the unsigned transaction: ")
     let filePathToReadFrom = Console.ReadLine()
@@ -314,30 +347,12 @@ let SignOffPayment() =
                 Console.WriteLine ("Importing external data...")
                 Caching.SaveSnapshot unsignedTransaction.Cache
 
-                let maybeUsdPrice = FiatValueEstimation.UsdValue(account.Currency)
-                let estimatedAmountInUsd =
-                    match maybeUsdPrice with
-                    | Fresh(usdPrice) ->
-                        Some(sprintf "~ %s USD" ((unsignedTransaction.Proposal.Amount * usdPrice).ToString()))
-                    | NotFresh(Cached(usdPrice, time)) ->
-                        Some(sprintf "~ %s USD (last exchange rate known at %s)"
-                                ((unsignedTransaction.Proposal.Amount * usdPrice).ToString())
-                                (time.ToString()))
-                    | NotFresh(NotAvailable) -> None
-
                 Console.WriteLine ("Account to use when signing off this transaction:")
                 Console.WriteLine ()
                 DisplayAccountStatuses (WhichAccount.MatchingWith(account)) |> ignore
                 Console.WriteLine()
 
-                Console.WriteLine("Transaction data:")
-                Console.WriteLine("Sender: " + unsignedTransaction.Proposal.OriginAddress)
-                Console.WriteLine("Recipient: " + unsignedTransaction.Proposal.DestinationAddress)
-                Console.Write("Amount: " + unsignedTransaction.Proposal.Amount.ToString())
-                if (estimatedAmountInUsd.IsSome) then
-                    Console.Write("  " + estimatedAmountInUsd.Value.ToString())
-                Console.WriteLine()
-                ShowFee account.Currency unsignedTransaction.Fee
+                ShowTransactionData unsignedTransaction
 
                 if AskAccept() then
                     let trans = TrySign normalAccount unsignedTransaction
@@ -389,6 +404,8 @@ let rec PerformOptions(numAccounts: int) =
         ()
     | Options.SignOffPayment ->
         SignOffPayment()
+    | Options.BroadcastPayment ->
+        BroadcastPayment()
     | _ -> failwith "Unreachable"
 
 let rec ProgramMainLoop() =
