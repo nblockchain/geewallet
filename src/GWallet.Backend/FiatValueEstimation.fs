@@ -27,7 +27,7 @@ module FiatValueEstimation =
 ]
     """>
 
-    let UsdValue(currency: Currency): MaybeLoadedFromCache<decimal> =
+    let UsdValue(currency: Currency): MaybeCached<decimal> =
         use webClient = new WebClient()
         let tickerName =
             match currency with
@@ -43,7 +43,7 @@ module FiatValueEstimation =
 
         match maybeJson with
         | None ->
-            NotFresh(Caching.RetreiveLastFiatUsdPrice(currency))
+            NotFresh(Caching.RetreiveLastKnownUsdPrice(currency))
         | Some(json) ->
             let ticker = CoinMarketCapJsonProvider.Parse(json)
             if (ticker.Length <> 1) then

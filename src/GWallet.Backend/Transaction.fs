@@ -16,6 +16,12 @@ type UnsignedTransaction =
     {
         Proposal: UnsignedTransactionProposal;
         TransactionCount: Int64;
-        GasPriceInWei: Int64;
+        Fee: EtherMinerFee;
         Cache: CachedNetworkData;
+    }
+
+type SignedTransaction =
+    {
+        TransactionInfo: UnsignedTransaction;
+        RawTransaction: string;
     }

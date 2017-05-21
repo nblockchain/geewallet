@@ -10,6 +10,7 @@ type Options =
     | CreateAccount      = 2
     | SendPayment        = 3
     | AddReadonlyAccount = 4
+    | SignOffPayment     = 5
 
 let ConvertPascalCaseToSentence(pascalCaseElement: string) =
     Regex.Replace(pascalCaseElement, "[a-z][A-Z]",
@@ -30,7 +31,6 @@ let rec FindMatchingOption<'T> (optIntroduced, allOptions: ('T*int) list): 'T =
                 FindMatchingOption(optIntroduced, tail)
 
 let rec AskOption(numAccounts: int): Options =
-    Console.WriteLine()
     Console.WriteLine("Available options:")
 
     // TODO: move these 2 lines below to FSharpUtil?
@@ -109,58 +109,80 @@ let rec AskCurrency(): Currency =
 
 let exchangeRateUnreachableMsg = " (USD exchange rate unreachable... offline?)"
 
-let DisplayStatus() =
-    Console.WriteLine ()
-    Console.WriteLine "*** STATUS ***"
+type PublicAddress = string
+type WhichAccount =
+    All of seq<IAccount> | MatchingWith of IAccount
 
-    let accounts = AccountApi.GetAllAccounts()
-    if (accounts.Any()) then
-        for i = 0 to accounts.Count() - 1 do
-            let account = accounts.ElementAt(i)
-            let maybeReadOnly =
-                match account with
-                | :? ReadOnlyAccount -> "(READ-ONLY)"
-                | _ -> String.Empty
+let DisplayAccountStatus accountNumber (account: IAccount) =
+    let maybeReadOnly =
+        match account with
+        | :? ReadOnlyAccount -> "(READ-ONLY)"
+        | _ -> String.Empty
 
-            let accountInfo = sprintf "Account %d: %s%sCurrency=[%s] Address=[%s]"
-                                  (i+1) maybeReadOnly Environment.NewLine
-                                  (account.Currency.ToString())
-                                  account.PublicAddress
-            Console.WriteLine(accountInfo)
+    let accountInfo = sprintf "Account %d: %s%sCurrency=[%s] Address=[%s]"
+                            accountNumber maybeReadOnly Environment.NewLine
+                            (account.Currency.ToString())
+                            account.PublicAddress
+    Console.WriteLine(accountInfo)
 
-            let balanceInUsdString balance maybeUsdValue =
-                match maybeUsdValue with
-                | NotFresh(NotAvailable) -> exchangeRateUnreachableMsg
-                | Fresh(usdValue) ->
-                    sprintf "~ %s USD" ((balance * usdValue).ToString())
-                | NotFresh(Cached(usdValue,time)) ->
-                    sprintf "~ %s USD (last known rate as of %s)"
-                        ((balance * usdValue).ToString())
-                        (time.ToString())
+    let balanceInUsdString balance maybeUsdValue =
+        match maybeUsdValue with
+        | NotFresh(NotAvailable) -> exchangeRateUnreachableMsg
+        | Fresh(usdValue) ->
+            sprintf "~ %s USD" ((balance * usdValue).ToString())
+        | NotFresh(Cached(usdValue,time)) ->
+            sprintf "~ %s USD (last known rate as of %s)"
+                ((balance * usdValue).ToString())
+                (time.ToString())
 
-            let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
+    let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
 
-            let maybeBalance = AccountApi.GetBalance(account)
-            match maybeBalance with
-            | NotFresh(NotAvailable) ->
-                Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
-            | NotFresh(Cached(balance,time)) ->
-                let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
-                                 (balance.ToString())
-                                 (time.ToString())
-                                 Environment.NewLine
-                                 (balanceInUsdString balance maybeUsdValue)
-                Console.WriteLine(status)
-            | Fresh(balance) ->
-                let status = sprintf "Balance=[%s] %s"
-                                 (balance.ToString())
-                                 (balanceInUsdString balance maybeUsdValue)
-                Console.WriteLine(status)
+    let maybeBalance = AccountApi.GetBalance(account)
+    match maybeBalance with
+    | NotFresh(NotAvailable) ->
+        Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
+    | NotFresh(Cached(balance,time)) ->
+        let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
+                            (balance.ToString())
+                            (time.ToString())
+                            Environment.NewLine
+                            (balanceInUsdString balance maybeUsdValue)
+        Console.WriteLine(status)
+    | Fresh(balance) ->
+        let status = sprintf "Balance=[%s] %s"
+                            (balance.ToString())
+                            (balanceInUsdString balance maybeUsdValue)
+        Console.WriteLine(status)
 
-            Console.WriteLine()
-    else
-        Console.WriteLine("No accounts have been created so far.")
-    accounts.Count()
+let DisplayAccountStatuses(whichAccount: WhichAccount) =
+    match whichAccount with
+    | WhichAccount.All(accounts) ->
+        Console.WriteLine ()
+        Console.WriteLine "*** STATUS ***"
+
+        if (accounts.Any()) then
+            for i = 0 to accounts.Count() - 1 do
+                let account = accounts.ElementAt(i)
+                DisplayAccountStatus (i+1) account
+                Console.WriteLine ()
+        else
+            Console.WriteLine("No accounts have been created so far.")
+        Console.WriteLine()
+
+    | MatchingWith(account) ->
+        let allAccounts =  AccountApi.GetAllAccounts()
+        let matchFilter = (fun (acc:IAccount) -> acc.PublicAddress = account.PublicAddress &&
+                                                 acc.Currency = account.Currency &&
+                                                 acc :? NormalAccount)
+        let accountsMatching = allAccounts.Where(matchFilter)
+        if (accountsMatching.Count() <> 1) then
+            failwith (sprintf
+                            "account %s(%s) not found in config, or more than one with same public address?"
+                            account.PublicAddress (account.Currency.ToString()))
+        for i = 0 to allAccounts.Count() - 1 do
+            let iterAccount = allAccounts.ElementAt(i)
+            if (matchFilter (iterAccount)) then
+                DisplayAccountStatus (i+1) iterAccount
 
 let rec AskAccount(): IAccount =
     let allAccounts = AccountApi.GetAllAccounts()
@@ -201,8 +223,17 @@ let rec AskAmount() =
     | (true, parsedAdmount) ->
         parsedAdmount
 
-let rec AskFee(currency: Currency): Option<EtherMinerFee> =
-    let estimatedFee = AccountApi.EstimateFee(currency)
+let rec AskAccept (): bool =
+    Console.Write("Do you accept? (Y/N): ")
+    let yesNoAnswer = Console.ReadLine().ToLowerInvariant()
+    if (yesNoAnswer = "y") then
+        true
+    else if (yesNoAnswer = "n") then
+        false
+    else
+        AskAccept()
+
+let ShowFee currency (estimatedFee: EtherMinerFee) =
     let estimatedFeeInUsd =
         match FiatValueEstimation.UsdValue(currency) with
         | Fresh(usdValue) ->
@@ -212,19 +243,20 @@ let rec AskFee(currency: Currency): Option<EtherMinerFee> =
                 ((usdValue * estimatedFee.EtherPriceForNormalTransaction).ToString())
                 (time.ToString())
         | NotFresh(NotAvailable) -> exchangeRateUnreachableMsg
-    Console.Write(sprintf "Estimated fee for this transaction would be:%s %s Ether %s %s Do you accept? (Y/N): "
-                      Environment.NewLine
-                      (estimatedFee.EtherPriceForNormalTransaction.ToString())
-                      estimatedFeeInUsd
-                      Environment.NewLine
-                 )
-    let yesNoAnswer = Console.ReadLine().ToLowerInvariant()
-    if (yesNoAnswer = "y") then
+    Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s Ether %s"
+                          Environment.NewLine
+                          (estimatedFee.EtherPriceForNormalTransaction.ToString())
+                          estimatedFeeInUsd
+                     )
+
+let AskFee(currency: Currency): Option<EtherMinerFee> =
+    let estimatedFee = AccountApi.EstimateFee(currency)
+    ShowFee currency estimatedFee
+    let accept = AskAccept()
+    if accept then
         Some(estimatedFee)
-    else if (yesNoAnswer = "n") then
-        None
     else
-        AskFee(currency)
+        None
 
 let rec TrySendAmount account destination amount fee =
     let password = AskPassword false
@@ -239,6 +271,83 @@ let rec TrySendAmount account destination amount fee =
         Console.Error.WriteLine("Invalid password, try again.")
         TrySendAmount account destination amount fee
 
+let rec TrySign account unsignedTrans =
+    let password = AskPassword false
+    try
+        AccountApi.SignUnsignedTransaction account unsignedTrans password
+    with
+    // TODO: would this throw insufficient funds? test
+    //| :? InsufficientFunds ->
+    //    Console.Error.WriteLine("Insufficient funds")
+    | :? InvalidPassword ->
+        Console.Error.WriteLine("Invalid password, try again.")
+        TrySign account unsignedTrans
+
+let SignOffPayment() =
+    Console.Write("Introduce a file name to load the unsigned transaction: ")
+    let filePathToReadFrom = Console.ReadLine()
+    let unsignedTransaction = AccountApi.LoadUnsignedTransactionFromFile filePathToReadFrom
+
+    let accountsWithSameAddress =
+        AccountApi.GetAllAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)
+    if not (accountsWithSameAddress.Any()) then
+        Console.Error.WriteLine("Error: The transaction doesn't correspond to any of the accounts in the wallet")
+    else
+        let accounts =
+            accountsWithSameAddress.Where(
+                fun acc -> acc.Currency = unsignedTransaction.Proposal.Currency &&
+                           acc :? NormalAccount)
+        if not (accounts.Any()) then
+            Console.Error.WriteLine(
+                sprintf
+                    "Error: The transaction corresponds to an address of the accounts in this wallet, but it's a readonly account or it maps a different currency than %s"
+                     (unsignedTransaction.Proposal.Currency.ToString()))
+        else
+            let account = accounts.First()
+            if (accounts.Count() > 1) then
+                failwith "More than one normal account matching address and currency? Please report this issue."
+
+            match account with
+            | :? ReadOnlyAccount as readOnlyAccount ->
+                failwith "Previous account filtering should have discarded readonly accounts already. Please report this issue"
+            | :? NormalAccount as normalAccount ->
+                Console.WriteLine ("Importing external data...")
+                Caching.SaveSnapshot unsignedTransaction.Cache
+
+                let maybeUsdPrice = FiatValueEstimation.UsdValue(account.Currency)
+                let estimatedAmountInUsd =
+                    match maybeUsdPrice with
+                    | Fresh(usdPrice) ->
+                        Some(sprintf "~ %s USD" ((unsignedTransaction.Proposal.Amount * usdPrice).ToString()))
+                    | NotFresh(Cached(usdPrice, time)) ->
+                        Some(sprintf "~ %s USD (last exchange rate known at %s)"
+                                ((unsignedTransaction.Proposal.Amount * usdPrice).ToString())
+                                (time.ToString()))
+                    | NotFresh(NotAvailable) -> None
+
+                Console.WriteLine ("Account to use when signing off this transaction:")
+                Console.WriteLine ()
+                DisplayAccountStatuses (WhichAccount.MatchingWith(account)) |> ignore
+                Console.WriteLine()
+
+                Console.WriteLine("Transaction data:")
+                Console.WriteLine("Sender: " + unsignedTransaction.Proposal.OriginAddress)
+                Console.WriteLine("Recipient: " + unsignedTransaction.Proposal.DestinationAddress)
+                Console.Write("Amount: " + unsignedTransaction.Proposal.Amount.ToString())
+                if (estimatedAmountInUsd.IsSome) then
+                    Console.Write("  " + estimatedAmountInUsd.Value.ToString())
+                Console.WriteLine()
+                ShowFee account.Currency unsignedTransaction.Fee
+
+                if AskAccept() then
+                    let trans = TrySign normalAccount unsignedTransaction
+                    Console.WriteLine("Transaction signed.")
+                    Console.Write("Introduce a file name or path to save it: ")
+                    let filePathToSaveTo = Console.ReadLine()
+                    AccountApi.SaveSignedTransaction trans filePathToSaveTo
+                    Console.WriteLine("Transaction signed and saved successfully. Now copy it to the online device.")    
+            | _ ->
+                failwith "Account type not supported. Please report this issue."
 let rec PerformOptions(numAccounts: int) =
     match AskOption(numAccounts) with
     | Options.Exit -> exit 0
@@ -278,11 +387,14 @@ let rec PerformOptions(numAccounts: int) =
         let accountPublicInfo = AskPublicAddress "Public address: "
         let roAccount = AccountApi.AddPublicWatcher currency accountPublicInfo
         ()
+    | Options.SignOffPayment ->
+        SignOffPayment()
     | _ -> failwith "Unreachable"
 
 let rec ProgramMainLoop() =
-    let numAccounts = DisplayStatus()
-    PerformOptions(numAccounts)
+    let accounts = AccountApi.GetAllAccounts()
+    DisplayAccountStatuses(WhichAccount.All(accounts))
+    PerformOptions(accounts.Count())
     ProgramMainLoop()
 
 [<EntryPoint>]

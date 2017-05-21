@@ -7,12 +7,13 @@ open Nethereum.Web3
 
 type EtherMinerFee =
     {
-        GasPriceInWei: BigInteger;
+        GasPriceInWei: Int64;
         EstimationTime: DateTime;
         Currency: Currency;
     }
     member internal this.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION = BigInteger(21000)
     member this.EtherPriceForNormalTransaction: decimal =
-        let costInWei = BigInteger.Multiply(this.GasPriceInWei, this.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
+        let gasPriceInWei = BigInteger(this.GasPriceInWei)
+        let costInWei = BigInteger.Multiply(gasPriceInWei, this.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
         UnitConversion.Convert.FromWei(costInWei, UnitConversion.EthUnit.Ether)
 

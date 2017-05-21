@@ -45,7 +45,7 @@ module AccountApi =
         else
             IsOfTypeOrItsInner<'T>(ex.InnerException)
 
-    let GetBalance(account: IAccount): MaybeLoadedFromCache<decimal> =
+    let GetBalance(account: IAccount): MaybeCached<decimal> =
         let web3 = Web3(account.Currency)
 
         let maybeBalance =
@@ -77,7 +77,11 @@ module AccountApi =
         let gasPriceTask = web3.Eth.GasPrice.SendRequestAsync()
         gasPriceTask.Wait()
         let gasPrice = gasPriceTask.Result
-        { GasPriceInWei = gasPrice.Value; EstimationTime = DateTime.Now; Currency = currency }
+        if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
+            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
+                          (gasPrice.Value.ToString()))
+        let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
+        { GasPriceInWei = gasPrice64; EstimationTime = DateTime.Now; Currency = currency }
 
     let private GetTransactionCount (currency: Currency, publicAddress: string) =
         let web3 = Web3(currency)
@@ -85,12 +89,27 @@ module AccountApi =
         transCountTask.Wait()
         transCountTask.Result
 
-    let SendPayment (account: NormalAccount) (destination: string) (amount: decimal) (password: string) (minerFee: EtherMinerFee) =
+    let private BroadcastTransaction (web3: Web3) trans =
+        let insufficientFundsMsg = "Insufficient funds"
+        try
+            let sendRawTransTask = web3.Eth.Transactions.SendRawTransaction.SendRequestAsync("0x" + trans)
+            sendRawTransTask.Wait()
+            let txId = sendRawTransTask.Result
+            txId
+        with
+        | ex when ex.Message.StartsWith(insufficientFundsMsg) || ex.InnerException.Message.StartsWith(insufficientFundsMsg) ->
+            raise (InsufficientFunds)
+
+    let SignTransaction (account: NormalAccount)
+                        (transCount: BigInteger)
+                        (destination: string)
+                        (amount: decimal)
+                        (minerFee: EtherMinerFee)
+                        (password: string) =
+
         let currency = (account :> IAccount).Currency
         if (minerFee.Currency <> currency) then
             invalidArg "account" "currency of account param must be equal to currency of minerFee param"
-
-        let web3 = Web3(currency)
 
         let privKeyInBytes =
             try
@@ -103,33 +122,47 @@ module AccountApi =
         let privKeyInHexString = ToHexString(privKeyInBytes)
         let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
 
-        let transCount = GetTransactionCount(currency, (account:>IAccount).PublicAddress)
-
+        let web3 = Web3(currency)
         let trans = web3.OfflineTransactionSigning.SignTransaction(
                         privKeyInHexString,
                         destination,
                         amountInWei,
-                        transCount.Value,
+                        transCount,
 
                         // we use the SignTransaction() overload that has these 2 arguments because if we don't, we depend on
                         // how well the defaults are of Geth node we're connected to, e.g. with the myEtherWallet server I
                         // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
                         // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
-                        minerFee.GasPriceInWei,
+                        BigInteger(minerFee.GasPriceInWei),
                         minerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
         if not (web3.OfflineTransactionSigning.VerifyTransaction(trans)) then
             failwith "Transaction could not be verified?"
+        trans
 
-        let insufficientFundsMsg = "Insufficient funds"
-        try
-            let sendRawTransTask = web3.Eth.Transactions.SendRawTransaction.SendRequestAsync("0x" + trans)
-            sendRawTransTask.Wait()
-            let txId = sendRawTransTask.Result
-            txId
-        with
-        | ex when ex.Message.StartsWith(insufficientFundsMsg) || ex.InnerException.Message.StartsWith(insufficientFundsMsg) ->
-            raise (InsufficientFunds)
+    let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
+                    (password: string) (minerFee: EtherMinerFee) =
+        let currency = (account :> IAccount).Currency
+
+        let transCount = GetTransactionCount(currency, (account:>IAccount).PublicAddress)
+        let trans = SignTransaction account transCount.Value destination amount minerFee password
+
+        let web3 = Web3(currency)
+        BroadcastTransaction web3 trans
+
+    let SignUnsignedTransaction account (unsignedTrans: UnsignedTransaction) password =
+        let rawTransaction = SignTransaction account
+                                 (BigInteger(unsignedTrans.TransactionCount))
+                                 unsignedTrans.Proposal.DestinationAddress
+                                 unsignedTrans.Proposal.Amount
+                                 unsignedTrans.Fee
+                                 password
+        { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
+
+    let SaveSignedTransaction (trans: SignedTransaction) (filePath: string) =
+        let json =
+            JsonConvert.SerializeObject(trans)
+        File.WriteAllText(filePath, json)
 
     let AddPublicWatcher currency (publicAddress: string) =
         let readOnlyAccount = ReadOnlyAccount(currency, publicAddress)
@@ -159,23 +192,21 @@ module AccountApi =
         if (transCount.Value > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
                           (transCount.Value.ToString()))
-        if (fee.GasPriceInWei > BigInteger(Int64.MaxValue)) then
-            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
-                          (fee.GasPriceInWei.ToString()))
 
         let unsignedTransaction =
             {
                 Proposal = transProposal;
                 TransactionCount = BigInteger.op_Explicit transCount.Value;
                 Cache = Caching.GetLastCachedData();
-                GasPriceInWei = BigInteger.op_Explicit fee.GasPriceInWei;
+                Fee = fee;
             }
         let json =
             JsonConvert.SerializeObject(unsignedTransaction)
         File.WriteAllText(filePath, json)
 
-        // TODO: this line below works without the UnionConverter() or any other, should we get rid of it from FSharpUtils then?
-        //let deserObj = JsonConvert.DeserializeObject<UnsignedTransaction>(json)
+    let LoadUnsignedTransactionFromFile (filePath: string) =
+        let unsignedTransInJson = File.ReadAllText(filePath)
 
-        ()
+        // TODO: this line below works without the UnionConverter() or any other, should we get rid of it from FSharpUtils then?
+        JsonConvert.DeserializeObject<UnsignedTransaction>(unsignedTransInJson)
 
