@@ -86,6 +86,8 @@ module Caching =
                 let mergedBalances = Merge networkData.Balances newCachedData.Balances
                 let mergedUsdPrices = Merge networkData.UsdPrice newCachedData.UsdPrice
                 sessionCachedNetworkData <- Some({ Balances = mergedBalances; UsdPrice = mergedUsdPrices })
+
+            SaveToDisk(sessionCachedNetworkData)
         )
 
     let internal RetreiveLastKnownUsdPrice (currency): NotFresh<decimal> =
