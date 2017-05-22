@@ -25,8 +25,6 @@ module AccountApi =
     let private ethWeb3 = Web3(PUBLIC_WEB3_API_ETH)
     let private etcWeb3 = Web3(PUBLIC_WEB3_API_ETC)
 
-    let private keyStoreService = KeyStoreService()
-
     let private Web3(currency: Currency) =
         match currency with
         | Currency.ETH -> ethWeb3
@@ -117,7 +115,7 @@ module AccountApi =
 
         let privKeyInBytes =
             try
-                keyStoreService.DecryptKeyStoreFromJson(password, account.Json)
+                NormalAccount.KeyStoreService.DecryptKeyStoreFromJson(password, account.Json)
             with
             // FIXME: I don't like to parse exception messages... https://github.com/Nethereum/Nethereum/pull/122
             | ex when ex.Message.StartsWith("Cannot derive") ->
@@ -186,7 +184,10 @@ module AccountApi =
 
         let publicAddress = EthECKey.GetPublicAddress(privateKey)
 
-        let accountSerializedJson = keyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password, privateKeyTrimmed, publicAddress)
+        let accountSerializedJson =
+            NormalAccount.KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password,
+                                                                                  privateKeyTrimmed,
+                                                                                  publicAddress)
         let account = NormalAccount(currency, accountSerializedJson)
         Config.Add account
         account
