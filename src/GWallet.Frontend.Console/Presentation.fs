@@ -9,6 +9,9 @@ type CurrencyType =
 
 module Presentation =
 
+    let Error(message: string): unit =
+        Console.Error.WriteLine("Error: " + message)
+
     // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh
     let ShowSaneDate (date: DateTime): string =
         date.ToString("dd-MMM-yyyy")

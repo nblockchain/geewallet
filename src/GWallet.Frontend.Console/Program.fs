@@ -84,7 +84,7 @@ let rec AskPassword(repeat: bool): string =
         Console.Write("Repeat the password: ")
         let password2 = ConsoleReadPasswordLine()
         if (password <> password2) then
-            Console.Error.WriteLine("Passwords are not the same, please try again.")
+            Presentation.Error "Passwords are not the same, please try again."
             AskPassword(repeat)
         else
             password
@@ -201,11 +201,11 @@ let rec AskPublicAddress (askText: string) =
     Console.Write askText
     let publicAddress = Console.ReadLine()
     if not (publicAddress.StartsWith("0x")) then
-        Console.Error.WriteLine("Error: address should start with '0x', please try again.")
+        Presentation.Error "Address should start with '0x', please try again."
         AskPublicAddress askText
     else if (publicAddress.Length <> ETHEREUM_ADDRESSES_LENGTH) then
-        Console.Error.WriteLine(
-            sprintf "Error: address should have a length of %d characters, please try again."
+        Presentation.Error
+            (sprintf "Address should have a length of %d characters, please try again."
                 ETHEREUM_ADDRESSES_LENGTH)
         AskPublicAddress askText
     else
@@ -216,7 +216,7 @@ let rec AskAmount() =
     let amount = Console.ReadLine()
     match Decimal.TryParse(amount) with
     | (false, _) ->
-        Console.Error.WriteLine("Error: please enter a numeric amount")
+        Presentation.Error "Please enter a numeric amount."
         AskAmount()
     | (true, parsedAdmount) ->
         parsedAdmount
@@ -265,9 +265,9 @@ let rec TrySendAmount account destination amount fee =
         Console.WriteLine()
     with
     | :? InsufficientFunds ->
-        Console.Error.WriteLine("Insufficient funds")
+        Presentation.Error "Insufficient funds."
     | :? InvalidPassword ->
-        Console.Error.WriteLine("Invalid password, try again.")
+        Presentation.Error "Invalid password, try again."
         TrySendAmount account destination amount fee
 
 let rec TrySign account unsignedTrans =
@@ -277,9 +277,9 @@ let rec TrySign account unsignedTrans =
     with
     // TODO: would this throw insufficient funds? test
     //| :? InsufficientFunds ->
-    //    Console.Error.WriteLine("Insufficient funds")
+    //    Presentation.Error "Insufficient funds."
     | :? InvalidPassword ->
-        Console.Error.WriteLine("Invalid password, try again.")
+        Presentation.Error "Invalid password, try again."
         TrySign account unsignedTrans
 
 let ShowTransactionData trans =
@@ -324,16 +324,16 @@ let SignOffPayment() =
     let accountsWithSameAddress =
         AccountApi.GetAllAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)
     if not (accountsWithSameAddress.Any()) then
-        Console.Error.WriteLine("Error: The transaction doesn't correspond to any of the accounts in the wallet")
+        Presentation.Error "The transaction doesn't correspond to any of the accounts in the wallet."
     else
         let accounts =
             accountsWithSameAddress.Where(
                 fun acc -> acc.Currency = unsignedTransaction.Proposal.Currency &&
                            acc :? NormalAccount)
         if not (accounts.Any()) then
-            Console.Error.WriteLine(
+            Presentation.Error(
                 sprintf
-                    "Error: The transaction corresponds to an address of the accounts in this wallet, but it's a readonly account or it maps a different currency than %s"
+                    "The transaction corresponds to an address of the accounts in this wallet, but it's a readonly account or it maps a different currency than %s."
                      (unsignedTransaction.Proposal.Currency.ToString()))
         else
             let account = accounts.First()
