@@ -257,15 +257,22 @@ let AskFee(currency: Currency): Option<EtherMinerFee> =
     else
         None
 
+let PressAnyKeyToContinue() =
+    Console.WriteLine ()
+    Console.Write "Press any key to continue..."
+    Console.Read () |> ignore
+    Console.WriteLine ()
+
 let rec TrySendAmount account destination amount fee =
     let password = AskPassword false
     try
         let txId = AccountApi.SendPayment account destination amount password fee
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
-        Console.WriteLine()
+        PressAnyKeyToContinue ()
     with
     | :? InsufficientFunds ->
         Presentation.Error "Insufficient funds."
+        PressAnyKeyToContinue()
     | :? InvalidPassword ->
         Presentation.Error "Invalid password, try again."
         TrySendAmount account destination amount fee
@@ -314,7 +321,7 @@ let BroadcastPayment() =
     if AskAccept() then
         let txId = AccountApi.BroadcastTransaction signedTransaction
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
-        Console.WriteLine()
+        PressAnyKeyToContinue ()
 
 let SignOffPayment() =
     Console.Write("Introduce a file name to load the unsigned transaction: ")
@@ -325,6 +332,7 @@ let SignOffPayment() =
         AccountApi.GetAllAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)
     if not (accountsWithSameAddress.Any()) then
         Presentation.Error "The transaction doesn't correspond to any of the accounts in the wallet."
+        PressAnyKeyToContinue ()
     else
         let accounts =
             accountsWithSameAddress.Where(
@@ -335,6 +343,7 @@ let SignOffPayment() =
                 sprintf
                     "The transaction corresponds to an address of the accounts in this wallet, but it's a readonly account or it maps a different currency than %s."
                      (unsignedTransaction.Proposal.Currency.ToString()))
+            PressAnyKeyToContinue()
         else
             let account = accounts.First()
             if (accounts.Count() > 1) then
@@ -360,9 +369,11 @@ let SignOffPayment() =
                     Console.Write("Introduce a file name or path to save it: ")
                     let filePathToSaveTo = Console.ReadLine()
                     AccountApi.SaveSignedTransaction trans filePathToSaveTo
-                    Console.WriteLine("Transaction signed and saved successfully. Now copy it to the online device.")    
+                    Console.WriteLine("Transaction signed and saved successfully. Now copy it to the online device.")
+                    PressAnyKeyToContinue ()
             | _ ->
                 failwith "Account type not supported. Please report this issue."
+
 let rec PerformOptions(numAccounts: int) =
     match AskOption(numAccounts) with
     | Options.Exit -> exit 0
@@ -371,6 +382,7 @@ let rec PerformOptions(numAccounts: int) =
         let password = AskPassword true
         let account = AccountApi.Create currency password
         Console.WriteLine("Account created: " + (account:>IAccount).PublicAddress)
+        PressAnyKeyToContinue()
     | Options.Refresh -> ()
     | Options.SendPayment ->
         let account = AskAccount()
@@ -393,6 +405,7 @@ let rec PerformOptions(numAccounts: int) =
                 }
                 AccountApi.SaveUnsignedTransaction proposal fee filePath
                 Console.WriteLine("Transaction saved. Now copy it to the device with the private key.")
+                PressAnyKeyToContinue()
             | :? NormalAccount as normalAccount ->
                 TrySendAmount normalAccount destination amount fee
             | _ ->
