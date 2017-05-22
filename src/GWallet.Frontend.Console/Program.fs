@@ -3,6 +3,7 @@ open System.Linq
 open System.Text.RegularExpressions
 
 open GWallet.Backend
+open GWallet.Frontend.Console
 
 type Options =
     | Exit               = 0
@@ -12,10 +13,6 @@ type Options =
     | AddReadonlyAccount = 4
     | SignOffPayment     = 5
     | BroadcastPayment   = 6
-
-let ConvertPascalCaseToSentence(pascalCaseElement: string) =
-    Regex.Replace(pascalCaseElement, "[a-z][A-Z]",
-                  (fun (m: Match) -> m.Value.[0].ToString() + " " + Char.ToLower(m.Value.[1]).ToString()))
 
 exception NoOptionFound
 
@@ -43,7 +40,7 @@ let rec AskOption(numAccounts: int): Options =
                 if not (option = Options.SendPayment && numAccounts = 0) then
                     Console.WriteLine(sprintf "%d: %s"
                                           (int option)
-                                          (ConvertPascalCaseToSentence (option.ToString())))
+                                          (Presentation.ConvertPascalCaseToSentence (option.ToString())))
                     yield option, int option
         } |> List.ofSeq
     Console.Write("Choose option to perform: ")
@@ -130,11 +127,11 @@ let DisplayAccountStatus accountNumber (account: IAccount) =
         match maybeUsdValue with
         | NotFresh(NotAvailable) -> exchangeRateUnreachableMsg
         | Fresh(usdValue) ->
-            sprintf "~ %s USD" ((balance * usdValue).ToString())
+            sprintf "~ %s USD" (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
         | NotFresh(Cached(usdValue,time)) ->
             sprintf "~ %s USD (last known rate as of %s)"
-                ((balance * usdValue).ToString())
-                (time.ToString())
+                (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
+                (time |> Presentation.ShowSaneDate)
 
     let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
 
@@ -144,14 +141,14 @@ let DisplayAccountStatus accountNumber (account: IAccount) =
         Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
     | NotFresh(Cached(balance,time)) ->
         let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
-                            (balance.ToString())
-                            (time.ToString())
+                            (balance |> Presentation.ShowDecimalForHumans CurrencyType.Crypto)
+                            (time |> Presentation.ShowSaneDate)
                             Environment.NewLine
                             (balanceInUsdString balance maybeUsdValue)
         Console.WriteLine(status)
     | Fresh(balance) ->
         let status = sprintf "Balance=[%s] %s"
-                            (balance.ToString())
+                            (balance |> Presentation.ShowDecimalForHumans CurrencyType.Crypto)
                             (balanceInUsdString balance maybeUsdValue)
         Console.WriteLine(status)
 
@@ -238,15 +235,16 @@ let ShowFee currency (estimatedFee: EtherMinerFee) =
     let estimatedFeeInUsd =
         match FiatValueEstimation.UsdValue(currency) with
         | Fresh(usdValue) ->
-            sprintf "(~%s USD)" ((usdValue * estimatedFee.EtherPriceForNormalTransaction).ToString())
+            sprintf "(~%s USD)"
+                (usdValue * estimatedFee.EtherPriceForNormalTransaction |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
         | NotFresh(Cached(usdValue,time)) ->
             sprintf "(~%s USD [last known rate at %s])"
-                ((usdValue * estimatedFee.EtherPriceForNormalTransaction).ToString())
-                (time.ToString())
+                (usdValue * estimatedFee.EtherPriceForNormalTransaction |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
+                (time |> Presentation.ShowSaneDate)
         | NotFresh(NotAvailable) -> exchangeRateUnreachableMsg
     Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s Ether %s"
                           Environment.NewLine
-                          (estimatedFee.EtherPriceForNormalTransaction.ToString())
+                          (estimatedFee.EtherPriceForNormalTransaction |> Presentation.ShowDecimalForHumans CurrencyType.Crypto)
                           estimatedFeeInUsd
                      )
 
@@ -286,22 +284,22 @@ let rec TrySign account unsignedTrans =
 
 let ShowTransactionData trans =
     let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Currency)
-    let estimatedAmountInUsd =
+    let estimatedAmountInUsd: Option<string> =
         match maybeUsdPrice with
         | Fresh(usdPrice) ->
-            Some(sprintf "~ %s USD" ((trans.Proposal.Amount * usdPrice).ToString()))
+            Some(sprintf "~ %s USD" (trans.Proposal.Amount * usdPrice |> Presentation.ShowDecimalForHumans CurrencyType.Fiat))
         | NotFresh(Cached(usdPrice, time)) ->
             Some(sprintf "~ %s USD (last exchange rate known at %s)"
-                    ((trans.Proposal.Amount * usdPrice).ToString())
-                    (time.ToString()))
+                    (trans.Proposal.Amount * usdPrice |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
+                    (time |> Presentation.ShowSaneDate))
         | NotFresh(NotAvailable) -> None
 
     Console.WriteLine("Transaction data:")
     Console.WriteLine("Sender: " + trans.Proposal.OriginAddress)
     Console.WriteLine("Recipient: " + trans.Proposal.DestinationAddress)
-    Console.Write("Amount: " + trans.Proposal.Amount.ToString())
+    Console.Write("Amount: " + (trans.Proposal.Amount |> Presentation.ShowDecimalForHumans CurrencyType.Crypto))
     if (estimatedAmountInUsd.IsSome) then
-        Console.Write("  " + estimatedAmountInUsd.Value.ToString())
+        Console.Write("  " + estimatedAmountInUsd.Value)
     Console.WriteLine()
     ShowFee trans.Proposal.Currency trans.Fee
 
