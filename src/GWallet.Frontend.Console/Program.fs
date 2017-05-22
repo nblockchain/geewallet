@@ -386,8 +386,8 @@ let rec PerformOptions(numAccounts: int) =
                 Console.Write("Introduce a file name to save the unsigned transaction: ")
                 let filePath = Console.ReadLine()
                 let proposal = {
-                    Currency = (readOnlyAccount:>IAccount).Currency;
-                    OriginAddress = (readOnlyAccount:>IAccount).PublicAddress;
+                    Currency = account.Currency;
+                    OriginAddress = account.PublicAddress;
                     Amount = amount;
                     DestinationAddress = destination;
                 }
