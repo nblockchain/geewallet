@@ -20,6 +20,7 @@ module AccountApi =
     // TODO: to prevent having MyEtherApi as a SPOF, use more services, like https://infura.io/
     let private PUBLIC_WEB3_API_ETH = "https://api.myetherapi.com/eth" // docs: https://www.myetherapi.com/
 
+    // this below is https://classicetherwallet.com/'s public endpoint (TODO: to prevent having a SPOF, use https://etcchain.com/api/ too)
     let private PUBLIC_WEB3_API_ETC = "https://mewapi.epool.io"
 
     let private ethWeb3 = Web3(PUBLIC_WEB3_API_ETH)
