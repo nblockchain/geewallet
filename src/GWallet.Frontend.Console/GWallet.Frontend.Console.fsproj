@@ -46,12 +46,16 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+    <Reference Include="BouncyCastle.Crypto">
+      <HintPath>..\..\packages\BouncyCastle.1.8.1\lib\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Presentation.fs" />
     <Compile Include="Program.fs" />
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
@@ -76,11 +80,10 @@
     </Otherwise>
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
   <Target Name="AfterBuild">
+    <!-- sadly the 'Move' task is buggy in mono (see https://stackoverflow.com/a/32513114/544947) -->
+    <Copy SourceFiles="$(OutputPath)BouncyCastle.Crypto.dll" DestinationFiles="$(OutputPath)crypto.dll" />
   </Target>
-  -->
 </Project>
