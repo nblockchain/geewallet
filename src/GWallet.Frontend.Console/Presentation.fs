@@ -1,8 +1,9 @@
 ﻿namespace GWallet.Frontend.Console
 
 open System
-
 open System.Text.RegularExpressions
+
+open GWallet.Backend
 
 type CurrencyType =
     Fiat | Crypto
@@ -29,3 +30,43 @@ module Presentation =
     let ConvertPascalCaseToSentence(pascalCaseElement: string) =
         Regex.Replace(pascalCaseElement, "[a-z][A-Z]",
                       (fun (m: Match) -> m.Value.[0].ToString() + " " + Char.ToLower(m.Value.[1]).ToString()))
+
+    let internal ExchangeRateUnreachableMsg = " (USD exchange rate unreachable... offline?)"
+
+    let ShowFee currency (estimatedFee: EtherMinerFee) =
+        let estimatedFeeInUsd =
+            match FiatValueEstimation.UsdValue(currency) with
+            | Fresh(usdValue) ->
+                sprintf "(~%s USD)"
+                    (usdValue * estimatedFee.EtherPriceForNormalTransaction |> ShowDecimalForHumans CurrencyType.Fiat)
+            | NotFresh(Cached(usdValue,time)) ->
+                sprintf "(~%s USD [last known rate at %s])"
+                    (usdValue * estimatedFee.EtherPriceForNormalTransaction |> ShowDecimalForHumans CurrencyType.Fiat)
+                    (time |> ShowSaneDate)
+            | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
+        Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s Ether %s"
+                              Environment.NewLine
+                              (estimatedFee.EtherPriceForNormalTransaction |> ShowDecimalForHumans CurrencyType.Crypto)
+                              estimatedFeeInUsd
+                         )
+
+    let ShowTransactionData trans =
+        let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Currency)
+        let estimatedAmountInUsd: Option<string> =
+            match maybeUsdPrice with
+            | Fresh(usdPrice) ->
+                Some(sprintf "~ %s USD" (trans.Proposal.Amount * usdPrice |> ShowDecimalForHumans CurrencyType.Fiat))
+            | NotFresh(Cached(usdPrice, time)) ->
+                Some(sprintf "~ %s USD (last exchange rate known at %s)"
+                        (trans.Proposal.Amount * usdPrice |> ShowDecimalForHumans CurrencyType.Fiat)
+                        (time |> ShowSaneDate))
+            | NotFresh(NotAvailable) -> None
+
+        Console.WriteLine("Transaction data:")
+        Console.WriteLine("Sender: " + trans.Proposal.OriginAddress)
+        Console.WriteLine("Recipient: " + trans.Proposal.DestinationAddress)
+        Console.Write("Amount: " + (trans.Proposal.Amount |> ShowDecimalForHumans CurrencyType.Crypto))
+        if (estimatedAmountInUsd.IsSome) then
+            Console.Write("  " + estimatedAmountInUsd.Value)
+        Console.WriteLine()
+        ShowFee trans.Proposal.Currency trans.Fee

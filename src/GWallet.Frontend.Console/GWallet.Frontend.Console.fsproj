@@ -51,10 +51,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Presentation.fs" />
+    <Compile Include="UserInteraction.fs" />
     <Compile Include="Program.fs" />
-    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
