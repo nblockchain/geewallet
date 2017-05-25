@@ -1,0 +1,14 @@
+image: ubuntu:16.04
+
+before_script:
+  - apt-get update
+
+  # workaround to Ubuntu messing up with deps in STABLE/LTS
+  # see https://anonscm.debian.org/cgit/pkg-mono/packages/mono.git/commit/?id=4d0e950
+  - apt-get install -y tzdata
+
+  - apt-get install -y nuget mono-complete mono-xbuild fsharp
+
+build:
+  script:
+    - time (./build.sh)
