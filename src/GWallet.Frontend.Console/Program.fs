@@ -155,6 +155,15 @@ let rec ProgramMainLoop() =
 
 [<EntryPoint>]
 let main argv =
+
+    // workaround for needing to use non-Portable version of BouncyCastle's nuget
+    AppDomain.CurrentDomain.add_AssemblyResolve (
+        ResolveEventHandler (fun _ args ->
+            if (args.Name = "crypto, Version=1.8.1.0, Culture=neutral, PublicKeyToken=0e99375e54769942") then
+                typedefof<Org.BouncyCastle.Security.SecureRandom>.Assembly
+            else
+                null))
+
     ProgramMainLoop()
 
     0 // return an integer exit code
