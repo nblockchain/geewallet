@@ -276,9 +276,7 @@ module UserInteraction =
             | NotFresh(NotAvailable) ->
                 Presentation.Error "Balance not available if offline."
                 AmountToTransfer.CancelOperation
-            | Fresh(amount) ->
-                AmountToTransfer.AllBalance(amount)
-            | NotFresh(Cached(amount,_)) ->
+            | Fresh(amount) | NotFresh(Cached(amount,_)) ->
                 AmountToTransfer.AllBalance(amount)
         | AmountOption.CertainCryptoAmount ->
             AmountToTransfer.CertainCryptoAmount(AskParticularAmount())
