@@ -7,8 +7,6 @@ open Nethereum.KeyStore
 
 module Config =
 
-    let keyStoreService = KeyStoreService()
-
     let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
@@ -51,7 +49,7 @@ module Config =
 
     let Add (account: NormalAccount) =
         let configDir = GetConfigDirForAccountsOfThisCurrency((account:>IAccount).Currency)
-        let fileName = keyStoreService.GenerateUTCFileName((account:>IAccount).PublicAddress)
+        let fileName = NormalAccount.KeyStoreService.GenerateUTCFileName((account:>IAccount).PublicAddress)
         let configFile = Path.Combine(configDir.FullName, fileName)
         File.WriteAllText(configFile, account.Json)
 
