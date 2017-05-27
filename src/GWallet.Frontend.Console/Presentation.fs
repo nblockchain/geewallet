@@ -23,8 +23,9 @@ module Presentation =
             | CurrencyType.Fiat -> 2
             | CurrencyType.Crypto -> 5
 
-        // line below is to add thousand separators
         Math.Round(amount, amountOfDecimalsToShow)
+
+            // line below is to add thousand separators and not show zeroes on the right...
             .ToString("N" + amountOfDecimalsToShow.ToString())
 
     let ConvertPascalCaseToSentence(pascalCaseElement: string) =
