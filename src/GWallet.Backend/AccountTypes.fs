@@ -1,8 +1,5 @@
-﻿namespace GWallet.Backend
+namespace GWallet.Backend
 
-open System
-open NBitcoin.Crypto
-open Nethereum.Core.Signing.Crypto
 open Nethereum.KeyStore
 
 type IAccount =
