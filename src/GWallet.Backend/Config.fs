@@ -5,7 +5,7 @@ open System.IO
 
 open Nethereum.KeyStore
 
-module Config =
+module internal Config =
 
     let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
