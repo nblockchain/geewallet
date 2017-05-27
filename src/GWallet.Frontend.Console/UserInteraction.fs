@@ -201,13 +201,35 @@ module UserInteraction =
         else
             publicAddress
 
-    let rec AskAmount() =
-        Console.Write("Amount of ether: ")
+    type private AmountOption =
+        | AllBalance
+        | CertainCryptoAmount
+        | ApproxEquivalentFiatAmount
+
+    let rec private AskAmountOption(): AmountOption =
+        Console.Write("Choose an option from the above: ")
+        let optIntroduced = System.Console.ReadLine()
+        match Int32.TryParse(optIntroduced) with
+        | false, _ -> AskAmountOption()
+        | true, optionParsed ->
+            match optionParsed with
+            | 1 -> AmountOption.CertainCryptoAmount
+            | 2 -> AmountOption.ApproxEquivalentFiatAmount
+            | 3 -> AmountOption.AllBalance
+            | _ -> AskAmountOption()
+
+    type internal AmountToTransfer =
+        | AllBalance of decimal
+        | CertainCryptoAmount of decimal
+        | CancelOperation
+
+    let rec AskParticularAmount() =
+        Console.Write("Amount: ")
         let amount = Console.ReadLine()
         match Decimal.TryParse(amount) with
         | (false, _) ->
             Presentation.Error "Please enter a numeric amount."
-            AskAmount()
+            AskParticularAmount()
         | (true, parsedAdmount) ->
             parsedAdmount
 
@@ -220,6 +242,55 @@ module UserInteraction =
             false
         else
             AskAccept()
+
+    let rec AskParticularUsdAmount usdValue (maybeTime:Option<DateTime>): Option<decimal> =
+        let usdAmount = AskParticularAmount()
+        let exchangeRateDateMsg =
+            match maybeTime with
+            | None -> String.Empty
+            | Some(time) -> sprintf " (as of %s)" (Presentation.ShowSaneDate time)
+        let exchangeMsg = sprintf "%s USD per Ether%s" (usdValue.ToString()) exchangeRateDateMsg
+        let etherAmount = usdAmount / usdValue
+        Console.WriteLine(sprintf "At an exchange rate of %s, Ether amount would be:%s%s"
+                              exchangeMsg Environment.NewLine (etherAmount.ToString()))
+        if AskAccept() then
+            Some(usdAmount)
+        else
+            None
+
+    let private GetCryptoAmount usdValue time =
+        match AskParticularUsdAmount usdValue time with
+        | None -> AmountToTransfer.CancelOperation
+        | Some(usdAmount) ->
+            let ethAmount = usdAmount / usdValue
+            AmountToTransfer.CertainCryptoAmount(ethAmount)
+
+    let rec internal AskAmount account: AmountToTransfer =
+        Console.WriteLine("There are various options to specify the amount of your transaction:")
+        Console.WriteLine("1. Exact amount in Ether")
+        Console.WriteLine("2. Approximate amount in USD")
+        Console.WriteLine("3. All balance existing in the account")
+        match AskAmountOption() with
+        | AmountOption.AllBalance ->
+            match AccountApi.GetBalance(account) with
+            | NotFresh(NotAvailable) ->
+                Presentation.Error "Balance not available if offline."
+                AmountToTransfer.CancelOperation
+            | Fresh(amount) ->
+                AmountToTransfer.AllBalance(amount)
+            | NotFresh(Cached(amount,_)) ->
+                AmountToTransfer.AllBalance(amount)
+        | AmountOption.CertainCryptoAmount ->
+            AmountToTransfer.CertainCryptoAmount(AskParticularAmount())
+        | AmountOption.ApproxEquivalentFiatAmount ->
+            match FiatValueEstimation.UsdValue account.Currency with
+            | NotFresh(NotAvailable) ->
+                Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
+                AskAmount account
+            | Fresh(usdValue) ->
+                GetCryptoAmount usdValue None
+            | NotFresh(Cached(usdValue,time)) ->
+                GetCryptoAmount usdValue (Some(time))
 
     let AskFee(currency: Currency): Option<EtherMinerFee> =
         let estimatedFee = AccountApi.EstimateFee(currency)

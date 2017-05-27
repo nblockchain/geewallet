@@ -97,32 +97,40 @@ let SignOffPayment() =
             | _ ->
                 failwith "Account type not supported. Please report this issue."
 
+let SendPaymentOfSpecificAmount (account: IAccount) amount fee =
+    let destination = UserInteraction.AskPublicAddress "Destination address: "
+    match account with
+    | :? ReadOnlyAccount as readOnlyAccount ->
+        Console.WriteLine("Cannot send payments from readonly accounts.")
+        Console.Write("Introduce a file name to save the unsigned transaction: ")
+        let filePath = Console.ReadLine()
+        let proposal = {
+            Currency = account.Currency;
+            OriginAddress = account.PublicAddress;
+            Amount = amount;
+            DestinationAddress = destination;
+        }
+        AccountApi.SaveUnsignedTransaction proposal fee filePath
+        Console.WriteLine("Transaction saved. Now copy it to the device with the private key.")
+        UserInteraction.PressAnyKeyToContinue()
+    | :? NormalAccount as normalAccount ->
+        TrySendAmount normalAccount destination amount fee
+    | _ ->
+        failwith ("Account type not recognized: " + account.GetType().FullName)
+
 let SendPayment() =
     let account = UserInteraction.AskAccount()
-    let destination = UserInteraction.AskPublicAddress "Destination address: "
-    let amount = UserInteraction.AskAmount()
     let maybeFee = UserInteraction.AskFee(account.Currency)
     match maybeFee with
     | None -> ()
     | Some(fee) ->
-        match account with
-        | :? ReadOnlyAccount as readOnlyAccount ->
-            Console.WriteLine("Cannot send payments from readonly accounts.")
-            Console.Write("Introduce a file name to save the unsigned transaction: ")
-            let filePath = Console.ReadLine()
-            let proposal = {
-                Currency = account.Currency;
-                OriginAddress = account.PublicAddress;
-                Amount = amount;
-                DestinationAddress = destination;
-            }
-            AccountApi.SaveUnsignedTransaction proposal fee filePath
-            Console.WriteLine("Transaction saved. Now copy it to the device with the private key.")
-            UserInteraction.PressAnyKeyToContinue()
-        | :? NormalAccount as normalAccount ->
-            TrySendAmount normalAccount destination amount fee
-        | _ ->
-            failwith ("Account type not recognized: " + account.GetType().FullName)
+        let amount = UserInteraction.AskAmount account
+        match amount with
+        | UserInteraction.AmountToTransfer.CancelOperation -> ()
+        | UserInteraction.AmountToTransfer.CertainCryptoAmount(amount) ->
+            SendPaymentOfSpecificAmount account amount fee
+        | UserInteraction.AmountToTransfer.AllBalance(allBalance) ->
+            SendPaymentOfSpecificAmount account (allBalance - fee.EtherPriceForNormalTransaction) fee
 
 let rec PerformOptions(numAccounts: int) =
     match UserInteraction.AskOption(numAccounts) with
