@@ -10,7 +10,7 @@ type PublicAddress = string
 let rec TrySendAmount account destination amount fee =
     let password = UserInteraction.AskPassword false
     try
-        let txId = AccountApi.SendPayment account destination amount password fee
+        let txId = Account.SendPayment account destination amount password fee
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
         UserInteraction.PressAnyKeyToContinue ()
     with
@@ -24,7 +24,7 @@ let rec TrySendAmount account destination amount fee =
 let rec TrySign account unsignedTrans =
     let password = UserInteraction.AskPassword false
     try
-        AccountApi.SignUnsignedTransaction account unsignedTrans password
+        Account.SignUnsignedTransaction account unsignedTrans password
     with
     // TODO: would this throw insufficient funds? test
     //| :? InsufficientFunds ->
@@ -36,23 +36,23 @@ let rec TrySign account unsignedTrans =
 let BroadcastPayment() =
     Console.Write("Introduce a file name to load the signed transaction: ")
     let filePathToReadFrom = Console.ReadLine()
-    let signedTransaction = AccountApi.LoadSignedTransactionFromFile filePathToReadFrom
+    let signedTransaction = Account.LoadSignedTransactionFromFile filePathToReadFrom
     //TODO: check if nonce matches, if not, reject trans
 
     // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
     Presentation.ShowTransactionData(signedTransaction.TransactionInfo)
     if UserInteraction.AskAccept() then
-        let txId = AccountApi.BroadcastTransaction signedTransaction
+        let txId = Account.BroadcastTransaction signedTransaction
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
         UserInteraction.PressAnyKeyToContinue ()
 
 let SignOffPayment() =
     Console.Write("Introduce a file name to load the unsigned transaction: ")
     let filePathToReadFrom = Console.ReadLine()
-    let unsignedTransaction = AccountApi.LoadUnsignedTransactionFromFile filePathToReadFrom
+    let unsignedTransaction = Account.LoadUnsignedTransactionFromFile filePathToReadFrom
 
     let accountsWithSameAddress =
-        AccountApi.GetAllAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)
+        Account.GetAllAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)
     if not (accountsWithSameAddress.Any()) then
         Presentation.Error "The transaction doesn't correspond to any of the accounts in the wallet."
         UserInteraction.PressAnyKeyToContinue ()
@@ -91,7 +91,7 @@ let SignOffPayment() =
                     Console.WriteLine("Transaction signed.")
                     Console.Write("Introduce a file name or path to save it: ")
                     let filePathToSaveTo = Console.ReadLine()
-                    AccountApi.SaveSignedTransaction trans filePathToSaveTo
+                    Account.SaveSignedTransaction trans filePathToSaveTo
                     Console.WriteLine("Transaction signed and saved successfully. Now copy it to the online device.")
                     UserInteraction.PressAnyKeyToContinue ()
             | _ ->
@@ -110,7 +110,7 @@ let SendPaymentOfSpecificAmount (account: IAccount) amount fee =
             Amount = amount;
             DestinationAddress = destination;
         }
-        AccountApi.SaveUnsignedTransaction proposal fee filePath
+        Account.SaveUnsignedTransaction proposal fee filePath
         Console.WriteLine("Transaction saved. Now copy it to the device with the private key.")
         UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
@@ -138,7 +138,7 @@ let rec PerformOptions(numAccounts: int) =
     | Options.CreateAccount ->
         let currency = UserInteraction.AskCurrency()
         let password = UserInteraction.AskPassword true
-        let account = AccountApi.Create currency password
+        let account = Account.Create currency password
         Console.WriteLine("Account created: " + (account:>IAccount).PublicAddress)
         UserInteraction.PressAnyKeyToContinue()
     | Options.Refresh -> ()
@@ -147,7 +147,7 @@ let rec PerformOptions(numAccounts: int) =
     | Options.AddReadonlyAccount ->
         let currency = UserInteraction.AskCurrency()
         let accountPublicInfo = UserInteraction.AskPublicAddress "Public address: "
-        let roAccount = AccountApi.AddPublicWatcher currency accountPublicInfo
+        let roAccount = Account.AddPublicWatcher currency accountPublicInfo
         ()
     | Options.SignOffPayment ->
         SignOffPayment()
@@ -156,7 +156,7 @@ let rec PerformOptions(numAccounts: int) =
     | _ -> failwith "Unreachable"
 
 let rec ProgramMainLoop() =
-    let accounts = AccountApi.GetAllAccounts()
+    let accounts = Account.GetAllAccounts()
     UserInteraction.DisplayAccountStatuses(WhichAccount.All(accounts))
     PerformOptions(accounts.Count())
     ProgramMainLoop()

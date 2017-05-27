@@ -139,7 +139,7 @@ module UserInteraction =
 
         let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
 
-        let maybeBalance = AccountApi.GetBalance(account)
+        let maybeBalance = Account.GetBalance(account)
         match maybeBalance with
         | NotFresh(NotAvailable) ->
             Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
@@ -172,7 +172,7 @@ module UserInteraction =
             Console.WriteLine()
 
         | MatchingWith(account) ->
-            let allAccounts =  AccountApi.GetAllAccounts()
+            let allAccounts =  Account.GetAllAccounts()
             let matchFilter = (fun (acc:IAccount) -> acc.PublicAddress = account.PublicAddress &&
                                                      acc.Currency = account.Currency &&
                                                      acc :? NormalAccount)
@@ -272,7 +272,7 @@ module UserInteraction =
         Console.WriteLine("3. All balance existing in the account")
         match AskAmountOption() with
         | AmountOption.AllBalance ->
-            match AccountApi.GetBalance(account) with
+            match Account.GetBalance(account) with
             | NotFresh(NotAvailable) ->
                 Presentation.Error "Balance not available if offline."
                 AmountToTransfer.CancelOperation
@@ -293,7 +293,7 @@ module UserInteraction =
                 GetCryptoAmount usdValue (Some(time))
 
     let AskFee(currency: Currency): Option<EtherMinerFee> =
-        let estimatedFee = AccountApi.EstimateFee(currency)
+        let estimatedFee = Account.EstimateFee(currency)
         Presentation.ShowFee currency estimatedFee
         let accept = AskAccept()
         if accept then
@@ -302,7 +302,7 @@ module UserInteraction =
             None
 
     let rec AskAccount(): IAccount =
-        let allAccounts = AccountApi.GetAllAccounts()
+        let allAccounts = Account.GetAllAccounts()
         Console.Write("Write the account number: ")
         let accountNumber = Console.ReadLine()
         match Int32.TryParse(accountNumber) with

@@ -15,7 +15,7 @@ open Newtonsoft.Json
 exception InsufficientFunds
 exception InvalidPassword
 
-module AccountApi =
+module Account =
 
     // TODO: to prevent having MyEtherApi as a SPOF, use more services, like https://infura.io/
     let private PUBLIC_WEB3_API_ETH = "https://api.myetherapi.com/eth" // docs: https://www.myetherapi.com/
