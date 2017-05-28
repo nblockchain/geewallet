@@ -52,7 +52,7 @@ let SignOffPayment() =
     let unsignedTransaction = Account.LoadUnsignedTransactionFromFile filePathToReadFrom
 
     let accountsWithSameAddress =
-        Account.GetAllAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)
+        Account.GetAllActiveAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)
     if not (accountsWithSameAddress.Any()) then
         Presentation.Error "The transaction doesn't correspond to any of the accounts in the wallet."
         UserInteraction.PressAnyKeyToContinue ()
@@ -132,6 +132,55 @@ let SendPayment() =
         | UserInteraction.AmountToTransfer.AllBalance(allBalance) ->
             SendPaymentOfSpecificAmount account (allBalance - fee.EtherPriceForNormalTransaction) fee
 
+let rec TryArchiveAccount account =
+    let password = UserInteraction.AskPassword(false)
+    try
+        Account.Archive account password
+        Console.WriteLine "Account archived."
+        UserInteraction.PressAnyKeyToContinue ()
+    with
+    | :? InvalidPassword ->
+        Presentation.Error "Invalid password, try again."
+        TryArchiveAccount account
+
+let ArchiveAccount() =
+    let account = UserInteraction.AskAccount()
+    match account with
+    | :? ReadOnlyAccount as readOnlyAccount ->
+        Console.WriteLine("Read-only accounts cannot be archived, but just removed entirely.")
+        if not (UserInteraction.AskAccept()) then
+            ()
+        else
+            Account.RemovePublicWatcher readOnlyAccount
+            Console.WriteLine "Read-only account removed."
+            UserInteraction.PressAnyKeyToContinue()
+    | :? NormalAccount as normalAccount ->
+        match Account.GetBalance(account) with
+        | NotFresh(NotAvailable) ->
+            Presentation.Error "Removing accounts when offline is not supported."
+            ()
+        | Fresh(amount) | NotFresh(Cached(amount,_)) ->
+            if (amount > 0m) then
+                Presentation.Error "Please empty the account before removing it."
+                UserInteraction.PressAnyKeyToContinue ()
+            else
+                Console.WriteLine ()
+                Console.WriteLine "Please note: "
+                Console.WriteLine "Just in case this account receives funds in the future by mistake, "
+                Console.WriteLine "the operation of archiving an account doesn't entirely remove it."
+                Console.WriteLine ()
+                Console.WriteLine "You will be asked the password of it now so that its private key can remain unencrypted in the configuration folder, in order for you to be able to safely forget this password."
+                Console.WriteLine "Then this account will be watched constantly and if new payments are detected, "
+                Console.WriteLine "GWallet will prompt you to move them to a current account without the need of typing the old password."
+                Console.WriteLine ()
+                if not (UserInteraction.AskAccept()) then
+                    ()
+                else
+                    TryArchiveAccount normalAccount
+    | _ ->
+        failwith (sprintf "Account type not valid for archiving: %s. Please report this issue."
+                      (account.GetType().FullName))
+
 let rec PerformOptions(numAccounts: int) =
     match UserInteraction.AskOption(numAccounts) with
     | Options.Exit -> exit 0
@@ -153,12 +202,46 @@ let rec PerformOptions(numAccounts: int) =
         SignOffPayment()
     | Options.BroadcastPayment ->
         BroadcastPayment()
+    | Options.ArchiveAccount ->
+        ArchiveAccount()
     | _ -> failwith "Unreachable"
 
+let rec GetAccountOfSameCurrency currency =
+    let account = UserInteraction.AskAccount()
+    if (account.Currency <> currency) then
+        Presentation.Error (sprintf "The account selected doesn't match the currency %s"
+                                (currency.ToString()))
+        GetAccountOfSameCurrency currency
+    else
+        account
+
+let rec CheckArchivedAccountsAreEmpty(): bool =
+    let archivedAccountsInNeedOfAction = Account.GetArchivedAccountsWithPositiveBalance()
+    for archivedAccount,balance in archivedAccountsInNeedOfAction do
+        let currency = (archivedAccount:>IAccount).Currency
+        Console.WriteLine (sprintf "ALERT! An archived account has received funds:%sAddress: %s Balance: %s%s"
+                               Environment.NewLine
+                               (archivedAccount:>IAccount).PublicAddress
+                               (balance.ToString())
+                               (currency.ToString()))
+        Console.WriteLine "Please indicate the account you would like to transfer the funds to."
+        let account = GetAccountOfSameCurrency currency
+
+        let maybeFee = UserInteraction.AskFee account.Currency
+        match maybeFee with
+        | None -> ()
+        | Some(fee) ->
+            let txId = Account.SweepArchivedFunds archivedAccount balance account fee
+            Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
+            UserInteraction.PressAnyKeyToContinue ()
+
+    not (archivedAccountsInNeedOfAction.Any())
+
 let rec ProgramMainLoop() =
-    let accounts = Account.GetAllAccounts()
+    let accounts = Account.GetAllActiveAccounts()
     UserInteraction.DisplayAccountStatuses(WhichAccount.All(accounts))
-    PerformOptions(accounts.Count())
+    if CheckArchivedAccountsAreEmpty() then
+        PerformOptions(accounts.Count())
     ProgramMainLoop()
 
 [<EntryPoint>]

@@ -62,13 +62,28 @@ module Account =
             Caching.StoreLastBalance(account.PublicAddress, balanceInEth)
             Fresh(balanceInEth)
 
-    let GetAllAccounts(): seq<IAccount> =
+    let GetAllActiveAccounts(): seq<IAccount> =
         seq {
             let allCurrencies = Enum.GetValues(typeof<Currency>).Cast<Currency>() |> List.ofSeq
 
             for currency in allCurrencies do
-                for account in Config.GetAllAccounts(currency) do
+                for account in Config.GetAllActiveAccounts(currency) do
                     yield account
+        }
+
+    let GetArchivedAccountsWithPositiveBalance(): seq<ArchivedAccount*decimal> =
+        seq {
+            let allCurrencies = Enum.GetValues(typeof<Currency>).Cast<Currency>() |> List.ofSeq
+
+            for currency in allCurrencies do
+                for account in Config.GetAllArchivedAccounts(currency) do
+                    match GetBalance(account) with
+                    | NotFresh(NotAvailable) -> ()
+                    | Fresh(balance) ->
+                        if (balance > 0m) then
+                            yield account,balance
+                    | NotFresh(Cached(balance,time)) ->
+                        () // TODO: do something in this case??
         }
 
     let EstimateFee (currency: Currency): EtherMinerFee =
@@ -103,17 +118,7 @@ module Account =
         let web3 = Web3(trans.TransactionInfo.Proposal.Currency)
         BroadcastRawTransaction web3 trans.RawTransaction
 
-    let SignTransaction (account: NormalAccount)
-                        (transCount: BigInteger)
-                        (destination: string)
-                        (amount: decimal)
-                        (minerFee: EtherMinerFee)
-                        (password: string) =
-
-        let currency = (account :> IAccount).Currency
-        if (minerFee.Currency <> currency) then
-            invalidArg "account" "currency of account param must be equal to currency of minerFee param"
-
+    let internal GetPrivateKey (account: NormalAccount) password =
         let privKeyInBytes =
             try
                 NormalAccount.KeyStoreService.DecryptKeyStoreFromJson(password, account.Json)
@@ -123,6 +128,19 @@ module Account =
                 raise (InvalidPassword)
 
         let privKeyInHexString = ToHexString(privKeyInBytes)
+        privKeyInHexString
+
+    let private SignTransactionWithPrivateKey (account: IAccount)
+                                              (transCount: BigInteger)
+                                              (destination: string)
+                                              (amount: decimal)
+                                              (minerFee: EtherMinerFee)
+                                              (privKeyInHexString: string) =
+
+        let currency = account.Currency
+        if (minerFee.Currency <> currency) then
+            invalidArg "account" "currency of account param must be equal to currency of minerFee param"
+
         let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
 
         let web3 = Web3(currency)
@@ -142,6 +160,34 @@ module Account =
         if not (web3.OfflineTransactionSigning.VerifyTransaction(trans)) then
             failwith "Transaction could not be verified?"
         trans
+
+    let SignTransaction (account: NormalAccount)
+                        (transCount: BigInteger)
+                        (destination: string)
+                        (amount: decimal)
+                        (minerFee: EtherMinerFee)
+                        (password: string) =
+
+        let privKeyInHexString = GetPrivateKey account password
+        SignTransactionWithPrivateKey account transCount destination amount minerFee privKeyInHexString
+
+    let Archive (account: NormalAccount)
+                (password: string) =
+        let privateKey = GetPrivateKey account password
+        let newArchivedAccount = ArchivedAccount((account:>IAccount).Currency, privateKey)
+        Config.AddArchived newArchivedAccount
+        Config.RemoveNormal account
+
+    let SweepArchivedFunds (account: ArchivedAccount)
+                           (balance: decimal)
+                           (destination: IAccount)
+                           (minerFee: EtherMinerFee) =
+        let accountFrom = (account:>IAccount)
+        let transCount = GetTransactionCount(accountFrom.Currency, accountFrom.PublicAddress).Value
+        let amount = balance - minerFee.EtherPriceForNormalTransaction
+        let signedTrans = SignTransactionWithPrivateKey
+                              account transCount destination.PublicAddress amount minerFee account.PrivateKey
+        BroadcastRawTransaction (Web3(accountFrom.Currency)) signedTrans
 
     let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
                     (password: string) (minerFee: EtherMinerFee) =
@@ -172,6 +218,9 @@ module Account =
         Config.AddReadonly readOnlyAccount
         readOnlyAccount
 
+    let RemovePublicWatcher (account: ReadOnlyAccount) =
+        Config.RemoveReadonly account
+
     let Create currency password =
         let privateKey = EthECKey.GenerateKey()
         let privateKeyAsBytes = EthECKey.GetPrivateKeyAsBytes(privateKey)
@@ -189,9 +238,7 @@ module Account =
             NormalAccount.KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password,
                                                                                   privateKeyTrimmed,
                                                                                   publicAddress)
-        let account = NormalAccount(currency, accountSerializedJson)
-        Config.Add account
-        account
+        Config.AddNormalAccount currency accountSerializedJson
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
         let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)

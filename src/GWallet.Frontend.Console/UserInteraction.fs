@@ -13,6 +13,7 @@ type Options =
     | AddReadonlyAccount = 4
     | SignOffPayment     = 5
     | BroadcastPayment   = 6
+    | ArchiveAccount     = 7
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -61,6 +62,13 @@ module UserInteraction =
                 else
                     FindMatchingOption(optIntroduced, tail)
 
+    let OptionAvailable (option: Options) (numAccounts: int) =
+        let anyAccount = numAccounts > 0
+        match option with
+        | Options.SendPayment -> anyAccount
+        | Options.ArchiveAccount -> anyAccount
+        | _ -> true
+
     let rec AskOption(numAccounts: int): Options =
         Console.WriteLine("Available options:")
 
@@ -70,7 +78,7 @@ module UserInteraction =
         let allOptionsAvailable =
             seq {
                 for option in allOptions do
-                    if not (option = Options.SendPayment && numAccounts = 0) then
+                    if OptionAvailable option numAccounts then
                         Console.WriteLine(sprintf "%d: %s"
                                               (int option)
                                               (Presentation.ConvertPascalCaseToSentence (option.ToString())))
@@ -172,7 +180,7 @@ module UserInteraction =
             Console.WriteLine()
 
         | MatchingWith(account) ->
-            let allAccounts =  Account.GetAllAccounts()
+            let allAccounts =  Account.GetAllActiveAccounts()
             let matchFilter = (fun (acc:IAccount) -> acc.PublicAddress = account.PublicAddress &&
                                                      acc.Currency = account.Currency &&
                                                      acc :? NormalAccount)
@@ -300,7 +308,7 @@ module UserInteraction =
             None
 
     let rec AskAccount(): IAccount =
-        let allAccounts = Account.GetAllAccounts()
+        let allAccounts = Account.GetAllActiveAccounts()
         Console.Write("Write the account number: ")
         let accountNumber = Console.ReadLine()
         match Int32.TryParse(accountNumber) with
