@@ -23,7 +23,7 @@ module UserInteraction =
     let PressAnyKeyToContinue() =
         Console.WriteLine ()
         Console.Write "Press any key to continue..."
-        Console.ReadKey () |> ignore
+        Console.ReadKey true |> ignore
         Console.WriteLine ()
 
     // taken from InfraLib
