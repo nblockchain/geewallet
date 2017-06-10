@@ -1,4 +1,12 @@
+# visual studio:
 .vs/
+
+# nuget:
 packages/
+
+# artifacts
 [Bb]in
 [Oo]bj
+
+# monodevelop:
+*.userprefs
