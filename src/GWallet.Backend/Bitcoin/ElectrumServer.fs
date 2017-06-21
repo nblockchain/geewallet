@@ -44,4 +44,5 @@ type internal ElectrumServer =
         ]
 
         // TODO: stop hardcoding one that I know works very well, and choose really randomly
+        // (but also implement logic to choose a different one in case the randomly chosen turns out to fail)
         defaultList.[2]
