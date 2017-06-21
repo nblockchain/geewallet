@@ -9,6 +9,14 @@ open Newtonsoft.Json.Converters
 
 module FSharpUtil =
 
+    let rec internal IsOfTypeOrItsInner<'T>(ex: Exception) =
+        if (ex = null) then
+            false
+        else if (ex.GetType() = typeof<'T>) then
+            true
+        else
+            IsOfTypeOrItsInner<'T>(ex.InnerException)
+
 // http://stackoverflow.com/a/29629215/544947
     type OptionConverter() =
         inherit JsonConverter()

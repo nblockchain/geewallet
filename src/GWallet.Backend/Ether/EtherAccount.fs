@@ -23,14 +23,6 @@ module internal Account =
     let private addressUtil = AddressUtil()
     let private signer = TransactionSigner()
 
-    let rec private IsOfTypeOrItsInner<'T>(ex: Exception) =
-        if (ex = null) then
-            false
-        else if (ex.GetType() = typeof<'T>) then
-            true
-        else
-            IsOfTypeOrItsInner<'T>(ex.InnerException)
-
     let GetBalance(account: IAccount): MaybeCached<decimal> =
         let maybeBalance =
             try
@@ -38,7 +30,7 @@ module internal Account =
                     EtherServer.GetBalance account.Currency account.PublicAddress
                 Some(balance.Value)
             with
-            | ex when IsOfTypeOrItsInner<WebException>(ex) -> None
+            | ex when FSharpUtil.IsOfTypeOrItsInner<WebException>(ex) -> None
 
         match maybeBalance with
         | None -> NotFresh(Caching.RetreiveLastBalance(account.PublicAddress))
