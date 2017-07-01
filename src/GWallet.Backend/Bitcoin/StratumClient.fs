@@ -40,9 +40,22 @@ type BlockchainAddressGetBalanceResult =
         Result: BlockchainAddressGetBalanceInnerResult;
     }
 
+type ErrorResult =
+    {
+        Id: int;
+        Error: string;
+    }
+
 type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
     let jsonSerializerSettings = new JsonSerializerSettings()
     do jsonSerializerSettings.ContractResolver <- new LowercaseContractResolver()
+
+    static member private Deserialize<'T> (result: string, originalRequest: string): 'T =
+        let maybeError = JsonConvert.DeserializeObject<ErrorResult>(result)
+        if not (String.IsNullOrWhiteSpace(maybeError.Error)) then
+            failwith (sprintf "Error received from Electrum server: '%s'. Original request sent from client: '%s'"
+                              maybeError.Error originalRequest)
+        JsonConvert.DeserializeObject<'T>(result)
 
     member self.BlockchainAddressGetBalance address: BlockchainAddressGetBalanceResult =
         let obj = {
@@ -53,7 +66,7 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
         let json = JsonConvert.SerializeObject(obj, Formatting.None, jsonSerializerSettings)
 
         let res = jsonRpcClient.Request json
-        let resObj = JsonConvert.DeserializeObject<BlockchainAddressGetBalanceResult>(res)
+        let resObj = StratumClient.Deserialize<BlockchainAddressGetBalanceResult>(res, json)
         resObj
 
     member self.ServerVersion (clientVersion: Version) (protocolVersion: Version): Version =
@@ -67,7 +80,7 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
         //      CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION)
         let json = JsonConvert.SerializeObject(obj, Formatting.None, jsonSerializerSettings)
         let res = jsonRpcClient.Request json
-        let resObj = JsonConvert.DeserializeObject<ServerVersionResult>(res)
+        let resObj = StratumClient.Deserialize<ServerVersionResult>(res, json)
         Version(resObj.Result)
 
     interface IDisposable with
