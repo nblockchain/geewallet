@@ -81,7 +81,12 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
         let json = JsonConvert.SerializeObject(obj, Formatting.None, jsonSerializerSettings)
         let res = jsonRpcClient.Request json
         let resObj = StratumClient.Deserialize<ServerVersionResult>(res, json)
-        Version(resObj.Result)
+
+        // contradicting the spec, Result could contain "ElectrumX x.y.z.t" instead of just "x.y.z.t"
+        let separatedBySpaces = resObj.Result.Split [|' '|]
+        let version = separatedBySpaces.[separatedBySpaces.Length - 1]
+
+        Version(version)
 
     interface IDisposable with
         member x.Dispose() =
