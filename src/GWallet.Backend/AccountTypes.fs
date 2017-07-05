@@ -21,7 +21,13 @@ type NormalAccount(currency: Currency, jsonStoreFile: FileInfo) =
         member val Currency = currency with get
         member val PublicAddress =
             let jsonContent = File.ReadAllText(jsonStoreFile.FullName)
-            NormalAccount.GetPublicAddressFromKeyStore(jsonContent) with get
+            let publicAddressFromKeyStore: string = NormalAccount.GetPublicAddressFromKeyStore(jsonContent)
+            let publicAddress =
+                if (publicAddressFromKeyStore.StartsWith("0x")) then
+                    publicAddressFromKeyStore
+                else
+                    "0x" + publicAddressFromKeyStore
+            publicAddress with get
 
 type ReadOnlyAccount(currency: Currency, publicAddress: string) =
     interface IAccount with
