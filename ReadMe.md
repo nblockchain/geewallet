@@ -15,7 +15,6 @@ GWallet will always be standing in the shoulders of giants, which means we have 
 
 This list is the (intended) order of preference for new features:
 
-- Archive accounts.
 - BTC support.
 - LTC support.
 - RBF support.
