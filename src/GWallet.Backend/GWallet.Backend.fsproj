@@ -61,6 +61,7 @@
     <Compile Include="Transaction.fs" />
     <Compile Include="Account.fs" />
     <Compile Include="FiatValueEstimation.fs" />
+    <Compile Include="Infrastructure.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
@@ -75,6 +76,9 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
+    </Reference>
+    <Reference Include="SharpRaven">
+      <HintPath>..\..\packages\SharpRaven.2.2.0\lib\net45\SharpRaven.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />

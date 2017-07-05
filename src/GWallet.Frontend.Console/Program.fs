@@ -247,6 +247,16 @@ let rec ProgramMainLoop() =
 [<EntryPoint>]
 let main argv =
 
-    ProgramMainLoop()
+    Infrastructure.SetupSentryHook ()
 
-    0 // return an integer exit code
+    let exitCode =
+        try
+            ProgramMainLoop ()
+            0
+        with
+        | ex ->
+            Console.Error.WriteLine ex
+            Infrastructure.Report ex
+            1
+
+    exitCode

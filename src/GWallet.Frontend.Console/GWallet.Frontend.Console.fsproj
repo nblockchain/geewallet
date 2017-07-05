@@ -53,6 +53,7 @@
     <Compile Include="Presentation.fs" />
     <Compile Include="UserInteraction.fs" />
     <Compile Include="Program.fs" />
+    <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
