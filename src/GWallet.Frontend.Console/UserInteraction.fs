@@ -164,17 +164,43 @@ module UserInteraction =
                                 (balanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
 
+        maybeBalance,maybeUsdValue
+
     let DisplayAccountStatuses(whichAccount: WhichAccount) =
+        let rec displayAllAndSumBalance (accounts: seq<IAccount>) currentIndex currentSum: decimal =
+            let account = accounts.ElementAt(currentIndex)
+            let maybeBalance,maybeUsdValue = DisplayAccountStatus (currentIndex+1) account
+            Console.WriteLine ()
+
+            let usdValueToUse =
+                match maybeUsdValue with
+                | Fresh(usdValue) -> usdValue
+                | NotFresh(Cached(usdValue,_)) -> usdValue
+                | _ -> 0m
+
+            let balanceToSum =
+                match maybeBalance with
+                | Fresh(balance) -> balance
+                | NotFresh(Cached(balance,_)) -> balance
+                | _ -> 0m
+
+            let sum = currentSum + (balanceToSum*usdValueToUse)
+
+            if (currentIndex < accounts.Count() - 1) then
+                displayAllAndSumBalance accounts (currentIndex + 1) sum
+            else
+                sum
+
         match whichAccount with
         | WhichAccount.All(accounts) ->
             Console.WriteLine ()
             Console.WriteLine "*** STATUS ***"
 
             if (accounts.Any()) then
-                for i = 0 to accounts.Count() - 1 do
-                    let account = accounts.ElementAt(i)
-                    DisplayAccountStatus (i+1) account
-                    Console.WriteLine ()
+                let totalInUsd = displayAllAndSumBalance accounts 0 0m
+                Console.WriteLine()
+                Console.WriteLine("Total estimated value in USD: " +
+                    Presentation.ShowDecimalForHumans CurrencyType.Fiat totalInUsd)
             else
                 Console.WriteLine("No accounts have been created so far.")
             Console.WriteLine()
@@ -192,7 +218,7 @@ module UserInteraction =
             for i = 0 to allAccounts.Count() - 1 do
                 let iterAccount = allAccounts.ElementAt(i)
                 if (matchFilter (iterAccount)) then
-                    DisplayAccountStatus (i+1) iterAccount
+                    DisplayAccountStatus (i+1) iterAccount |> ignore
 
     let private ETHEREUM_ADDRESSES_LENGTH = 42
     let rec AskPublicAddress (askText: string) =
