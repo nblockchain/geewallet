@@ -10,6 +10,7 @@ open Nethereum.Web3
 open Nethereum.Signer
 open Nethereum.KeyStore
 open Nethereum.Util
+open Nethereum.KeyStore.Crypto
 open Newtonsoft.Json
 
 exception InsufficientFunds
@@ -123,8 +124,7 @@ module Account =
             try
                 NormalAccount.KeyStoreService.DecryptKeyStoreFromJson(password, account.Json)
             with
-            // FIXME: I don't like to parse exception messages... https://github.com/Nethereum/Nethereum/pull/122
-            | ex when ex.Message.StartsWith("Cannot derive") ->
+            | :? DecryptionException ->
                 raise (InvalidPassword)
 
         let privKeyInHexString = ToHexString(privKeyInBytes)
