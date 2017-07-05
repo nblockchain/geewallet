@@ -4,6 +4,7 @@ open System
 open System.Numerics
 
 open Nethereum.Web3
+open Nethereum.Util
 
 type EtherMinerFee =
     {

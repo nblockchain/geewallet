@@ -7,9 +7,9 @@ open System.Numerics
 open System.IO
 
 open Nethereum.Web3
-open Nethereum.Core.Signing.Crypto
+open Nethereum.Signer
 open Nethereum.KeyStore
-open NBitcoin.Crypto
+open Nethereum.Util
 open Newtonsoft.Json
 
 exception InsufficientFunds
@@ -144,7 +144,7 @@ module Account =
         let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
 
         let web3 = Web3(currency)
-        let trans = web3.OfflineTransactionSigning.SignTransaction(
+        let trans = web3.OfflineTransactionSigner.SignTransaction(
                         privKeyInHexString,
                         destination,
                         amountInWei,
@@ -157,7 +157,7 @@ module Account =
                         BigInteger(minerFee.GasPriceInWei),
                         minerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
-        if not (web3.OfflineTransactionSigning.VerifyTransaction(trans)) then
+        if not (web3.OfflineTransactionSigner.VerifyTransaction(trans)) then
             failwith "Transaction could not be verified?"
         trans
 
@@ -223,7 +223,7 @@ module Account =
 
     let Create currency password =
         let privateKey = EthECKey.GenerateKey()
-        let privateKeyAsBytes = EthECKey.GetPrivateKeyAsBytes(privateKey)
+        let privateKeyAsBytes = privateKey.GetPrivateKeyAsBytes()
 
         // FIXME: don't ask me why sometimes this version of NEthereum generates 33 bytes instead of the required 32...
         let privateKeyTrimmed =
@@ -232,7 +232,7 @@ module Account =
             else
                 privateKeyAsBytes
 
-        let publicAddress = EthECKey.GetPublicAddress(privateKey)
+        let publicAddress = privateKey.GetPublicAddress()
 
         let accountSerializedJson =
             NormalAccount.KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password,

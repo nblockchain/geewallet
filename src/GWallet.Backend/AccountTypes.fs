@@ -3,7 +3,7 @@ namespace GWallet.Backend
 open System.IO
 
 open Nethereum.KeyStore
-open Nethereum.Core.Signing.Crypto
+open Nethereum.Signer
 
 type IAccount =
     abstract member Currency: Currency with get
@@ -15,7 +15,7 @@ type NormalAccount(currency: Currency, jsonStoreFile: FileInfo) =
 
     static member internal KeyStoreService: KeyStoreService = KeyStoreService()
     static member internal GetPublicAddressFromKeyStore(jsonContent: string) =
-        sprintf "0x%s" (NormalAccount.KeyStoreService.GetAddressFromKeyStore(jsonContent))
+        NormalAccount.KeyStoreService.GetAddressFromKeyStore(jsonContent)
 
     interface IAccount with
         member val Currency = currency with get
