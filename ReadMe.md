@@ -24,7 +24,7 @@ This list is the (intended) order of preference for new features:
 - LTC payment channels support.
 - BTC tumblebit support.
 - Xamarin.Forms frontend.
-- ETH rayden (state channels) support.
+- ETH raiden (state channels) support.
 - Threshold signatures.
 - MimbleWimble support?
 - Decentralized currency exchange?
