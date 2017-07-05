@@ -25,6 +25,7 @@ This list is the (intended) order of preference for new features:
 - BTC tumblebit support.
 - Xamarin.Forms frontend.
 - ETH raiden (state channels) support.
+- BTC lightning support (if SegWit activates).
 - Threshold signatures.
 - MimbleWimble support?
 - Decentralized currency exchange?
