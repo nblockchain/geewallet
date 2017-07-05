@@ -33,10 +33,6 @@ module Account =
         | Currency.ETC -> etcWeb3
         | _ -> failwith("currency unknown")
 
-    // TODO: stop using this method below, in favour of new overloads proposed here: https://github.com/Nethereum/Nethereum/pull/124
-    let ToHexString(byteArray: byte array) =
-        BitConverter.ToString(byteArray).Replace("-", String.Empty)
-
     let rec private IsOfTypeOrItsInner<'T>(ex: Exception) =
         if (ex = null) then
             false
@@ -127,15 +123,14 @@ module Account =
             | :? DecryptionException ->
                 raise (InvalidPassword)
 
-        let privKeyInHexString = ToHexString(privKeyInBytes)
-        privKeyInHexString
+        EthECKey(privKeyInBytes, true)
 
     let private SignTransactionWithPrivateKey (account: IAccount)
                                               (transCount: BigInteger)
                                               (destination: string)
                                               (amount: decimal)
                                               (minerFee: EtherMinerFee)
-                                              (privKeyInHexString: string) =
+                                              (privateKey: EthECKey) =
 
         let currency = account.Currency
         if (minerFee.Currency <> currency) then
@@ -144,8 +139,10 @@ module Account =
         let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
 
         let web3 = Web3(currency)
+
+        let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
         let trans = web3.OfflineTransactionSigner.SignTransaction(
-                        privKeyInHexString,
+                        privKeyInBytes,
                         destination,
                         amountInWei,
                         transCount,
@@ -168,8 +165,8 @@ module Account =
                         (minerFee: EtherMinerFee)
                         (password: string) =
 
-        let privKeyInHexString = GetPrivateKey account password
-        SignTransactionWithPrivateKey account transCount destination amount minerFee privKeyInHexString
+        let privateKey = GetPrivateKey account password
+        SignTransactionWithPrivateKey account transCount destination amount minerFee privateKey
 
     let Archive (account: NormalAccount)
                 (password: string) =

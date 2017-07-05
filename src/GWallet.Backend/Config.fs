@@ -4,6 +4,7 @@ open System
 open System.IO
 
 open Nethereum.KeyStore
+open Nethereum.Signer
 
 module internal Config =
 
@@ -61,7 +62,8 @@ module internal Config =
         seq {
             for filePath in Directory.GetFiles(configDirForArchivedAccounts.FullName) do
                 let privKey = File.ReadAllText(filePath)
-                yield ArchivedAccount(currency, privKey)
+                let ecPrivKey = EthECKey(privKey)
+                yield ArchivedAccount(currency, ecPrivKey)
         }
 
     let private GetFile (account: IAccount) =
@@ -112,4 +114,4 @@ module internal Config =
 
         // there's no unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
         // ... so we simply write the private key in string format
-        File.WriteAllText(configFile, account.PrivateKey)
+        File.WriteAllText(configFile, account.PrivateKey.GetPrivateKey())

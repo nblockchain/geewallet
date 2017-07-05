@@ -28,13 +28,10 @@ type ReadOnlyAccount(currency: Currency, publicAddress: string) =
         member val Currency = currency with get
         member val PublicAddress = publicAddress with get
 
-type ArchivedAccount(currency: Currency, privateKey: string) =
+type ArchivedAccount(currency: Currency, privateKey: EthECKey) =
     member val internal PrivateKey = privateKey with get
 
     interface IAccount with
         member val Currency = currency with get
         member val PublicAddress =
-            // FIXME: ideally the ctor should receive the EthECKey to have
-            //        validation of the private key ahead of time, instead
-            //        of lazily when we want to retreive the public address
-            EthECKey.GetPublicAddress(privateKey) with get
+            privateKey.GetPublicAddress() with get
