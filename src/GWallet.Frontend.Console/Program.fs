@@ -14,6 +14,9 @@ let rec TrySendAmount account destination amount fee =
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
         UserInteraction.PressAnyKeyToContinue ()
     with
+    | :? DestinationEqualToOrigin ->
+        Presentation.Error "Transaction's origin cannot be the same as the destination."
+        UserInteraction.PressAnyKeyToContinue()
     | :? InsufficientFunds ->
         Presentation.Error "Insufficient funds."
         UserInteraction.PressAnyKeyToContinue()

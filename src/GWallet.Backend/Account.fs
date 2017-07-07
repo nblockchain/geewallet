@@ -15,6 +15,7 @@ open Newtonsoft.Json
 
 exception InsufficientFunds
 exception InvalidPassword
+exception DestinationEqualToOrigin
 
 module Account =
 
@@ -188,7 +189,11 @@ module Account =
 
     let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
                     (password: string) (minerFee: EtherMinerFee) =
-        let currency = (account :> IAccount).Currency
+        let baseAccount = account :> IAccount
+        if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
+            raise DestinationEqualToOrigin
+
+        let currency = baseAccount.Currency
 
         let transCount = GetTransactionCount(currency, (account:>IAccount).PublicAddress)
         let trans = SignTransaction account transCount.Value destination amount minerFee password
