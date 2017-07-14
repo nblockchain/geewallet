@@ -49,6 +49,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <Compile Include="..\GWallet.Backend\CommonAssemblyInfo.fs">
+      <Link>CommonAssemblyInfo.fs</Link>
+    </Compile>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Presentation.fs" />
     <Compile Include="UserInteraction.fs" />
