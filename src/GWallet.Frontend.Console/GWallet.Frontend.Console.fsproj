@@ -46,6 +46,9 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+    <Reference Include="Nethereum.Signer">
+      <HintPath>..\..\packages\Nethereum.Signer.2.0.0-rc4\lib\net451\Nethereum.Signer.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
