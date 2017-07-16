@@ -42,6 +42,19 @@ Things we will never develop (if you want them, feel free to fork us):
 - Tokens (maybe I'll make an exception to BAT).
 
 
+# How to compile/install/use?
+
+The recommended way is to install the software system wide, like this:
+
+```
+./configure.sh --prefix=/usr
+make
+sudo make install
+```
+
+After that you can call `gwallet` directly.
+
+
 ## Feedback
 
 If you want to accelerate development/maintenance, please donate at... TBD.

@@ -13,4 +13,4 @@ before_script:
 
 build:
   script:
-    - time (./build.sh)
+    - time (./configure.sh && make && make install)
