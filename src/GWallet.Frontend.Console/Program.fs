@@ -133,7 +133,7 @@ let SendPayment() =
         | UserInteraction.AmountToTransfer.CertainCryptoAmount(amount) ->
             SendPaymentOfSpecificAmount account amount fee
         | UserInteraction.AmountToTransfer.AllBalance(allBalance) ->
-            SendPaymentOfSpecificAmount account (allBalance - fee.EtherPriceForNormalTransaction) fee
+            SendPaymentOfSpecificAmount account (allBalance - fee.EtherPriceForNormalTransaction()) fee
 
 let rec TryArchiveAccount account =
     let password = UserInteraction.AskPassword(false)

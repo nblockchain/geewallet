@@ -182,7 +182,7 @@ module Account =
                            (minerFee: EtherMinerFee) =
         let accountFrom = (account:>IAccount)
         let transCount = GetTransactionCount(accountFrom.Currency, accountFrom.PublicAddress).Value
-        let amount = balance - minerFee.EtherPriceForNormalTransaction
+        let amount = balance - minerFee.EtherPriceForNormalTransaction()
         let signedTrans = SignTransactionWithPrivateKey
                               account transCount destination.PublicAddress amount minerFee account.PrivateKey
         BroadcastRawTransaction (Web3(accountFrom.Currency)) signedTrans
@@ -242,6 +242,9 @@ module Account =
                                                                                   publicAddress)
         Config.AddNormalAccount currency accountSerializedJson
 
+    let public ExportUnsignedTransactionToJson trans =
+        JsonConvert.SerializeObject trans
+
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
         let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
         if (transCount.Value > BigInteger(Int64.MaxValue)) then
@@ -255,8 +258,7 @@ module Account =
                 Cache = Caching.GetLastCachedData();
                 Fee = fee;
             }
-        let json =
-            JsonConvert.SerializeObject(unsignedTransaction)
+        let json = ExportUnsignedTransactionToJson unsignedTransaction
         File.WriteAllText(filePath, json)
 
     let LoadSignedTransactionFromFile (filePath: string) =

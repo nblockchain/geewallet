@@ -39,15 +39,15 @@ module Presentation =
             match FiatValueEstimation.UsdValue(currency) with
             | Fresh(usdValue) ->
                 sprintf "(~%s USD)"
-                    (usdValue * estimatedFee.EtherPriceForNormalTransaction |> ShowDecimalForHumans CurrencyType.Fiat)
+                    (usdValue * estimatedFee.EtherPriceForNormalTransaction() |> ShowDecimalForHumans CurrencyType.Fiat)
             | NotFresh(Cached(usdValue,time)) ->
                 sprintf "(~%s USD [last known rate at %s])"
-                    (usdValue * estimatedFee.EtherPriceForNormalTransaction |> ShowDecimalForHumans CurrencyType.Fiat)
+                    (usdValue * estimatedFee.EtherPriceForNormalTransaction() |> ShowDecimalForHumans CurrencyType.Fiat)
                     (time |> ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
         Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s Ether %s"
                               Environment.NewLine
-                              (estimatedFee.EtherPriceForNormalTransaction |> ShowDecimalForHumans CurrencyType.Crypto)
+                              (estimatedFee.EtherPriceForNormalTransaction() |> ShowDecimalForHumans CurrencyType.Crypto)
                               estimatedFeeInUsd
                          )
 

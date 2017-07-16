@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend.Tests
 
 open System
+open System.Numerics
 
 open NUnit.Framework
 open Newtonsoft.Json
@@ -48,3 +49,45 @@ module Serialization =
                                        JsonConvert.SerializeObject(someDate))
                     )
                    )
+
+    [<Test>]
+    let ``unsigned transaction export``() =
+        let someDate = DateTime.Now
+        let someEthMinerFee =
+            {
+                GasPriceInWei = int64 69;
+                EstimationTime = someDate;
+                Currency = Currency.ETH;
+            }
+        let someUnsignedTransactionProposal =
+            {
+                Currency = Currency.ETH;
+                OriginAddress = "0xf3j4m0rjx94sushh03j";
+                Amount = 10m;
+                DestinationAddress = "0xf3j4m0rjxdddud9403j";
+            }
+        let someUnsignedTrans =
+            {
+                Proposal = someUnsignedTransactionProposal;
+                TransactionCount = int64 69;
+                Cache = { UsdPrice = Map.empty; Balances = Map.empty };
+                Fee = someEthMinerFee;
+            }
+        let someCachingData = { UsdPrice = Map.empty; Balances = Map.empty }
+        let json = Account.ExportUnsignedTransactionToJson someUnsignedTrans
+        Assert.That(json, Is.Not.Null)
+        Assert.That(json, Is.Not.Empty)
+        Assert.That(json,
+                    Is.EqualTo(
+                        "{\"Proposal\":" +
+                        "{\"Currency\":0," +
+                        "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
+                        "\"Amount\":10.0," +
+                        "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
+                        ",\"TransactionCount\":69," +
+                        "\"Fee\":{" +
+                        "\"GasPriceInWei\":69," +
+                        "\"EstimationTime\":" +
+                        JsonConvert.SerializeObject(someDate) +
+                        ",\"Currency\":0}," +
+                        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}"))
