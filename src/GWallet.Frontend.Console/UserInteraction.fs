@@ -110,18 +110,19 @@ module UserInteraction =
     let rec AskCurrency(): Currency =
         Console.WriteLine()
 
-        // TODO: move these 2 lines below to FSharpUtil?
-        let allCurrencies = Enum.GetValues(typeof<Currency>).Cast<Currency>() |> List.ofSeq
-        let allCurrenciesMappedToTheirIntValues = List.map (fun x -> (x, int x)) allCurrencies
+        let allCurrencies = Currency.GetAll()
 
-        for option in allCurrencies do
-            Console.WriteLine(sprintf "%d: %s" (int option) (option.ToString()))
+        for i = 0 to (allCurrencies.Count() - 1) do
+            Console.WriteLine(sprintf "%d: %s" (i+1) (allCurrencies.ElementAt(i).ToString()))
         Console.Write("Select currency: ")
         let optIntroduced = System.Console.ReadLine()
-        try
-            FindMatchingOption(optIntroduced, allCurrenciesMappedToTheirIntValues)
-        with
-        | :? NoOptionFound -> AskCurrency()
+        match Int32.TryParse(optIntroduced) with
+        | false, _ -> AskCurrency()
+        | true, optionParsed ->
+            if (optionParsed < 1 || optionParsed > allCurrencies.Count()) then
+                AskCurrency()
+            else
+                allCurrencies.ElementAt(optionParsed - 1)
 
     let DisplayAccountStatus accountNumber (account: IAccount) =
         let maybeReadOnly =

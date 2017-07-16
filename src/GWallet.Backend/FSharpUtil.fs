@@ -36,6 +36,7 @@ module FSharpUtil =
             else FSharpValue.MakeUnion(cases.[1], [|value|])
 
 // http://stackoverflow.com/a/28155235/544947
+//(SLIGHTLY MODIFIED TO MAKE IT WORK FOR MY TESTCASES!!)
     type IdiomaticDuConverter() =
         inherit JsonConverter()
 
@@ -63,19 +64,10 @@ module FSharpUtil =
             let allCasesHaveValues = unionCases |> Seq.forall (fun c -> c.GetFields() |> Seq.length > 0)
 
             match unionCases.Length, fields, allCasesHaveValues with
-            | 2, [||], false -> writer.WriteNull()
             | 1, [| singleValue |], _
             | 2, [| singleValue |], false -> (serializer, writer) |> writeValue singleValue
-            | 1, fields, _
-            | 2, fields, false ->
-                writer.WriteStartObject()
-                (serializer, writer) |> writeProperties fields
-                writer.WriteEndObject()
             | _ ->
-                writer.WriteStartObject()
-                writer |> writeDiscriminator case.Name
-                (serializer, writer) |> writeProperties fields
-                writer.WriteEndObject()
+                (serializer, writer) |> writeValue case.Name
 
         override __.ReadJson(reader, destinationType, _, _) =
             let parts =
@@ -113,10 +105,13 @@ module FSharpUtil =
                 match unionCase with
                 | Some case -> unionCases |> Array.find (fun f -> f.Name :> obj = case)
                 | None ->
-                    // implied union case
-                    match values with
-                    | [| null |] -> unionCases |> Array.find(fun c -> c.GetFields().Length = 0)
-                    | _ -> unionCases |> Array.find(fun c -> c.GetFields().Length > 0)
+                    if (values.Length = 1) then
+                        unionCases |> Array.find (fun c -> c.Name = values.ElementAt(0).ToString())
+                    else
+                        // implied union case
+                        match values with
+                        | [| null |] -> unionCases |> Array.find(fun c -> c.GetFields().Length = 0)
+                        | _ -> unionCases |> Array.find(fun c -> c.GetFields().Length > 0)
 
             let values =
                 case.GetFields()

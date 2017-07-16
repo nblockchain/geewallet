@@ -32,7 +32,6 @@ module Account =
         match currency with
         | Currency.ETH -> ethWeb3
         | Currency.ETC -> etcWeb3
-        | _ -> failwith("currency unknown")
 
     let rec private IsOfTypeOrItsInner<'T>(ex: Exception) =
         if (ex = null) then
@@ -62,7 +61,7 @@ module Account =
 
     let GetAllActiveAccounts(): seq<IAccount> =
         seq {
-            let allCurrencies = Enum.GetValues(typeof<Currency>).Cast<Currency>() |> List.ofSeq
+            let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
                 for account in Config.GetAllActiveAccounts(currency) do
@@ -71,7 +70,7 @@ module Account =
 
     let GetArchivedAccountsWithPositiveBalance(): seq<ArchivedAccount*decimal> =
         seq {
-            let allCurrencies = Enum.GetValues(typeof<Currency>).Cast<Currency>() |> List.ofSeq
+            let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
                 for account in Config.GetAllArchivedAccounts(currency) do
@@ -243,7 +242,7 @@ module Account =
         Config.AddNormalAccount currency accountSerializedJson
 
     let public ExportUnsignedTransactionToJson trans =
-        JsonConvert.SerializeObject trans
+        JsonConvert.SerializeObject (trans, FSharpUtil.IdiomaticDuConverter())
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
         let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
@@ -261,6 +260,9 @@ module Account =
         let json = ExportUnsignedTransactionToJson unsignedTransaction
         File.WriteAllText(filePath, json)
 
+    let public ImportUnsignedTransactionFromJson (json: string) =
+        JsonConvert.DeserializeObject<UnsignedTransaction>(json, FSharpUtil.IdiomaticDuConverter())
+
     let LoadSignedTransactionFromFile (filePath: string) =
         let signedTransInJson = File.ReadAllText(filePath)
 
@@ -270,6 +272,5 @@ module Account =
     let LoadUnsignedTransactionFromFile (filePath: string) =
         let unsignedTransInJson = File.ReadAllText(filePath)
 
-        // TODO: this line below works without the UnionConverter() or any other, should we get rid of it from FSharpUtils then?
-        JsonConvert.DeserializeObject<UnsignedTransaction>(unsignedTransInJson)
+        ImportUnsignedTransactionFromJson unsignedTransInJson
 

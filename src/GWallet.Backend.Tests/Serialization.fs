@@ -57,11 +57,11 @@ module Serialization =
             {
                 GasPriceInWei = int64 69;
                 EstimationTime = someDate;
-                Currency = Currency.ETH;
+                Currency = Currency.ETC;
             }
         let someUnsignedTransactionProposal =
             {
-                Currency = Currency.ETH;
+                Currency = Currency.ETC;
                 OriginAddress = "0xf3j4m0rjx94sushh03j";
                 Amount = 10m;
                 DestinationAddress = "0xf3j4m0rjxdddud9403j";
@@ -80,7 +80,7 @@ module Serialization =
         Assert.That(json,
                     Is.EqualTo(
                         "{\"Proposal\":" +
-                        "{\"Currency\":0," +
+                        "{\"Currency\":\"ETC\"," +
                         "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
                         "\"Amount\":10.0," +
                         "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
@@ -89,5 +89,5 @@ module Serialization =
                         "\"GasPriceInWei\":69," +
                         "\"EstimationTime\":" +
                         JsonConvert.SerializeObject(someDate) +
-                        ",\"Currency\":0}," +
+                        ",\"Currency\":\"ETC\"}," +
                         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}"))

@@ -33,7 +33,6 @@ module FiatValueEstimation =
             match currency with
             | Currency.ETH -> "ethereum"
             | Currency.ETC -> "ethereum-classic"
-            | _ -> "Unsupported currency"
 
         let maybeJson =
             try

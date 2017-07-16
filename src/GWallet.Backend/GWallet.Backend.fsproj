@@ -53,10 +53,10 @@
   <ItemGroup>
     <Compile Include="CommonAssemblyInfo.fs" />
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="FSharpUtil.fs" />
     <Compile Include="Currency.fs" />
     <Compile Include="AccountTypes.fs" />
     <Compile Include="Config.fs" />
-    <Compile Include="FSharpUtil.fs" />
     <Compile Include="EtherMinerFee.fs" />
     <Compile Include="Caching.fs" />
     <Compile Include="Transaction.fs" />
