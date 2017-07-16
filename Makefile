@@ -3,3 +3,6 @@ all:
 
 install:
 	@./make.sh install
+
+check:
+	@./make.sh check

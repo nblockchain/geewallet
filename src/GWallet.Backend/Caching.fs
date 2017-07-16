@@ -46,9 +46,11 @@ module Caching =
             sessionCachedNetworkData.Value
         )
 
+    let public ExportToJson (newCachedData: Option<CachedNetworkData>): string =
+        JsonConvert.SerializeObject(newCachedData, FSharpUtil.OptionConverter())
+
     let private SaveToDisk (newCachedData: Option<CachedNetworkData>) =
-        let json =
-            JsonConvert.SerializeObject(sessionCachedNetworkData, FSharpUtil.OptionConverter())
+        let json = ExportToJson (newCachedData)
         File.WriteAllText(lastCacheFile, json)
 
     let rec private MergeInternal (oldMap: Map<'K, Cached<'V>>)

@@ -56,19 +56,32 @@ let JustBuild () =
 let maybeTarget = GatherTarget (Util.FsxArguments(), None)
 match maybeTarget with
 | None -> JustBuild ()
-| Some(target) ->
-    if (target = "install") then
-        Console.WriteLine "Installing gwallet..."
-        Console.WriteLine ()
-        Directory.CreateDirectory(libInstallPath.FullName) |> ignore
-        Misc.CopyDirectoryRecursively (mainBinariesPath, libInstallPath)
+| Some("check") ->
+    Console.WriteLine "Running tests..."
+    Console.WriteLine ()
 
-        let finalPrefixPathOfWrapperScript = FileInfo (Path.Combine(binInstallPath.FullName, launcherScriptPath.Name))
-        if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
-            Directory.CreateDirectory(finalPrefixPathOfWrapperScript.Directory.FullName) |> ignore
-        File.Copy(launcherScriptPath.FullName, finalPrefixPathOfWrapperScript.FullName, true)
-        if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, false, true)).ExitCode <> 0) then
-            failwith "Unexpected chmod failure, please report this bug"
-    else
-        Console.Error.WriteLine("Unrecognized target: " + target)
-        Environment.Exit 2
+    let nunitCommand = "nunit-console"
+    let nunitWhich = Process.Execute(sprintf "which %s" nunitCommand, false, true)
+    if (nunitWhich.ExitCode <> 0) then
+        Console.Error.WriteLine (sprintf "%s not found, please install it first" nunitCommand)
+        Environment.Exit 1
+    let nunitRun = Process.Execute(sprintf "%s src/GWallet.Backend.Tests/bin/GWallet.Backend.Tests.dll" nunitCommand, true, false)
+    if (nunitWhich.ExitCode <> 0) then
+        Console.Error.WriteLine "Tests failed"
+        Environment.Exit 1
+
+| Some("install") ->
+    Console.WriteLine "Installing gwallet..."
+    Console.WriteLine ()
+    Directory.CreateDirectory(libInstallPath.FullName) |> ignore
+    Misc.CopyDirectoryRecursively (mainBinariesPath, libInstallPath)
+
+    let finalPrefixPathOfWrapperScript = FileInfo (Path.Combine(binInstallPath.FullName, launcherScriptPath.Name))
+    if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
+        Directory.CreateDirectory(finalPrefixPathOfWrapperScript.Directory.FullName) |> ignore
+    File.Copy(launcherScriptPath.FullName, finalPrefixPathOfWrapperScript.FullName, true)
+    if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, false, true)).ExitCode <> 0) then
+        failwith "Unexpected chmod failure, please report this bug"
+| Some(someOtherTarget) ->
+    Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
+    Environment.Exit 2

@@ -11,3 +11,6 @@ build.config
 
 # monodevelop:
 *.userprefs
+
+# nunit results:
+TestResult.xml

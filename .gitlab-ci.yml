@@ -14,3 +14,10 @@ before_script:
 build:
   script:
     - time (./configure.sh && make && make install)
+
+test:
+  script:
+    - time (apt-get install -y nunit-console &&
+            ./configure.sh &&
+            make &&
+            make check)
