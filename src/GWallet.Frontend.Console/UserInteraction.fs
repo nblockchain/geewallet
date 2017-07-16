@@ -5,7 +5,7 @@ open System.Linq
 
 open GWallet.Backend
 
-type Options =
+type internal Options =
     | Exit               = 0
     | Refresh            = 1
     | CreateAccount      = 2
@@ -62,14 +62,14 @@ module UserInteraction =
                 else
                     FindMatchingOption(optIntroduced, tail)
 
-    let OptionAvailable (option: Options) (numAccounts: int) =
+    let internal OptionAvailable (option: Options) (numAccounts: int) =
         let anyAccount = numAccounts > 0
         match option with
         | Options.SendPayment -> anyAccount
         | Options.ArchiveAccount -> anyAccount
         | _ -> true
 
-    let rec AskOption(numAccounts: int): Options =
+    let rec internal AskOption(numAccounts: int): Options =
         Console.WriteLine("Available options:")
 
         // TODO: move these 2 lines below to FSharpUtil?
