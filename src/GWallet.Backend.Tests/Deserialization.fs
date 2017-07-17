@@ -11,6 +11,30 @@ open GWallet.Backend
 module Deserialization =
 
     [<Test>]
+    let ``deserialize cache does not fail``() =
+        let someDate = DateTime.Now
+
+        let cacheData =
+            "{\"UsdPrice\":{\"ETH\":{\"Item1\":161.796,\"Item2\":" +
+            JsonConvert.SerializeObject(someDate) +
+            "}},\"Balances\":{\"0xFOOBARBAZ\":{\"Item1\":96.69,\"Item2\":" +
+            JsonConvert.SerializeObject(someDate) + "}}}"
+        let deserializedCache = Caching.ImportFromJson (cacheData)
+
+        Assert.That(deserializedCache, Is.Not.Null)
+
+        Assert.That(deserializedCache.Balances, Is.Not.Null)
+        Assert.That(deserializedCache.Balances.ContainsKey("0xFOOBARBAZ"))
+        let balance,date = deserializedCache.Balances.Item "0xFOOBARBAZ"
+        Assert.That(balance, Is.EqualTo(96.69))
+        Assert.That(date, Is.EqualTo(someDate))
+
+        Assert.That(deserializedCache.UsdPrice, Is.Not.Null)
+        let price,date = deserializedCache.UsdPrice.Item Currency.ETH
+        Assert.That(price, Is.EqualTo(161.796))
+        Assert.That(date, Is.EqualTo(someDate))
+
+    [<Test>]
     let ``unsigned transaction import``() =
         let someDate = DateTime.Now
 

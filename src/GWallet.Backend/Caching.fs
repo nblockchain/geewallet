@@ -29,11 +29,13 @@ module Caching =
 
     let private lastCacheFile = Path.Combine(GetCacheDir().FullName, "last.json")
 
+    let public ImportFromJson (cacheData: string) =
+        JsonConvert.DeserializeObject<CachedNetworkData>(cacheData)
+
     let private LoadFromDisk (): Option<CachedNetworkData> =
         try
             let json = File.ReadAllText(lastCacheFile)
-            let deserializedJson =
-                JsonConvert.DeserializeObject<CachedNetworkData>(json, FSharpUtil.OptionConverter())
+            let deserializedJson = ImportFromJson(json)
             Some(deserializedJson)
         with
         | :? FileNotFoundException -> None
