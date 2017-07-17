@@ -47,7 +47,8 @@ module Caching =
         )
 
     let public ExportToJson (newCachedData: Option<CachedNetworkData>): string =
-        JsonConvert.SerializeObject(newCachedData, FSharpUtil.OptionConverter())
+        JsonConvert.SerializeObject(newCachedData,
+                                    FSharpUtil.CustomIdiomaticDuConverter())
 
     let private SaveToDisk (newCachedData: Option<CachedNetworkData>) =
         let json = ExportToJson (newCachedData)
