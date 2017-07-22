@@ -69,7 +69,7 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.TransactionCount, Is.EqualTo(69))
 
         Assert.That(deserializedUnsignedTrans.Fee.Currency, Is.EqualTo(Currency.ETC))
-        Assert.That(deserializedUnsignedTrans.Fee.GasPriceInWei, Is.EqualTo(6969m))
+        Assert.That(deserializedUnsignedTrans.Fee.GasPriceInWei, Is.EqualTo(6969))
         Assert.That(deserializedUnsignedTrans.Fee.EstimationTime, Is.EqualTo(someDate))
 
         Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo(0))
