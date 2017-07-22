@@ -60,6 +60,8 @@
     <Compile Include="EtherMinerFee.fs" />
     <Compile Include="Caching.fs" />
     <Compile Include="Transaction.fs" />
+    <Compile Include="FaultTolerantClient.fs" />
+    <Compile Include="EtherServer.fs" />
     <Compile Include="Account.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="Infrastructure.fs" />

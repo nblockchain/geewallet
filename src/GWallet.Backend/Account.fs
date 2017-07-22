@@ -19,19 +19,7 @@ exception DestinationEqualToOrigin
 
 module Account =
 
-    // TODO: to prevent having MyEtherApi as a SPOF, use more services, like https://infura.io/
-    let private PUBLIC_WEB3_API_ETH = "https://api.myetherapi.com/eth" // docs: https://www.myetherapi.com/
-
-    // this below is https://classicetherwallet.com/'s public endpoint (TODO: to prevent having a SPOF, use https://etcchain.com/api/ too)
-    let private PUBLIC_WEB3_API_ETC = "https://mewapi.epool.io"
-
-    let private ethWeb3 = Web3(PUBLIC_WEB3_API_ETH)
-    let private etcWeb3 = Web3(PUBLIC_WEB3_API_ETC)
-
-    let private Web3(currency: Currency) =
-        match currency with
-        | Currency.ETH -> ethWeb3
-        | Currency.ETC -> etcWeb3
+    let private currencyAgnosticWeb3 = Web3()
 
     let rec private IsOfTypeOrItsInner<'T>(ex: Exception) =
         if (ex = null) then
@@ -42,13 +30,11 @@ module Account =
             IsOfTypeOrItsInner<'T>(ex.InnerException)
 
     let GetBalance(account: IAccount): MaybeCached<decimal> =
-        let web3 = Web3(account.Currency)
-
         let maybeBalance =
             try
-                let balanceTask = web3.Eth.GetBalance.SendRequestAsync(account.PublicAddress)
-                balanceTask.Wait()
-                Some(balanceTask.Result.Value)
+                let balance =
+                    EtherServer.GetBalance account.Currency account.PublicAddress
+                Some(balance.Value)
             with
             | ex when IsOfTypeOrItsInner<WebException>(ex) -> None
 
@@ -84,10 +70,7 @@ module Account =
         }
 
     let EstimateFee (currency: Currency): EtherMinerFee =
-        let web3 = Web3(currency)
-        let gasPriceTask = web3.Eth.GasPrice.SendRequestAsync()
-        gasPriceTask.Wait()
-        let gasPrice = gasPriceTask.Result
+        let gasPrice = EtherServer.GetGasPrice currency
         if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
                           (gasPrice.Value.ToString()))
@@ -95,25 +78,21 @@ module Account =
         { GasPriceInWei = gasPrice64; EstimationTime = DateTime.Now; Currency = currency }
 
     let private GetTransactionCount (currency: Currency, publicAddress: string) =
-        let web3 = Web3(currency)
-        let transCountTask = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(publicAddress)
-        transCountTask.Wait()
-        transCountTask.Result
+        EtherServer.GetTransactionCount currency publicAddress
 
-    let private BroadcastRawTransaction (web3: Web3) trans =
+    let private BroadcastRawTransaction (currency: Currency) trans =
         let insufficientFundsMsg = "Insufficient funds"
         try
-            let sendRawTransTask = web3.Eth.Transactions.SendRawTransaction.SendRequestAsync("0x" + trans)
-            sendRawTransTask.Wait()
-            let txId = sendRawTransTask.Result
+            let txId = EtherServer.BroadcastTransaction currency ("0x" + trans)
             txId
         with
         | ex when ex.Message.StartsWith(insufficientFundsMsg) || ex.InnerException.Message.StartsWith(insufficientFundsMsg) ->
             raise (InsufficientFunds)
 
     let BroadcastTransaction (trans: SignedTransaction) =
-        let web3 = Web3(trans.TransactionInfo.Proposal.Currency)
-        BroadcastRawTransaction web3 trans.RawTransaction
+        BroadcastRawTransaction
+            trans.TransactionInfo.Proposal.Currency
+            trans.RawTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
         let privKeyInBytes =
@@ -138,10 +117,8 @@ module Account =
 
         let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
 
-        let web3 = Web3(currency)
-
         let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
-        let trans = web3.OfflineTransactionSigner.SignTransaction(
+        let trans = currencyAgnosticWeb3.OfflineTransactionSigner.SignTransaction(
                         privKeyInBytes,
                         destination,
                         amountInWei,
@@ -154,7 +131,7 @@ module Account =
                         BigInteger(minerFee.GasPriceInWei),
                         minerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
-        if not (web3.OfflineTransactionSigner.VerifyTransaction(trans)) then
+        if not (currencyAgnosticWeb3.OfflineTransactionSigner.VerifyTransaction(trans)) then
             failwith "Transaction could not be verified?"
         trans
 
@@ -180,11 +157,12 @@ module Account =
                            (destination: IAccount)
                            (minerFee: EtherMinerFee) =
         let accountFrom = (account:>IAccount)
-        let transCount = GetTransactionCount(accountFrom.Currency, accountFrom.PublicAddress).Value
+        let transCountHexBigInt = GetTransactionCount (accountFrom.Currency, accountFrom.PublicAddress)
+        let transCount = transCountHexBigInt.Value
         let amount = balance - minerFee.EtherPriceForNormalTransaction()
         let signedTrans = SignTransactionWithPrivateKey
                               account transCount destination.PublicAddress amount minerFee account.PrivateKey
-        BroadcastRawTransaction (Web3(accountFrom.Currency)) signedTrans
+        BroadcastRawTransaction accountFrom.Currency signedTrans
 
     let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
                     (password: string) (minerFee: EtherMinerFee) =
@@ -197,8 +175,7 @@ module Account =
         let transCount = GetTransactionCount(currency, (account:>IAccount).PublicAddress)
         let trans = SignTransaction account transCount.Value destination amount minerFee password
 
-        let web3 = Web3(currency)
-        BroadcastRawTransaction web3 trans
+        BroadcastRawTransaction currency trans
 
     let SignUnsignedTransaction account (unsignedTrans: UnsignedTransaction) password =
         let rawTransaction = SignTransaction account

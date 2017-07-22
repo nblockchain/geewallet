@@ -54,6 +54,7 @@
     <Content Include="packages.config" />
     <Compile Include="Serialization.fs" />
     <Compile Include="Deserialization.fs" />
+    <Compile Include="FaultTolerance.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
