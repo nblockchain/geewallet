@@ -74,3 +74,49 @@ module Deserialization =
 
         Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo(0))
         Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(0))
+
+    [<Test>]
+    let ``signed transaction import``() =
+        let someDate = DateTime.Now
+
+        let signedTransInJson =
+            "{\"TransactionInfo\":{\"Proposal\":" +
+            "{\"Currency\":\"ETC\"," +
+            "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
+            "\"Amount\":10.01," +
+            "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
+            ",\"TransactionCount\":69," +
+            "\"Fee\":{" +
+            "\"GasPriceInWei\":6969," +
+            "\"EstimationTime\":" +
+            JsonConvert.SerializeObject(someDate) +
+            ",\"Currency\":\"ETC\"}," +
+            "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}," +
+            "\"RawTransaction\":\"doijfsoifjdosisdjfomirmjosmi\"}"
+
+        let deserializedSignedTrans =
+            Account.ImportSignedTransactionFromJson signedTransInJson
+        Assert.That(deserializedSignedTrans, Is.Not.Null)
+
+        Assert.That(deserializedSignedTrans.RawTransaction, Is.EqualTo("doijfsoifjdosisdjfomirmjosmi"))
+
+        Assert.That(deserializedSignedTrans.TransactionInfo, Is.Not.Null)
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal, Is.Not.Null)
+        Assert.That(deserializedSignedTrans.TransactionInfo.Cache, Is.Not.Null)
+        Assert.That(deserializedSignedTrans.TransactionInfo.Fee, Is.Not.Null)
+
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount, Is.EqualTo(10.01m))
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Currency, Is.EqualTo(Currency.ETC))
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.DestinationAddress,
+                    Is.EqualTo("0xf3j4m0rjxdddud9403j"))
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginAddress,
+                    Is.EqualTo("0xf3j4m0rjx94sushh03j"))
+
+        Assert.That(deserializedSignedTrans.TransactionInfo.TransactionCount, Is.EqualTo(69))
+
+        Assert.That(deserializedSignedTrans.TransactionInfo.Fee.Currency, Is.EqualTo(Currency.ETC))
+        Assert.That(deserializedSignedTrans.TransactionInfo.Fee.GasPriceInWei, Is.EqualTo(6969))
+        Assert.That(deserializedSignedTrans.TransactionInfo.Fee.EstimationTime, Is.EqualTo(someDate))
+
+        Assert.That(deserializedSignedTrans.TransactionInfo.Cache.Balances.Count, Is.EqualTo(0))
+        Assert.That(deserializedSignedTrans.TransactionInfo.Cache.UsdPrice.Count, Is.EqualTo(0))

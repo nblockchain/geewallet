@@ -209,9 +209,11 @@ module Account =
                                  password
         { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
 
+    let public ExportSignedTransaction (trans: SignedTransaction) =
+        JsonConvert.SerializeObject trans
+
     let SaveSignedTransaction (trans: SignedTransaction) (filePath: string) =
-        let json =
-            JsonConvert.SerializeObject(trans)
+        let json = ExportSignedTransaction trans
         File.WriteAllText(filePath, json)
 
     let AddPublicWatcher currency (publicAddress: string) =
@@ -265,11 +267,14 @@ module Account =
         JsonConvert.DeserializeObject<UnsignedTransaction>(json,
                                                            FSharpUtil.CustomIdiomaticDuConverter())
 
+    let public ImportSignedTransactionFromJson (json: string) =
+        JsonConvert.DeserializeObject<SignedTransaction>(json,
+                                                         FSharpUtil.CustomIdiomaticDuConverter())
+
     let LoadSignedTransactionFromFile (filePath: string) =
         let signedTransInJson = File.ReadAllText(filePath)
 
-        // TODO: this line below works without the UnionConverter() or any other, should we get rid of it from FSharpUtils then?
-        JsonConvert.DeserializeObject<SignedTransaction>(signedTransInJson)
+        ImportSignedTransactionFromJson signedTransInJson
 
     let LoadUnsignedTransactionFromFile (filePath: string) =
         let unsignedTransInJson = File.ReadAllText(filePath)

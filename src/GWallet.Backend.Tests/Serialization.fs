@@ -91,3 +91,53 @@ module Serialization =
                         JsonConvert.SerializeObject(someDate) +
                         ",\"Currency\":\"ETC\"}," +
                         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}"))
+
+    [<Test>]
+    let ``signed transaction export``() =
+        let someDate = DateTime.Now
+        let someEthMinerFee =
+            {
+                GasPriceInWei = int64 6969;
+                EstimationTime = someDate;
+                Currency = Currency.ETC;
+            }
+        let someUnsignedTransactionProposal =
+            {
+                Currency = Currency.ETC;
+                OriginAddress = "0xf3j4m0rjx94sushh03j";
+                Amount = 10m;
+                DestinationAddress = "0xf3j4m0rjxdddud9403j";
+            }
+        let someTransInfo =
+            {
+                Proposal = someUnsignedTransactionProposal;
+                TransactionCount = int64 69;
+                Cache = { UsdPrice = Map.empty; Balances = Map.empty };
+                Fee = someEthMinerFee;
+            }
+        let someSignedTrans =
+            {
+                TransactionInfo = someTransInfo;
+                RawTransaction = "doijfsoifjdosisdjfomirmjosmi";
+            }
+        let someCachingData = { UsdPrice = Map.empty; Balances = Map.empty }
+        let json = Account.ExportUnsignedTransactionToJson someSignedTrans
+        Assert.That(json, Is.Not.Null)
+        Assert.That(json, Is.Not.Empty)
+        Assert.That(json,
+                    Is.EqualTo(
+                        "{\"TransactionInfo\":{\"Proposal\":" +
+                        "{\"Currency\":\"ETC\"," +
+                        "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
+                        "\"Amount\":10.0," +
+                        "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
+                        ",\"TransactionCount\":69," +
+                        "\"Fee\":{" +
+                        "\"GasPriceInWei\":6969," +
+                        "\"EstimationTime\":" +
+                        JsonConvert.SerializeObject(someDate) +
+                        ",\"Currency\":\"ETC\"}," +
+                        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}," +
+                        "\"RawTransaction\":\"doijfsoifjdosisdjfomirmjosmi\"}"
+                    )
+                   )
