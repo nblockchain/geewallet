@@ -12,3 +12,6 @@ release:
 
 zip:
 	@./make.sh zip
+
+run:
+	@./make.sh run

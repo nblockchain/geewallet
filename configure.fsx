@@ -10,7 +10,7 @@ open FSX.Infrastructure
 
 let ConfigCommandCheck (commandName: string) =
     Console.Write (sprintf "checking for %s... " commandName)
-    if not (Process.CommandCheck commandName) then
+    if (Process.CommandCheck commandName).IsNone then
         Console.Error.WriteLine "not found"
         Console.Error.WriteLine (sprintf "configuration failed, please install \"%s\"" commandName)
         Environment.Exit 1

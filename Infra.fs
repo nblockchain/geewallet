@@ -91,6 +91,26 @@ module Misc =
 
 module Process =
 
+    let rec private GetStdOut (outputBuffer: OutputBuffer) =
+        match outputBuffer with
+        | [] -> StringBuilder()
+        | head::tail ->
+            match head with
+            | StdOut(out) ->
+                GetStdOut(tail).Append(out.ToString())
+            | _ ->
+                GetStdOut(tail)
+
+    let rec private GetStdErr (outputBuffer: OutputBuffer) =
+        match outputBuffer with
+        | [] -> StringBuilder()
+        | head::tail ->
+            match head with
+            | StdErr(err) ->
+                GetStdErr(tail).Append(err.ToString())
+            | _ ->
+                GetStdErr(tail)
+
     let rec PrintToScreen (outputBuffer: OutputBuffer) =
         match outputBuffer with
         | [] -> ()
@@ -168,12 +188,12 @@ module Process =
 
         { ExitCode = exitCode; Output = List.ofSeq(outputBuffer) }
 
-    let CommandCheck (commandName: string): bool =
+    let CommandCheck (commandName: string): Option<string> =
         let commandWhich = Execute (sprintf "which %s" commandName, false, true)
         if (commandWhich.ExitCode <> 0) then
-            false
+            None
         else
-            true
+            Some(GetStdOut(commandWhich.Output).ToString())
 
 module Util =
 

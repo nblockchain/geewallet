@@ -61,7 +61,7 @@ let JustBuild binaryConfig =
     File.WriteAllText (launcherScriptPath.FullName, wrapperScriptWithPaths)
 
 let MakeCheckCommand (commandName: string) =
-    if not (Process.CommandCheck commandName) then
+    if (Process.CommandCheck commandName).IsNone then
         Console.Error.WriteLine (sprintf "%s not found, please install it first" commandName)
         Environment.Exit 1
 
@@ -116,6 +116,20 @@ match maybeTarget with
     File.Copy(launcherScriptPath.FullName, finalPrefixPathOfWrapperScript.FullName, true)
     if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, false, true)).ExitCode <> 0) then
         failwith "Unexpected chmod failure, please report this bug"
+
+| Some("run") ->
+    let fullPathToMono = Process.CommandCheck "mono"
+    if (fullPathToMono.IsNone) then
+        Console.Error.WriteLine "mono not found? install it first"
+        Environment.Exit 1
+
+    let debug = BinaryConfig.Debug
+    JustBuild debug
+    let proc = System.Diagnostics.Process.Start
+                   (fullPathToMono.Value,
+                    sprintf "src/%s/bin/%s/%s.exe" DEFAULT_FRONTEND (debug.ToString()) DEFAULT_FRONTEND)
+    proc.WaitForExit()
+
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
     Environment.Exit 2
