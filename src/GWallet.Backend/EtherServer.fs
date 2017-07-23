@@ -45,9 +45,14 @@ module EtherServer =
         | Currency.ETH ->
             [ ethWeb3Infura; ethWeb3Mew ]
 
+    let private timeoutSpan = TimeSpan.FromSeconds(3.0)
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
         let task = func arg
-        task.Wait()
+        let finished = task.Wait timeoutSpan
+        if not finished then
+            raise (TimeoutException(
+                       sprintf "Couldn't get a response after %s seconds"
+                               (timeoutSpan.TotalSeconds.ToString())))
         task.Result
 
     let private PlumbingCall<'T,'R> (currency: Currency)
