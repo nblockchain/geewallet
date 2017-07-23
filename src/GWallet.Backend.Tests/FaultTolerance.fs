@@ -33,7 +33,7 @@ module FaultTolerance =
 
     [<Test>]
     let ``throws NotAvailable if no funcs``(): unit =
-        Assert.Throws<FaultTolerantClient.NotAvailable>(
+        Assert.Throws<FaultTolerantClient.NoneAvailableException>(
             fun _ -> FaultTolerantClient.Query<string,int> "_" [] |> ignore
         ) |> ignore
 
@@ -49,3 +49,26 @@ module FaultTolerance =
             FaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
+
+    exception SomeException
+    [<Test>]
+    let ``NoneAvailable exception contains innerException``() =
+        let someStringArg = "foo"
+        let func1 (arg: string) =
+            raise SomeException
+        let func2 (arg: string) =
+            raise SomeException
+
+        let dataRetrieved =
+            try
+                let result =
+                    FaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
+                Some(result)
+            with
+            | ex ->
+                Assert.That (ex, Is.TypeOf<FaultTolerantClient.NoneAvailableException>())
+                Assert.That (ex.InnerException, Is.Not.Null)
+                Assert.That (ex.InnerException, Is.TypeOf<SomeException>())
+                None
+
+        Assert.That(dataRetrieved, Is.EqualTo(None))
