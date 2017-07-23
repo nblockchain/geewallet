@@ -65,6 +65,9 @@ let MakeCheckCommand (commandName: string) =
         Console.Error.WriteLine (sprintf "%s not found, please install it first" commandName)
         Environment.Exit 1
 
+let GetPathToFrontend (binaryConfig: BinaryConfig) =
+    Path.Combine ("src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString())
+
 let maybeTarget = GatherTarget (Util.FsxArguments(), None)
 match maybeTarget with
 | None ->
@@ -79,7 +82,8 @@ match maybeTarget with
 
     let version = Misc.GetCurrentVersion().ToString()
 
-    JustBuild BinaryConfig.Release
+    let release = BinaryConfig.Release
+    JustBuild release
     let binDir = "bin"
     Directory.CreateDirectory(binDir) |> ignore
 
@@ -88,8 +92,9 @@ match maybeTarget with
     if (File.Exists (pathToZip)) then
         File.Delete (pathToZip)
 
-    let zipLaunch = sprintf "%s -j -r %s src/%s/bin/%s"
-                            zipCommand pathToZip DEFAULT_FRONTEND (BinaryConfig.Release.ToString())
+    let pathToFrontend = GetPathToFrontend release
+    let zipLaunch = sprintf "%s -j -r %s %s"
+                            zipCommand pathToZip pathToFrontend
     let zipRun = Process.Execute(zipLaunch, true, false)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
@@ -128,9 +133,11 @@ match maybeTarget with
 
     let debug = BinaryConfig.Debug
     JustBuild debug
+
+    let pathToFrontend = Path.Combine(GetPathToFrontend debug, DEFAULT_FRONTEND + ".exe")
+
     let proc = System.Diagnostics.Process.Start
-                   (fullPathToMono.Value,
-                    sprintf "src/%s/bin/%s/%s.exe" DEFAULT_FRONTEND (debug.ToString()) DEFAULT_FRONTEND)
+                   (fullPathToMono.Value, pathToFrontend)
     proc.WaitForExit()
 
 | Some(someOtherTarget) ->
