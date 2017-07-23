@@ -19,7 +19,7 @@ exception DestinationEqualToOrigin
 
 module Account =
 
-    let private currencyAgnosticWeb3 = Web3()
+    let private signer = TransactionSigner()
 
     let rec private IsOfTypeOrItsInner<'T>(ex: Exception) =
         if (ex = null) then
@@ -118,7 +118,7 @@ module Account =
         let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
 
         let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
-        let trans = currencyAgnosticWeb3.OfflineTransactionSigner.SignTransaction(
+        let trans = signer.SignTransaction(
                         privKeyInBytes,
                         destination,
                         amountInWei,
@@ -131,7 +131,7 @@ module Account =
                         BigInteger(minerFee.GasPriceInWei),
                         minerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
-        if not (currencyAgnosticWeb3.OfflineTransactionSigner.VerifyTransaction(trans)) then
+        if not (signer.VerifyTransaction(trans)) then
             failwith "Transaction could not be verified?"
         trans
 
