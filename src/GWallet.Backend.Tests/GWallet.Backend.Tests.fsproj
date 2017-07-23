@@ -50,11 +50,14 @@
   </Choose>
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
-    <Content Include="packages.config" />
+    <Compile Include="..\GWallet.Backend\CommonAssemblyInfo.fs">
+      <Link>CommonAssemblyInfo.fs</Link>
+    </Compile>
+    <Compile Include="MarshallingData.fs" />
     <Compile Include="Serialization.fs" />
     <Compile Include="Deserialization.fs" />
     <Compile Include="FaultTolerance.fs" />
+    <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />

@@ -187,7 +187,7 @@ module Account =
         { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
 
     let public ExportSignedTransaction (trans: SignedTransaction) =
-        JsonConvert.SerializeObject trans
+        Marshalling.Serialize trans
 
     let SaveSignedTransaction (trans: SignedTransaction) (filePath: string) =
         let json = ExportSignedTransaction trans
@@ -221,8 +221,7 @@ module Account =
         Config.AddNormalAccount currency accountSerializedJson
 
     let public ExportUnsignedTransactionToJson trans =
-        JsonConvert.SerializeObject (trans,
-                                     FSharpUtil.CustomIdiomaticDuConverter())
+        Marshalling.Serialize trans
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
         let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
@@ -240,13 +239,11 @@ module Account =
         let json = ExportUnsignedTransactionToJson unsignedTransaction
         File.WriteAllText(filePath, json)
 
-    let public ImportUnsignedTransactionFromJson (json: string) =
-        JsonConvert.DeserializeObject<UnsignedTransaction>(json,
-                                                           FSharpUtil.CustomIdiomaticDuConverter())
+    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction =
+        Marshalling.Deserialize json
 
-    let public ImportSignedTransactionFromJson (json: string) =
-        JsonConvert.DeserializeObject<SignedTransaction>(json,
-                                                         FSharpUtil.CustomIdiomaticDuConverter())
+    let public ImportSignedTransactionFromJson (json: string): SignedTransaction =
+        Marshalling.Deserialize json
 
     let LoadSignedTransactionFromFile (filePath: string) =
         let signedTransInJson = File.ReadAllText(filePath)

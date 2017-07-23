@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Text
 open System.Collections.Generic
 
 open Newtonsoft.Json
@@ -29,8 +30,8 @@ module Caching =
 
     let private lastCacheFile = Path.Combine(GetCacheDir().FullName, "last.json")
 
-    let public ImportFromJson (cacheData: string) =
-        JsonConvert.DeserializeObject<CachedNetworkData>(cacheData)
+    let public ImportFromJson (cacheData: string): CachedNetworkData =
+        Marshalling.Deserialize<DeserializableValue<CachedNetworkData>,CachedNetworkData>(cacheData)
 
     let private LoadFromDisk (): Option<CachedNetworkData> =
         try
@@ -48,11 +49,10 @@ module Caching =
             sessionCachedNetworkData.Value
         )
 
-    let public ExportToJson (newCachedData: Option<CachedNetworkData>): string =
-        JsonConvert.SerializeObject(newCachedData,
-                                    FSharpUtil.CustomIdiomaticDuConverter())
+    let public ExportToJson (newCachedData: CachedNetworkData): string =
+        Marshalling.Serialize(newCachedData)
 
-    let private SaveToDisk (newCachedData: Option<CachedNetworkData>) =
+    let private SaveToDisk (newCachedData: CachedNetworkData) =
         let json = ExportToJson (newCachedData)
         File.WriteAllText(lastCacheFile, json)
 
@@ -84,15 +84,17 @@ module Caching =
 
     let public SaveSnapshot(newCachedData: CachedNetworkData) =
         lock lockObject (fun _ ->
-            match sessionCachedNetworkData with
-            | None ->
-                sessionCachedNetworkData <- Some(newCachedData)
-            | Some(networkData) ->
-                let mergedBalances = Merge networkData.Balances newCachedData.Balances
-                let mergedUsdPrices = Merge networkData.UsdPrice newCachedData.UsdPrice
-                sessionCachedNetworkData <- Some({ Balances = mergedBalances; UsdPrice = mergedUsdPrices })
+            let newSessionCachedNetworkData =
+                match sessionCachedNetworkData with
+                | None ->
+                    newCachedData
+                | Some(networkData) ->
+                    let mergedBalances = Merge networkData.Balances newCachedData.Balances
+                    let mergedUsdPrices = Merge networkData.UsdPrice newCachedData.UsdPrice
+                    { UsdPrice = mergedUsdPrices; Balances = mergedBalances}
 
-            SaveToDisk(sessionCachedNetworkData)
+            sessionCachedNetworkData <- Some(newSessionCachedNetworkData)
+            SaveToDisk newSessionCachedNetworkData
         )
 
     let internal RetreiveLastKnownUsdPrice (currency): NotFresh<decimal> =
@@ -124,14 +126,14 @@ module Caching =
             let newCachedValue =
                 match sessionCachedNetworkData with
                 | None ->
-                    Some({ UsdPrice = Map.empty.Add(currency, (lastFiatUsdPrice, time));
-                           Balances = Map.empty})
+                    { UsdPrice = Map.empty.Add(currency, (lastFiatUsdPrice, time));
+                      Balances = Map.empty }
                 | Some(previousCachedData) ->
-                    Some({ UsdPrice = previousCachedData.UsdPrice.Add(currency, (lastFiatUsdPrice, time));
-                           Balances = previousCachedData.Balances })
-            sessionCachedNetworkData <- newCachedValue
+                    { UsdPrice = previousCachedData.UsdPrice.Add(currency, (lastFiatUsdPrice, time));
+                      Balances = previousCachedData.Balances }
+            sessionCachedNetworkData <- Some(newCachedValue)
 
-            SaveToDisk sessionCachedNetworkData
+            SaveToDisk newCachedValue
         )
 
     let internal StoreLastBalance (address: string, lastBalance: decimal) =
@@ -141,13 +143,13 @@ module Caching =
             let newCachedValue =
                 match sessionCachedNetworkData with
                 | None ->
-                    Some({ UsdPrice = Map.empty;
-                           Balances = Map.empty.Add(address, (lastBalance, time))})
+                    { UsdPrice = Map.empty;
+                      Balances = Map.empty.Add(address, (lastBalance, time))}
                 | Some(previousCachedData) ->
-                    Some({ UsdPrice = previousCachedData.UsdPrice;
-                           Balances = previousCachedData.Balances.Add(address, (lastBalance, time)) })
-            sessionCachedNetworkData <- newCachedValue
+                    { UsdPrice = previousCachedData.UsdPrice;
+                      Balances = previousCachedData.Balances.Add(address, (lastBalance, time))}
+            sessionCachedNetworkData <- Some(newCachedValue)
 
-            SaveToDisk sessionCachedNetworkData
+            SaveToDisk newCachedValue
         )
 

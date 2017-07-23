@@ -2,6 +2,7 @@
 
 open System
 open System.Numerics
+open System.Reflection
 
 open NUnit.Framework
 open Newtonsoft.Json
@@ -9,135 +10,43 @@ open Newtonsoft.Json
 open GWallet.Backend
 
 module Serialization =
+    let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
     [<Test>]
     let ``basic caching export does not fail``() =
-        let someCachingData = { UsdPrice = Map.empty; Balances = Map.empty }
-        let json = Caching.ExportToJson(Some(someCachingData))
+        let json = Caching.ExportToJson MarshallingData.EmptyCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
     [<Test>]
     let ``basic caching export is accurate``() =
-        let someCachingData = { UsdPrice = Map.empty; Balances = Map.empty }
-        let json = Caching.ExportToJson(Some(someCachingData))
+        let json = Caching.ExportToJson MarshallingData.EmptyCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json, Is.EqualTo("{\"UsdPrice\":{},\"Balances\":{}}"))
+        Assert.That(json, Is.EqualTo (MarshallingData.EmptyCachingDataExampleInJson))
 
     [<Test>]
     let ``complex caching export works``() =
-        let someDate = DateTime.Now
-        let balances = Map.empty.Add("1foeijfeoiherji", (0m, someDate))
-                                .Add("0x3894348932998", (123456789.12345678m, someDate))
-        let fiatValues = Map.empty.Add(Currency.ETH, (169.99999999m, someDate))
-                                  .Add(Currency.ETC, (169.99999999m, someDate))
-        let someCachingData = { UsdPrice = fiatValues; Balances = balances }
-        let json = Caching.ExportToJson(Some(someCachingData))
+
+        let json = Caching.ExportToJson MarshallingData.SofisticatedCachindDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
         Assert.That(json,
-                    Is.EqualTo(
-                        String.Format ("{{\"UsdPrice\":{{" +
-                                       "\"ETH\":{{\"Item1\":169.99999999,\"Item2\":{0}}}," +
-                                       "\"ETC\":{{\"Item1\":169.99999999,\"Item2\":{0}}}" +
-                                       "}},\"Balances\":{{" +
-                                       "\"0x3894348932998\":{{\"Item1\":123456789.12345678,\"Item2\":{0}}}," +
-                                       "\"1foeijfeoiherji\":{{\"Item1\":0.0,\"Item2\":{0}}}" +
-                                       "}}}}",
-                                       JsonConvert.SerializeObject(someDate))
-                    )
-                   )
+                    Is.EqualTo (MarshallingData.SofisticatedCachingDataExampleInJson))
 
     [<Test>]
     let ``unsigned transaction export``() =
-        let someDate = DateTime.Now
-        let someEthMinerFee =
-            {
-                GasPriceInWei = int64 69;
-                EstimationTime = someDate;
-                Currency = Currency.ETC;
-            }
-        let someUnsignedTransactionProposal =
-            {
-                Currency = Currency.ETC;
-                OriginAddress = "0xf3j4m0rjx94sushh03j";
-                Amount = 10m;
-                DestinationAddress = "0xf3j4m0rjxdddud9403j";
-            }
-        let someUnsignedTrans =
-            {
-                Proposal = someUnsignedTransactionProposal;
-                TransactionCount = int64 69;
-                Cache = { UsdPrice = Map.empty; Balances = Map.empty };
-                Fee = someEthMinerFee;
-            }
-        let someCachingData = { UsdPrice = Map.empty; Balances = Map.empty }
-        let json = Account.ExportUnsignedTransactionToJson someUnsignedTrans
+        let json = Account.ExportUnsignedTransactionToJson
+                               MarshallingData.UnsignedTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json,
-                    Is.EqualTo(
-                        "{\"Proposal\":" +
-                        "{\"Currency\":\"ETC\"," +
-                        "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-                        "\"Amount\":10.0," +
-                        "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
-                        ",\"TransactionCount\":69," +
-                        "\"Fee\":{" +
-                        "\"GasPriceInWei\":69," +
-                        "\"EstimationTime\":" +
-                        JsonConvert.SerializeObject(someDate) +
-                        ",\"Currency\":\"ETC\"}," +
-                        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}"))
+                    Is.EqualTo(MarshallingData.UnsignedTransactionExampleInJson))
 
     [<Test>]
     let ``signed transaction export``() =
-        let someDate = DateTime.Now
-        let someEthMinerFee =
-            {
-                GasPriceInWei = int64 6969;
-                EstimationTime = someDate;
-                Currency = Currency.ETC;
-            }
-        let someUnsignedTransactionProposal =
-            {
-                Currency = Currency.ETC;
-                OriginAddress = "0xf3j4m0rjx94sushh03j";
-                Amount = 10m;
-                DestinationAddress = "0xf3j4m0rjxdddud9403j";
-            }
-        let someTransInfo =
-            {
-                Proposal = someUnsignedTransactionProposal;
-                TransactionCount = int64 69;
-                Cache = { UsdPrice = Map.empty; Balances = Map.empty };
-                Fee = someEthMinerFee;
-            }
-        let someSignedTrans =
-            {
-                TransactionInfo = someTransInfo;
-                RawTransaction = "doijfsoifjdosisdjfomirmjosmi";
-            }
-        let someCachingData = { UsdPrice = Map.empty; Balances = Map.empty }
-        let json = Account.ExportUnsignedTransactionToJson someSignedTrans
+        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json,
-                    Is.EqualTo(
-                        "{\"TransactionInfo\":{\"Proposal\":" +
-                        "{\"Currency\":\"ETC\"," +
-                        "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-                        "\"Amount\":10.0," +
-                        "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
-                        ",\"TransactionCount\":69," +
-                        "\"Fee\":{" +
-                        "\"GasPriceInWei\":6969," +
-                        "\"EstimationTime\":" +
-                        JsonConvert.SerializeObject(someDate) +
-                        ",\"Currency\":\"ETC\"}," +
-                        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}," +
-                        "\"RawTransaction\":\"doijfsoifjdosisdjfomirmjosmi\"}"
-                    )
-                   )
+        Assert.That(json, Is.EqualTo (MarshallingData.SignedTransactionExampleInJson))
