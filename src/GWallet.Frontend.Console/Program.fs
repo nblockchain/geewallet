@@ -37,9 +37,9 @@ let rec TrySign account unsignedTrans =
         TrySign account unsignedTrans
 
 let BroadcastPayment() =
-    Console.Write("Introduce a file name to load the signed transaction: ")
-    let filePathToReadFrom = Console.ReadLine()
-    let signedTransaction = Account.LoadSignedTransactionFromFile filePathToReadFrom
+    let fileToReadFrom = UserInteraction.AskFileNameToLoad
+                             "Introduce a file name to load the signed transaction: "
+    let signedTransaction = Account.LoadSignedTransactionFromFile fileToReadFrom.FullName
     //TODO: check if nonce matches, if not, reject trans
 
     // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
@@ -50,9 +50,9 @@ let BroadcastPayment() =
         UserInteraction.PressAnyKeyToContinue ()
 
 let SignOffPayment() =
-    Console.Write("Introduce a file name to load the unsigned transaction: ")
-    let filePathToReadFrom = Console.ReadLine()
-    let unsignedTransaction = Account.LoadUnsignedTransactionFromFile filePathToReadFrom
+    let fileToReadFrom = UserInteraction.AskFileNameToLoad
+                             "Introduce a file name to load the unsigned transaction: "
+    let unsignedTransaction = Account.LoadUnsignedTransactionFromFile fileToReadFrom.FullName
 
     let accountsWithSameAddress =
         Account.GetAllActiveAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)

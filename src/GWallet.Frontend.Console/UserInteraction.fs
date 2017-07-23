@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Frontend.Console
 
 open System
+open System.IO
 open System.Linq
 
 open GWallet.Backend
@@ -68,6 +69,18 @@ module UserInteraction =
         | Options.SendPayment -> anyAccount
         | Options.ArchiveAccount -> anyAccount
         | _ -> true
+
+    let rec internal AskFileNameToLoad (askText: string): FileInfo =
+        Console.Write askText
+
+        let fileName = Console.ReadLine()
+
+        let file = FileInfo(fileName)
+        if (file.Exists) then
+            file
+        else
+            Console.Error.WriteLine "File not found, try again."
+            AskFileNameToLoad askText
 
     let rec internal AskOption(numAccounts: int): Options =
         Console.WriteLine("Available options:")
