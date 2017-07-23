@@ -39,8 +39,20 @@ type DeserializableValue<'T>() =
 module Marshalling =
 
     let Deserialize<'S,'T when 'S:> DeserializableValue<'T>>(json: string): 'T =
+        if (json = null) then
+            raise (ArgumentNullException("json"))
+        if (String.IsNullOrWhiteSpace(json)) then
+            raise (ArgumentException("empty or whitespace json", "json"))
+
         let deserialized: 'S = JsonConvert.DeserializeObject<'S>(json)
-        deserialized.Value
+
+        // HACK: this is because comparing to null in the F# world is a clusterfuck at compile-time
+        try
+            deserialized.Value.ToString() |> ignore
+            deserialized.Value
+        with
+        | :? NullReferenceException ->
+            failwith ("Could not deserialize from JSON: " + json)
 
     let Serialize<'S>(value: 'S): string =
         JsonConvert.SerializeObject(SerializableValue<'S>(value))
