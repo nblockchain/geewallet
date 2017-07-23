@@ -64,6 +64,9 @@
     <Compile Include="UserInteraction.fs" />
     <Compile Include="Program.fs" />
     <Content Include="packages.config" />
+    <Content Include="gwallet.bat">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
