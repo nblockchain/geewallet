@@ -85,7 +85,7 @@ match maybeTarget with
 
     let zipName = sprintf "gwallet.v.%s.zip" version
 
-    let zipLaunch = sprintf "%s -r %s/%s src/%s/bin/%s"
+    let zipLaunch = sprintf "%s -j -r %s/%s src/%s/bin/%s"
                             zipCommand binDir zipName DEFAULT_FRONTEND (BinaryConfig.Release.ToString())
     let zipRun = Process.Execute(zipLaunch, true, false)
     if (zipRun.ExitCode <> 0) then
