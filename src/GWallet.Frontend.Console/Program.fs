@@ -44,7 +44,7 @@ let BroadcastPayment() =
 
     // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
     Presentation.ShowTransactionData(signedTransaction.TransactionInfo)
-    if UserInteraction.AskAccept() then
+    if UserInteraction.AskYesNo "Do you accept?" then
         let txId = Account.BroadcastTransaction signedTransaction
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
         UserInteraction.PressAnyKeyToContinue ()
@@ -89,7 +89,7 @@ let SignOffPayment() =
 
                 Presentation.ShowTransactionData unsignedTransaction
 
-                if UserInteraction.AskAccept() then
+                if UserInteraction.AskYesNo "Do you accept?" then
                     let trans = TrySign normalAccount unsignedTransaction
                     Console.WriteLine("Transaction signed.")
                     Console.Write("Introduce a file name or path to save it: ")
@@ -146,12 +146,17 @@ let rec TryArchiveAccount account =
         Presentation.Error "Invalid password, try again."
         TryArchiveAccount account
 
+let rec AddReadOnlyAccount() =
+    let currency = UserInteraction.AskCurrency()
+    let publicAddress = UserInteraction.AskPublicAddress "Public address: "
+    Account.AddPublicWatcher currency publicAddress
+
 let ArchiveAccount() =
     let account = UserInteraction.AskAccount()
     match account with
     | :? ReadOnlyAccount as readOnlyAccount ->
         Console.WriteLine("Read-only accounts cannot be archived, but just removed entirely.")
-        if not (UserInteraction.AskAccept()) then
+        if not (UserInteraction.AskYesNo "Do you accept?") then
             ()
         else
             Account.RemovePublicWatcher readOnlyAccount
@@ -176,7 +181,7 @@ let ArchiveAccount() =
                 Console.WriteLine "Then this account will be watched constantly and if new payments are detected, "
                 Console.WriteLine "GWallet will prompt you to move them to a current account without the need of typing the old password."
                 Console.WriteLine ()
-                if not (UserInteraction.AskAccept()) then
+                if not (UserInteraction.AskYesNo "Do you accept?") then
                     ()
                 else
                     TryArchiveAccount normalAccount
@@ -197,10 +202,7 @@ let rec PerformOptions(numAccounts: int) =
     | Options.SendPayment ->
         SendPayment()
     | Options.AddReadonlyAccount ->
-        let currency = UserInteraction.AskCurrency()
-        let accountPublicInfo = UserInteraction.AskPublicAddress "Public address: "
-        let roAccount = Account.AddPublicWatcher currency accountPublicInfo
-        ()
+        AddReadOnlyAccount()
     | Options.SignOffPayment ->
         SignOffPayment()
     | Options.BroadcastPayment ->

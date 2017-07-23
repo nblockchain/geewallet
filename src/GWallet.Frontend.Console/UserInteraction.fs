@@ -234,20 +234,42 @@ module UserInteraction =
                 if (matchFilter (iterAccount)) then
                     DisplayAccountStatus (i+1) iterAccount |> ignore
 
-    let private ETHEREUM_ADDRESSES_LENGTH = 42
-    let rec AskPublicAddress (askText: string) =
+    let rec AskYesNo (question: string): bool =
+        Console.Write (sprintf "%s (Y/N): " question)
+        let yesNoAnswer = Console.ReadLine().ToLowerInvariant()
+        if (yesNoAnswer = "y") then
+            true
+        else if (yesNoAnswer = "n") then
+            false
+        else
+            AskYesNo question
+
+    let rec AskPublicAddress (askText: string): string =
         Console.Write askText
         let publicAddress = Console.ReadLine()
-        if not (publicAddress.StartsWith("0x")) then
-            Presentation.Error "Address should start with '0x', please try again."
-            AskPublicAddress askText
-        else if (publicAddress.Length <> ETHEREUM_ADDRESSES_LENGTH) then
-            Presentation.Error
-                (sprintf "Address should have a length of %d characters, please try again."
-                    ETHEREUM_ADDRESSES_LENGTH)
-            AskPublicAddress askText
-        else
-            publicAddress
+        let validatedAddress =
+            try
+                Account.ValidateAddress publicAddress
+                publicAddress
+            with
+            | AddressMissingZeroExPrefix ->
+                Presentation.Error "Address should start with '0x', please try again."
+                AskPublicAddress askText
+            | AddressWithInvalidLength(requiredLength) ->
+                Presentation.Error
+                    (sprintf "Address should have a length of %d characters, please try again."
+                        requiredLength)
+                AskPublicAddress askText
+            | AddressWithInvalidChecksum(addressWithValidChecksum) ->
+                Console.Error.WriteLine "WARNING: the address provided didn't pass the checksum, are you sure you copied it properly?"
+                Console.Error.WriteLine "(If you used the clipboard, you're likely copying it from a service that doesn't have checksum validation.)"
+                Console.Error.WriteLine "(If you copied it by hand or somebody dictated it to you, you probably made a spelling mistake.)"
+                let continueWithoutChecksum = AskYesNo "Continue with this address?"
+                if (continueWithoutChecksum) then
+                    addressWithValidChecksum
+                else
+                    AskPublicAddress askText
+        validatedAddress
 
     type private AmountOption =
         | AllBalance
@@ -281,16 +303,6 @@ module UserInteraction =
         | (true, parsedAdmount) ->
             parsedAdmount
 
-    let rec AskAccept (): bool =
-        Console.Write("Do you accept? (Y/N): ")
-        let yesNoAnswer = Console.ReadLine().ToLowerInvariant()
-        if (yesNoAnswer = "y") then
-            true
-        else if (yesNoAnswer = "n") then
-            false
-        else
-            AskAccept()
-
     let rec AskParticularUsdAmount usdValue (maybeTime:Option<DateTime>): Option<decimal> =
         let usdAmount = AskParticularAmount()
         let exchangeRateDateMsg =
@@ -301,7 +313,7 @@ module UserInteraction =
         let etherAmount = usdAmount / usdValue
         Console.WriteLine(sprintf "At an exchange rate of %s, Ether amount would be:%s%s"
                               exchangeMsg Environment.NewLine (etherAmount.ToString()))
-        if AskAccept() then
+        if AskYesNo "Do you accept?" then
             Some(usdAmount)
         else
             None
@@ -341,7 +353,7 @@ module UserInteraction =
     let AskFee(currency: Currency): Option<EtherMinerFee> =
         let estimatedFee = Account.EstimateFee(currency)
         Presentation.ShowFee currency estimatedFee
-        let accept = AskAccept()
+        let accept = AskYesNo "Do you accept?"
         if accept then
             Some(estimatedFee)
         else

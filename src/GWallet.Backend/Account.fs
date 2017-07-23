@@ -16,9 +16,13 @@ open Newtonsoft.Json
 exception InsufficientFunds
 exception InvalidPassword
 exception DestinationEqualToOrigin
+exception AddressMissingZeroExPrefix
+exception AddressWithInvalidLength of int
+exception AddressWithInvalidChecksum of string
 
 module Account =
 
+    let private addressUtil = AddressUtil()
     let private signer = TransactionSigner()
 
     let rec private IsOfTypeOrItsInner<'T>(ex: Exception) =
@@ -68,6 +72,22 @@ module Account =
                     | NotFresh(Cached(balance,time)) ->
                         () // TODO: do something in this case??
         }
+
+    let ValidateAddress (address: string) =
+        let ETHEREUM_ADDRESSES_LENGTH = 42
+
+        if not (address.StartsWith("0x")) then
+            raise (AddressMissingZeroExPrefix)
+
+        if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
+            raise (AddressWithInvalidLength(ETHEREUM_ADDRESSES_LENGTH))
+
+        if (not (addressUtil.IsChecksumAddress(address))) then
+            let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
+            raise (AddressWithInvalidChecksum(validCheckSumAddress))
+
+        ()
+
 
     let EstimateFee (currency: Currency): EtherMinerFee =
         let gasPrice = EtherServer.GetGasPrice currency
@@ -170,6 +190,8 @@ module Account =
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
 
+        ValidateAddress destination
+
         let currency = baseAccount.Currency
 
         let transCount = GetTransactionCount(currency, (account:>IAccount).PublicAddress)
@@ -194,9 +216,9 @@ module Account =
         File.WriteAllText(filePath, json)
 
     let AddPublicWatcher currency (publicAddress: string) =
+        ValidateAddress publicAddress
         let readOnlyAccount = ReadOnlyAccount(currency, publicAddress)
         Config.AddReadonly readOnlyAccount
-        readOnlyAccount
 
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
@@ -213,6 +235,8 @@ module Account =
                 privateKeyAsBytes
 
         let publicAddress = privateKey.GetPublicAddress()
+        if not (addressUtil.IsChecksumAddress(publicAddress)) then
+            failwith ("Nethereum's GetPublicAddress gave a non-checksum address: " + publicAddress)
 
         let accountSerializedJson =
             NormalAccount.KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password,
@@ -224,6 +248,9 @@ module Account =
         Marshalling.Serialize trans
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
+
+        ValidateAddress transProposal.DestinationAddress
+
         let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
         if (transCount.Value > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
