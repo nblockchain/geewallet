@@ -8,20 +8,18 @@ open System.Linq
 #load "Infra.fs"
 open FSX.Infrastructure
 
-let CommandCheck (commandName) =
+let ConfigCommandCheck (commandName: string) =
     Console.Write (sprintf "checking for %s... " commandName)
-    let commandWhich = Process.Execute(sprintf "which %s" commandName, false, true)
-    if (commandWhich.ExitCode <> 0) then
+    if not (Process.CommandCheck commandName) then
         Console.Error.WriteLine "not found"
         Console.Error.WriteLine (sprintf "configuration failed, please install \"%s\"" commandName)
         Environment.Exit 1
-    else
-        Console.WriteLine "found"
+    Console.WriteLine "found"
 
-CommandCheck "fsharpc"
-CommandCheck "xbuild"
-CommandCheck "mono"
-CommandCheck "nuget"
+ConfigCommandCheck "fsharpc"
+ConfigCommandCheck "xbuild"
+ConfigCommandCheck "mono"
+ConfigCommandCheck "nuget"
 
 let rec private GatherOrGetDefaultPrefix(args: string list, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
     let GatherPrefix(newPrefix: string): Option<string> =
@@ -54,37 +52,8 @@ if not (prefix.Exists) then
 File.WriteAllText(Path.Combine(__SOURCE_DIRECTORY__, "build.config"),
                   sprintf "Prefix=%s" prefix.FullName)
 
-let assemblyVersionFileName = "CommonAssemblyInfo.fs"
-let assemblyVersionFsFile =
-    (Directory.EnumerateFiles (__SOURCE_DIRECTORY__,
-                               assemblyVersionFileName,
-                               SearchOption.AllDirectories)).SingleOrDefault ()
-if (assemblyVersionFsFile = null) then
-    Console.Error.WriteLine (sprintf "%s not found in any subfolder (or found too many), cannot extract version number"
-                                     assemblyVersionFileName)
-    Environment.Exit 1
+let version = Misc.GetCurrentVersion()
 
-let assemblyVersionAttribute = "AssemblyVersion"
-let lineContainingVersionNumber =
-    File.ReadLines(assemblyVersionFsFile).SingleOrDefault (fun line -> (not (line.Trim().StartsWith ("//"))) && line.Contains (assemblyVersionAttribute))
-
-if (lineContainingVersionNumber = null) then
-    Console.Error.WriteLine (sprintf "%s attribute not found in %s (or found too many), cannot extract version number"
-                                     assemblyVersionAttribute assemblyVersionFsFile)
-    Environment.Exit 1
-
-let versionNumberStartPosInLine = lineContainingVersionNumber.IndexOf("\"")
-if (versionNumberStartPosInLine = -1) then
-    Console.Error.WriteLine "Format unexpected in version string (expecting a stating double quote), cannot extract version number"
-    Environment.Exit 1
-
-let versionNumberEndPosInLine = lineContainingVersionNumber.IndexOf("\"", versionNumberStartPosInLine + 1)
-if (versionNumberEndPosInLine = -1) then
-    Console.Error.WriteLine "Format unexpected in version string (expecting an ending double quote), cannot extract version number"
-    Environment.Exit 1
-
-let version = lineContainingVersionNumber.Substring(versionNumberStartPosInLine + 1,
-                                                    versionNumberEndPosInLine - versionNumberStartPosInLine - 1)
 let GetRepoInfo()=
     let rec GetBranchFromGitBranch(outchunks)=
         match outchunks with
@@ -131,7 +100,7 @@ let repoInfo = GetRepoInfo()
 Console.WriteLine()
 Console.WriteLine(sprintf
                       "\tConfiguration summary for gwallet %s %s"
-                      version repoInfo)
+                      (version.ToString()) repoInfo)
 Console.WriteLine()
 Console.WriteLine(sprintf
                       "\t* Installation prefix: %s"

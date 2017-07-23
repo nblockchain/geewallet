@@ -7,6 +7,12 @@ open FSX.Infrastructure
 
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
 
+type BinaryConfig =
+    | Debug
+    | Release
+    override self.ToString() =
+        sprintf "%A" self
+
 let rec private GatherTarget (args: string list, targetSet: Option<string>): Option<string> =
     match args with
     | [] -> targetSet
@@ -36,14 +42,15 @@ set -e
 exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
 """
 
-let JustBuild () =
+let JustBuild binaryConfig =
     Console.WriteLine "Gathering gwallet dependencies..."
     let nuget = Process.Execute ("nuget restore", true, false)
     if (nuget.ExitCode <> 0) then
         Environment.Exit 1
 
     Console.WriteLine "Compiling gwallet..."
-    let xbuild = Process.Execute ("xbuild", true, false)
+    let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
+    let xbuild = Process.Execute (sprintf "xbuild %s" configOption, true, false)
     if (xbuild.ExitCode <> 0) then
         Environment.Exit 1
 
@@ -53,20 +60,47 @@ let JustBuild () =
                      .Replace("$GWALLET_PROJECT", DEFAULT_FRONTEND)
     File.WriteAllText (launcherScriptPath.FullName, wrapperScriptWithPaths)
 
+let MakeCheckCommand (commandName: string) =
+    if not (Process.CommandCheck commandName) then
+        Console.Error.WriteLine (sprintf "%s not found, please install it first" commandName)
+        Environment.Exit 1
+
 let maybeTarget = GatherTarget (Util.FsxArguments(), None)
 match maybeTarget with
-| None -> JustBuild ()
+| None ->
+    JustBuild BinaryConfig.Debug
+
+| Some("release") ->
+    JustBuild BinaryConfig.Release
+
+| Some("zip") ->
+    let zipCommand = "zip"
+    MakeCheckCommand zipCommand
+
+    let version = Misc.GetCurrentVersion().ToString()
+
+    JustBuild BinaryConfig.Release
+    let binDir = "bin"
+    Directory.CreateDirectory(binDir) |> ignore
+
+    let zipName = sprintf "gwallet.v.%s.zip" version
+
+    let zipLaunch = sprintf "%s -r %s/%s src/%s/bin/%s"
+                            zipCommand binDir zipName DEFAULT_FRONTEND (BinaryConfig.Release.ToString())
+    let zipRun = Process.Execute(zipLaunch, true, false)
+    if (zipRun.ExitCode <> 0) then
+        Console.Error.WriteLine "Tests failed"
+        Environment.Exit 1
+
 | Some("check") ->
     Console.WriteLine "Running tests..."
     Console.WriteLine ()
 
     let nunitCommand = "nunit-console"
-    let nunitWhich = Process.Execute(sprintf "which %s" nunitCommand, false, true)
-    if (nunitWhich.ExitCode <> 0) then
-        Console.Error.WriteLine (sprintf "%s not found, please install it first" nunitCommand)
-        Environment.Exit 1
-    let nunitRun = Process.Execute(sprintf "%s src/GWallet.Backend.Tests/bin/GWallet.Backend.Tests.dll" nunitCommand, true, false)
-    if (nunitWhich.ExitCode <> 0) then
+    MakeCheckCommand nunitCommand
+    let nunitRun = Process.Execute(sprintf "%s src/GWallet.Backend.Tests/bin/GWallet.Backend.Tests.dll" nunitCommand,
+                                   true, false)
+    if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
         Environment.Exit 1
 

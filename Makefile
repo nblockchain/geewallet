@@ -6,3 +6,9 @@ install:
 
 check:
 	@./make.sh check
+
+release:
+	@./make.sh release
+
+zip:
+	@./make.sh zip
