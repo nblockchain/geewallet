@@ -31,7 +31,7 @@ module Caching =
     let private lastCacheFile = Path.Combine(GetCacheDir().FullName, "last.json")
 
     let public ImportFromJson (cacheData: string): CachedNetworkData =
-        Marshalling.Deserialize<DeserializableValue<CachedNetworkData>,CachedNetworkData>(cacheData)
+        Marshalling.Deserialize cacheData
 
     let private LoadFromDisk (): Option<CachedNetworkData> =
         try
