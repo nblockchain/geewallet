@@ -84,9 +84,12 @@ match maybeTarget with
     Directory.CreateDirectory(binDir) |> ignore
 
     let zipName = sprintf "gwallet.v.%s.zip" version
+    let pathToZip = Path.Combine(binDir, zipName)
+    if (File.Exists (pathToZip)) then
+        File.Delete (pathToZip)
 
-    let zipLaunch = sprintf "%s -j -r %s/%s src/%s/bin/%s"
-                            zipCommand binDir zipName DEFAULT_FRONTEND (BinaryConfig.Release.ToString())
+    let zipLaunch = sprintf "%s -j -r %s src/%s/bin/%s"
+                            zipCommand pathToZip DEFAULT_FRONTEND (BinaryConfig.Release.ToString())
     let zipRun = Process.Execute(zipLaunch, true, false)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
