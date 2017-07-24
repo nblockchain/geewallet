@@ -1,4 +1,4 @@
-﻿namespace GWallet.Backend
+﻿namespace GWallet.Backend.Ether
 
 open System
 open System.Net
@@ -13,16 +13,9 @@ open Nethereum.Util
 open Nethereum.KeyStore.Crypto
 open Newtonsoft.Json
 
-open GWallet.Backend.Bitcoin
+open GWallet.Backend
 
-exception InsufficientFunds
-exception InvalidPassword
-exception DestinationEqualToOrigin
-exception AddressMissingProperPrefix of string
-exception AddressWithInvalidLength of int
-exception AddressWithInvalidChecksum of string
-
-module Account =
+module internal Account =
 
     let private addressUtil = AddressUtil()
     let private signer = TransactionSigner()
@@ -35,7 +28,7 @@ module Account =
         else
             IsOfTypeOrItsInner<'T>(ex.InnerException)
 
-    let private GetEtherBalance(account: IAccount): MaybeCached<decimal> =
+    let GetBalance(account: IAccount): MaybeCached<decimal> =
         let maybeBalance =
             try
                 let balance =
@@ -51,72 +44,19 @@ module Account =
             Caching.StoreLastBalance(account.PublicAddress, balanceInEth)
             Fresh(balanceInEth)
 
-    // TODO: return MaybeCached<decimal>
-    let private GetBitcoinBalance(account: IAccount): decimal =
-        let electrumServer = ElectrumServer.PickRandom()
-        use electrumClient = new Bitcoin.ElectrumClient(electrumServer)
-        electrumClient.GetBalance account.PublicAddress |> UnitConversion.FromSatoshiToBTC
-
-    let GetBalance(account: IAccount): MaybeCached<decimal> =
-        match account.Currency with
-        | Currency.ETH | Currency.ETC ->
-            GetEtherBalance account
-        | Currency.BTC ->
-            Fresh(GetBitcoinBalance account)
-
-    let GetAllActiveAccounts(): seq<IAccount> =
-        seq {
-            let allCurrencies = Currency.GetAll()
-
-            for currency in allCurrencies do
-                for account in Config.GetAllActiveAccounts(currency) do
-                    yield account
-        }
-
-    let GetArchivedAccountsWithPositiveBalance(): seq<ArchivedAccount*decimal> =
-        seq {
-            let allCurrencies = Currency.GetAll()
-
-            for currency in allCurrencies do
-                for account in Config.GetAllArchivedAccounts(currency) do
-                    match GetBalance(account) with
-                    | NotFresh(NotAvailable) -> ()
-                    | Fresh(balance) ->
-                        if (balance > 0m) then
-                            yield account,balance
-                    | NotFresh(Cached(balance,time)) ->
-                        () // TODO: do something in this case??
-        }
-
     let ValidateAddress (currency: Currency) (address: string) =
         let ETHEREUM_ADDRESSES_LENGTH = 42
         let ETHEREUM_ADDRESS_PREFIX = "0x"
 
-        let BITCOIN_ADDRESSES_LENGTH = 34
-        let BITCOIN_ADDRESS_PREFIX = "1"
+        if not (address.StartsWith(ETHEREUM_ADDRESS_PREFIX)) then
+            raise (AddressMissingProperPrefix(ETHEREUM_ADDRESS_PREFIX))
 
-        match currency with
-        | Currency.ETH | Currency.ETC ->
-            if not (address.StartsWith(ETHEREUM_ADDRESS_PREFIX)) then
-                raise (AddressMissingProperPrefix(ETHEREUM_ADDRESS_PREFIX))
+        if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
+            raise (AddressWithInvalidLength(ETHEREUM_ADDRESSES_LENGTH))
 
-            if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
-                raise (AddressWithInvalidLength(ETHEREUM_ADDRESSES_LENGTH))
-
-            if (not (addressUtil.IsChecksumAddress(address))) then
-                let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
-                raise (AddressWithInvalidChecksum(validCheckSumAddress))
-
-        | Currency.BTC ->
-            if not (address.StartsWith(BITCOIN_ADDRESS_PREFIX)) then
-                raise (AddressMissingProperPrefix(BITCOIN_ADDRESS_PREFIX))
-
-            if (address.Length <> BITCOIN_ADDRESSES_LENGTH) then
-                raise (AddressWithInvalidLength(BITCOIN_ADDRESSES_LENGTH))
-
-            // FIXME: add bitcoin checksum algorithm?
-        ()
-
+        if (not (addressUtil.IsChecksumAddress(address))) then
+            let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
+            raise (AddressWithInvalidChecksum(validCheckSumAddress))
 
     let EstimateFee (currency: Currency): EtherMinerFee =
         let gasPrice = EtherServer.GetGasPrice currency
@@ -219,38 +159,12 @@ module Account =
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
 
-        ValidateAddress baseAccount.Currency destination
-
         let currency = baseAccount.Currency
 
         let transCount = GetTransactionCount(currency, (account:>IAccount).PublicAddress)
         let trans = SignTransaction account transCount.Value destination amount minerFee password
 
         BroadcastRawTransaction currency trans
-
-    let SignUnsignedTransaction account (unsignedTrans: UnsignedTransaction) password =
-        let rawTransaction = SignTransaction account
-                                 (BigInteger(unsignedTrans.TransactionCount))
-                                 unsignedTrans.Proposal.DestinationAddress
-                                 unsignedTrans.Proposal.Amount
-                                 unsignedTrans.Fee
-                                 password
-        { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
-
-    let public ExportSignedTransaction (trans: SignedTransaction) =
-        Marshalling.Serialize trans
-
-    let SaveSignedTransaction (trans: SignedTransaction) (filePath: string) =
-        let json = ExportSignedTransaction trans
-        File.WriteAllText(filePath, json)
-
-    let AddPublicWatcher currency (publicAddress: string) =
-        ValidateAddress currency publicAddress
-        let readOnlyAccount = ReadOnlyAccount(currency, publicAddress)
-        Config.AddReadonly readOnlyAccount
-
-    let RemovePublicWatcher (account: ReadOnlyAccount) =
-        Config.RemoveReadonly account
 
     let Create currency password =
         let privateKey = EthECKey.GenerateKey()
@@ -278,8 +192,6 @@ module Account =
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
 
-        ValidateAddress transProposal.Currency transProposal.DestinationAddress
-
         let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
         if (transCount.Value > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
@@ -294,20 +206,4 @@ module Account =
             }
         let json = ExportUnsignedTransactionToJson unsignedTransaction
         File.WriteAllText(filePath, json)
-
-    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction =
-        Marshalling.Deserialize json
-
-    let public ImportSignedTransactionFromJson (json: string): SignedTransaction =
-        Marshalling.Deserialize json
-
-    let LoadSignedTransactionFromFile (filePath: string) =
-        let signedTransInJson = File.ReadAllText(filePath)
-
-        ImportSignedTransactionFromJson signedTransInJson
-
-    let LoadUnsignedTransactionFromFile (filePath: string) =
-        let unsignedTransInJson = File.ReadAllText(filePath)
-
-        ImportUnsignedTransactionFromJson unsignedTransInJson
 
