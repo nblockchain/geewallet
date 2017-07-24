@@ -244,22 +244,22 @@ module UserInteraction =
         else
             AskYesNo question
 
-    let rec AskPublicAddress (askText: string): string =
+    let rec AskPublicAddress currency (askText: string): string =
         Console.Write askText
         let publicAddress = Console.ReadLine()
         let validatedAddress =
             try
-                Account.ValidateAddress publicAddress
+                Account.ValidateAddress currency publicAddress
                 publicAddress
             with
-            | AddressMissingZeroExPrefix ->
-                Presentation.Error "Address should start with '0x', please try again."
-                AskPublicAddress askText
+            | AddressMissingProperPrefix(prefix) ->
+                Presentation.Error (sprintf "Address should start with '%s' prefix, please try again." prefix)
+                AskPublicAddress currency askText
             | AddressWithInvalidLength(requiredLength) ->
                 Presentation.Error
                     (sprintf "Address should have a length of %d characters, please try again."
                         requiredLength)
-                AskPublicAddress askText
+                AskPublicAddress currency askText
             | AddressWithInvalidChecksum(addressWithValidChecksum) ->
                 Console.Error.WriteLine "WARNING: the address provided didn't pass the checksum, are you sure you copied it properly?"
                 Console.Error.WriteLine "(If you used the clipboard, you're likely copying it from a service that doesn't have checksum validation.)"
@@ -268,7 +268,7 @@ module UserInteraction =
                 if (continueWithoutChecksum) then
                     addressWithValidChecksum
                 else
-                    AskPublicAddress askText
+                    AskPublicAddress currency askText
         validatedAddress
 
     type private AmountOption =

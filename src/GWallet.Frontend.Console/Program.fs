@@ -101,7 +101,7 @@ let SignOffPayment() =
                 failwith "Account type not supported. Please report this issue."
 
 let SendPaymentOfSpecificAmount (account: IAccount) amount fee =
-    let destination = UserInteraction.AskPublicAddress "Destination address: "
+    let destination = UserInteraction.AskPublicAddress account.Currency "Destination address: "
     match account with
     | :? ReadOnlyAccount as readOnlyAccount ->
         Console.WriteLine("Cannot send payments from readonly accounts.")
@@ -148,7 +148,7 @@ let rec TryArchiveAccount account =
 
 let rec AddReadOnlyAccount() =
     let currency = UserInteraction.AskCurrency()
-    let publicAddress = UserInteraction.AskPublicAddress "Public address: "
+    let publicAddress = UserInteraction.AskPublicAddress currency "Public address: "
     Account.AddPublicWatcher currency publicAddress
 
 let ArchiveAccount() =

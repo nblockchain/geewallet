@@ -13,10 +13,12 @@ open Nethereum.Util
 open Nethereum.KeyStore.Crypto
 open Newtonsoft.Json
 
+open GWallet.Backend.Bitcoin
+
 exception InsufficientFunds
 exception InvalidPassword
 exception DestinationEqualToOrigin
-exception AddressMissingZeroExPrefix
+exception AddressMissingProperPrefix of string
 exception AddressWithInvalidLength of int
 exception AddressWithInvalidChecksum of string
 
@@ -33,7 +35,7 @@ module Account =
         else
             IsOfTypeOrItsInner<'T>(ex.InnerException)
 
-    let GetBalance(account: IAccount): MaybeCached<decimal> =
+    let private GetEtherBalance(account: IAccount): MaybeCached<decimal> =
         let maybeBalance =
             try
                 let balance =
@@ -48,6 +50,19 @@ module Account =
             let balanceInEth = UnitConversion.Convert.FromWei(balanceInWei, UnitConversion.EthUnit.Ether)
             Caching.StoreLastBalance(account.PublicAddress, balanceInEth)
             Fresh(balanceInEth)
+
+    // TODO: return MaybeCached<decimal>
+    let private GetBitcoinBalance(account: IAccount): decimal =
+        let electrumServer = ElectrumServer.PickRandom()
+        use electrumClient = new Bitcoin.ElectrumClient(electrumServer)
+        electrumClient.GetBalance account.PublicAddress |> UnitConversion.FromSatoshiToBTC
+
+    let GetBalance(account: IAccount): MaybeCached<decimal> =
+        match account.Currency with
+        | Currency.ETH | Currency.ETC ->
+            GetEtherBalance account
+        | Currency.BTC ->
+            Fresh(GetBitcoinBalance account)
 
     let GetAllActiveAccounts(): seq<IAccount> =
         seq {
@@ -73,19 +88,33 @@ module Account =
                         () // TODO: do something in this case??
         }
 
-    let ValidateAddress (address: string) =
+    let ValidateAddress (currency: Currency) (address: string) =
         let ETHEREUM_ADDRESSES_LENGTH = 42
+        let ETHEREUM_ADDRESS_PREFIX = "0x"
 
-        if not (address.StartsWith("0x")) then
-            raise (AddressMissingZeroExPrefix)
+        let BITCOIN_ADDRESSES_LENGTH = 34
+        let BITCOIN_ADDRESS_PREFIX = "1"
 
-        if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(ETHEREUM_ADDRESSES_LENGTH))
+        match currency with
+        | Currency.ETH | Currency.ETC ->
+            if not (address.StartsWith(ETHEREUM_ADDRESS_PREFIX)) then
+                raise (AddressMissingProperPrefix(ETHEREUM_ADDRESS_PREFIX))
 
-        if (not (addressUtil.IsChecksumAddress(address))) then
-            let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
-            raise (AddressWithInvalidChecksum(validCheckSumAddress))
+            if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
+                raise (AddressWithInvalidLength(ETHEREUM_ADDRESSES_LENGTH))
 
+            if (not (addressUtil.IsChecksumAddress(address))) then
+                let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
+                raise (AddressWithInvalidChecksum(validCheckSumAddress))
+
+        | Currency.BTC ->
+            if not (address.StartsWith(BITCOIN_ADDRESS_PREFIX)) then
+                raise (AddressMissingProperPrefix(BITCOIN_ADDRESS_PREFIX))
+
+            if (address.Length <> BITCOIN_ADDRESSES_LENGTH) then
+                raise (AddressWithInvalidLength(BITCOIN_ADDRESSES_LENGTH))
+
+            // FIXME: add bitcoin checksum algorithm?
         ()
 
 
@@ -190,7 +219,7 @@ module Account =
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
 
-        ValidateAddress destination
+        ValidateAddress baseAccount.Currency destination
 
         let currency = baseAccount.Currency
 
@@ -216,7 +245,7 @@ module Account =
         File.WriteAllText(filePath, json)
 
     let AddPublicWatcher currency (publicAddress: string) =
-        ValidateAddress publicAddress
+        ValidateAddress currency publicAddress
         let readOnlyAccount = ReadOnlyAccount(currency, publicAddress)
         Config.AddReadonly readOnlyAccount
 
@@ -249,7 +278,7 @@ module Account =
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
 
-        ValidateAddress transProposal.DestinationAddress
+        ValidateAddress transProposal.Currency transProposal.DestinationAddress
 
         let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
         if (transCount.Value > BigInteger(Int64.MaxValue)) then

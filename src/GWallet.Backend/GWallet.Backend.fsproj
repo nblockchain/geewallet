@@ -55,6 +55,11 @@
     <Compile Include="CommonAssemblyInfo.fs" />
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Marshalling.fs" />
+    <Compile Include="JsonRpcSharp.fs" />
+    <Compile Include="Bitcoin\ElectrumServer.fs" />
+    <Compile Include="Bitcoin\StratumClient.fs" />
+    <Compile Include="Bitcoin\ElectrumClient.fs" />
+    <Compile Include="Bitcoin\UnitConversion.fs" />
     <Compile Include="Currency.fs" />
     <Compile Include="AccountTypes.fs" />
     <Compile Include="Config.fs" />
@@ -75,6 +80,10 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.3.0.2.24\lib\net45\NBitcoin.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Newtonsoft.Json">

@@ -31,6 +31,7 @@ module FiatValueEstimation =
         use webClient = new WebClient()
         let tickerName =
             match currency with
+            | Currency.BTC -> "bitcoin"
             | Currency.ETH -> "ethereum"
             | Currency.ETC -> "ethereum-classic"
 

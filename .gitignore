@@ -2,6 +2,7 @@
 .vs/
 
 # nuget:
+.nuget/
 packages/
 
 # artifacts
