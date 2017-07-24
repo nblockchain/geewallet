@@ -68,8 +68,13 @@ module Account =
         ()
 
 
-    let EstimateFee (currency: Currency): EtherMinerFee =
-        Ether.Account.EstimateFee currency
+    let EstimateFee account amount: IBlockchainFee =
+        let currency = (account:>IAccount).Currency
+        match currency with
+        | Currency.BTC ->
+            Bitcoin.Account.EstimateFee account amount :> IBlockchainFee
+        | Currency.ETH | Currency.ETC ->
+            Ether.Account.EstimateFee currency :> IBlockchainFee
 
     let BroadcastTransaction (trans: SignedTransaction) =
         Ether.Account.BroadcastTransaction trans
@@ -78,16 +83,19 @@ module Account =
                         (transCount: BigInteger)
                         (destination: string)
                         (amount: decimal)
-                        (minerFee: EtherMinerFee)
+                        (minerFee: IBlockchainFee)
                         (password: string) =
 
-        Ether.Account.SignTransaction
-                          account
-                          transCount
-                          destination
-                          amount
-                          minerFee
-                          password
+        match minerFee with
+        | :? EtherMinerFee as etherMinerFee ->
+            Ether.Account.SignTransaction
+                  account
+                  transCount
+                  destination
+                  amount
+                  etherMinerFee
+                  password
+        | _ -> failwith "fee type unknown"
 
     let Archive (account: NormalAccount)
                 (password: string) =
@@ -99,23 +107,31 @@ module Account =
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
                            (destination: IAccount)
-                           (minerFee: EtherMinerFee) =
-
-        Ether.Account.SweepArchivedFunds
-                          account
-                          balance
-                          destination
-                          minerFee
+                           (fee: IBlockchainFee) =
+        match fee with
+        | :? EtherMinerFee as etherMinerFee -> Ether.Account.SweepArchivedFunds account balance destination etherMinerFee
+        | _ -> failwith "fee type unknown"
 
     let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
-                    (password: string) (minerFee: EtherMinerFee) =
+                    (password: string) (minerFee: IBlockchainFee) =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
 
         ValidateAddress baseAccount.Currency destination
 
-        Ether.Account.SendPayment account destination amount password minerFee
+        let currency = (account:>IAccount).Currency
+        match currency with
+        | Currency.BTC ->
+            match minerFee with
+            | :? Bitcoin.MinerFee as bitcoinMinerFee ->
+                Bitcoin.Account.SendPayment account destination amount password bitcoinMinerFee
+            | _ -> failwith "fee for BTC currency should be Bitcoin.MinerFee type"
+        | Currency.ETH | Currency.ETC ->
+            match minerFee with
+            | :? EtherMinerFee as etherMinerFee ->
+                Ether.Account.SendPayment account destination amount password etherMinerFee
+            | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
 
     let SignUnsignedTransaction account (unsignedTrans: UnsignedTransaction) password =
         let rawTransaction = SignTransaction account
@@ -147,7 +163,6 @@ module Account =
             | Currency.BTC -> Bitcoin.Account.Create password, Bitcoin.Account.GetPublicAddressFromAccountFile
             | Currency.ETH | Currency.ETC ->
                 Ether.Account.Create currency password, Ether.Account.GetPublicAddressFromAccountFile
-            | _ -> failwith (sprintf "Unknown currency %A" currency)
         let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
         NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
 
@@ -155,12 +170,14 @@ module Account =
         Marshalling.Serialize trans
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
-                                (fee: EtherMinerFee)
+                                (fee: IBlockchainFee)
                                 (filePath: string) =
 
         ValidateAddress transProposal.Currency transProposal.DestinationAddress
 
-        Ether.Account.SaveUnsignedTransaction transProposal fee filePath
+        match fee with
+        | :? EtherMinerFee as etherMinerFee -> Ether.Account.SaveUnsignedTransaction transProposal etherMinerFee filePath
+        | _ -> failwith "fee type unknown"
 
     let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction =
         Marshalling.Deserialize json

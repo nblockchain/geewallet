@@ -60,10 +60,12 @@
     <Compile Include="Exceptions.fs" />
     <Compile Include="AccountTypes.fs" />
     <Compile Include="Config.fs" />
+    <Compile Include="IBlockchainFee.fs" />
     <Compile Include="Bitcoin\ElectrumServer.fs" />
     <Compile Include="Bitcoin\StratumClient.fs" />
     <Compile Include="Bitcoin\ElectrumClient.fs" />
     <Compile Include="Bitcoin\UnitConversion.fs" />
+    <Compile Include="Bitcoin\BitcoinMinerFee.fs" />
     <Compile Include="Bitcoin\BitcoinAccount.fs" />
     <Compile Include="EtherMinerFee.fs" />
     <Compile Include="Caching.fs" />

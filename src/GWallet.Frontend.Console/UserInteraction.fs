@@ -326,7 +326,7 @@ module UserInteraction =
 
     let rec internal AskAmount account: Option<AmountToTransfer> =
         Console.WriteLine("There are various options to specify the amount of your transaction:")
-        Console.WriteLine("1. Exact amount in Ether")
+        Console.WriteLine(sprintf "1. Exact amount in %s" ((account:>IAccount).Currency.ToString()))
         Console.WriteLine("2. Approximate amount in USD")
         Console.WriteLine("3. All balance existing in the account")
         match AskAmountOption() with
@@ -349,9 +349,9 @@ module UserInteraction =
             | NotFresh(Cached(usdValue,time)) ->
                 GetCryptoAmount usdValue (Some(time))
 
-    let AskFee(currency: Currency): Option<EtherMinerFee> =
-        let estimatedFee = Account.EstimateFee(currency)
-        Presentation.ShowFee currency estimatedFee
+    let AskFee account amount: Option<IBlockchainFee> =
+        let estimatedFee = Account.EstimateFee account amount
+        Presentation.ShowFee account.Currency estimatedFee
         let accept = AskYesNo "Do you accept?"
         if accept then
             Some(estimatedFee)

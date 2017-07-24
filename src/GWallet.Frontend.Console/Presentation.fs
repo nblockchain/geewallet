@@ -34,20 +34,21 @@ module Presentation =
 
     let internal ExchangeRateUnreachableMsg = " (USD exchange rate unreachable... offline?)"
 
-    let ShowFee currency (estimatedFee: EtherMinerFee) =
+    let ShowFee currency (estimatedFee: IBlockchainFee) =
         let estimatedFeeInUsd =
             match FiatValueEstimation.UsdValue(currency) with
             | Fresh(usdValue) ->
                 sprintf "(~%s USD)"
-                    (usdValue * estimatedFee.EtherPriceForNormalTransaction() |> ShowDecimalForHumans CurrencyType.Fiat)
+                    (usdValue * estimatedFee.Value |> ShowDecimalForHumans CurrencyType.Fiat)
             | NotFresh(Cached(usdValue,time)) ->
                 sprintf "(~%s USD [last known rate at %s])"
-                    (usdValue * estimatedFee.EtherPriceForNormalTransaction() |> ShowDecimalForHumans CurrencyType.Fiat)
+                    (usdValue * estimatedFee.Value |> ShowDecimalForHumans CurrencyType.Fiat)
                     (time |> ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
-        Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s Ether %s"
+        Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s %s %s"
                               Environment.NewLine
-                              (estimatedFee.EtherPriceForNormalTransaction() |> ShowDecimalForHumans CurrencyType.Crypto)
+                              (estimatedFee.Value |> ShowDecimalForHumans CurrencyType.Crypto)
+                              (currency.ToString())
                               estimatedFeeInUsd
                          )
 

@@ -100,7 +100,7 @@ let SignOffPayment() =
             | _ ->
                 failwith "Account type not supported. Please report this issue."
 
-let SendPaymentOfSpecificAmount (account: IAccount) amount fee =
+let SendPaymentOfSpecificAmount (account: IAccount) amount (fee: IBlockchainFee) =
     let destination = UserInteraction.AskPublicAddress account.Currency "Destination address: "
     match account with
     | :? ReadOnlyAccount as readOnlyAccount ->
@@ -127,7 +127,7 @@ let SendPayment() =
     match maybeAmount with
     | None -> ()
     | Some(amount) ->
-        let maybeFee = UserInteraction.AskFee(account.Currency)
+        let maybeFee = UserInteraction.AskFee account amount
         match maybeFee with
         | None -> ()
         | Some(fee) ->
@@ -136,7 +136,7 @@ let SendPayment() =
                 | UserInteraction.AmountToTransfer.CertainCryptoAmount(cryptoAmount) ->
                     cryptoAmount
                 | UserInteraction.AmountToTransfer.AllBalance(allBalance) ->
-                    allBalance - fee.EtherPriceForNormalTransaction()
+                    allBalance - fee.Value
             SendPaymentOfSpecificAmount account amountToSend fee
 
 let rec TryArchiveAccount account =
@@ -236,7 +236,7 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
         Console.WriteLine "Please indicate the account you would like to transfer the funds to."
         let account = GetAccountOfSameCurrency currency
 
-        let maybeFee = UserInteraction.AskFee account.Currency
+        let maybeFee = UserInteraction.AskFee account balance
         match maybeFee with
         | None -> ()
         | Some(fee) ->

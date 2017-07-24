@@ -51,7 +51,7 @@ module Deserialization =
 
         Assert.That(deserializedUnsignedTrans.Fee.Currency, Is.EqualTo(Currency.ETC))
         Assert.That(deserializedUnsignedTrans.Fee.GasPriceInWei, Is.EqualTo(6969))
-        Assert.That(deserializedUnsignedTrans.Fee.EstimationTime,
+        Assert.That((deserializedUnsignedTrans.Fee:>IBlockchainFee).EstimationTime,
                     Is.EqualTo(MarshallingData.SomeDate))
 
         Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo(0))
@@ -89,7 +89,7 @@ module Deserialization =
                     Is.EqualTo(Currency.ETC))
         Assert.That(deserializedSignedTrans.TransactionInfo.Fee.GasPriceInWei,
                     Is.EqualTo(6969))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Fee.EstimationTime,
+        Assert.That((deserializedSignedTrans.TransactionInfo.Fee:>IBlockchainFee).EstimationTime,
                     Is.EqualTo(MarshallingData.SomeDate))
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.Balances.Count,

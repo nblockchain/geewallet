@@ -70,7 +70,7 @@ module internal Account =
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
                           (gasPrice.Value.ToString()))
         let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
-        { GasPriceInWei = gasPrice64; EstimationTime = DateTime.Now; Currency = currency }
+        EtherMinerFee(gasPrice64, DateTime.Now, currency)
 
     let private GetTransactionCount (currency: Currency, publicAddress: string) =
         EtherServer.GetTransactionCount currency publicAddress
@@ -125,7 +125,7 @@ module internal Account =
                         // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
                         // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
                         BigInteger(minerFee.GasPriceInWei),
-                        minerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
+                        EtherMinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
         if not (signer.VerifyTransaction(trans)) then
             failwith "Transaction could not be verified?"
@@ -148,7 +148,7 @@ module internal Account =
         let accountFrom = (account:>IAccount)
         let transCountHexBigInt = GetTransactionCount (accountFrom.Currency, accountFrom.PublicAddress)
         let transCount = transCountHexBigInt.Value
-        let amount = balance - minerFee.EtherPriceForNormalTransaction()
+        let amount = balance - (minerFee:>IBlockchainFee).Value
         let signedTrans = SignTransactionWithPrivateKey
                               account transCount destination.PublicAddress amount minerFee account.PrivateKey
         BroadcastRawTransaction accountFrom.Currency signedTrans

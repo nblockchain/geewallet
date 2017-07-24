@@ -37,6 +37,22 @@ type internal ElectrumClient (electrumServer: ElectrumServer) =
         let balanceResult = stratumClient.BlockchainAddressGetBalance address
         balanceResult.Result.Confirmed
 
+    member self.GetUnspentTransactionOutputs address =
+        let unspentListResult = stratumClient.BlockchainAddressListUnspent address
+        unspentListResult.Result
+
+    member self.GetBlockchainTransaction txHash =
+        let blockchainTransactionResult = stratumClient.BlockchainTransactionGet txHash
+        blockchainTransactionResult.Result
+
+    member self.EstimateFee (numBlocksTarget: int): decimal =
+        let estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
+        estimateFeeResult.Result
+
+    member self.BroadcastTransaction (transactionInHex: string) =
+        let blockchainTransactionBroadcastResult = stratumClient.BlockchainTransactionBroadcast transactionInHex
+        blockchainTransactionBroadcastResult.Result
+
     interface IDisposable with
         member x.Dispose() =
             (stratumClient:>IDisposable).Dispose()

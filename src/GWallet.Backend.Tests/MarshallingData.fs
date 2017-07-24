@@ -12,12 +12,7 @@ module MarshallingData =
 
     let SomeDate = DateTime.Now
 
-    let private someEthMinerFee =
-        {
-            GasPriceInWei = int64 6969;
-            EstimationTime = SomeDate;
-            Currency = Currency.ETC;
-        }
+    let private someEthMinerFee = EtherMinerFee(int64 6969, SomeDate, Currency.ETC)
 
     let private someUnsignedTransactionProposal =
         {
@@ -89,10 +84,10 @@ module MarshallingData =
         "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
         ",\"TransactionCount\":69," +
         "\"Fee\":{" +
-        "\"GasPriceInWei\":6969," +
+        "\"GasPriceInWei\":6969,"+
+        "\"Currency\":{\"Case\":\"ETC\"}," +
         "\"EstimationTime\":" +
-        JsonConvert.SerializeObject (SomeDate) +
-        ",\"Currency\":{\"Case\":\"ETC\"}}," +
+        JsonConvert.SerializeObject (SomeDate) + "}," +
         "\"Cache\":" + innerCachingDataForSofisticatedUseCase + "}," +
         "\"RawTransaction\":\"doijfsoifjdosisdjfomirmjosmi\"}}"
 
@@ -107,7 +102,7 @@ module MarshallingData =
         ",\"TransactionCount\":69," +
         "\"Fee\":{" +
         "\"GasPriceInWei\":6969," +
+        "\"Currency\":{\"Case\":\"ETC\"}," +
         "\"EstimationTime\":" +
-        JsonConvert.SerializeObject(SomeDate) +
-        ",\"Currency\":{\"Case\":\"ETC\"}}," +
+        JsonConvert.SerializeObject(SomeDate) + "}," +
         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}}"
