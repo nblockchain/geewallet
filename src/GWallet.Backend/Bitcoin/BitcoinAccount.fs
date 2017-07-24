@@ -1,5 +1,8 @@
 ﻿namespace GWallet.Backend.Bitcoin
 
+// NOTE: we can rename this file to less redundant "Account.fs" when this F# compiler bug is fixed:
+// https://github.com/Microsoft/visualfsharp/issues/3231
+
 open System
 
 open GWallet.Backend

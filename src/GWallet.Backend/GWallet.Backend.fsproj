@@ -71,7 +71,7 @@
     <Compile Include="FaultTolerantClient.fs" />
     <Compile Include="EtherServer.fs" />
     <Compile Include="Ether\EtherAccount.fs" />
-    <Compile Include="GenericAccount.fs" />
+    <Compile Include="Account.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="Infrastructure.fs" />
     <Content Include="packages.config" />
