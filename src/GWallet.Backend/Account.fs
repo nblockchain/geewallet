@@ -6,8 +6,10 @@ open System.Linq
 open System.Numerics
 open System.IO
 
-module Account =
+open Newtonsoft.Json
+open Nethereum.Signer
 
+module Account =
 
     let GetBalance(account: IAccount): MaybeCached<decimal> =
         match account.Currency with
@@ -21,8 +23,18 @@ module Account =
             let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
-                for account in Config.GetAllActiveAccounts(currency) do
-                    yield account
+
+                for accountFile in Config.GetAllReadOnlyAccounts(currency) do
+                    let fileName = Path.GetFileName(accountFile.FullName)
+                    yield ReadOnlyAccount(currency, fileName) :> IAccount
+
+                let fromAccountFileToPublicAddress =
+                    match currency with
+                    | Currency.BTC -> Bitcoin.Account.GetPublicAddressFromAccountFile
+                    | Currency.ETH | Currency.ETC -> Ether.Account.GetPublicAddressFromAccountFile
+                    | _ -> failwith (sprintf "Unknown currency %A" currency)
+                for accountFile in Config.GetAllNormalAccounts(currency) do
+                    yield NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
         }
 
     let GetArchivedAccountsWithPositiveBalance(): seq<ArchivedAccount*decimal> =
@@ -30,7 +42,11 @@ module Account =
             let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
-                for account in Config.GetAllArchivedAccounts(currency) do
+                for accountFile in Config.GetAllArchivedAccounts(currency) do
+                    let privKey = File.ReadAllText(accountFile.FullName)
+                    let ecPrivKey = EthECKey(privKey)
+                    let account = ArchivedAccount(currency, ecPrivKey)
+
                     match GetBalance(account) with
                     | NotFresh(NotAvailable) -> ()
                     | Fresh(balance) ->
@@ -125,8 +141,15 @@ module Account =
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
 
-    let Create currency password =
-        Ether.Account.Create currency password
+    let Create (currency: Currency) (password: string): NormalAccount =
+        let (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
+            match currency with
+            | Currency.BTC -> Bitcoin.Account.Create password, Bitcoin.Account.GetPublicAddressFromAccountFile
+            | Currency.ETH | Currency.ETC ->
+                Ether.Account.Create currency password, Ether.Account.GetPublicAddressFromAccountFile
+            | _ -> failwith (sprintf "Unknown currency %A" currency)
+        let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
+        NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans

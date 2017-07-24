@@ -23,6 +23,17 @@ module internal Account =
     let private addressUtil = AddressUtil()
     let private signer = TransactionSigner()
 
+    let private KeyStoreService = KeyStoreService()
+    let GetPublicAddressFromAccountFile (accountFile: FileInfo) =
+        let encryptedPrivateKey = File.ReadAllText(accountFile.FullName)
+        let rawPublicAddress = KeyStoreService.GetAddressFromKeyStore encryptedPrivateKey
+        let publicAddress =
+            if (rawPublicAddress.StartsWith("0x")) then
+                rawPublicAddress
+            else
+                "0x" + rawPublicAddress
+        publicAddress
+
     let GetBalance(account: IAccount): MaybeCached<decimal> =
         let maybeBalance =
             try
@@ -79,9 +90,10 @@ module internal Account =
             trans.RawTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
+        let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
         let privKeyInBytes =
             try
-                NormalAccount.KeyStoreService.DecryptKeyStoreFromJson(password, account.Json)
+                KeyStoreService.DecryptKeyStoreFromJson(password, encryptedPrivateKey)
             with
             | :? DecryptionException ->
                 raise (InvalidPassword)
@@ -129,13 +141,6 @@ module internal Account =
         let privateKey = GetPrivateKey account password
         SignTransactionWithPrivateKey account transCount destination amount minerFee privateKey
 
-    let Archive (account: NormalAccount)
-                (password: string) =
-        let privateKey = GetPrivateKey account password
-        let newArchivedAccount = ArchivedAccount((account:>IAccount).Currency, privateKey)
-        Config.AddArchived newArchivedAccount
-        Config.RemoveNormal account
-
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
                            (destination: IAccount)
@@ -177,10 +182,11 @@ module internal Account =
             failwith ("Nethereum's GetPublicAddress gave a non-checksum address: " + publicAddress)
 
         let accountSerializedJson =
-            NormalAccount.KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password,
-                                                                                  privateKeyTrimmed,
-                                                                                  publicAddress)
-        Config.AddNormalAccount currency accountSerializedJson
+            KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password,
+                                                                    privateKeyTrimmed,
+                                                                    publicAddress)
+        let fileNameForAccount = KeyStoreService.GenerateUTCFileName(publicAddress)
+        fileNameForAccount,accountSerializedJson
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans

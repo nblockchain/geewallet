@@ -42,35 +42,35 @@ module internal Config =
             configDir.Create()
         configDir
 
-    let GetAllActiveAccounts(currency: Currency): seq<IAccount> =
+    let GetAllNormalAccounts(currency: Currency): seq<FileInfo> =
         let configDirForNormalAccounts = GetConfigDirForAccountsOfThisCurrency(currency)
-        let configDirForReadonlyAccounts = GetConfigDirForReadonlyAccountsOfThisCurrency(currency)
 
         seq {
             for filePath in Directory.GetFiles(configDirForNormalAccounts.FullName) do
-                let jsonFile = FileInfo(filePath)
-                yield NormalAccount(currency, jsonFile) :> IAccount
-
-            for filePath in Directory.GetFiles(configDirForReadonlyAccounts.FullName) do
-                let fileName = Path.GetFileName(filePath)
-                yield ReadOnlyAccount(currency, fileName) :> IAccount
+                yield FileInfo(filePath)
         }
 
-    let GetAllArchivedAccounts(currency: Currency): seq<ArchivedAccount> =
+    let GetAllReadOnlyAccounts(currency: Currency): seq<FileInfo> =
+        let configDirForReadonlyAccounts = GetConfigDirForReadonlyAccountsOfThisCurrency(currency)
+
+        seq {
+            for filePath in Directory.GetFiles(configDirForReadonlyAccounts.FullName) do
+                yield FileInfo(filePath)
+        }
+
+    let GetAllArchivedAccounts(currency: Currency): seq<FileInfo> =
         let configDirForArchivedAccounts = GetConfigDirForArchivedAccountsOfThisCurrency(currency)
 
         seq {
             for filePath in Directory.GetFiles(configDirForArchivedAccounts.FullName) do
-                let privKey = File.ReadAllText(filePath)
-                let ecPrivKey = EthECKey(privKey)
-                yield ArchivedAccount(currency, ecPrivKey)
+                yield FileInfo(filePath)
         }
 
     let private GetFile (account: IAccount) =
         let configDir, fileName =
             match account with
             | :? NormalAccount as normalAccount ->
-                normalAccount.JsonStoreFile.Directory, normalAccount.JsonStoreFile.Name
+                normalAccount.AccountFile.Directory, normalAccount.AccountFile.Name
             | :? ReadOnlyAccount as readOnlyAccount ->
                 let configDir = GetConfigDirForReadonlyAccountsOfThisCurrency(account.Currency)
                 let fileName = account.PublicAddress
@@ -83,13 +83,11 @@ module internal Config =
                        (account.GetType().FullName))
         Path.Combine(configDir.FullName, fileName)
 
-    let AddNormalAccount currency jsonStoreContent =
-        let publicAddress = NormalAccount.GetPublicAddressFromKeyStore jsonStoreContent
-        let fileName = NormalAccount.KeyStoreService.GenerateUTCFileName(publicAddress)
+    let AddNormalAccount currency fileName jsonStoreContent =
         let configDir = GetConfigDirForAccountsOfThisCurrency(currency)
-        let configFile = Path.Combine(configDir.FullName, fileName)
-        File.WriteAllText(configFile, jsonStoreContent)
-        NormalAccount(currency, FileInfo(configFile))
+        let newAccountFile = Path.Combine(configDir.FullName, fileName)
+        File.WriteAllText(newAccountFile, jsonStoreContent)
+        FileInfo(newAccountFile)
 
     let RemoveNormal (account: NormalAccount) =
         let configFile = GetFile account
