@@ -123,17 +123,21 @@ let SendPaymentOfSpecificAmount (account: IAccount) amount fee =
 
 let SendPayment() =
     let account = UserInteraction.AskAccount()
-    let maybeFee = UserInteraction.AskFee(account.Currency)
-    match maybeFee with
+    let maybeAmount = UserInteraction.AskAmount account
+    match maybeAmount with
     | None -> ()
-    | Some(fee) ->
-        let amount = UserInteraction.AskAmount account
-        match amount with
-        | UserInteraction.AmountToTransfer.CancelOperation -> ()
-        | UserInteraction.AmountToTransfer.CertainCryptoAmount(amount) ->
-            SendPaymentOfSpecificAmount account amount fee
-        | UserInteraction.AmountToTransfer.AllBalance(allBalance) ->
-            SendPaymentOfSpecificAmount account (allBalance - fee.EtherPriceForNormalTransaction()) fee
+    | Some(amount) ->
+        let maybeFee = UserInteraction.AskFee(account.Currency)
+        match maybeFee with
+        | None -> ()
+        | Some(fee) ->
+            let amountToSend =
+                match amount with
+                | UserInteraction.AmountToTransfer.CertainCryptoAmount(cryptoAmount) ->
+                    cryptoAmount
+                | UserInteraction.AmountToTransfer.AllBalance(allBalance) ->
+                    allBalance - fee.EtherPriceForNormalTransaction()
+            SendPaymentOfSpecificAmount account amountToSend fee
 
 let rec TryArchiveAccount account =
     let password = UserInteraction.AskPassword(false)
