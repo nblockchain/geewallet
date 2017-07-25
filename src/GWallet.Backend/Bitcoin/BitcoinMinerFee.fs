@@ -6,13 +6,18 @@ open System.Numerics
 open GWallet.Backend
 open NBitcoin
 
-type MinerFee(minerFeeInSatoshis: Int64, estimationTime: DateTime, draftTransaction: Transaction) =
-    member val ValueInSatoshis = minerFeeInSatoshis with get
+type MinerFee(estimatedTransactionSizeInBytes: int, btcPerKiloByteForFastTrans: decimal,
+              estimationTime: DateTime, draftTransaction: Transaction) =
+
     member val DraftTransaction = draftTransaction with get
+    member val EstimatedTransactionSizeInBytes = estimatedTransactionSizeInBytes with get
 
     interface IBlockchainFee with
         member val EstimationTime = estimationTime with get
 
         member val Value =
-            Convert.ToDecimal(minerFeeInSatoshis) / 100000000m with get
+            let satPerByteForFastTrans = btcPerKiloByteForFastTrans * 100000000m / 1024m
+            let totalFeeForThisTransInSatoshis = satPerByteForFastTrans * decimal estimatedTransactionSizeInBytes
+            let totalFeeInSatoshisRemovingDecimals = Convert.ToInt64 totalFeeForThisTransInSatoshis
+            Convert.ToDecimal(totalFeeInSatoshisRemovingDecimals) / 100000000m with get
 

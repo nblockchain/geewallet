@@ -24,6 +24,10 @@ module internal Account =
         use electrumClient = new ElectrumClient(electrumServer)
         electrumClient.GetBalance account.PublicAddress |> UnitConversion.FromSatoshiToBTC
 
+    // this is a rough guess between 3 tests with 1, 2 and 3 inputs:
+    // 1  -> 81, 2 -> 163, 3 -> 243  FIXME: anyway I should use NBitcoin's estimation facilicities
+    let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 81
+
     let EstimateFee account amount =
         let electrumServer = ElectrumServer.PickRandom()
         use electrumClient = new ElectrumClient(electrumServer)
@@ -46,11 +50,9 @@ module internal Account =
         let txOutDraft = TxOut(Money(sumOfInputValues), destAddress)
         transactionDraft.Outputs.Add(txOutDraft)
         let transactionSizeInBytes = (transactionDraft.ToBytes().Length)
+        let estimatedFinalTransSize = (BYTES_PER_INPUT_ESTIMATION_CONSTANT * (inputs.Length)) + transactionSizeInBytes
         let btcPerKiloByteForFastTrans = electrumClient.EstimateFee 2 //querying for 1 will always return -1 surprisingly...
-        let satPerByteForFastTrans = btcPerKiloByteForFastTrans * 100000000m / 1024m
-        let totalFeeForThisTransInSatoshis = satPerByteForFastTrans * decimal transactionSizeInBytes
-        let totalFeeInSatoshisRemovingDecimals = Convert.ToInt64 totalFeeForThisTransInSatoshis
-        MinerFee(totalFeeInSatoshisRemovingDecimals, DateTime.Now, transactionDraft)
+        MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, transactionDraft)
 
     let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
                     (password: string)
@@ -77,7 +79,13 @@ module internal Account =
                 raise (InvalidPassword)
 
         transaction.Sign(privateKey, false)
-        // FIXME!!!!!!!!!!!!!!!!! bytes after signing is way higher
+        let transSizeAfterSigning = transaction.ToBytes().Length
+        Console.WriteLine (sprintf "Transaction size after signing: %d bytes" transSizeAfterSigning)
+        if (Math.Abs(transSizeAfterSigning - minerFee.EstimatedTransactionSizeInBytes) > 2) then
+            failwith (sprintf "Transaction size estimation failed, got %d but calculated %d bytes (a difference of %d, with %d inputs)"
+                              transSizeAfterSigning minerFee.EstimatedTransactionSizeInBytes
+                              (transSizeAfterSigning - minerFee.EstimatedTransactionSizeInBytes)
+                              transaction.Inputs.Count)
         let electrumServer = ElectrumServer.PickRandom()
         use electrumClient = new ElectrumClient(electrumServer)
         let newTxId = electrumClient.BroadcastTransaction (transaction.ToHex())
