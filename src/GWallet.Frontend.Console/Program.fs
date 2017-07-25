@@ -127,16 +127,16 @@ let SendPayment() =
     match maybeAmount with
     | None -> ()
     | Some(amount) ->
-        let maybeFee = UserInteraction.AskFee account amount
+        let maybeFee = UserInteraction.AskFee account amount.Value
         match maybeFee with
         | None -> ()
         | Some(fee) ->
             let amountToSend =
-                match amount with
-                | UserInteraction.AmountToTransfer.CertainCryptoAmount(cryptoAmount) ->
-                    cryptoAmount
-                | UserInteraction.AmountToTransfer.AllBalance(allBalance) ->
-                    allBalance - fee.Value
+                match amount.Type with
+                | UserInteraction.AmountDesire.CertainCryptoAmount ->
+                    amount.Value
+                | UserInteraction.AmountDesire.AllBalance ->
+                    amount.Value - fee.Value
             SendPaymentOfSpecificAmount account amountToSend fee
 
 let rec TryArchiveAccount account =

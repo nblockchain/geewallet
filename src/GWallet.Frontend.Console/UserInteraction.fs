@@ -288,9 +288,15 @@ module UserInteraction =
             | 3 -> AmountOption.AllBalance
             | _ -> AskAmountOption()
 
+    type internal AmountDesire =
+        | AllBalance
+        | CertainCryptoAmount
+
     type internal AmountToTransfer =
-        | AllBalance of decimal
-        | CertainCryptoAmount of decimal
+        {
+            Value: decimal;
+            Type: AmountDesire;
+        }
 
     let rec AskParticularAmount() =
         Console.Write("Amount: ")
@@ -325,7 +331,7 @@ module UserInteraction =
         | None -> None
         | Some(usdAmount) ->
             let ethAmount = usdAmount / usdValue
-            Some(AmountToTransfer.CertainCryptoAmount(ethAmount))
+            Some({ Value = ethAmount; Type = CertainCryptoAmount; })
 
     let rec internal AskAmount account: Option<AmountToTransfer> =
         Console.WriteLine("There are various options to specify the amount of your transaction:")
@@ -339,9 +345,9 @@ module UserInteraction =
                 Presentation.Error "Balance not available if offline."
                 None
             | Fresh(amount) | NotFresh(Cached(amount,_)) ->
-                Some(AmountToTransfer.AllBalance(amount))
+                Some({ Value = amount; Type = AllBalance; })
         | AmountOption.CertainCryptoAmount ->
-            Some(AmountToTransfer.CertainCryptoAmount(AskParticularAmount()))
+            Some({ Value = AskParticularAmount(); Type = CertainCryptoAmount; })
         | AmountOption.ApproxEquivalentFiatAmount ->
             match FiatValueEstimation.UsdValue account.Currency with
             | NotFresh(NotAvailable) ->
