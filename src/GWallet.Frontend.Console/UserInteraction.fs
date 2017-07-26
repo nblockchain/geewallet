@@ -302,23 +302,26 @@ module UserInteraction =
         | (true, parsedAdmount) ->
             parsedAdmount
 
-    let rec AskParticularUsdAmount usdValue (maybeTime:Option<DateTime>): Option<decimal> =
+    let rec AskParticularUsdAmount currency usdValue (maybeTime:Option<DateTime>): Option<decimal> =
         let usdAmount = AskParticularAmount()
         let exchangeRateDateMsg =
             match maybeTime with
             | None -> String.Empty
             | Some(time) -> sprintf " (as of %s)" (Presentation.ShowSaneDate time)
-        let exchangeMsg = sprintf "%s USD per Ether%s" (usdValue.ToString()) exchangeRateDateMsg
+        let exchangeMsg = sprintf "%s USD per %s%s" (usdValue.ToString())
+                                                    (currency.ToString())
+                                                    exchangeRateDateMsg
         let etherAmount = usdAmount / usdValue
-        Console.WriteLine(sprintf "At an exchange rate of %s, Ether amount would be:%s%s"
-                              exchangeMsg Environment.NewLine (etherAmount.ToString()))
+        Console.WriteLine(sprintf "At an exchange rate of %s, %s amount would be:%s%s"
+                              exchangeMsg (currency.ToString())
+                              Environment.NewLine (etherAmount.ToString()))
         if AskYesNo "Do you accept?" then
             Some(usdAmount)
         else
             None
 
-    let private GetCryptoAmount usdValue time =
-        match AskParticularUsdAmount usdValue time with
+    let private GetCryptoAmount cryptoCurrency usdValue time =
+        match AskParticularUsdAmount cryptoCurrency usdValue time with
         | None -> None
         | Some(usdAmount) ->
             let ethAmount = usdAmount / usdValue
@@ -345,9 +348,9 @@ module UserInteraction =
                 Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
                 AskAmount account
             | Fresh(usdValue) ->
-                GetCryptoAmount usdValue None
+                GetCryptoAmount account.Currency usdValue None
             | NotFresh(Cached(usdValue,time)) ->
-                GetCryptoAmount usdValue (Some(time))
+                GetCryptoAmount account.Currency usdValue (Some(time))
 
     let AskFee account amount: Option<IBlockchainFee> =
         let estimatedFee = Account.EstimateFee account amount
