@@ -203,7 +203,8 @@ module UserInteraction =
                     | None ->
                         Some(thisBalance)
                     | Some(None) ->
-                        Some(thisBalance)
+                        // there was a previous error, so we want to keep the total balance as N/A
+                        None
                     | Some(Some(sumSoFar)) ->
                         Some(sumSoFar+thisBalance)
 
