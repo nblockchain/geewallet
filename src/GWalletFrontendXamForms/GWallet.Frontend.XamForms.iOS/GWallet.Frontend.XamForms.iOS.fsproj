@@ -76,7 +76,7 @@
     <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
-  <Import Project="..\GWalletFrontendXamForms\GWalletFrontendXamForms.projitems" Label="Shared" Condition="Exists('..\GWalletFrontendXamForms\GWalletFrontendXamForms.projitems')" />
+  <Import Project="..\GWallet.Frontend.XamForms\GWalletFrontendXamForms.projitems" Label="Shared" Condition="Exists('..\GWallet.Frontend.XamForms\GWalletFrontendXamForms.projitems')" />
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
