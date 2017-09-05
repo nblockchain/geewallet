@@ -125,7 +125,14 @@ module internal Account =
             | :? SecurityException ->
                 raise (InvalidPassword)
 
+        let transCheckResultBeforeSigning = transaction.Check()
+        if (transCheckResultBeforeSigning <> TransactionCheckResult.Success) then
+            failwith (sprintf "Transaction check failed before signing with %A" transCheckResultBeforeSigning)
         transaction.Sign(privateKey, false)
+        let transCheckResultAfterSigning = transaction.Check()
+        if (transCheckResultAfterSigning <> TransactionCheckResult.Success) then
+            failwith (sprintf "Transaction check failed after signing with %A" transCheckResultAfterSigning)
+
         let transSizeAfterSigning = transaction.ToBytes().Length
         Console.WriteLine (sprintf "Transaction size after signing: %d bytes" transSizeAfterSigning)
         if (Math.Abs(transSizeAfterSigning - btcMinerFee.EstimatedTransactionSizeInBytes) > 2) then
