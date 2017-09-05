@@ -61,7 +61,7 @@ module internal Account =
         let inputsOrderedByAmount = inputs.OrderBy(fun (_,_,value) -> value) |> List.ofSeq
 
         let transactionDraft = Transaction()
-        let amountInSatoshis = int64(amount * 100000000m)
+        let amountInSatoshis = Convert.ToInt64(amount * 100000000m)
         let totalValueOfInputs = addInputsUntilAmount inputsOrderedByAmount 0L transactionDraft amountInSatoshis
 
         let dummyAddressForDraftTx = "1KsFhYKLs8qb1GHqrPxHoywNQpet2CtP9t"
