@@ -28,7 +28,7 @@ module internal Account =
     // 1  -> 81, 2 -> 163, 3 -> 243  FIXME: anyway I should use NBitcoin's estimation facilicities
     let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 81
 
-    let EstimateFee account (amount: decimal) =
+    let EstimateFee account (amount: decimal) (destination: string) =
         let rec addInputsUntilAmount (inputs: list<Transaction*int*Int64>)
                                       soFarInSatoshis
                                      (transDraft: Transaction)
@@ -64,14 +64,13 @@ module internal Account =
         let amountInSatoshis = Convert.ToInt64(amount * 100000000m)
         let totalValueOfInputs = addInputsUntilAmount inputsOrderedByAmount 0L transactionDraft amountInSatoshis
 
-        let dummyAddressForDraftTx = "1KsFhYKLs8qb1GHqrPxHoywNQpet2CtP9t"
-        let destAddress = BitcoinAddress.Create(dummyAddressForDraftTx, Network.Main)
+        let destAddress = BitcoinAddress.Create(destination, Network.Main)
 
         let txMainOutDraft = TxOut(Money(amountInSatoshis), destAddress)
         transactionDraft.Outputs.Add(txMainOutDraft)
 
         if (amountInSatoshis <> totalValueOfInputs) then
-            let originAddress = BitcoinAddress.Create(dummyAddressForDraftTx, Network.Main)
+            let originAddress = BitcoinAddress.Create((account:>IAccount).PublicAddress, Network.Main)
             let changeAmount = totalValueOfInputs - amountInSatoshis
             let txChangeOutDraft = TxOut(Money(changeAmount), originAddress)
             transactionDraft.Outputs.Add(txChangeOutDraft)
@@ -88,30 +87,29 @@ module internal Account =
                     =
         let transaction = btcMinerFee.DraftTransaction
         let minerFee = btcMinerFee :> IBlockchainFee
+        let amountInSatoshis = Convert.ToInt64(amount * 100000000m)
         let destAddress = BitcoinAddress.Create(destination, Network.Main)
         let sourceAddress = BitcoinAddress.Create((account:>IAccount).PublicAddress, Network.Main)
         match transaction.Outputs.Count with
         | 1 -> // it means we're sending all balance!
             transaction.Outputs.Remove(transaction.Outputs.[0]) |> ignore
-            let amountInSatoshis = amount * 100000000m
-            let outputAmount = Money(Convert.ToInt64(amountInSatoshis))
 
+            let outputAmount = Money(amountInSatoshis)
             let txOutAfterRemovingFee = TxOut(outputAmount, destAddress)
             transaction.Outputs.Add(txOutAfterRemovingFee)
         | 2 -> // it means there's change involved (send change back to change-address)
-            for output in transaction.Outputs.ToArray() do
-                let removed = transaction.Outputs.Remove(output)
-                if not removed then
-                    failwith "Failed to remove draft output"
+            let changeOutput =
+                transaction.Outputs.ToArray()
+                                   .Single(fun o -> amountInSatoshis <> o.Value.Satoshi)
 
-                if (output.Value.ToDecimal(MoneyUnit.BTC) <> amount) then
-                    let minerFeeInSatoshis = Convert.ToInt64(minerFee.Value * 100000000m)
-                    let changeAmount = Money(output.Value.Satoshi - minerFeeInSatoshis)
-                    let changeOuput = TxOut(changeAmount, sourceAddress)
-                    transaction.Outputs.Add(changeOuput)
-                else
-                    // to remove the dummy recipient address and use the right one
-                    transaction.Outputs.Add(TxOut(output.Value, destAddress))
+            let removed = transaction.Outputs.Remove(changeOutput)
+            if not removed then
+                failwith "Failed to remove draft output"
+            let minerFeeInSatoshis = Convert.ToInt64(minerFee.Value * 100000000m)
+            let changeAmount = Money(changeOutput.Value.Satoshi - minerFeeInSatoshis)
+            let changeOuput = TxOut(changeAmount, sourceAddress)
+            transaction.Outputs.Add(changeOuput)
+
         | unexpectedCount ->
             failwith (sprintf "Assert: count of transactionDraft shouldn't have been %d" unexpectedCount)
 

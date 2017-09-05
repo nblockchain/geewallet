@@ -68,11 +68,11 @@ module Account =
         ()
 
 
-    let EstimateFee account amount: IBlockchainFee =
+    let EstimateFee account amount destination: IBlockchainFee =
         let currency = (account:>IAccount).Currency
         match currency with
         | Currency.BTC ->
-            Bitcoin.Account.EstimateFee account amount :> IBlockchainFee
+            Bitcoin.Account.EstimateFee account amount destination :> IBlockchainFee
         | Currency.ETH | Currency.ETC ->
             Ether.Account.EstimateFee currency :> IBlockchainFee
 

@@ -401,8 +401,8 @@ module UserInteraction =
             | NotFresh(Cached(usdValue,time)) ->
                 GetCryptoAmount account.Currency usdValue (Some(time))
 
-    let AskFee account amount: Option<IBlockchainFee> =
-        let estimatedFee = Account.EstimateFee account amount
+    let AskFee account amount destination: Option<IBlockchainFee> =
+        let estimatedFee = Account.EstimateFee account amount destination
         Presentation.ShowFee account.Currency estimatedFee
         let accept = AskYesNo "Do you accept?"
         if accept then

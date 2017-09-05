@@ -98,8 +98,7 @@ let SignOffPayment() =
             | _ ->
                 failwith "Account type not supported. Please report this issue."
 
-let SendPaymentOfSpecificAmount (account: IAccount) amount (fee: IBlockchainFee) =
-    let destination = UserInteraction.AskPublicAddress account.Currency "Destination address: "
+let SendPaymentOfSpecificAmount (account: IAccount) amount (fee: IBlockchainFee) (destination: string) =
     match account with
     | :? ReadOnlyAccount as readOnlyAccount ->
         Console.WriteLine("Cannot send payments from readonly accounts.")
@@ -121,11 +120,12 @@ let SendPaymentOfSpecificAmount (account: IAccount) amount (fee: IBlockchainFee)
 
 let SendPayment() =
     let account = UserInteraction.AskAccount()
+    let destination = UserInteraction.AskPublicAddress account.Currency "Destination address: "
     let maybeAmount = UserInteraction.AskAmount account
     match maybeAmount with
     | None -> ()
     | Some(amount) ->
-        let maybeFee = UserInteraction.AskFee account amount.Value
+        let maybeFee = UserInteraction.AskFee account amount.Value destination
         match maybeFee with
         | None -> ()
         | Some(fee) ->
@@ -135,7 +135,7 @@ let SendPayment() =
                     amount.Value
                 | UserInteraction.AmountDesire.AllBalance ->
                     amount.Value - fee.Value
-            SendPaymentOfSpecificAmount account amountToSend fee
+            SendPaymentOfSpecificAmount account amountToSend fee destination
 
 let rec TryArchiveAccount account =
     let password = UserInteraction.AskPassword(false)
@@ -234,7 +234,7 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
         Console.WriteLine "Please indicate the account you would like to transfer the funds to."
         let account = GetAccountOfSameCurrency currency
 
-        let maybeFee = UserInteraction.AskFee account balance
+        let maybeFee = UserInteraction.AskFee archivedAccount balance account.PublicAddress
         match maybeFee with
         | None -> ()
         | Some(fee) ->
