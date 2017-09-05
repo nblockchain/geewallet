@@ -38,18 +38,69 @@
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
   <Choose>
-    <When Condition="'$(VisualStudioVersion)' == '11.0'">
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#\3.0\Framework\v4.0\Microsoft.FSharp.Targets</FSharpTargetsPath>
+    <When Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#')">
+      <PropertyGroup>
+        <FSharpSdkPathPrefix>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#</FSharpSdkPathPrefix>
       </PropertyGroup>
     </When>
     <Otherwise>
-      <PropertyGroup Condition="Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets')">
-        <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
-      </PropertyGroup>
+      <Choose>
+        <When Condition="Exists('$(MSBuildExtensionsPath32)\..\..\..\..\Microsoft SDKs\F#')">
+          <PropertyGroup>
+            <FSharpSdkPathPrefix>$(MSBuildExtensionsPath32)\..\..\..\..\Microsoft SDKs\F#</FSharpSdkPathPrefix>
+          </PropertyGroup>
+        </When>
+        <Otherwise>
+          <PropertyGroup>
+            <FSharpSdkPathPrefix></FSharpSdkPathPrefix>
+          </PropertyGroup>
+        </Otherwise>
+      </Choose>
     </Otherwise>
   </Choose>
-  <Import Project="$(FSharpTargetsPath)" />
+  <PropertyGroup>
+    <FSharpSdkPathSuffix>Framework\v4.0\Microsoft.FSharp.Targets</FSharpSdkPathSuffix>
+  </PropertyGroup>
+  <Choose>
+    <When Condition="'$(FSharpSdkPathPrefix)' == ''">
+      <PropertyGroup>
+        <FSharpTargetsPath></FSharpTargetsPath>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <Choose>
+        <When Condition="Exists('$(FSharpSdkPathPrefix)\4.0\$(FSharpSdkPathSuffix)')">
+          <PropertyGroup>
+            <FSharpTargetsPath>$(FSharpSdkPathPrefix)\4.0\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
+          </PropertyGroup>
+        </When>
+        <Otherwise>
+          <Choose>
+            <When Condition="Exists('$(FSharpSdkPathPrefix)\3.1\$(FSharpSdkPathSuffix)')">
+              <PropertyGroup>
+                <FSharpTargetsPath>$(FSharpSdkPathPrefix)\3.1\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
+              </PropertyGroup>
+            </When>
+            <Otherwise>
+              <Choose>
+                <When Condition="Exists('$(FSharpSdkPathPrefix)\3.0\$(FSharpSdkPathSuffix)')">
+                  <PropertyGroup>
+                    <FSharpTargetsPath>$(FSharpSdkPathPrefix)\3.0\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
+                  </PropertyGroup>
+                </When>
+                <Otherwise>
+                  <PropertyGroup>
+                    <FSharpTargetsPath></FSharpTargetsPath>
+                  </PropertyGroup>
+                </Otherwise>
+              </Choose>
+            </Otherwise>
+          </Choose>
+        </Otherwise>
+      </Choose>
+    </Otherwise>
+  </Choose>
+  <Import Condition="'$(FSharpTargetsPath)' != ''" Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="FSharpUtil.fs" />
     <Compile Include="CommonAssemblyInfo.fs" />
@@ -132,10 +183,11 @@
       <HintPath>..\..\packages\Nethereum.Web3.2.0.0-rc4\lib\net451\Nethereum.Web3.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <Target Name="BeforeBuild">
+    <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
   <Target Name="AfterBuild">
   </Target>
   -->

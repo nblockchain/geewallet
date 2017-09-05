@@ -5,9 +5,14 @@ open System.Reflection
 
 open Newtonsoft.Json
 
-type SerializableValue<'T>(value: 'T) =
+type DeserializationException (message:string, innerException: Exception) =
+   inherit Exception (message, innerException)
+type VersionMismatchDuringDeserializationException (message:string, innerException: Exception) =
+   inherit DeserializationException (message, innerException)
 
+type SerializableValue<'T>(value: 'T) =
     member val Version: string =
+        // FIXME: rather use Marshalling.currentVersion here, but that would be a cyclic dependency...
         Assembly.GetExecutingAssembly().GetName().Version.ToString() with get
 
     member val TypeName: string =
@@ -38,13 +43,30 @@ type DeserializableValue<'T>() =
 
 module Marshalling =
 
+    let private currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+
     let Deserialize<'S,'T when 'S:> DeserializableValue<'T>>(json: string): 'T =
         if (json = null) then
             raise (ArgumentNullException("json"))
         if (String.IsNullOrWhiteSpace(json)) then
             raise (ArgumentException("empty or whitespace json", "json"))
 
-        let deserialized: 'S = JsonConvert.DeserializeObject<'S>(json)
+        let deserialized: 'S =
+            try
+                JsonConvert.DeserializeObject<'S>(json)
+            with
+            | ex ->
+                let versionJsonTag = "\"Version\":\""
+                if (json.Contains(versionJsonTag)) then
+                    let jsonSinceVersion = json.Substring(json.IndexOf(versionJsonTag) + versionJsonTag.Length)
+                    let endVersionIndex = jsonSinceVersion.IndexOf("\"")
+                    let version = jsonSinceVersion.Substring(0, endVersionIndex)
+                    if (version <> currentVersion) then
+                        let msg = sprintf "Incompatible marshalling version found (%s vs. current %s) while trying to deserialize JSON"
+                                          version currentVersion
+                        raise (new VersionMismatchDuringDeserializationException(msg, ex))
+                raise (new DeserializationException("Exception when trying to deserialize", ex))
+
 
         // HACK: this is because comparing to null in the F# world is a clusterfuck at compile-time
         try

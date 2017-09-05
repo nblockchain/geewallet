@@ -11,7 +11,10 @@ module Infrastructure =
     let private ravenClient = RavenClient sentryUrl
 
     let public Report (ex: Exception) =
+#if !DEBUG
         ravenClient.Capture (SentryEvent (ex)) |> ignore
+#endif
+        ()
 
     let private OnUnhandledException (sender: obj) (args: UnhandledExceptionEventArgs) =
         Report (args.ExceptionObject :?> Exception)
