@@ -35,7 +35,8 @@ module internal Account =
                                       amount =
             match inputs with
             | [] ->
-                failwith "Not enough funds"
+                failwith (sprintf "Not enough funds (needed: %s, got so far: %s)"
+                                  (amount.ToString()) (soFarInSatoshis.ToString()))
             | (tx,index,value)::tail ->
                 let inputAdded = transDraft.AddInput(tx, index)
                 // see https://github.com/MetacoSA/NBitcoin/pull/261
