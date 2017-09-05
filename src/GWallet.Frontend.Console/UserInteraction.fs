@@ -137,6 +137,16 @@ module UserInteraction =
             else
                 allCurrencies.ElementAt(optionParsed - 1)
 
+    let private BalanceInUsdString balance maybeUsdValue =
+        match maybeUsdValue with
+        | NotFresh(NotAvailable) -> Presentation.ExchangeRateUnreachableMsg
+        | Fresh(usdValue) ->
+            sprintf "~ %s USD" (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
+        | NotFresh(Cached(usdValue,time)) ->
+            sprintf "~ %s USD (last known rate as of %s)"
+                (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
+                (time |> Presentation.ShowSaneDate)
+
     let DisplayAccountStatus accountNumber (account: IAccount) =
         let maybeReadOnly =
             match account with
@@ -149,16 +159,6 @@ module UserInteraction =
                                 account.PublicAddress
         Console.WriteLine(accountInfo)
 
-        let balanceInUsdString balance maybeUsdValue =
-            match maybeUsdValue with
-            | NotFresh(NotAvailable) -> Presentation.ExchangeRateUnreachableMsg
-            | Fresh(usdValue) ->
-                sprintf "~ %s USD" (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
-            | NotFresh(Cached(usdValue,time)) ->
-                sprintf "~ %s USD (last known rate as of %s)"
-                    (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
-                    (time |> Presentation.ShowSaneDate)
-
         let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
 
         let maybeBalance = Account.GetBalance(account)
@@ -170,40 +170,78 @@ module UserInteraction =
                                 (balance |> Presentation.ShowDecimalForHumans CurrencyType.Crypto)
                                 (time |> Presentation.ShowSaneDate)
                                 Environment.NewLine
-                                (balanceInUsdString balance maybeUsdValue)
+                                (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
         | Fresh(balance) ->
             let status = sprintf "Balance=[%s] %s"
                                 (balance |> Presentation.ShowDecimalForHumans CurrencyType.Crypto)
-                                (balanceInUsdString balance maybeUsdValue)
+                                (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
 
-        maybeBalance,maybeUsdValue
+        maybeBalance
 
     let DisplayAccountStatuses(whichAccount: WhichAccount) =
-        let rec displayAllAndSumBalance (accounts: seq<IAccount>) currentIndex currentSum: decimal =
+        let rec displayAllAndSumBalance (accounts: seq<IAccount>)
+                                         currentIndex
+                                        (currentSumMap: Map<Currency,Option<decimal>>)
+                                        : Map<Currency,Option<decimal>> =
             let account = accounts.ElementAt(currentIndex)
-            let maybeBalance,maybeUsdValue = DisplayAccountStatus (currentIndex+1) account
+            let maybeBalance = DisplayAccountStatus (currentIndex+1) account
             Console.WriteLine ()
 
-            let usdValueToUse =
-                match maybeUsdValue with
-                | Fresh(usdValue) -> usdValue
-                | NotFresh(Cached(usdValue,_)) -> usdValue
-                | _ -> 0m
-
-            let balanceToSum =
+            let balanceToSum: Option<decimal> =
                 match maybeBalance with
-                | Fresh(balance) -> balance
-                | NotFresh(Cached(balance,_)) -> balance
-                | _ -> 0m
+                | Fresh(balance) -> Some(balance)
+                | NotFresh(Cached(balance,_)) -> Some(balance)
+                | _ -> None
 
-            let sum = currentSum + (balanceToSum*usdValueToUse)
+            let newBalanceForCurrency: Option<decimal> =
+                match balanceToSum with
+                | None -> None
+                | Some(thisBalance) ->
+                    match Map.tryFind account.Currency currentSumMap with
+                    | None ->
+                        Some(thisBalance)
+                    | Some(None) ->
+                        // there was a previous error, so we want to keep the total balance as N/A
+                        None
+                    | Some(Some(sumSoFar)) ->
+                        Some(sumSoFar+thisBalance)
+
+            let maybeCleanedUpMapForReplacement =
+                match Map.containsKey account.Currency currentSumMap with
+                | false ->
+                    currentSumMap
+                | true ->
+                    Map.remove account.Currency currentSumMap
+
+            let newAcc = Map.add account.Currency newBalanceForCurrency maybeCleanedUpMapForReplacement
 
             if (currentIndex < accounts.Count() - 1) then
-                displayAllAndSumBalance accounts (currentIndex + 1) sum
+                displayAllAndSumBalance accounts (currentIndex + 1) newAcc
             else
-                sum
+                newAcc
+
+        let rec displayTotalAndSumFiatBalance (currenciesToBalances: Map<Currency,Option<decimal>>): Option<decimal> =
+            let usdTotals =
+                seq {
+                    for KeyValue(currency, balance) in currenciesToBalances do
+                        match balance with
+                        | None -> ()
+                        | Some(onlineBalance) ->
+                            let maybeUsdValue = FiatValueEstimation.UsdValue currency
+                            match maybeUsdValue with
+                            | NotFresh(NotAvailable) -> yield None
+                            | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
+                                let fiatValue = BalanceInUsdString onlineBalance maybeUsdValue
+                                let total = sprintf "Total %s: %s (%s)" (currency.ToString()) (onlineBalance.ToString()) fiatValue
+                                yield Some(onlineBalance * usdValue)
+                                Console.WriteLine (total)
+                } |> List.ofSeq
+            if (usdTotals.Any(fun maybeUsdTotal -> maybeUsdTotal.IsNone)) then
+                None
+            else
+                Some(usdTotals.Sum(fun maybeUsdTotal -> maybeUsdTotal.Value))
 
         match whichAccount with
         | WhichAccount.All(accounts) ->
@@ -211,10 +249,15 @@ module UserInteraction =
             Console.WriteLine "*** STATUS ***"
 
             if (accounts.Any()) then
-                let totalInUsd = displayAllAndSumBalance accounts 0 0m
-                Console.WriteLine()
-                Console.WriteLine("Total estimated value in USD: " +
-                    Presentation.ShowDecimalForHumans CurrencyType.Fiat totalInUsd)
+                let currencyTotals = displayAllAndSumBalance accounts 0 Map.empty
+
+                let maybeTotalInUsd = displayTotalAndSumFiatBalance currencyTotals
+                match maybeTotalInUsd with
+                | None -> ()
+                | Some(totalInUsd) ->
+                    Console.WriteLine()
+                    Console.WriteLine("Total estimated value in USD: " +
+                        Presentation.ShowDecimalForHumans CurrencyType.Fiat totalInUsd)
             else
                 Console.WriteLine("No accounts have been created so far.")
             Console.WriteLine()

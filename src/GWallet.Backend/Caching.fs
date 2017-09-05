@@ -40,6 +40,13 @@ module Caching =
             Some(deserializedJson)
         with
         | :? FileNotFoundException -> None
+        | :? VersionMismatchDuringDeserializationException ->
+            Console.Error.WriteLine("Warning: cleaning incompatible cache data found from different GWallet version")
+            None
+        | :? DeserializationException ->
+            // FIXME: report a warning to sentry here...
+            Console.Error.WriteLine("Warning: cleaning incompatible cache data found")
+            None
 
     let mutable private sessionCachedNetworkData: Option<CachedNetworkData> = LoadFromDisk ()
     let private lockObject = Object()

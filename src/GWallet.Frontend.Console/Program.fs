@@ -5,8 +5,6 @@ open System.Text.RegularExpressions
 open GWallet.Backend
 open GWallet.Frontend.Console
 
-type PublicAddress = string
-
 let rec TrySendAmount account destination amount fee =
     let password = UserInteraction.AskPassword false
     try
