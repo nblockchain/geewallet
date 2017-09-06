@@ -51,6 +51,8 @@ module internal Account =
         let electrumServer = ElectrumServer.PickRandom()
         use electrumClient = new ElectrumClient(electrumServer)
         let utxos = electrumClient.GetUnspentTransactionOutputs (account:>IAccount).PublicAddress
+        if not (utxos.Any()) then
+            failwith "No UTXOs found!"
         let inputs =
             seq {
                 for utxo in utxos do
