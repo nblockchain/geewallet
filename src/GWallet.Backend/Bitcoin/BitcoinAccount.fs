@@ -132,9 +132,11 @@ module internal Account =
         if (transCheckResultAfterSigning <> TransactionCheckResult.Success) then
             failwith (sprintf "Transaction check failed after signing with %A" transCheckResultAfterSigning)
 
+        let maxDeviationAllowedForEstimationToNotBeConsideredAnError = 2
         let transSizeAfterSigning = transaction.ToBytes().Length
         Console.WriteLine (sprintf "Transaction size after signing: %d bytes" transSizeAfterSigning)
-        if (Math.Abs(transSizeAfterSigning - btcMinerFee.EstimatedTransactionSizeInBytes) > 2) then
+        let differenceBetweenRealSizeAndEstimated = transSizeAfterSigning - btcMinerFee.EstimatedTransactionSizeInBytes
+        if (Math.Abs(differenceBetweenRealSizeAndEstimated) > maxDeviationAllowedForEstimationToNotBeConsideredAnError) then
             failwith (sprintf "Transaction size estimation failed, got %d but calculated %d bytes (a difference of %d, with %d inputs)"
                               transSizeAfterSigning btcMinerFee.EstimatedTransactionSizeInBytes
                               (transSizeAfterSigning - btcMinerFee.EstimatedTransactionSizeInBytes)
