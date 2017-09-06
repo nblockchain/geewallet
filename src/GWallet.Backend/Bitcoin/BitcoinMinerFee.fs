@@ -2,15 +2,17 @@
 
 open System
 open System.Numerics
+open System.Collections.Generic
 
 open GWallet.Backend
 open NBitcoin
 
 type MinerFee(estimatedTransactionSizeInBytes: int, btcPerKiloByteForFastTrans: decimal,
-              estimationTime: DateTime, draftTransaction: Transaction) =
+              estimationTime: DateTime, draftTransaction: Transaction, coinsToSign: IEnumerable<ICoin>) =
 
     member val DraftTransaction = draftTransaction with get
     member val EstimatedTransactionSizeInBytes = estimatedTransactionSizeInBytes with get
+    member val CoinsToSign = coinsToSign with get
 
     interface IBlockchainFee with
         member val EstimationTime = estimationTime with get

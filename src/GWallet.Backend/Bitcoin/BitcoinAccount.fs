@@ -12,6 +12,14 @@ open NBitcoin
 
 open GWallet.Backend
 
+type internal TransactionOutpoint =
+    {
+        Transaction: Transaction;
+        OutputIndex: int;
+    }
+    member self.ToCoin (): ICoin =
+        Coin(self.Transaction, uint32 self.OutputIndex) :> ICoin
+
 module internal Account =
 
     let GetPublicAddressFromAccountFile (accountFile: FileInfo) =
@@ -25,28 +33,28 @@ module internal Account =
         electrumClient.GetBalance account.PublicAddress |> UnitConversion.FromSatoshiToBTC
 
     // this is a rough guess between 3 tests with 1, 2 and 3 inputs:
-    // 1  -> 81, 2 -> 163, 3 -> 243  FIXME: anyway I should use NBitcoin's estimation facilicities
-    let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 81
+    // 1  -> 106, 2 -> 213, 3 -> 320  FIXME: anyway I should use NBitcoin's estimation facilicities
+    let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 106
 
     let EstimateFee account (amount: decimal) (destination: string) =
         let rec addInputsUntilAmount (inputs: list<Transaction*int*Int64>)
                                       soFarInSatoshis
-                                     (transDraft: Transaction)
-                                      amount =
+                                      amount
+                                     (acc: list<TransactionOutpoint>)
+                                     : list<TransactionOutpoint>*int64 =
             match inputs with
             | [] ->
                 failwith (sprintf "Not enough funds (needed: %s, got so far: %s)"
                                   (amount.ToString()) (soFarInSatoshis.ToString()))
             | (tx,index,value)::tail ->
-                let inputAdded = transDraft.AddInput(tx, index)
-                // see https://github.com/MetacoSA/NBitcoin/pull/261
-                inputAdded.ScriptSig <- tx.Outputs.ElementAt(index).ScriptPubKey
+                let input = { Transaction = tx; OutputIndex = index }
+                let newAcc = input::acc
 
                 let newSoFar = soFarInSatoshis + value
                 if (newSoFar < amount) then
-                    addInputsUntilAmount tail newSoFar transDraft amount
+                    addInputsUntilAmount tail newSoFar amount newAcc
                 else
-                    newSoFar
+                    newAcc,newSoFar
 
         let electrumServer = ElectrumServer.PickRandom()
         use electrumClient = new ElectrumClient(electrumServer)
@@ -65,7 +73,11 @@ module internal Account =
 
         let transactionDraft = Transaction()
         let amountInSatoshis = Convert.ToInt64(amount * 100000000m)
-        let totalValueOfInputs = addInputsUntilAmount inputsOrderedByAmount 0L transactionDraft amountInSatoshis
+        let inputsToUse,totalValueOfInputs =
+            addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis []
+
+        for input in inputsToUse do
+            transactionDraft.AddInput(input.Transaction, input.OutputIndex) |> ignore
 
         let destAddress = BitcoinAddress.Create(destination, Network.Main)
 
@@ -79,10 +91,14 @@ module internal Account =
             transactionDraft.Outputs.Add(txChangeOutDraft)
 
         let transactionSizeInBytes = (transactionDraft.ToBytes().Length)
-        let estimatedFinalTransSize =
-            (BYTES_PER_INPUT_ESTIMATION_CONSTANT * (transactionDraft.Inputs.Count)) + transactionSizeInBytes
+        let numberOfInputs = transactionDraft.Inputs.Count
+        let estimatedFinalTransSize = transactionSizeInBytes +
+            (BYTES_PER_INPUT_ESTIMATION_CONSTANT * transactionDraft.Inputs.Count) +
+            (numberOfInputs - 1)
         let btcPerKiloByteForFastTrans = electrumClient.EstimateFee 2 //querying for 1 will always return -1 surprisingly...
-        MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, transactionDraft)
+
+        let coins = inputsToUse.Select(fun input -> input.ToCoin())
+        MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, transactionDraft, coins)
 
     let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
                     (password: string)
@@ -129,7 +145,7 @@ module internal Account =
         let transCheckResultBeforeSigning = transaction.Check()
         if (transCheckResultBeforeSigning <> TransactionCheckResult.Success) then
             failwith (sprintf "Transaction check failed before signing with %A" transCheckResultBeforeSigning)
-        transaction.Sign(privateKey, false)
+        transaction.Sign(privateKey, btcMinerFee.CoinsToSign |> Seq.toArray)
         let transCheckResultAfterSigning = transaction.Check()
         if (transCheckResultAfterSigning <> TransactionCheckResult.Success) then
             failwith (sprintf "Transaction check failed after signing with %A" transCheckResultAfterSigning)
