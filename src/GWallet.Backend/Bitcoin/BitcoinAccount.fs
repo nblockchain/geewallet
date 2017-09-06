@@ -173,13 +173,16 @@ module internal Account =
         publicKey,encryptedPrivateKey
 
     let ValidateAddress (address: string) =
-        let BITCOIN_ADDRESSES_LENGTH = 34
+        let BITCOIN_MIN_ADDRESSES_LENGTH = 27
+        let BITCOIN_MAX_ADDRESSES_LENGTH = 34
         let BITCOIN_ADDRESS_PREFIX = "1"
 
         if not (address.StartsWith(BITCOIN_ADDRESS_PREFIX)) then
             raise (AddressMissingProperPrefix(BITCOIN_ADDRESS_PREFIX))
 
-        if (address.Length <> BITCOIN_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(BITCOIN_ADDRESSES_LENGTH))
+        if (address.Length > BITCOIN_MAX_ADDRESSES_LENGTH) then
+            raise (AddressWithInvalidLength(BITCOIN_MAX_ADDRESSES_LENGTH))
+        if (address.Length < BITCOIN_MIN_ADDRESSES_LENGTH) then
+            raise (AddressWithInvalidLength(BITCOIN_MIN_ADDRESSES_LENGTH))
 
         // FIXME: add bitcoin checksum algorithm?

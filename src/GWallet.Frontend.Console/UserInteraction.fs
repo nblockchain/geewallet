@@ -298,10 +298,18 @@ module UserInteraction =
             | AddressMissingProperPrefix(prefix) ->
                 Presentation.Error (sprintf "Address should start with '%s' prefix, please try again." prefix)
                 AskPublicAddress currency askText
-            | AddressWithInvalidLength(requiredLength) ->
-                Presentation.Error
-                    (sprintf "Address should have a length of %d characters, please try again."
-                        requiredLength)
+            | AddressWithInvalidLength(lengthLimitViolated) ->
+                if (publicAddress.Length > lengthLimitViolated) then
+                    Presentation.Error
+                        (sprintf "Address should have a length not higher than %d characters, please try again."
+                            lengthLimitViolated)
+                else if (publicAddress.Length < lengthLimitViolated) then
+                    Presentation.Error
+                        (sprintf "Address should have a length not lower than %d characters, please try again."
+                            lengthLimitViolated)
+                else
+                    failwith (sprintf "Address introduced '%s' gave a length error with a limit that matches its length: %d=%d"
+                                 publicAddress lengthLimitViolated publicAddress.Length)
                 AskPublicAddress currency askText
             | AddressWithInvalidChecksum(addressWithValidChecksum) ->
                 Console.Error.WriteLine "WARNING: the address provided didn't pass the checksum, are you sure you copied it properly?"
