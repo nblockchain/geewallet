@@ -295,8 +295,10 @@ module UserInteraction =
                 Account.ValidateAddress currency publicAddress
                 publicAddress
             with
-            | AddressMissingProperPrefix(prefix) ->
-                Presentation.Error (sprintf "Address should start with '%s' prefix, please try again." prefix)
+            | AddressMissingProperPrefix(possiblePrefixes) ->
+                let possiblePrefixesStr = String.Join(", ", possiblePrefixes)
+                Presentation.Error (sprintf "Address starts with the wrong prefix. Valid prefixes: %s"
+                                        possiblePrefixesStr)
                 AskPublicAddress currency askText
             | AddressWithInvalidLength(lengthLimitViolated) ->
                 if (publicAddress.Length > lengthLimitViolated) then

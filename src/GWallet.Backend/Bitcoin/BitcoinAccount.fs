@@ -175,10 +175,14 @@ module internal Account =
     let ValidateAddress (address: string) =
         let BITCOIN_MIN_ADDRESSES_LENGTH = 27
         let BITCOIN_MAX_ADDRESSES_LENGTH = 34
-        let BITCOIN_ADDRESS_PREFIX = "1"
 
-        if not (address.StartsWith(BITCOIN_ADDRESS_PREFIX)) then
-            raise (AddressMissingProperPrefix(BITCOIN_ADDRESS_PREFIX))
+        let BITCOIN_ADDRESS_PUBKEYHASH_PREFIX = "1"
+        let BITCOIN_ADDRESS_SCRIPTHASH_PREFIX = "3"
+        let BITCOIN_ADDRESS_VALID_PREFIXES = [ BITCOIN_ADDRESS_PUBKEYHASH_PREFIX; BITCOIN_ADDRESS_SCRIPTHASH_PREFIX ]
+
+        if (not (address.StartsWith(BITCOIN_ADDRESS_PUBKEYHASH_PREFIX))) &&
+           (not (address.StartsWith(BITCOIN_ADDRESS_SCRIPTHASH_PREFIX))) then
+            raise (AddressMissingProperPrefix(BITCOIN_ADDRESS_VALID_PREFIXES))
 
         if (address.Length > BITCOIN_MAX_ADDRESSES_LENGTH) then
             raise (AddressWithInvalidLength(BITCOIN_MAX_ADDRESSES_LENGTH))
