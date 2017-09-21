@@ -17,14 +17,15 @@ type internal TransactionOutpoint =
         Transaction: Transaction;
         OutputIndex: int;
     }
-    member self.ToCoin (): ICoin =
-        Coin(self.Transaction, uint32 self.OutputIndex) :> ICoin
+    member self.ToCoin (): Coin =
+        Coin(self.Transaction, uint32 self.OutputIndex)
 
 module internal Account =
 
     let GetPublicAddressFromAccountFile (accountFile: FileInfo) =
         let pubKey = new PubKey(accountFile.Name)
-        pubKey.GetAddress(Network.Main).ToString()
+        pubKey.GetSegwitAddress(Network.Main).GetScriptAddress().ToString()
+
 
     // TODO: return MaybeCached<decimal>
     let GetBalance(account: IAccount): decimal =
@@ -33,8 +34,11 @@ module internal Account =
         electrumClient.GetBalance account.PublicAddress |> UnitConversion.FromSatoshiToBTC
 
     // this is a rough guess between 3 tests with 1, 2 and 3 inputs:
-    // 1  -> 106, 2 -> 213, 3 -> 320  FIXME: anyway I should use NBitcoin's estimation facilicities
-    let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 106
+    // 1input  -> 215(total): 83+(X*1)
+    // 2inputs -> 386(total): 124+(X*2)
+    // 3inputs -> 559(total): 165+(X*3)  ... therefore X = 131?
+    // FIXME: anyway I should use NBitcoin's estimation facilicities
+    let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 131
 
     let EstimateFee account (amount: decimal) (destination: string) =
         let rec addInputsUntilAmount (inputs: list<Transaction*int*Int64>)
@@ -91,6 +95,7 @@ module internal Account =
             transactionDraft.Outputs.Add(txChangeOutDraft)
 
         let transactionSizeInBytes = (transactionDraft.ToBytes().Length)
+        //Console.WriteLine("transactionSize in bytes before signing: " + transactionSizeInBytes.ToString())
         let numberOfInputs = transactionDraft.Inputs.Count
         let estimatedFinalTransSize = transactionSizeInBytes +
             (BYTES_PER_INPUT_ESTIMATION_CONSTANT * transactionDraft.Inputs.Count) +
@@ -142,17 +147,22 @@ module internal Account =
             | :? SecurityException ->
                 raise (InvalidPassword)
 
+        // needed to sign with SegWit:
+        let coinsToSign =
+            btcMinerFee.CoinsToSign.Select(fun c -> c.ToScriptCoin(privateKey.PubKey.WitHash.ScriptPubKey) :> ICoin)
+            |> Seq.toArray
+
         let transCheckResultBeforeSigning = transaction.Check()
         if (transCheckResultBeforeSigning <> TransactionCheckResult.Success) then
             failwith (sprintf "Transaction check failed before signing with %A" transCheckResultBeforeSigning)
-        transaction.Sign(privateKey, btcMinerFee.CoinsToSign |> Seq.toArray)
+        transaction.Sign(privateKey, coinsToSign)
         let transCheckResultAfterSigning = transaction.Check()
         if (transCheckResultAfterSigning <> TransactionCheckResult.Success) then
             failwith (sprintf "Transaction check failed after signing with %A" transCheckResultAfterSigning)
 
         let maxDeviationAllowedForEstimationToNotBeConsideredAnError = 2
         let transSizeAfterSigning = transaction.ToBytes().Length
-        Console.WriteLine (sprintf "Transaction size after signing: %d bytes" transSizeAfterSigning)
+        //Console.WriteLine (sprintf "Transaction size after signing: %d bytes" transSizeAfterSigning)
         let differenceBetweenRealSizeAndEstimated = transSizeAfterSigning - btcMinerFee.EstimatedTransactionSizeInBytes
         if (Math.Abs(differenceBetweenRealSizeAndEstimated) > maxDeviationAllowedForEstimationToNotBeConsideredAnError) then
             failwith (sprintf "Transaction size estimation failed, got %d but calculated %d bytes (a difference of %d, with %d inputs)"
