@@ -93,11 +93,19 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
         jsonSerializerSettings
 
     static member private Deserialize<'T> (result: string, originalRequest: string): 'T =
-        let maybeError = JsonConvert.DeserializeObject<ErrorResult>(result, StratumClient.GetDefaultJsonSerializationSettings())
+        let maybeError =
+            try
+                JsonConvert.DeserializeObject<ErrorResult>(result, StratumClient.GetDefaultJsonSerializationSettings())
+            with
+            | ex -> raise(new Exception(sprintf "Failed deserializing JSON response (to check for error) '%s'" result, ex))
+
         if not (String.IsNullOrWhiteSpace(maybeError.Error)) then
             failwith (sprintf "Error received from Electrum server: '%s'. Original request sent from client: '%s'"
                               maybeError.Error originalRequest)
-        JsonConvert.DeserializeObject<'T>(result, StratumClient.GetDefaultJsonSerializationSettings())
+        try
+            JsonConvert.DeserializeObject<'T>(result, StratumClient.GetDefaultJsonSerializationSettings())
+        with
+        | ex -> raise(new Exception(sprintf "Failed deserializing JSON response '%s'" result, ex))
 
     member self.BlockchainAddressGetBalance address: BlockchainAddressGetBalanceResult =
         let obj = {
