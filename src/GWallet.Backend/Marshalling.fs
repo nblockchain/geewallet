@@ -10,10 +10,13 @@ type DeserializationException (message:string, innerException: Exception) =
 type VersionMismatchDuringDeserializationException (message:string, innerException: Exception) =
    inherit DeserializationException (message, innerException)
 
+module VersionHelper =
+    let CurrentVersion ()=
+        Assembly.GetExecutingAssembly().GetName().Version.ToString()
+
 type SerializableValue<'T>(value: 'T) =
     member val Version: string =
-        // FIXME: rather use Marshalling.currentVersion here, but that would be a cyclic dependency...
-        Assembly.GetExecutingAssembly().GetName().Version.ToString() with get
+        VersionHelper.CurrentVersion() with get
 
     member val TypeName: string =
         typeof<'T>.FullName with get
@@ -43,7 +46,7 @@ type DeserializableValue<'T>() =
 
 module Marshalling =
 
-    let private currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+    let private currentVersion = VersionHelper.CurrentVersion()
 
     let Deserialize<'S,'T when 'S:> DeserializableValue<'T>>(json: string): 'T =
         if (json = null) then
