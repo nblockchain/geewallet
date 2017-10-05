@@ -3,11 +3,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">iPhoneSimulator</Platform>
-    <ProjectGuid>{DE7305C5-3522-4B51-B452-AB0D01F43BFA}</ProjectGuid>
+    <ProjectGuid>{7527A41F-0A76-4058-A414-DAD1A9585660}</ProjectGuid>
     <ProjectTypeGuids>{FEACFBD2-3405-455C-9665-78FE426C6842};{F2A71F9B-5D33-465A-A702-920D77279786}</ProjectTypeGuids>
     <OutputType>Exe</OutputType>
-    <RootNamespace>GWalletFrontendXamForms.iOS</RootNamespace>
-    <AssemblyName>GWalletFrontendXamForms.iOS</AssemblyName>
+    <RootNamespace>GWallet.Frontend.XamForms.iOS</RootNamespace>
+    <AssemblyName>GWallet.Frontend.XamForms.iOS</AssemblyName>
     <IPhoneResourcePrefix>Resources</IPhoneResourcePrefix>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|iPhoneSimulator' ">
@@ -21,9 +21,9 @@
     <MtouchDebug>true</MtouchDebug>
     <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
     <MtouchFastDev>true</MtouchFastDev>
-    <IOSDebuggerPort>25125</IOSDebuggerPort>
+    <IOSDebuggerPort>26913</IOSDebuggerPort>
     <MtouchLink>SdkOnly</MtouchLink>
-    <MtouchArch>i386, x86_64</MtouchArch>
+    <MtouchArch>x86_64</MtouchArch>
     <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
@@ -37,7 +37,7 @@
     <MtouchFloat32>true</MtouchFloat32>
     <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
     <MtouchLink>SdkOnly</MtouchLink>
-    <MtouchArch>ARMv7, ARM64</MtouchArch>
+    <MtouchArch>ARM64</MtouchArch>
     <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
     <GenerateTailCalls>true</GenerateTailCalls>
     <PlatformTarget>x86</PlatformTarget>
@@ -51,7 +51,7 @@
     <CodesignKey>iPhone Developer</CodesignKey>
     <MtouchNoSymbolStrip>true</MtouchNoSymbolStrip>
     <MtouchLink>None</MtouchLink>
-    <MtouchArch>i386, x86_64</MtouchArch>
+    <MtouchArch>x86_64</MtouchArch>
     <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
     <GenerateTailCalls>true</GenerateTailCalls>
     <PlatformTarget>x86</PlatformTarget>
@@ -70,13 +70,12 @@
     <MtouchFastDev>true</MtouchFastDev>
     <MtouchFloat32>true</MtouchFloat32>
     <CodesignEntitlements>Entitlements.plist</CodesignEntitlements>
-    <IOSDebuggerPort>39980</IOSDebuggerPort>
+    <IOSDebuggerPort>47389</IOSDebuggerPort>
     <MtouchLink>SdkOnly</MtouchLink>
-    <MtouchArch>ARMv7, ARM64</MtouchArch>
+    <MtouchArch>ARM64</MtouchArch>
     <MtouchHttpClientHandler>HttpClientHandler</MtouchHttpClientHandler>
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
-  <Import Project="..\GWallet.Frontend.XamForms\GWalletFrontendXamForms.projitems" Label="Shared" Condition="Exists('..\GWallet.Frontend.XamForms\GWalletFrontendXamForms.projitems')" />
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
@@ -94,6 +93,12 @@
     <Reference Include="Xamarin.Forms.Xaml">
       <HintPath>..\..\packages\Xamarin.Forms.2.3.4.247\lib\Xamarin.iOS10\Xamarin.Forms.Xaml.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GWallet.Frontend.XamForms\GWallet.Frontend.XamForms.fsproj">
+      <Project>{FC4342EB-A9DB-450C-8DBA-1B1132448CEC}</Project>
+      <Name>GWallet.Frontend.XamForms</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json" />

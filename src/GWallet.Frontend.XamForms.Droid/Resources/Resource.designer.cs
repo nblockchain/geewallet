@@ -9,9 +9,9 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-[assembly: global::Android.Runtime.ResourceDesignerAttribute("GWalletFrontendXamForms.Droid.Resource", IsApplication=true)]
+[assembly: global::Android.Runtime.ResourceDesignerAttribute("GWallet.Frontend.XamForms.Droid.Resource", IsApplication=true)]
 
-namespace GWalletFrontendXamForms.Droid
+namespace GWallet.Frontend.XamForms.Droid
 {
 	
 	
@@ -26,7 +26,7 @@ namespace GWalletFrontendXamForms.Droid
 		
 		public static void UpdateIdValues()
 		{
-			global::Xamarin.Forms.Platform.Android.Resource.Attribute.actionBarSize = global::GWalletFrontendXamForms.Droid.Resource.Attribute.actionBarSize;
+			global::Xamarin.Forms.Platform.Android.Resource.Attribute.actionBarSize = global::GWallet.Frontend.XamForms.Droid.Resource.Attribute.actionBarSize;
 		}
 		
 		public partial class Animation

@@ -3,11 +3,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{3C3B000D-99D4-4C70-9905-D3D40D67DFB3}</ProjectGuid>
+    <ProjectGuid>{E0B76324-5516-49E5-B2AA-1A08C19EF214}</ProjectGuid>
     <ProjectTypeGuids>{EFBA0AD7-5A72-4C68-AF49-83D382785DCF};{F2A71F9B-5D33-465A-A702-920D77279786}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
-    <RootNamespace>GWalletFrontendXamForms.Droid</RootNamespace>
-    <AssemblyName>GWalletFrontendXamForms.Droid</AssemblyName>
+    <RootNamespace>GWallet.Frontend.XamForms.Droid</RootNamespace>
+    <AssemblyName>GWallet.Frontend.XamForms.Droid</AssemblyName>
     <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
     <AndroidApplication>True</AndroidApplication>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
@@ -16,7 +16,6 @@
     <MonoAndroidResourcePrefix>Resources</MonoAndroidResourcePrefix>
     <MonoAndroidAssetsPrefix>Assets</MonoAndroidAssetsPrefix>
     <AndroidUseLatestPlatformSdk>true</AndroidUseLatestPlatformSdk>
-    <TargetFSharpCoreVersion>4.4.1.0</TargetFSharpCoreVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -40,12 +39,7 @@
     <GenerateTailCalls>true</GenerateTailCalls>
     <PlatformTarget></PlatformTarget>
   </PropertyGroup>
-  <Import Project="..\GWallet.Frontend.XamForms\GWalletFrontendXamForms.projitems" Label="Shared" Condition="Exists('..\GWallet.Frontend.XamForms\GWalletFrontendXamForms.projitems')" />
   <ItemGroup>
-    <Reference Include="FSharp.Core, Version=$(TargetFSharpCoreVersion), Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
-      <Private>True</Private>
-      <HintPath>/Library/Frameworks/Mono.framework/Versions/5.2.0/lib/mono/gac/FSharp.Core/4.4.1.0__b03f5f7f11d50a3a/FSharp.Core.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Core" />
@@ -92,6 +86,12 @@
     <Reference Include="Xamarin.Android.FSharp.ResourceProvider.Runtime">
       <HintPath>..\..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.13\lib\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GWallet.Frontend.XamForms\GWallet.Frontend.XamForms.fsproj">
+      <Project>{FC4342EB-A9DB-450C-8DBA-1B1132448CEC}</Project>
+      <Name>GWallet.Frontend.XamForms</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\layout\" />
