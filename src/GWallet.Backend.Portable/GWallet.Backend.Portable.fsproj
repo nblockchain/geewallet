@@ -30,12 +30,6 @@
     <PlatformTarget></PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\GWallet.Backend\Marshalling.fs">
-      <Link>Marshalling.fs</Link>
-    </Compile>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <Reference Include="System.ValueTuple">
       <HintPath>..\..\packages\System.ValueTuple.4.3.0\lib\portable-net40+sl4+win8+wp8\System.ValueTuple.dll</HintPath>
     </Reference>
@@ -45,6 +39,19 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.9.0.1\lib\portable-net45+wp80+win8+wpa81\Newtonsoft.Json.dll</HintPath>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="FSharpUtil.fs" />
+    <Compile Include="..\GWallet.Backend\Marshalling.fs">
+      <Link>Marshalling.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Currency.fs">
+      <Link>Currency.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\AccountTypes.fs">
+      <Link>AccountTypes.fs</Link>
+    </Compile>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.Portable.FSharp.Targets" />
 </Project>
