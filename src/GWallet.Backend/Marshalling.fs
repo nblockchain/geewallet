@@ -12,7 +12,7 @@ type VersionMismatchDuringDeserializationException (message:string, innerExcepti
 
 module VersionHelper =
     let CurrentVersion ()=
-        Assembly.GetExecutingAssembly().GetName().Version.ToString()
+        typedefof<DeserializationException>.GetTypeInfo().Assembly.GetName().Version.ToString()
 
 type SerializableValue<'T>(value: 'T) =
     member val Version: string =

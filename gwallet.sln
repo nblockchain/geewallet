@@ -24,6 +24,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{9DFD61F8
 		Makefile = Makefile
 	EndProjectSection
 EndProject
+Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "GWallet.Backend.Portable", "src\GWallet.Backend.Portable\GWallet.Backend.Portable.fsproj", "{B0E8ED4F-E251-4E65-A2A2-A71204049269}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -106,5 +108,17 @@ Global
 		{F9448076-88BE-4045-8704-A652D133E036}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
 		{F9448076-88BE-4045-8704-A652D133E036}.Debug|iPhone.ActiveCfg = Debug|Any CPU
 		{F9448076-88BE-4045-8704-A652D133E036}.Debug|iPhone.Build.0 = Debug|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Release|iPhone.ActiveCfg = Release|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Release|iPhone.Build.0 = Release|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Debug|iPhone.ActiveCfg = Debug|Any CPU
+		{B0E8ED4F-E251-4E65-A2A2-A71204049269}.Debug|iPhone.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal
