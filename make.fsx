@@ -97,7 +97,7 @@ match maybeTarget with
                             zipCommand pathToZip pathToFrontend
     let zipRun = Process.Execute(zipLaunch, true, false)
     if (zipRun.ExitCode <> 0) then
-        Console.Error.WriteLine "Tests failed"
+        Console.Error.WriteLine "ZIP compression failed"
         Environment.Exit 1
 
 | Some("check") ->
