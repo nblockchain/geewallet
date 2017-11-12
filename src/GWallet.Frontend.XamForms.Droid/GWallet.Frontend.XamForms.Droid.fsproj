@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>GWallet.Frontend.XamForms.Droid</RootNamespace>
     <AssemblyName>GWallet.Frontend.XamForms.Droid</AssemblyName>
-    <TargetFrameworkVersion>v6.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v8.0</TargetFrameworkVersion>
     <AndroidApplication>True</AndroidApplication>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidResgenClass>Resource</AndroidResgenClass>
@@ -86,12 +86,10 @@
     <Reference Include="Xamarin.Android.FSharp.ResourceProvider.Runtime">
       <HintPath>..\..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.13\lib\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
     </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\GWallet.Frontend.XamForms\GWallet.Frontend.XamForms.fsproj">
-      <Project>{FC4342EB-A9DB-450C-8DBA-1B1132448CEC}</Project>
-      <Name>GWallet.Frontend.XamForms</Name>
-    </ProjectReference>
+    <Reference Include="FSharp.Core">
+      <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\netstandard1.6\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\layout\" />
@@ -108,6 +106,12 @@
     <AndroidResource Include="Resources\drawable-xxhdpi\icon.png" />
     <None Include="Assets\AboutAssets.txt" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
+      <Project>{19C613A6-21D8-4120-8E5D-C092193D1003}</Project>
+      <Name>GWallet.Frontend.XF</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />
   <Import Project="..\..\packages\Xamarin.Android.Support.Vector.Drawable.23.3.0\build\Xamarin.Android.Support.Vector.Drawable.targets" Condition="Exists('..\..\packages\Xamarin.Android.Support.Vector.Drawable.23.3.0\build\Xamarin.Android.Support.Vector.Drawable.targets')" />

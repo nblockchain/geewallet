@@ -1,0 +1,63 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\GWallet.Backend\FSharpUtil.fs">
+      <Link>FSharpUtil.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Marshalling.fs">
+      <Link>Marshalling.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Currency.fs">
+      <Link>Currency.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Exceptions.fs">
+      <Link>Exceptions.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\AccountTypes.fs">
+      <Link>AccountTypes.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Config.fs">
+      <Link>Config.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\EtherMinerFee.fs">
+      <Link>EtherMinerFee.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Caching.fs">
+      <Link>Caching.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Transaction.fs">
+      <Link>Transaction.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\FaultTolerantClient.fs">
+      <Link>FaultTolerantClient.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\EtherServer.fs">
+      <Link>EtherServer.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Account.fs">
+      <Link>Account.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Infrastructure.fs">
+      <Link>Infrastructure.fs</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
+    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="2.0.0" />
+    <PackageReference Include="Nethereum.Util" Version="2.0.0" />
+    <PackageReference Include="Nethereum.RPC" Version="2.0.0" />
+    <PackageReference Include="Nethereum.Contracts" Version="2.0.0" />
+    <PackageReference Include="Nethereum.Web3" Version="2.0.0" />
+    <PackageReference Include="Nethereum.JsonRpc.Client" Version="2.0.0" />
+    <PackageReference Include="Nethereum.Signer" Version="2.0.0" />
+    <PackageReference Include="Nethereum.Hex" Version="2.0.0" />
+    <PackageReference Include="Nethereum.ABI" Version="2.0.0" />
+    <PackageReference Include="Nethereum.KeyStore" Version="2.0.0" />
+    <PackageReference Include="Nethereum.RLP" Version="2.0.0" />
+    <PackageReference Include="SharpRaven" Version="2.2.0" />
+  </ItemGroup>
+</Project>

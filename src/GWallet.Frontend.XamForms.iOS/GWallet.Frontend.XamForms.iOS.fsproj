@@ -95,12 +95,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GWallet.Frontend.XamForms\GWallet.Frontend.XamForms.fsproj">
-      <Project>{FC4342EB-A9DB-450C-8DBA-1B1132448CEC}</Project>
-      <Name>GWallet.Frontend.XamForms</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json" />
     <ImageAsset Include="Assets.xcassets\Contents.json" />
     <InterfaceDefinition Include="LaunchScreen.storyboard" />
@@ -108,6 +102,12 @@
     <None Include="Entitlements.plist" />
     <Compile Include="AppDelegate.fs" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
+      <Project>{19C613A6-21D8-4120-8E5D-C092193D1003}</Project>
+      <Name>GWallet.Frontend.XF</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.FSharp.targets" />
   <Import Project="..\..\packages\Xamarin.Forms.2.3.4.247\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+Xamarin.iOS10+xamarinmac20\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.2.3.4.247\build\portable-win+net45+wp80+win81+wpa81+MonoAndroid10+Xamarin.iOS10+xamarinmac20\Xamarin.Forms.targets')" />

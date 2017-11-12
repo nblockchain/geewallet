@@ -1,8 +1,9 @@
 ﻿namespace GWalletFrontendXamForms
+
 open System.Reflection
 open System.Runtime.CompilerServices
 
-[<assembly: AssemblyTitle("GWalletFrontendXamForms")>]
+[<assembly: AssemblyTitle("GWallet.Frontend.XF")>]
 [<assembly: AssemblyDescription("")>]
 [<assembly: AssemblyConfiguration("")>]
 [<assembly: AssemblyCompany("")>]
