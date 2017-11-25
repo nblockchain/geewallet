@@ -40,7 +40,9 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Cache, Is.Not.Null)
         Assert.That(deserializedUnsignedTrans.Fee, Is.Not.Null)
 
-        Assert.That(deserializedUnsignedTrans.Proposal.Amount, Is.EqualTo(10.01m))
+        Assert.That(deserializedUnsignedTrans.Proposal.Amount.ValueToSend, Is.EqualTo(10.01m))
+        Assert.That(deserializedUnsignedTrans.Proposal.Amount.IdealValueRemainingAfterSending,
+                    Is.EqualTo(1.01m))
         Assert.That(deserializedUnsignedTrans.Proposal.Currency, Is.EqualTo(Currency.ETC))
         Assert.That(deserializedUnsignedTrans.Proposal.DestinationAddress,
                     Is.EqualTo("0xf3j4m0rjxdddud9403j"))
@@ -74,8 +76,10 @@ module Deserialization =
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache, Is.Not.Null)
         Assert.That(deserializedSignedTrans.TransactionInfo.Fee, Is.Not.Null)
 
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount,
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.ValueToSend,
                     Is.EqualTo(10.01m))
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.IdealValueRemainingAfterSending,
+                    Is.EqualTo(1.01m))
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Currency,
                     Is.EqualTo(Currency.ETC))
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.DestinationAddress,

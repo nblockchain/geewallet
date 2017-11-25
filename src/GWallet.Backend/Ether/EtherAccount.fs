@@ -103,7 +103,7 @@ module internal Account =
     let private SignTransactionWithPrivateKey (account: IAccount)
                                               (transCount: BigInteger)
                                               (destination: string)
-                                              (amount: decimal)
+                                              (amount: TransferAmount)
                                               (minerFee: EtherMinerFee)
                                               (privateKey: EthECKey) =
 
@@ -111,7 +111,13 @@ module internal Account =
         if (minerFee.Currency <> currency) then
             invalidArg "account" "currency of account param must be equal to currency of minerFee param"
 
-        let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
+        let amountToSendConsideringMinerFee =
+            if (amount.IdealValueRemainingAfterSending = 0.0m) then
+                amount.ValueToSend - (minerFee:>IBlockchainFee).Value
+            else
+                amount.ValueToSend
+        let amountInWei = UnitConversion.Convert.ToWei(amountToSendConsideringMinerFee,
+                                                       UnitConversion.EthUnit.Ether)
 
         let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
         let trans = signer.SignTransaction(
@@ -134,7 +140,7 @@ module internal Account =
     let SignTransaction (account: NormalAccount)
                         (transCount: BigInteger)
                         (destination: string)
-                        (amount: decimal)
+                        (amount: TransferAmount)
                         (minerFee: EtherMinerFee)
                         (password: string) =
 
@@ -148,12 +154,12 @@ module internal Account =
         let accountFrom = (account:>IAccount)
         let transCountHexBigInt = GetTransactionCount (accountFrom.Currency, accountFrom.PublicAddress)
         let transCount = transCountHexBigInt.Value
-        let amount = balance - (minerFee:>IBlockchainFee).Value
+        let amount = TransferAmount(balance, 0.0m)
         let signedTrans = SignTransactionWithPrivateKey
                               account transCount destination.PublicAddress amount minerFee account.PrivateKey
         BroadcastRawTransaction accountFrom.Currency signedTrans
 
-    let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
+    let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
                     (password: string) (minerFee: EtherMinerFee) =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then

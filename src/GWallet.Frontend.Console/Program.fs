@@ -98,7 +98,10 @@ let SignOffPayment() =
             | _ ->
                 failwith "Account type not supported. Please report this issue."
 
-let SendPaymentOfSpecificAmount (account: IAccount) amount (fee: IBlockchainFee) (destination: string) =
+let SendPaymentOfSpecificAmount (account: IAccount)
+                                (amount: TransferAmount)
+                                (fee: IBlockchainFee)
+                                (destination: string) =
     match account with
     | :? ReadOnlyAccount as readOnlyAccount ->
         Console.WriteLine("Cannot send payments from readonly accounts.")
@@ -125,17 +128,11 @@ let SendPayment() =
     match maybeAmount with
     | None -> ()
     | Some(amount) ->
-        let maybeFee = UserInteraction.AskFee account amount.Value destination
+        let maybeFee = UserInteraction.AskFee account amount.ValueToSend destination
         match maybeFee with
         | None -> ()
         | Some(fee) ->
-            let amountToSend =
-                match amount.Type with
-                | UserInteraction.AmountDesire.CertainCryptoAmount ->
-                    amount.Value
-                | UserInteraction.AmountDesire.AllBalance ->
-                    amount.Value - fee.Value
-            SendPaymentOfSpecificAmount account amountToSend fee destination
+            SendPaymentOfSpecificAmount account amount fee destination
 
 let rec TryArchiveAccount account =
     let password = UserInteraction.AskPassword(false)

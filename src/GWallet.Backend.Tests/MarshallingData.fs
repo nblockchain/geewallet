@@ -18,7 +18,7 @@ module MarshallingData =
         {
             Currency = Currency.ETC;
             OriginAddress = "0xf3j4m0rjx94sushh03j";
-            Amount = 10.01m;
+            Amount = TransferAmount(10.01m, 1.01m);
             DestinationAddress = "0xf3j4m0rjxdddud9403j";
         }
 
@@ -80,7 +80,7 @@ module MarshallingData =
         "{\"TransactionInfo\":{\"Proposal\":" +
         "{\"Currency\":{\"Case\":\"ETC\"}," +
         "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-        "\"Amount\":10.01," +
+        "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
         "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
         ",\"TransactionCount\":69," +
         "\"Fee\":{" +
@@ -97,7 +97,7 @@ module MarshallingData =
         "{\"Proposal\":" +
         "{\"Currency\":{\"Case\":\"ETC\"}," +
         "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-        "\"Amount\":10.01," +
+        "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
         "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
         ",\"TransactionCount\":69," +
         "\"Fee\":{" +

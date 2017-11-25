@@ -105,23 +105,32 @@ module internal Account =
         let coins = inputsToUse.Select(fun input -> input.ToCoin())
         MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, transactionDraft, coins)
 
-    let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
+    let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
                     (password: string)
                     (btcMinerFee: MinerFee)
                     =
         let transaction = btcMinerFee.DraftTransaction
         let minerFee = btcMinerFee :> IBlockchainFee
-        let amountInSatoshis = Convert.ToInt64(amount * 100000000m)
+        let minerFeeInSatoshis = Convert.ToInt64(minerFee.Value * 100000000m)
+        let amountInSatoshis = Convert.ToInt64(amount.ValueToSend * 100000000m)
         let destAddress = BitcoinAddress.Create(destination, Network.Main)
         let sourceAddress = BitcoinAddress.Create((account:>IAccount).PublicAddress, Network.Main)
-        match transaction.Outputs.Count with
-        | 1 -> // it means we're sending all balance!
+
+        // it means we're sending all balance!
+        if (amount.IdealValueRemainingAfterSending = 0.0m) then
+            if (transaction.Outputs.Count <> 1) then
+                failwith "Assertion outputsCount==1 failed (it was %M)"
+
             transaction.Outputs.Remove(transaction.Outputs.[0]) |> ignore
 
-            let outputAmount = Money(amountInSatoshis)
+            let outputAmount = Money(amountInSatoshis - minerFeeInSatoshis)
             let txOutAfterRemovingFee = TxOut(outputAmount, destAddress)
             transaction.Outputs.Add(txOutAfterRemovingFee)
-        | 2 -> // it means there's change involved (send change back to change-address)
+
+        else // it means there's change involved (send change back to change-address)
+            if (transaction.Outputs.Count <> 2) then
+                failwith "Assertion outputsCount==2 failed (it was %M)"
+
             let changeOutput =
                 transaction.Outputs.ToArray()
                                    .Single(fun o -> amountInSatoshis <> o.Value.Satoshi)
@@ -129,13 +138,9 @@ module internal Account =
             let removed = transaction.Outputs.Remove(changeOutput)
             if not removed then
                 failwith "Failed to remove draft output"
-            let minerFeeInSatoshis = Convert.ToInt64(minerFee.Value * 100000000m)
             let changeAmount = Money(changeOutput.Value.Satoshi - minerFeeInSatoshis)
             let changeOuput = TxOut(changeAmount, sourceAddress)
             transaction.Outputs.Add(changeOuput)
-
-        | unexpectedCount ->
-            failwith (sprintf "Assert: count of transactionDraft shouldn't have been %d" unexpectedCount)
 
         let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
         let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, Network.Main)

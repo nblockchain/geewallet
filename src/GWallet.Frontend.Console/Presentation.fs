@@ -57,17 +57,21 @@ module Presentation =
         let estimatedAmountInUsd: Option<string> =
             match maybeUsdPrice with
             | Fresh(usdPrice) ->
-                Some(sprintf "~ %s USD" (trans.Proposal.Amount * usdPrice |> ShowDecimalForHumans CurrencyType.Fiat))
+                Some(sprintf "~ %s USD"
+                             (trans.Proposal.Amount.ValueToSend * usdPrice
+                                 |> ShowDecimalForHumans CurrencyType.Fiat))
             | NotFresh(Cached(usdPrice, time)) ->
                 Some(sprintf "~ %s USD (last exchange rate known at %s)"
-                        (trans.Proposal.Amount * usdPrice |> ShowDecimalForHumans CurrencyType.Fiat)
+                        (trans.Proposal.Amount.ValueToSend * usdPrice
+                            |> ShowDecimalForHumans CurrencyType.Fiat)
                         (time |> ShowSaneDate))
             | NotFresh(NotAvailable) -> None
 
         Console.WriteLine("Transaction data:")
         Console.WriteLine("Sender: " + trans.Proposal.OriginAddress)
         Console.WriteLine("Recipient: " + trans.Proposal.DestinationAddress)
-        Console.Write("Amount: " + (trans.Proposal.Amount |> ShowDecimalForHumans CurrencyType.Crypto))
+        Console.Write("Amount: " +
+                      (trans.Proposal.Amount.ValueToSend |> ShowDecimalForHumans CurrencyType.Crypto))
         if (estimatedAmountInUsd.IsSome) then
             Console.Write("  " + estimatedAmountInUsd.Value)
         Console.WriteLine()

@@ -82,7 +82,7 @@ module Account =
     let SignTransaction (account: NormalAccount)
                         (transCount: BigInteger)
                         (destination: string)
-                        (amount: decimal)
+                        (amount: TransferAmount)
                         (minerFee: IBlockchainFee)
                         (password: string) =
 
@@ -112,7 +112,7 @@ module Account =
         | :? EtherMinerFee as etherMinerFee -> Ether.Account.SweepArchivedFunds account balance destination etherMinerFee
         | _ -> failwith "fee type unknown"
 
-    let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
+    let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
                     (password: string) (minerFee: IBlockchainFee) =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
