@@ -12,8 +12,6 @@ before_script:
   - apt-get install -y curl
   - apt-get install -y nuget mono-complete mono-xbuild fsharp
 
-  - apt-get install -y git
-
 build:
   script:
     - time (./configure.sh && make && make install)

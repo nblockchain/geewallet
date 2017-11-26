@@ -2,14 +2,8 @@
 
 open System
 open System.IO
-
-#load "Build.fs"
-
-#r "System.Configuration"
-#load "fsx/InfraLib/MiscTools.fs"
-#load "fsx/InfraLib/ProcessTools.fs"
+#load "Infra.fs"
 open FSX.Infrastructure
-open ProcessTools
 
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
 
@@ -51,7 +45,9 @@ exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
 let JustBuild binaryConfig =
     Console.WriteLine "Compiling gwallet..."
     let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
-    ProcessTools.SafeExecute ({ Command = "xbuild"; Arguments = configOption }, Echo.All) |> ignore
+    let xbuild = Process.Execute (sprintf "xbuild %s" configOption, true, false)
+    if (xbuild.ExitCode <> 0) then
+        Environment.Exit 1
 
     Directory.CreateDirectory(launcherScriptPath.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
@@ -60,14 +56,14 @@ let JustBuild binaryConfig =
     File.WriteAllText (launcherScriptPath.FullName, wrapperScriptWithPaths)
 
 let MakeCheckCommand (commandName: string) =
-    if not (ProcessTools.CommandWorksInShell commandName) then
+    if (Process.CommandCheck commandName).IsNone then
         Console.Error.WriteLine (sprintf "%s not found, please install it first" commandName)
         Environment.Exit 1
 
 let GetPathToFrontend (binaryConfig: BinaryConfig) =
     Path.Combine ("src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString())
 
-let maybeTarget = GatherTarget (MiscTools.FsxArguments(), None)
+let maybeTarget = GatherTarget (Util.FsxArguments(), None)
 match maybeTarget with
 | None ->
     JustBuild BinaryConfig.Debug
@@ -79,7 +75,7 @@ match maybeTarget with
     let zipCommand = "zip"
     MakeCheckCommand zipCommand
 
-    let version = GWallet.Build.GetCurrentVersion().ToString()
+    let version = Misc.GetCurrentVersion().ToString()
 
     let release = BinaryConfig.Release
     JustBuild release
@@ -92,9 +88,9 @@ match maybeTarget with
         File.Delete (pathToZip)
 
     let pathToFrontend = GetPathToFrontend release
-    let zipParams = sprintf "-j -r %s %s"
-                            pathToZip pathToFrontend
-    let zipRun = ProcessTools.Execute({ Command = zipCommand; Arguments = zipParams }, Echo.All)
+    let zipLaunch = sprintf "%s -j -r %s %s"
+                            zipCommand pathToZip pathToFrontend
+    let zipRun = Process.Execute(zipLaunch, true, false)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "ZIP compression failed"
         Environment.Exit 1
@@ -105,9 +101,8 @@ match maybeTarget with
 
     let nunitCommand = "nunit-console"
     MakeCheckCommand nunitCommand
-    let nunitRun = ProcessTools.Execute({ Command = nunitCommand;
-                                          Arguments = "src/GWallet.Backend.Tests/bin/GWallet.Backend.Tests.dll" },
-                                        Echo.All)
+    let nunitRun = Process.Execute(sprintf "%s src/GWallet.Backend.Tests/bin/GWallet.Backend.Tests.dll" nunitCommand,
+                                   true, false)
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
         Environment.Exit 1
@@ -115,18 +110,19 @@ match maybeTarget with
 | Some("install") ->
     Console.WriteLine "Installing gwallet..."
     Console.WriteLine ()
-    MiscTools.CopyDirectoryRecursively (mainBinariesPath, libInstallPath, [])
+    Directory.CreateDirectory(libInstallPath.FullName) |> ignore
+    Misc.CopyDirectoryRecursively (mainBinariesPath, libInstallPath)
 
     let finalPrefixPathOfWrapperScript = FileInfo (Path.Combine(binInstallPath.FullName, launcherScriptPath.Name))
     if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
         Directory.CreateDirectory(finalPrefixPathOfWrapperScript.Directory.FullName) |> ignore
     File.Copy(launcherScriptPath.FullName, finalPrefixPathOfWrapperScript.FullName, true)
-    ProcessTools.SafeExecute({ Command = "chmod";
-                               Arguments = sprintf "ugo+x %s" finalPrefixPathOfWrapperScript.FullName },
-                             Echo.OutputOnly) |> ignore
+    if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, false, true)).ExitCode <> 0) then
+        failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
-    if not (ProcessTools.CommandWorksInShell "mono") then
+    let fullPathToMono = Process.CommandCheck "mono"
+    if (fullPathToMono.IsNone) then
         Console.Error.WriteLine "mono not found? install it first"
         Environment.Exit 1
 
@@ -135,7 +131,9 @@ match maybeTarget with
 
     let pathToFrontend = Path.Combine(GetPathToFrontend debug, DEFAULT_FRONTEND + ".exe")
 
-    ProcessTools.SafeExecute({ Command = "mono"; Arguments = pathToFrontend }, Echo.All) |> ignore
+    let proc = System.Diagnostics.Process.Start
+                   (fullPathToMono.Value, pathToFrontend)
+    proc.WaitForExit()
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
