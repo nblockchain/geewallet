@@ -101,6 +101,9 @@
   </Choose>
   <Import Condition="'$(FSharpTargetsPath)' != ''" Project="$(FSharpTargetsPath)" />
   <ItemGroup>
+    <Content Include="..\GWallet.Frontend.Console\App.config">
+      <Link>App.config</Link>
+    </Content>
     <Compile Include="..\GWallet.Backend\CommonAssemblyInfo.fs">
       <Link>CommonAssemblyInfo.fs</Link>
     </Compile>

@@ -1,0 +1,3 @@
+[submodule "fsx"]
+	path = fsx
+	url = ../fsx
