@@ -30,10 +30,10 @@ module Deserialization =
         Assert.That(date, Is.EqualTo (MarshallingData.SomeDate))
 
     [<Test>]
-    let ``unsigned transaction import``() =
-        let deserializedUnsignedTrans =
+    let ``unsigned ether transaction import``() =
+        let deserializedUnsignedTrans: UnsignedTransaction<EtherMinerFee> =
             Account.ImportUnsignedTransactionFromJson
-                MarshallingData.UnsignedTransactionExampleInJson
+                MarshallingData.UnsignedEtherTransactionExampleInJson
 
         Assert.That(deserializedUnsignedTrans, Is.Not.Null)
         Assert.That(deserializedUnsignedTrans.Proposal, Is.Not.Null)
@@ -60,9 +60,9 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(0))
 
     [<Test>]
-    let ``signed transaction import``() =
+    let ``signed ether transaction import``() =
 
-        let deserializedSignedTrans =
+        let deserializedSignedTrans: SignedTransaction<EtherMinerFee> =
             Account.ImportSignedTransactionFromJson
                 MarshallingData.SignedTransactionExampleInJson
 

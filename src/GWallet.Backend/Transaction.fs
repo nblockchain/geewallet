@@ -12,16 +12,16 @@ type UnsignedTransactionProposal =
 
 // NOTE: I wanted to mark this type below `internal`, however that breaks JSON serialization
 //       in two possible ways: 1. silently (just returning {}), 2. with an exception
-type UnsignedTransaction =
+type UnsignedTransaction<'T when 'T :> IBlockchainFee> =
     {
         Proposal: UnsignedTransactionProposal;
         TransactionCount: Int64;
-        Fee: EtherMinerFee;
+        Fee: 'T;
         Cache: CachedNetworkData;
     }
 
-type SignedTransaction =
+type SignedTransaction<'T when 'T :> IBlockchainFee> =
     {
-        TransactionInfo: UnsignedTransaction;
+        TransactionInfo: UnsignedTransaction<'T>;
         RawTransaction: string;
     }

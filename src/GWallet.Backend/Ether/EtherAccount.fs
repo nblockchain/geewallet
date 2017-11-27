@@ -84,7 +84,7 @@ module internal Account =
         | ex when ex.Message.StartsWith(insufficientFundsMsg) || ex.InnerException.Message.StartsWith(insufficientFundsMsg) ->
             raise (InsufficientFunds)
 
-    let BroadcastTransaction (trans: SignedTransaction) =
+    let BroadcastTransaction (trans: SignedTransaction<_>) =
         BroadcastRawTransaction
             trans.TransactionInfo.Proposal.Currency
             trans.RawTransaction

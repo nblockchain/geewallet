@@ -7,6 +7,7 @@ open System
 open System.IO
 open System.Security
 open System.Linq
+open System.Numerics
 
 open NBitcoin
 
@@ -228,6 +229,23 @@ module internal Account =
         use electrumClient = new ElectrumClient(electrumServer)
         let newTxId = electrumClient.BroadcastTransaction (finalTransaction.ToHex())
         newTxId
+
+    // TODO: maybe move this func to Backend.Account module, or simply inline it (simple enough)
+    let public ExportUnsignedTransactionToJson trans =
+        Marshalling.Serialize trans
+
+    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: MinerFee) (filePath: string) =
+
+        let dummyCount = int64 0
+        let unsignedTransaction =
+            {
+                Proposal = transProposal;
+                TransactionCount = dummyCount;
+                Cache = Caching.GetLastCachedData();
+                Fee = fee;
+            }
+        let json = ExportUnsignedTransactionToJson unsignedTransaction
+        File.WriteAllText(filePath, json)
 
     let Create password =
         let privkey = Key()

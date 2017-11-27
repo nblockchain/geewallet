@@ -10,6 +10,10 @@ type MinerFee(estimatedTransactionSizeInBytes: int, btcPerKiloByteForFastTrans: 
     member val DraftTransaction = draftTransaction with get
     member val EstimatedTransactionSizeInBytes = estimatedTransactionSizeInBytes with get
 
+    // FIXME: how to not repeat properties but still have them serialized
+    // as part of the public interface?? :(
+    member val EstimationTime = estimationTime with get
+
     interface IBlockchainFee with
         member val EstimationTime = estimationTime with get
 

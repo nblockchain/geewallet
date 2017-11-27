@@ -76,7 +76,7 @@ module Account =
         | Currency.ETH | Currency.ETC ->
             Ether.Account.EstimateFee currency :> IBlockchainFee
 
-    let BroadcastTransaction (trans: SignedTransaction) =
+    let BroadcastTransaction (trans: SignedTransaction<_>) =
         Ether.Account.BroadcastTransaction trans
 
     let SignTransaction (account: NormalAccount)
@@ -133,7 +133,7 @@ module Account =
                 Ether.Account.SendPayment account destination amount password etherMinerFee
             | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
 
-    let SignUnsignedTransaction account (unsignedTrans: UnsignedTransaction) password =
+    let SignUnsignedTransaction account (unsignedTrans: UnsignedTransaction<_>) password =
         let rawTransaction = SignTransaction account
                                  (BigInteger(unsignedTrans.TransactionCount))
                                  unsignedTrans.Proposal.DestinationAddress
@@ -142,10 +142,10 @@ module Account =
                                  password
         { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
 
-    let public ExportSignedTransaction (trans: SignedTransaction) =
+    let public ExportSignedTransaction (trans: SignedTransaction<_>) =
         Marshalling.Serialize trans
 
-    let SaveSignedTransaction (trans: SignedTransaction) (filePath: string) =
+    let SaveSignedTransaction (trans: SignedTransaction<_>) (filePath: string) =
         let json = ExportSignedTransaction trans
         File.WriteAllText(filePath, json)
 
@@ -177,12 +177,13 @@ module Account =
 
         match fee with
         | :? EtherMinerFee as etherMinerFee -> Ether.Account.SaveUnsignedTransaction transProposal etherMinerFee filePath
+        | :? Bitcoin.MinerFee as btcMinerFee -> Bitcoin.Account.SaveUnsignedTransaction transProposal btcMinerFee filePath
         | _ -> failwith "fee type unknown"
 
-    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction =
+    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<_> =
         Marshalling.Deserialize json
 
-    let public ImportSignedTransactionFromJson (json: string): SignedTransaction =
+    let public ImportSignedTransactionFromJson (json: string): SignedTransaction<_> =
         Marshalling.Deserialize json
 
     let LoadSignedTransactionFromFile (filePath: string) =
