@@ -117,6 +117,7 @@
     <Compile Include="Bitcoin\StratumClient.fs" />
     <Compile Include="Bitcoin\ElectrumClient.fs" />
     <Compile Include="Bitcoin\UnitConversion.fs" />
+    <Compile Include="Bitcoin\TransactionTypes.fs" />
     <Compile Include="Bitcoin\BitcoinMinerFee.fs" />
     <Compile Include="Bitcoin\BitcoinAccount.fs" />
     <Compile Include="EtherMinerFee.fs" />
