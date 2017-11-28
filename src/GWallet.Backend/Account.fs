@@ -77,7 +77,12 @@ module Account =
             Ether.Account.EstimateFee currency :> IBlockchainFee
 
     let BroadcastTransaction (trans: SignedTransaction<_>) =
-        Ether.Account.BroadcastTransaction trans
+        match trans.TransactionInfo.Proposal.Currency with
+        | Currency.ETH | Currency.ETC ->
+            Ether.Account.BroadcastTransaction trans
+        | Currency.BTC ->
+            Bitcoin.Account.BroadcastTransaction trans
+        | _ -> failwith "fee type unknown"
 
     let SignTransaction (account: NormalAccount)
                         (transCount: BigInteger)

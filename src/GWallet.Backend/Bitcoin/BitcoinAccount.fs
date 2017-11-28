@@ -243,15 +243,23 @@ module internal Account =
         let rawTransaction = signedTransaction.ToHex()
         rawTransaction
 
+    let private BroadcastRawTransaction (rawTx: string) =
+        let electrumServer = ElectrumServer.PickRandom()
+        use electrumClient = new ElectrumClient(electrumServer)
+        let newTxId = electrumClient.BroadcastTransaction rawTx
+        newTxId
+
+    let BroadcastTransaction (transaction: SignedTransaction<_>) =
+        // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
+        // and show the info from the RawTx, using NBitcoin to extract it
+        BroadcastRawTransaction transaction.RawTransaction
+
     let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
                     (password: string)
                     (btcMinerFee: MinerFee)
                     =
         let finalTransaction = SignTransaction account destination amount btcMinerFee password
-        let electrumServer = ElectrumServer.PickRandom()
-        use electrumClient = new ElectrumClient(electrumServer)
-        let newTxId = electrumClient.BroadcastTransaction finalTransaction
-        newTxId
+        BroadcastRawTransaction finalTransaction
 
     // TODO: maybe move this func to Backend.Account module, or simply inline it (simple enough)
     let public ExportUnsignedTransactionToJson trans =
