@@ -19,6 +19,13 @@ type UnsignedTransaction<'T when 'T :> IBlockchainFee> =
         Fee: 'T;
         Cache: CachedNetworkData;
     }
+    member self.ToAbstract(): UnsignedTransaction<IBlockchainFee> =
+        {
+            Fee = self.Fee :> IBlockchainFee;
+            TransactionCount = self.TransactionCount;
+            Cache = self.Cache;
+            Proposal = self.Proposal;
+        }
 
 type SignedTransaction<'T when 'T :> IBlockchainFee> =
     {

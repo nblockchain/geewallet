@@ -164,10 +164,12 @@ module internal Account =
 
         { Inputs = transactionDraftWithoutMinerFee.Inputs; Outputs = newOutputs }
 
-    let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
-                    (password: string)
-                    (btcMinerFee: MinerFee)
-                    =
+    let private SignTransactionInternal (account: NormalAccount)
+                                        (destination: string)
+                                        (amount: TransferAmount)
+                                        (btcMinerFee: MinerFee)
+                                        (password: string) =
+
         let transactionDraft = btcMinerFee.DraftTransaction
         let minerFee = btcMinerFee :> IBlockchainFee
         let minerFeeInSatoshis = Convert.ToInt64(minerFee.Value * 100000000m)
@@ -225,9 +227,30 @@ module internal Account =
                               transSizeAfterSigning btcMinerFee.EstimatedTransactionSizeInBytes
                               (transSizeAfterSigning - btcMinerFee.EstimatedTransactionSizeInBytes)
                               finalTransaction.Inputs.Count)
+        finalTransaction
+
+    let SignTransaction (account: NormalAccount)
+                        (destination: string)
+                        (amount: TransferAmount)
+                        (btcMinerFee: MinerFee)
+                        (password: string) =
+        let signedTransaction = SignTransactionInternal
+                                    account
+                                    destination
+                                    amount
+                                    btcMinerFee
+                                    password
+        let rawTransaction = signedTransaction.ToHex()
+        rawTransaction
+
+    let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
+                    (password: string)
+                    (btcMinerFee: MinerFee)
+                    =
+        let finalTransaction = SignTransaction account destination amount btcMinerFee password
         let electrumServer = ElectrumServer.PickRandom()
         use electrumClient = new ElectrumClient(electrumServer)
-        let newTxId = electrumClient.BroadcastTransaction (finalTransaction.ToHex())
+        let newTxId = electrumClient.BroadcastTransaction finalTransaction
         newTxId
 
     // TODO: maybe move this func to Backend.Account module, or simply inline it (simple enough)

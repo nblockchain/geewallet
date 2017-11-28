@@ -95,6 +95,13 @@ module Account =
                   amount
                   etherMinerFee
                   password
+        | :? Bitcoin.MinerFee as btcMinerFee ->
+            Bitcoin.Account.SignTransaction
+                account
+                destination
+                amount
+                btcMinerFee
+                password
         | _ -> failwith "fee type unknown"
 
     let Archive (account: NormalAccount)
@@ -180,8 +187,21 @@ module Account =
         | :? Bitcoin.MinerFee as btcMinerFee -> Bitcoin.Account.SaveUnsignedTransaction transProposal btcMinerFee filePath
         | _ -> failwith "fee type unknown"
 
-    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<_> =
-        Marshalling.Deserialize json
+    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<IBlockchainFee> =
+
+        let transType = Marshalling.ExtractType json
+
+        match transType with
+        | _ when transType = typeof<UnsignedTransaction<Bitcoin.MinerFee>> ->
+            let deserializedBtcTransaction: UnsignedTransaction<Bitcoin.MinerFee> =
+                    Marshalling.Deserialize json
+            deserializedBtcTransaction.ToAbstract()
+        | _ when transType = typeof<UnsignedTransaction<EtherMinerFee>> ->
+            let deserializedBtcTransaction: UnsignedTransaction<EtherMinerFee> =
+                    Marshalling.Deserialize json
+            deserializedBtcTransaction.ToAbstract()
+        | unexpectedType ->
+            raise(new Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName))
 
     let public ImportSignedTransactionFromJson (json: string): SignedTransaction<_> =
         Marshalling.Deserialize json
@@ -191,7 +211,7 @@ module Account =
 
         ImportSignedTransactionFromJson signedTransInJson
 
-    let LoadUnsignedTransactionFromFile (filePath: string) =
+    let LoadUnsignedTransactionFromFile (filePath: string): UnsignedTransaction<IBlockchainFee> =
         let unsignedTransInJson = File.ReadAllText(filePath)
 
         ImportUnsignedTransactionFromJson unsignedTransInJson

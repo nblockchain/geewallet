@@ -52,7 +52,7 @@ module Presentation =
                               estimatedFeeInUsd
                          )
 
-    let ShowTransactionData trans =
+    let ShowTransactionData<'T when 'T:> IBlockchainFee> (trans: UnsignedTransaction<'T>) =
         let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Currency)
         let estimatedAmountInUsd: Option<string> =
             match maybeUsdPrice with

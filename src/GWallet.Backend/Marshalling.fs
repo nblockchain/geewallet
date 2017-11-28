@@ -20,10 +20,10 @@ type SerializableValue<'T>(value: 'T) =
 
     member val Value: 'T = value with get
 
-type DeserializableValue<'T>() =
+type DeserializableValueInfo() =
+
     let mutable version: string = null
     let mutable typeName: string = null
-    let mutable value: 'T = Unchecked.defaultof<'T>
 
     member this.Version
         with get() = version 
@@ -35,6 +35,11 @@ type DeserializableValue<'T>() =
         and set(valueToSet) =
             typeName <- valueToSet
 
+type DeserializableValue<'T>() =
+    inherit DeserializableValueInfo()
+
+    let mutable value: 'T = Unchecked.defaultof<'T>
+
     member this.Value
         with get() = value 
         and set(valueToSet) =
@@ -44,6 +49,10 @@ type DeserializableValue<'T>() =
 module Marshalling =
 
     let private currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+
+    let ExtractType(json: string): Type =
+        let fullTypeName = (JsonConvert.DeserializeObject<DeserializableValueInfo> json).TypeName
+        Type.GetType(fullTypeName)
 
     let Deserialize<'S,'T when 'S:> DeserializableValue<'T>>(json: string): 'T =
         if (json = null) then

@@ -66,7 +66,7 @@ module MarshallingData =
             Inputs = [ { RawTransaction = "xyzt..."; OutputIndex = 1 } ];
             Outputs = [ { ValueInSatoshis = int64 10000; DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5" } ];
         }
-    let private someBtcMinerFee = Bitcoin.MinerFee(10, 10.0m, SomeDate, someBtcTransactionDraft)
+    let private someBtcMinerFee = Bitcoin.MinerFee(10, 0.1m, SomeDate, someBtcTransactionDraft)
 
     let UnsignedBtcTransactionExample =
         {
@@ -88,8 +88,9 @@ module MarshallingData =
         "\"Fee\":{\"DraftTransaction\":{\"Inputs\":" +
         "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
         "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}," +
-        "\"EstimatedTransactionSizeInBytes\":10,\"EstimationTime\":" +
-        JsonConvert.SerializeObject (SomeDate) + "}," +
+        "\"EstimatedTransactionSizeInBytes\":10," +
+        "\"AmountPerKiloByteForFastTransaction\":0.1," +
+        "\"EstimationTime\":" + JsonConvert.SerializeObject (SomeDate) + "}," +
         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}}"
 
     let private someEtherTransInfo =
