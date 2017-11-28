@@ -32,3 +32,8 @@ type SignedTransaction<'T when 'T :> IBlockchainFee> =
         TransactionInfo: UnsignedTransaction<'T>;
         RawTransaction: string;
     }
+    member self.ToAbstract(): SignedTransaction<IBlockchainFee> =
+        {
+            TransactionInfo = self.TransactionInfo.ToAbstract();
+            RawTransaction = self.RawTransaction;
+        }

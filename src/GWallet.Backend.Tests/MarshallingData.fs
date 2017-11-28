@@ -93,6 +93,30 @@ module MarshallingData =
         "\"EstimationTime\":" + JsonConvert.SerializeObject (SomeDate) + "}," +
         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}}"
 
+    let SignedBtcTransactionExample =
+        {
+            TransactionInfo = UnsignedBtcTransactionExample;
+            RawTransaction = "ropkrpork4p4rkpo4kprok4rp";
+        }
+
+    let SignedBtcTransactionExampleInJson =
+        (sprintf "{\"Version\":\"%s\"," version) +
+        (sprintf "\"TypeName\":\"%s\",\"Value\":" (SignedBtcTransactionExample.GetType().FullName)) +
+        "{\"TransactionInfo\":{\"Proposal\":" +
+        "{\"Currency\":{\"Case\":\"BTC\"}," +
+        "\"OriginAddress\":\"16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR\"," +
+        "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
+        "\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}" +
+        ",\"TransactionCount\":69," +
+        "\"Fee\":{\"DraftTransaction\":{\"Inputs\":" +
+        "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
+        "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}," +
+        "\"EstimatedTransactionSizeInBytes\":10," +
+        "\"AmountPerKiloByteForFastTransaction\":0.1," +
+        "\"EstimationTime\":" + JsonConvert.SerializeObject (SomeDate) + "}," +
+        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}," +
+        "\"RawTransaction\":\"ropkrpork4p4rkpo4kprok4rp\"}}"
+
     let private someEtherTransInfo =
         {
             Proposal = someUnsignedEtherTransactionProposal;
@@ -114,7 +138,7 @@ module MarshallingData =
             TransactionInfo = someEtherTransInfo;
             RawTransaction = "doijfsoifjdosisdjfomirmjosmi";
         }
-    let SignedTransactionExampleInJson =
+    let SignedEtherTransactionExampleInJson =
         (sprintf "{\"Version\":\"%s\"," version) +
         (sprintf "\"TypeName\":\"%s\",\"Value\":" (SignedEtherTransactionExample.GetType().FullName)) +
         "{\"TransactionInfo\":{\"Proposal\":" +

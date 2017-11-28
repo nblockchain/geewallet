@@ -140,20 +140,51 @@ module Account =
                 Ether.Account.SendPayment account destination amount password etherMinerFee
             | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
 
-    let SignUnsignedTransaction account (unsignedTrans: UnsignedTransaction<_>) password =
+    let SignUnsignedTransaction (account)
+                                (unsignedTrans: UnsignedTransaction<IBlockchainFee>)
+                                password =
         let rawTransaction = SignTransaction account
                                  (BigInteger(unsignedTrans.TransactionCount))
                                  unsignedTrans.Proposal.DestinationAddress
                                  unsignedTrans.Proposal.Amount
                                  unsignedTrans.Fee
                                  password
+
         { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
 
     let public ExportSignedTransaction (trans: SignedTransaction<_>) =
         Marshalling.Serialize trans
 
     let SaveSignedTransaction (trans: SignedTransaction<_>) (filePath: string) =
-        let json = ExportSignedTransaction trans
+
+        let json =
+            match trans.TransactionInfo.Fee.GetType() with
+            | t when t = typeof<EtherMinerFee> ->
+                let unsignedEthTx = {
+                    Fee = box trans.TransactionInfo.Fee :?> EtherMinerFee;
+                    Proposal = trans.TransactionInfo.Proposal;
+                    Cache = trans.TransactionInfo.Cache;
+                    TransactionCount = trans.TransactionInfo.TransactionCount;
+                }
+                let signedEthTx = {
+                    TransactionInfo = unsignedEthTx;
+                    RawTransaction = trans.RawTransaction;
+                }
+                ExportSignedTransaction signedEthTx
+            | t when t = typeof<Bitcoin.MinerFee> ->
+                let unsignedBtcTx = {
+                    Fee = box trans.TransactionInfo.Fee :?> Bitcoin.MinerFee;
+                    Proposal = trans.TransactionInfo.Proposal;
+                    Cache = trans.TransactionInfo.Cache;
+                    TransactionCount = trans.TransactionInfo.TransactionCount;
+                }
+                let signedBtcTx = {
+                    TransactionInfo = unsignedBtcTx;
+                    RawTransaction = trans.RawTransaction;
+                }
+                ExportSignedTransaction signedBtcTx
+            | _ -> failwith "Unknown miner fee type"
+
         File.WriteAllText(filePath, json)
 
     let AddPublicWatcher currency (publicAddress: string) =
@@ -203,8 +234,20 @@ module Account =
         | unexpectedType ->
             raise(new Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName))
 
-    let public ImportSignedTransactionFromJson (json: string): SignedTransaction<_> =
-        Marshalling.Deserialize json
+    let public ImportSignedTransactionFromJson (json: string): SignedTransaction<IBlockchainFee> =
+        let transType = Marshalling.ExtractType json
+
+        match transType with
+        | _ when transType = typeof<SignedTransaction<Bitcoin.MinerFee>> ->
+            let deserializedBtcTransaction: SignedTransaction<Bitcoin.MinerFee> =
+                    Marshalling.Deserialize json
+            deserializedBtcTransaction.ToAbstract()
+        | _ when transType = typeof<SignedTransaction<EtherMinerFee>> ->
+            let deserializedBtcTransaction: SignedTransaction<EtherMinerFee> =
+                    Marshalling.Deserialize json
+            deserializedBtcTransaction.ToAbstract()
+        | unexpectedType ->
+            raise(new Exception(sprintf "Unknown signedTransaction subtype: %s" unexpectedType.FullName))
 
     let LoadSignedTransactionFromFile (filePath: string) =
         let signedTransInJson = File.ReadAllText(filePath)
