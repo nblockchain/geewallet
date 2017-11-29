@@ -20,30 +20,19 @@ type SerializableValue<'T>(value: 'T) =
 
     member val Value: 'T = value with get
 
-type DeserializableValueInfo() =
-
-    let mutable version: string = null
-    let mutable typeName: string = null
+type DeserializableValueInfo(version: string, typeName: string) =
 
     member this.Version
         with get() = version 
-        and set(valueToSet) =
-            version <- valueToSet
 
     member this.TypeName
         with get() = typeName 
-        and set(valueToSet) =
-            typeName <- valueToSet
 
-type DeserializableValue<'T>() =
-    inherit DeserializableValueInfo()
-
-    let mutable value: 'T = Unchecked.defaultof<'T>
+type DeserializableValue<'T>(version, typeName, value: 'T) =
+    inherit DeserializableValueInfo(version, typeName)
 
     member this.Value
-        with get() = value 
-        and set(valueToSet) =
-            value <- valueToSet
+        with get() = value
 
 
 module Marshalling =
