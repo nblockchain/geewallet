@@ -56,6 +56,7 @@ module JsonRpcSharp =
 
         member self.Request (request: string): string =
             if not (tcpClient.Connected) then
+                // FIXME: define a timeout below, possibly equal to DEFAULT_TIMEOUT_FOR_FIRST_DATA_AVAILABLE_SIGNAL_TO_HAPPEN
                 tcpClient.Connect(host, port)
             let stream = tcpClient.GetStream()
             let bytes = Encoding.UTF8.GetBytes(request + "\n");
