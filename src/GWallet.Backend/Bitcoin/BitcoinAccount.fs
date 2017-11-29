@@ -128,7 +128,8 @@ module internal Account =
             + (numberOfInputs - 1)
         let btcPerKiloByteForFastTrans = electrumClient.EstimateFee 2 //querying for 1 will always return -1 surprisingly...
 
-        MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, transactionDraftWithoutMinerFee)
+        let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now)
+        { TransactionDraft = transactionDraftWithoutMinerFee; Fee = minerFee }
 
     let private SubstractMinerFeeToTransactionDraft (transactionDraftWithoutMinerFee: TransactionDraft)
                                                     (amountToBeSentInSatoshisNotConsideringChange)
@@ -165,14 +166,15 @@ module internal Account =
         { Inputs = transactionDraftWithoutMinerFee.Inputs; Outputs = newOutputs }
 
     let private SignTransactionInternal (account: NormalAccount)
+                                        (txMetadata: TransactionMetadata)
                                         (destination: string)
                                         (amount: TransferAmount)
-                                        (btcMinerFee: MinerFee)
                                         (password: string) =
 
-        let transactionDraft = btcMinerFee.DraftTransaction
-        let minerFee = btcMinerFee :> IBlockchainFee
-        let minerFeeInSatoshis = Convert.ToInt64(minerFee.Value * 100000000m)
+        let transactionDraft = txMetadata.TransactionDraft
+        let btcMinerFee = txMetadata.Fee
+        let minerFee = txMetadata :> IBlockchainFeeInfo
+        let minerFeeInSatoshis = Convert.ToInt64(minerFee.FeeValue * 100000000m)
         let amountInSatoshis = Convert.ToInt64(amount.ValueToSend * 100000000m)
 
         if (transactionDraft.Outputs.Length < 1 || transactionDraft.Outputs.Length > 2) then
@@ -230,15 +232,15 @@ module internal Account =
         finalTransaction
 
     let SignTransaction (account: NormalAccount)
+                        (txMetadata: TransactionMetadata)
                         (destination: string)
                         (amount: TransferAmount)
-                        (btcMinerFee: MinerFee)
                         (password: string) =
         let signedTransaction = SignTransactionInternal
                                     account
+                                    txMetadata
                                     destination
                                     amount
-                                    btcMinerFee
                                     password
         let rawTransaction = signedTransaction.ToHex()
         rawTransaction
@@ -254,26 +256,29 @@ module internal Account =
         // and show the info from the RawTx, using NBitcoin to extract it
         BroadcastRawTransaction transaction.RawTransaction
 
-    let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
+    let SendPayment (account: NormalAccount)
+                    (txMetadata: TransactionMetadata)
+                    (destination: string)
+                    (amount: TransferAmount)
                     (password: string)
-                    (btcMinerFee: MinerFee)
                     =
-        let finalTransaction = SignTransaction account destination amount btcMinerFee password
+        let finalTransaction = SignTransaction account txMetadata destination amount password
         BroadcastRawTransaction finalTransaction
 
     // TODO: maybe move this func to Backend.Account module, or simply inline it (simple enough)
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
 
-    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: MinerFee) (filePath: string) =
+    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
+                                (txMetadata: TransactionMetadata)
+                                (filePath: string)
+                                =
 
-        let dummyCount = int64 0
         let unsignedTransaction =
             {
                 Proposal = transProposal;
-                TransactionCount = dummyCount;
                 Cache = Caching.GetLastCachedData();
-                Fee = fee;
+                Metadata = txMetadata;
             }
         let json = ExportUnsignedTransactionToJson unsignedTransaction
         File.WriteAllText(filePath, json)

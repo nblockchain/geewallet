@@ -72,8 +72,13 @@ module internal Account =
         let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
         MinerFee(gasPrice64, DateTime.Now, currency)
 
-    let private GetTransactionCount (currency: Currency, publicAddress: string) =
-        Ether.Server.GetTransactionCount currency publicAddress
+    let GetTransactionCount (currency: Currency) (publicAddress: string) =
+        let result = (Ether.Server.GetTransactionCount currency publicAddress).Value
+        if (result > BigInteger(Int64.MaxValue)) then
+            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
+                          (result.ToString()))
+        let int64result:Int64 = BigInteger.op_Explicit result
+        int64result
 
     let private BroadcastRawTransaction (currency: Currency) trans =
         let insufficientFundsMsg = "Insufficient funds"
@@ -101,19 +106,18 @@ module internal Account =
         EthECKey(privKeyInBytes, true)
 
     let private SignTransactionWithPrivateKey (account: IAccount)
-                                              (transCount: BigInteger)
+                                              (txMetadata: TransactionMetadata)
                                               (destination: string)
                                               (amount: TransferAmount)
-                                              (minerFee: MinerFee)
                                               (privateKey: EthECKey) =
 
         let currency = account.Currency
-        if (minerFee.Currency <> currency) then
+        if (txMetadata.Fee.Currency <> currency) then
             invalidArg "account" "currency of account param must be equal to currency of minerFee param"
 
         let amountToSendConsideringMinerFee =
             if (amount.IdealValueRemainingAfterSending = 0.0m) then
-                amount.ValueToSend - (minerFee:>IBlockchainFee).Value
+                amount.ValueToSend - (txMetadata :> IBlockchainFeeInfo).FeeValue
             else
                 amount.ValueToSend
         let amountInWei = UnitConversion.Convert.ToWei(amountToSendConsideringMinerFee,
@@ -124,13 +128,13 @@ module internal Account =
                         privKeyInBytes,
                         destination,
                         amountInWei,
-                        transCount,
+                        BigInteger(txMetadata.TransactionCount),
 
                         // we use the SignTransaction() overload that has these 2 arguments because if we don't, we depend on
                         // how well the defaults are of Geth node we're connected to, e.g. with the myEtherWallet server I
                         // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
                         // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
-                        BigInteger(minerFee.GasPriceInWei),
+                        BigInteger(txMetadata.Fee.GasPriceInWei),
                         MinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
         if not (signer.VerifyTransaction(trans)) then
@@ -138,37 +142,36 @@ module internal Account =
         trans
 
     let SignTransaction (account: NormalAccount)
-                        (transCount: BigInteger)
+                        (txMetadata: TransactionMetadata)
                         (destination: string)
                         (amount: TransferAmount)
-                        (minerFee: MinerFee)
                         (password: string) =
 
         let privateKey = GetPrivateKey account password
-        SignTransactionWithPrivateKey account transCount destination amount minerFee privateKey
+        SignTransactionWithPrivateKey account txMetadata destination amount privateKey
 
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
                            (destination: IAccount)
-                           (minerFee: MinerFee) =
+                           (txMetadata: TransactionMetadata) =
         let accountFrom = (account:>IAccount)
-        let transCountHexBigInt = GetTransactionCount (accountFrom.Currency, accountFrom.PublicAddress)
-        let transCount = transCountHexBigInt.Value
         let amount = TransferAmount(balance, 0.0m)
         let signedTrans = SignTransactionWithPrivateKey
-                              account transCount destination.PublicAddress amount minerFee account.PrivateKey
+                              account txMetadata destination.PublicAddress amount account.PrivateKey
         BroadcastRawTransaction accountFrom.Currency signedTrans
 
-    let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
-                    (password: string) (minerFee: MinerFee) =
+    let SendPayment (account: NormalAccount)
+                    (txMetadata: TransactionMetadata)
+                    (destination: string)
+                    (amount: TransferAmount)
+                    (password: string) =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
 
         let currency = baseAccount.Currency
 
-        let transCount = GetTransactionCount(currency, (account:>IAccount).PublicAddress)
-        let trans = SignTransaction account transCount.Value destination amount minerFee password
+        let trans = SignTransaction account txMetadata destination amount password
 
         BroadcastRawTransaction currency trans
 
@@ -198,19 +201,15 @@ module internal Account =
         Marshalling.Serialize trans
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
-                                (fee: MinerFee) (filePath: string) =
-
-        let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
-        if (transCount.Value > BigInteger(Int64.MaxValue)) then
-            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
-                          (transCount.Value.ToString()))
+                                (txMetadata: TransactionMetadata)
+                                (filePath: string)
+                                =
 
         let unsignedTransaction =
             {
                 Proposal = transProposal;
-                TransactionCount = BigInteger.op_Explicit transCount.Value;
                 Cache = Caching.GetLastCachedData();
-                Fee = fee;
+                Metadata = txMetadata;
             }
         let json = ExportUnsignedTransactionToJson unsignedTransaction
         File.WriteAllText(filePath, json)

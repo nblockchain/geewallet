@@ -31,14 +31,14 @@ module Deserialization =
 
     [<Test>]
     let ``unsigned btc transaction import``() =
-        let deserializedUnsignedTrans: UnsignedTransaction<IBlockchainFee> =
+        let deserializedUnsignedTrans: UnsignedTransaction<IBlockchainFeeInfo> =
             Account.ImportUnsignedTransactionFromJson
                 MarshallingData.UnsignedBtcTransactionExampleInJson
 
         Assert.That(deserializedUnsignedTrans, Is.Not.Null)
         Assert.That(deserializedUnsignedTrans.Proposal, Is.Not.Null)
         Assert.That(deserializedUnsignedTrans.Cache, Is.Not.Null)
-        Assert.That(deserializedUnsignedTrans.Fee, Is.Not.Null)
+        Assert.That(deserializedUnsignedTrans.Metadata, Is.Not.Null)
 
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.ValueToSend, Is.EqualTo(10.01m))
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.IdealValueRemainingAfterSending,
@@ -49,15 +49,13 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Proposal.OriginAddress,
                     Is.EqualTo("16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR"))
 
-        Assert.That(deserializedUnsignedTrans.TransactionCount, Is.EqualTo(69))
-
-        let btcMinerFee = deserializedUnsignedTrans.Fee :?> Bitcoin.MinerFee
-        Assert.That(btcMinerFee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
-        Assert.That(btcMinerFee.AmountPerKiloByteForFastTransaction, Is.EqualTo(0.1m))
-        Assert.That(btcMinerFee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
-        Assert.That(btcMinerFee.DraftTransaction.Inputs.Length, Is.EqualTo(1))
-        Assert.That(btcMinerFee.DraftTransaction.Outputs.Length, Is.EqualTo(1))
-        Assert.That(deserializedUnsignedTrans.Fee.EstimationTime,
+        let btcTxMetadata = deserializedUnsignedTrans.Metadata :?> Bitcoin.TransactionMetadata
+        Assert.That(btcTxMetadata.Fee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
+        Assert.That(btcTxMetadata.Fee.AmountPerKiloByteForFastTransaction, Is.EqualTo(0.1m))
+        Assert.That(btcTxMetadata.Fee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
+        Assert.That(btcTxMetadata.TransactionDraft.Inputs.Length, Is.EqualTo(1))
+        Assert.That(btcTxMetadata.TransactionDraft.Outputs.Length, Is.EqualTo(1))
+        Assert.That(deserializedUnsignedTrans.Metadata.FeeEstimationTime,
                     Is.EqualTo(MarshallingData.SomeDate))
 
         Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo(0))
@@ -65,14 +63,14 @@ module Deserialization =
 
     [<Test>]
     let ``unsigned ether transaction import``() =
-        let deserializedUnsignedTrans: UnsignedTransaction<IBlockchainFee> =
+        let deserializedUnsignedTrans: UnsignedTransaction<IBlockchainFeeInfo> =
             Account.ImportUnsignedTransactionFromJson
                 MarshallingData.UnsignedEtherTransactionExampleInJson
 
         Assert.That(deserializedUnsignedTrans, Is.Not.Null)
         Assert.That(deserializedUnsignedTrans.Proposal, Is.Not.Null)
         Assert.That(deserializedUnsignedTrans.Cache, Is.Not.Null)
-        Assert.That(deserializedUnsignedTrans.Fee, Is.Not.Null)
+        Assert.That(deserializedUnsignedTrans.Metadata, Is.Not.Null)
 
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.ValueToSend, Is.EqualTo(10.01m))
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.IdealValueRemainingAfterSending,
@@ -83,12 +81,11 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Proposal.OriginAddress,
                     Is.EqualTo("0xf3j4m0rjx94sushh03j"))
 
-        Assert.That(deserializedUnsignedTrans.TransactionCount, Is.EqualTo(69))
-
-        let etherMinerFee = deserializedUnsignedTrans.Fee :?> Ether.MinerFee
-        Assert.That(etherMinerFee.Currency, Is.EqualTo(Currency.ETC))
-        Assert.That(etherMinerFee.GasPriceInWei, Is.EqualTo(6969))
-        Assert.That(deserializedUnsignedTrans.Fee.EstimationTime,
+        let etherTxMetadata = deserializedUnsignedTrans.Metadata :?> Ether.TransactionMetadata
+        Assert.That(etherTxMetadata.TransactionCount, Is.EqualTo(69))
+        Assert.That(etherTxMetadata.Fee.Currency, Is.EqualTo(Currency.ETC))
+        Assert.That(etherTxMetadata.Fee.GasPriceInWei, Is.EqualTo(6969))
+        Assert.That(deserializedUnsignedTrans.Metadata.FeeEstimationTime,
                     Is.EqualTo(MarshallingData.SomeDate))
 
         Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo(0))
@@ -97,7 +94,7 @@ module Deserialization =
     [<Test>]
     let ``signed btc transaction import``() =
 
-        let deserializedSignedTrans: SignedTransaction<IBlockchainFee> =
+        let deserializedSignedTrans: SignedTransaction<IBlockchainFeeInfo> =
             Account.ImportSignedTransactionFromJson
                 MarshallingData.SignedBtcTransactionExampleInJson
 
@@ -109,7 +106,7 @@ module Deserialization =
         Assert.That(deserializedSignedTrans.TransactionInfo, Is.Not.Null)
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal, Is.Not.Null)
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache, Is.Not.Null)
-        Assert.That(deserializedSignedTrans.TransactionInfo.Fee, Is.Not.Null)
+        Assert.That(deserializedSignedTrans.TransactionInfo.Metadata, Is.Not.Null)
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.ValueToSend,
                     Is.EqualTo(10.01m))
@@ -122,15 +119,12 @@ module Deserialization =
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginAddress,
                     Is.EqualTo("16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR"))
 
-        Assert.That(deserializedSignedTrans.TransactionInfo.TransactionCount, Is.EqualTo(69))
-
-        let btcMinerFee = deserializedSignedTrans.TransactionInfo.Fee :?> Bitcoin.MinerFee
-        Assert.That(btcMinerFee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
-        Assert.That(btcMinerFee.AmountPerKiloByteForFastTransaction, Is.EqualTo(0.1m))
-        Assert.That(btcMinerFee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
-        Assert.That(btcMinerFee.DraftTransaction.Inputs.Length, Is.EqualTo(1))
-        Assert.That(btcMinerFee.DraftTransaction.Outputs.Length, Is.EqualTo(1))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Fee.EstimationTime,
+        let btcTxMetadata = deserializedSignedTrans.TransactionInfo.Metadata :?> Bitcoin.TransactionMetadata
+        Assert.That(btcTxMetadata.Fee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
+        Assert.That(btcTxMetadata.Fee.AmountPerKiloByteForFastTransaction, Is.EqualTo(0.1m))
+        Assert.That(btcTxMetadata.TransactionDraft.Inputs.Length, Is.EqualTo(1))
+        Assert.That(btcTxMetadata.TransactionDraft.Outputs.Length, Is.EqualTo(1))
+        Assert.That(deserializedSignedTrans.TransactionInfo.Metadata.FeeEstimationTime,
                     Is.EqualTo(MarshallingData.SomeDate))
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.Balances.Count,
@@ -141,7 +135,7 @@ module Deserialization =
     [<Test>]
     let ``signed ether transaction import``() =
 
-        let deserializedSignedTrans: SignedTransaction<IBlockchainFee> =
+        let deserializedSignedTrans: SignedTransaction<IBlockchainFeeInfo> =
             Account.ImportSignedTransactionFromJson
                 MarshallingData.SignedEtherTransactionExampleInJson
 
@@ -153,7 +147,7 @@ module Deserialization =
         Assert.That(deserializedSignedTrans.TransactionInfo, Is.Not.Null)
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal, Is.Not.Null)
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache, Is.Not.Null)
-        Assert.That(deserializedSignedTrans.TransactionInfo.Fee, Is.Not.Null)
+        Assert.That(deserializedSignedTrans.TransactionInfo.Metadata, Is.Not.Null)
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.ValueToSend,
                     Is.EqualTo(10.01m))
@@ -166,14 +160,13 @@ module Deserialization =
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginAddress,
                     Is.EqualTo("0xf3j4m0rjx94sushh03j"))
 
-        Assert.That(deserializedSignedTrans.TransactionInfo.TransactionCount, Is.EqualTo(69))
-
-        let etherMinerFee = deserializedSignedTrans.TransactionInfo.Fee :?> Ether.MinerFee
-        Assert.That(etherMinerFee.Currency,
+        let etherTxMetadata = deserializedSignedTrans.TransactionInfo.Metadata :?> Ether.TransactionMetadata
+        Assert.That(etherTxMetadata.TransactionCount, Is.EqualTo(69))
+        Assert.That(etherTxMetadata.Fee.Currency,
                     Is.EqualTo(Currency.ETC))
-        Assert.That(etherMinerFee.GasPriceInWei,
+        Assert.That(etherTxMetadata.Fee.GasPriceInWei,
                     Is.EqualTo(6969))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Fee.EstimationTime,
+        Assert.That(deserializedSignedTrans.TransactionInfo.Metadata.FeeEstimationTime,
                     Is.EqualTo(MarshallingData.SomeDate))
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.Balances.Count,

@@ -4,23 +4,18 @@ open System
 
 open GWallet.Backend
 
-type MinerFee(estimatedTransactionSizeInBytes: int, amountPerKiloByteForFastTransaction: decimal,
-              estimationTime: DateTime, draftTransaction: TransactionDraft) =
+type MinerFee(estimatedTransactionSizeInBytes: int,
+              amountPerKiloByteForFastTransaction: decimal,
+              estimationTime: DateTime) =
 
-    member val DraftTransaction = draftTransaction with get
     member val EstimatedTransactionSizeInBytes = estimatedTransactionSizeInBytes with get
     member val AmountPerKiloByteForFastTransaction = amountPerKiloByteForFastTransaction with get
 
-    // FIXME: how to not repeat properties but still have them serialized
-    // as part of the public interface?? :(
     member val EstimationTime = estimationTime with get
 
-    interface IBlockchainFee with
-        member val EstimationTime = estimationTime with get
-
-        member val Value =
-            let satPerByteForFastTrans = amountPerKiloByteForFastTransaction * 100000000m / 1024m
-            let totalFeeForThisTransInSatoshis = satPerByteForFastTrans * decimal estimatedTransactionSizeInBytes
-            let totalFeeInSatoshisRemovingDecimals = Convert.ToInt64 totalFeeForThisTransInSatoshis
-            Convert.ToDecimal(totalFeeInSatoshisRemovingDecimals) / 100000000m with get
+    member this.CalculateAbsoluteValue() =
+        let satPerByteForFastTrans = amountPerKiloByteForFastTransaction * 100000000m / 1024m
+        let totalFeeForThisTransInSatoshis = satPerByteForFastTrans * decimal estimatedTransactionSizeInBytes
+        let totalFeeInSatoshisRemovingDecimals = Convert.ToInt64 totalFeeForThisTransInSatoshis
+        Convert.ToDecimal(totalFeeInSatoshisRemovingDecimals) / 100000000m
 

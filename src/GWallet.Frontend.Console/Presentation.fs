@@ -34,25 +34,25 @@ module Presentation =
 
     let internal ExchangeRateUnreachableMsg = " (USD exchange rate unreachable... offline?)"
 
-    let ShowFee currency (estimatedFee: IBlockchainFee) =
+    let ShowFee currency (estimatedFee: IBlockchainFeeInfo) =
         let estimatedFeeInUsd =
             match FiatValueEstimation.UsdValue(currency) with
             | Fresh(usdValue) ->
                 sprintf "(~%s USD)"
-                    (usdValue * estimatedFee.Value |> ShowDecimalForHumans CurrencyType.Fiat)
+                    (usdValue * estimatedFee.FeeValue |> ShowDecimalForHumans CurrencyType.Fiat)
             | NotFresh(Cached(usdValue,time)) ->
                 sprintf "(~%s USD [last known rate at %s])"
-                    (usdValue * estimatedFee.Value |> ShowDecimalForHumans CurrencyType.Fiat)
+                    (usdValue * estimatedFee.FeeValue |> ShowDecimalForHumans CurrencyType.Fiat)
                     (time |> ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
         Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s %s %s"
                               Environment.NewLine
-                              (estimatedFee.Value |> ShowDecimalForHumans CurrencyType.Crypto)
+                              (estimatedFee.FeeValue |> ShowDecimalForHumans CurrencyType.Crypto)
                               (currency.ToString())
                               estimatedFeeInUsd
                          )
 
-    let ShowTransactionData<'T when 'T:> IBlockchainFee> (trans: UnsignedTransaction<'T>) =
+    let ShowTransactionData<'T when 'T:> IBlockchainFeeInfo> (trans: UnsignedTransaction<'T>) =
         let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Currency)
         let estimatedAmountInUsd: Option<string> =
             match maybeUsdPrice with
@@ -75,4 +75,4 @@ module Presentation =
         if (estimatedAmountInUsd.IsSome) then
             Console.Write("  " + estimatedAmountInUsd.Value)
         Console.WriteLine()
-        ShowFee trans.Proposal.Currency trans.Fee
+        ShowFee trans.Proposal.Currency trans.Metadata

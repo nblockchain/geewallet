@@ -5,10 +5,10 @@ open System.Text.RegularExpressions
 open GWallet.Backend
 open GWallet.Frontend.Console
 
-let rec TrySendAmount account destination amount fee =
+let rec TrySendAmount account transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
     try
-        let txId = Account.SendPayment account destination amount password fee
+        let txId = Account.SendPayment account transactionMetadata destination amount password
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
         UserInteraction.PressAnyKeyToContinue ()
     with
@@ -20,7 +20,7 @@ let rec TrySendAmount account destination amount fee =
         UserInteraction.PressAnyKeyToContinue()
     | :? InvalidPassword ->
         Presentation.Error "Invalid password, try again."
-        TrySendAmount account destination amount fee
+        TrySendAmount account transactionMetadata destination amount
 
 let rec TrySign account unsignedTrans =
     let password = UserInteraction.AskPassword false
@@ -100,7 +100,7 @@ let SignOffPayment() =
 
 let SendPaymentOfSpecificAmount (account: IAccount)
                                 (amount: TransferAmount)
-                                (fee: IBlockchainFee)
+                                (transactionMetadata: IBlockchainFeeInfo)
                                 (destination: string) =
     match account with
     | :? ReadOnlyAccount as readOnlyAccount ->
@@ -113,11 +113,11 @@ let SendPaymentOfSpecificAmount (account: IAccount)
             Amount = amount;
             DestinationAddress = destination;
         }
-        Account.SaveUnsignedTransaction proposal fee filePath
+        Account.SaveUnsignedTransaction proposal transactionMetadata filePath
         Console.WriteLine("Transaction saved. Now copy it to the device with the private key.")
         UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
-        TrySendAmount normalAccount destination amount fee
+        TrySendAmount normalAccount transactionMetadata destination amount
     | _ ->
         failwith ("Account type not recognized: " + account.GetType().FullName)
 
@@ -234,8 +234,8 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
         let maybeFee = UserInteraction.AskFee archivedAccount balance account.PublicAddress
         match maybeFee with
         | None -> ()
-        | Some(fee) ->
-            let txId = Account.SweepArchivedFunds archivedAccount balance account fee
+        | Some(feeInfo) ->
+            let txId = Account.SweepArchivedFunds archivedAccount balance account feeInfo
             Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
             UserInteraction.PressAnyKeyToContinue ()
 

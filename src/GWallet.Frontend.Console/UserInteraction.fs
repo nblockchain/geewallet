@@ -415,12 +415,12 @@ module UserInteraction =
                     | Some(cryptoAmount) ->
                         Some(TransferAmount(cryptoAmount, balance-cryptoAmount))
 
-    let AskFee account amount destination: Option<IBlockchainFee> =
-        let estimatedFee = Account.EstimateFee account amount destination
-        Presentation.ShowFee account.Currency estimatedFee
+    let AskFee account amount destination: Option<IBlockchainFeeInfo> =
+        let txMetadataWithFeeEstimation = Account.EstimateFee account amount destination
+        Presentation.ShowFee account.Currency txMetadataWithFeeEstimation
         let accept = AskYesNo "Do you accept?"
         if accept then
-            Some(estimatedFee)
+            Some(txMetadataWithFeeEstimation)
         else
             None
 

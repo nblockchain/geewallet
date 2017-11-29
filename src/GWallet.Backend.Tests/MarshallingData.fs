@@ -7,6 +7,7 @@ open Newtonsoft.Json
 
 open GWallet.Backend
 open GWallet.Backend.Bitcoin
+open GWallet.Backend.Ether
 
 module MarshallingData =
     let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
@@ -66,14 +67,17 @@ module MarshallingData =
             Inputs = [ { RawTransaction = "xyzt..."; OutputIndex = 1 } ];
             Outputs = [ { ValueInSatoshis = int64 10000; DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5" } ];
         }
-    let private someBtcMinerFee = Bitcoin.MinerFee(10, 0.1m, SomeDate, someBtcTransactionDraft)
-
+    let private someBtcMinerFee = Bitcoin.MinerFee(10, 0.1m, SomeDate)
+    let private someBtcTxMetadata =
+        {
+            TransactionDraft = someBtcTransactionDraft;
+            Fee = someBtcMinerFee;
+        }
     let UnsignedBtcTransactionExample =
         {
             Proposal = someUnsignedBtcTransactionProposal;
-            TransactionCount = int64 69;
             Cache = EmptyCachingDataExample;
-            Fee = someBtcMinerFee;
+            Metadata = someBtcTxMetadata;
         }
 
     let UnsignedBtcTransactionExampleInJson =
@@ -83,14 +87,14 @@ module MarshallingData =
         "{\"Currency\":{\"Case\":\"BTC\"}," +
         "\"OriginAddress\":\"16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR\"," +
         "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
-        "\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}" +
-        ",\"TransactionCount\":69," +
-        "\"Fee\":{\"DraftTransaction\":{\"Inputs\":" +
-        "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
-        "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}," +
-        "\"EstimatedTransactionSizeInBytes\":10," +
+        "\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}," +
+        "\"Metadata\":{\"Fee\":" +
+        "{\"EstimatedTransactionSizeInBytes\":10," +
         "\"AmountPerKiloByteForFastTransaction\":0.1," +
         "\"EstimationTime\":" + JsonConvert.SerializeObject (SomeDate) + "}," +
+        "\"TransactionDraft\":{\"Inputs\":" +
+        "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
+        "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}}"
 
     let SignedBtcTransactionExample =
@@ -106,36 +110,37 @@ module MarshallingData =
         "{\"Currency\":{\"Case\":\"BTC\"}," +
         "\"OriginAddress\":\"16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR\"," +
         "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
-        "\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}" +
-        ",\"TransactionCount\":69," +
-        "\"Fee\":{\"DraftTransaction\":{\"Inputs\":" +
-        "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
-        "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}," +
+        "\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}," +
+        "\"Metadata\":{\"Fee\":{" +
         "\"EstimatedTransactionSizeInBytes\":10," +
         "\"AmountPerKiloByteForFastTransaction\":0.1," +
         "\"EstimationTime\":" + JsonConvert.SerializeObject (SomeDate) + "}," +
+        "\"TransactionDraft\":{\"Inputs\":" +
+        "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
+        "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}," +
         "\"RawTransaction\":\"ropkrpork4p4rkpo4kprok4rp\"}}"
 
-    let private someEtherTransInfo =
+    let private someEtherTxMetadata =
         {
-            Proposal = someUnsignedEtherTransactionProposal;
-            TransactionCount = int64 69;
-            Cache = SofisticatedCachindDataExample;
             Fee = someEtherMinerFee;
+            TransactionCount = int64 69;
         }
-
     let UnsignedEtherTransactionExample =
         {
             Proposal = someUnsignedEtherTransactionProposal;
-            TransactionCount = int64 69;
             Cache = EmptyCachingDataExample;
-            Fee = someEtherMinerFee;
+            Metadata = someEtherTxMetadata;
         }
-
+    let someEtherTransactionInfo =
+        {
+            Proposal = someUnsignedEtherTransactionProposal;
+            Cache = SofisticatedCachindDataExample;
+            Metadata = someEtherTxMetadata;
+        }
     let SignedEtherTransactionExample =
         {
-            TransactionInfo = someEtherTransInfo;
+            TransactionInfo = someEtherTransactionInfo;
             RawTransaction = "doijfsoifjdosisdjfomirmjosmi";
         }
     let SignedEtherTransactionExampleInJson =
@@ -146,12 +151,13 @@ module MarshallingData =
         "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
         "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
         "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
-        ",\"TransactionCount\":69," +
+        ",\"Metadata\":{" +
         "\"Fee\":{" +
-        "\"GasPriceInWei\":6969,"+
+        "\"GasPriceInWei\":6969," +
         "\"Currency\":{\"Case\":\"ETC\"}," +
         "\"EstimationTime\":" +
         JsonConvert.SerializeObject (SomeDate) + "}," +
+        "\"TransactionCount\":69}," +
         "\"Cache\":" + innerCachingDataForSofisticatedUseCase + "}," +
         "\"RawTransaction\":\"doijfsoifjdosisdjfomirmjosmi\"}}"
 
@@ -163,10 +169,11 @@ module MarshallingData =
         "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
         "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
         "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
-        ",\"TransactionCount\":69," +
+        ",\"Metadata\":{" +
         "\"Fee\":{" +
         "\"GasPriceInWei\":6969," +
         "\"Currency\":{\"Case\":\"ETC\"}," +
         "\"EstimationTime\":" +
         JsonConvert.SerializeObject(SomeDate) + "}," +
+        "\"TransactionCount\":69}," +
         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}}"

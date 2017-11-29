@@ -12,27 +12,25 @@ type UnsignedTransactionProposal =
 
 // NOTE: I wanted to mark this type below `internal`, however that breaks JSON serialization
 //       in two possible ways: 1. silently (just returning {}), 2. with an exception
-type UnsignedTransaction<'T when 'T :> IBlockchainFee> =
+type UnsignedTransaction<'T when 'T:> IBlockchainFeeInfo> =
     {
         Proposal: UnsignedTransactionProposal;
-        TransactionCount: Int64;
-        Fee: 'T;
+        Metadata: 'T;
         Cache: CachedNetworkData;
     }
-    member self.ToAbstract(): UnsignedTransaction<IBlockchainFee> =
+    member self.ToAbstract(): UnsignedTransaction<IBlockchainFeeInfo> =
         {
-            Fee = self.Fee :> IBlockchainFee;
-            TransactionCount = self.TransactionCount;
+            Metadata = self.Metadata :> IBlockchainFeeInfo;
             Cache = self.Cache;
             Proposal = self.Proposal;
         }
 
-type SignedTransaction<'T when 'T :> IBlockchainFee> =
+type SignedTransaction<'T when 'T:> IBlockchainFeeInfo> =
     {
         TransactionInfo: UnsignedTransaction<'T>;
         RawTransaction: string;
     }
-    member self.ToAbstract(): SignedTransaction<IBlockchainFee> =
+    member self.ToAbstract(): SignedTransaction<IBlockchainFeeInfo> =
         {
             TransactionInfo = self.TransactionInfo.ToAbstract();
             RawTransaction = self.RawTransaction;

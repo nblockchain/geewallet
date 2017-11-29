@@ -68,13 +68,15 @@ module Account =
         ()
 
 
-    let EstimateFee account amount destination: IBlockchainFee =
+    let EstimateFee account amount destination: IBlockchainFeeInfo =
         let currency = (account:>IAccount).Currency
         match currency with
         | Currency.BTC ->
-            Bitcoin.Account.EstimateFee account amount destination :> IBlockchainFee
+            Bitcoin.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
         | Currency.ETH | Currency.ETC ->
-            Ether.Account.EstimateFee currency :> IBlockchainFee
+            let ethMinerFee = Ether.Account.EstimateFee currency
+            let txCount = Ether.Account.GetTransactionCount account.Currency account.PublicAddress
+            { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount } :> IBlockchainFeeInfo
 
     let BroadcastTransaction (trans: SignedTransaction<_>) =
         match trans.TransactionInfo.Proposal.Currency with
@@ -85,27 +87,25 @@ module Account =
         | _ -> failwith "fee type unknown"
 
     let SignTransaction (account: NormalAccount)
-                        (transCount: BigInteger)
                         (destination: string)
                         (amount: TransferAmount)
-                        (minerFee: IBlockchainFee)
+                        (transactionMetadata: IBlockchainFeeInfo)
                         (password: string) =
 
-        match minerFee with
-        | :? Ether.MinerFee as etherMinerFee ->
+        match transactionMetadata with
+        | :? Ether.TransactionMetadata as etherTxMetada ->
             Ether.Account.SignTransaction
                   account
-                  transCount
+                  etherTxMetada
                   destination
                   amount
-                  etherMinerFee
                   password
-        | :? Bitcoin.MinerFee as btcMinerFee ->
+        | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
             Bitcoin.Account.SignTransaction
                 account
+                btcTxMetadata
                 destination
                 amount
-                btcMinerFee
                 password
         | _ -> failwith "fee type unknown"
 
@@ -119,14 +119,18 @@ module Account =
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
                            (destination: IAccount)
-                           (fee: IBlockchainFee) =
-        match fee with
-        | :? Ether.MinerFee as etherMinerFee ->
-            Ether.Account.SweepArchivedFunds account balance destination etherMinerFee
+                           (txMetadata: IBlockchainFeeInfo) =
+        match txMetadata with
+        | :? Ether.TransactionMetadata as etherTxMetadata ->
+            Ether.Account.SweepArchivedFunds account balance destination etherTxMetadata
         | _ -> failwith "fee type unknown"
 
-    let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
-                    (password: string) (minerFee: IBlockchainFee) =
+    let SendPayment (account: NormalAccount)
+                    (txMetadata: IBlockchainFeeInfo)
+                    (destination: string)
+                    (amount: TransferAmount)
+                    (password: string)
+                    =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
@@ -136,24 +140,23 @@ module Account =
         let currency = (account:>IAccount).Currency
         match currency with
         | Currency.BTC ->
-            match minerFee with
-            | :? Bitcoin.MinerFee as bitcoinMinerFee ->
-                Bitcoin.Account.SendPayment account destination amount password bitcoinMinerFee
+            match txMetadata with
+            | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
+                Bitcoin.Account.SendPayment account btcTxMetadata destination amount password
             | _ -> failwith "fee for BTC currency should be Bitcoin.MinerFee type"
         | Currency.ETH | Currency.ETC ->
-            match minerFee with
-            | :? Ether.MinerFee as etherMinerFee ->
-                Ether.Account.SendPayment account destination amount password etherMinerFee
+            match txMetadata with
+            | :? Ether.TransactionMetadata as etherTxMetadata ->
+                Ether.Account.SendPayment account etherTxMetadata destination amount password
             | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
 
     let SignUnsignedTransaction (account)
-                                (unsignedTrans: UnsignedTransaction<IBlockchainFee>)
+                                (unsignedTrans: UnsignedTransaction<IBlockchainFeeInfo>)
                                 password =
         let rawTransaction = SignTransaction account
-                                 (BigInteger(unsignedTrans.TransactionCount))
                                  unsignedTrans.Proposal.DestinationAddress
                                  unsignedTrans.Proposal.Amount
-                                 unsignedTrans.Fee
+                                 unsignedTrans.Metadata
                                  password
 
         { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
@@ -164,25 +167,23 @@ module Account =
     let SaveSignedTransaction (trans: SignedTransaction<_>) (filePath: string) =
 
         let json =
-            match trans.TransactionInfo.Fee.GetType() with
-            | t when t = typeof<Ether.MinerFee> ->
+            match trans.TransactionInfo.Metadata.GetType() with
+            | t when t = typeof<Ether.TransactionMetadata> ->
                 let unsignedEthTx = {
-                    Fee = box trans.TransactionInfo.Fee :?> Ether.MinerFee;
+                    Metadata = box trans.TransactionInfo.Metadata :?> Ether.TransactionMetadata;
                     Proposal = trans.TransactionInfo.Proposal;
                     Cache = trans.TransactionInfo.Cache;
-                    TransactionCount = trans.TransactionInfo.TransactionCount;
                 }
                 let signedEthTx = {
                     TransactionInfo = unsignedEthTx;
                     RawTransaction = trans.RawTransaction;
                 }
                 ExportSignedTransaction signedEthTx
-            | t when t = typeof<Bitcoin.MinerFee> ->
+            | t when t = typeof<Bitcoin.TransactionMetadata> ->
                 let unsignedBtcTx = {
-                    Fee = box trans.TransactionInfo.Fee :?> Bitcoin.MinerFee;
+                    Metadata = box trans.TransactionInfo.Metadata :?> Bitcoin.TransactionMetadata;
                     Proposal = trans.TransactionInfo.Proposal;
                     Cache = trans.TransactionInfo.Cache;
-                    TransactionCount = trans.TransactionInfo.TransactionCount;
                 }
                 let signedBtcTx = {
                     TransactionInfo = unsignedBtcTx;
@@ -214,43 +215,44 @@ module Account =
         Marshalling.Serialize trans
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
-                                (fee: IBlockchainFee)
+                                (txMetadata: IBlockchainFeeInfo)
                                 (filePath: string) =
 
         ValidateAddress transProposal.Currency transProposal.DestinationAddress
 
-        match fee with
-        | :? Ether.MinerFee as etherMinerFee ->
-            Ether.Account.SaveUnsignedTransaction transProposal etherMinerFee filePath
-        | :? Bitcoin.MinerFee as btcMinerFee -> Bitcoin.Account.SaveUnsignedTransaction transProposal btcMinerFee filePath
+        match txMetadata with
+        | :? Ether.TransactionMetadata as etherTxMetadata ->
+            Ether.Account.SaveUnsignedTransaction transProposal etherTxMetadata filePath
+        | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
+            Bitcoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata filePath
         | _ -> failwith "fee type unknown"
 
-    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<IBlockchainFee> =
+    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<IBlockchainFeeInfo> =
 
         let transType = Marshalling.ExtractType json
 
         match transType with
-        | _ when transType = typeof<UnsignedTransaction<Bitcoin.MinerFee>> ->
-            let deserializedBtcTransaction: UnsignedTransaction<Bitcoin.MinerFee> =
+        | _ when transType = typeof<UnsignedTransaction<Bitcoin.TransactionMetadata>> ->
+            let deserializedBtcTransaction: UnsignedTransaction<Bitcoin.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
-        | _ when transType = typeof<UnsignedTransaction<Ether.MinerFee>> ->
-            let deserializedBtcTransaction: UnsignedTransaction<Ether.MinerFee> =
+        | _ when transType = typeof<UnsignedTransaction<Ether.TransactionMetadata>> ->
+            let deserializedBtcTransaction: UnsignedTransaction<Ether.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
             raise(new Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName))
 
-    let public ImportSignedTransactionFromJson (json: string): SignedTransaction<IBlockchainFee> =
+    let public ImportSignedTransactionFromJson (json: string): SignedTransaction<IBlockchainFeeInfo> =
         let transType = Marshalling.ExtractType json
 
         match transType with
-        | _ when transType = typeof<SignedTransaction<Bitcoin.MinerFee>> ->
-            let deserializedBtcTransaction: SignedTransaction<Bitcoin.MinerFee> =
+        | _ when transType = typeof<SignedTransaction<Bitcoin.TransactionMetadata>> ->
+            let deserializedBtcTransaction: SignedTransaction<Bitcoin.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
-        | _ when transType = typeof<SignedTransaction<Ether.MinerFee>> ->
-            let deserializedBtcTransaction: SignedTransaction<Ether.MinerFee> =
+        | _ when transType = typeof<SignedTransaction<Ether.TransactionMetadata>> ->
+            let deserializedBtcTransaction: SignedTransaction<Ether.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
@@ -261,7 +263,7 @@ module Account =
 
         ImportSignedTransactionFromJson signedTransInJson
 
-    let LoadUnsignedTransactionFromFile (filePath: string): UnsignedTransaction<IBlockchainFee> =
+    let LoadUnsignedTransactionFromFile (filePath: string): UnsignedTransaction<IBlockchainFeeInfo> =
         let unsignedTransInJson = File.ReadAllText(filePath)
 
         ImportUnsignedTransactionFromJson unsignedTransInJson
