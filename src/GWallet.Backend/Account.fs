@@ -92,7 +92,7 @@ module Account =
                         (password: string) =
 
         match minerFee with
-        | :? EtherMinerFee as etherMinerFee ->
+        | :? Ether.MinerFee as etherMinerFee ->
             Ether.Account.SignTransaction
                   account
                   transCount
@@ -121,7 +121,8 @@ module Account =
                            (destination: IAccount)
                            (fee: IBlockchainFee) =
         match fee with
-        | :? EtherMinerFee as etherMinerFee -> Ether.Account.SweepArchivedFunds account balance destination etherMinerFee
+        | :? Ether.MinerFee as etherMinerFee ->
+            Ether.Account.SweepArchivedFunds account balance destination etherMinerFee
         | _ -> failwith "fee type unknown"
 
     let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
@@ -141,7 +142,7 @@ module Account =
             | _ -> failwith "fee for BTC currency should be Bitcoin.MinerFee type"
         | Currency.ETH | Currency.ETC ->
             match minerFee with
-            | :? EtherMinerFee as etherMinerFee ->
+            | :? Ether.MinerFee as etherMinerFee ->
                 Ether.Account.SendPayment account destination amount password etherMinerFee
             | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
 
@@ -164,9 +165,9 @@ module Account =
 
         let json =
             match trans.TransactionInfo.Fee.GetType() with
-            | t when t = typeof<EtherMinerFee> ->
+            | t when t = typeof<Ether.MinerFee> ->
                 let unsignedEthTx = {
-                    Fee = box trans.TransactionInfo.Fee :?> EtherMinerFee;
+                    Fee = box trans.TransactionInfo.Fee :?> Ether.MinerFee;
                     Proposal = trans.TransactionInfo.Proposal;
                     Cache = trans.TransactionInfo.Cache;
                     TransactionCount = trans.TransactionInfo.TransactionCount;
@@ -219,7 +220,8 @@ module Account =
         ValidateAddress transProposal.Currency transProposal.DestinationAddress
 
         match fee with
-        | :? EtherMinerFee as etherMinerFee -> Ether.Account.SaveUnsignedTransaction transProposal etherMinerFee filePath
+        | :? Ether.MinerFee as etherMinerFee ->
+            Ether.Account.SaveUnsignedTransaction transProposal etherMinerFee filePath
         | :? Bitcoin.MinerFee as btcMinerFee -> Bitcoin.Account.SaveUnsignedTransaction transProposal btcMinerFee filePath
         | _ -> failwith "fee type unknown"
 
@@ -232,8 +234,8 @@ module Account =
             let deserializedBtcTransaction: UnsignedTransaction<Bitcoin.MinerFee> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
-        | _ when transType = typeof<UnsignedTransaction<EtherMinerFee>> ->
-            let deserializedBtcTransaction: UnsignedTransaction<EtherMinerFee> =
+        | _ when transType = typeof<UnsignedTransaction<Ether.MinerFee>> ->
+            let deserializedBtcTransaction: UnsignedTransaction<Ether.MinerFee> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
@@ -247,8 +249,8 @@ module Account =
             let deserializedBtcTransaction: SignedTransaction<Bitcoin.MinerFee> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
-        | _ when transType = typeof<SignedTransaction<EtherMinerFee>> ->
-            let deserializedBtcTransaction: SignedTransaction<EtherMinerFee> =
+        | _ when transType = typeof<SignedTransaction<Ether.MinerFee>> ->
+            let deserializedBtcTransaction: SignedTransaction<Ether.MinerFee> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->

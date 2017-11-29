@@ -1,12 +1,14 @@
-﻿namespace GWallet.Backend
+﻿namespace GWallet.Backend.Ether
 
 open System
 open System.Numerics
 
+open GWallet.Backend
+
 open Nethereum.Web3
 open Nethereum.Util
 
-type EtherMinerFee(gasPriceInWei: Int64, estimationTime: DateTime, currency: Currency) =
+type MinerFee(gasPriceInWei: Int64, estimationTime: DateTime, currency: Currency) =
     member val GasPriceInWei = gasPriceInWei with get
     member val Currency = currency with get
 
@@ -21,5 +23,5 @@ type EtherMinerFee(gasPriceInWei: Int64, estimationTime: DateTime, currency: Cur
 
         member val Value =
             let gasPriceInWei = BigInteger(gasPriceInWei)
-            let costInWei = BigInteger.Multiply(gasPriceInWei, EtherMinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
+            let costInWei = BigInteger.Multiply(gasPriceInWei, MinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
             UnitConversion.Convert.FromWei(costInWei, UnitConversion.EthUnit.Ether) with get

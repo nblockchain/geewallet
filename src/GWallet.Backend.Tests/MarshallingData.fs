@@ -13,7 +13,7 @@ module MarshallingData =
 
     let SomeDate = DateTime.Now
 
-    let private someEtherMinerFee = EtherMinerFee(int64 6969, SomeDate, Currency.ETC)
+    let private someEtherMinerFee = Ether.MinerFee(int64 6969, SomeDate, Currency.ETC)
 
     let private someUnsignedEtherTransactionProposal =
         {

@@ -1,4 +1,4 @@
-﻿namespace GWallet.Backend
+﻿namespace GWallet.Backend.Ether
 
 open System
 open System.Threading.Tasks
@@ -6,7 +6,9 @@ open System.Threading.Tasks
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
 
-module EtherServer =
+open GWallet.Backend
+
+module Server =
 
     type IWeb3 =
         abstract member GetTransactionCount: string -> Task<HexBigInteger>

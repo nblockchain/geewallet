@@ -38,7 +38,7 @@ module internal Account =
         let maybeBalance =
             try
                 let balance =
-                    EtherServer.GetBalance account.Currency account.PublicAddress
+                    Ether.Server.GetBalance account.Currency account.PublicAddress
                 Some(balance.Value)
             with
             | ex when FSharpUtil.IsOfTypeOrItsInner<WebException>(ex) -> None
@@ -64,21 +64,21 @@ module internal Account =
             let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
             raise (AddressWithInvalidChecksum(validCheckSumAddress))
 
-    let EstimateFee (currency: Currency): EtherMinerFee =
-        let gasPrice = EtherServer.GetGasPrice currency
+    let EstimateFee (currency: Currency): MinerFee =
+        let gasPrice = Ether.Server.GetGasPrice currency
         if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
                           (gasPrice.Value.ToString()))
         let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
-        EtherMinerFee(gasPrice64, DateTime.Now, currency)
+        MinerFee(gasPrice64, DateTime.Now, currency)
 
     let private GetTransactionCount (currency: Currency, publicAddress: string) =
-        EtherServer.GetTransactionCount currency publicAddress
+        Ether.Server.GetTransactionCount currency publicAddress
 
     let private BroadcastRawTransaction (currency: Currency) trans =
         let insufficientFundsMsg = "Insufficient funds"
         try
-            let txId = EtherServer.BroadcastTransaction currency ("0x" + trans)
+            let txId = Ether.Server.BroadcastTransaction currency ("0x" + trans)
             txId
         with
         | ex when ex.Message.StartsWith(insufficientFundsMsg) || ex.InnerException.Message.StartsWith(insufficientFundsMsg) ->
@@ -104,7 +104,7 @@ module internal Account =
                                               (transCount: BigInteger)
                                               (destination: string)
                                               (amount: TransferAmount)
-                                              (minerFee: EtherMinerFee)
+                                              (minerFee: MinerFee)
                                               (privateKey: EthECKey) =
 
         let currency = account.Currency
@@ -131,7 +131,7 @@ module internal Account =
                         // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
                         // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
                         BigInteger(minerFee.GasPriceInWei),
-                        EtherMinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
+                        MinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
         if not (signer.VerifyTransaction(trans)) then
             failwith "Transaction could not be verified?"
@@ -141,7 +141,7 @@ module internal Account =
                         (transCount: BigInteger)
                         (destination: string)
                         (amount: TransferAmount)
-                        (minerFee: EtherMinerFee)
+                        (minerFee: MinerFee)
                         (password: string) =
 
         let privateKey = GetPrivateKey account password
@@ -150,7 +150,7 @@ module internal Account =
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
                            (destination: IAccount)
-                           (minerFee: EtherMinerFee) =
+                           (minerFee: MinerFee) =
         let accountFrom = (account:>IAccount)
         let transCountHexBigInt = GetTransactionCount (accountFrom.Currency, accountFrom.PublicAddress)
         let transCount = transCountHexBigInt.Value
@@ -160,7 +160,7 @@ module internal Account =
         BroadcastRawTransaction accountFrom.Currency signedTrans
 
     let SendPayment (account: NormalAccount) (destination: string) (amount: TransferAmount)
-                    (password: string) (minerFee: EtherMinerFee) =
+                    (password: string) (minerFee: MinerFee) =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
@@ -197,7 +197,8 @@ module internal Account =
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
 
-    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
+    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
+                                (fee: MinerFee) (filePath: string) =
 
         let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
         if (transCount.Value > BigInteger(Int64.MaxValue)) then

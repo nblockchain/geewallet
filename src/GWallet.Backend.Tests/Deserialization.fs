@@ -85,7 +85,7 @@ module Deserialization =
 
         Assert.That(deserializedUnsignedTrans.TransactionCount, Is.EqualTo(69))
 
-        let etherMinerFee = deserializedUnsignedTrans.Fee :?> EtherMinerFee
+        let etherMinerFee = deserializedUnsignedTrans.Fee :?> Ether.MinerFee
         Assert.That(etherMinerFee.Currency, Is.EqualTo(Currency.ETC))
         Assert.That(etherMinerFee.GasPriceInWei, Is.EqualTo(6969))
         Assert.That(deserializedUnsignedTrans.Fee.EstimationTime,
@@ -168,7 +168,7 @@ module Deserialization =
 
         Assert.That(deserializedSignedTrans.TransactionInfo.TransactionCount, Is.EqualTo(69))
 
-        let etherMinerFee = deserializedSignedTrans.TransactionInfo.Fee :?> EtherMinerFee
+        let etherMinerFee = deserializedSignedTrans.TransactionInfo.Fee :?> Ether.MinerFee
         Assert.That(etherMinerFee.Currency,
                     Is.EqualTo(Currency.ETC))
         Assert.That(etherMinerFee.GasPriceInWei,
