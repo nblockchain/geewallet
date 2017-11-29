@@ -262,6 +262,10 @@ module internal Account =
                     (amount: TransferAmount)
                     (password: string)
                     =
+        let baseAccount = account :> IAccount
+        if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
+            raise DestinationEqualToOrigin
+
         let finalTransaction = SignTransaction account txMetadata destination amount password
         BroadcastRawTransaction finalTransaction
 
