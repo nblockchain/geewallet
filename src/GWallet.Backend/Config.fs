@@ -3,10 +3,11 @@
 open System
 open System.IO
 
-open Nethereum.KeyStore
-open Nethereum.Signer
-
 module internal Config =
+
+    // we might want to test with TestNet at some point, so this below is the key:
+    let BitcoinNet = NBitcoin.Network.Main
+    // but we would need to get a seed list of testnet electrum servers first...
 
     let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
@@ -107,9 +108,12 @@ module internal Config =
         else
             File.Delete(configFile)
 
-    let AddArchived (account: ArchivedAccount) =
-        let configFile = GetFile account
+    let AddArchivedAccount currency fileName unencryptedPrivateKey =
+        let configDir = GetConfigDirForArchivedAccountsOfThisCurrency currency
+        let newAccountFile = Path.Combine(configDir.FullName, fileName)
 
-        // there's no unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
+        // there's no ETH unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
         // ... so we simply write the private key in string format
-        File.WriteAllText(configFile, account.PrivateKey.GetPrivateKey())
+        File.WriteAllText(newAccountFile, unencryptedPrivateKey)
+
+        FileInfo(newAccountFile)

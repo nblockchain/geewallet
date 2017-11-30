@@ -23,10 +23,16 @@ type internal TransactionOutpoint =
 
 module internal Account =
 
+    let private GetPublicAddressFromPublicKey (publicKey: PubKey) =
+        publicKey.GetSegwitAddress(Network.Main).GetScriptAddress().ToString()
+
     let GetPublicAddressFromAccountFile (accountFile: FileInfo) =
         let pubKey = new PubKey(accountFile.Name)
-        pubKey.GetSegwitAddress(Network.Main).GetScriptAddress().ToString()
+        GetPublicAddressFromPublicKey pubKey
 
+    let GetPublicAddressFromUnencryptedPrivateKey (privateKey: string) =
+        let privateKey = Key.Parse(privateKey, Config.BitcoinNet)
+        GetPublicAddressFromPublicKey privateKey.PubKey
 
     // TODO: return MaybeCached<decimal>
     let GetBalance(account: IAccount): decimal =
@@ -165,11 +171,10 @@ module internal Account =
 
         { Inputs = transactionDraftWithoutMinerFee.Inputs; Outputs = newOutputs }
 
-    let private SignTransactionInternal (account: NormalAccount)
-                                        (txMetadata: TransactionMetadata)
-                                        (destination: string)
-                                        (amount: TransferAmount)
-                                        (password: string) =
+    let private SignTransactionWithPrivateKey (txMetadata: TransactionMetadata)
+                                              (destination: string)
+                                              (amount: TransferAmount)
+                                              (privateKey: Key) =
 
         let transactionDraft = txMetadata.TransactionDraft
         let btcMinerFee = txMetadata.Fee
@@ -197,16 +202,6 @@ module internal Account =
 
         let finalTransaction,coins = CreateTransactionAndCoinsToBeSigned transactionWithMinerFeeSubstracted
 
-        let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
-        let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, Network.Main)
-
-        let privateKey =
-            try
-                encryptedSecret.GetKey(password)
-            with
-            | :? SecurityException ->
-                raise (InvalidPassword)
-
         // needed to sign with SegWit:
         let coinsToSign =
             coins.Select(fun c -> c.ToScriptCoin(privateKey.PubKey.WitHash.ScriptPubKey) :> ICoin)
@@ -231,17 +226,28 @@ module internal Account =
                               finalTransaction.Inputs.Count)
         finalTransaction
 
+    let internal GetPrivateKey (account: NormalAccount) password =
+        let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
+        let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, Network.Main)
+        try
+            encryptedSecret.GetKey(password)
+        with
+        | :? SecurityException ->
+            raise (InvalidPassword)
+
     let SignTransaction (account: NormalAccount)
                         (txMetadata: TransactionMetadata)
                         (destination: string)
                         (amount: TransferAmount)
                         (password: string) =
-        let signedTransaction = SignTransactionInternal
-                                    account
+
+        let privateKey = GetPrivateKey account password
+
+        let signedTransaction = SignTransactionWithPrivateKey
                                     txMetadata
                                     destination
                                     amount
-                                    password
+                                    privateKey
         let rawTransaction = signedTransaction.ToHex()
         rawTransaction
 
@@ -286,6 +292,17 @@ module internal Account =
             }
         let json = ExportUnsignedTransactionToJson unsignedTransaction
         File.WriteAllText(filePath, json)
+
+    let SweepArchivedFunds (account: ArchivedAccount)
+                           (balance: decimal)
+                           (destination: IAccount)
+                           (txMetadata: TransactionMetadata) =
+
+        let amount = TransferAmount(balance, 0.0m)
+        let privateKey = Key.Parse(account.PrivateKey, Config.BitcoinNet)
+        let signedTrans = SignTransactionWithPrivateKey
+                              txMetadata destination.PublicAddress amount privateKey
+        BroadcastRawTransaction (signedTrans.ToHex())
 
     let Create password =
         let privkey = Key()

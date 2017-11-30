@@ -7,7 +7,6 @@ open System.Numerics
 open System.IO
 
 open Newtonsoft.Json
-open Nethereum.Signer
 
 module Account =
 
@@ -42,10 +41,16 @@ module Account =
             let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
+                let fromAccountFileToPublicAddress =
+                    match currency with
+                    | Currency.BTC ->
+                        Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey
+                    | Currency.ETH | Currency.ETC ->
+                        Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
+                    | _ -> failwith (sprintf "Unknown currency %A" currency)
+
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
-                    let privKey = File.ReadAllText(accountFile.FullName)
-                    let ecPrivKey = EthECKey(privKey)
-                    let account = ArchivedAccount(currency, ecPrivKey)
+                    let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
                     match GetBalance(account) with
                     | NotFresh(NotAvailable) -> ()
@@ -109,11 +114,30 @@ module Account =
                 password
         | _ -> failwith "fee type unknown"
 
+    let private CreateArchivedAccount (currency: Currency) (unencryptedPrivateKey: string): ArchivedAccount =
+        let fromUnencryptedPrivateKeyToPublicAddressFunc =
+            match currency with
+            | Currency.BTC ->
+                Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey
+            | Currency.ETH | Currency.ETC ->
+                Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
+        let fileName = fromUnencryptedPrivateKeyToPublicAddressFunc unencryptedPrivateKey
+        let newAccountFile = Config.AddArchivedAccount currency fileName unencryptedPrivateKey
+        ArchivedAccount(currency, newAccountFile, fromUnencryptedPrivateKeyToPublicAddressFunc)
+
     let Archive (account: NormalAccount)
-                (password: string) =
-        let privateKey = Ether.Account.GetPrivateKey account password
-        let newArchivedAccount = ArchivedAccount((account:>IAccount).Currency, privateKey)
-        Config.AddArchived newArchivedAccount
+                (password: string)
+                : unit =
+        let currency = (account:>IAccount).Currency
+        let privateKeyAsString =
+            match currency with
+            | Currency.BTC ->
+                let privKey = Bitcoin.Account.GetPrivateKey account password
+                privKey.GetWif(Config.BitcoinNet).ToWif()
+            | Currency.ETC | Currency.ETH ->
+                let privKey = Ether.Account.GetPrivateKey account password
+                privKey.GetPrivateKey()
+        CreateArchivedAccount currency privateKeyAsString |> ignore
         Config.RemoveNormal account
 
     let SweepArchivedFunds (account: ArchivedAccount)
@@ -123,7 +147,9 @@ module Account =
         match txMetadata with
         | :? Ether.TransactionMetadata as etherTxMetadata ->
             Ether.Account.SweepArchivedFunds account balance destination etherTxMetadata
-        | _ -> failwith "fee type unknown"
+        | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
+            Bitcoin.Account.SweepArchivedFunds account balance destination btcTxMetadata
+        | _ -> failwith "tx metadata type unknown"
 
     let SendPayment (account: NormalAccount)
                     (txMetadata: IBlockchainFeeInfo)

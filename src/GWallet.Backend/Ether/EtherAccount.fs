@@ -24,6 +24,10 @@ module internal Account =
     let private signer = TransactionSigner()
 
     let private KeyStoreService = KeyStoreService()
+
+    let GetPublicAddressFromUnencryptedPrivateKey (privateKey: string) =
+        EthECKey(privateKey).GetPublicAddress()
+
     let GetPublicAddressFromAccountFile (accountFile: FileInfo) =
         let encryptedPrivateKey = File.ReadAllText(accountFile.FullName)
         let rawPublicAddress = KeyStoreService.GetAddressFromKeyStore encryptedPrivateKey
@@ -156,8 +160,9 @@ module internal Account =
                            (txMetadata: TransactionMetadata) =
         let accountFrom = (account:>IAccount)
         let amount = TransferAmount(balance, 0.0m)
+        let ecPrivKey = EthECKey(account.PrivateKey)
         let signedTrans = SignTransactionWithPrivateKey
-                              account txMetadata destination.PublicAddress amount account.PrivateKey
+                              account txMetadata destination.PublicAddress amount ecPrivKey
         BroadcastRawTransaction accountFrom.Currency signedTrans
 
     let SendPayment (account: NormalAccount)

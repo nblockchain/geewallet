@@ -2,9 +2,6 @@ namespace GWallet.Backend
 
 open System.IO
 
-open Nethereum.KeyStore
-open Nethereum.Signer
-
 type IAccount =
     abstract member Currency: Currency with get
     abstract member PublicAddress: string with get
@@ -22,10 +19,10 @@ type ReadOnlyAccount(currency: Currency, publicAddress: string) =
         member val Currency = currency with get
         member val PublicAddress = publicAddress with get
 
-type ArchivedAccount(currency: Currency, privateKey: EthECKey) =
-    member val internal PrivateKey = privateKey with get
+type ArchivedAccount(currency: Currency, accountFile: FileInfo, fromUnencryptedPrivateKeyToPublicAddress: string -> string) =
+
+    member val internal PrivateKey = File.ReadAllText(accountFile.FullName) with get
 
     interface IAccount with
         member val Currency = currency with get
-        member val PublicAddress =
-            privateKey.GetPublicAddress() with get
+        member self.PublicAddress with get() = fromUnencryptedPrivateKeyToPublicAddress self.PrivateKey
