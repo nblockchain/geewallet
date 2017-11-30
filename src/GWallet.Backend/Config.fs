@@ -22,7 +22,7 @@ module internal Config =
             configDir.Create()
         configDir
 
-    let private GetConfigDirForAccountsOfThisCurrency(currency: Currency) =
+    let private GetConfigDirForNormalAccountsOfThisCurrency(currency: Currency) =
         let configDir = DirectoryInfo(Path.Combine(GetConfigDirForAccounts().FullName, currency.ToString()))
         if not configDir.Exists then
             configDir.Create()
@@ -43,7 +43,7 @@ module internal Config =
         configDir
 
     let GetAllNormalAccounts(currency: Currency): seq<FileInfo> =
-        let configDirForNormalAccounts = GetConfigDirForAccountsOfThisCurrency(currency)
+        let configDirForNormalAccounts = GetConfigDirForNormalAccountsOfThisCurrency(currency)
 
         seq {
             for filePath in Directory.GetFiles(configDirForNormalAccounts.FullName) do
@@ -84,7 +84,7 @@ module internal Config =
         Path.Combine(configDir.FullName, fileName)
 
     let AddNormalAccount currency fileName jsonStoreContent =
-        let configDir = GetConfigDirForAccountsOfThisCurrency(currency)
+        let configDir = GetConfigDirForNormalAccountsOfThisCurrency(currency)
         let newAccountFile = Path.Combine(configDir.FullName, fileName)
         File.WriteAllText(newAccountFile, jsonStoreContent)
         FileInfo(newAccountFile)

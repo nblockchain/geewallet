@@ -9,13 +9,13 @@ type IAccount =
     abstract member Currency: Currency with get
     abstract member PublicAddress: string with get
 
-type NormalAccount(currency: Currency, accountFile: FileInfo, fromPrivKeyToPublicAddress: FileInfo -> string) =
+type NormalAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
     member val AccountFile = accountFile with get
 
     interface IAccount with
         member val Currency = currency with get
         member val PublicAddress =
-            fromPrivKeyToPublicAddress accountFile with get
+            fromAccountFileToPublicAddress accountFile with get
 
 type ReadOnlyAccount(currency: Currency, publicAddress: string) =
     interface IAccount with

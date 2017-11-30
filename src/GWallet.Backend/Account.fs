@@ -202,12 +202,15 @@ module Account =
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
 
-    let Create (currency: Currency) (password: string): NormalAccount =
+    let CreateNormalAccount (currency: Currency) (password: string): NormalAccount =
         let (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
             match currency with
-            | Currency.BTC -> Bitcoin.Account.Create password, Bitcoin.Account.GetPublicAddressFromAccountFile
+            | Currency.BTC ->
+                let publicKey,encryptedPrivateKey = Bitcoin.Account.Create password
+                (publicKey,encryptedPrivateKey), Bitcoin.Account.GetPublicAddressFromAccountFile
             | Currency.ETH | Currency.ETC ->
-                Ether.Account.Create currency password, Ether.Account.GetPublicAddressFromAccountFile
+                let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password
+                (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
         let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
         NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
 

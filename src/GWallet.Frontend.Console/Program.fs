@@ -194,7 +194,7 @@ let rec PerformOptions(numAccounts: int) =
     | Options.CreateAccount ->
         let currency = UserInteraction.AskCurrency()
         let password = UserInteraction.AskPassword true
-        let account = Account.Create currency password
+        let account = Account.CreateNormalAccount currency password
         Console.WriteLine("Account created: " + (account:>IAccount).PublicAddress)
         UserInteraction.PressAnyKeyToContinue()
     | Options.Refresh -> ()
