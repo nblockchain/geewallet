@@ -8,6 +8,17 @@ open Nethereum.Signer
 
 module internal Config =
 
+    let DebugLog =
+#if DEBUG
+        true
+#else
+    #if RELEASE
+        false
+    #else
+        raise (new Exception("Unknown build configuration"))
+    #endif
+#endif
+
     let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
