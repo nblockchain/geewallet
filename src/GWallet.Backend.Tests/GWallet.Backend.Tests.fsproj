@@ -111,6 +111,7 @@
     <Compile Include="Serialization.fs" />
     <Compile Include="Deserialization.fs" />
     <Compile Include="FaultTolerance.fs" />
+    <Compile Include="Shuffling.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

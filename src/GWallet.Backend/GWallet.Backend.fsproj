@@ -105,6 +105,7 @@
     <Compile Include="FSharpUtil.fs" />
     <Compile Include="CommonAssemblyInfo.fs" />
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="Shuffler.fs" />
     <Compile Include="Marshalling.fs" />
     <Compile Include="JsonRpcSharp.fs" />
     <Compile Include="Currency.fs" />
