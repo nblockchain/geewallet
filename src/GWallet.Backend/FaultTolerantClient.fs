@@ -15,6 +15,11 @@ module FaultTolerantClient =
                 try
                     head(args)
                 with
-                | ex -> queryInternal args ex tail
+                | ex ->
+                    if (Config.DebugLog) then
+                        Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
+                                                     (ex.GetType().FullName)
+                                                     ex.Message)
+                    queryInternal args ex tail
 
         queryInternal args null funcs

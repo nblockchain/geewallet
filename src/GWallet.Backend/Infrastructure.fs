@@ -11,11 +11,14 @@ module Infrastructure =
     let private ravenClient = RavenClient sentryUrl
 
     let public Report (ex: Exception) =
+
+        // TODO: log this in a file (log4net?), as well as printing to the console, before sending to sentry
+        Console.Error.WriteLine ex
+
 #if DEBUG
         raise ex
 #else
     #if RELEASE
-        // TODO: log this in a file (log4net?) before sending to sentry
         ravenClient.Capture (SentryEvent (ex)) |> ignore
     #else
         raise (new Exception("Unknown build configuration", ex))

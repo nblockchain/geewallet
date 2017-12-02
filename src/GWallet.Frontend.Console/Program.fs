@@ -258,7 +258,6 @@ let main argv =
             0
         with
         | ex ->
-            Console.Error.WriteLine ex
             Infrastructure.Report ex
             1
 
