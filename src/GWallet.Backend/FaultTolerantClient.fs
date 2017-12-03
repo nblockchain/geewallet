@@ -7,7 +7,7 @@ module FaultTolerantClient =
     type NoneAvailableException (message:string, lastException: Exception) =
        inherit Exception (message, lastException)
 
-    let public Query<'T,'R> (args: 'T) (funcs: list<'T->'R>): 'R =
+    let public Query<'T,'R,'E when 'E :> Exception> (args: 'T) (funcs: list<'T->'R>): 'R =
         let rec queryInternal (args: 'T) (lastEx: Exception) (funcs: list<'T->'R>) =
             match funcs with
             | [] -> raise (NoneAvailableException("Not available", lastEx))
@@ -15,7 +15,7 @@ module FaultTolerantClient =
                 try
                     head(args)
                 with
-                | ex ->
+                | :? 'E as ex ->
                     if (Config.DebugLog) then
                         Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
                                                      (ex.GetType().FullName)

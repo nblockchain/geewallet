@@ -15,7 +15,7 @@ module FaultTolerance =
         let func (arg: string) =
             someResult
         let dataRetreived =
-            FaultTolerantClient.Query<string,int> someStringArg [ func ]
+            FaultTolerantClient.Query<string,int,Exception> someStringArg [ func ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -27,14 +27,14 @@ module FaultTolerance =
             someResult
         let func2 (arg: string) =
             someResult
-        let dataRetreived = FaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
+        let dataRetreived = FaultTolerantClient.Query<string,int,Exception> someStringArg [ func1; func2 ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
     let ``throws NotAvailable if no funcs``(): unit =
         Assert.Throws<FaultTolerantClient.NoneAvailableException>(
-            fun _ -> FaultTolerantClient.Query<string,int> "_" [] |> ignore
+            fun _ -> FaultTolerantClient.Query<string,int,Exception> "_" [] |> ignore
         ) |> ignore
 
     [<Test>]
@@ -46,7 +46,7 @@ module FaultTolerance =
         let func2 (arg: string) =
             someResult
         let dataRetreived =
-            FaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
+            FaultTolerantClient.Query<string,int,Exception> someStringArg [ func1; func2 ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -62,7 +62,7 @@ module FaultTolerance =
         let dataRetrieved =
             try
                 let result =
-                    FaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
+                    FaultTolerantClient.Query<string,int,SomeException> someStringArg [ func1; func2 ]
                 Some(result)
             with
             | ex ->
@@ -72,3 +72,32 @@ module FaultTolerance =
                 None
 
         Assert.That(dataRetrieved, Is.EqualTo(None))
+
+    [<Test>]
+    let ``exception typed passed in is ignored``() =
+        let someResult = 1
+        let someStringArg = "foo"
+        let func1 (arg: string) =
+            raise SomeException
+        let func2 (arg: string) =
+            someResult
+
+        let result =
+            FaultTolerantClient.Query<string,int,SomeException> someStringArg [ func1; func2 ]
+
+        Assert.That(result, Is.EqualTo(someResult))
+
+    exception SomeOtherException
+    [<Test>]
+    let ``exception not passed in is not ignored``() =
+        let someResult = 1
+        let someStringArg = "foo"
+        let func1 (arg: string) =
+            raise SomeOtherException
+        let func2 (arg: string) =
+            someResult
+
+        Assert.Throws<SomeOtherException>(fun _ ->
+            FaultTolerantClient.Query<string,int,SomeException> someStringArg [ func1; func2 ]
+                |> ignore ) |> ignore
+

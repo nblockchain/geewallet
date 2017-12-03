@@ -67,7 +67,7 @@ module Server =
                           fun (arg1: 'T) ->
                               WaitOnTask (fun (arg11:'T) -> web3Func web3 arg11) arg1)
                       web3s
-        FaultTolerantClient.Query arg funcs
+        FaultTolerantClient.Query<'T,'R,Exception> arg funcs
 
     let GetTransactionCount (currency: Currency) (address: string)
         : HexBigInteger =
