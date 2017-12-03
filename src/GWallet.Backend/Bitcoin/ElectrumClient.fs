@@ -13,7 +13,13 @@ open GWallet.Backend
 exception ServerTooOld of string
 
 type internal ElectrumClient (electrumServer: ElectrumServer) =
-    let Init(stratumClient: StratumClient) =
+    let Init(): StratumClient =
+        if electrumServer.Ports.InsecurePort.IsNone then
+            raise JsonRpcSharp.TlsNotSupportedYetInGWallet
+
+        let jsonRpcClient = new JsonRpcSharp.Client(electrumServer.Host, electrumServer.Ports.InsecurePort.Value)
+        let stratumClient = new StratumClient(jsonRpcClient)
+
         // this is the last version of Electrum released at the time of writing this module
         let CURRENT_ELECTRUM_FAKED_VERSION = Version("2.8.3")
 
@@ -28,10 +34,9 @@ type internal ElectrumClient (electrumServer: ElectrumServer) =
         if versionSupportedByServer < PROTOCOL_VERSION_SUPPORTED then
             raise (ServerTooOld (sprintf "Version of server is older (%s) than the client (%s)"
                                         (versionSupportedByServer.ToString()) (PROTOCOL_VERSION_SUPPORTED.ToString())))
+        stratumClient
 
-    let jsonRpcClient = new JsonRpcSharp.Client(electrumServer.Host, electrumServer.Ports.InsecurePort.Value)
-    let stratumClient = new StratumClient(jsonRpcClient)
-    do Init(stratumClient)
+    let stratumClient = Init()
 
     member self.GetBalance address: Int64 =
         let balanceResult = stratumClient.BlockchainAddressGetBalance address

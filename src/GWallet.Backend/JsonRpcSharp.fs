@@ -9,6 +9,7 @@ open System.Threading
 module JsonRpcSharp =
 
     exception NoDataReceived
+    exception TlsNotSupportedYetInGWallet
 
     type Client (host: string, port: int) =
         let tcpClient = new TcpClient()
