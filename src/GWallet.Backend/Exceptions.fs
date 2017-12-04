@@ -1,0 +1,9 @@
+﻿namespace GWallet.Backend
+
+exception InsufficientFunds
+exception InvalidPassword
+exception DestinationEqualToOrigin
+exception AddressMissingZeroExPrefix
+exception AddressWithInvalidLength of int
+exception AddressWithInvalidChecksum of string
+exception AccountAlreadyAdded
