@@ -149,7 +149,11 @@ let rec TryArchiveAccount account =
 let rec AddReadOnlyAccount() =
     let currency = UserInteraction.AskCurrency()
     let publicAddress = UserInteraction.AskPublicAddress "Public address: "
-    Account.AddPublicWatcher currency publicAddress
+    try
+        Account.AddPublicWatcher currency publicAddress
+    with
+    | :? AccountAlreadyAdded ->
+        Console.Error.WriteLine("Account had already been added")
 
 let ArchiveAccount() =
     let account = UserInteraction.AskAccount()

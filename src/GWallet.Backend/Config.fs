@@ -111,6 +111,8 @@ module internal Config =
 
     let AddReadonly (account: ReadOnlyAccount) =
         let configFile = GetFile account
+        if (File.Exists configFile) then
+            raise AccountAlreadyAdded
         File.WriteAllText(configFile, String.Empty)
 
     let RemoveReadonly (account: ReadOnlyAccount) =
