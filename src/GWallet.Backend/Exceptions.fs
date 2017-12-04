@@ -6,3 +6,4 @@ exception DestinationEqualToOrigin
 exception AddressMissingProperPrefix of seq<string>
 exception AddressWithInvalidLength of int
 exception AddressWithInvalidChecksum of string
+exception AccountAlreadyAdded
