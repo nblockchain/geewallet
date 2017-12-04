@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend.Ether
 
 open System
+open System.Net
 open System.Threading.Tasks
 
 open Nethereum.Hex.HexTypes
@@ -9,6 +10,18 @@ open Nethereum.Web3
 open GWallet.Backend
 
 module Server =
+
+    type ConnectionUnsuccessfulException =
+        inherit Exception
+
+        new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
+        new(message: string) = { inherit Exception(message) }
+
+    type ServerTimedOutException(message:string) =
+       inherit ConnectionUnsuccessfulException (message)
+
+    type ServerCannotBeResolvedException(message:string, innerException: Exception) =
+       inherit ConnectionUnsuccessfulException (message, innerException)
 
     type IWeb3 =
         abstract member GetTransactionCount: string -> Task<HexBigInteger>
@@ -47,14 +60,24 @@ module Server =
         | Currency.ETH ->
             [ ethWeb3Infura; ethWeb3Mew ]
 
-    let private timeoutSpan = TimeSpan.FromSeconds(3.0)
+
+    let exMsg = "Could not communicate with EtherServer"
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
         let task = func arg
-        let finished = task.Wait timeoutSpan
+        let finished =
+            try
+                task.Wait Config.DEFAULT_NETWORK_TIMEOUT
+            with
+            | ex ->
+                let maybeWebEx = FSharpUtil.FindException<WebException> ex
+                match maybeWebEx with
+                | None -> reraise()
+                | Some(webEx) ->
+                    if (webEx.Status = WebExceptionStatus.NameResolutionFailure) then
+                        raise (ServerCannotBeResolvedException(exMsg, webEx))
+                    reraise()
         if not finished then
-            raise (TimeoutException(
-                       sprintf "Couldn't get a response after %s seconds"
-                               (timeoutSpan.TotalSeconds.ToString())))
+            raise (ServerTimedOutException(exMsg))
         task.Result
 
     let private PlumbingCall<'T,'R> (currency: Currency)
@@ -67,7 +90,7 @@ module Server =
                           fun (arg1: 'T) ->
                               WaitOnTask (fun (arg11:'T) -> web3Func web3 arg11) arg1)
                       web3s
-        FaultTolerantClient.Query<'T,'R,Exception> arg funcs
+        FaultTolerantClient.Query<'T,'R,ConnectionUnsuccessfulException> arg funcs
 
     let GetTransactionCount (currency: Currency) (address: string)
         : HexBigInteger =

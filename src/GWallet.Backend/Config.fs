@@ -20,6 +20,8 @@ module internal Config =
     #endif
 #endif
 
+    let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds(3.0)
+
     let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))

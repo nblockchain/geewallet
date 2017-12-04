@@ -8,6 +8,8 @@ module FaultTolerantClient =
        inherit Exception (message, lastException)
 
     let public Query<'T,'R,'E when 'E :> Exception> (args: 'T) (funcs: list<'T->'R>): 'R =
+        if typeof<'E> = typeof<Exception> then
+            raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
         let rec queryInternal (args: 'T) (lastEx: Exception) (funcs: list<'T->'R>) =
             match funcs with
             | [] -> raise (NoneAvailableException("Not available", lastEx))

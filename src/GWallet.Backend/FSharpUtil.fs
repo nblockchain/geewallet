@@ -9,13 +9,13 @@ open Newtonsoft.Json.Converters
 
 module FSharpUtil =
 
-    let rec internal IsOfTypeOrItsInner<'T>(ex: Exception) =
+    let rec internal FindException<'T when 'T:> Exception>(ex: Exception): Option<'T> =
         if (ex = null) then
-            false
-        else if (ex.GetType() = typeof<'T>) then
-            true
+            None
         else
-            IsOfTypeOrItsInner<'T>(ex.InnerException)
+            match ex with
+            | :? 'T as specificEx -> Some(specificEx)
+            | _ -> FindException<'T>(ex.InnerException)
 
 // http://stackoverflow.com/a/29629215/544947
     type OptionConverter() =

@@ -8,6 +8,8 @@ open GWallet.Backend
 
 module FaultTolerance =
 
+    exception SomeSpecificException
+
     [<Test>]
     let ``can retrieve basic T for single func``() =
         let someStringArg = "foo"
@@ -15,7 +17,7 @@ module FaultTolerance =
         let func (arg: string) =
             someResult
         let dataRetreived =
-            FaultTolerantClient.Query<string,int,Exception> someStringArg [ func ]
+            FaultTolerantClient.Query<string,int,SomeSpecificException> someStringArg [ func ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -27,14 +29,14 @@ module FaultTolerance =
             someResult
         let func2 (arg: string) =
             someResult
-        let dataRetreived = FaultTolerantClient.Query<string,int,Exception> someStringArg [ func1; func2 ]
+        let dataRetreived = FaultTolerantClient.Query<string,int,SomeSpecificException> someStringArg [ func1; func2 ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
     let ``throws NotAvailable if no funcs``(): unit =
         Assert.Throws<FaultTolerantClient.NoneAvailableException>(
-            fun _ -> FaultTolerantClient.Query<string,int,Exception> "_" [] |> ignore
+            fun _ -> FaultTolerantClient.Query<string,int,SomeSpecificException> "_" [] |> ignore
         ) |> ignore
 
     [<Test>]
@@ -42,11 +44,11 @@ module FaultTolerance =
         let someStringArg = "foo"
         let someResult = 1
         let func1 (arg: string) =
-            failwith "boo"
+            raise SomeSpecificException
         let func2 (arg: string) =
             someResult
         let dataRetreived =
-            FaultTolerantClient.Query<string,int,Exception> someStringArg [ func1; func2 ]
+            FaultTolerantClient.Query<string,int,SomeSpecificException> someStringArg [ func1; func2 ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -101,3 +103,14 @@ module FaultTolerance =
             FaultTolerantClient.Query<string,int,SomeException> someStringArg [ func1; func2 ]
                 |> ignore ) |> ignore
 
+    [<Test>]
+    let ``exception passed in must not be SystemException, otherwise it throws``() =
+        let someStringArg = "foo"
+        let func1 (arg: string) =
+            "someResult1"
+        let func2 (arg: string) =
+            "someResult2"
+
+        Assert.Throws<ArgumentException>(fun _ ->
+            FaultTolerantClient.Query<string,string,Exception> someStringArg [ func1; func2 ]
+                |> ignore ) |> ignore

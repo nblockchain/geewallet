@@ -45,7 +45,7 @@ module internal Account =
                     Ether.Server.GetBalance account.Currency account.PublicAddress
                 Some(balance.Value)
             with
-            | ex when FSharpUtil.IsOfTypeOrItsInner<WebException>(ex) -> None
+            | :? FaultTolerantClient.NoneAvailableException as ex -> None
 
         match maybeBalance with
         | None -> NotFresh(Caching.RetreiveLastBalance(account.PublicAddress))
