@@ -13,13 +13,6 @@ open Nethereum.Util
 open Nethereum.KeyStore.Crypto
 open Newtonsoft.Json
 
-exception InsufficientFunds
-exception InvalidPassword
-exception DestinationEqualToOrigin
-exception AddressMissingZeroExPrefix
-exception AddressWithInvalidLength of int
-exception AddressWithInvalidChecksum of string
-
 module Account =
 
     let private addressUtil = AddressUtil()
