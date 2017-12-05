@@ -19,7 +19,8 @@ type internal ElectrumServer =
 
 module internal ElectrumServerSeedList =
 
-        // list taken from https://github.com/spesmilo/electrum/blob/master/lib/network.py#L53
+    // TODO: stop hardcoding this list taken from Electrum2.x sources, and just bring and parse this file:
+    //       https://github.com/spesmilo/electrum/blob/master/lib/servers.json
     let private defaultList =
         [
             { Host = "erbium1.sytes.net"; Ports = ElectrumServerPorts.Default() };                                           // core, e-x
