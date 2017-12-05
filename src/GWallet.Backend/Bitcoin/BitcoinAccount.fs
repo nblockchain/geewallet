@@ -56,14 +56,20 @@ module internal Account =
                      randomizedServers
         randomizedFuncs
 
-    let GetBalance(account: IAccount): decimal =
-        let electrumGetBalance (ec: ElectrumClient) (address: string): int64 =
+    let private GetBalance(account: IAccount) =
+        let electrumGetBalance (ec: ElectrumClient) (address: string) =
             ec.GetBalance address
         let balance =
-            FaultTolerantClient.Query<string,int64,ElectrumServerDiscarded>
+            FaultTolerantClient.Query<string,BlockchainAddressGetBalanceInnerResult,ElectrumServerDiscarded>
                 account.PublicAddress
                 (GetRandomizedFuncs electrumGetBalance)
-        balance |> UnitConversion.FromSatoshiToBTC
+        balance
+
+    let GetConfirmedBalance(account: IAccount): decimal =
+        (GetBalance account).Confirmed |> UnitConversion.FromSatoshiToBTC
+
+    let GetUnconfirmedBalance(account: IAccount): decimal =
+        (GetBalance account).Unconfirmed |> UnitConversion.FromSatoshiToBTC
 
     let private CreateTransactionAndCoinsToBeSigned (transactionDraft: TransactionDraft): Transaction*list<Coin> =
         let transaction = Transaction()

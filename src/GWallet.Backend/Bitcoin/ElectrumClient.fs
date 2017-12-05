@@ -38,9 +38,9 @@ type internal ElectrumClient (electrumServer: ElectrumServer) =
 
     let stratumClient = Init()
 
-    member self.GetBalance address: Int64 =
+    member self.GetBalance address =
         let balanceResult = stratumClient.BlockchainAddressGetBalance address
-        balanceResult.Result.Confirmed
+        balanceResult.Result
 
     member self.GetUnspentTransactionOutputs address =
         let unspentListResult = stratumClient.BlockchainAddressListUnspent address

@@ -38,6 +38,7 @@ module internal Account =
                 "0x" + rawPublicAddress
         publicAddress
 
+    // TODO: have a way to distinguish between confirmed and unconfirmed balance
     let GetBalance(account: IAccount): decimal =
         let balance = Ether.Server.GetBalance account.Currency account.PublicAddress
         UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)

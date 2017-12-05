@@ -10,14 +10,18 @@ open Newtonsoft.Json
 
 module Account =
 
-    let GetBalance(account: IAccount): MaybeCached<decimal> =
+    let private GetBalanceFromServerOrCache(account: IAccount) (confirmed: bool): MaybeCached<decimal> =
         let maybeBalance =
             try
                 match account.Currency with
                 | Currency.ETH | Currency.ETC ->
+                    // TODO: have a way to distinguish between confirmed and unconfirmed balance
                     Some(Ether.Account.GetBalance account)
                 | Currency.BTC ->
-                    Some(Bitcoin.Account.GetBalance account)
+                    if (confirmed) then
+                        Some(Bitcoin.Account.GetConfirmedBalance account)
+                    else
+                        Some(Bitcoin.Account.GetUnconfirmedBalance account)
             with
             | :? FaultTolerantClient.NoneAvailableException as ex -> None
 
@@ -27,6 +31,12 @@ module Account =
         | Some(balance) ->
             Caching.StoreLastBalance(account.PublicAddress, balance)
             Fresh(balance)
+
+    let GetUnconfirmedBalance(account: IAccount) =
+        GetBalanceFromServerOrCache account false
+
+    let GetBalance(account: IAccount) =
+        GetBalanceFromServerOrCache account true
 
     let GetAllActiveAccounts(): seq<IAccount> =
         seq {
@@ -63,7 +73,7 @@ module Account =
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
                     let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
-                    match GetBalance(account) with
+                    match GetUnconfirmedBalance(account) with
                     | NotFresh(NotAvailable) -> ()
                     | Fresh(balance) ->
                         if (balance > 0m) then
