@@ -11,11 +11,22 @@ open Newtonsoft.Json
 module Account =
 
     let GetBalance(account: IAccount): MaybeCached<decimal> =
-        match account.Currency with
-        | Currency.ETH | Currency.ETC ->
-            Ether.Account.GetBalance account
-        | Currency.BTC ->
-            Fresh(Bitcoin.Account.GetBalance account)
+        let maybeBalance =
+            try
+                match account.Currency with
+                | Currency.ETH | Currency.ETC ->
+                    Some(Ether.Account.GetBalance account)
+                | Currency.BTC ->
+                    Some(Bitcoin.Account.GetBalance account)
+            with
+            | :? FaultTolerantClient.NoneAvailableException as ex -> None
+
+        match maybeBalance with
+        | None ->
+            NotFresh(Caching.RetreiveLastBalance(account.PublicAddress))
+        | Some(balance) ->
+            Caching.StoreLastBalance(account.PublicAddress, balance)
+            Fresh(balance)
 
     let GetAllActiveAccounts(): seq<IAccount> =
         seq {

@@ -23,6 +23,9 @@ type internal TransactionOutpoint =
 
 module internal Account =
 
+    type ElectrumServerDiscarded(message:string, innerException: Exception) =
+       inherit Exception (message, innerException)
+
     let private GetPublicAddressFromPublicKey (publicKey: PubKey) =
         publicKey.GetSegwitAddress(Network.Main).GetScriptAddress().ToString()
 
@@ -34,11 +37,33 @@ module internal Account =
         let privateKey = Key.Parse(privateKey, Config.BitcoinNet)
         GetPublicAddressFromPublicKey privateKey.PubKey
 
-    // TODO: return MaybeCached<decimal>
+    // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
+    //        (maybe make it more similar to EtherServer.fs' PlumbingCall()?
+    let private GetRandomizedFuncs<'T,'R> (ecFunc: ElectrumClient->'T->'R): list<'T->'R> =
+        let randomizedServers = ElectrumServerSeedList.Randomize() |> List.ofSeq
+        let randomizedFuncs =
+            List.map (fun (es:ElectrumServer) ->
+                          (fun (arg: 'T) ->
+                              try
+                                  let ec = new ElectrumClient(es)
+                                  ecFunc ec arg
+                              with
+                              | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
+                                  let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                                  raise (ElectrumServerDiscarded(msg, ex))
+                           )
+                     )
+                     randomizedServers
+        randomizedFuncs
+
     let GetBalance(account: IAccount): decimal =
-        let electrumServer = ElectrumServer.PickRandom()
-        use electrumClient = new ElectrumClient(electrumServer)
-        electrumClient.GetBalance account.PublicAddress |> UnitConversion.FromSatoshiToBTC
+        let electrumGetBalance (ec: ElectrumClient) (address: string): int64 =
+            ec.GetBalance address
+        let balance =
+            FaultTolerantClient.Query<string,int64,ElectrumServerDiscarded>
+                account.PublicAddress
+                (GetRandomizedFuncs electrumGetBalance)
+        balance |> UnitConversion.FromSatoshiToBTC
 
     let private CreateTransactionAndCoinsToBeSigned (transactionDraft: TransactionDraft): Transaction*list<Coin> =
         let transaction = Transaction()
@@ -90,9 +115,13 @@ module internal Account =
                 else
                     newAcc,newSoFar
 
-        let electrumServer = ElectrumServer.PickRandom()
-        use electrumClient = new ElectrumClient(electrumServer)
-        let utxos = electrumClient.GetUnspentTransactionOutputs (account:>IAccount).PublicAddress
+        let electrumGetUtxos (ec: ElectrumClient) (address: string) =
+            ec.GetUnspentTransactionOutputs address
+        let utxos =
+            FaultTolerantClient.Query<string,array<BlockchainAddressListUnspentInnerResult>,ElectrumServerDiscarded>
+                (account:>IAccount).PublicAddress
+                (GetRandomizedFuncs electrumGetUtxos)
+
         if not (utxos.Any()) then
             failwith "No UTXOs found!"
         let possibleInputs =
@@ -108,10 +137,15 @@ module internal Account =
         let utxosToUse,totalValueOfInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis []
 
+        let electrumGetTx (ec: ElectrumClient) (txId: string) =
+            ec.GetBlockchainTransaction txId
         let inputs =
             seq {
                 for utxo in utxosToUse do
-                    let transRaw = electrumClient.GetBlockchainTransaction utxo.TransactionId
+                    let transRaw =
+                        FaultTolerantClient.Query<string,string,ElectrumServerDiscarded>
+                            utxo.TransactionId
+                            (GetRandomizedFuncs electrumGetTx)
                     yield { RawTransaction = transRaw; OutputIndex = utxo.OutputIndex }
             } |> List.ofSeq
 
@@ -126,13 +160,20 @@ module internal Account =
         let transactionDraftWithoutMinerFee = { Inputs = inputs; Outputs = outputs }
         let unsignedTransaction,_ = CreateTransactionAndCoinsToBeSigned transactionDraftWithoutMinerFee
 
+        let electrumEstimateFee (ec: ElectrumClient) (targetNumBlocks: int) =
+            ec.EstimateFee targetNumBlocks
+
         let transactionSizeInBytes = unsignedTransaction.ToBytes().Length
         //Console.WriteLine("transactionSize in bytes before signing: " + transactionSizeInBytes.ToString())
         let numberOfInputs = transactionDraftWithoutMinerFee.Inputs.Length
         let estimatedFinalTransSize =
             transactionSizeInBytes + (BYTES_PER_INPUT_ESTIMATION_CONSTANT * unsignedTransaction.Inputs.Count)
             + (numberOfInputs - 1)
-        let btcPerKiloByteForFastTrans = electrumClient.EstimateFee 2 //querying for 1 will always return -1 surprisingly...
+        let btcPerKiloByteForFastTrans =
+            FaultTolerantClient.Query<int,decimal,ElectrumServerDiscarded>
+                //querying for 1 will always return -1 surprisingly...
+                2
+                (GetRandomizedFuncs electrumEstimateFee)
 
         let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now)
         { TransactionDraft = transactionDraftWithoutMinerFee; Fee = minerFee }
@@ -252,9 +293,12 @@ module internal Account =
         rawTransaction
 
     let private BroadcastRawTransaction (rawTx: string) =
-        let electrumServer = ElectrumServer.PickRandom()
-        use electrumClient = new ElectrumClient(electrumServer)
-        let newTxId = electrumClient.BroadcastTransaction rawTx
+        let electrumBroadcastTx (ec: ElectrumClient) (rawTx: string): string =
+            ec.BroadcastTransaction rawTx
+        let newTxId =
+            FaultTolerantClient.Query<string,string,ElectrumServerDiscarded>
+                rawTx
+                (GetRandomizedFuncs electrumBroadcastTx)
         newTxId
 
     let BroadcastTransaction (transaction: SignedTransaction<_>) =

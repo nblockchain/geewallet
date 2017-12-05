@@ -38,21 +38,9 @@ module internal Account =
                 "0x" + rawPublicAddress
         publicAddress
 
-    let GetBalance(account: IAccount): MaybeCached<decimal> =
-        let maybeBalance =
-            try
-                let balance =
-                    Ether.Server.GetBalance account.Currency account.PublicAddress
-                Some(balance.Value)
-            with
-            | :? FaultTolerantClient.NoneAvailableException as ex -> None
-
-        match maybeBalance with
-        | None -> NotFresh(Caching.RetreiveLastBalance(account.PublicAddress))
-        | Some(balanceInWei) ->
-            let balanceInEth = UnitConversion.Convert.FromWei(balanceInWei, UnitConversion.EthUnit.Ether)
-            Caching.StoreLastBalance(account.PublicAddress, balanceInEth)
-            Fresh(balanceInEth)
+    let GetBalance(account: IAccount): decimal =
+        let balance = Ether.Server.GetBalance account.Currency account.PublicAddress
+        UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
 
     let ValidateAddress (currency: Currency) (address: string) =
         let ETHEREUM_ADDRESSES_LENGTH = 42

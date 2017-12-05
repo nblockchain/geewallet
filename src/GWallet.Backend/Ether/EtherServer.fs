@@ -80,6 +80,8 @@ module Server =
             raise (ServerTimedOutException(exMsg))
         task.Result
 
+    // FIXME: there should be a way to simplify this function to be more readable...
+    //        maybe make it more similar to BitcoinAccount.fs's GetRandomizedFuncs()?
     let private PlumbingCall<'T,'R> (currency: Currency)
                                     (arg: 'T)
                                     (web3Func: IWeb3 -> ('T -> Task<'R>))

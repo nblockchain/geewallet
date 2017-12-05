@@ -1,9 +1,6 @@
 ﻿namespace GWallet.Backend.Bitcoin
 
-open System
-open System.Linq
-open System.Text
-open System.Net.Sockets
+open GWallet.Backend
 
 type internal ElectrumServerPorts =
     {
@@ -13,14 +10,18 @@ type internal ElectrumServerPorts =
     static member Default () =
         { InsecurePort = Some(50001); SecurePort = 50002 }
 
+
 type internal ElectrumServer =
     {
         Host: string;
         Ports: ElectrumServerPorts;
     }
-    static member PickRandom () =
+
+module internal ElectrumServerSeedList =
+
         // list taken from https://github.com/spesmilo/electrum/blob/master/lib/network.py#L53
-        let defaultList = [
+    let private defaultList =
+        [
             { Host = "erbium1.sytes.net"; Ports = ElectrumServerPorts.Default() };                                           // core, e-x
             { Host = "ecdsa.net"; Ports = { InsecurePort = ElectrumServerPorts.Default().InsecurePort; SecurePort = 110 } }; // core, e-x
             { Host = "gh05.geekhosters.com"; Ports = ElectrumServerPorts.Default() };                                        // core, e-x
@@ -43,6 +44,5 @@ type internal ElectrumServer =
             { Host = "Electrum.hsmiths.com"; Ports = { InsecurePort = Some(110); SecurePort = 995 } };                       // BU, e-x
         ]
 
-        // TODO: stop hardcoding one that I know works very well, and choose really randomly
-        // (but also implement logic to choose a different one in case the randomly chosen turns out to fail)
-        defaultList.[2]
+    let Randomize() =
+        Shuffler.Unsort defaultList

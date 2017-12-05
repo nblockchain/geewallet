@@ -15,7 +15,7 @@ exception ServerTooOld of string
 type internal ElectrumClient (electrumServer: ElectrumServer) =
     let Init(): StratumClient =
         if electrumServer.Ports.InsecurePort.IsNone then
-            raise JsonRpcSharp.TlsNotSupportedYetInGWallet
+            raise(JsonRpcSharp.TlsNotSupportedYetInGWalletException())
 
         let jsonRpcClient = new JsonRpcSharp.Client(electrumServer.Host, electrumServer.Ports.InsecurePort.Value)
         let stratumClient = new StratumClient(jsonRpcClient)
