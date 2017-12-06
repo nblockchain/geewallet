@@ -23,6 +23,8 @@ This list is the (intended) order of preference for new features:
 - LTC payment channels support.
 - BTC tumblebit support.
 - Xamarin.Forms frontend.
+- Use bits instead of BTC as default unit.
+(See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
 - ETH raiden (state channels) support.
 - BTC lightning support (if SegWit activates).
 - Threshold signatures.
