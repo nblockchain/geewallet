@@ -1,6 +1,6 @@
-﻿namespace GWalletFrontendXamForms
+﻿namespace GWallet.Frontend.XF
 
 open Xamarin.Forms
 
 type App() = 
-    inherit Application(MainPage = GWalletFrontendXamFormsPage())
+    inherit Application(MainPage = AppPage())

@@ -1,4 +1,4 @@
-﻿namespace GWalletFrontendXamForms
+﻿namespace GWallet.Frontend.XF
 
 open System.Reflection
 open System.Runtime.CompilerServices

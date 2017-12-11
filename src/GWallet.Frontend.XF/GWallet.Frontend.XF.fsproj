@@ -6,8 +6,8 @@
 
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="Page.xaml.fs">
-      <DependentUpon>Page.xaml</DependentUpon>
+    <Compile Include="AppPage.xaml.fs">
+      <DependentUpon>AppPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="App.xaml.fs">
       <DependentUpon>App.xaml</DependentUpon>

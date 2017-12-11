@@ -12,7 +12,7 @@ type AppDelegate () =
 
     override this.FinishedLaunching (app, options) =
         Forms.Init()
-        this.LoadApplication (new GWalletFrontendXamForms.App())
+        this.LoadApplication (new GWallet.Frontend.XF.App())
         base.FinishedLaunching(app, options)
 
 module Main =
