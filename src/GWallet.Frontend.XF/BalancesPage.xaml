@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:GWallet.Frontend.XF"
+             x:Class="GWallet.Frontend.XF.BalancesPage">
+    <StackLayout x:Name="mainLayout"
+                 Padding="20,20,20,20"
+                 VerticalOptions="Center">
+        <Label Text="GWallet" x:Name="titleLabel"
+               VerticalOptions="Center" HorizontalOptions="Center" />
+
+    </StackLayout>
+</ContentPage>

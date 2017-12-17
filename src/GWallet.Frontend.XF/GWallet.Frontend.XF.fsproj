@@ -6,15 +6,16 @@
 
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
-    <Compile Include="AppPage.xaml.fs">
-      <DependentUpon>AppPage.xaml</DependentUpon>
+    <Compile Include="BalancesPage.xaml.fs">
+      <DependentUpon>BalancesPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="WelcomePage.xaml.fs">
+      <DependentUpon>WelcomePage.xaml</DependentUpon>
     </Compile>
     <Compile Include="App.xaml.fs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <PackageReference Include="Xamarin.Forms" Version="2.5.0.121934" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
   </ItemGroup>
 </Project>

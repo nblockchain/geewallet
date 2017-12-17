@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:GWallet.Frontend.XF"
+             x:Class="GWallet.Frontend.XF.WelcomePage">
+    <StackLayout x:Name="mainLayout"
+                 VerticalOptions="Center"
+                 Padding="20,20,20,20">
+        <Label Text="Welcome to GWallet" x:Name="welcomeLabel"
+               VerticalOptions="Center" HorizontalOptions="Center"
+               Margin="20,20,20,20"/>
+
+        <Entry x:Name="passphraseEntry" IsPassword="true"
+               Placeholder="Input your new passphrase"
+               TextChanged="OnPassphraseTextChanged" />
+        <Entry x:Name="passphraseEntryConfirmation" IsPassword="true"
+               Placeholder="Repeat your passphrase here"
+               TextChanged="OnPassphraseTextChanged" />
+        <Button x:Name="createButton"
+                Text="Create my accounts" IsEnabled="false"
+                HorizontalOptions="Center"
+                Clicked="OnCreateButtonClicked" />
+    </StackLayout>
+</ContentPage>
