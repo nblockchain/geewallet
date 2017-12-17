@@ -6,6 +6,7 @@ open System.IO
 open FSX.Infrastructure
 
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
+let BACKEND_SOLUTION_FILE = "gwallet.backend.sln"
 
 type BinaryConfig =
     | Debug
@@ -44,13 +45,14 @@ exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
 
 let JustBuild binaryConfig =
     Console.WriteLine "Gathering gwallet dependencies..."
-    let nuget = Process.Execute ("nuget restore", true, false)
+    let nuget = Process.Execute (sprintf "nuget restore %s" BACKEND_SOLUTION_FILE, true, false)
     if (nuget.ExitCode <> 0) then
         Environment.Exit 1
 
     Console.WriteLine "Compiling gwallet..."
-    let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
-    let xbuild = Process.Execute (sprintf "xbuild %s" configOption, true, false)
+    let xbuildParams = sprintf "%s /p:Configuration=%s"
+                               BACKEND_SOLUTION_FILE (binaryConfig.ToString())
+    let xbuild = Process.Execute (sprintf "xbuild %s" xbuildParams, true, false)
     if (xbuild.ExitCode <> 0) then
         Environment.Exit 1
 
