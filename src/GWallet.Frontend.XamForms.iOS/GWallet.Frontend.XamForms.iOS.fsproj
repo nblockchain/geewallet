@@ -144,6 +144,12 @@
     <Reference Include="SharpRaven">
       <HintPath>..\..\packages\SharpRaven.2.2.0\lib\net45\SharpRaven.dll</HintPath>
     </Reference>
+    <Reference Include="Plugin.Clipboard.Abstractions">
+      <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.0.0\lib\Xamarin.iOS10\Plugin.Clipboard.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Plugin.Clipboard">
+      <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.0.0\lib\Xamarin.iOS10\Plugin.Clipboard.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json" />
