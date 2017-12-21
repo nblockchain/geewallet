@@ -34,9 +34,10 @@ module FaultTolerance =
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
-    let ``throws NotAvailable if no funcs``(): unit =
-        Assert.Throws<NoneAvailableException>(
-            fun _ -> FaultTolerantClient<SomeSpecificException>().Query<string,int> "_" [] |> ignore
+    let ``throws ArgumentException if no funcs``(): unit =
+        let client = FaultTolerantClient<SomeSpecificException>()
+        Assert.Throws<ArgumentException>(
+            fun _ -> client.Query<string,int> "_" [] |> ignore
         ) |> ignore
 
     [<Test>]
@@ -149,5 +150,25 @@ module FaultTolerance =
 
         Assert.Throws<ArgumentException>(fun _ ->
             FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe)
+                    |> ignore ) |> ignore
+
+    [<Test>]
+    let ``consistency precondition > funcs``() =
+        let numberOfConsistentResponsesToBeConsideredSafe = 3
+
+        let someStringArg = "foo"
+        let someResult = 1
+
+        let func1 (arg: string) =
+            someResult
+        let func2 (arg: string) =
+            someResult
+
+        let client = FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe)
+
+        Assert.Throws<ArgumentException>(fun _ ->
+            client.Query<string,int>
+                someStringArg
+                [ func1; func2 ]
                     |> ignore ) |> ignore
 

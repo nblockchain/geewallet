@@ -47,4 +47,10 @@ type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesReq
                 | Failure(ex) ->
                     queryInternal args resultsSoFar ex tail
 
+        if not (funcs.Any()) then
+            raise(ArgumentException("number of funcs must be higher than zero",
+                                    "funcs"))
+        if (funcs.Count() < numberOfConsistentResponsesRequired) then
+            raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
+                                    "funcs"))
         queryInternal args [] null funcs
