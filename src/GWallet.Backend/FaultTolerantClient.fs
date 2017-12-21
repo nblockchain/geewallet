@@ -11,12 +11,13 @@ type internal ResultOrFailure<'R,'E when 'E :> Exception> =
     | Failure of 'E
 
 type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesRequired: int) =
+    do
+        if typeof<'E> = typeof<Exception> then
+            raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
 
     new() = FaultTolerantClient(1)
 
     member self.Query<'T,'R when 'R : equality> (args: 'T) (funcs: list<'T->'R>): 'R =
-        if typeof<'E> = typeof<Exception> then
-            raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
         let rec queryInternal (args: 'T) (resultsSoFar: list<'R>) (lastEx: Exception) (funcs: list<'T->'R>) =
             match funcs with
             | [] -> raise (NoneAvailableException("Not available", lastEx))

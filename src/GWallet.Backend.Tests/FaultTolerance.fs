@@ -112,7 +112,7 @@ module FaultTolerance =
             "someResult2"
 
         Assert.Throws<ArgumentException>(fun _ ->
-            FaultTolerantClient<Exception>().Query<string,string> someStringArg [ func1; func2 ]
+            FaultTolerantClient<Exception>()
                 |> ignore ) |> ignore
 
     [<Test>]
