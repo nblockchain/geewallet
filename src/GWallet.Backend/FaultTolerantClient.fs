@@ -6,6 +6,16 @@ open System.Linq
 type NoneAvailableException (message:string, lastException: Exception) =
    inherit Exception (message, lastException)
 
+
+type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
+                                   maxNumberOfConsistentResultsObtained: int,
+                                   numberOfConsistentResultsRequired: int) =
+  inherit Exception ("Results obtained were not enough to be considered consistent" +
+                      sprintf " (received: %d, consistent: %d, required: %d)"
+                                  totalNumberOfSuccesfulResultsObtained
+                                  maxNumberOfConsistentResultsObtained
+                                  numberOfConsistentResultsRequired)
+
 type internal ResultOrFailure<'R,'E when 'E :> Exception> =
     | Result of 'R
     | Failure of 'E
@@ -22,7 +32,18 @@ type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesReq
     member self.Query<'T,'R when 'R : equality> (args: 'T) (funcs: list<'T->'R>): 'R =
         let rec queryInternal (args: 'T) (resultsSoFar: list<'R>) (lastEx: Exception) (funcs: list<'T->'R>) =
             match funcs with
-            | [] -> raise (NoneAvailableException("Not available", lastEx))
+            | [] ->
+                match resultsSoFar with
+                | [] ->
+                    raise (NoneAvailableException("Not available", lastEx))
+                | _ ->
+                    let totalNumberOfSuccesfulResultsObtained = resultsSoFar.Count()
+                    let resultsByCountOrdered =
+                        resultsSoFar |> Seq.countBy id |> Seq.sortBy (fun (_,count:int) -> count)
+                    let mostConsistentResult,maxNumberOfConsistentResultsObtained = resultsByCountOrdered.Last()
+                    raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
+                                                        maxNumberOfConsistentResultsObtained,
+                                                        numberOfConsistentResponsesRequired))
             | head::tail ->
                 let maybeResult:ResultOrFailure<'R,'E> =
                     try

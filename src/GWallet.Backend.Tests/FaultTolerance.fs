@@ -172,3 +172,29 @@ module FaultTolerance =
                 [ func1; func2 ]
                     |> ignore ) |> ignore
 
+    [<Test>]
+    let ``if consistency is not found, throws inconsistency exception``() =
+        let numberOfConsistentResponsesToBeConsideredSafe = 3
+
+        let someStringArg = "foo"
+        let mostConsistentResult = 1
+        let someOtherResultA = 2
+        let someOtherResultB = 3
+
+        let func1 (arg: string) =
+            someOtherResultA
+        let func2 (arg: string) =
+            mostConsistentResult
+        let func3 (arg: string) =
+            someOtherResultB
+        let func4 (arg: string) =
+            mostConsistentResult
+
+        let client = FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe)
+
+        let inconsistencyEx = Assert.Throws<ResultInconsistencyException>(fun _ ->
+                                  client.Query<string,int>
+                                      someStringArg
+                                      [ func1; func2; func3; func4 ]
+                                          |> ignore )
+        Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
