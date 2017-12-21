@@ -137,3 +137,17 @@ module FaultTolerance =
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
 
+    [<Test>]
+    let ``consistency precondition > 0``() =
+        let numberOfConsistentResponsesToBeConsideredSafe = 0
+
+        Assert.Throws<ArgumentException>(fun _ ->
+            FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe)
+                    |> ignore ) |> ignore
+
+        let numberOfConsistentResponsesToBeConsideredSafe = -1
+
+        Assert.Throws<ArgumentException>(fun _ ->
+            FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe)
+                    |> ignore ) |> ignore
+

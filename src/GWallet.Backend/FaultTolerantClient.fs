@@ -14,6 +14,8 @@ type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesReq
     do
         if typeof<'E> = typeof<Exception> then
             raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
+        if numberOfConsistentResponsesRequired < 1 then
+            raise (ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired"))
 
     new() = FaultTolerantClient(1)
 
