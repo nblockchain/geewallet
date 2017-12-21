@@ -80,9 +80,11 @@ module Server =
             raise (ServerTimedOutException(exMsg))
         task.Result
 
+    let private faultTolerantEthClient = FaultTolerantClient<ConnectionUnsuccessfulException>()
+
     // FIXME: there should be a way to simplify this function to be more readable...
     //        maybe make it more similar to BitcoinAccount.fs's GetRandomizedFuncs()?
-    let private PlumbingCall<'T,'R> (currency: Currency)
+    let private PlumbingCall<'T,'R when 'R:equality> (currency: Currency)
                                     (arg: 'T)
                                     (web3Func: IWeb3 -> ('T -> Task<'R>))
                                     : 'R =
@@ -92,7 +94,7 @@ module Server =
                           fun (arg1: 'T) ->
                               WaitOnTask (fun (arg11:'T) -> web3Func web3 arg11) arg1)
                       web3s
-        FaultTolerantClient.Query<'T,'R,ConnectionUnsuccessfulException> arg funcs
+        faultTolerantEthClient.Query<'T,'R> arg funcs
 
     let GetTransactionCount (currency: Currency) (address: string)
         : HexBigInteger =

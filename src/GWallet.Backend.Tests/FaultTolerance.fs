@@ -17,7 +17,7 @@ module FaultTolerance =
         let func (arg: string) =
             someResult
         let dataRetreived =
-            FaultTolerantClient.Query<string,int,SomeSpecificException> someStringArg [ func ]
+            FaultTolerantClient<SomeSpecificException>().Query<string,int> someStringArg [ func ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -29,14 +29,14 @@ module FaultTolerance =
             someResult
         let func2 (arg: string) =
             someResult
-        let dataRetreived = FaultTolerantClient.Query<string,int,SomeSpecificException> someStringArg [ func1; func2 ]
+        let dataRetreived = FaultTolerantClient<SomeSpecificException>().Query<string,int> someStringArg [ func1; func2 ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
     let ``throws NotAvailable if no funcs``(): unit =
-        Assert.Throws<FaultTolerantClient.NoneAvailableException>(
-            fun _ -> FaultTolerantClient.Query<string,int,SomeSpecificException> "_" [] |> ignore
+        Assert.Throws<NoneAvailableException>(
+            fun _ -> FaultTolerantClient<SomeSpecificException>().Query<string,int> "_" [] |> ignore
         ) |> ignore
 
     [<Test>]
@@ -48,7 +48,7 @@ module FaultTolerance =
         let func2 (arg: string) =
             someResult
         let dataRetreived =
-            FaultTolerantClient.Query<string,int,SomeSpecificException> someStringArg [ func1; func2 ]
+            FaultTolerantClient<SomeSpecificException>().Query<string,int> someStringArg [ func1; func2 ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -64,11 +64,11 @@ module FaultTolerance =
         let dataRetrieved =
             try
                 let result =
-                    FaultTolerantClient.Query<string,int,SomeException> someStringArg [ func1; func2 ]
+                    FaultTolerantClient<SomeException>().Query<string,int> someStringArg [ func1; func2 ]
                 Some(result)
             with
             | ex ->
-                Assert.That (ex, Is.TypeOf<FaultTolerantClient.NoneAvailableException>())
+                Assert.That (ex, Is.TypeOf<NoneAvailableException>())
                 Assert.That (ex.InnerException, Is.Not.Null)
                 Assert.That (ex.InnerException, Is.TypeOf<SomeException>())
                 None
@@ -85,7 +85,7 @@ module FaultTolerance =
             someResult
 
         let result =
-            FaultTolerantClient.Query<string,int,SomeException> someStringArg [ func1; func2 ]
+            FaultTolerantClient<SomeException>().Query<string,int> someStringArg [ func1; func2 ]
 
         Assert.That(result, Is.EqualTo(someResult))
 
@@ -100,7 +100,7 @@ module FaultTolerance =
             someResult
 
         Assert.Throws<SomeOtherException>(fun _ ->
-            FaultTolerantClient.Query<string,int,SomeException> someStringArg [ func1; func2 ]
+            FaultTolerantClient<SomeException>().Query<string,int> someStringArg [ func1; func2 ]
                 |> ignore ) |> ignore
 
     [<Test>]
@@ -112,5 +112,28 @@ module FaultTolerance =
             "someResult2"
 
         Assert.Throws<ArgumentException>(fun _ ->
-            FaultTolerantClient.Query<string,string,Exception> someStringArg [ func1; func2 ]
+            FaultTolerantClient<Exception>().Query<string,string> someStringArg [ func1; func2 ]
                 |> ignore ) |> ignore
+
+    [<Test>]
+    let ``makes sure data is consistent across N funcs``() =
+        let numberOfConsistentResponsesToBeConsideredSafe = 2
+
+        let someStringArg = "foo"
+        let someConsistentResult = 1
+        let someInconsistentResult = 2
+
+        let funcInconsistent (arg: string) =
+            someInconsistentResult
+        let funcConsistentA (arg: string) =
+            someConsistentResult
+        let funcConsistentB (arg: string) =
+            someConsistentResult
+
+        let dataRetreived =
+            FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe).Query<string,int>
+                someStringArg
+                [ funcInconsistent; funcConsistentA; funcConsistentB ]
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
+

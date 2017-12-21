@@ -23,7 +23,7 @@ module Account =
                     else
                         Some(Bitcoin.Account.GetUnconfirmedBalance account)
             with
-            | :? FaultTolerantClient.NoneAvailableException as ex -> None
+            | :? NoneAvailableException as ex -> None
 
         match maybeBalance with
         | None ->

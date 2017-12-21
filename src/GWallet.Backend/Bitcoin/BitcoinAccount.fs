@@ -26,6 +26,8 @@ module internal Account =
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
 
+    let private faultTolerantElectrumClient = FaultTolerantClient<ElectrumServerDiscarded>()
+
     let private GetPublicAddressFromPublicKey (publicKey: PubKey) =
         publicKey.GetSegwitAddress(Network.Main).GetScriptAddress().ToString()
 
@@ -60,7 +62,7 @@ module internal Account =
         let electrumGetBalance (ec: ElectrumClient) (address: string) =
             ec.GetBalance address
         let balance =
-            FaultTolerantClient.Query<string,BlockchainAddressGetBalanceInnerResult,ElectrumServerDiscarded>
+            faultTolerantElectrumClient.Query<string,BlockchainAddressGetBalanceInnerResult>
                 account.PublicAddress
                 (GetRandomizedFuncs electrumGetBalance)
         balance
@@ -124,7 +126,7 @@ module internal Account =
         let electrumGetUtxos (ec: ElectrumClient) (address: string) =
             ec.GetUnspentTransactionOutputs address
         let utxos =
-            FaultTolerantClient.Query<string,array<BlockchainAddressListUnspentInnerResult>,ElectrumServerDiscarded>
+            faultTolerantElectrumClient.Query<string,array<BlockchainAddressListUnspentInnerResult>>
                 (account:>IAccount).PublicAddress
                 (GetRandomizedFuncs electrumGetUtxos)
 
@@ -149,7 +151,7 @@ module internal Account =
             seq {
                 for utxo in utxosToUse do
                     let transRaw =
-                        FaultTolerantClient.Query<string,string,ElectrumServerDiscarded>
+                        faultTolerantElectrumClient.Query<string,string>
                             utxo.TransactionId
                             (GetRandomizedFuncs electrumGetTx)
                     yield { RawTransaction = transRaw; OutputIndex = utxo.OutputIndex }
@@ -176,7 +178,7 @@ module internal Account =
             transactionSizeInBytes + (BYTES_PER_INPUT_ESTIMATION_CONSTANT * unsignedTransaction.Inputs.Count)
             + (numberOfInputs - 1)
         let btcPerKiloByteForFastTrans =
-            FaultTolerantClient.Query<int,decimal,ElectrumServerDiscarded>
+            faultTolerantElectrumClient.Query<int,decimal>
                 //querying for 1 will always return -1 surprisingly...
                 2
                 (GetRandomizedFuncs electrumEstimateFee)
@@ -302,7 +304,7 @@ module internal Account =
         let electrumBroadcastTx (ec: ElectrumClient) (rawTx: string): string =
             ec.BroadcastTransaction rawTx
         let newTxId =
-            FaultTolerantClient.Query<string,string,ElectrumServerDiscarded>
+            faultTolerantElectrumClient.Query<string,string>
                 rawTx
                 (GetRandomizedFuncs electrumBroadcastTx)
         newTxId
