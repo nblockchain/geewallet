@@ -7,7 +7,13 @@ open Xamarin.Forms
 open GWallet.Backend
 
 module Initialization =
-    let LandingPage(): ContentPage =
+
+    let private GlobalInit () =
+        Infrastructure.SetupSentryHook ()
+
+    let internal LandingPage(): ContentPage =
+        GlobalInit ()
+
         let accounts = Account.GetAllActiveAccounts()
         if not (accounts.Any()) then
             WelcomePage() :> ContentPage
