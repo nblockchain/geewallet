@@ -42,14 +42,26 @@ module Account =
             Caching.StoreLastBalance(account.PublicAddress, balanceInEth)
             Fresh(balanceInEth)
 
-    let GetAllActiveAccounts(): seq<IAccount> =
-        seq {
-            let allCurrencies = Currency.GetAll()
+    let mutable wiped = false
+    let private WipeConfig(allCurrencies: seq<Currency>) =
+        if not wiped then
+            for currency in allCurrencies do
+                Config.Wipe currency
+            wiped <- true
 
+    let GetAllActiveAccounts(): list<IAccount> =
+        let allCurrencies = Currency.GetAll()
+
+// uncomment this block below, manually, if when testing you need to go back to test the WelcomePage.xaml
+#if FALSE
+        WipeConfig allCurrencies
+#endif
+
+        seq {
             for currency in allCurrencies do
                 for account in Config.GetAllActiveAccounts(currency) do
                     yield account
-        }
+        } |> List.ofSeq
 
     let GetArchivedAccountsWithPositiveBalance(): seq<ArchivedAccount*decimal> =
         seq {

@@ -73,6 +73,10 @@ module internal Config =
                 yield ArchivedAccount(currency, ecPrivKey)
         }
 
+    let internal Wipe(currency: Currency): unit =
+        let configDirForNormalAccounts = GetConfigDirForAccountsOfThisCurrency(currency)
+        Directory.Delete(configDirForNormalAccounts.FullName, true) |> ignore
+
     let private GetFile (account: IAccount) =
         let configDir, fileName =
             match account with
