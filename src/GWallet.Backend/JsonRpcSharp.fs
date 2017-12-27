@@ -8,6 +8,13 @@ open System.Threading
 
 module JsonRpcSharp =
 
+    type internal UnhandledSocketException =
+        inherit Exception
+
+        new(socketErrorCode: int, innerException: Exception) =
+            { inherit Exception(sprintf "GWallet not prepared for this SocketException with ErrorCode[%d]" socketErrorCode,
+                                        innerException) }
+
     type ConnectionUnsuccessfulException =
         inherit Exception
 
@@ -97,11 +104,12 @@ module JsonRpcSharp =
                     raise(ServerRefusedException(msg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.TimedOut) then
                     raise(ServerTimedOutException(msg, ex))
-                if (socketException.Value.ErrorCode = int SocketError.HostNotFound) then
+                if (socketException.Value.ErrorCode = int SocketError.HostNotFound ||
+                    socketException.Value.ErrorCode = int SocketError.TryAgain) then
                     raise(ServerCannotBeResolvedException(msg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.NetworkUnreachable) then
                     raise(ServerUnreachableException(msg, ex))
-                reraise()
+                raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
 
         member self.Request (request: string): string =
             if not (tcpClient.Connected) then
