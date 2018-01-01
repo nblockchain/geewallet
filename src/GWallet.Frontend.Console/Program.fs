@@ -5,10 +5,10 @@ open System.Text.RegularExpressions
 open GWallet.Backend
 open GWallet.Frontend.Console
 
-let rec TrySendAmount account destination amount fee =
+let rec TrySendAmount account transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
     try
-        let txId = Account.SendPayment account destination amount password fee
+        let txId = Account.SendPayment account transactionMetadata destination amount password
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
         UserInteraction.PressAnyKeyToContinue ()
     with
@@ -20,7 +20,7 @@ let rec TrySendAmount account destination amount fee =
         UserInteraction.PressAnyKeyToContinue()
     | :? InvalidPassword ->
         Presentation.Error "Invalid password, try again."
-        TrySendAmount account destination amount fee
+        TrySendAmount account transactionMetadata destination amount
 
 let rec TrySign account unsignedTrans =
     let password = UserInteraction.AskPassword false
@@ -98,8 +98,10 @@ let SignOffPayment() =
             | _ ->
                 failwith "Account type not supported. Please report this issue."
 
-let SendPaymentOfSpecificAmount (account: IAccount) amount fee =
-    let destination = UserInteraction.AskPublicAddress "Destination address: "
+let SendPaymentOfSpecificAmount (account: IAccount)
+                                (amount: TransferAmount)
+                                (transactionMetadata: IBlockchainFeeInfo)
+                                (destination: string) =
     match account with
     | :? ReadOnlyAccount as readOnlyAccount ->
         Console.WriteLine("Cannot send payments from readonly accounts.")
@@ -111,27 +113,26 @@ let SendPaymentOfSpecificAmount (account: IAccount) amount fee =
             Amount = amount;
             DestinationAddress = destination;
         }
-        Account.SaveUnsignedTransaction proposal fee filePath
+        Account.SaveUnsignedTransaction proposal transactionMetadata filePath
         Console.WriteLine("Transaction saved. Now copy it to the device with the private key.")
         UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
-        TrySendAmount normalAccount destination amount fee
+        TrySendAmount normalAccount transactionMetadata destination amount
     | _ ->
         failwith ("Account type not recognized: " + account.GetType().FullName)
 
 let SendPayment() =
     let account = UserInteraction.AskAccount()
-    let maybeFee = UserInteraction.AskFee(account.Currency)
-    match maybeFee with
+    let destination = UserInteraction.AskPublicAddress account.Currency "Destination address: "
+    let maybeAmount = UserInteraction.AskAmount account
+    match maybeAmount with
     | None -> ()
-    | Some(fee) ->
-        let amount = UserInteraction.AskAmount account
-        match amount with
-        | UserInteraction.AmountToTransfer.CancelOperation -> ()
-        | UserInteraction.AmountToTransfer.CertainCryptoAmount(amount) ->
-            SendPaymentOfSpecificAmount account amount fee
-        | UserInteraction.AmountToTransfer.AllBalance(allBalance) ->
-            SendPaymentOfSpecificAmount account (allBalance - fee.EtherPriceForNormalTransaction()) fee
+    | Some(amount) ->
+        let maybeFee = UserInteraction.AskFee account amount.ValueToSend destination
+        match maybeFee with
+        | None -> ()
+        | Some(fee) ->
+            SendPaymentOfSpecificAmount account amount fee destination
 
 let rec TryArchiveAccount account =
     let password = UserInteraction.AskPassword(false)
@@ -146,7 +147,7 @@ let rec TryArchiveAccount account =
 
 let rec AddReadOnlyAccount() =
     let currency = UserInteraction.AskCurrency()
-    let publicAddress = UserInteraction.AskPublicAddress "Public address: "
+    let publicAddress = UserInteraction.AskPublicAddress currency "Public address: "
     try
         Account.AddPublicWatcher currency publicAddress
     with
@@ -197,7 +198,7 @@ let rec PerformOptions(numAccounts: int) =
     | Options.CreateAccount ->
         let currency = UserInteraction.AskCurrency()
         let password = UserInteraction.AskPassword true
-        let account = Account.Create currency password
+        let account = Account.CreateNormalAccount currency password
         Console.WriteLine("Account created: " + (account:>IAccount).PublicAddress)
         UserInteraction.PressAnyKeyToContinue()
     | Options.Refresh -> ()
@@ -234,11 +235,11 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
         Console.WriteLine "Please indicate the account you would like to transfer the funds to."
         let account = GetAccountOfSameCurrency currency
 
-        let maybeFee = UserInteraction.AskFee account.Currency
+        let maybeFee = UserInteraction.AskFee archivedAccount balance account.PublicAddress
         match maybeFee with
         | None -> ()
-        | Some(fee) ->
-            let txId = Account.SweepArchivedFunds archivedAccount balance account fee
+        | Some(feeInfo) ->
+            let txId = Account.SweepArchivedFunds archivedAccount balance account feeInfo
             Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
             UserInteraction.PressAnyKeyToContinue ()
 

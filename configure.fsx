@@ -19,7 +19,9 @@ let ConfigCommandCheck (commandName: string) =
 ConfigCommandCheck "fsharpc"
 ConfigCommandCheck "xbuild"
 ConfigCommandCheck "mono"
-ConfigCommandCheck "nuget"
+
+// needed by NuGet.Restore.targets
+ConfigCommandCheck "curl"
 
 let rec private GatherOrGetDefaultPrefix(args: string list, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
     let GatherPrefix(newPrefix: string): Option<string> =

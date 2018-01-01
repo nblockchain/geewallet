@@ -287,22 +287,32 @@ module UserInteraction =
         else
             AskYesNo question
 
-    let rec AskPublicAddress (askText: string): string =
+    let rec AskPublicAddress currency (askText: string): string =
         Console.Write askText
         let publicAddress = Console.ReadLine()
         let validatedAddress =
             try
-                Account.ValidateAddress publicAddress
+                Account.ValidateAddress currency publicAddress
                 publicAddress
             with
-            | AddressMissingZeroExPrefix ->
-                Presentation.Error "Address should start with '0x', please try again."
-                AskPublicAddress askText
-            | AddressWithInvalidLength(requiredLength) ->
-                Presentation.Error
-                    (sprintf "Address should have a length of %d characters, please try again."
-                        requiredLength)
-                AskPublicAddress askText
+            | AddressMissingProperPrefix(possiblePrefixes) ->
+                let possiblePrefixesStr = String.Join(", ", possiblePrefixes)
+                Presentation.Error (sprintf "Address starts with the wrong prefix. Valid prefixes: %s"
+                                        possiblePrefixesStr)
+                AskPublicAddress currency askText
+            | AddressWithInvalidLength(lengthLimitViolated) ->
+                if (publicAddress.Length > lengthLimitViolated) then
+                    Presentation.Error
+                        (sprintf "Address should have a length not higher than %d characters, please try again."
+                            lengthLimitViolated)
+                else if (publicAddress.Length < lengthLimitViolated) then
+                    Presentation.Error
+                        (sprintf "Address should have a length not lower than %d characters, please try again."
+                            lengthLimitViolated)
+                else
+                    failwith (sprintf "Address introduced '%s' gave a length error with a limit that matches its length: %d=%d"
+                                 publicAddress lengthLimitViolated publicAddress.Length)
+                AskPublicAddress currency askText
             | AddressWithInvalidChecksum(addressWithValidChecksum) ->
                 Console.Error.WriteLine "WARNING: the address provided didn't pass the checksum, are you sure you copied it properly?"
                 Console.Error.WriteLine "(If you used the clipboard, you're likely copying it from a service that doesn't have checksum validation.)"
@@ -311,7 +321,7 @@ module UserInteraction =
                 if (continueWithoutChecksum) then
                     addressWithValidChecksum
                 else
-                    AskPublicAddress askText
+                    AskPublicAddress currency askText
         validatedAddress
 
     type private AmountOption =
@@ -331,11 +341,6 @@ module UserInteraction =
             | 3 -> AmountOption.AllBalance
             | _ -> AskAmountOption()
 
-    type internal AmountToTransfer =
-        | AllBalance of decimal
-        | CertainCryptoAmount of decimal
-        | CancelOperation
-
     let rec AskParticularAmount() =
         Console.Write("Amount: ")
         let amount = Console.ReadLine()
@@ -346,59 +351,76 @@ module UserInteraction =
         | (true, parsedAdmount) ->
             parsedAdmount
 
-    let rec AskParticularUsdAmount usdValue (maybeTime:Option<DateTime>): Option<decimal> =
+    let rec AskParticularUsdAmount currency usdValue (maybeTime:Option<DateTime>): Option<decimal> =
         let usdAmount = AskParticularAmount()
         let exchangeRateDateMsg =
             match maybeTime with
             | None -> String.Empty
             | Some(time) -> sprintf " (as of %s)" (Presentation.ShowSaneDate time)
-        let exchangeMsg = sprintf "%s USD per Ether%s" (usdValue.ToString()) exchangeRateDateMsg
+        let exchangeMsg = sprintf "%s USD per %s%s" (usdValue.ToString())
+                                                    (currency.ToString())
+                                                    exchangeRateDateMsg
         let etherAmount = usdAmount / usdValue
-        Console.WriteLine(sprintf "At an exchange rate of %s, Ether amount would be:%s%s"
-                              exchangeMsg Environment.NewLine (etherAmount.ToString()))
+        Console.WriteLine(sprintf "At an exchange rate of %s, %s amount would be:%s%s"
+                              exchangeMsg (currency.ToString())
+                              Environment.NewLine (etherAmount.ToString()))
         if AskYesNo "Do you accept?" then
             Some(usdAmount)
         else
             None
 
-    let private GetCryptoAmount usdValue time =
-        match AskParticularUsdAmount usdValue time with
-        | None -> AmountToTransfer.CancelOperation
-        | Some(usdAmount) ->
-            let ethAmount = usdAmount / usdValue
-            AmountToTransfer.CertainCryptoAmount(ethAmount)
+    let private GetCryptoAmount cryptoCurrency usdValue time: Option<decimal> =
+        match AskParticularUsdAmount cryptoCurrency usdValue time with
+        | None -> None
+        | Some(usdAmount) -> Some(usdAmount / usdValue)
 
-    let rec internal AskAmount account: AmountToTransfer =
-        Console.WriteLine("There are various options to specify the amount of your transaction:")
-        Console.WriteLine("1. Exact amount in Ether")
-        Console.WriteLine("2. Approximate amount in USD")
-        Console.WriteLine("3. All balance existing in the account")
-        match AskAmountOption() with
-        | AmountOption.AllBalance ->
-            match Account.GetBalance(account) with
-            | NotFresh(NotAvailable) ->
-                Presentation.Error "Balance not available if offline."
-                AmountToTransfer.CancelOperation
-            | Fresh(amount) | NotFresh(Cached(amount,_)) ->
-                AmountToTransfer.AllBalance(amount)
-        | AmountOption.CertainCryptoAmount ->
-            AmountToTransfer.CertainCryptoAmount(AskParticularAmount())
-        | AmountOption.ApproxEquivalentFiatAmount ->
-            match FiatValueEstimation.UsdValue account.Currency with
-            | NotFresh(NotAvailable) ->
-                Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
-                AskAmount account
-            | Fresh(usdValue) ->
-                GetCryptoAmount usdValue None
-            | NotFresh(Cached(usdValue,time)) ->
-                GetCryptoAmount usdValue (Some(time))
+    let rec internal AskAmount account: Option<TransferAmount> =
 
-    let AskFee(currency: Currency): Option<EtherMinerFee> =
-        let estimatedFee = Account.EstimateFee(currency)
-        Presentation.ShowFee currency estimatedFee
+        match Account.GetBalance(account) with
+        | NotFresh(NotAvailable) ->
+            Presentation.Error "Balance not available if offline."
+            None
+
+        | Fresh(balance) | NotFresh(Cached(balance,_)) ->
+
+            Console.WriteLine("There are various options to specify the amount of your transaction:")
+            Console.WriteLine(sprintf "1. Exact amount in %s" ((account:>IAccount).Currency.ToString()))
+            Console.WriteLine("2. Approximate amount in USD")
+            Console.WriteLine(sprintf "3. All balance existing in the account (%g %s)"
+                                      balance (account.Currency.ToString()))
+
+            let amountToSend = AskAmountOption()
+
+            match amountToSend with
+            | AmountOption.AllBalance ->
+                Some(TransferAmount(balance, 0m))
+            | AmountOption.CertainCryptoAmount ->
+                let specificCryptoAmount = AskParticularAmount()
+                Some(TransferAmount(specificCryptoAmount, balance - specificCryptoAmount))
+            | AmountOption.ApproxEquivalentFiatAmount ->
+                match FiatValueEstimation.UsdValue account.Currency with
+                | NotFresh(NotAvailable) ->
+                    Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
+                    AskAmount account
+                | Fresh(usdValue) ->
+                    let maybeCryptoAmount = GetCryptoAmount account.Currency usdValue None
+                    match maybeCryptoAmount with
+                    | None -> None
+                    | Some(cryptoAmount) ->
+                        Some(TransferAmount(cryptoAmount, balance-cryptoAmount))
+                | NotFresh(Cached(usdValue,time)) ->
+                    let maybeCryptoAmount = GetCryptoAmount account.Currency usdValue (Some(time))
+                    match maybeCryptoAmount with
+                    | None -> None
+                    | Some(cryptoAmount) ->
+                        Some(TransferAmount(cryptoAmount, balance-cryptoAmount))
+
+    let AskFee account amount destination: Option<IBlockchainFeeInfo> =
+        let txMetadataWithFeeEstimation = Account.EstimateFee account amount destination
+        Presentation.ShowFee account.Currency txMetadataWithFeeEstimation
         let accept = AskYesNo "Do you accept?"
         if accept then
-            Some(estimatedFee)
+            Some(txMetadataWithFeeEstimation)
         else
             None
 
