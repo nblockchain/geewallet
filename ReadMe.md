@@ -15,19 +15,19 @@ GWallet will always be standing in the shoulders of giants, which means we have 
 
 This list is the (intended) order of preference for new features:
 
-- LTC support.
+- Xamarin.Forms frontends (in progress, see the 'frontend' branch)...
 - RBF support.
+- LTC support.
 - Fee selection for custom priority.
 - Multi-sig support.
-- LTC payment channels support.
-- BTC tumblebit support.
-- Xamarin.Forms frontend.
+- Payment channels support.
+- Lightning support.
+- ETH/ETC raiden (state channels) support.
 - Use bits instead of BTC as default unit.
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
-- ETH raiden (state channels) support.
-- BTC lightning support (if SegWit activates).
-- Threshold signatures.
 - MimbleWimble support?
+- Threshold signatures.
+- Tumblebit support?
 - Decentralized currency exchange?
 - Decentralized naming resolution? (BlockStack vs ENS?)
 
