@@ -22,6 +22,8 @@ This list is the (intended) order of preference for new features:
 - LTC payment channels support.
 - BTC tumblebit support.
 - Xamarin.Forms frontend.
+- Use bits instead of BTC as default unit.
+(See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
 - ETH raiden (state channels) support.
 - BTC lightning support (if SegWit activates).
 - Threshold signatures.
@@ -37,8 +39,6 @@ Things we will never develop (if you want them, feel free to fork us):
 - ZCash support (I don't like the trusted setup, if you want privacy just wait for MimbleWimble).
 - Ripple/Stellar/OneCoin support (they're all a scam).
 - Dash/Monero (I prefer other privacy solutions to the way these currencies have tried to deal with it)
-- ICOs.
-- Tokens (maybe I'll make an exception to BAT).
 
 
 # How to compile/install/use?

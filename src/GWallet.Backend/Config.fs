@@ -9,15 +9,11 @@ module internal Config =
     let BitcoinNet = NBitcoin.Network.Main
     // but we would need to get a seed list of testnet electrum servers first...
 
-    let DebugLog =
+    let internal DebugLog =
 #if DEBUG
         true
 #else
-    #if RELEASE
         false
-    #else
-        raise (new Exception("Unknown build configuration"))
-    #endif
 #endif
 
     let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds(3.0)

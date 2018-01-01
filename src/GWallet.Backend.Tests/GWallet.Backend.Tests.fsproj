@@ -68,29 +68,38 @@
     </When>
     <Otherwise>
       <Choose>
-        <When Condition="Exists('$(FSharpSdkPathPrefix)\4.0\$(FSharpSdkPathSuffix)')">
+        <When Condition="Exists('$(FSharpSdkPathPrefix)\4.1\$(FSharpSdkPathSuffix)')">
           <PropertyGroup>
-            <FSharpTargetsPath>$(FSharpSdkPathPrefix)\4.0\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
+            <FSharpTargetsPath>$(FSharpSdkPathPrefix)\4.1\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
           </PropertyGroup>
         </When>
         <Otherwise>
           <Choose>
-            <When Condition="Exists('$(FSharpSdkPathPrefix)\3.1\$(FSharpSdkPathSuffix)')">
+            <When Condition="Exists('$(FSharpSdkPathPrefix)\4.0\$(FSharpSdkPathSuffix)')">
               <PropertyGroup>
-                <FSharpTargetsPath>$(FSharpSdkPathPrefix)\3.1\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
+                <FSharpTargetsPath>$(FSharpSdkPathPrefix)\4.0\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
               </PropertyGroup>
             </When>
             <Otherwise>
               <Choose>
-                <When Condition="Exists('$(FSharpSdkPathPrefix)\3.0\$(FSharpSdkPathSuffix)')">
+                <When Condition="Exists('$(FSharpSdkPathPrefix)\3.1\$(FSharpSdkPathSuffix)')">
                   <PropertyGroup>
-                    <FSharpTargetsPath>$(FSharpSdkPathPrefix)\3.0\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
+                    <FSharpTargetsPath>$(FSharpSdkPathPrefix)\3.1\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
                   </PropertyGroup>
                 </When>
                 <Otherwise>
-                  <PropertyGroup>
-                    <FSharpTargetsPath></FSharpTargetsPath>
-                  </PropertyGroup>
+                  <Choose>
+                    <When Condition="Exists('$(FSharpSdkPathPrefix)\3.0\$(FSharpSdkPathSuffix)')">
+                      <PropertyGroup>
+                        <FSharpTargetsPath>$(FSharpSdkPathPrefix)\3.0\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
+                      </PropertyGroup>
+                    </When>
+                    <Otherwise>
+                      <PropertyGroup>
+                        <FSharpTargetsPath></FSharpTargetsPath>
+                      </PropertyGroup>
+                    </Otherwise>
+                  </Choose>
                 </Otherwise>
               </Choose>
             </Otherwise>
@@ -116,11 +125,6 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
-    <Reference Include="FSharp.Core">
-      <Name>FSharp.Core</Name>
-      <AssemblyName>FSharp.Core.dll</AssemblyName>
-      <HintPath>$(MSBuildProgramFiles32)\Reference Assemblies\Microsoft\FSharp\.NETFramework\v4.0\$(TargetFSharpCoreVersion)\FSharp.Core.dll</HintPath>
-    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
     </Reference>
@@ -134,6 +138,9 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
+    <Reference Include="FSharp.Core">
+      <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">
     <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />

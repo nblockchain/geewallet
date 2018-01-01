@@ -18,11 +18,7 @@ module Infrastructure =
 #if DEBUG
         raise ex
 #else
-    #if RELEASE
         ravenClient.Capture (SentryEvent (ex)) |> ignore
-    #else
-        raise (new Exception("Unknown build configuration", ex))
-    #endif
 #endif
 
     let private OnUnhandledException (sender: obj) (args: UnhandledExceptionEventArgs) =
