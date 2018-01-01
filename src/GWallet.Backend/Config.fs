@@ -8,15 +8,11 @@ open Nethereum.Signer
 
 module internal Config =
 
-    let DebugLog =
+    let internal DebugLog =
 #if DEBUG
         true
 #else
-    #if RELEASE
         false
-    #else
-        raise (new Exception("Unknown build configuration"))
-    #endif
 #endif
 
     let internal GetConfigDirForThisProgram() =

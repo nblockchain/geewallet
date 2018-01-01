@@ -40,8 +40,6 @@ Things we will never develop (if you want them, feel free to fork us):
 - ZCash support (I don't like the trusted setup, if you want privacy just wait for MimbleWimble).
 - Ripple/Stellar/OneCoin support (they're all a scam).
 - Dash/Monero (I prefer other privacy solutions to the way these currencies have tried to deal with it)
-- ICOs.
-- Tokens (maybe I'll make an exception to BAT).
 
 
 # How to compile/install/use?
