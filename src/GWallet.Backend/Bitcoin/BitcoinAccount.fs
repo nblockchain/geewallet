@@ -23,10 +23,13 @@ type internal TransactionOutpoint =
 
 module internal Account =
 
+    let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS = 2
+
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
 
-    let private faultTolerantElectrumClient = FaultTolerantClient<ElectrumServerDiscarded>()
+    let private faultTolerantElectrumClient =
+        FaultTolerantClient<ElectrumServerDiscarded> NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS
 
     let private GetPublicAddressFromPublicKey (publicKey: PubKey) =
         publicKey.GetSegwitAddress(Network.Main).GetScriptAddress().ToString()

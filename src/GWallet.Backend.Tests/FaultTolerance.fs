@@ -10,6 +10,11 @@ module FaultTolerance =
 
     exception SomeSpecificException
 
+    let private one_consistent_result_because_this_test_doesnt_test_consistency = 1
+
+    let private defaultFaultTolerantClient =
+        FaultTolerantClient<SomeSpecificException> one_consistent_result_because_this_test_doesnt_test_consistency
+
     [<Test>]
     let ``can retrieve basic T for single func``() =
         let someStringArg = "foo"
@@ -17,7 +22,7 @@ module FaultTolerance =
         let func (arg: string) =
             someResult
         let dataRetreived =
-            FaultTolerantClient<SomeSpecificException>().Query<string,int> someStringArg [ func ]
+            defaultFaultTolerantClient.Query<string,int> someStringArg [ func ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -29,13 +34,13 @@ module FaultTolerance =
             someResult
         let func2 (arg: string) =
             someResult
-        let dataRetreived = FaultTolerantClient<SomeSpecificException>().Query<string,int> someStringArg [ func1; func2 ]
+        let dataRetreived = defaultFaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
     let ``throws ArgumentException if no funcs``(): unit =
-        let client = FaultTolerantClient<SomeSpecificException>()
+        let client = defaultFaultTolerantClient
         Assert.Throws<ArgumentException>(
             fun _ -> client.Query<string,int> "_" [] |> ignore
         ) |> ignore
@@ -49,7 +54,7 @@ module FaultTolerance =
         let func2 (arg: string) =
             someResult
         let dataRetreived =
-            FaultTolerantClient<SomeSpecificException>().Query<string,int> someStringArg [ func1; func2 ]
+            defaultFaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -65,7 +70,8 @@ module FaultTolerance =
         let dataRetrieved =
             try
                 let result =
-                    FaultTolerantClient<SomeException>().Query<string,int> someStringArg [ func1; func2 ]
+                    (FaultTolerantClient<SomeException> one_consistent_result_because_this_test_doesnt_test_consistency)
+                        .Query<string,int> someStringArg [ func1; func2 ]
                 Some(result)
             with
             | ex ->
@@ -86,7 +92,8 @@ module FaultTolerance =
             someResult
 
         let result =
-            FaultTolerantClient<SomeException>().Query<string,int> someStringArg [ func1; func2 ]
+            (FaultTolerantClient<SomeException> one_consistent_result_because_this_test_doesnt_test_consistency)
+                .Query<string,int> someStringArg [ func1; func2 ]
 
         Assert.That(result, Is.EqualTo(someResult))
 
@@ -101,8 +108,9 @@ module FaultTolerance =
             someResult
 
         Assert.Throws<SomeOtherException>(fun _ ->
-            FaultTolerantClient<SomeException>().Query<string,int> someStringArg [ func1; func2 ]
-                |> ignore ) |> ignore
+            (FaultTolerantClient<SomeException> one_consistent_result_because_this_test_doesnt_test_consistency)
+                .Query<string,int> someStringArg [ func1; func2 ]
+                    |> ignore ) |> ignore
 
     [<Test>]
     let ``exception passed in must not be SystemException, otherwise it throws``() =
@@ -113,7 +121,7 @@ module FaultTolerance =
             "someResult2"
 
         Assert.Throws<ArgumentException>(fun _ ->
-            FaultTolerantClient<Exception>()
+            (FaultTolerantClient<Exception> one_consistent_result_because_this_test_doesnt_test_consistency)
                 |> ignore ) |> ignore
 
     [<Test>]

@@ -27,8 +27,6 @@ type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesReq
         if numberOfConsistentResponsesRequired < 1 then
             raise (ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired"))
 
-    new() = FaultTolerantClient(1)
-
     member self.Query<'T,'R when 'R : equality> (args: 'T) (funcs: list<'T->'R>): 'R =
         let rec queryInternal (args: 'T) (resultsSoFar: list<'R>) (lastEx: Exception) (funcs: list<'T->'R>) =
             match funcs with

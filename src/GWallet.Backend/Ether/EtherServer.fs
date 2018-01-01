@@ -80,7 +80,11 @@ module Server =
             raise (ServerTimedOutException(exMsg))
         task.Result
 
-    let private faultTolerantEthClient = FaultTolerantClient<ConnectionUnsuccessfulException>()
+    // we only have infura and mew for now, so requiring more than 1 would make it not fault tolerant...:
+    let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 1
+
+    let private faultTolerantEthClient =
+        FaultTolerantClient<ConnectionUnsuccessfulException> NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS
 
     // FIXME: there should be a way to simplify this function to be more readable...
     //        maybe make it more similar to BitcoinAccount.fs's GetRandomizedFuncs()?
