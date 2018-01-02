@@ -4,6 +4,8 @@ Welcome!
 
 GWallet is a minimalistic and pragmatist lightweight wallet for people that want to hold the most important cryptocurrencies in the same application without hassle.
 
+![Build status](http://gitlab.com/knocte/gwallet/badges/master/build.svg)
+
 ## Principles
 
 Given GWallet can handle multiple cryptocurrencies, its UX needs to be as generic as possible to accomodate them, and should only contain minimal currency-specific features. The best example to describe this approach is the absence of change addresses concept; given that this concept doesn't exist in Ethereum-based cryptocurrencies, and it doesn't achieve much privacy anyway in the Bitcoin-based ones, GWallet approach will be to wait for other technologies to be adopted mainstream first that could help on this endeavour, such as TumbleBit or ConfidentialTransactions.
