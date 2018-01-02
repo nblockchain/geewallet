@@ -3,8 +3,10 @@
 open System
 open System.Linq
 open System.Text
+open System.Net
 open System.Net.Sockets
 open System.Threading
+open System.Threading.Tasks
 
 module JsonRpcSharp =
 
@@ -19,6 +21,7 @@ module JsonRpcSharp =
         inherit Exception
 
         new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
+        new(message: string) = { inherit Exception(message) }
         new() = { inherit Exception() }
 
     type NoResponseReceivedAfterRequestException() =
@@ -33,8 +36,11 @@ module JsonRpcSharp =
     type ServerTimedOutException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
-    type ServerCannotBeResolvedException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
+    type ServerCannotBeResolvedException =
+       inherit ConnectionUnsuccessfulException
+
+       new(message) = { inherit ConnectionUnsuccessfulException(message) }
+       new(message:string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
 
     type ServerUnresponsiveException() =
        inherit ConnectionUnsuccessfulException()
@@ -85,30 +91,47 @@ module JsonRpcSharp =
         let Read (stream: NetworkStream): string =
             ReadInternal stream [] DateTime.Now
 
+        let ResolveAsync (hostName: string) =
+            // FIXME: loop over all addresses?
+            Task.Run(fun _ -> Dns.GetHostEntry(hostName).AddressList.[0])
+
         let Connect(): unit =
             tcpClient.SendTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
             tcpClient.ReceiveTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
 
+            let exceptionMsg = "JsonRpcSharp faced some problem when trying communication"
+            let resolvedHost =
+                try
+                    let resolveTask = ResolveAsync host
+                    if not (resolveTask.Wait Config.DEFAULT_NETWORK_TIMEOUT) then
+                        raise(ServerCannotBeResolvedException(exceptionMsg))
+                    resolveTask.Result
+                with
+                | ex ->
+                    let socketException = FSharpUtil.FindException<SocketException>(ex)
+                    if (socketException.IsNone) then
+                        reraise()
+                    if (socketException.Value.ErrorCode = int SocketError.HostNotFound ||
+                        socketException.Value.ErrorCode = int SocketError.TryAgain) then
+                        raise(ServerCannotBeResolvedException(exceptionMsg, ex))
+                    raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
+
             try
-                let connectTask = tcpClient.ConnectAsync(host,port)
+                let connectTask = tcpClient.ConnectAsync(resolvedHost, port)
 
                 if not (connectTask.Wait(Config.DEFAULT_NETWORK_TIMEOUT)) then
                     raise(ServerUnresponsiveException())
             with
             | ex ->
-                let msg = "JsonRpcSharp faced some problem when trying communication"
                 let socketException = FSharpUtil.FindException<SocketException>(ex)
                 if (socketException.IsNone) then
                     reraise()
                 if (socketException.Value.ErrorCode = int SocketError.ConnectionRefused) then
-                    raise(ServerRefusedException(msg, ex))
+                    raise(ServerRefusedException(exceptionMsg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.TimedOut) then
-                    raise(ServerTimedOutException(msg, ex))
-                if (socketException.Value.ErrorCode = int SocketError.HostNotFound ||
-                    socketException.Value.ErrorCode = int SocketError.TryAgain) then
-                    raise(ServerCannotBeResolvedException(msg, ex))
+                    raise(ServerTimedOutException(exceptionMsg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.NetworkUnreachable) then
-                    raise(ServerUnreachableException(msg, ex))
+                    raise(ServerUnreachableException(exceptionMsg, ex))
                 raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
 
         member self.Request (request: string): string =
