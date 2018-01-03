@@ -1,12 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="..\GWallet.Backend\FSharpUtil.fs">
       <Link>FSharpUtil.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\CommonAssemblyInfo.fs">
+      <Link>CommonAssemblyInfo.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Shuffler.fs">
+      <Link>Shuffler.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\Marshalling.fs">
       <Link>Marshalling.fs</Link>
@@ -23,8 +27,14 @@
     <Compile Include="..\GWallet.Backend\Config.fs">
       <Link>Config.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\EtherMinerFee.fs">
-      <Link>EtherMinerFee.fs</Link>
+    <Compile Include="..\GWallet.Backend\JsonRpcSharp.fs">
+      <Link>JsonRpcSharp.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\IBlockchainFeeInfo.fs">
+      <Link>IBlockchainFeeInfo.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\TransferAmount.fs">
+      <Link>TransferAmount.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\Caching.fs">
       <Link>Caching.fs</Link>
@@ -35,8 +45,38 @@
     <Compile Include="..\GWallet.Backend\FaultTolerantClient.fs">
       <Link>FaultTolerantClient.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\EtherServer.fs">
-      <Link>EtherServer.fs</Link>
+    <Compile Include="..\GWallet.Backend\Bitcoin\ElectrumServer.fs">
+      <Link>Bitcoin\ElectrumServer.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Bitcoin\StratumClient.fs">
+      <Link>Bitcoin\StratumClient.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Bitcoin\ElectrumClient.fs">
+      <Link>Bitcoin\ElectrumClient.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Bitcoin\UnitConversion.fs">
+      <Link>Bitcoin\UnitConversion.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Bitcoin\BitcoinMinerFee.fs">
+      <Link>Bitcoin\BitcoinMinerFee.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Bitcoin\TransactionTypes.fs">
+      <Link>Bitcoin\TransactionTypes.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Bitcoin\BitcoinAccount.fs">
+      <Link>Bitcoin\BitcoinAccount.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Ether\EtherMinerFee.fs">
+      <Link>Ether\EtherMinerFee.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Ether\EtherServer.fs">
+      <Link>Ether\EtherServer.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Ether\TransactionMetadata.fs">
+      <Link>Ether\TransactionMetadata.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Ether\EtherAccount.fs">
+      <Link>Ether\EtherAccount.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\Account.fs">
       <Link>Account.fs</Link>
@@ -46,7 +86,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="9.0.1" />
     <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="2.0.0" />
     <PackageReference Include="Nethereum.Util" Version="2.0.0" />
     <PackageReference Include="Nethereum.RPC" Version="2.0.0" />
@@ -58,6 +97,12 @@
     <PackageReference Include="Nethereum.ABI" Version="2.0.0" />
     <PackageReference Include="Nethereum.KeyStore" Version="2.0.0" />
     <PackageReference Include="Nethereum.RLP" Version="2.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="NBitcoin" Version="3.0.2.24" />
     <PackageReference Include="SharpRaven" Version="2.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Bitcoin\" />
+    <Folder Include="Ether\" />
   </ItemGroup>
 </Project>

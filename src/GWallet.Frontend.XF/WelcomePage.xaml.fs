@@ -21,9 +21,8 @@ type WelcomePage() =
             this.DisplayAlert("Alert", "Passphrases don't match, please try again", "OK") |> ignore
         else
             for currency in Currency.GetAll() do
-                Account.Create currency passphrase.Text |> ignore
+                Account.CreateNormalAccount currency passphrase.Text |> ignore
             this.Navigation.PushModalAsync(BalancesPage()) |> ignore
-    
 
     member this.OnPassphraseTextChanged(sender: Object, args: EventArgs) =
 

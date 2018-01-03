@@ -150,6 +150,9 @@
     <Reference Include="Plugin.Clipboard">
       <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.0.0\lib\Xamarin.iOS10\Plugin.Clipboard.dll</HintPath>
     </Reference>
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.3.0.2.24\lib\netstandard1.3\NBitcoin.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json" />

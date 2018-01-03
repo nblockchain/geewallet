@@ -77,7 +77,7 @@ module internal Config =
         }
 
     let internal Wipe(currency: Currency): unit =
-        let configDirForNormalAccounts = GetConfigDirForAccountsOfThisCurrency(currency)
+        let configDirForNormalAccounts = GetConfigDirForNormalAccountsOfThisCurrency(currency)
         Directory.Delete(configDirForNormalAccounts.FullName, true) |> ignore
 
     let private GetFile (account: IAccount) =
