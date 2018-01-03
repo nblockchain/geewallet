@@ -36,17 +36,33 @@ module Serialization =
                     Is.EqualTo (MarshallingData.SofisticatedCachingDataExampleInJson))
 
     [<Test>]
-    let ``unsigned transaction export``() =
+    let ``unsigned BTC transaction export``() =
         let json = Account.ExportUnsignedTransactionToJson
-                               MarshallingData.UnsignedTransactionExample
+                               MarshallingData.UnsignedBtcTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json,
-                    Is.EqualTo(MarshallingData.UnsignedTransactionExampleInJson))
+                    Is.EqualTo(MarshallingData.UnsignedBtcTransactionExampleInJson))
 
     [<Test>]
-    let ``signed transaction export``() =
-        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedTransactionExample
+    let ``unsigned ether transaction export``() =
+        let json = Account.ExportUnsignedTransactionToJson
+                               MarshallingData.UnsignedEtherTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json, Is.EqualTo (MarshallingData.SignedTransactionExampleInJson))
+        Assert.That(json,
+                    Is.EqualTo(MarshallingData.UnsignedEtherTransactionExampleInJson))
+
+    [<Test>]
+    let ``signed btc transaction export``() =
+        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedBtcTransactionExample
+        Assert.That(json, Is.Not.Null)
+        Assert.That(json, Is.Not.Empty)
+        Assert.That(json, Is.EqualTo (MarshallingData.SignedBtcTransactionExampleInJson))
+
+    [<Test>]
+    let ``signed ether transaction export``() =
+        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedEtherTransactionExample
+        Assert.That(json, Is.Not.Null)
+        Assert.That(json, Is.Not.Empty)
+        Assert.That(json, Is.EqualTo (MarshallingData.SignedEtherTransactionExampleInJson))

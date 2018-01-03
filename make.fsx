@@ -44,11 +44,6 @@ exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
 """
 
 let JustBuild binaryConfig =
-    Console.WriteLine "Gathering gwallet dependencies..."
-    let nuget = Process.Execute (sprintf "nuget restore %s" BACKEND_SOLUTION_FILE, true, false)
-    if (nuget.ExitCode <> 0) then
-        Environment.Exit 1
-
     Console.WriteLine "Compiling gwallet..."
     let xbuildParams = sprintf "%s /p:Configuration=%s"
                                BACKEND_SOLUTION_FILE (binaryConfig.ToString())

@@ -5,6 +5,7 @@ open System.ComponentModel
 // this attribute below is for Json.NET (Newtonsoft.Json) to be able to deserialize this as a dict key
 [<TypeConverter(typeof<StringTypeConverter>)>]
 type Currency =
+    | BTC
     | ETH
     | ETC
     static member ToStrings() =

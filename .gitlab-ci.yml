@@ -9,6 +9,7 @@ before_script:
   # upstream fix: https://github.com/mono/mono/commit/940944dcdefb56f7952cd35a43bcbd5f70ba78ef
   - apt-get install -y tzdata
 
+  - apt-get install -y curl
   - apt-get install -y nuget mono-complete mono-xbuild fsharp
 
 build:

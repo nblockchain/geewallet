@@ -6,41 +6,37 @@ open System.Linq
 open System.Numerics
 open System.IO
 
-open Nethereum.Web3
-open Nethereum.Signer
-open Nethereum.KeyStore
-open Nethereum.Util
-open Nethereum.KeyStore.Crypto
 open Newtonsoft.Json
 
 module Account =
 
-    let private addressUtil = AddressUtil()
-    let private signer = TransactionSigner()
-
-    let rec private IsOfTypeOrItsInner<'T>(ex: Exception) =
-        if (ex = null) then
-            false
-        else if (ex.GetType() = typeof<'T>) then
-            true
-        else
-            IsOfTypeOrItsInner<'T>(ex.InnerException)
-
-    let GetBalance(account: IAccount): MaybeCached<decimal> =
+    let private GetBalanceFromServerOrCache(account: IAccount) (confirmed: bool): MaybeCached<decimal> =
         let maybeBalance =
             try
-                let balance =
-                    EtherServer.GetBalance account.Currency account.PublicAddress
-                Some(balance.Value)
+                match account.Currency with
+                | Currency.ETH | Currency.ETC ->
+                    // TODO: have a way to distinguish between confirmed and unconfirmed balance
+                    Some(Ether.Account.GetBalance account)
+                | Currency.BTC ->
+                    if (confirmed) then
+                        Some(Bitcoin.Account.GetConfirmedBalance account)
+                    else
+                        Some(Bitcoin.Account.GetUnconfirmedBalance account)
             with
-            | ex when IsOfTypeOrItsInner<WebException>(ex) -> None
+            | :? NoneAvailableException as ex -> None
 
         match maybeBalance with
-        | None -> NotFresh(Caching.RetreiveLastBalance(account.PublicAddress))
-        | Some(balanceInWei) ->
-            let balanceInEth = UnitConversion.Convert.FromWei(balanceInWei, UnitConversion.EthUnit.Ether)
-            Caching.StoreLastBalance(account.PublicAddress, balanceInEth)
-            Fresh(balanceInEth)
+        | None ->
+            NotFresh(Caching.RetreiveLastBalance(account.PublicAddress))
+        | Some(balance) ->
+            Caching.StoreLastBalance(account.PublicAddress, balance)
+            Fresh(balance)
+
+    let GetUnconfirmedBalance(account: IAccount) =
+        GetBalanceFromServerOrCache account false
+
+    let GetBalance(account: IAccount) =
+        GetBalanceFromServerOrCache account true
 
     let mutable wiped = false
     let private WipeConfig(allCurrencies: seq<Currency>) =
@@ -59,8 +55,18 @@ module Account =
 
         seq {
             for currency in allCurrencies do
-                for account in Config.GetAllActiveAccounts(currency) do
-                    yield account
+                for accountFile in Config.GetAllReadOnlyAccounts(currency) do
+                    let fileName = Path.GetFileName(accountFile.FullName)
+                    yield ReadOnlyAccount(currency, fileName) :> IAccount
+
+                let fromAccountFileToPublicAddress =
+                    match currency with
+                    | Currency.BTC -> Bitcoin.Account.GetPublicAddressFromAccountFile
+                    | Currency.ETH | Currency.ETC -> Ether.Account.GetPublicAddressFromAccountFile
+                    | _ -> failwith (sprintf "Unknown currency %A" currency)
+                for accountFile in Config.GetAllNormalAccounts(currency) do
+                    yield NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
+
         } |> List.ofSeq
 
     let GetArchivedAccountsWithPositiveBalance(): seq<ArchivedAccount*decimal> =
@@ -68,8 +74,18 @@ module Account =
             let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
-                for account in Config.GetAllArchivedAccounts(currency) do
-                    match GetBalance(account) with
+                let fromAccountFileToPublicAddress =
+                    match currency with
+                    | Currency.BTC ->
+                        Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey
+                    | Currency.ETH | Currency.ETC ->
+                        Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
+                    | _ -> failwith (sprintf "Unknown currency %A" currency)
+
+                for accountFile in Config.GetAllArchivedAccounts(currency) do
+                    let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
+
+                    match GetUnconfirmedBalance(account) with
                     | NotFresh(NotAvailable) -> ()
                     | Fresh(balance) ->
                         if (balance > 0m) then
@@ -78,211 +94,238 @@ module Account =
                         () // TODO: do something in this case??
         }
 
-    let ValidateAddress (address: string) =
-        let ETHEREUM_ADDRESSES_LENGTH = 42
+    let ValidateAddress (currency: Currency) (address: string) =
+        match currency with
+        | Currency.ETH | Currency.ETC ->
+            Ether.Account.ValidateAddress currency address
 
-        if not (address.StartsWith("0x")) then
-            raise (AddressMissingZeroExPrefix)
+        | Currency.BTC ->
+            Bitcoin.Account.ValidateAddress address
 
-        if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(ETHEREUM_ADDRESSES_LENGTH))
-
-        if (not (addressUtil.IsChecksumAddress(address))) then
-            let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
-            raise (AddressWithInvalidChecksum(validCheckSumAddress))
-
+            // FIXME: add bitcoin checksum algorithm?
         ()
 
 
-    let EstimateFee (currency: Currency): EtherMinerFee =
-        let gasPrice = EtherServer.GetGasPrice currency
-        if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
-            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
-                          (gasPrice.Value.ToString()))
-        let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
-        { GasPriceInWei = gasPrice64; EstimationTime = DateTime.Now; Currency = currency }
+    let EstimateFee account amount destination: IBlockchainFeeInfo =
+        let currency = (account:>IAccount).Currency
+        match currency with
+        | Currency.BTC ->
+            Bitcoin.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
+        | Currency.ETH | Currency.ETC ->
+            let ethMinerFee = Ether.Account.EstimateFee currency
+            let txCount = Ether.Account.GetTransactionCount account.Currency account.PublicAddress
+            { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount } :> IBlockchainFeeInfo
 
-    let private GetTransactionCount (currency: Currency, publicAddress: string) =
-        EtherServer.GetTransactionCount currency publicAddress
-
-    let private BroadcastRawTransaction (currency: Currency) trans =
-        let insufficientFundsMsg = "Insufficient funds"
-        try
-            let txId = EtherServer.BroadcastTransaction currency ("0x" + trans)
-            txId
-        with
-        | ex when ex.Message.StartsWith(insufficientFundsMsg) || ex.InnerException.Message.StartsWith(insufficientFundsMsg) ->
-            raise (InsufficientFunds)
-
-    let BroadcastTransaction (trans: SignedTransaction) =
-        BroadcastRawTransaction
-            trans.TransactionInfo.Proposal.Currency
-            trans.RawTransaction
-
-    let internal GetPrivateKey (account: NormalAccount) password =
-        let privKeyInBytes =
-            try
-                NormalAccount.KeyStoreService.DecryptKeyStoreFromJson(password, account.Json)
-            with
-            | :? DecryptionException ->
-                raise (InvalidPassword)
-
-        EthECKey(privKeyInBytes, true)
-
-    let private SignTransactionWithPrivateKey (account: IAccount)
-                                              (transCount: BigInteger)
-                                              (destination: string)
-                                              (amount: decimal)
-                                              (minerFee: EtherMinerFee)
-                                              (privateKey: EthECKey) =
-
-        let currency = account.Currency
-        if (minerFee.Currency <> currency) then
-            invalidArg "account" "currency of account param must be equal to currency of minerFee param"
-
-        let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
-
-        let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
-        let trans = signer.SignTransaction(
-                        privKeyInBytes,
-                        destination,
-                        amountInWei,
-                        transCount,
-
-                        // we use the SignTransaction() overload that has these 2 arguments because if we don't, we depend on
-                        // how well the defaults are of Geth node we're connected to, e.g. with the myEtherWallet server I
-                        // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
-                        // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
-                        BigInteger(minerFee.GasPriceInWei),
-                        minerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
-
-        if not (signer.VerifyTransaction(trans)) then
-            failwith "Transaction could not be verified?"
-        trans
+    let BroadcastTransaction (trans: SignedTransaction<_>) =
+        match trans.TransactionInfo.Proposal.Currency with
+        | Currency.ETH | Currency.ETC ->
+            Ether.Account.BroadcastTransaction trans
+        | Currency.BTC ->
+            Bitcoin.Account.BroadcastTransaction trans
+        | _ -> failwith "fee type unknown"
 
     let SignTransaction (account: NormalAccount)
-                        (transCount: BigInteger)
                         (destination: string)
-                        (amount: decimal)
-                        (minerFee: EtherMinerFee)
+                        (amount: TransferAmount)
+                        (transactionMetadata: IBlockchainFeeInfo)
                         (password: string) =
 
-        let privateKey = GetPrivateKey account password
-        SignTransactionWithPrivateKey account transCount destination amount minerFee privateKey
+        match transactionMetadata with
+        | :? Ether.TransactionMetadata as etherTxMetada ->
+            Ether.Account.SignTransaction
+                  account
+                  etherTxMetada
+                  destination
+                  amount
+                  password
+        | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
+            Bitcoin.Account.SignTransaction
+                account
+                btcTxMetadata
+                destination
+                amount
+                password
+        | _ -> failwith "fee type unknown"
+
+    let private CreateArchivedAccount (currency: Currency) (unencryptedPrivateKey: string): ArchivedAccount =
+        let fromUnencryptedPrivateKeyToPublicAddressFunc =
+            match currency with
+            | Currency.BTC ->
+                Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey
+            | Currency.ETH | Currency.ETC ->
+                Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
+        let fileName = fromUnencryptedPrivateKeyToPublicAddressFunc unencryptedPrivateKey
+        let newAccountFile = Config.AddArchivedAccount currency fileName unencryptedPrivateKey
+        ArchivedAccount(currency, newAccountFile, fromUnencryptedPrivateKeyToPublicAddressFunc)
 
     let Archive (account: NormalAccount)
-                (password: string) =
-        let privateKey = GetPrivateKey account password
-        let newArchivedAccount = ArchivedAccount((account:>IAccount).Currency, privateKey)
-        Config.AddArchived newArchivedAccount
+                (password: string)
+                : unit =
+        let currency = (account:>IAccount).Currency
+        let privateKeyAsString =
+            match currency with
+            | Currency.BTC ->
+                let privKey = Bitcoin.Account.GetPrivateKey account password
+                privKey.GetWif(Config.BitcoinNet).ToWif()
+            | Currency.ETC | Currency.ETH ->
+                let privKey = Ether.Account.GetPrivateKey account password
+                privKey.GetPrivateKey()
+        CreateArchivedAccount currency privateKeyAsString |> ignore
         Config.RemoveNormal account
 
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
                            (destination: IAccount)
-                           (minerFee: EtherMinerFee) =
-        let accountFrom = (account:>IAccount)
-        let transCountHexBigInt = GetTransactionCount (accountFrom.Currency, accountFrom.PublicAddress)
-        let transCount = transCountHexBigInt.Value
-        let amount = balance - minerFee.EtherPriceForNormalTransaction()
-        let signedTrans = SignTransactionWithPrivateKey
-                              account transCount destination.PublicAddress amount minerFee account.PrivateKey
-        BroadcastRawTransaction accountFrom.Currency signedTrans
+                           (txMetadata: IBlockchainFeeInfo) =
+        match txMetadata with
+        | :? Ether.TransactionMetadata as etherTxMetadata ->
+            Ether.Account.SweepArchivedFunds account balance destination etherTxMetadata
+        | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
+            Bitcoin.Account.SweepArchivedFunds account balance destination btcTxMetadata
+        | _ -> failwith "tx metadata type unknown"
 
-    let SendPayment (account: NormalAccount) (destination: string) (amount: decimal)
-                    (password: string) (minerFee: EtherMinerFee) =
+    let SendPayment (account: NormalAccount)
+                    (txMetadata: IBlockchainFeeInfo)
+                    (destination: string)
+                    (amount: TransferAmount)
+                    (password: string)
+                    =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
 
-        ValidateAddress destination
+        ValidateAddress baseAccount.Currency destination
 
-        let currency = baseAccount.Currency
+        let currency = (account:>IAccount).Currency
+        match currency with
+        | Currency.BTC ->
+            match txMetadata with
+            | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
+                Bitcoin.Account.SendPayment account btcTxMetadata destination amount password
+            | _ -> failwith "fee for BTC currency should be Bitcoin.MinerFee type"
+        | Currency.ETH | Currency.ETC ->
+            match txMetadata with
+            | :? Ether.TransactionMetadata as etherTxMetadata ->
+                Ether.Account.SendPayment account etherTxMetadata destination amount password
+            | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
 
-        let transCount = GetTransactionCount(currency, (account:>IAccount).PublicAddress)
-        let trans = SignTransaction account transCount.Value destination amount minerFee password
-
-        BroadcastRawTransaction currency trans
-
-    let SignUnsignedTransaction account (unsignedTrans: UnsignedTransaction) password =
+    let SignUnsignedTransaction (account)
+                                (unsignedTrans: UnsignedTransaction<IBlockchainFeeInfo>)
+                                password =
         let rawTransaction = SignTransaction account
-                                 (BigInteger(unsignedTrans.TransactionCount))
                                  unsignedTrans.Proposal.DestinationAddress
                                  unsignedTrans.Proposal.Amount
-                                 unsignedTrans.Fee
+                                 unsignedTrans.Metadata
                                  password
+
         { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
 
-    let public ExportSignedTransaction (trans: SignedTransaction) =
+    let public ExportSignedTransaction (trans: SignedTransaction<_>) =
         Marshalling.Serialize trans
 
-    let SaveSignedTransaction (trans: SignedTransaction) (filePath: string) =
-        let json = ExportSignedTransaction trans
+    let SaveSignedTransaction (trans: SignedTransaction<_>) (filePath: string) =
+
+        let json =
+            match trans.TransactionInfo.Metadata.GetType() with
+            | t when t = typeof<Ether.TransactionMetadata> ->
+                let unsignedEthTx = {
+                    Metadata = box trans.TransactionInfo.Metadata :?> Ether.TransactionMetadata;
+                    Proposal = trans.TransactionInfo.Proposal;
+                    Cache = trans.TransactionInfo.Cache;
+                }
+                let signedEthTx = {
+                    TransactionInfo = unsignedEthTx;
+                    RawTransaction = trans.RawTransaction;
+                }
+                ExportSignedTransaction signedEthTx
+            | t when t = typeof<Bitcoin.TransactionMetadata> ->
+                let unsignedBtcTx = {
+                    Metadata = box trans.TransactionInfo.Metadata :?> Bitcoin.TransactionMetadata;
+                    Proposal = trans.TransactionInfo.Proposal;
+                    Cache = trans.TransactionInfo.Cache;
+                }
+                let signedBtcTx = {
+                    TransactionInfo = unsignedBtcTx;
+                    RawTransaction = trans.RawTransaction;
+                }
+                ExportSignedTransaction signedBtcTx
+            | _ -> failwith "Unknown miner fee type"
+
         File.WriteAllText(filePath, json)
 
     let AddPublicWatcher currency (publicAddress: string) =
-        ValidateAddress publicAddress
+        ValidateAddress currency publicAddress
         let readOnlyAccount = ReadOnlyAccount(currency, publicAddress)
         Config.AddReadonly readOnlyAccount
 
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
 
-    let Create currency password =
-        let privateKey = EthECKey.GenerateKey()
-        let privateKeyAsBytes = privateKey.GetPrivateKeyAsBytes()
-
-        // FIXME: don't ask me why sometimes this version of NEthereum generates 33 bytes instead of the required 32...
-        let privateKeyTrimmed =
-            if privateKeyAsBytes.Length = 33 then
-                privateKeyAsBytes |> Array.skip 1
-            else
-                privateKeyAsBytes
-
-        let publicAddress = privateKey.GetPublicAddress()
-        if not (addressUtil.IsChecksumAddress(publicAddress)) then
-            failwith ("Nethereum's GetPublicAddress gave a non-checksum address: " + publicAddress)
-
-        let accountSerializedJson =
-            NormalAccount.KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password,
-                                                                                  privateKeyTrimmed,
-                                                                                  publicAddress)
-        Config.AddNormalAccount currency accountSerializedJson
+    let CreateNormalAccount (currency: Currency) (password: string): NormalAccount =
+        let (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
+            match currency with
+            | Currency.BTC ->
+                let publicKey,encryptedPrivateKey = Bitcoin.Account.Create password
+                (publicKey,encryptedPrivateKey), Bitcoin.Account.GetPublicAddressFromAccountFile
+            | Currency.ETH | Currency.ETC ->
+                let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password
+                (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
+        let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
+        NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
 
-    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal) (fee: EtherMinerFee) (filePath: string) =
+    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
+                                (txMetadata: IBlockchainFeeInfo)
+                                (filePath: string) =
 
-        ValidateAddress transProposal.DestinationAddress
+        ValidateAddress transProposal.Currency transProposal.DestinationAddress
 
-        let transCount = GetTransactionCount(transProposal.Currency, transProposal.OriginAddress)
-        if (transCount.Value > BigInteger(Int64.MaxValue)) then
-            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
-                          (transCount.Value.ToString()))
+        match txMetadata with
+        | :? Ether.TransactionMetadata as etherTxMetadata ->
+            Ether.Account.SaveUnsignedTransaction transProposal etherTxMetadata filePath
+        | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
+            Bitcoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata filePath
+        | _ -> failwith "fee type unknown"
 
-        let unsignedTransaction =
-            {
-                Proposal = transProposal;
-                TransactionCount = BigInteger.op_Explicit transCount.Value;
-                Cache = Caching.GetLastCachedData();
-                Fee = fee;
-            }
-        let json = ExportUnsignedTransactionToJson unsignedTransaction
-        File.WriteAllText(filePath, json)
+    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<IBlockchainFeeInfo> =
 
-    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction =
-        Marshalling.Deserialize json
+        let transType = Marshalling.ExtractType json
 
-    let public ImportSignedTransactionFromJson (json: string): SignedTransaction =
-        Marshalling.Deserialize json
+        match transType with
+        | _ when transType = typeof<UnsignedTransaction<Bitcoin.TransactionMetadata>> ->
+            let deserializedBtcTransaction: UnsignedTransaction<Bitcoin.TransactionMetadata> =
+                    Marshalling.Deserialize json
+            deserializedBtcTransaction.ToAbstract()
+        | _ when transType = typeof<UnsignedTransaction<Ether.TransactionMetadata>> ->
+            let deserializedBtcTransaction: UnsignedTransaction<Ether.TransactionMetadata> =
+                    Marshalling.Deserialize json
+            deserializedBtcTransaction.ToAbstract()
+        | unexpectedType ->
+            raise(new Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName))
+
+    let public ImportSignedTransactionFromJson (json: string): SignedTransaction<IBlockchainFeeInfo> =
+        let transType = Marshalling.ExtractType json
+
+        match transType with
+        | _ when transType = typeof<SignedTransaction<Bitcoin.TransactionMetadata>> ->
+            let deserializedBtcTransaction: SignedTransaction<Bitcoin.TransactionMetadata> =
+                    Marshalling.Deserialize json
+            deserializedBtcTransaction.ToAbstract()
+        | _ when transType = typeof<SignedTransaction<Ether.TransactionMetadata>> ->
+            let deserializedBtcTransaction: SignedTransaction<Ether.TransactionMetadata> =
+                    Marshalling.Deserialize json
+            deserializedBtcTransaction.ToAbstract()
+        | unexpectedType ->
+            raise(new Exception(sprintf "Unknown signedTransaction subtype: %s" unexpectedType.FullName))
 
     let LoadSignedTransactionFromFile (filePath: string) =
         let signedTransInJson = File.ReadAllText(filePath)
 
         ImportSignedTransactionFromJson signedTransInJson
 
-    let LoadUnsignedTransactionFromFile (filePath: string) =
+    let LoadUnsignedTransactionFromFile (filePath: string): UnsignedTransaction<IBlockchainFeeInfo> =
         let unsignedTransInJson = File.ReadAllText(filePath)
 
         ImportUnsignedTransactionFromJson unsignedTransInJson

@@ -3,10 +3,11 @@
 open System
 open System.IO
 
-open Nethereum.KeyStore
-open Nethereum.Signer
-
 module internal Config =
+
+    // we might want to test with TestNet at some point, so this below is the key:
+    let BitcoinNet = NBitcoin.Network.Main
+    // but we would need to get a seed list of testnet electrum servers first...
 
     let internal DebugLog =
 #if DEBUG
@@ -14,6 +15,8 @@ module internal Config =
 #else
         false
 #endif
+
+    let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds(3.0)
 
     let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
@@ -29,7 +32,7 @@ module internal Config =
             configDir.Create()
         configDir
 
-    let private GetConfigDirForAccountsOfThisCurrency(currency: Currency) =
+    let private GetConfigDirForNormalAccountsOfThisCurrency(currency: Currency) =
         let configDir = DirectoryInfo(Path.Combine(GetConfigDirForAccounts().FullName, currency.ToString()))
         if not configDir.Exists then
             configDir.Create()
@@ -49,28 +52,28 @@ module internal Config =
             configDir.Create()
         configDir
 
-    let GetAllActiveAccounts(currency: Currency): seq<IAccount> =
-        let configDirForNormalAccounts = GetConfigDirForAccountsOfThisCurrency(currency)
-        let configDirForReadonlyAccounts = GetConfigDirForReadonlyAccountsOfThisCurrency(currency)
+    let GetAllNormalAccounts(currency: Currency): seq<FileInfo> =
+        let configDirForNormalAccounts = GetConfigDirForNormalAccountsOfThisCurrency(currency)
 
         seq {
             for filePath in Directory.GetFiles(configDirForNormalAccounts.FullName) do
-                let jsonFile = FileInfo(filePath)
-                yield NormalAccount(currency, jsonFile) :> IAccount
-
-            for filePath in Directory.GetFiles(configDirForReadonlyAccounts.FullName) do
-                let fileName = Path.GetFileName(filePath)
-                yield ReadOnlyAccount(currency, fileName) :> IAccount
+                yield FileInfo(filePath)
         }
 
-    let GetAllArchivedAccounts(currency: Currency): seq<ArchivedAccount> =
+    let GetAllReadOnlyAccounts(currency: Currency): seq<FileInfo> =
+        let configDirForReadonlyAccounts = GetConfigDirForReadonlyAccountsOfThisCurrency(currency)
+
+        seq {
+            for filePath in Directory.GetFiles(configDirForReadonlyAccounts.FullName) do
+                yield FileInfo(filePath)
+        }
+
+    let GetAllArchivedAccounts(currency: Currency): seq<FileInfo> =
         let configDirForArchivedAccounts = GetConfigDirForArchivedAccountsOfThisCurrency(currency)
 
         seq {
             for filePath in Directory.GetFiles(configDirForArchivedAccounts.FullName) do
-                let privKey = File.ReadAllText(filePath)
-                let ecPrivKey = EthECKey(privKey)
-                yield ArchivedAccount(currency, ecPrivKey)
+                yield FileInfo(filePath)
         }
 
     let internal Wipe(currency: Currency): unit =
@@ -81,7 +84,7 @@ module internal Config =
         let configDir, fileName =
             match account with
             | :? NormalAccount as normalAccount ->
-                normalAccount.JsonStoreFile.Directory, normalAccount.JsonStoreFile.Name
+                normalAccount.AccountFile.Directory, normalAccount.AccountFile.Name
             | :? ReadOnlyAccount as readOnlyAccount ->
                 let configDir = GetConfigDirForReadonlyAccountsOfThisCurrency(account.Currency)
                 let fileName = account.PublicAddress
@@ -94,13 +97,11 @@ module internal Config =
                        (account.GetType().FullName))
         Path.Combine(configDir.FullName, fileName)
 
-    let AddNormalAccount currency jsonStoreContent =
-        let publicAddress = NormalAccount.GetPublicAddressFromKeyStore jsonStoreContent
-        let fileName = NormalAccount.KeyStoreService.GenerateUTCFileName(publicAddress)
-        let configDir = GetConfigDirForAccountsOfThisCurrency(currency)
-        let configFile = Path.Combine(configDir.FullName, fileName)
-        File.WriteAllText(configFile, jsonStoreContent)
-        NormalAccount(currency, FileInfo(configFile))
+    let AddNormalAccount currency fileName jsonStoreContent =
+        let configDir = GetConfigDirForNormalAccountsOfThisCurrency(currency)
+        let newAccountFile = Path.Combine(configDir.FullName, fileName)
+        File.WriteAllText(newAccountFile, jsonStoreContent)
+        FileInfo(newAccountFile)
 
     let RemoveNormal (account: NormalAccount) =
         let configFile = GetFile account
@@ -122,9 +123,12 @@ module internal Config =
         else
             File.Delete(configFile)
 
-    let AddArchived (account: ArchivedAccount) =
-        let configFile = GetFile account
+    let AddArchivedAccount currency fileName unencryptedPrivateKey =
+        let configDir = GetConfigDirForArchivedAccountsOfThisCurrency currency
+        let newAccountFile = Path.Combine(configDir.FullName, fileName)
 
-        // there's no unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
+        // there's no ETH unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
         // ... so we simply write the private key in string format
-        File.WriteAllText(configFile, account.PrivateKey.GetPrivateKey())
+        File.WriteAllText(newAccountFile, unencryptedPrivateKey)
+
+        FileInfo(newAccountFile)
