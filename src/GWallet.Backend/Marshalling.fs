@@ -66,7 +66,7 @@ module Marshalling =
                 raise (new DeserializationException("Exception when trying to deserialize", ex))
 
 
-        // HACK: this is because comparing to null in the F# world is a clusterfuck at compile-time
+        // FIXME: use Object.ReferenceEquals(deserialized.Value, null) instead of catching NullReferenceException
         try
             deserialized.Value.ToString() |> ignore
             deserialized.Value

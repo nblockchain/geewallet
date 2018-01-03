@@ -121,6 +121,7 @@
     <Compile Include="Deserialization.fs" />
     <Compile Include="FaultTolerance.fs" />
     <Compile Include="Shuffling.fs" />
+    <Compile Include="StratumParsing.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

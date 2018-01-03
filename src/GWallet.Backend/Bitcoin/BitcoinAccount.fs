@@ -56,6 +56,9 @@ module internal Account =
                               | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
                                   let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
                                   raise (ElectrumServerDiscarded(msg, ex))
+                              | :? ElectrumServerReturningInternalErrorInJsonResponseException as ex ->
+                                  let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                                  raise (ElectrumServerDiscarded(msg, ex))
                            )
                      )
                      randomizedServers
