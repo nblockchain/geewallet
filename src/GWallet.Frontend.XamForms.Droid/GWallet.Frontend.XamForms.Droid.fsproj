@@ -138,6 +138,9 @@
     <Reference Include="Nethereum.RPC">
       <HintPath>..\..\packages\Nethereum.RPC.2.0.0\lib\netstandard1.1\Nethereum.RPC.dll</HintPath>
     </Reference>
+    <Reference Include="SharpRavenLight">
+      <HintPath>..\..\packages\SharpRavenLight.1.0.0-beta5\lib\netstandard2.0\SharpRavenLight.dll</HintPath>
+    </Reference>
     <Reference Include="Plugin.Clipboard.Abstractions">
       <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.0.0\lib\MonoAndroid10\Plugin.Clipboard.Abstractions.dll</HintPath>
     </Reference>

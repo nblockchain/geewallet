@@ -141,9 +141,6 @@
     <Reference Include="Nethereum.JsonRpc.RpcClient">
       <HintPath>..\..\packages\Nethereum.JsonRpc.RpcClient.2.0.0\lib\netstandard1.1\Nethereum.JsonRpc.RpcClient.dll</HintPath>
     </Reference>
-    <Reference Include="SharpRaven">
-      <HintPath>..\..\packages\SharpRaven.2.2.0\lib\net45\SharpRaven.dll</HintPath>
-    </Reference>
     <Reference Include="Plugin.Clipboard.Abstractions">
       <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.0.0\lib\Xamarin.iOS10\Plugin.Clipboard.Abstractions.dll</HintPath>
     </Reference>
@@ -152,6 +149,9 @@
     </Reference>
     <Reference Include="NBitcoin">
       <HintPath>..\..\packages\NBitcoin.3.0.2.24\lib\netstandard1.3\NBitcoin.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpRavenLight">
+      <HintPath>..\..\packages\SharpRavenLight.1.0.0-beta5\lib\netstandard2.0\SharpRavenLight.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

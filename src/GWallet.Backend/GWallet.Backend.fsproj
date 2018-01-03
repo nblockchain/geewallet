@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>GWallet.Backend</RootNamespace>
     <AssemblyName>GWallet.Backend</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>GWallet.Backend</Name>
@@ -152,9 +152,6 @@
       <HintPath>..\..\packages\NBitcoin.3.0.2.24\lib\net45\NBitcoin.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="SharpRaven">
-      <HintPath>..\..\packages\SharpRaven.2.2.0\lib\net45\SharpRaven.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -208,6 +205,9 @@
     </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpRavenLight">
+      <HintPath>..\..\packages\SharpRavenLight.1.0.0-beta5\lib\net46\SharpRavenLight.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">

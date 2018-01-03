@@ -99,7 +99,7 @@
     <PackageReference Include="Nethereum.RLP" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="NBitcoin" Version="3.0.2.24" />
-    <PackageReference Include="SharpRaven" Version="2.2.0" />
+    <PackageReference Include="SharpRavenLight" Version="1.0.0-beta5" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Bitcoin\" />
