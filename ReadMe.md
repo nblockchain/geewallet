@@ -4,7 +4,12 @@ Welcome!
 
 GWallet is a minimalistic and pragmatist lightweight wallet for people that want to hold the most important cryptocurrencies in the same application without hassle.
 
-![Build status](http://gitlab.com/knocte/gwallet/badges/master/build.svg)
+| Branch   | Description                                                              | CI status                                                                                                                               |
+| -------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------  |
+| stable   | ETC & ETH support, console-based frontend, cold-storage support          | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/stable/build.svg)](https://gitlab.com/knocte/gwallet/commits/stable)     |
+| master   | +BTC support (SegWit by default); soon: LTC                              | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/master/build.svg)](https://gitlab.com/knocte/gwallet/commits/master)     |
+| frontend | +Xamarin.Forms frontends in progress (now: Android, iOS; soon: gtk, UWP) | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/frontend/build.svg)](https://gitlab.com/knocte/gwallet/commits/frontend) |
+
 
 ## Principles
 
