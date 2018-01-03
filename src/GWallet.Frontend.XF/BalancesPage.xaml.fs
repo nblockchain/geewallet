@@ -25,11 +25,10 @@ type BalancesPage() =
         grid.ColumnDefinitions.Add(columnDef1)
         let columnDef2 = ColumnDefinition()
         columnDef2.Width <- defaultGridLength
-
         grid.ColumnDefinitions.Add(columnDef2)
-
-        for account in accounts do
-            Console.WriteLine()
+        let columnDef3 = ColumnDefinition()
+        columnDef3.Width <- defaultGridLength
+        grid.ColumnDefinitions.Add(columnDef3)
 
         grid.ColumnSpacing <- 30.0
         mainLayout.Children.Add(grid)
@@ -41,11 +40,19 @@ type BalancesPage() =
             grid.RowDefinitions.Add(rowDefinition)
 
             let balance = Account.GetBalance account
+
+            let sendButton = Button()
+            sendButton.Text <- "Send"
+            sendButton.IsEnabled <- false
+
             let balanceAmount =
                 match balance with
                 | NotFresh(NotAvailable) -> "?"
                 | NotFresh(Cached(amount,_)) -> amount.ToString()
-                | Fresh(amount) -> amount.ToString()
+                | Fresh(amount) ->
+                    if (amount > 0.0m) then
+                        sendButton.IsEnabled <- true
+                    amount.ToString()
             let accountBalance = Label()
 
             accountBalance.Text <- sprintf "%s %s" balanceAmount (account.Currency.ToString())
@@ -54,7 +61,7 @@ type BalancesPage() =
             receiveButton.Clicked.Subscribe(fun _ ->
                 CrossClipboard.Current.SetText account.PublicAddress
                 receiveButton.IsEnabled <- false
-                receiveButton.Text <- "Copied address to clipboard"
+                receiveButton.Text <- "Copied"
                 Task.Run(fun _ ->
                     Task.Delay(TimeSpan.FromSeconds(2.0)).Wait()
                     Device.BeginInvokeOnMainThread(fun _ ->
@@ -69,9 +76,13 @@ type BalancesPage() =
             accountBalance.VerticalOptions <- LayoutOptions.Center
             grid.Children.Add(accountBalance, 0, rowCount)
 
+            sendButton.HorizontalOptions <- LayoutOptions.Center
+            sendButton.VerticalOptions <- LayoutOptions.Center
+            grid.Children.Add(sendButton, 1, rowCount)
+
             receiveButton.HorizontalOptions <- LayoutOptions.Start
             receiveButton.VerticalOptions <- LayoutOptions.Center
-            grid.Children.Add(receiveButton, 1, rowCount)
+            grid.Children.Add(receiveButton, 2, rowCount)
             rowCount <- rowCount + 1
 
 // idea taken from: https://stackoverflow.com/a/31456367/544947
