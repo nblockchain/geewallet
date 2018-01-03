@@ -86,20 +86,20 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="2.0.0" />
-    <PackageReference Include="Nethereum.Util" Version="2.0.0" />
-    <PackageReference Include="Nethereum.RPC" Version="2.0.0" />
-    <PackageReference Include="Nethereum.Contracts" Version="2.0.0" />
-    <PackageReference Include="Nethereum.Web3" Version="2.0.0" />
-    <PackageReference Include="Nethereum.JsonRpc.Client" Version="2.0.0" />
-    <PackageReference Include="Nethereum.Signer" Version="2.0.0" />
-    <PackageReference Include="Nethereum.Hex" Version="2.0.0" />
-    <PackageReference Include="Nethereum.ABI" Version="2.0.0" />
-    <PackageReference Include="Nethereum.KeyStore" Version="2.0.0" />
-    <PackageReference Include="Nethereum.RLP" Version="2.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
     <PackageReference Include="NBitcoin" Version="3.0.2.24" />
     <PackageReference Include="SharpRavenLight" Version="1.0.0-beta5" />
+    <PackageReference Include="Nethereum.ABI" Version="2.0.1" />
+    <PackageReference Include="Nethereum.Contracts" Version="2.0.1" />
+    <PackageReference Include="Nethereum.Hex" Version="2.0.1" />
+    <PackageReference Include="Nethereum.Util" Version="2.0.1" />
+    <PackageReference Include="Nethereum.Web3" Version="2.0.1" />
+    <PackageReference Include="Nethereum.Signer" Version="2.0.1" />
+    <PackageReference Include="Nethereum.RPC" Version="2.0.1" />
+    <PackageReference Include="Nethereum.RLP" Version="2.0.1" />
+    <PackageReference Include="Nethereum.KeyStore" Version="2.0.1" />
+    <PackageReference Include="Nethereum.JsonRpc.Client" Version="2.0.1" />
+    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="2.0.1" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Bitcoin\" />
