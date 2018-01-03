@@ -17,7 +17,29 @@ type BalancesPage() =
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let accounts = GWallet.Backend.Account.GetAllActiveAccounts()
     do
+        let grid = Grid()
+        let defaultGridLength = GridLength(1.0, GridUnitType.Star)
+
+        let columnDef1 = ColumnDefinition()
+        columnDef1.Width <- defaultGridLength
+        grid.ColumnDefinitions.Add(columnDef1)
+        let columnDef2 = ColumnDefinition()
+        columnDef2.Width <- defaultGridLength
+
+        grid.ColumnDefinitions.Add(columnDef2)
+
         for account in accounts do
+            Console.WriteLine()
+
+        grid.ColumnSpacing <- 30.0
+        mainLayout.Children.Add(grid)
+
+        let mutable rowCount = 0 //TODO: do this recursively instead of imperatively
+        for account in accounts do
+            let rowDefinition = RowDefinition()
+            rowDefinition.Height <- defaultGridLength
+            grid.RowDefinitions.Add(rowDefinition)
+
             let balance = Account.GetBalance account
             let balanceAmount =
                 match balance with
@@ -42,7 +64,23 @@ type BalancesPage() =
                 ) |> ignore
 
             ) |> ignore
-            mainLayout.Children.Add(accountBalance)
-            mainLayout.Children.Add(receiveButton)
 
+            accountBalance.HorizontalOptions <- LayoutOptions.End
+            accountBalance.VerticalOptions <- LayoutOptions.Center
+            grid.Children.Add(accountBalance, 0, rowCount)
 
+            receiveButton.HorizontalOptions <- LayoutOptions.Start
+            receiveButton.VerticalOptions <- LayoutOptions.Center
+            grid.Children.Add(receiveButton, 1, rowCount)
+            rowCount <- rowCount + 1
+
+// idea taken from: https://stackoverflow.com/a/31456367/544947
+#if DEBUG_LAYOUT
+            accountBalance.BackgroundColor <- Color.Gray
+            receiveButton.BackgroundColor <- Color.Beige
+        grid.BackgroundColor <- Color.Brown
+        if (grid.ColumnSpacing = 0) then
+            grid.ColumnSpacing <- 0.5
+        if (grid.RowSpacing = 0) then
+            grid.RowSpacing <- 0.5
+#endif
