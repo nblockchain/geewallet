@@ -53,6 +53,8 @@ type BalancesPage() as this =
             sendButton.Clicked.Subscribe(fun _ ->
                 this.Navigation.PushModalAsync(SendPage(normalAccount)) |> ignore
             ) |> ignore
+
+            //FIXME: rather enable it always, and give error when balance is not fresh
             sendButton.IsEnabled <- false
 
             let balanceAmount =
