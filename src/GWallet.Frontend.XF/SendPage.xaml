@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="GWallet.Frontend.XF.SendPage">
+    <StackLayout x:Name="mainLayout"
+                 Padding="10,10,10,10"
+                 VerticalOptions="Center">
+        <Label Text="Destination address:" />
+        <Entry x:Name="destinationAddress"
+               TextChanged="OnEntryTextChanged"
+                />
+
+        <Label Text="Amount:" />
+        <Entry x:Name="amountToSend" Keyboard="Numeric"
+               TextChanged="OnEntryTextChanged" />
+
+        <Label Text="Passphrase:" />
+        <Entry x:Name="passphrase" IsPassword="true"
+               TextChanged="OnEntryTextChanged" />
+
+        <Button x:Name="sendButton"
+                Text="Send"
+                IsEnabled="false"
+                HorizontalOptions="Center"
+                Clicked="OnSendButtonClicked"/>
+        <Button x:Name="cancelButton"
+                Text="Cancel"
+                IsEnabled="true"
+                HorizontalOptions="Center"
+                Clicked="OnCancelButtonClicked"/>
+    </StackLayout>
+</ContentPage>

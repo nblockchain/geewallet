@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Frontend.XF
 
 open System
+open System.Linq
 open System.Threading.Tasks
 
 open Xamarin.Forms
@@ -9,14 +10,17 @@ open Plugin.Clipboard
 
 open GWallet.Backend
 
-type BalancesPage() =
+type BalancesPage() as this =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
-    let accounts = GWallet.Backend.Account.GetAllActiveAccounts()
-    do
+    let normalAccounts = GWallet.Backend.Account.GetAllActiveAccounts().Cast<NormalAccount>()
+
+    do this.Init()
+
+    member this.Init() =
         let grid = Grid()
         let defaultGridLength = GridLength(1.0, GridUnitType.Star)
 
@@ -34,7 +38,9 @@ type BalancesPage() =
         mainLayout.Children.Add(grid)
 
         let mutable rowCount = 0 //TODO: do this recursively instead of imperatively
-        for account in accounts do
+        for normalAccount in normalAccounts do
+            let account = normalAccount :> IAccount
+
             let rowDefinition = RowDefinition()
             rowDefinition.Height <- defaultGridLength
             grid.RowDefinitions.Add(rowDefinition)
@@ -43,6 +49,9 @@ type BalancesPage() =
 
             let sendButton = Button()
             sendButton.Text <- "Send"
+            sendButton.Clicked.Subscribe(fun _ ->
+                this.Navigation.PushModalAsync(SendPage(normalAccount)) |> ignore
+            ) |> ignore
             sendButton.IsEnabled <- false
 
             let balanceAmount =

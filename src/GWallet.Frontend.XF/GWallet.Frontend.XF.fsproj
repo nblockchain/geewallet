@@ -6,6 +6,9 @@
 
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
+    <Compile Include="SendPage.xaml.fs">
+      <DependentUpon>SendPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="BalancesPage.xaml.fs">
       <DependentUpon>BalancesPage.xaml</DependentUpon>
     </Compile>
