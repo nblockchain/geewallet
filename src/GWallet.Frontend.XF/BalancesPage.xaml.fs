@@ -2,6 +2,7 @@
 
 open System
 open System.Linq
+open System.Timers
 open System.Threading.Tasks
 
 open Xamarin.Forms
@@ -18,7 +19,32 @@ type BalancesPage() as this =
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let normalAccounts = GWallet.Backend.Account.GetAllActiveAccounts().Cast<NormalAccount>()
 
-    do this.Init()
+    let timeToRefreshBalances = TimeSpan.FromSeconds 60.0
+    let balanceRefreshTimer = new Timer(timeToRefreshBalances.TotalMilliseconds)
+
+    let accountsAndBalances =
+        seq {
+            for normalAccount in normalAccounts do
+                yield normalAccount,Label(),Button()
+        } |> List.ofSeq
+
+    do
+        this.Init()
+
+        balanceRefreshTimer.Elapsed.Add (fun _ ->
+            for normalAccount,accountBalance,sendButton in accountsAndBalances do
+                let balance = Account.GetBalance normalAccount
+                let account = normalAccount :> IAccount
+                match balance with
+                | Fresh(amount) ->
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        if (amount > 0.0m) then
+                            sendButton.IsEnabled <- true
+                        accountBalance.Text <- sprintf "%s %s" (amount.ToString()) (account.Currency.ToString())
+                    )
+                | _ -> ()
+        )
+        balanceRefreshTimer.Start()
 
     member this.Init() =
         let grid = Grid()
@@ -39,7 +65,8 @@ type BalancesPage() as this =
         mainLayout.Children.Add(grid)
 
         let mutable rowCount = 0 //TODO: do this recursively instead of imperatively
-        for normalAccount in normalAccounts do
+
+        for normalAccount,accountBalance,sendButton in accountsAndBalances do
             let account = normalAccount :> IAccount
 
             let rowDefinition = RowDefinition()
@@ -48,7 +75,6 @@ type BalancesPage() as this =
 
             let balance = Account.GetBalance account
 
-            let sendButton = Button()
             sendButton.Text <- "Send"
             sendButton.Clicked.Subscribe(fun _ ->
                 this.Navigation.PushModalAsync(SendPage(normalAccount)) |> ignore
@@ -65,7 +91,6 @@ type BalancesPage() as this =
                     if (amount > 0.0m) then
                         sendButton.IsEnabled <- true
                     amount.ToString()
-            let accountBalance = Label()
 
             accountBalance.Text <- sprintf "%s %s" balanceAmount (account.Currency.ToString())
             let receiveButton = Button()
