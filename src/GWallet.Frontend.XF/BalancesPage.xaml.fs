@@ -22,19 +22,20 @@ type BalancesPage() as this =
 
     member this.Init() =
         let grid = Grid()
-        let defaultGridLength = GridLength(1.0, GridUnitType.Star)
+        let starGridLength = GridLength(1.0, GridUnitType.Star)
+        let autoGridLength = GridLength(1.0, GridUnitType.Auto)
 
         let columnDef1 = ColumnDefinition()
-        columnDef1.Width <- defaultGridLength
+        columnDef1.Width <- starGridLength
         grid.ColumnDefinitions.Add(columnDef1)
         let columnDef2 = ColumnDefinition()
-        columnDef2.Width <- defaultGridLength
+        columnDef2.Width <- starGridLength
         grid.ColumnDefinitions.Add(columnDef2)
         let columnDef3 = ColumnDefinition()
-        columnDef3.Width <- defaultGridLength
+        columnDef3.Width <- autoGridLength
         grid.ColumnDefinitions.Add(columnDef3)
 
-        grid.ColumnSpacing <- 30.0
+        grid.ColumnSpacing <- 1.0
         mainLayout.Children.Add(grid)
 
         let mutable rowCount = 0 //TODO: do this recursively instead of imperatively
@@ -42,7 +43,7 @@ type BalancesPage() as this =
             let account = normalAccount :> IAccount
 
             let rowDefinition = RowDefinition()
-            rowDefinition.Height <- defaultGridLength
+            rowDefinition.Height <- starGridLength
             grid.RowDefinitions.Add(rowDefinition)
 
             let balance = Account.GetBalance account
