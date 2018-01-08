@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Frontend.XF
 
 open System
+open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -20,9 +21,18 @@ type WelcomePage() =
         if (passphrase.Text <> passphraseConfirmation.Text) then
             this.DisplayAlert("Alert", "Passphrases don't match, please try again", "OK") |> ignore
         else
-            for currency in Currency.GetAll() do
-                Account.CreateNormalAccount currency passphrase.Text |> ignore
-            this.Navigation.PushModalAsync(BalancesPage()) |> ignore
+            let createButton = mainLayout.FindByName<Button>("createButton")
+            createButton.IsEnabled <- false
+            createButton.Text <- "Creating..."
+
+            Task.Run(fun _ ->
+                for currency in Currency.GetAll() do
+                    Account.CreateNormalAccount currency passphrase.Text |> ignore
+            ).ContinueWith(fun _ ->
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    this.Navigation.PushModalAsync(BalancesPage()) |> ignore
+                )
+            ) |> ignore
 
     member this.OnPassphraseTextChanged(sender: Object, args: EventArgs) =
 
