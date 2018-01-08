@@ -115,7 +115,7 @@ module Caching =
                 | :? KeyNotFoundException -> NotAvailable
         )
 
-    let internal RetreiveLastBalance (address: string): NotFresh<decimal> =
+    let RetreiveLastBalance (address: string): NotFresh<decimal> =
         lock lockObject (fun _ ->
             match sessionCachedNetworkData with
             | None -> NotAvailable

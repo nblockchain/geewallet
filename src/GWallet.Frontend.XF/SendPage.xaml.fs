@@ -22,6 +22,14 @@ type SendPage(account: NormalAccount) =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<SendPage>)
 
+    let GetBalance() =
+        let cachedBalance = Caching.RetreiveLastBalance((account:>IAccount).PublicAddress)
+        match cachedBalance with
+        | NotAvailable -> failwith "Assertion failed: send page should not be accessed if last balance saved on cache was not > 0"
+        | Cached(theCachedBalance,_) -> theCachedBalance
+
+    let lastCachedBalance: decimal = GetBalance()
+
     //FIXME: borrowed this function from Frontend.Console, reuse
     let ShowDecimalForHumans currencyType (amount: decimal): string =
         let amountOfDecimalsToShow =
@@ -118,11 +126,25 @@ type SendPage(account: NormalAccount) =
                 passphrase = null ||
                 amountToSend = null) then
                 ()
-            elif (destinationAddress.Text <> null && destinationAddress.Text.Length > 0 &&
-                  amountToSend.Text <> null && amountToSend.Text.Length > 0 &&
-                  passphrase.Text <> null && passphrase.Text.Length > 0) then
-                  let sendButton = mainLayout.FindByName<Button>("sendButton")
-                  sendButton.IsEnabled <- true
+            else
+                let sendButton = mainLayout.FindByName<Button>("sendButton")
+                if (amountToSend.Text <> null && amountToSend.Text.Length > 0) then
+
+                    // FIXME: marking as red should not even mark button as disabled but give the reason in Alert?
+                    match Decimal.TryParse(amountToSend.Text) with
+                    | false,_ ->
+                        amountToSend.TextColor <- Color.Red
+                        sendButton.IsEnabled <- false
+                    | true,amount ->
+                        if (amount <= 0.0m || amount > lastCachedBalance) then
+                            amountToSend.TextColor <- Color.Red
+                            sendButton.IsEnabled <- false
+                        else
+                            amountToSend.TextColor <- Color.Default
+                            sendButton.IsEnabled <- passphrase.Text <> null && passphrase.Text.Length > 0 &&
+                                                    destinationAddress.Text <> null && destinationAddress.Text.Length > 0
+                else
+                    sendButton.IsEnabled <- false
 
     member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
         this.Navigation.PopModalAsync() |> ignore
