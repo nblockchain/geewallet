@@ -216,16 +216,21 @@ module Account =
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
 
-    let Create currency password =
+    let private NUMBER_OF_BYTES_REQUIRED_FOR_ETHER_PRIVATE_KEY = 32
+    let rec private Create32BytesPrivateKey() =
         let privateKey = EthECKey.GenerateKey()
         let privateKeyAsBytes = privateKey.GetPrivateKeyAsBytes()
 
-        // FIXME: don't ask me why sometimes this version of NEthereum generates 33 bytes instead of the required 32...
-        let privateKeyTrimmed =
-            if privateKeyAsBytes.Length = 33 then
-                privateKeyAsBytes |> Array.skip 1
-            else
-                privateKeyAsBytes
+        // TODO: don't ask me why sometimes this version of NEthereum generates N bytes, where N != 32,
+        //       we should report this upstream to Nethereum
+        if privateKeyAsBytes.Length <> NUMBER_OF_BYTES_REQUIRED_FOR_ETHER_PRIVATE_KEY then
+            Create32BytesPrivateKey()
+        else
+            privateKey
+
+    let Create currency password =
+        let privateKey = Create32BytesPrivateKey()
+        let privateKeyBytes = privateKey.GetPrivateKeyAsBytes()
 
         let publicAddress = privateKey.GetPublicAddress()
         if not (addressUtil.IsChecksumAddress(publicAddress)) then
@@ -233,7 +238,7 @@ module Account =
 
         let accountSerializedJson =
             NormalAccount.KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password,
-                                                                                  privateKeyTrimmed,
+                                                                                  privateKeyBytes,
                                                                                   publicAddress)
         Config.AddNormalAccount currency accountSerializedJson
 
