@@ -42,6 +42,17 @@ type SendPage(account: NormalAccount) =
             // line below is to add thousand separators and not show zeroes on the right...
             .ToString("N" + amountOfDecimalsToShow.ToString())
 
+
+    member private this.ReenableButtons() =
+        let mainLayout = base.FindByName<StackLayout>("mainLayout")
+        Device.BeginInvokeOnMainThread(fun _ ->
+            let sendButton = mainLayout.FindByName<Button>("sendButton")
+            sendButton.IsEnabled <- true
+            let cancelButton = mainLayout.FindByName<Button>("cancelButton")
+            cancelButton.IsEnabled <- true
+            sendButton.Text <- "Send"
+        )
+
     member private this.SendTransaction (transactionInfo: TransactionInfo) =
         let maybeTxId =
             try
@@ -55,19 +66,25 @@ type SendPage(account: NormalAccount) =
             | :? DestinationEqualToOrigin ->
                 let errMsg = "Transaction's origin cannot be the same as the destination."
                 Device.BeginInvokeOnMainThread(fun _ ->
-                    this.DisplayAlert("Alert", errMsg, "OK") |> ignore
+                    this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
+                        this.ReenableButtons() |> ignore
+                    ) |> ignore
                 )
                 None
             | :? InsufficientFunds ->
                 let errMsg = "Insufficient funds."
                 Device.BeginInvokeOnMainThread(fun _ ->
-                    this.DisplayAlert("Alert", errMsg, "OK") |> ignore
+                    this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
+                        this.ReenableButtons() |> ignore
+                    ) |> ignore
                 )
                 None
             | :? InvalidPassword ->
                 let errMsg = "Invalid passphrase, try again."
                 Device.BeginInvokeOnMainThread(fun _ ->
-                    this.DisplayAlert("Alert", errMsg, "OK") |> ignore
+                    this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
+                        this.ReenableButtons() |> ignore
+                    ) |> ignore
                 )
                 None
         
@@ -149,9 +166,19 @@ type SendPage(account: NormalAccount) =
     member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
         this.Navigation.PopModalAsync() |> ignore
 
+    member private this.DisableButtons() =
+        let mainLayout = base.FindByName<StackLayout>("mainLayout")
+        let sendButton = mainLayout.FindByName<Button>("sendButton")
+        sendButton.IsEnabled <- false
+        let cancelButton = mainLayout.FindByName<Button>("cancelButton")
+        cancelButton.IsEnabled <- false
+        sendButton.Text <- "Sending..."
+
     member private this.AnswerToFee (txInfo: TransactionInfo) (answer: Task<bool>):unit =
         if (answer.Result) then
-            this.SendTransaction txInfo
+            Task.Run(fun _ -> this.SendTransaction txInfo) |> ignore
+        else
+            this.ReenableButtons()
 
     member this.OnSendButtonClicked(sender: Object, args: EventArgs) =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
@@ -165,27 +192,36 @@ type SendPage(account: NormalAccount) =
             if not (amount > 0.0m) then
                 this.DisplayAlert("Alert", "Amount should be positive", "OK") |> ignore
             else
+                this.DisableButtons()
+
                 let currency = (account:>IAccount).Currency
                 let validatedAddress = this.ValidateAddress currency destinationAddress.Text
                 match validatedAddress with
                 | None -> ()
                 | Some(destinationAddress) ->
-                    let txMetadataWithFeeEstimation = Account.EstimateFee account amount destinationAddress
-                    let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s"
-                                          (txMetadataWithFeeEstimation.FeeValue |> ShowDecimalForHumans CurrencyType.Crypto)
-                                          (currency.ToString())
-                    let task = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")
 
-                    // FIXME: allow user to specify fiat and/or allbalance
-                    let maybeCachedBalance = Account.GetBalance account
-                    match maybeCachedBalance with
-                    | Fresh(balance) ->
-                        let transferAmount = TransferAmount(amount, balance - amount)
-                        let txInfo = { Account = account;
-                                       Metadata = txMetadataWithFeeEstimation;
-                                       Amount = transferAmount;
-                                       Destination = destinationAddress;
-                                       Passphrase = passphrase.Text; }
-                        task.ContinueWith(this.AnswerToFee txInfo) |> ignore
-                    | NotFresh(_) ->
-                        this.DisplayAlert("Alert", "No internet connection seems available", "OK") |> ignore
+                    let txFeeInfoTask: Task<IBlockchainFeeInfo> = Task.Run(fun _ ->
+                        Account.EstimateFee account amount destinationAddress
+                    )
+                    txFeeInfoTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<IBlockchainFeeInfo>) ->
+                        let txMetadataWithFeeEstimation = txMetadataWithFeeEstimationTask.Result
+                        let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s"
+                                              (txMetadataWithFeeEstimation.FeeValue |> ShowDecimalForHumans CurrencyType.Crypto)
+                                              (currency.ToString())
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            let askFeeTask = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")
+
+                            // FIXME: allow user to specify fiat and/or allbalance
+                            let transferAmount = TransferAmount(amount, lastCachedBalance - amount)
+                            let txInfo = { Account = account;
+                                           Metadata = txMetadataWithFeeEstimation;
+                                           Amount = transferAmount;
+                                           Destination = destinationAddress;
+                                           Passphrase = passphrase.Text; }
+
+                            askFeeTask.ContinueWith(this.AnswerToFee txInfo) |> ignore
+                        )
+
+                    ) |> ignore
+
+
