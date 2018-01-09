@@ -75,7 +75,7 @@ type SendPage(account: NormalAccount) =
         | None -> ()
         | Some(txId) ->
             Device.BeginInvokeOnMainThread(fun _ ->
-                this.DisplayAlert("Alert", "Transaction sent: " + txId, "OK")
+                this.DisplayAlert("Success", "Transaction sent: " + txId, "OK")
                     .ContinueWith(fun _ ->
                         Device.BeginInvokeOnMainThread(fun _ ->
                             this.Navigation.PopModalAsync() |> ignore
