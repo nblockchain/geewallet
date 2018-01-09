@@ -77,7 +77,7 @@ type BalancesPage() as this =
 
             sendButton.Text <- "Send"
             sendButton.Clicked.Subscribe(fun _ ->
-                this.Navigation.PushModalAsync(SendPage(normalAccount)) |> ignore
+                this.Navigation.PushModalAsync(SendPage(normalAccount)) |> FrontendHelpers.DoubleCheckCompletion
             ) |> ignore
 
             //FIXME: rather enable it always, and give error when balance is not fresh
@@ -105,7 +105,7 @@ type BalancesPage() as this =
                         receiveButton.Text <- "Receive"
                         receiveButton.IsEnabled <- true
                     )
-                ) |> ignore
+                ) |> FrontendHelpers.DoubleCheckCompletion
 
             ) |> ignore
 

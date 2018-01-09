@@ -67,24 +67,24 @@ type SendPage(account: NormalAccount) =
                 let errMsg = "Transaction's origin cannot be the same as the destination."
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ReenableButtons() |> ignore
-                    ) |> ignore
+                        this.ReenableButtons()
+                    ) |> FrontendHelpers.DoubleCheckCompletion
                 )
                 None
             | :? InsufficientFunds ->
                 let errMsg = "Insufficient funds."
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ReenableButtons() |> ignore
-                    ) |> ignore
+                        this.ReenableButtons()
+                    ) |> FrontendHelpers.DoubleCheckCompletion
                 )
                 None
             | :? InvalidPassword ->
                 let errMsg = "Invalid passphrase, try again."
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ReenableButtons() |> ignore
-                    ) |> ignore
+                        this.ReenableButtons()
+                    ) |> FrontendHelpers.DoubleCheckCompletion
                 )
                 None
         
@@ -95,9 +95,9 @@ type SendPage(account: NormalAccount) =
                 this.DisplayAlert("Success", "Transaction sent: " + txId, "OK")
                     .ContinueWith(fun _ ->
                         Device.BeginInvokeOnMainThread(fun _ ->
-                            this.Navigation.PopModalAsync() |> ignore
-                        ) |> ignore
-                    ) |> ignore
+                            this.Navigation.PopModalAsync() |> FrontendHelpers.DoubleCheckCompletion
+                        )
+                    ) |> FrontendHelpers.DoubleCheckCompletion
             )
     
     member private this.ValidateAddress currency destinationAddress =
@@ -176,7 +176,7 @@ type SendPage(account: NormalAccount) =
 
     member private this.AnswerToFee (txInfo: TransactionInfo) (answer: Task<bool>):unit =
         if (answer.Result) then
-            Task.Run(fun _ -> this.SendTransaction txInfo) |> ignore
+            Task.Run(fun _ -> this.SendTransaction txInfo) |> FrontendHelpers.DoubleCheckCompletion
         else
             this.ReenableButtons()
 
@@ -187,10 +187,12 @@ type SendPage(account: NormalAccount) =
         let destinationAddress = mainLayout.FindByName<Entry>("destinationAddress")
 
         match Decimal.TryParse(amountToSend.Text) with
-        | false,_ -> this.DisplayAlert("Alert", "The amount should be a decimal amount", "OK") |> ignore
+        | false,_ ->
+            this.DisplayAlert("Alert", "The amount should be a decimal amount", "OK")
+                |> FrontendHelpers.DoubleCheckCompletion
         | true,amount ->
             if not (amount > 0.0m) then
-                this.DisplayAlert("Alert", "Amount should be positive", "OK") |> ignore
+                this.DisplayAlert("Alert", "Amount should be positive", "OK") |> FrontendHelpers.DoubleCheckCompletion
             else
                 this.DisableButtons()
 
@@ -219,9 +221,9 @@ type SendPage(account: NormalAccount) =
                                            Destination = destinationAddress;
                                            Passphrase = passphrase.Text; }
 
-                            askFeeTask.ContinueWith(this.AnswerToFee txInfo) |> ignore
+                            askFeeTask.ContinueWith(this.AnswerToFee txInfo) |> FrontendHelpers.DoubleCheckCompletion
                         )
 
-                    ) |> ignore
+                    ) |> FrontendHelpers.DoubleCheckCompletion
 
 

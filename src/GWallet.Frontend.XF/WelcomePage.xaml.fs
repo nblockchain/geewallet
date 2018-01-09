@@ -32,7 +32,7 @@ type WelcomePage() =
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.Navigation.PushModalAsync(BalancesPage()) |> ignore
                 )
-            ) |> ignore
+            ) |> FrontendHelpers.DoubleCheckCompletion
 
     member this.OnPassphraseTextChanged(sender: Object, args: EventArgs) =
 
