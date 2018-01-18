@@ -199,7 +199,7 @@ type SendPage(account: NormalAccount) =
                 let currency = (account:>IAccount).Currency
                 let validatedAddress = this.ValidateAddress currency destinationAddress.Text
                 match validatedAddress with
-                | None -> ()
+                | None -> this.ReenableButtons()
                 | Some(destinationAddress) ->
 
                     let txFeeInfoTask: Task<IBlockchainFeeInfo> = Task.Run(fun _ ->
