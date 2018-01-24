@@ -15,8 +15,10 @@ module Account =
             try
                 match account.Currency with
                 | Currency.ETH | Currency.ETC ->
-                    // TODO: have a way to distinguish between confirmed and unconfirmed balance
-                    Some(Ether.Account.GetBalance account)
+                    if (confirmed) then
+                        Some(Ether.Account.GetConfirmedBalance account)
+                    else
+                        Some(Ether.Account.GetUnconfirmedBalance account)
                 | Currency.BTC ->
                     if (confirmed) then
                         Some(Bitcoin.Account.GetConfirmedBalance account)

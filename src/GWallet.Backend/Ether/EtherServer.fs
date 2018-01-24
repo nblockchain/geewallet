@@ -2,10 +2,12 @@
 
 open System
 open System.Net
+open System.Numerics
 open System.Threading.Tasks
 
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
+open Nethereum.RPC.Eth.DTOs
 
 open GWallet.Backend
 
@@ -25,18 +27,39 @@ module Server =
 
     type IWeb3 =
         abstract member GetTransactionCount: string -> Task<HexBigInteger>
-        abstract member GetBalance: string -> Task<HexBigInteger>
+        abstract member GetUnconfirmedBalance: string -> Task<HexBigInteger>
+        abstract member GetConfirmedBalance: string -> Task<HexBigInteger>
         abstract member GetGasPrice: unit -> Task<HexBigInteger>
         abstract member BroadcastTransaction: string -> Task<string>
 
     type SomeWeb3(web3: Web3) =
+        let NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
+
         interface IWeb3 with
             member this.GetTransactionCount (publicAddress): Task<HexBigInteger> =
                 web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
                     publicAddress
-            member this.GetBalance (publicAddress): Task<HexBigInteger> =
+            member this.GetUnconfirmedBalance (publicAddress): Task<HexBigInteger> =
                 web3.Eth.GetBalance.SendRequestAsync
                     publicAddress
+            member this.GetConfirmedBalance (publicAddress): Task<HexBigInteger> =
+                Task.Run(fun _ ->
+                    let latestBlockTask = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync ()
+                    latestBlockTask.Wait()
+                    let latestBlock = latestBlockTask.Result
+                    let blockForConfirmationReference =
+                        BlockParameter(HexBigInteger(BigInteger.Subtract(latestBlock.Value,
+                                                                         NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)))
+(*
+                    if (Config.DebugLog) then
+                        Console.Error.WriteLine (sprintf "Last block number and last confirmed block number: %s: %s"
+                                                         (latestBlock.Value.ToString()) (blockForConfirmationReference.BlockNumber.Value.ToString()))
+*)
+                    let balanceTask =
+                        web3.Eth.GetBalance.SendRequestAsync(publicAddress,blockForConfirmationReference)
+                    balanceTask.Wait()
+                    balanceTask.Result
+                )
             member this.GetGasPrice (): Task<HexBigInteger> =
                 web3.Eth.GasPrice.SendRequestAsync ()
             member this.BroadcastTransaction transaction: Task<string> =
@@ -104,9 +127,13 @@ module Server =
         : HexBigInteger =
         PlumbingCall currency address (fun web3 -> web3.GetTransactionCount)
 
-    let GetBalance (currency: Currency) (address: string)
+    let GetUnconfirmedBalance (currency: Currency) (address: string)
         : HexBigInteger =
-        PlumbingCall currency address (fun web3 -> web3.GetBalance)
+        PlumbingCall currency address (fun web3 -> web3.GetUnconfirmedBalance)
+
+    let GetConfirmedBalance (currency: Currency) (address: string)
+        : HexBigInteger =
+        PlumbingCall currency address (fun web3 -> web3.GetConfirmedBalance)
 
     let GetGasPrice (currency: Currency)
         : HexBigInteger =
