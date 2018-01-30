@@ -243,7 +243,7 @@ module internal Account =
         if (transactionDraft.Outputs.[0].DestinationAddress <> destination) then
             failwith "Destination address and the first output's destination address should match"
         if (amount.IdealValueRemainingAfterSending < 0.0m) then
-            failwith "Assertian idealValueRemainingAfterSending cannot be negative"
+            failwith "Assertion failed: idealValueRemainingAfterSending cannot be negative"
 
         // it means we're sending all balance!
         if (amount.IdealValueRemainingAfterSending = 0.0m && transactionDraft.Outputs.Length <> 1) then
