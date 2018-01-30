@@ -15,3 +15,6 @@ build.config
 
 # nunit results:
 TestResult.xml
+
+# macOS users:
+.DS_Store
