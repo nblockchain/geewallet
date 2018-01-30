@@ -30,7 +30,7 @@ This list is the (intended) order of preference for new features:
 - Fee selection for custom priority.
 - Multi-sig support.
 - Payment channels support.
-- Lightning support.
+- Lightning support (upgrading to NBitcoin 4.0.0.12 to be protected from malleability).
 - ETH/ETC raiden (state channels) support.
 - Use bits instead of BTC as default unit.
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
