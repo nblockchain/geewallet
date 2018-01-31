@@ -37,8 +37,19 @@ module Account =
     let GetUnconfirmedBalance(account: IAccount) =
         GetBalanceFromServerOrCache account false
 
-    let GetBalance(account: IAccount) =
+    let GetConfirmedBalance(account: IAccount) =
         GetBalanceFromServerOrCache account true
+
+    let GetShowableBalance(account: IAccount) =
+        let unconfirmed = GetUnconfirmedBalance account
+        let confirmed = GetConfirmedBalance account
+        match unconfirmed,confirmed with
+        | Fresh(unconfirmedAmount),Fresh(confirmedAmount) ->
+            if (unconfirmedAmount < confirmedAmount) then
+                unconfirmed
+            else
+                confirmed
+        | _ -> confirmed
 
     let GetAllActiveAccounts(): seq<IAccount> =
         seq {

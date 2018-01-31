@@ -161,7 +161,7 @@ module UserInteraction =
 
         let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
 
-        let maybeBalance = Account.GetBalance(account)
+        let maybeBalance = Account.GetShowableBalance account
         match maybeBalance with
         | NotFresh(NotAvailable) ->
             Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
@@ -376,7 +376,7 @@ module UserInteraction =
 
     let rec internal AskAmount account: Option<TransferAmount> =
 
-        match Account.GetBalance(account) with
+        match Account.GetShowableBalance account with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Balance not available if offline."
             None
