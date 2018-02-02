@@ -39,6 +39,20 @@ type internal ElectrumClient (electrumServer: ElectrumServer) =
     let stratumClient = Init()
 
     member self.GetBalance address =
+        // FIXME: we should rather implement this method in terms of:
+        //        - querying all unspent transaction outputs (X) -> block heights included
+        //        - querying transaction history (Y) -> block heights included
+        //        - check the difference between X and Y (e.g. Y - X = Z)
+        //        - query details of each element in Z to see their block heights
+        //        - query the current blockheight (H) -> pick the highest among all servers queried
+        //        -> having H, we now know which elements of X, Y, and Z are confirmed or not
+        // Doing it this way has two advantages:
+        // 1) We can configure GWallet with a number of confirmations to consider some balance confirmed (instead
+        //    of trusting what "confirmed" means from the point of view of the Electrum Server)
+        // 2) and most importantly: we could verify each of the transactions supplied in X, Y, Z to verify their
+        //    integrity (in a similar fashion as Electrum Wallet client already does), to not have to trust servers*
+        //    [ see https://www.youtube.com/watch?v=hjYCXOyDy7Y&feature=youtu.be&t=1171 for more information ]
+        // * -> although that would be fixing only half of the problem, we also need proof of completeness
         let balanceResult = stratumClient.BlockchainAddressGetBalance address
         balanceResult.Result
 

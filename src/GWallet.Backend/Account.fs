@@ -10,20 +10,20 @@ open Newtonsoft.Json
 
 module Account =
 
-    let private GetBalanceFromServerOrCache(account: IAccount) (confirmed: bool): MaybeCached<decimal> =
+    let private GetBalanceFromServerOrCache(account: IAccount) (onlyConfirmed: bool): MaybeCached<decimal> =
         let maybeBalance =
             try
                 match account.Currency with
                 | Currency.ETH | Currency.ETC ->
-                    if (confirmed) then
+                    if (onlyConfirmed) then
                         Some(Ether.Account.GetConfirmedBalance account)
                     else
-                        Some(Ether.Account.GetUnconfirmedBalance account)
+                        Some(Ether.Account.GetUnconfirmedPlusConfirmedBalance account)
                 | Currency.BTC ->
-                    if (confirmed) then
+                    if (onlyConfirmed) then
                         Some(Bitcoin.Account.GetConfirmedBalance account)
                     else
-                        Some(Bitcoin.Account.GetUnconfirmedBalance account)
+                        Some(Bitcoin.Account.GetUnconfirmedPlusConfirmedBalance account)
             with
             | :? NoneAvailableException as ex -> None
 
@@ -34,14 +34,14 @@ module Account =
             Caching.StoreLastBalance(account.PublicAddress, balance)
             Fresh(balance)
 
-    let GetUnconfirmedBalance(account: IAccount) =
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount) =
         GetBalanceFromServerOrCache account false
 
     let GetConfirmedBalance(account: IAccount) =
         GetBalanceFromServerOrCache account true
 
     let GetShowableBalance(account: IAccount) =
-        let unconfirmed = GetUnconfirmedBalance account
+        let unconfirmed = GetUnconfirmedPlusConfirmedBalance account
         let confirmed = GetConfirmedBalance account
         match unconfirmed,confirmed with
         | Fresh(unconfirmedAmount),Fresh(confirmedAmount) ->
@@ -86,7 +86,7 @@ module Account =
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
                     let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
-                    match GetUnconfirmedBalance(account) with
+                    match GetUnconfirmedPlusConfirmedBalance(account) with
                     | NotFresh(NotAvailable) -> ()
                     | Fresh(balance) ->
                         if (balance > 0m) then

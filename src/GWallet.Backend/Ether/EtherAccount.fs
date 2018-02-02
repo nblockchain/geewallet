@@ -42,7 +42,7 @@ module internal Account =
         let balance = Ether.Server.GetConfirmedBalance account.Currency account.PublicAddress
         UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
 
-    let GetUnconfirmedBalance(account: IAccount): decimal =
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): decimal =
         let balance = Ether.Server.GetUnconfirmedBalance account.Currency account.PublicAddress
         UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
 
