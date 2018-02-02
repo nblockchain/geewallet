@@ -257,11 +257,8 @@ module internal Account =
 
         let finalTransaction,coins = CreateTransactionAndCoinsToBeSigned transactionWithMinerFeeSubstracted
 
-        // needed to sign with SegWit:
         let coinsToSign =
-            // FIXME: after we switch to TransactionBuilder, we don't need to call ToScriptCoin() anymore like we do below
-            // (if using 4.0.0.38 or newer, see https://github.com/MetacoSA/NBitcoin/commit/56bfd1cbca535424b160d8a40688a79de4800630 )
-            coins.Select(fun c -> c.ToScriptCoin(privateKey.PubKey.WitHash.ScriptPubKey) :> ICoin)
+            coins.Select(fun c -> c :> ICoin)
             |> Seq.toArray
 
         let transCheckResultBeforeSigning = finalTransaction.Check()

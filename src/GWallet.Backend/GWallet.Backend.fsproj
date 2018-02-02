@@ -148,10 +148,6 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
-    <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.3.0.2.24\lib\net45\NBitcoin.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="SharpRaven">
       <HintPath>..\..\packages\SharpRaven.2.2.0\lib\net45\SharpRaven.dll</HintPath>
     </Reference>
@@ -208,6 +204,9 @@
     </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.4.0.0.38\lib\netstandard1.1\NBitcoin.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">
