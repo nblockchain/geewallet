@@ -10,8 +10,15 @@ open System.Linq
 open System.Numerics
 
 open NBitcoin
+open Org.BouncyCastle.Security
 
 open GWallet.Backend
+
+type BouncyCastleSecureRandomWrapperForNBitcoin() =
+    let secureRandomInstance = SecureRandom()
+    interface IRandom with
+        member this.GetBytes(buf: array<byte>) =
+            secureRandomInstance.NextBytes(buf)
 
 type internal TransactionOutpoint =
     {
@@ -364,6 +371,7 @@ module internal Account =
         BroadcastRawTransaction (signedTrans.ToHex())
 
     let Create password =
+        RandomUtils.Random <- BouncyCastleSecureRandomWrapperForNBitcoin()
         let privkey = Key()
         let secret = privkey.GetBitcoinSecret(Network.Main)
         let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, Network.Main)
