@@ -107,7 +107,7 @@
   </ItemGroup>
 
   <!-- workaround for Xamarin bug https://bugzilla.xamarin.com/show_bug.cgi?id=61091 -->
-  <PropertyGroup>
+  <PropertyGroup Condition=" '$(OS)' != 'Windows_NT' ">
     <TargetFramework>netstandard2.0</TargetFramework>
     <FscToolExe>fsc.exe</FscToolExe>
     <FscToolPath>/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/fsharp</FscToolPath>
