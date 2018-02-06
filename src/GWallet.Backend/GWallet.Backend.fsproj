@@ -9,7 +9,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>GWallet.Backend</RootNamespace>
     <AssemblyName>GWallet.Backend</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>GWallet.Backend</Name>
@@ -206,7 +206,7 @@
       <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.4.0.0.38\lib\netstandard1.1\NBitcoin.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.4.0.0.38\lib\net452\NBitcoin.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">
