@@ -25,7 +25,11 @@ type BalancesPage() as this =
     let accountsAndBalances =
         seq {
             for normalAccount in normalAccounts do
-                yield normalAccount,Label(),Button()
+                let accountBalanceLabel = Label(Text = "...")
+                let sendButton = Button(Text = "Send",
+                                        //FIXME: rather enable it always, and give error when balance is not fresh
+                                        IsEnabled = false)
+                yield normalAccount,accountBalanceLabel,sendButton
         } |> List.ofSeq
 
     do
@@ -47,21 +51,17 @@ type BalancesPage() as this =
         balanceRefreshTimer.Start()
 
     member this.Init() =
-        let grid = Grid()
+        let grid = Grid(ColumnSpacing = 1.0)
         let starGridLength = GridLength(1.0, GridUnitType.Star)
         let autoGridLength = GridLength(1.0, GridUnitType.Auto)
 
-        let columnDef1 = ColumnDefinition()
-        columnDef1.Width <- starGridLength
+        let columnDef1 = ColumnDefinition(Width = starGridLength)
         grid.ColumnDefinitions.Add(columnDef1)
-        let columnDef2 = ColumnDefinition()
-        columnDef2.Width <- starGridLength
+        let columnDef2 = ColumnDefinition(Width = starGridLength)
         grid.ColumnDefinitions.Add(columnDef2)
-        let columnDef3 = ColumnDefinition()
-        columnDef3.Width <- autoGridLength
+        let columnDef3 = ColumnDefinition(Width = autoGridLength)
         grid.ColumnDefinitions.Add(columnDef3)
 
-        grid.ColumnSpacing <- 1.0
         mainLayout.Children.Add(grid)
 
         let mutable rowCount = 0 //TODO: do this recursively instead of imperatively
@@ -69,19 +69,14 @@ type BalancesPage() as this =
         for normalAccount,accountBalance,sendButton in accountsAndBalances do
             let account = normalAccount :> IAccount
 
-            let rowDefinition = RowDefinition()
-            rowDefinition.Height <- starGridLength
+            let rowDefinition = RowDefinition(Height = starGridLength)
             grid.RowDefinitions.Add(rowDefinition)
 
             let balance = Account.GetBalance account
 
-            sendButton.Text <- "Send"
             sendButton.Clicked.Subscribe(fun _ ->
                 this.Navigation.PushModalAsync(SendPage(normalAccount)) |> FrontendHelpers.DoubleCheckCompletion
             ) |> ignore
-
-            //FIXME: rather enable it always, and give error when balance is not fresh
-            sendButton.IsEnabled <- false
 
             let balanceAmount =
                 match balance with
@@ -93,8 +88,7 @@ type BalancesPage() as this =
                     amount.ToString()
 
             accountBalance.Text <- sprintf "%s %s" balanceAmount (account.Currency.ToString())
-            let receiveButton = Button()
-            receiveButton.Text <- "Receive"
+            let receiveButton = Button(Text = "Receive")
             receiveButton.Clicked.Subscribe(fun _ ->
                 CrossClipboard.Current.SetText account.PublicAddress
                 receiveButton.IsEnabled <- false
