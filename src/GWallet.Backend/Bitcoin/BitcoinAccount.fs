@@ -156,7 +156,7 @@ module internal Account =
         // first ones are the smallest ones
         let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
 
-        let amountInSatoshis = Convert.ToInt64(amount * 100000000m)
+        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount
         let utxosToUse,totalValueOfInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis []
 
@@ -243,8 +243,8 @@ module internal Account =
         let transactionDraft = txMetadata.TransactionDraft
         let btcMinerFee = txMetadata.Fee
         let minerFee = txMetadata :> IBlockchainFeeInfo
-        let minerFeeInSatoshis = Convert.ToInt64(minerFee.FeeValue * 100000000m)
-        let amountInSatoshis = Convert.ToInt64(amount.ValueToSend * 100000000m)
+        let minerFeeInSatoshis = UnitConversion.FromBtcToSatoshis minerFee.FeeValue
+        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
 
         if (transactionDraft.Outputs.Length < 1 || transactionDraft.Outputs.Length > 2) then
             failwith (sprintf "draftTransaction should have 1 or 2 outputs, not more, not less (now %d)"
