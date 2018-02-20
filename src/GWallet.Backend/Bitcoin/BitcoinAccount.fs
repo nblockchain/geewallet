@@ -50,7 +50,8 @@ module internal Account =
         GetPublicAddressFromPublicKey privateKey.PubKey
 
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
-    //        (maybe make it more similar to EtherServer.fs' PlumbingCall()?
+    //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
+    //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
     let private GetRandomizedFuncs<'T,'R> (ecFunc: ElectrumClient->'T->'R): list<'T->'R> =
         let randomizedServers = ElectrumServerSeedList.Randomize() |> List.ofSeq
         let randomizedFuncs =
