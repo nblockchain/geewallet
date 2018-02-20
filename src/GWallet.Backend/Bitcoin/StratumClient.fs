@@ -1,10 +1,7 @@
 ﻿namespace GWallet.Backend.Bitcoin
 
 open System
-open System.Linq
-open System.Text
 open System.Text.RegularExpressions
-open System.Net.Sockets
 
 open Newtonsoft.Json
 open Newtonsoft.Json.Serialization

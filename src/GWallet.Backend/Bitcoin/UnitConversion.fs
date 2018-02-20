@@ -1,8 +1,5 @@
 ﻿namespace GWallet.Backend.Bitcoin
 
-open System
-open System.Numerics
-
 module UnitConversion =
     let FromSatoshiToBTC(satoshis: int64): decimal =
         let satInDecimal = decimal satoshis

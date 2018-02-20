@@ -2,8 +2,6 @@
 
 open System
 
-open GWallet.Backend
-
 type MinerFee(estimatedTransactionSizeInBytes: int,
               amountPerKiloByteForFastTransaction: decimal,
               estimationTime: DateTime) =

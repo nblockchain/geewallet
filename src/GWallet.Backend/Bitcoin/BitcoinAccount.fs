@@ -7,7 +7,6 @@ open System
 open System.IO
 open System.Security
 open System.Linq
-open System.Numerics
 
 open NBitcoin
 open Org.BouncyCastle.Security

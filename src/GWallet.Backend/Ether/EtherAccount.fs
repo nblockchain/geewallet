@@ -4,17 +4,13 @@
 // https://github.com/Microsoft/visualfsharp/issues/3231
 
 open System
-open System.Net
-open System.Linq
 open System.Numerics
 open System.IO
 
-open Nethereum.Web3
 open Nethereum.Signer
 open Nethereum.KeyStore
 open Nethereum.Util
 open Nethereum.KeyStore.Crypto
-open Newtonsoft.Json
 
 open GWallet.Backend
 

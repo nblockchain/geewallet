@@ -1,7 +1,5 @@
 ﻿namespace GWallet.Backend
 
-open System
-
 type UnsignedTransactionProposal =
     {
         Currency: Currency;

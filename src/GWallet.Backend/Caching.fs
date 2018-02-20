@@ -2,10 +2,7 @@
 
 open System
 open System.IO
-open System.Text
 open System.Collections.Generic
-
-open Newtonsoft.Json
 
 type Cached<'T> = ('T*DateTime)
 type NotFresh<'T> =
