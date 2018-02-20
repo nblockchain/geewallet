@@ -82,11 +82,11 @@ module internal Account =
 
     let GetConfirmedBalance(account: IAccount): decimal =
         let balance = GetBalance account
-        balance.Confirmed |> UnitConversion.FromSatoshiToBTC
+        balance.Confirmed |> UnitConversion.FromSatoshiToBtc
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount): decimal =
         let balance = GetBalance account
-        balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBTC
+        balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBtc
 
     let private CreateTransactionAndCoinsToBeSigned (transactionDraft: TransactionDraft): Transaction*list<Coin> =
         let transaction = Transaction()

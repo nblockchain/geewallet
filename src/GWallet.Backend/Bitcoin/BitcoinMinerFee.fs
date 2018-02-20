@@ -15,5 +15,4 @@ type MinerFee(estimatedTransactionSizeInBytes: int,
         let satPerByteForFastTrans = amountPerKiloByteForFastTransaction * 100000000m / 1024m
         let totalFeeForThisTransInSatoshis = satPerByteForFastTrans * decimal estimatedTransactionSizeInBytes
         let totalFeeInSatoshisRemovingDecimals = Convert.ToInt64 totalFeeForThisTransInSatoshis
-        UnitConversion.FromSatoshiToBTC totalFeeInSatoshisRemovingDecimals
-
+        UnitConversion.FromSatoshiToBtc totalFeeInSatoshisRemovingDecimals

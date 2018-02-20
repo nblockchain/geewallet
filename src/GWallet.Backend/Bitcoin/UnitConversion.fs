@@ -6,7 +6,7 @@ open System
 module UnitConversion =
     let private HOW_MANY_SATOSHIS_ARE_THERE_IN_ONE_BTC = 100000000m
 
-    let FromSatoshiToBTC(satoshis: int64): decimal =
+    let FromSatoshiToBtc (satoshis: int64): decimal =
         let satInDecimal = Convert.ToDecimal satoshis
         // 8 zeros, TODO: convert to Pow function?
         let factorInDecimal = HOW_MANY_SATOSHIS_ARE_THERE_IN_ONE_BTC
