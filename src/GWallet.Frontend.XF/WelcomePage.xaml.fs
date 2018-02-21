@@ -26,8 +26,7 @@ type WelcomePage() =
             createButton.Text <- "Creating..."
 
             Task.Run(fun _ ->
-                for currency in Currency.GetAll() do
-                    Account.CreateNormalAccount currency passphrase.Text |> ignore
+                Account.CreateBaseAccount passphrase.Text |> ignore
             ).ContinueWith(fun _ ->
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.Navigation.PushModalAsync(BalancesPage()) |> ignore
