@@ -370,9 +370,14 @@ module internal Account =
                               txMetadata destination.PublicAddress amount privateKey
         BroadcastRawTransaction (signedTrans.ToHex())
 
-    let Create password =
-        RandomUtils.Random <- BouncyCastleSecureRandomWrapperForNBitcoin()
-        let privkey = Key()
+    let Create (password: string) (seed: Option<array<byte>>) =
+        let privkey =
+            match seed with
+            | None ->
+                RandomUtils.Random <- BouncyCastleSecureRandomWrapperForNBitcoin()
+                Key()
+            | Some(bytes) ->
+                Key(bytes)
         let secret = privkey.GetBitcoinSecret(Network.Main)
         let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, Network.Main)
         let encryptedPrivateKey = encryptedSecret.ToWif()

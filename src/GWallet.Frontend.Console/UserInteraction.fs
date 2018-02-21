@@ -120,22 +120,30 @@ module UserInteraction =
             else
                 password
 
-    let rec AskCurrency(): Currency =
+    let rec AskCurrency (allowAll: bool): Option<Currency> =
         Console.WriteLine()
 
         let allCurrencies = Currency.GetAll()
 
-        for i = 0 to (allCurrencies.Count() - 1) do
-            Console.WriteLine(sprintf "%d: %s" (i+1) (allCurrencies.ElementAt(i).ToString()))
+        if (allowAll) then
+            Console.WriteLine("0: [All] (default)")
+        for i = 1 to (allCurrencies.Count()) do
+            Console.WriteLine(sprintf "%d: %s" (i) (allCurrencies.ElementAt(i - 1).ToString()))
+
         Console.Write("Select currency: ")
         let optIntroduced = System.Console.ReadLine()
-        match Int32.TryParse(optIntroduced) with
-        | false, _ -> AskCurrency()
-        | true, optionParsed ->
-            if (optionParsed < 1 || optionParsed > allCurrencies.Count()) then
-                AskCurrency()
-            else
-                allCurrencies.ElementAt(optionParsed - 1)
+        if optIntroduced = String.Empty then
+            None
+        else
+            match Int32.TryParse(optIntroduced) with
+            | false, _ -> AskCurrency allowAll
+            | true, optionParsed ->
+                if (optionParsed = 0) then
+                    None
+                elif (optionParsed < 1 || optionParsed > allCurrencies.Count()) then
+                    AskCurrency allowAll
+                else
+                    Some(allCurrencies.ElementAt(optionParsed - 1))
 
     let private BalanceInUsdString balance maybeUsdValue =
         match maybeUsdValue with

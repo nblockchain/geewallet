@@ -146,13 +146,16 @@ let rec TryArchiveAccount account =
         TryArchiveAccount account
 
 let rec AddReadOnlyAccount() =
-    let currency = UserInteraction.AskCurrency()
-    let publicAddress = UserInteraction.AskPublicAddress currency "Public address: "
-    try
-        Account.AddPublicWatcher currency publicAddress
-    with
-    | :? AccountAlreadyAdded ->
-        Console.Error.WriteLine("Account had already been added")
+    let currencyChosen = UserInteraction.AskCurrency false
+    match currencyChosen with
+    | None -> failwith "Currency should not return None if allowAll=false"
+    | Some(currency) ->
+        let publicAddress = UserInteraction.AskPublicAddress currency "Public address: "
+        try
+            Account.AddPublicWatcher currency publicAddress
+        with
+        | :? AccountAlreadyAdded ->
+            Console.Error.WriteLine("Account had already been added")
 
 let ArchiveAccount() =
     let account = UserInteraction.AskAccount()
@@ -196,10 +199,16 @@ let rec PerformOptions(numAccounts: int) =
     match UserInteraction.AskOption(numAccounts) with
     | Options.Exit -> exit 0
     | Options.CreateAccount ->
-        let currency = UserInteraction.AskCurrency()
+        let allowBaseAccountWithAllCurrencies = (numAccounts = 0)
+        let specificCurrency = UserInteraction.AskCurrency allowBaseAccountWithAllCurrencies
         let password = UserInteraction.AskPassword true
-        let account = Account.CreateNormalAccount currency password
-        Console.WriteLine("Account created: " + (account:>IAccount).PublicAddress)
+        match specificCurrency with
+        | Some(currency) ->
+            let account = Account.CreateNormalAccount currency password None
+            Console.WriteLine("Account created: " + (account:>IAccount).PublicAddress)
+        | None ->
+            Account.CreateBaseAccount password |> ignore
+            Console.WriteLine("Base accounts created")
         UserInteraction.PressAnyKeyToContinue()
     | Options.Refresh -> ()
     | Options.SendPayment ->

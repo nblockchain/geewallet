@@ -6,6 +6,7 @@ open System.Linq
 open System.Numerics
 open System.IO
 
+open Org.BouncyCastle.Security
 open Newtonsoft.Json
 
 module Account =
@@ -262,17 +263,28 @@ module Account =
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
 
-    let CreateNormalAccount (currency: Currency) (password: string): NormalAccount =
+    let CreateNormalAccount (currency: Currency) (password: string) (seed: Option<array<byte>>): NormalAccount =
         let (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
             match currency with
             | Currency.BTC ->
-                let publicKey,encryptedPrivateKey = Bitcoin.Account.Create password
+                let publicKey,encryptedPrivateKey = Bitcoin.Account.Create password seed
                 (publicKey,encryptedPrivateKey), Bitcoin.Account.GetPublicAddressFromAccountFile
             | Currency.ETH | Currency.ETC ->
-                let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password
+                let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password seed
                 (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
         let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
         NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
+
+    let private LENGTH_OF_PRIVATE_KEYS = 32
+    let CreateBaseAccount (password: string) : list<NormalAccount> =
+        let privateKeyBytes = Array.zeroCreate LENGTH_OF_PRIVATE_KEYS
+        SecureRandom().NextBytes(privateKeyBytes)
+        seq {
+            let allCurrencies = Currency.GetAll()
+
+            for currency in allCurrencies do
+                yield CreateNormalAccount currency password (Some(privateKeyBytes))
+        } |> List.ofSeq
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans

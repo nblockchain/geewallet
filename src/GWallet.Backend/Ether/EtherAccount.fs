@@ -180,10 +180,13 @@ module internal Account =
         else
             privateKey
 
-    let Create currency password =
-        let privateKey = Create32BytesPrivateKey()
+    let Create currency (password: string) (seed: Option<array<byte>>) =
+        let privateKey =
+            match seed with
+            | None -> Create32BytesPrivateKey()
+            | Some(bytes) ->
+                EthECKey(bytes, true)
         let privateKeyBytes = privateKey.GetPrivateKeyAsBytes()
-
         let publicAddress = privateKey.GetPublicAddress()
         if not (addressUtil.IsChecksumAddress(publicAddress)) then
             failwith ("Nethereum's GetPublicAddress gave a non-checksum address: " + publicAddress)
