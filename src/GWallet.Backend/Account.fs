@@ -6,22 +6,25 @@ open System.Linq
 open System.Numerics
 open System.IO
 
+open Org.BouncyCastle.Security
 open Newtonsoft.Json
 
 module Account =
 
-    let private GetBalanceFromServerOrCache(account: IAccount) (confirmed: bool): MaybeCached<decimal> =
+    let private GetBalanceFromServerOrCache(account: IAccount) (onlyConfirmed: bool): MaybeCached<decimal> =
         let maybeBalance =
             try
                 match account.Currency with
                 | Currency.ETH | Currency.ETC ->
-                    // TODO: have a way to distinguish between confirmed and unconfirmed balance
-                    Some(Ether.Account.GetBalance account)
+                    if (onlyConfirmed) then
+                        Some(Ether.Account.GetConfirmedBalance account)
+                    else
+                        Some(Ether.Account.GetUnconfirmedPlusConfirmedBalance account)
                 | Currency.BTC ->
-                    if (confirmed) then
+                    if (onlyConfirmed) then
                         Some(Bitcoin.Account.GetConfirmedBalance account)
                     else
-                        Some(Bitcoin.Account.GetUnconfirmedBalance account)
+                        Some(Bitcoin.Account.GetUnconfirmedPlusConfirmedBalance account)
             with
             | :? NoneAvailableException as ex -> None
 
@@ -32,11 +35,22 @@ module Account =
             Caching.StoreLastBalance(account.PublicAddress, balance)
             Fresh(balance)
 
-    let GetUnconfirmedBalance(account: IAccount) =
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount) =
         GetBalanceFromServerOrCache account false
 
-    let GetBalance(account: IAccount) =
+    let GetConfirmedBalance(account: IAccount) =
         GetBalanceFromServerOrCache account true
+
+    let GetShowableBalance(account: IAccount) =
+        let unconfirmed = GetUnconfirmedPlusConfirmedBalance account
+        let confirmed = GetConfirmedBalance account
+        match unconfirmed,confirmed with
+        | Fresh(unconfirmedAmount),Fresh(confirmedAmount) ->
+            if (unconfirmedAmount < confirmedAmount) then
+                unconfirmed
+            else
+                confirmed
+        | _ -> confirmed
 
     let mutable wiped = false
     let private WipeConfig(allCurrencies: seq<Currency>) =
@@ -85,7 +99,7 @@ module Account =
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
                     let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
-                    match GetUnconfirmedBalance(account) with
+                    match GetUnconfirmedPlusConfirmedBalance(account) with
                     | NotFresh(NotAvailable) -> ()
                     | Fresh(balance) ->
                         if (balance > 0m) then
@@ -261,17 +275,28 @@ module Account =
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
 
-    let CreateNormalAccount (currency: Currency) (password: string): NormalAccount =
+    let CreateNormalAccount (currency: Currency) (password: string) (seed: Option<array<byte>>): NormalAccount =
         let (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
             match currency with
             | Currency.BTC ->
-                let publicKey,encryptedPrivateKey = Bitcoin.Account.Create password
+                let publicKey,encryptedPrivateKey = Bitcoin.Account.Create password seed
                 (publicKey,encryptedPrivateKey), Bitcoin.Account.GetPublicAddressFromAccountFile
             | Currency.ETH | Currency.ETC ->
-                let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password
+                let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password seed
                 (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
         let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
         NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
+
+    let private LENGTH_OF_PRIVATE_KEYS = 32
+    let CreateBaseAccount (password: string) : list<NormalAccount> =
+        let privateKeyBytes = Array.zeroCreate LENGTH_OF_PRIVATE_KEYS
+        SecureRandom().NextBytes(privateKeyBytes)
+        seq {
+            let allCurrencies = Currency.GetAll()
+
+            for currency in allCurrencies do
+                yield CreateNormalAccount currency password (Some(privateKeyBytes))
+        } |> List.ofSeq
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans

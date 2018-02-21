@@ -7,11 +7,17 @@ open System
 open System.IO
 open System.Security
 open System.Linq
-open System.Numerics
 
 open NBitcoin
+open Org.BouncyCastle.Security
 
 open GWallet.Backend
+
+type BouncyCastleSecureRandomWrapperForNBitcoin() =
+    let secureRandomInstance = SecureRandom()
+    interface IRandom with
+        member this.GetBytes(buf: array<byte>) =
+            secureRandomInstance.NextBytes(buf)
 
 type internal TransactionOutpoint =
     {
@@ -43,7 +49,8 @@ module internal Account =
         GetPublicAddressFromPublicKey privateKey.PubKey
 
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
-    //        (maybe make it more similar to EtherServer.fs' PlumbingCall()?
+    //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
+    //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
     let private GetRandomizedFuncs<'T,'R> (ecFunc: ElectrumClient->'T->'R): list<'T->'R> =
         let randomizedServers = ElectrumServerSeedList.Randomize() |> List.ofSeq
         let randomizedFuncs =
@@ -54,6 +61,9 @@ module internal Account =
                                   ecFunc ec arg
                               with
                               | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
+                                  let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                                  raise (ElectrumServerDiscarded(msg, ex))
+                              | :? ElectrumServerReturningInternalErrorInJsonResponseException as ex ->
                                   let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
                                   raise (ElectrumServerDiscarded(msg, ex))
                            )
@@ -71,10 +81,12 @@ module internal Account =
         balance
 
     let GetConfirmedBalance(account: IAccount): decimal =
-        (GetBalance account).Confirmed |> UnitConversion.FromSatoshiToBTC
+        let balance = GetBalance account
+        balance.Confirmed |> UnitConversion.FromSatoshiToBtc
 
-    let GetUnconfirmedBalance(account: IAccount): decimal =
-        (GetBalance account).Unconfirmed |> UnitConversion.FromSatoshiToBTC
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): decimal =
+        let balance = GetBalance account
+        balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBtc
 
     let private CreateTransactionAndCoinsToBeSigned (transactionDraft: TransactionDraft): Transaction*list<Coin> =
         let transaction = Transaction()
@@ -144,7 +156,7 @@ module internal Account =
         // first ones are the smallest ones
         let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
 
-        let amountInSatoshis = Convert.ToInt64(amount * 100000000m)
+        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount
         let utxosToUse,totalValueOfInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis []
 
@@ -231,8 +243,8 @@ module internal Account =
         let transactionDraft = txMetadata.TransactionDraft
         let btcMinerFee = txMetadata.Fee
         let minerFee = txMetadata :> IBlockchainFeeInfo
-        let minerFeeInSatoshis = Convert.ToInt64(minerFee.FeeValue * 100000000m)
-        let amountInSatoshis = Convert.ToInt64(amount.ValueToSend * 100000000m)
+        let minerFeeInSatoshis = UnitConversion.FromBtcToSatoshis minerFee.FeeValue
+        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
 
         if (transactionDraft.Outputs.Length < 1 || transactionDraft.Outputs.Length > 2) then
             failwith (sprintf "draftTransaction should have 1 or 2 outputs, not more, not less (now %d)"
@@ -240,7 +252,7 @@ module internal Account =
         if (transactionDraft.Outputs.[0].DestinationAddress <> destination) then
             failwith "Destination address and the first output's destination address should match"
         if (amount.IdealValueRemainingAfterSending < 0.0m) then
-            failwith "Assertian idealValueRemainingAfterSending cannot be negative"
+            failwith "Assertion failed: idealValueRemainingAfterSending cannot be negative"
 
         // it means we're sending all balance!
         if (amount.IdealValueRemainingAfterSending = 0.0m && transactionDraft.Outputs.Length <> 1) then
@@ -254,9 +266,8 @@ module internal Account =
 
         let finalTransaction,coins = CreateTransactionAndCoinsToBeSigned transactionWithMinerFeeSubstracted
 
-        // needed to sign with SegWit:
         let coinsToSign =
-            coins.Select(fun c -> c.ToScriptCoin(privateKey.PubKey.WitHash.ScriptPubKey) :> ICoin)
+            coins.Select(fun c -> c :> ICoin)
             |> Seq.toArray
 
         let transCheckResultBeforeSigning = finalTransaction.Check()
@@ -359,8 +370,14 @@ module internal Account =
                               txMetadata destination.PublicAddress amount privateKey
         BroadcastRawTransaction (signedTrans.ToHex())
 
-    let Create password =
-        let privkey = Key()
+    let Create (password: string) (seed: Option<array<byte>>) =
+        let privkey =
+            match seed with
+            | None ->
+                RandomUtils.Random <- BouncyCastleSecureRandomWrapperForNBitcoin()
+                Key()
+            | Some(bytes) ->
+                Key(bytes)
         let secret = privkey.GetBitcoinSecret(Network.Main)
         let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, Network.Main)
         let encryptedPrivateKey = encryptedSecret.ToWif()

@@ -12,11 +12,17 @@ before_script:
   - apt-get install -y curl
   - apt-get install -y nuget mono-complete mono-xbuild fsharp
 
+stages:
+  - build
+  - test
+
 build:
+  stage: build
   script:
     - time (./configure.sh && make && make install)
 
 test:
+  stage: test
   script:
     - time (apt-get install -y nunit-console &&
             ./configure.sh &&

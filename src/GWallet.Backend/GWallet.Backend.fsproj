@@ -148,10 +148,6 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
-    <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.3.0.2.24\lib\net45\NBitcoin.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -208,6 +204,9 @@
     </Reference>
     <Reference Include="SharpRavenLight">
       <HintPath>..\..\packages\SharpRavenLight.1.0.0-beta5\lib\net46\SharpRavenLight.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.4.0.0.38\lib\net452\NBitcoin.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">

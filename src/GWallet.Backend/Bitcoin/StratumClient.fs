@@ -1,10 +1,7 @@
 ﻿namespace GWallet.Backend.Bitcoin
 
 open System
-open System.Linq
-open System.Text
 open System.Text.RegularExpressions
-open System.Net.Sockets
 
 open Newtonsoft.Json
 open Newtonsoft.Json.Serialization
@@ -76,23 +73,36 @@ type BlockchainTransactionBroadcastResult =
         Result: string;
     }
 
+type ErrorInnerResult =
+    {
+        Message: string;
+        Code: int;
+    }
+
 type ErrorResult =
     {
         Id: int;
-        Error: string;
+        Error: ErrorInnerResult;
     }
 
+type ElectrumServerReturningInternalErrorInJsonResponseException(message: string, code: int) =
+    inherit Exception(message)
+
+    member val ErrorCode: int =
+        code with get
+
 type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
+
     let jsonSerializerSettings = JsonSerializerSettings()
     do jsonSerializerSettings.ContractResolver <- PascalCase2LowercasePlusUnderscoreContractResolver()
 
     //FIXME: make the above and below converge into one, and that is only initialized once
-    static member private GetDefaultJsonSerializationSettings(): JsonSerializerSettings =
+    static member public GetDefaultJsonSerializationSettings(): JsonSerializerSettings =
         let jsonSerializerSettings = JsonSerializerSettings()
         jsonSerializerSettings.ContractResolver <- PascalCase2LowercasePlusUnderscoreContractResolver()
         jsonSerializerSettings
 
-    static member private Deserialize<'T> (result: string, originalRequest: string): 'T =
+    static member public Deserialize<'T> (result: string, originalRequest: string): 'T =
         let resultTrimmed = result.Trim()
         let maybeError =
             try
@@ -100,9 +110,12 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
             with
             | ex -> raise(new Exception(sprintf "Failed deserializing JSON response (to check for error) '%s'" resultTrimmed, ex))
 
-        if not (String.IsNullOrWhiteSpace(maybeError.Error)) then
-            failwith (sprintf "Error received from Electrum server: '%s'. Original request sent from client: '%s'"
-                              maybeError.Error originalRequest)
+        if not (Object.ReferenceEquals(maybeError.Error, null)) then
+            if (maybeError.Error.Code = -32603) then
+                raise(ElectrumServerReturningInternalErrorInJsonResponseException(maybeError.Error.Message, maybeError.Error.Code))
+            failwith (sprintf "Error received from Electrum server: '%s' (code '%d'). Original request sent from client: '%s'"
+                              maybeError.Error.Message maybeError.Error.Code originalRequest)
+
         try
             JsonConvert.DeserializeObject<'T>(resultTrimmed, StratumClient.GetDefaultJsonSerializationSettings())
         with

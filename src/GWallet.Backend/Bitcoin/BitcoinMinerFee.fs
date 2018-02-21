@@ -2,8 +2,6 @@
 
 open System
 
-open GWallet.Backend
-
 type MinerFee(estimatedTransactionSizeInBytes: int,
               amountPerKiloByteForFastTransaction: decimal,
               estimationTime: DateTime) =
@@ -17,5 +15,4 @@ type MinerFee(estimatedTransactionSizeInBytes: int,
         let satPerByteForFastTrans = amountPerKiloByteForFastTransaction * 100000000m / 1024m
         let totalFeeForThisTransInSatoshis = satPerByteForFastTrans * decimal estimatedTransactionSizeInBytes
         let totalFeeInSatoshisRemovingDecimals = Convert.ToInt64 totalFeeForThisTransInSatoshis
-        Convert.ToDecimal(totalFeeInSatoshisRemovingDecimals) / 100000000m
-
+        UnitConversion.FromSatoshiToBtc totalFeeInSatoshisRemovingDecimals

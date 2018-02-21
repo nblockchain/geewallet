@@ -5,7 +5,6 @@ open System.Numerics
 
 open GWallet.Backend
 
-open Nethereum.Web3
 open Nethereum.Util
 
 type MinerFee(gasPriceInWei: Int64, estimationTime: DateTime, currency: Currency) =

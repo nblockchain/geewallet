@@ -5,7 +5,6 @@ open System.Linq
 open Microsoft.FSharp.Reflection
 
 open Newtonsoft.Json
-open Newtonsoft.Json.Converters
 
 module FSharpUtil =
 
