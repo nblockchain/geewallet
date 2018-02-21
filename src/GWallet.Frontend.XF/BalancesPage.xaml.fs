@@ -37,7 +37,7 @@ type BalancesPage() as this =
 
         balanceRefreshTimer.Elapsed.Add (fun _ ->
             for normalAccount,accountBalance,sendButton in accountsAndBalances do
-                let balance = Account.GetBalance normalAccount
+                let balance = Account.GetShowableBalance normalAccount
                 let account = normalAccount :> IAccount
                 match balance with
                 | Fresh(amount) ->
@@ -72,7 +72,7 @@ type BalancesPage() as this =
             let rowDefinition = RowDefinition(Height = starGridLength)
             grid.RowDefinitions.Add(rowDefinition)
 
-            let balance = Account.GetBalance account
+            let balance = Account.GetShowableBalance account
 
             sendButton.Clicked.Subscribe(fun _ ->
                 this.Navigation.PushModalAsync(SendPage(normalAccount)) |> FrontendHelpers.DoubleCheckCompletion
