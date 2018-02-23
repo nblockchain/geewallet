@@ -321,15 +321,19 @@ module UserInteraction =
                     failwith (sprintf "Address introduced '%s' gave a length error with a limit that matches its length: %d=%d"
                                  publicAddress lengthLimitViolated publicAddress.Length)
                 AskPublicAddress currency askText
-            | AddressWithInvalidChecksum(addressWithValidChecksum) ->
+            | AddressWithInvalidChecksum maybeAddressWithValidChecksum ->
                 Console.Error.WriteLine "WARNING: the address provided didn't pass the checksum, are you sure you copied it properly?"
-                Console.Error.WriteLine "(If you used the clipboard, you're likely copying it from a service that doesn't have checksum validation.)"
                 Console.Error.WriteLine "(If you copied it by hand or somebody dictated it to you, you probably made a spelling mistake.)"
-                let continueWithoutChecksum = AskYesNo "Continue with this address?"
-                if (continueWithoutChecksum) then
-                    addressWithValidChecksum
-                else
+                match maybeAddressWithValidChecksum with
+                | None ->
                     AskPublicAddress currency askText
+                | Some addressWithValidChecksum ->
+                    Console.Error.WriteLine "(If you used the clipboard, you're likely copying it from a service that doesn't have checksum validation.)"
+                    let continueWithoutChecksum = AskYesNo "Continue with this address?"
+                    if (continueWithoutChecksum) then
+                        addressWithValidChecksum
+                    else
+                        AskPublicAddress currency askText
         validatedAddress
 
     type private AmountOption =

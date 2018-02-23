@@ -96,17 +96,13 @@ module Account =
                         () // TODO: do something in this case??
         }
 
+    // TODO: add tests for these (just in case address validation breaks after upgrading our dependencies)
     let ValidateAddress (currency: Currency) (address: string) =
         match currency with
         | Currency.ETH | Currency.ETC ->
             Ether.Account.ValidateAddress currency address
-
         | Currency.BTC ->
             Bitcoin.Account.ValidateAddress address
-
-            // FIXME: add bitcoin checksum algorithm?
-        ()
-
 
     let EstimateFee account amount destination: IBlockchainFeeInfo =
         let currency = (account:>IAccount).Currency

@@ -401,4 +401,9 @@ module internal Account =
         if (address.Length < BITCOIN_MIN_ADDRESSES_LENGTH) then
             raise (AddressWithInvalidLength(BITCOIN_MIN_ADDRESSES_LENGTH))
 
-        // FIXME: add bitcoin checksum algorithm?
+        try
+            BitcoinAddress.Create(address, Config.BitcoinNet) |> ignore
+        with
+        // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
+        | :? FormatException ->
+            raise (AddressWithInvalidChecksum None)

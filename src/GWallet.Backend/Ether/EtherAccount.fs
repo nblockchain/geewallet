@@ -54,7 +54,7 @@ module internal Account =
 
         if (not (addressUtil.IsChecksumAddress(address))) then
             let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
-            raise (AddressWithInvalidChecksum(validCheckSumAddress))
+            raise (AddressWithInvalidChecksum(Some validCheckSumAddress))
 
     let EstimateFee (currency: Currency): MinerFee =
         let gasPrice = Ether.Server.GetGasPrice currency

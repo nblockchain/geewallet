@@ -5,5 +5,5 @@ exception InvalidPassword
 exception DestinationEqualToOrigin
 exception AddressMissingProperPrefix of seq<string>
 exception AddressWithInvalidLength of int
-exception AddressWithInvalidChecksum of string
+exception AddressWithInvalidChecksum of Option<string>
 exception AccountAlreadyAdded
