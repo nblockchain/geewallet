@@ -90,6 +90,8 @@ type BalancesPage() as this =
             accountBalance.Text <- sprintf "%s %s" balanceAmount (account.Currency.ToString())
             let receiveButton = Button(Text = "Receive")
             receiveButton.Clicked.Subscribe(fun _ ->
+            (* maybe the code below will be useful for platforms in which we cannot manage to render QR codes:
+
                 CrossClipboard.Current.SetText account.PublicAddress
                 receiveButton.IsEnabled <- false
                 receiveButton.Text <- "Copied"
@@ -100,7 +102,8 @@ type BalancesPage() as this =
                         receiveButton.IsEnabled <- true
                     )
                 ) |> FrontendHelpers.DoubleCheckCompletion
-
+            *)
+                this.Navigation.PushModalAsync(ReceivePage(normalAccount)) |> FrontendHelpers.DoubleCheckCompletion
             ) |> ignore
 
             accountBalance.HorizontalOptions <- LayoutOptions.End

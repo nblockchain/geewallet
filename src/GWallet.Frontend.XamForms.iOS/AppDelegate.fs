@@ -12,6 +12,9 @@ type AppDelegate () =
 
     override this.FinishedLaunching (app, options) =
         Forms.Init()
+
+        ZXing.Net.Mobile.Forms.iOS.Platform.Init()
+
         this.LoadApplication (new GWallet.Frontend.XF.App())
         base.FinishedLaunching(app, options)
 
