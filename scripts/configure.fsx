@@ -54,7 +54,8 @@ if not (prefix.Exists) then
 File.WriteAllText(Path.Combine(__SOURCE_DIRECTORY__, "build.config"),
                   sprintf "Prefix=%s" prefix.FullName)
 
-let version = Misc.GetCurrentVersion()
+let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+let version = Misc.GetCurrentVersion(rootDir)
 
 let GetRepoInfo()=
     let rec GetBranchFromGitBranch(outchunks)=

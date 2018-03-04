@@ -1,17 +1,17 @@
 all:
-	@./make.sh
+	@./scripts/make.sh
 
 install:
-	@./make.sh install
+	@./scripts/make.sh install
 
 check:
-	@./make.sh check
+	@./scripts/make.sh check
 
 release:
-	@./make.sh release
+	@./scripts/make.sh release
 
 zip:
-	@./make.sh zip
+	@./scripts/make.sh zip
 
 run:
-	@./make.sh run
+	@./scripts/make.sh run

@@ -11,13 +11,13 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests", "sr
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CE79AB9D-0FB9-4606-B7C6-A78C0858CC54}"
 	ProjectSection(SolutionItems) = preProject
-		configure.fsx = configure.fsx
 		configure.sh = configure.sh
-		fsicheck.sh = fsicheck.sh
-		Infra.fs = Infra.fs
-		make.fsx = make.fsx
-		make.sh = make.sh
 		Makefile = Makefile
+		scripts\configure.fsx = scripts\configure.fsx
+		scripts\fsicheck.sh = scripts\fsicheck.sh
+		scripts\Infra.fs = scripts\Infra.fs
+		scripts\make.fsx = scripts\make.fsx
+		scripts\make.sh = scripts\make.sh
 	EndProjectSection
 EndProject
 Global

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 set -e
 
-./fsicheck.sh configure
-./configure.fsx "$@"
+./scripts/fsicheck.sh configure
+./scripts/configure.fsx "$@"

@@ -34,7 +34,7 @@ let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", "gwallet"))
 let binInstallPath = DirectoryInfo (Path.Combine (prefix, "bin"))
 
 let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", "gwallet"))
-let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__,
+let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__, "..",
                                                    "src", DEFAULT_FRONTEND, "bin", "Debug"))
 
 let wrapperScript = """#!/bin/sh
@@ -75,7 +75,8 @@ match maybeTarget with
     let zipCommand = "zip"
     MakeCheckCommand zipCommand
 
-    let version = Misc.GetCurrentVersion().ToString()
+    let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+    let version = Misc.GetCurrentVersion(rootDir).ToString()
 
     let release = BinaryConfig.Release
     JustBuild release
@@ -101,7 +102,12 @@ match maybeTarget with
 
     let nunitCommand = "nunit-console"
     MakeCheckCommand nunitCommand
-    let nunitRun = Process.Execute(sprintf "%s src/GWallet.Backend.Tests/bin/GWallet.Backend.Tests.dll" nunitCommand,
+    let testAssembly = "GWallet.Backend.Tests"
+    let testAssemblyPath = Path.Combine(__SOURCE_DIRECTORY__, "..", "src", testAssembly, "bin",
+                                        testAssembly + ".dll")
+    if not (File.Exists(testAssemblyPath)) then
+        failwithf "File not found: %s" testAssemblyPath
+    let nunitRun = Process.Execute(sprintf "%s %s" nunitCommand testAssemblyPath,
                                    true, false)
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
