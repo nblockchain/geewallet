@@ -38,7 +38,7 @@ module Misc =
 
         sourceDir.Refresh()
         if not (sourceDir.Exists) then
-            raise (new ArgumentException("Source directory does not exist: " + targetDir.FullName, "sourceDir"))
+            raise (new ArgumentException("Source directory does not exist: " + sourceDir.FullName, "sourceDir"))
 
         Directory.CreateDirectory(targetDir.FullName) |> ignore
 
