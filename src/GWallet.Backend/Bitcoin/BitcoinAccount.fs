@@ -94,7 +94,13 @@ module internal Account =
             seq {
                 for input in transactionDraft.Inputs do
                     let inputTx = Transaction(input.RawTransaction)
-                    transaction.AddInput(inputTx, input.OutputIndex) |> ignore
+                    let inputAdded = transaction.AddInput(inputTx, input.OutputIndex)
+
+                    // mark RBF=enabled by default
+                    inputAdded.Sequence <- Sequence(0)
+                    if not inputAdded.Sequence.IsRBF then
+                        failwith "input should have been marked as RBF by default"
+
                     yield Coin(inputTx, uint32 input.OutputIndex)
             } |> List.ofSeq
 
@@ -103,6 +109,12 @@ module internal Account =
             let txOut = TxOut(Money(output.ValueInSatoshis), destAddress)
             transaction.Outputs.Add(txOut)
 
+        if not transaction.RBF then
+            failwith "transaction should have been marked as RBF by default"
+        if transaction.LockTime.IsTimeLock then
+            failwith "transaction shouldn't be marked as time lock"
+        if transaction.LockTime.Height <> 0 then
+            failwith "transaction height shouldn't be different than 0"
         transaction,coins
 
     type internal UnspentTransactionOutputInfo =
