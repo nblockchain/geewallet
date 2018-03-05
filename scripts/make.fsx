@@ -141,6 +141,13 @@ match maybeTarget with
                    (fullPathToMono.Value, pathToFrontend)
     proc.WaitForExit()
 
+| Some "update-servers" ->
+    let btcServersUrl = "https://raw.githubusercontent.com/spesmilo/electrum/master/lib/servers.json"
+    let btcServersFile = Path.Combine("src", "GWallet.Backend", "Bitcoin", "btc-servers.json")
+    let updateBtc = Process.Execute (sprintf "curl -o %s %s" btcServersFile btcServersUrl, true, false)
+    if (updateBtc.ExitCode <> 0) then
+        Environment.Exit 1
+
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
     Environment.Exit 2

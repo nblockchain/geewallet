@@ -20,7 +20,7 @@ ConfigCommandCheck "fsharpc"
 ConfigCommandCheck "xbuild"
 ConfigCommandCheck "mono"
 
-// needed by NuGet.Restore.targets
+// needed by NuGet.Restore.targets & the "update-servers" Makefile target
 ConfigCommandCheck "curl"
 
 let rec private GatherOrGetDefaultPrefix(args: string list, previousIsPrefixArg: bool, prefixSet: Option<string>): string =

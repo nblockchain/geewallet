@@ -15,3 +15,6 @@ zip:
 
 run:
 	@./scripts/make.sh run
+
+update-servers:
+	@./scripts/make.sh update-servers

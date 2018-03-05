@@ -1,49 +1,54 @@
 ﻿namespace GWallet.Backend.Bitcoin
 
+open System
+open System.IO
+open System.Reflection
+
+open FSharp.Data
+open FSharp.Data.JsonExtensions
+
 open GWallet.Backend
-
-type internal ElectrumServerPorts =
-    {
-        InsecurePort: Option<int>;
-        SecurePort: int;
-    }
-    static member Default () =
-        { InsecurePort = Some(50001); SecurePort = 50002 }
-
 
 type internal ElectrumServer =
     {
-        Host: string;
-        Ports: ElectrumServerPorts;
+        Fqdn: string;
+        Pruning: string;
+        PrivatePort: Option<int>;
+        UnencryptedPort: Option<int>;
+        Version: string;
     }
 
 module internal ElectrumServerSeedList =
 
-    // TODO: stop hardcoding this list taken from Electrum2.x sources, and just bring and parse this file:
-    //       https://github.com/spesmilo/electrum/blob/master/lib/servers.json
     let private defaultList =
-        [
-            { Host = "erbium1.sytes.net"; Ports = ElectrumServerPorts.Default() };                                           // core, e-x
-            { Host = "ecdsa.net"; Ports = { InsecurePort = ElectrumServerPorts.Default().InsecurePort; SecurePort = 110 } }; // core, e-x
-            { Host = "gh05.geekhosters.com"; Ports = ElectrumServerPorts.Default() };                                        // core, e-x
-            { Host = "VPS.hsmiths.com"; Ports = ElectrumServerPorts.Default() };                                             // core, e-x
-            { Host = "electrum.anduck.net"; Ports = ElectrumServerPorts.Default() };                                         // core, e-s; banner with version pending
-            { Host = "electrum.no-ip.org"; Ports = ElectrumServerPorts.Default() };                                          // core, e-s
-            { Host = "electrum.be"; Ports = ElectrumServerPorts.Default() };                                                 // core, e-x
-            { Host = "helicarrier.bauerj.eu"; Ports = ElectrumServerPorts.Default() };                                       // core, e-x
-            { Host = "elex01.blackpole.online"; Ports = ElectrumServerPorts.Default() };                                     // core, e-x
-            { Host = "electrumx.not.fyi"; Ports = ElectrumServerPorts.Default() };                                           // core, e-x
-            { Host = "node.xbt.eu"; Ports = ElectrumServerPorts.Default() };                                                 // core, e-x
-            { Host = "kirsche.emzy.de"; Ports = ElectrumServerPorts.Default() };                                             // core, e-x
-            { Host = "electrum.villocq.com"; Ports = ElectrumServerPorts.Default() };                                        // core?, e-s; banner with version recommended
-            { Host = "us11.einfachmalnettsein.de"; Ports = ElectrumServerPorts.Default() };                                  // core, e-x
-            { Host = "electrum.trouth.net"; Ports = ElectrumServerPorts.Default() };                                         // BU, e-s
-            { Host = "Electrum.hsmiths.com"; Ports = { InsecurePort = Some(8080); SecurePort = 995 } };                      // core, e-x
-            { Host = "electrum3.hachre.de"; Ports = ElectrumServerPorts.Default() };                                         // core, e-x
-            { Host = "b.1209k.com"; Ports = ElectrumServerPorts.Default() };                                                 // XT, jelectrum
-            { Host = "elec.luggs.co"; Ports = { InsecurePort = None; SecurePort = 443 } };                                   // core, e-x
-            { Host = "Electrum.hsmiths.com"; Ports = { InsecurePort = Some(110); SecurePort = 995 } };                       // BU, e-x
-        ]
+        let assembly = Assembly.GetExecutingAssembly()
+        let embeddedServerResourceName = "btc-servers.json"
+        use stream = assembly.GetManifestResourceStream embeddedServerResourceName
+        if (stream = null) then
+            failwithf "Embedded resource %s not found" embeddedServerResourceName
+        use reader = new StreamReader(stream)
+        let list = reader.ReadToEnd()
+        let serversParsed = JsonValue.Parse list
+        let servers =
+            seq {
+                for (key,value) in serversParsed.Properties do
+                    let maybeUnencryptedPort = value.TryGetProperty "t"
+                    let unencryptedPort =
+                        match maybeUnencryptedPort with
+                        | None -> None
+                        | Some portAsString -> Some (Int32.Parse (portAsString.AsString()))
+                    let maybeEncryptedPort = value.TryGetProperty "s"
+                    let encryptedPort =
+                        match maybeEncryptedPort with
+                        | None -> None
+                        | Some portAsString -> Some (Int32.Parse (portAsString.AsString()))
+                    yield { Fqdn = key;
+                            Pruning = value?pruning.AsString();
+                            PrivatePort = encryptedPort;
+                            UnencryptedPort = unencryptedPort;
+                            Version = value?version.AsString(); }
+            }
+        servers |> List.ofSeq
 
     let Randomize() =
         Shuffler.Unsort defaultList
