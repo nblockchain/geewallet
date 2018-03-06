@@ -6,6 +6,7 @@ open System.ComponentModel
 [<TypeConverter(typeof<StringTypeConverter>)>]
 type Currency =
     | BTC
+    | LTC
     | ETH
     | ETC
     static member ToStrings() =
@@ -13,6 +14,10 @@ type Currency =
             |> Array.map (fun info -> info.Name)
     static member GetAll(): seq<Currency> =
         FSharpUtil.GetAllElementsFromDiscriminatedUnion<Currency>()
+    member self.IsEther() =
+        self = Currency.ETC || self = Currency.ETH
+    member self.IsUtxo() =
+        self = Currency.BTC || self = Currency.LTC
     override self.ToString() =
         sprintf "%A" self
 

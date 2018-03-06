@@ -34,25 +34,33 @@ module internal Account =
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
 
+    let internal GetNetwork (currency: Currency) =
+        if not (currency.IsUtxo()) then
+            failwith (sprintf "Assertion failed: currency %s should be UTXO-type" (currency.ToString()))
+        match currency with
+        | BTC -> Config.BitcoinNet
+        | LTC -> Config.LitecoinNet
+        | _ -> failwith (sprintf "Assertion failed: UTXO currency %s not supported?" (currency.ToString()))
+
     let private faultTolerantElectrumClient =
         FaultTolerantClient<ElectrumServerDiscarded> NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS
 
-    let private GetPublicAddressFromPublicKey (publicKey: PubKey) =
-        (publicKey.GetSegwitAddress Config.BitcoinNet).GetScriptAddress().ToString()
+    let private GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
+        (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
 
-    let GetPublicAddressFromAccountFile (accountFile: FileInfo) =
+    let GetPublicAddressFromAccountFile currency (accountFile: FileInfo) =
         let pubKey = new PubKey(accountFile.Name)
-        GetPublicAddressFromPublicKey pubKey
+        GetPublicAddressFromPublicKey currency pubKey
 
-    let GetPublicAddressFromUnencryptedPrivateKey (privateKey: string) =
-        let privateKey = Key.Parse(privateKey, Config.BitcoinNet)
-        GetPublicAddressFromPublicKey privateKey.PubKey
+    let GetPublicAddressFromUnencryptedPrivateKey (currency: Currency) (privateKey: string) =
+        let privateKey = Key.Parse(privateKey, GetNetwork currency)
+        GetPublicAddressFromPublicKey currency privateKey.PubKey
 
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
     //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
-    let private GetRandomizedFuncs<'T,'R> (ecFunc: ElectrumClient->'T->'R): list<'T->'R> =
-        let randomizedServers = ElectrumServerSeedList.Randomize() |> List.ofSeq
+    let private GetRandomizedFuncs<'T,'R> currency (ecFunc: ElectrumClient->'T->'R): list<'T->'R> =
+        let randomizedServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedFuncs =
             List.map (fun (es:ElectrumServer) ->
                           (fun (arg: 'T) ->
@@ -80,7 +88,7 @@ module internal Account =
         let balance =
             faultTolerantElectrumClient.Query<string,BlockchainAddressGetBalanceInnerResult>
                 account.PublicAddress
-                (GetRandomizedFuncs electrumGetBalance)
+                (GetRandomizedFuncs account.Currency electrumGetBalance)
         balance
 
     let GetConfirmedBalance(account: IAccount): decimal =
@@ -91,7 +99,7 @@ module internal Account =
         let balance = GetBalance account
         balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBtc
 
-    let private CreateTransactionAndCoinsToBeSigned (transactionDraft: TransactionDraft): Transaction*list<Coin> =
+    let private CreateTransactionAndCoinsToBeSigned currency (transactionDraft: TransactionDraft): Transaction*list<Coin> =
         let transaction = Transaction()
         let coins =
             seq {
@@ -108,7 +116,7 @@ module internal Account =
             } |> List.ofSeq
 
         for output in transactionDraft.Outputs do
-            let destAddress = BitcoinAddress.Create(output.DestinationAddress, Config.BitcoinNet)
+            let destAddress = BitcoinAddress.Create(output.DestinationAddress, GetNetwork currency)
             let txOut = TxOut(Money(output.ValueInSatoshis), destAddress)
             transaction.Outputs.Add(txOut)
 
@@ -153,12 +161,14 @@ module internal Account =
                 else
                     newAcc,newSoFar
 
+        let baseAccount = (account:>IAccount)
+
         let electrumGetUtxos (ec: ElectrumClient) (address: string) =
             ec.GetUnspentTransactionOutputs address
         let utxos =
             faultTolerantElectrumClient.Query<string,array<BlockchainAddressListUnspentInnerResult>>
-                (account:>IAccount).PublicAddress
-                (GetRandomizedFuncs electrumGetUtxos)
+                baseAccount.PublicAddress
+                (GetRandomizedFuncs baseAccount.Currency electrumGetUtxos)
 
         if not (utxos.Any()) then
             failwith "No UTXOs found!"
@@ -183,7 +193,7 @@ module internal Account =
                     let transRaw =
                         faultTolerantElectrumClient.Query<string,string>
                             utxo.TransactionId
-                            (GetRandomizedFuncs electrumGetTx)
+                            (GetRandomizedFuncs baseAccount.Currency electrumGetTx)
                     yield { RawTransaction = transRaw; OutputIndex = utxo.OutputIndex }
             } |> List.ofSeq
 
@@ -196,7 +206,8 @@ module internal Account =
             } |> List.ofSeq
 
         let transactionDraftWithoutMinerFee = { Inputs = inputs; Outputs = outputs }
-        let unsignedTransaction,_ = CreateTransactionAndCoinsToBeSigned transactionDraftWithoutMinerFee
+        let unsignedTransaction,_ =
+            CreateTransactionAndCoinsToBeSigned baseAccount.Currency transactionDraftWithoutMinerFee
 
         let electrumEstimateFee (ec: ElectrumClient) (targetNumBlocks: int) =
             ec.EstimateFee targetNumBlocks
@@ -211,7 +222,7 @@ module internal Account =
             faultTolerantElectrumClient.Query<int,decimal>
                 //querying for 1 will always return -1 surprisingly...
                 2
-                (GetRandomizedFuncs electrumEstimateFee)
+                (GetRandomizedFuncs baseAccount.Currency electrumEstimateFee)
 
         let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now)
         { TransactionDraft = transactionDraftWithoutMinerFee; Fee = minerFee }
@@ -250,7 +261,8 @@ module internal Account =
 
         { Inputs = transactionDraftWithoutMinerFee.Inputs; Outputs = newOutputs }
 
-    let private SignTransactionWithPrivateKey (txMetadata: TransactionMetadata)
+    let private SignTransactionWithPrivateKey (currency: Currency)
+                                              (txMetadata: TransactionMetadata)
                                               (destination: string)
                                               (amount: TransferAmount)
                                               (privateKey: Key) =
@@ -279,7 +291,7 @@ module internal Account =
         let transactionWithMinerFeeSubstracted =
             SubstractMinerFeeToTransactionDraft transactionDraft amountInSatoshis minerFeeInSatoshis
 
-        let finalTransaction,coins = CreateTransactionAndCoinsToBeSigned transactionWithMinerFeeSubstracted
+        let finalTransaction,coins = CreateTransactionAndCoinsToBeSigned currency transactionWithMinerFeeSubstracted
 
         let coinsToSign =
             coins.Select(fun c -> c :> ICoin)
@@ -306,7 +318,7 @@ module internal Account =
 
     let internal GetPrivateKey (account: NormalAccount) password =
         let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
-        let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, Config.BitcoinNet)
+        let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, GetNetwork (account:>IAccount).Currency)
         try
             encryptedSecret.GetKey(password)
         with
@@ -322,6 +334,7 @@ module internal Account =
         let privateKey = GetPrivateKey account password
 
         let signedTransaction = SignTransactionWithPrivateKey
+                                    (account:>IAccount).Currency
                                     txMetadata
                                     destination
                                     amount
@@ -329,19 +342,19 @@ module internal Account =
         let rawTransaction = signedTransaction.ToHex()
         rawTransaction
 
-    let private BroadcastRawTransaction (rawTx: string) =
+    let private BroadcastRawTransaction currency (rawTx: string) =
         let electrumBroadcastTx (ec: ElectrumClient) (rawTx: string): string =
             ec.BroadcastTransaction rawTx
         let newTxId =
             faultTolerantElectrumClient.Query<string,string>
                 rawTx
-                (GetRandomizedFuncs electrumBroadcastTx)
+                (GetRandomizedFuncs currency electrumBroadcastTx)
         newTxId
 
-    let BroadcastTransaction (transaction: SignedTransaction<_>) =
+    let BroadcastTransaction currency (transaction: SignedTransaction<_>) =
         // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
         // and show the info from the RawTx, using NBitcoin to extract it
-        BroadcastRawTransaction transaction.RawTransaction
+        BroadcastRawTransaction currency transaction.RawTransaction
 
     let SendPayment (account: NormalAccount)
                     (txMetadata: TransactionMetadata)
@@ -354,7 +367,7 @@ module internal Account =
             raise DestinationEqualToOrigin
 
         let finalTransaction = SignTransaction account txMetadata destination amount password
-        BroadcastRawTransaction finalTransaction
+        BroadcastRawTransaction baseAccount.Currency finalTransaction
 
     // TODO: maybe move this func to Backend.Account module, or simply inline it (simple enough)
     let public ExportUnsignedTransactionToJson trans =
@@ -378,14 +391,15 @@ module internal Account =
                            (balance: decimal)
                            (destination: IAccount)
                            (txMetadata: TransactionMetadata) =
-
+        let currency = (account:>IAccount).Currency
+        let network = GetNetwork currency
         let amount = TransferAmount(balance, 0.0m)
-        let privateKey = Key.Parse(account.PrivateKey, Config.BitcoinNet)
+        let privateKey = Key.Parse(account.PrivateKey, network)
         let signedTrans = SignTransactionWithPrivateKey
-                              txMetadata destination.PublicAddress amount privateKey
-        BroadcastRawTransaction (signedTrans.ToHex())
+                              currency txMetadata destination.PublicAddress amount privateKey
+        BroadcastRawTransaction currency (signedTrans.ToHex())
 
-    let Create (password: string) (seed: Option<array<byte>>) =
+    let Create currency (password: string) (seed: Option<array<byte>>) =
         let privkey =
             match seed with
             | None ->
@@ -393,31 +407,40 @@ module internal Account =
                 Key()
             | Some(bytes) ->
                 Key(bytes)
-        let secret = privkey.GetBitcoinSecret Config.BitcoinNet
-        let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, Config.BitcoinNet)
+        let network = GetNetwork currency
+        let secret = privkey.GetBitcoinSecret network
+        let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
         let encryptedPrivateKey = encryptedSecret.ToWif()
         let publicKey = secret.PubKey.ToString()
         publicKey,encryptedPrivateKey
 
-    let ValidateAddress (address: string) =
-        let BITCOIN_MIN_ADDRESSES_LENGTH = 27
-        let BITCOIN_MAX_ADDRESSES_LENGTH = 34
+    let ValidateAddress (currency: Currency) (address: string) =
+        let UTXOCOIN_MIN_ADDRESSES_LENGTH = 27
+        let UTXOCOIN_MAX_ADDRESSES_LENGTH = 34
 
-        let BITCOIN_ADDRESS_PUBKEYHASH_PREFIX = "1"
-        let BITCOIN_ADDRESS_SCRIPTHASH_PREFIX = "3"
-        let BITCOIN_ADDRESS_VALID_PREFIXES = [ BITCOIN_ADDRESS_PUBKEYHASH_PREFIX; BITCOIN_ADDRESS_SCRIPTHASH_PREFIX ]
+        let utxoCoinValidAddressPrefixes =
+            match currency with
+            | BTC ->
+                let BITCOIN_ADDRESS_PUBKEYHASH_PREFIX = "1"
+                let BITCOIN_ADDRESS_SCRIPTHASH_PREFIX = "3"
+                [ BITCOIN_ADDRESS_PUBKEYHASH_PREFIX; BITCOIN_ADDRESS_SCRIPTHASH_PREFIX ]
+            | LTC ->
+                let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
+                let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
+                [ LITECOIN_ADDRESS_PUBKEYHASH_PREFIX; LITECOIN_ADDRESS_SCRIPTHASH_PREFIX ]
+            | _ -> failwithf "Unknown UTXO currency %s" (currency.ToString())
 
-        if (not (address.StartsWith(BITCOIN_ADDRESS_PUBKEYHASH_PREFIX))) &&
-           (not (address.StartsWith(BITCOIN_ADDRESS_SCRIPTHASH_PREFIX))) then
-            raise (AddressMissingProperPrefix(BITCOIN_ADDRESS_VALID_PREFIXES))
+        if not (utxoCoinValidAddressPrefixes.Any(fun prefix -> address.StartsWith prefix)) then
+            raise (AddressMissingProperPrefix(utxoCoinValidAddressPrefixes))
 
-        if (address.Length > BITCOIN_MAX_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(BITCOIN_MAX_ADDRESSES_LENGTH))
-        if (address.Length < BITCOIN_MIN_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(BITCOIN_MIN_ADDRESSES_LENGTH))
+        if (address.Length > UTXOCOIN_MAX_ADDRESSES_LENGTH) then
+            raise (AddressWithInvalidLength(UTXOCOIN_MAX_ADDRESSES_LENGTH))
+        if (address.Length < UTXOCOIN_MIN_ADDRESSES_LENGTH) then
+            raise (AddressWithInvalidLength(UTXOCOIN_MIN_ADDRESSES_LENGTH))
 
+        let network = GetNetwork currency
         try
-            BitcoinAddress.Create(address, Config.BitcoinNet) |> ignore
+            BitcoinAddress.Create(address, network) |> ignore
         with
         // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
         | :? FormatException ->

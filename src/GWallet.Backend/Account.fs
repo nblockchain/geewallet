@@ -14,17 +14,18 @@ module Account =
     let private GetBalanceFromServerOrCache(account: IAccount) (onlyConfirmed: bool): MaybeCached<decimal> =
         let maybeBalance =
             try
-                match account.Currency with
-                | Currency.ETH | Currency.ETC ->
+                if account.Currency.IsEther() then
                     if (onlyConfirmed) then
                         Some(Ether.Account.GetConfirmedBalance account)
                     else
                         Some(Ether.Account.GetUnconfirmedPlusConfirmedBalance account)
-                | Currency.BTC ->
+                elif (account.Currency.IsUtxo()) then
                     if (onlyConfirmed) then
                         Some(Bitcoin.Account.GetConfirmedBalance account)
                     else
                         Some(Bitcoin.Account.GetUnconfirmedPlusConfirmedBalance account)
+                else
+                    failwith (sprintf "Unknown currency %A" account.Currency)
             with
             | :? NoneAvailableException as ex -> None
 
@@ -63,10 +64,12 @@ module Account =
                     yield ReadOnlyAccount(currency, fileName) :> IAccount
 
                 let fromAccountFileToPublicAddress =
-                    match currency with
-                    | Currency.BTC -> Bitcoin.Account.GetPublicAddressFromAccountFile
-                    | Currency.ETH | Currency.ETC -> Ether.Account.GetPublicAddressFromAccountFile
-                    | _ -> failwith (sprintf "Unknown currency %A" currency)
+                    if currency.IsUtxo() then
+                        Bitcoin.Account.GetPublicAddressFromAccountFile currency
+                    elif currency.IsEther() then
+                        Ether.Account.GetPublicAddressFromAccountFile
+                    else
+                        failwith (sprintf "Unknown currency %A" currency)
                 for accountFile in Config.GetAllNormalAccounts(currency) do
                     yield NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
         }
@@ -77,12 +80,12 @@ module Account =
 
             for currency in allCurrencies do
                 let fromAccountFileToPublicAddress =
-                    match currency with
-                    | Currency.BTC ->
-                        Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey
-                    | Currency.ETH | Currency.ETC ->
+                    if currency.IsUtxo() then
+                        Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey currency
+                    elif currency.IsEther() then
                         Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
-                    | _ -> failwith (sprintf "Unknown currency %A" currency)
+                    else
+                        failwith (sprintf "Unknown currency %A" currency)
 
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
                     let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
@@ -98,29 +101,32 @@ module Account =
 
     // TODO: add tests for these (just in case address validation breaks after upgrading our dependencies)
     let ValidateAddress (currency: Currency) (address: string) =
-        match currency with
-        | Currency.ETH | Currency.ETC ->
+        if currency.IsEther() then
             Ether.Account.ValidateAddress currency address
-        | Currency.BTC ->
-            Bitcoin.Account.ValidateAddress address
+        elif currency.IsUtxo() then
+            Bitcoin.Account.ValidateAddress currency address
+        else
+            failwith (sprintf "Unknown currency %A" currency)
 
     let EstimateFee account amount destination: IBlockchainFeeInfo =
         let currency = (account:>IAccount).Currency
-        match currency with
-        | Currency.BTC ->
+        if currency.IsUtxo() then
             Bitcoin.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
-        | Currency.ETH | Currency.ETC ->
+        elif currency.IsEther() then
             let ethMinerFee = Ether.Account.EstimateFee currency
-            let txCount = Ether.Account.GetTransactionCount account.Currency account.PublicAddress
+            let txCount = Ether.Account.GetTransactionCount currency account.PublicAddress
             { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount } :> IBlockchainFeeInfo
+        else
+            failwith (sprintf "Unknown currency %A" currency)
 
     let BroadcastTransaction (trans: SignedTransaction<_>) =
-        match trans.TransactionInfo.Proposal.Currency with
-        | Currency.ETH | Currency.ETC ->
+        let currency = trans.TransactionInfo.Proposal.Currency
+        if currency.IsEther() then
             Ether.Account.BroadcastTransaction trans
-        | Currency.BTC ->
-            Bitcoin.Account.BroadcastTransaction trans
-        | _ -> failwith "fee type unknown"
+        elif currency.IsUtxo() then
+            Bitcoin.Account.BroadcastTransaction currency trans
+        else
+            failwith "fee type unknown"
 
     let SignTransaction (account: NormalAccount)
                         (destination: string)
@@ -147,11 +153,12 @@ module Account =
 
     let private CreateArchivedAccount (currency: Currency) (unencryptedPrivateKey: string): ArchivedAccount =
         let fromUnencryptedPrivateKeyToPublicAddressFunc =
-            match currency with
-            | Currency.BTC ->
-                Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey
-            | Currency.ETH | Currency.ETC ->
+            if currency.IsUtxo() then
+                Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey currency
+            elif currency.IsEther() then
                 Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
+            else
+                failwith (sprintf "Unknown currency %A" currency)
         let fileName = fromUnencryptedPrivateKeyToPublicAddressFunc unencryptedPrivateKey
         let newAccountFile = Config.AddArchivedAccount currency fileName unencryptedPrivateKey
         ArchivedAccount(currency, newAccountFile, fromUnencryptedPrivateKeyToPublicAddressFunc)
@@ -161,13 +168,14 @@ module Account =
                 : unit =
         let currency = (account:>IAccount).Currency
         let privateKeyAsString =
-            match currency with
-            | Currency.BTC ->
+            if currency.IsUtxo() then
                 let privKey = Bitcoin.Account.GetPrivateKey account password
-                privKey.GetWif(Config.BitcoinNet).ToWif()
-            | Currency.ETC | Currency.ETH ->
+                privKey.GetWif(Bitcoin.Account.GetNetwork currency).ToWif()
+            elif currency.IsEther() then
                 let privKey = Ether.Account.GetPrivateKey account password
                 privKey.GetPrivateKey()
+            else
+                failwith (sprintf "Unknown currency %A" currency)
         CreateArchivedAccount currency privateKeyAsString |> ignore
         Config.RemoveNormal account
 
@@ -195,17 +203,18 @@ module Account =
         ValidateAddress baseAccount.Currency destination
 
         let currency = (account:>IAccount).Currency
-        match currency with
-        | Currency.BTC ->
+        if currency.IsUtxo() then
             match txMetadata with
             | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
                 Bitcoin.Account.SendPayment account btcTxMetadata destination amount password
             | _ -> failwith "fee for BTC currency should be Bitcoin.MinerFee type"
-        | Currency.ETH | Currency.ETC ->
+        elif currency.IsEther() then
             match txMetadata with
             | :? Ether.TransactionMetadata as etherTxMetadata ->
                 Ether.Account.SendPayment account etherTxMetadata destination amount password
             | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
+        else
+            failwith (sprintf "Unknown currency %A" currency)
 
     let SignUnsignedTransaction (account)
                                 (unsignedTrans: UnsignedTransaction<IBlockchainFeeInfo>)
@@ -261,13 +270,14 @@ module Account =
 
     let CreateNormalAccount (currency: Currency) (password: string) (seed: Option<array<byte>>): NormalAccount =
         let (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
-            match currency with
-            | Currency.BTC ->
-                let publicKey,encryptedPrivateKey = Bitcoin.Account.Create password seed
-                (publicKey,encryptedPrivateKey), Bitcoin.Account.GetPublicAddressFromAccountFile
-            | Currency.ETH | Currency.ETC ->
+            if currency.IsUtxo() then
+                let publicKey,encryptedPrivateKey = Bitcoin.Account.Create currency password seed
+                (publicKey,encryptedPrivateKey), Bitcoin.Account.GetPublicAddressFromAccountFile currency
+            elif currency.IsEther() then
                 let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password seed
                 (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
+            else
+                failwith (sprintf "Unknown currency %A" currency)
         let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
         NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
 

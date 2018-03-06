@@ -7,6 +7,7 @@ module internal Config =
 
     // we might want to test with TestNet at some point, so this below is the key:
     let BitcoinNet = NBitcoin.Network.Main
+    let LitecoinNet = NBitcoin.Litecoin.Networks.Mainnet
     // but we would need to get a seed list of testnet electrum servers first...
 
     let internal DebugLog =

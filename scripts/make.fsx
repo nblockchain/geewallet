@@ -148,6 +148,12 @@ match maybeTarget with
     if (updateBtc.ExitCode <> 0) then
         Environment.Exit 1
 
+    let ltcServersUrl = "https://raw.githubusercontent.com/pooler/electrum-ltc/master/lib/servers.json"
+    let ltcServersFile = Path.Combine("src", "GWallet.Backend", "Bitcoin", "ltc-servers.json")
+    let updateLtc = Process.Execute (sprintf "curl -o %s %s" ltcServersFile ltcServersUrl, true, false)
+    if (updateLtc.ExitCode <> 0) then
+        Environment.Exit 1
+
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
     Environment.Exit 2

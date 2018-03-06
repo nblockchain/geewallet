@@ -20,12 +20,11 @@ type internal ElectrumServer =
 
 module internal ElectrumServerSeedList =
 
-    let private defaultList =
+    let private ExtractServerListFromEmbeddedResource resourceName =
         let assembly = Assembly.GetExecutingAssembly()
-        let embeddedServerResourceName = "btc-servers.json"
-        use stream = assembly.GetManifestResourceStream embeddedServerResourceName
+        use stream = assembly.GetManifestResourceStream resourceName
         if (stream = null) then
-            failwithf "Embedded resource %s not found" embeddedServerResourceName
+            failwithf "Embedded resource %s not found" resourceName
         use reader = new StreamReader(stream)
         let list = reader.ReadToEnd()
         let serversParsed = JsonValue.Parse list
@@ -50,5 +49,16 @@ module internal ElectrumServerSeedList =
             }
         servers |> List.ofSeq
 
-    let Randomize() =
-        Shuffler.Unsort defaultList
+    let defaultBtcList =
+        ExtractServerListFromEmbeddedResource "btc-servers.json"
+
+    let defaultLtcList =
+        ExtractServerListFromEmbeddedResource "ltc-servers.json"
+
+    let Randomize currency =
+        let serverList =
+            match currency with
+            | BTC -> defaultBtcList
+            | LTC -> defaultLtcList
+            | _ -> failwithf "Currency %s is not UTXO" (currency.ToString())
+        Shuffler.Unsort serverList

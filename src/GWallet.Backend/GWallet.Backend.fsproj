@@ -142,6 +142,7 @@
     <Compile Include="Infrastructure.fs" />
     <Content Include="packages.config" />
     <EmbeddedResource Include="Bitcoin\btc-servers.json" />
+    <EmbeddedResource Include="Bitcoin\ltc-servers.json" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">
@@ -207,7 +208,10 @@
       <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.4.0.0.38\lib\net452\NBitcoin.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.4.0.0.51\lib\net452\NBitcoin.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin.Litecoin">
+      <HintPath>..\..\packages\NBitcoin.Litecoin.1.0.0.9\lib\net452\NBitcoin.Litecoin.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">
