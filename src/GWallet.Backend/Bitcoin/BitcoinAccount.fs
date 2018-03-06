@@ -38,7 +38,7 @@ module internal Account =
         FaultTolerantClient<ElectrumServerDiscarded> NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS
 
     let private GetPublicAddressFromPublicKey (publicKey: PubKey) =
-        publicKey.GetSegwitAddress(Network.Main).GetScriptAddress().ToString()
+        (publicKey.GetSegwitAddress Config.BitcoinNet).GetScriptAddress().ToString()
 
     let GetPublicAddressFromAccountFile (accountFile: FileInfo) =
         let pubKey = new PubKey(accountFile.Name)
@@ -105,7 +105,7 @@ module internal Account =
             } |> List.ofSeq
 
         for output in transactionDraft.Outputs do
-            let destAddress = BitcoinAddress.Create(output.DestinationAddress, Network.Main)
+            let destAddress = BitcoinAddress.Create(output.DestinationAddress, Config.BitcoinNet)
             let txOut = TxOut(Money(output.ValueInSatoshis), destAddress)
             transaction.Outputs.Add(txOut)
 
@@ -303,7 +303,7 @@ module internal Account =
 
     let internal GetPrivateKey (account: NormalAccount) password =
         let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
-        let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, Network.Main)
+        let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, Config.BitcoinNet)
         try
             encryptedSecret.GetKey(password)
         with
@@ -390,8 +390,8 @@ module internal Account =
                 Key()
             | Some(bytes) ->
                 Key(bytes)
-        let secret = privkey.GetBitcoinSecret(Network.Main)
-        let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, Network.Main)
+        let secret = privkey.GetBitcoinSecret Config.BitcoinNet
+        let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, Config.BitcoinNet)
         let encryptedPrivateKey = encryptedSecret.ToWif()
         let publicKey = secret.PubKey.ToString()
         publicKey,encryptedPrivateKey
