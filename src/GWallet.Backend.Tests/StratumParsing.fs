@@ -1,9 +1,8 @@
 ﻿namespace GWallet.Backend.Tests
 
 open NUnit.Framework
-open Newtonsoft.Json
 
-open GWallet.Backend.Bitcoin
+open GWallet.Backend.UtxoCoin
 
 module StratumParsing =
 

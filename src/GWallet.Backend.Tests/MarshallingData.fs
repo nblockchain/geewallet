@@ -6,7 +6,7 @@ open System.Reflection
 open Newtonsoft.Json
 
 open GWallet.Backend
-open GWallet.Backend.Bitcoin
+open GWallet.Backend.UtxoCoin
 open GWallet.Backend.Ether
 
 module MarshallingData =
@@ -67,7 +67,7 @@ module MarshallingData =
             Inputs = [ { RawTransaction = "xyzt..."; OutputIndex = 1 } ];
             Outputs = [ { ValueInSatoshis = int64 10000; DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5" } ];
         }
-    let private someBtcMinerFee = Bitcoin.MinerFee(10, 0.1m, SomeDate)
+    let private someBtcMinerFee = UtxoCoin.MinerFee(10, 0.1m, SomeDate)
     let private someBtcTxMetadata =
         {
             TransactionDraft = someBtcTransactionDraft;

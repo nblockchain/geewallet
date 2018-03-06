@@ -21,9 +21,9 @@ module Account =
                         Some(Ether.Account.GetUnconfirmedPlusConfirmedBalance account)
                 elif (account.Currency.IsUtxo()) then
                     if (onlyConfirmed) then
-                        Some(Bitcoin.Account.GetConfirmedBalance account)
+                        Some(UtxoCoin.Account.GetConfirmedBalance account)
                     else
-                        Some(Bitcoin.Account.GetUnconfirmedPlusConfirmedBalance account)
+                        Some(UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance account)
                 else
                     failwith (sprintf "Unknown currency %A" account.Currency)
             with
@@ -65,7 +65,7 @@ module Account =
 
                 let fromAccountFileToPublicAddress =
                     if currency.IsUtxo() then
-                        Bitcoin.Account.GetPublicAddressFromAccountFile currency
+                        UtxoCoin.Account.GetPublicAddressFromAccountFile currency
                     elif currency.IsEther() then
                         Ether.Account.GetPublicAddressFromAccountFile
                     else
@@ -81,7 +81,7 @@ module Account =
             for currency in allCurrencies do
                 let fromAccountFileToPublicAddress =
                     if currency.IsUtxo() then
-                        Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey currency
+                        UtxoCoin.Account.GetPublicAddressFromUnencryptedPrivateKey currency
                     elif currency.IsEther() then
                         Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
                     else
@@ -104,14 +104,14 @@ module Account =
         if currency.IsEther() then
             Ether.Account.ValidateAddress currency address
         elif currency.IsUtxo() then
-            Bitcoin.Account.ValidateAddress currency address
+            UtxoCoin.Account.ValidateAddress currency address
         else
             failwith (sprintf "Unknown currency %A" currency)
 
     let EstimateFee account amount destination: IBlockchainFeeInfo =
         let currency = (account:>IAccount).Currency
         if currency.IsUtxo() then
-            Bitcoin.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
+            UtxoCoin.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
         elif currency.IsEther() then
             let ethMinerFee = Ether.Account.EstimateFee currency
             let txCount = Ether.Account.GetTransactionCount currency account.PublicAddress
@@ -124,7 +124,7 @@ module Account =
         if currency.IsEther() then
             Ether.Account.BroadcastTransaction trans
         elif currency.IsUtxo() then
-            Bitcoin.Account.BroadcastTransaction currency trans
+            UtxoCoin.Account.BroadcastTransaction currency trans
         else
             failwith "fee type unknown"
 
@@ -142,8 +142,8 @@ module Account =
                   destination
                   amount
                   password
-        | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
-            Bitcoin.Account.SignTransaction
+        | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
+            UtxoCoin.Account.SignTransaction
                 account
                 btcTxMetadata
                 destination
@@ -154,7 +154,7 @@ module Account =
     let private CreateArchivedAccount (currency: Currency) (unencryptedPrivateKey: string): ArchivedAccount =
         let fromUnencryptedPrivateKeyToPublicAddressFunc =
             if currency.IsUtxo() then
-                Bitcoin.Account.GetPublicAddressFromUnencryptedPrivateKey currency
+                UtxoCoin.Account.GetPublicAddressFromUnencryptedPrivateKey currency
             elif currency.IsEther() then
                 Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
             else
@@ -169,8 +169,8 @@ module Account =
         let currency = (account:>IAccount).Currency
         let privateKeyAsString =
             if currency.IsUtxo() then
-                let privKey = Bitcoin.Account.GetPrivateKey account password
-                privKey.GetWif(Bitcoin.Account.GetNetwork currency).ToWif()
+                let privKey = UtxoCoin.Account.GetPrivateKey account password
+                privKey.GetWif(UtxoCoin.Account.GetNetwork currency).ToWif()
             elif currency.IsEther() then
                 let privKey = Ether.Account.GetPrivateKey account password
                 privKey.GetPrivateKey()
@@ -186,8 +186,8 @@ module Account =
         match txMetadata with
         | :? Ether.TransactionMetadata as etherTxMetadata ->
             Ether.Account.SweepArchivedFunds account balance destination etherTxMetadata
-        | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
-            Bitcoin.Account.SweepArchivedFunds account balance destination btcTxMetadata
+        | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
+            UtxoCoin.Account.SweepArchivedFunds account balance destination btcTxMetadata
         | _ -> failwith "tx metadata type unknown"
 
     let SendPayment (account: NormalAccount)
@@ -205,8 +205,8 @@ module Account =
         let currency = (account:>IAccount).Currency
         if currency.IsUtxo() then
             match txMetadata with
-            | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
-                Bitcoin.Account.SendPayment account btcTxMetadata destination amount password
+            | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
+                UtxoCoin.Account.SendPayment account btcTxMetadata destination amount password
             | _ -> failwith "fee for BTC currency should be Bitcoin.MinerFee type"
         elif currency.IsEther() then
             match txMetadata with
@@ -245,9 +245,9 @@ module Account =
                     RawTransaction = trans.RawTransaction;
                 }
                 ExportSignedTransaction signedEthTx
-            | t when t = typeof<Bitcoin.TransactionMetadata> ->
+            | t when t = typeof<UtxoCoin.TransactionMetadata> ->
                 let unsignedBtcTx = {
-                    Metadata = box trans.TransactionInfo.Metadata :?> Bitcoin.TransactionMetadata;
+                    Metadata = box trans.TransactionInfo.Metadata :?> UtxoCoin.TransactionMetadata;
                     Proposal = trans.TransactionInfo.Proposal;
                     Cache = trans.TransactionInfo.Cache;
                 }
@@ -271,8 +271,8 @@ module Account =
     let CreateNormalAccount (currency: Currency) (password: string) (seed: Option<array<byte>>): NormalAccount =
         let (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
             if currency.IsUtxo() then
-                let publicKey,encryptedPrivateKey = Bitcoin.Account.Create currency password seed
-                (publicKey,encryptedPrivateKey), Bitcoin.Account.GetPublicAddressFromAccountFile currency
+                let publicKey,encryptedPrivateKey = UtxoCoin.Account.Create currency password seed
+                (publicKey,encryptedPrivateKey), UtxoCoin.Account.GetPublicAddressFromAccountFile currency
             elif currency.IsEther() then
                 let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password seed
                 (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
@@ -304,8 +304,8 @@ module Account =
         match txMetadata with
         | :? Ether.TransactionMetadata as etherTxMetadata ->
             Ether.Account.SaveUnsignedTransaction transProposal etherTxMetadata filePath
-        | :? Bitcoin.TransactionMetadata as btcTxMetadata ->
-            Bitcoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata filePath
+        | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
+            UtxoCoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata filePath
         | _ -> failwith "fee type unknown"
 
     let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<IBlockchainFeeInfo> =
@@ -313,8 +313,8 @@ module Account =
         let transType = Marshalling.ExtractType json
 
         match transType with
-        | _ when transType = typeof<UnsignedTransaction<Bitcoin.TransactionMetadata>> ->
-            let deserializedBtcTransaction: UnsignedTransaction<Bitcoin.TransactionMetadata> =
+        | _ when transType = typeof<UnsignedTransaction<UtxoCoin.TransactionMetadata>> ->
+            let deserializedBtcTransaction: UnsignedTransaction<UtxoCoin.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | _ when transType = typeof<UnsignedTransaction<Ether.TransactionMetadata>> ->
@@ -328,8 +328,8 @@ module Account =
         let transType = Marshalling.ExtractType json
 
         match transType with
-        | _ when transType = typeof<SignedTransaction<Bitcoin.TransactionMetadata>> ->
-            let deserializedBtcTransaction: SignedTransaction<Bitcoin.TransactionMetadata> =
+        | _ when transType = typeof<SignedTransaction<UtxoCoin.TransactionMetadata>> ->
+            let deserializedBtcTransaction: SignedTransaction<UtxoCoin.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | _ when transType = typeof<SignedTransaction<Ether.TransactionMetadata>> ->

@@ -49,7 +49,7 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Proposal.OriginAddress,
                     Is.EqualTo("16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR"))
 
-        let btcTxMetadata = deserializedUnsignedTrans.Metadata :?> Bitcoin.TransactionMetadata
+        let btcTxMetadata = deserializedUnsignedTrans.Metadata :?> UtxoCoin.TransactionMetadata
         Assert.That(btcTxMetadata.Fee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
         Assert.That(btcTxMetadata.Fee.AmountPerKiloByteForFastTransaction, Is.EqualTo(0.1m))
         Assert.That(btcTxMetadata.Fee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
@@ -119,7 +119,7 @@ module Deserialization =
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginAddress,
                     Is.EqualTo("16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR"))
 
-        let btcTxMetadata = deserializedSignedTrans.TransactionInfo.Metadata :?> Bitcoin.TransactionMetadata
+        let btcTxMetadata = deserializedSignedTrans.TransactionInfo.Metadata :?> UtxoCoin.TransactionMetadata
         Assert.That(btcTxMetadata.Fee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
         Assert.That(btcTxMetadata.Fee.AmountPerKiloByteForFastTransaction, Is.EqualTo(0.1m))
         Assert.That(btcTxMetadata.TransactionDraft.Inputs.Length, Is.EqualTo(1))

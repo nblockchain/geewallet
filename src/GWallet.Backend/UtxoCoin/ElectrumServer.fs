@@ -1,4 +1,4 @@
-﻿namespace GWallet.Backend.Bitcoin
+﻿namespace GWallet.Backend.UtxoCoin
 
 open System
 open System.IO
