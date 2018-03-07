@@ -97,6 +97,14 @@ module internal Account =
 
         EthECKey(privKeyInBytes, true)
 
+    let private GetNetwork (currency: Currency) =
+        if not (currency.IsEther()) then
+            failwith (sprintf "Assertion failed: currency %s should be Ether-type" (currency.ToString()))
+        match currency with
+        | ETC -> Config.EtcNet
+        | ETH -> Config.EthNet
+        | _ -> failwith (sprintf "Assertion failed: Ether currency %s not supported?" (currency.ToString()))
+
     let private SignTransactionWithPrivateKey (account: IAccount)
                                               (txMetadata: TransactionMetadata)
                                               (destination: string)
@@ -106,6 +114,8 @@ module internal Account =
         let currency = account.Currency
         if (txMetadata.Fee.Currency <> currency) then
             invalidArg "account" "currency of account param must be equal to currency of minerFee param"
+
+        let chain = GetNetwork currency
 
         let amountToSendConsideringMinerFee =
             if (amount.IdealValueRemainingAfterSending = 0.0m) then
@@ -118,6 +128,7 @@ module internal Account =
         let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
         let trans = signer.SignTransaction(
                         privKeyInBytes,
+                        chain,
                         destination,
                         amountInWei,
                         BigInteger(txMetadata.TransactionCount),
@@ -129,8 +140,10 @@ module internal Account =
                         BigInteger(txMetadata.Fee.GasPriceInWei),
                         MinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
-        if not (signer.VerifyTransaction(trans)) then
+        (* VerifyTransaction fails, upstream bug: https://github.com/Nethereum/Nethereum/issues/272
+        if not (signer.VerifyTransaction(trans, chain)) then
             failwith "Transaction could not be verified?"
+        *)
         trans
 
     let SignTransaction (account: NormalAccount)

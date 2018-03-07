@@ -141,18 +141,18 @@
     <Reference Include="BouncyCastle.Crypto">
       <HintPath>..\..\packages\BouncyCastle.1.8.1\lib\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.Hex.2.0.1\lib\net451\Nethereum.Hex.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.RLP.2.0.1\lib\net451\Nethereum.RLP.dll</HintPath>
+    <Reference Include="Nethereum.Hex">
+      <HintPath>..\..\packages\Nethereum.Hex.2.3.0\lib\net451\Nethereum.Hex.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.Util.2.0.1\lib\net451\Nethereum.Util.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Util.2.3.0\lib\net451\Nethereum.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RLP">
+      <HintPath>..\..\packages\Nethereum.RLP.2.3.0\lib\net451\Nethereum.RLP.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.Signer.2.0.1\lib\net451\Nethereum.Signer.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Signer.2.3.0\lib\net451\Nethereum.Signer.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">
