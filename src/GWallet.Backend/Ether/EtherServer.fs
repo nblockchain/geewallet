@@ -43,6 +43,7 @@ module Server =
             [ etcWeb3 ]
         | Currency.ETH ->
             [ ethWeb3Infura; ethWeb3Mew ]
+        | _ -> failwith (sprintf "Assertion failed: Ether currency %s not supported?" (currency.ToString()))
 
     let exMsg = "Could not communicate with EtherServer"
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
