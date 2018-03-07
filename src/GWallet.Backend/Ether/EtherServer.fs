@@ -29,18 +29,25 @@ module Server =
     let private PUBLIC_WEB3_API_ETH_INFURA_MEW = "https://mainnet.infura.io/mew"
     let private PUBLIC_WEB3_API_ETH_MEW = "https://api.myetherapi.com/eth" // docs: https://www.myetherapi.com/
 
-    // this below is https://classicetherwallet.com/'s public endpoint (TODO: to prevent having a SPOF, use https://etcchain.com/api/ too)
-    let private PUBLIC_WEB3_API_ETC = "https://mewapi.epool.io"
+    // TODO: add the one from https://etcchain.com/api/ too
+    let private PUBLIC_WEB3_API_ETC_EPOOL_IO = "https://mewapi.epool.io"
+    let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH = "https://etcrpc.viperid.online"
+    // FIXME: the below one doesn't seem to work; we should include it anyway and make the algorithm discard it at runtime
+    //let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_MANTIS = "https://etc-mantis.callisto.network"
+    let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY = "https://etc-parity.callisto.network"
 
     let private ethWeb3Infura = Web3(PUBLIC_WEB3_API_ETH_INFURA_MEW)
     let private ethWeb3Mew = Web3(PUBLIC_WEB3_API_ETH_MEW)
-    let private etcWeb3 = Web3(PUBLIC_WEB3_API_ETC)
+
+    let private etcWeb3CommonWealthParity = Web3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY)
+    let private etcWeb3CommonWealthGeth = Web3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH)
+    let private etcWeb3ePoolIo = Web3(PUBLIC_WEB3_API_ETC_EPOOL_IO)
 
     // FIXME: we should randomize the result of this function, to mimic what we do in the bitcoin side
     let GetWeb3Servers (currency: Currency): list<Web3> =
         match currency with
         | Currency.ETC ->
-            [ etcWeb3 ]
+            [ etcWeb3CommonWealthParity; etcWeb3CommonWealthGeth; etcWeb3ePoolIo ]
         | Currency.ETH ->
             [ ethWeb3Infura; ethWeb3Mew ]
         | _ -> failwith (sprintf "Assertion failed: Ether currency %s not supported?" (currency.ToString()))
