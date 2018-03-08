@@ -142,7 +142,7 @@ module internal Account =
     // FIXME: anyway I should use NBitcoin's estimation facilicities
     let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 131
 
-    let EstimateFee account (amount: decimal) (destination: string) =
+    let EstimateFee account (amount: decimal) (destination: string): TransactionMetadata =
         let rec addInputsUntilAmount (utxos: list<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount

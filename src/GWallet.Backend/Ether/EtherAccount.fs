@@ -56,21 +56,23 @@ module internal Account =
             let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
             raise (AddressWithInvalidChecksum(Some validCheckSumAddress))
 
-    let EstimateFee (currency: Currency): MinerFee =
-        let gasPrice = Ether.Server.GetGasPrice currency
-        if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
-            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
-                          (gasPrice.Value.ToString()))
-        let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
-        MinerFee(gasPrice64, DateTime.Now, currency)
-
-    let GetTransactionCount (currency: Currency) (publicAddress: string) =
+    let private GetTransactionCount (currency: Currency) (publicAddress: string) =
         let result = (Ether.Server.GetTransactionCount currency publicAddress).Value
         if (result > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
                           (result.ToString()))
         let int64result:Int64 = BigInteger.op_Explicit result
         int64result
+
+    let EstimateFee (account: IAccount): TransactionMetadata =
+        let gasPrice = Ether.Server.GetGasPrice account.Currency
+        if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
+            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
+                          (gasPrice.Value.ToString()))
+        let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
+        let ethMinerFee = MinerFee(gasPrice64, DateTime.Now, account.Currency)
+        let txCount = GetTransactionCount account.Currency account.PublicAddress
+        { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
 
     let private BroadcastRawTransaction (currency: Currency) trans =
         let insufficientFundsMsg = "Insufficient funds"

@@ -113,9 +113,7 @@ module Account =
         if currency.IsUtxo() then
             UtxoCoin.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
         elif currency.IsEther() then
-            let ethMinerFee = Ether.Account.EstimateFee currency
-            let txCount = Ether.Account.GetTransactionCount currency account.PublicAddress
-            { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount } :> IBlockchainFeeInfo
+            Ether.Account.EstimateFee account :> IBlockchainFeeInfo
         else
             failwith (sprintf "Unknown currency %A" currency)
 
