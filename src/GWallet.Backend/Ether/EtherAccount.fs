@@ -142,10 +142,8 @@ module internal Account =
                         BigInteger(txMetadata.Fee.GasPriceInWei),
                         MinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
 
-        (* VerifyTransaction fails, upstream bug: https://github.com/Nethereum/Nethereum/issues/272
         if not (signer.VerifyTransaction(trans, chain)) then
             failwith "Transaction could not be verified?"
-        *)
         trans
 
     let SignTransaction (account: NormalAccount)
