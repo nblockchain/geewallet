@@ -164,7 +164,10 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
         let separatedBySpaces = resObj.Result.Split [|' '|]
         let version = separatedBySpaces.[separatedBySpaces.Length - 1]
 
-        Version(version)
+        try
+            Version(version)
+        with
+        | exn -> raise(Exception("Electrum Server's version disliked by .NET Version class: " + version, exn))
 
     member self.BlockchainAddressListUnspent address: BlockchainAddressListUnspentResult =
         let obj = {
