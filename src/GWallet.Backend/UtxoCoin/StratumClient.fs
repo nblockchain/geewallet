@@ -148,6 +148,17 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
 
         self.Request<BlockchainAddressGetBalanceResult> json
 
+    static member private CreateVersion(versionStr: string): Version =
+        let correctedVersion =
+            if (versionStr.EndsWith("+")) then
+                versionStr.Substring(0, versionStr.Length - 1)
+            else
+                versionStr
+        try
+            Version(correctedVersion)
+        with
+        | exn -> raise(Exception("Electrum Server's version disliked by .NET Version class: " + versionStr, exn))
+
     member self.ServerVersion (clientVersion: Version) (protocolVersion: Version): Version =
         let obj = {
             Id = 0;
@@ -164,10 +175,7 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
         let separatedBySpaces = resObj.Result.Split [|' '|]
         let version = separatedBySpaces.[separatedBySpaces.Length - 1]
 
-        try
-            Version(version)
-        with
-        | exn -> raise(Exception("Electrum Server's version disliked by .NET Version class: " + version, exn))
+        StratumClient.CreateVersion(version)
 
     member self.BlockchainAddressListUnspent address: BlockchainAddressListUnspentResult =
         let obj = {
