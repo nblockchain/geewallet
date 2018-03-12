@@ -124,7 +124,7 @@ module Account =
         elif currency.IsUtxo() then
             UtxoCoin.Account.BroadcastTransaction currency trans
         else
-            failwith "fee type unknown"
+            failwith (sprintf "Unknown currency %A" currency)
 
     let SignTransaction (account: NormalAccount)
                         (destination: string)
