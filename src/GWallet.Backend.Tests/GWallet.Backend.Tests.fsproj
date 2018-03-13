@@ -110,6 +110,9 @@
   </Choose>
   <Import Condition="'$(FSharpTargetsPath)' != ''" Project="$(FSharpTargetsPath)" />
   <ItemGroup>
+    <Folder Include="data\" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="..\GWallet.Frontend.Console\App.config">
       <Link>App.config</Link>
     </Content>
@@ -123,6 +126,8 @@
     <Compile Include="Shuffling.fs" />
     <Compile Include="StratumParsing.fs" />
     <Content Include="packages.config" />
+    <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
+    <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
@@ -143,16 +148,16 @@
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.Hex.2.3.1\lib\net451\Nethereum.Hex.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Hex.2.4.0\lib\net451\Nethereum.Hex.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.RLP.2.3.1\lib\net451\Nethereum.RLP.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.RLP.2.4.0\lib\net451\Nethereum.RLP.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.Util.2.3.1\lib\net451\Nethereum.Util.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Util.2.4.0\lib\net451\Nethereum.Util.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.Signer.2.3.1\lib\net451\Nethereum.Signer.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Signer.2.4.0\lib\net451\Nethereum.Signer.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">

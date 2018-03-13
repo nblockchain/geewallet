@@ -35,6 +35,7 @@ module FiatValueEstimation =
             | Currency.LTC -> "litecoin"
             | Currency.ETH -> "ethereum"
             | Currency.ETC -> "ethereum-classic"
+            | Currency.DAI -> "dai"
 
         let maybeJson =
             try

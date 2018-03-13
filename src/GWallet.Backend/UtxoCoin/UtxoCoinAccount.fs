@@ -224,7 +224,7 @@ module internal Account =
                 2
                 (GetRandomizedFuncs baseAccount.Currency electrumEstimateFee)
 
-        let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now)
+        let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, account.Currency)
         { TransactionDraft = transactionDraftWithoutMinerFee; Fee = minerFee }
 
     let private SubstractMinerFeeToTransactionDraft (transactionDraftWithoutMinerFee: TransactionDraft)

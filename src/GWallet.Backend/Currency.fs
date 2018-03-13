@@ -9,6 +9,7 @@ type Currency =
     | LTC
     | ETH
     | ETC
+    | DAI
     static member ToStrings() =
         Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(typeof<Currency>)
             |> Array.map (fun info -> info.Name)
@@ -16,6 +17,10 @@ type Currency =
         FSharpUtil.GetAllElementsFromDiscriminatedUnion<Currency>()
     member self.IsEther() =
         self = Currency.ETC || self = Currency.ETH
+    member self.IsEthToken() =
+        self = Currency.DAI
+    member self.IsEtherBased() =
+        self.IsEther() || self.IsEthToken()
     member self.IsUtxo() =
         self = Currency.BTC || self = Currency.LTC
     override self.ToString() =

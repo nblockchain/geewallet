@@ -7,15 +7,14 @@ open GWallet.Backend
 
 open Nethereum.Util
 
-type MinerFee(gasPriceInWei: Int64, estimationTime: DateTime, currency: Currency) =
+type MinerFee(gasLimit: Int64, gasPriceInWei: Int64, estimationTime: DateTime, currency: Currency) =
+
+    member val GasLimit = gasLimit with get
     member val GasPriceInWei = gasPriceInWei with get
     member val Currency = currency with get
-
-    static member internal GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION = BigInteger(21000)
-
     member val EstimationTime = estimationTime with get
 
     member this.CalculateAbsoluteValue() =
         let gasPriceInWei = BigInteger(gasPriceInWei)
-        let costInWei = BigInteger.Multiply(gasPriceInWei, MinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
+        let costInWei = BigInteger.Multiply(gasPriceInWei, BigInteger(gasLimit))
         UnitConversion.Convert.FromWei(costInWei, UnitConversion.EthUnit.Ether)

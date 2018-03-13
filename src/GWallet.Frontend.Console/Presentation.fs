@@ -34,7 +34,8 @@ module Presentation =
 
     let internal ExchangeRateUnreachableMsg = " (USD exchange rate unreachable... offline?)"
 
-    let ShowFee currency (estimatedFee: IBlockchainFeeInfo) =
+    let ShowFee (estimatedFee: IBlockchainFeeInfo) =
+        let currency = estimatedFee.Currency
         let estimatedFeeInUsd =
             match FiatValueEstimation.UsdValue(currency) with
             | Fresh(usdValue) ->
@@ -79,4 +80,4 @@ module Presentation =
                                    (trans.Proposal.Currency.ToString())
                                    fiatAmount)
         Console.WriteLine()
-        ShowFee trans.Proposal.Currency trans.Metadata
+        ShowFee trans.Metadata

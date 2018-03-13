@@ -429,7 +429,7 @@ module UserInteraction =
 
     let AskFee account amount destination: Option<IBlockchainFeeInfo> =
         let txMetadataWithFeeEstimation = Account.EstimateFee account amount destination
-        Presentation.ShowFee account.Currency txMetadataWithFeeEstimation
+        Presentation.ShowFee txMetadataWithFeeEstimation
         let accept = AskYesNo "Do you accept?"
         if accept then
             Some(txMetadataWithFeeEstimation)

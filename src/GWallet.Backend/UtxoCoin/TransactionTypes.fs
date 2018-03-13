@@ -30,3 +30,5 @@ type TransactionMetadata =
     interface IBlockchainFeeInfo with
         member this.FeeEstimationTime with get() = this.Fee.EstimationTime
         member this.FeeValue with get() = this.Fee.CalculateAbsoluteValue()
+        member this.Currency with get() = this.Fee.Currency
+

@@ -14,7 +14,7 @@ module Account =
     let private GetBalanceFromServerOrCache(account: IAccount) (onlyConfirmed: bool): MaybeCached<decimal> =
         let maybeBalance =
             try
-                if account.Currency.IsEther() then
+                if account.Currency.IsEtherBased() then
                     if (onlyConfirmed) then
                         Some(Ether.Account.GetConfirmedBalance account)
                     else
@@ -66,7 +66,7 @@ module Account =
                 let fromAccountFileToPublicAddress =
                     if currency.IsUtxo() then
                         UtxoCoin.Account.GetPublicAddressFromAccountFile currency
-                    elif currency.IsEther() then
+                    elif currency.IsEtherBased() then
                         Ether.Account.GetPublicAddressFromAccountFile
                     else
                         failwith (sprintf "Unknown currency %A" currency)
@@ -82,7 +82,7 @@ module Account =
                 let fromAccountFileToPublicAddress =
                     if currency.IsUtxo() then
                         UtxoCoin.Account.GetPublicAddressFromUnencryptedPrivateKey currency
-                    elif currency.IsEther() then
+                    elif currency.IsEtherBased() then
                         Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
                     else
                         failwith (sprintf "Unknown currency %A" currency)
@@ -101,7 +101,7 @@ module Account =
 
     // TODO: add tests for these (just in case address validation breaks after upgrading our dependencies)
     let ValidateAddress (currency: Currency) (address: string) =
-        if currency.IsEther() then
+        if currency.IsEtherBased() then
             Ether.Account.ValidateAddress currency address
         elif currency.IsUtxo() then
             UtxoCoin.Account.ValidateAddress currency address
@@ -112,14 +112,14 @@ module Account =
         let currency = (account:>IAccount).Currency
         if currency.IsUtxo() then
             UtxoCoin.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
-        elif currency.IsEther() then
-            Ether.Account.EstimateFee account :> IBlockchainFeeInfo
+        elif currency.IsEtherBased() then
+            Ether.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
         else
             failwith (sprintf "Unknown currency %A" currency)
 
     let BroadcastTransaction (trans: SignedTransaction<_>) =
         let currency = trans.TransactionInfo.Proposal.Currency
-        if currency.IsEther() then
+        if currency.IsEtherBased() then
             Ether.Account.BroadcastTransaction trans
         elif currency.IsUtxo() then
             UtxoCoin.Account.BroadcastTransaction currency trans
@@ -206,7 +206,7 @@ module Account =
             | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
                 UtxoCoin.Account.SendPayment account btcTxMetadata destination amount password
             | _ -> failwith "fee for BTC currency should be Bitcoin.MinerFee type"
-        elif currency.IsEther() then
+        elif currency.IsEtherBased() then
             match txMetadata with
             | :? Ether.TransactionMetadata as etherTxMetadata ->
                 Ether.Account.SendPayment account etherTxMetadata destination amount password
@@ -271,7 +271,7 @@ module Account =
             if currency.IsUtxo() then
                 let publicKey,encryptedPrivateKey = UtxoCoin.Account.Create currency password seed
                 (publicKey,encryptedPrivateKey), UtxoCoin.Account.GetPublicAddressFromAccountFile currency
-            elif currency.IsEther() then
+            elif currency.IsEtherBased() then
                 let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password seed
                 (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
             else

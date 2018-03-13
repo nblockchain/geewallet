@@ -4,13 +4,16 @@
 // https://github.com/Microsoft/visualfsharp/issues/3231
 
 open System
+open System.Linq
 open System.Numerics
 open System.IO
 
 open Nethereum.Signer
 open Nethereum.KeyStore
 open Nethereum.Util
+open Nethereum.Contracts
 open Nethereum.KeyStore.Crypto
+open Nethereum.StandardTokenEIP20.Functions
 
 open GWallet.Backend
 
@@ -35,12 +38,24 @@ module internal Account =
         publicAddress
 
     let GetConfirmedBalance(account: IAccount): decimal =
-        let balance = Ether.Server.GetConfirmedBalance account.Currency account.PublicAddress
-        UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
+        if (account.Currency.IsEther()) then
+            let etherBalance = Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress
+            UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
+        elif (account.Currency.IsEthToken()) then
+            let tokenBalance = Ether.Server.GetConfirmedTokenBalance account.Currency account.PublicAddress
+            UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
+        else
+            failwith (sprintf "Assertion failed: currency %s should be Ether or Ether token" (account.Currency.ToString()))
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount): decimal =
-        let balance = Ether.Server.GetUnconfirmedBalance account.Currency account.PublicAddress
-        UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
+        if (account.Currency.IsEther()) then
+            let etherBalance = Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress
+            UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
+        elif (account.Currency.IsEthToken()) then
+            let tokenBalance = Ether.Server.GetUnconfirmedTokenBalance account.Currency account.PublicAddress
+            UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
+        else
+            failwith (sprintf "Assertion failed: currency %s should be Ether or Ether token" (account.Currency.ToString()))
 
     let ValidateAddress (currency: Currency) (address: string) =
         let ETHEREUM_ADDRESSES_LENGTH = 42
@@ -64,15 +79,45 @@ module internal Account =
         let int64result:Int64 = BigInteger.op_Explicit result
         int64result
 
-    let EstimateFee (account: IAccount): TransactionMetadata =
-        let gasPrice = Ether.Server.GetGasPrice account.Currency
+    let private GetGasPrice currency: Int64 =
+        let gasPrice = Ether.Server.GetGasPrice currency
         if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
                           (gasPrice.Value.ToString()))
         let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
-        let ethMinerFee = MinerFee(gasPrice64, DateTime.Now, account.Currency)
+        gasPrice64
+
+    let private GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION:int64 = 21000L
+
+    let EstimateEtherTransferFee (account: IAccount): TransactionMetadata =
+        let gasPrice64 = GetGasPrice account.Currency
+        let ethMinerFee = MinerFee(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION, gasPrice64, DateTime.Now, account.Currency)
         let txCount = GetTransactionCount account.Currency account.PublicAddress
         { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
+
+    let EstimateTokenTransferFee (account: IAccount) amount destination: TransactionMetadata =
+        let gasPrice64 = GetGasPrice account.Currency
+
+        let tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination
+        if (tokenTransferFee.Value > BigInteger(Int64.MaxValue)) then
+            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
+                          (tokenTransferFee.Value.ToString()))
+        let gasCost64: Int64 = BigInteger.op_Explicit tokenTransferFee.Value
+        let baseCurrency =
+            match account.Currency with
+            | DAI -> ETH
+            | _ -> failwithf "Unknown token %s" (account.Currency.ToString())
+        let ethMinerFee = MinerFee(gasCost64, gasPrice64, DateTime.Now, baseCurrency)
+        let txCount = GetTransactionCount account.Currency account.PublicAddress
+        { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
+
+    let EstimateFee (account: IAccount) amount destination: TransactionMetadata =
+        if account.Currency.IsEther() then
+            EstimateEtherTransferFee account
+        elif account.Currency.IsEthToken() then
+            EstimateTokenTransferFee account amount destination
+        else
+            failwith (sprintf "Assertion failed: currency %s should be Ether or Ether token" (account.Currency.ToString()))
 
     let private BroadcastRawTransaction (currency: Currency) trans =
         let insufficientFundsMsg = "Insufficient funds"
@@ -100,24 +145,24 @@ module internal Account =
         EthECKey(privKeyInBytes, true)
 
     let private GetNetwork (currency: Currency) =
-        if not (currency.IsEther()) then
+        if not (currency.IsEtherBased()) then
             failwith (sprintf "Assertion failed: currency %s should be Ether-type" (currency.ToString()))
-        match currency with
-        | ETC -> Config.EtcNet
-        | ETH -> Config.EthNet
-        | _ -> failwith (sprintf "Assertion failed: Ether currency %s not supported?" (currency.ToString()))
+        if currency.IsEthToken() || currency = ETH then
+            Config.EthNet
+        elif currency = ETC then
+            Config.EtcNet
+        else
+            failwith (sprintf "Assertion failed: Ether currency %s not supported?" (currency.ToString()))
 
-    let private SignTransactionWithPrivateKey (account: IAccount)
-                                              (txMetadata: TransactionMetadata)
-                                              (destination: string)
-                                              (amount: TransferAmount)
-                                              (privateKey: EthECKey) =
+    let private SignEtherTransaction (chain: Chain)
+                                     (txMetadata: TransactionMetadata)
+                                     (destination: string)
+                                     (amount: TransferAmount)
+                                     (privateKey: EthECKey) =
 
-        let currency = account.Currency
-        if (txMetadata.Fee.Currency <> currency) then
-            invalidArg "account" "currency of account param must be equal to currency of minerFee param"
-
-        let chain = GetNetwork currency
+        if (GetNetwork txMetadata.Fee.Currency <> chain) then
+            invalidArg "chain" (sprintf "Assertion failed: fee currency (%s) chain doesn't match with passed chain (%s)"
+                                       (txMetadata.Fee.Currency.ToString()) (chain.ToString()))
 
         let amountToSendConsideringMinerFee =
             if (amount.IdealValueRemainingAfterSending = 0.0m) then
@@ -140,7 +185,56 @@ module internal Account =
                         // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
                         // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
                         BigInteger(txMetadata.Fee.GasPriceInWei),
-                        MinerFee.GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION)
+                        BigInteger(txMetadata.Fee.GasLimit))
+        trans
+
+    let private SignEtherTokenTransaction (chain: Chain)
+                                          (txMetadata: TransactionMetadata)
+                                          (origin: string)
+                                          (destination: string)
+                                          (amount: TransferAmount)
+                                          (privateKey: EthECKey) =
+
+        let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
+
+        let amountInWei = UnitConversion.Convert.ToWei(amount.ValueToSend, UnitConversion.EthUnit.Ether)
+        let gasLimit = BigInteger(txMetadata.Fee.GasLimit)
+        let data = TokenManager.OfflineDaiContract.ComposeInputDataForTransferTransaction(origin,
+                                                                                          destination,
+                                                                                          amountInWei,
+                                                                                          gasLimit)
+
+        let etherValue = BigInteger(0)
+        let nonce = BigInteger(txMetadata.TransactionCount)
+        let gasPrice = BigInteger(txMetadata.Fee.GasPriceInWei)
+
+        signer.SignTransaction (privKeyInBytes,
+                                chain,
+                                TokenManager.DAI_CONTRACT_ADDRESS,
+                                etherValue,
+                                nonce,
+                                gasPrice,
+                                gasLimit,
+                                data)
+
+    let private SignTransactionWithPrivateKey (account: IAccount)
+                                              (txMetadata: TransactionMetadata)
+                                              (destination: string)
+                                              (amount: TransferAmount)
+                                              (privateKey: EthECKey) =
+
+        let chain = GetNetwork account.Currency
+
+        let trans =
+            if account.Currency.IsEthToken() then
+                SignEtherTokenTransaction chain txMetadata account.PublicAddress destination amount privateKey
+            elif account.Currency.IsEtherBased() then
+                if (txMetadata.Fee.Currency <> account.Currency) then
+                    failwith (sprintf "Assertion failed: fee currency (%s) doesn't match with passed chain (%s)"
+                                      (txMetadata.Fee.Currency.ToString()) (account.Currency.ToString()))
+                SignEtherTransaction chain txMetadata destination amount privateKey
+            else
+                failwith (sprintf "Assertion failed: Ether currency %s not supported?" (account.Currency.ToString()))
 
         if not (signer.VerifyTransaction(trans, chain)) then
             failwith "Transaction could not be verified?"
