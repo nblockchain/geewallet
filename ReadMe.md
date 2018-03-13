@@ -25,18 +25,24 @@ GWallet will always be standing in the shoulders of giants, which means we have 
 This list is the (intended) order of preference for new features:
 
 - Xamarin.Forms frontends (in progress, see the 'frontend' branch)...
+- ERC20(EIP20)-token support.
+- ETH/ETC state channel support.
+- Raiden support.
+- Bitcoin/Litecoin payment channels support.
+- Lightning support (upgrading to NBitcoin 4.0.0.12 to be protected from malleability).
+- Payment channels support.
+- Mac/Windows CI support via Travis & AppVeyor respectively.
+- Flatpak & snap packaging.
+- Paranoid-build mode (using git submodules instead of nuget deps).
 - Fee selection for custom priority.
 - Multi-sig support.
-- Payment channels support.
-- Lightning support (upgrading to NBitcoin 4.0.0.12 to be protected from malleability).
-- ETH/ETC raiden (state channels) support.
 - Use bits instead of BTC as default unit.
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
 - MimbleWimble support?
 - Threshold signatures.
-- Tumblebit support?
-- Decentralized currency exchange?
 - Decentralized naming resolution? (BlockStack vs ENS?)
+- Decentralized currency exchange? or crosschain atomic swaps?
+- Tumblebit support?
 
 
 ## Anti-roadmap
