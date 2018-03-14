@@ -199,7 +199,7 @@ module Deserialization =
         Assert.That(daiTxMetadata.Fee.Currency, Is.EqualTo(Currency.ETH))
         Assert.That(daiTxMetadata.Fee.GasPriceInWei, Is.EqualTo(3343750000L))
         Assert.That(deserializedUnsignedTrans.Metadata.FeeEstimationTime,
-                    Is.EqualTo(DateTime.Parse("2018-03-14T16:50:09.133411+08:00")))
+                    Is.EqualTo(DateTime.Parse("2018-03-14T16:50:09.133411")))
 
         Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo(3))
         Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(5))
@@ -239,7 +239,7 @@ module Deserialization =
         Assert.That(etherTxMetadata.Fee.GasPriceInWei,
                     Is.EqualTo(3343750000L))
         Assert.That(deserializedSignedTrans.TransactionInfo.Metadata.FeeEstimationTime,
-                    Is.EqualTo(DateTime.Parse("2018-03-14T16:50:09.133411+08:00")))
+                    Is.EqualTo(DateTime.Parse("2018-03-14T16:50:09.133411")))
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.Balances.Count,
                     Is.EqualTo(3))

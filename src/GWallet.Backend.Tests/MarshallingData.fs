@@ -33,7 +33,7 @@ module MarshallingData =
 
     let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
-    let SomeDate = DateTime.Now
+    let SomeDate = DateTime.UtcNow
 
     let private someEtherMinerFee = Ether.MinerFee(21000L, 6969L, SomeDate, Currency.ETC)
 
@@ -158,17 +158,17 @@ module MarshallingData =
         }
 
     let private realUsdPriceDataSample =
-        [ (Currency.BTC, (9156.19m, DateTime.Parse "2018-03-14T16:45:22.330571+08:00"));
-          (Currency.LTC, (173.592m, DateTime.Parse "2018-03-14T16:45:22.344345+08:00"));
-          (Currency.ETH, (691.52m, DateTime.Parse "2018-03-14T16:50:09.717081+08:00"));
-          (Currency.ETC, (19.8644m, DateTime.Parse "2018-03-14T16:45:22.383916+08:00"));
-          (Currency.DAI, (1.00376m, DateTime.Parse "2018-03-14T16:45:22.415116+08:00")); ]
+        [ (Currency.BTC, (9156.19m, DateTime.Parse "2018-03-14T16:45:22.330571"));
+          (Currency.LTC, (173.592m, DateTime.Parse "2018-03-14T16:45:22.344345"));
+          (Currency.ETH, (691.52m, DateTime.Parse "2018-03-14T16:50:09.717081"));
+          (Currency.ETC, (19.8644m, DateTime.Parse "2018-03-14T16:45:22.383916"));
+          (Currency.DAI, (1.00376m, DateTime.Parse "2018-03-14T16:45:22.415116")); ]
             |> Map.ofSeq
 
     let private realBalancesDataSample =
-        [ ("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E", (7.08m, DateTime.Parse "2018-03-14T16:50:00.431234+08:00"));
-          ("3Buz1evVsQeHtDfQAmwfAKQsUzAt3f4TuR", (0.0m, DateTime.Parse "2018-03-14T16:45:07.971836+08:00"));
-          ("MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm", (0.0m, DateTime.Parse "2018-03-14T16:45:15.544517+08:00")); ]
+        [ ("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E", (7.08m, DateTime.Parse "2018-03-14T16:50:00.431234"));
+          ("3Buz1evVsQeHtDfQAmwfAKQsUzAt3f4TuR", (0.0m, DateTime.Parse "2018-03-14T16:45:07.971836"));
+          ("MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm", (0.0m, DateTime.Parse "2018-03-14T16:45:15.544517")); ]
             |> Map.ofSeq
 
     let private realCachingDataExample =
@@ -176,7 +176,7 @@ module MarshallingData =
 
     let private someEtherMinerFeeForDaiTransfer = Ether.MinerFee(37298L,
                                                                  3343750000L,
-                                                                 DateTime.Parse "2018-03-14T16:50:09.133411+08:00",
+                                                                 DateTime.Parse "2018-03-14T16:50:09.133411",
                                                                  Currency.ETH)
     let private someDaiTxMetadata =
         {
