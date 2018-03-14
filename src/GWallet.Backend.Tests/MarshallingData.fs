@@ -57,7 +57,7 @@ module MarshallingData =
                             .Add("0xFOOBARBAZ", (123456789.12345678m, SomeDate))
     let private fiatValues = Map.empty.Add(Currency.ETH, (161.796m, SomeDate))
                               .Add(Currency.ETC, (169.99999999m, SomeDate))
-    let SofisticatedCachindDataExample = { UsdPrice = fiatValues; Balances = balances }
+    let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Balances = balances }
 
     let private innerCachingDataForSofisticatedUseCase =
         "{\"UsdPrice\":{\"ETH\":{\"Item1\":161.796,\"Item2\":" +
@@ -211,7 +211,7 @@ module MarshallingData =
     let someEtherTransactionInfo =
         {
             Proposal = someUnsignedEtherTransactionProposal;
-            Cache = SofisticatedCachindDataExample;
+            Cache = SofisticatedCachingDataExample;
             Metadata = someEtherTxMetadata;
         }
     let SignedEtherTransactionExample =

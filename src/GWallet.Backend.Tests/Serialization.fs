@@ -28,7 +28,7 @@ module Serialization =
     [<Test>]
     let ``complex caching export works``() =
 
-        let json = Caching.ExportToJson MarshallingData.SofisticatedCachindDataExample
+        let json = Caching.ExportToJson MarshallingData.SofisticatedCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
