@@ -23,7 +23,8 @@ type SendPage(account: NormalAccount) =
     let _ = base.LoadFromXaml(typeof<SendPage>)
 
     let GetBalance() =
-        let cachedBalance = Caching.RetreiveLastBalance((account:>IAccount).PublicAddress)
+        let baseAccount = account:>IAccount
+        let cachedBalance = Caching.RetreiveLastBalance (baseAccount.PublicAddress, baseAccount.Currency)
         match cachedBalance with
         | NotAvailable -> failwith "Assertion failed: send page should not be accessed if last balance saved on cache was not > 0"
         | Cached(theCachedBalance,_) -> theCachedBalance
@@ -125,10 +126,10 @@ type SendPage(account: NormalAccount) =
                                  inputAddress lengthLimitViolated inputAddress.Length)
             this.DisplayAlert("Alert", msg, "OK") |> ignore
             None
-        | AddressWithInvalidChecksum(addressWithValidChecksum) ->
+        | AddressWithInvalidChecksum(maybeAddressWithValidChecksum) ->
             //FIXME: warn user about bad checksum, to see if he wants to continue or not
             // (this text is better borrowed from the Frontend.Console project)
-            Some(addressWithValidChecksum)
+            maybeAddressWithValidChecksum
                 
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")

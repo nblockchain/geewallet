@@ -38,7 +38,7 @@ module Misc =
 
         sourceDir.Refresh()
         if not (sourceDir.Exists) then
-            raise (new ArgumentException("Source directory does not exist: " + targetDir.FullName, "sourceDir"))
+            raise (new ArgumentException("Source directory does not exist: " + sourceDir.FullName, "sourceDir"))
 
         Directory.CreateDirectory(targetDir.FullName) |> ignore
 
@@ -54,10 +54,10 @@ module Misc =
             else
                 CopyDirectoryRecursively(sourceSubFolder, DirectoryInfo(Path.Combine(targetDir.FullName, sourceSubFolder.Name)))
 
-    let GetCurrentVersion(): Version =
+    let GetCurrentVersion(dir: DirectoryInfo): Version =
         let assemblyVersionFileName = "CommonAssemblyInfo.fs"
         let assemblyVersionFsFile =
-            (Directory.EnumerateFiles (__SOURCE_DIRECTORY__,
+            (Directory.EnumerateFiles (dir.FullName,
                                        assemblyVersionFileName,
                                        SearchOption.AllDirectories)).SingleOrDefault ()
         if (assemblyVersionFsFile = null) then

@@ -35,7 +35,7 @@ let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", "gwallet"))
 let binInstallPath = DirectoryInfo (Path.Combine (prefix, "bin"))
 
 let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", "gwallet"))
-let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__,
+let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__, "..",
                                                    "src", DEFAULT_FRONTEND, "bin", "Debug"))
 
 let wrapperScript = """#!/bin/sh
@@ -77,7 +77,8 @@ match maybeTarget with
     let zipCommand = "zip"
     MakeCheckCommand zipCommand
 
-    let version = Misc.GetCurrentVersion().ToString()
+    let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+    let version = Misc.GetCurrentVersion(rootDir).ToString()
 
     let release = BinaryConfig.Release
     JustBuild release
@@ -103,7 +104,12 @@ match maybeTarget with
 
     let nunitCommand = "nunit-console"
     MakeCheckCommand nunitCommand
-    let nunitRun = Process.Execute(sprintf "%s src/GWallet.Backend.Tests/bin/GWallet.Backend.Tests.dll" nunitCommand,
+    let testAssembly = "GWallet.Backend.Tests"
+    let testAssemblyPath = Path.Combine(__SOURCE_DIRECTORY__, "..", "src", testAssembly, "bin",
+                                        testAssembly + ".dll")
+    if not (File.Exists(testAssemblyPath)) then
+        failwithf "File not found: %s" testAssemblyPath
+    let nunitRun = Process.Execute(sprintf "%s %s" nunitCommand testAssemblyPath,
                                    true, false)
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
@@ -136,6 +142,21 @@ match maybeTarget with
     let proc = System.Diagnostics.Process.Start
                    (fullPathToMono.Value, pathToFrontend)
     proc.WaitForExit()
+
+| Some "update-servers" ->
+    let utxoCoinFolder = Path.Combine("src", "GWallet.Backend", "UtxoCoin")
+
+    let btcServersUrl = "https://raw.githubusercontent.com/spesmilo/electrum/master/lib/servers.json"
+    let btcServersFile = Path.Combine(utxoCoinFolder, "btc-servers.json")
+    let updateBtc = Process.Execute (sprintf "curl -o %s %s" btcServersFile btcServersUrl, true, false)
+    if (updateBtc.ExitCode <> 0) then
+        Environment.Exit 1
+
+    let ltcServersUrl = "https://raw.githubusercontent.com/pooler/electrum-ltc/master/lib/servers.json"
+    let ltcServersFile = Path.Combine(utxoCoinFolder, "ltc-servers.json")
+    let updateLtc = Process.Execute (sprintf "curl -o %s %s" ltcServersFile ltcServersUrl, true, false)
+    if (updateLtc.ExitCode <> 0) then
+        Environment.Exit 1
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)

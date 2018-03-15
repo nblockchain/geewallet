@@ -32,8 +32,10 @@ module FiatValueEstimation =
         let tickerName =
             match currency with
             | Currency.BTC -> "bitcoin"
+            | Currency.LTC -> "litecoin"
             | Currency.ETH -> "ethereum"
             | Currency.ETC -> "ethereum-classic"
+            | Currency.DAI -> "dai"
 
         let maybeJson =
             try

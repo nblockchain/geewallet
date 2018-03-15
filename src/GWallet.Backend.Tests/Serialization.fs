@@ -28,7 +28,7 @@ module Serialization =
     [<Test>]
     let ``complex caching export works``() =
 
-        let json = Caching.ExportToJson MarshallingData.SofisticatedCachindDataExample
+        let json = Caching.ExportToJson MarshallingData.SofisticatedCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
@@ -66,3 +66,20 @@ module Serialization =
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json, Is.EqualTo (MarshallingData.SignedEtherTransactionExampleInJson))
+
+    [<Test>]
+    let ``unsigned DAI transaction export``() =
+        let json = Account.ExportUnsignedTransactionToJson
+                               MarshallingData.UnsignedDaiTransactionExample
+        Assert.That(json, Is.Not.Null)
+        Assert.That(json, Is.Not.Empty)
+        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
+                    Is.EqualTo(MarshallingData.UnsignedDaiTransactionExampleInJson))
+
+    [<Test>]
+    let ``signed DAI transaction export``() =
+        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedDaiTransactionExample
+        Assert.That(json, Is.Not.Null)
+        Assert.That(json, Is.Not.Empty)
+        Assert.That(json|> MarshallingData.RemoveJsonFormatting,
+                    Is.EqualTo (MarshallingData.SignedDaiTransactionExampleInJson))

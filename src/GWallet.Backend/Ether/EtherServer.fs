@@ -5,9 +5,11 @@ open System.Net
 open System.Numerics
 open System.Threading.Tasks
 
+open Nethereum.Util
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
 open Nethereum.RPC.Eth.DTOs
+open Nethereum.StandardTokenEIP20.Functions
 
 open GWallet.Backend
 
@@ -29,20 +31,28 @@ module Server =
     let private PUBLIC_WEB3_API_ETH_INFURA_MEW = "https://mainnet.infura.io/mew"
     let private PUBLIC_WEB3_API_ETH_MEW = "https://api.myetherapi.com/eth" // docs: https://www.myetherapi.com/
 
-    // this below is https://classicetherwallet.com/'s public endpoint (TODO: to prevent having a SPOF, use https://etcchain.com/api/ too)
-    let private PUBLIC_WEB3_API_ETC = "https://mewapi.epool.io"
+    // TODO: add the one from https://etcchain.com/api/ too
+    let private PUBLIC_WEB3_API_ETC_EPOOL_IO = "https://mewapi.epool.io"
+    let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH = "https://etcrpc.viperid.online"
+    // FIXME: the below one doesn't seem to work; we should include it anyway and make the algorithm discard it at runtime
+    //let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_MANTIS = "https://etc-mantis.callisto.network"
+    let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY = "https://etc-parity.callisto.network"
 
     let private ethWeb3Infura = Web3(PUBLIC_WEB3_API_ETH_INFURA_MEW)
     let private ethWeb3Mew = Web3(PUBLIC_WEB3_API_ETH_MEW)
-    let private etcWeb3 = Web3(PUBLIC_WEB3_API_ETC)
+
+    let private etcWeb3CommonWealthParity = Web3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY)
+    let private etcWeb3CommonWealthGeth = Web3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH)
+    let private etcWeb3ePoolIo = Web3(PUBLIC_WEB3_API_ETC_EPOOL_IO)
 
     // FIXME: we should randomize the result of this function, to mimic what we do in the bitcoin side
     let GetWeb3Servers (currency: Currency): list<Web3> =
-        match currency with
-        | Currency.ETC ->
-            [ etcWeb3 ]
-        | Currency.ETH ->
-            [ ethWeb3Infura; ethWeb3Mew ]
+        if (currency = Currency.ETC) then
+            [ etcWeb3CommonWealthParity; etcWeb3CommonWealthGeth; etcWeb3ePoolIo ]
+        elif (currency.IsEthToken() || currency = Currency.ETH) then
+            [ ethWeb3Mew; ethWeb3Infura ]
+        else
+            failwith (sprintf "Assertion failed: Ether currency %s not supported?" (currency.ToString()))
 
     let exMsg = "Could not communicate with EtherServer"
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
@@ -89,7 +99,7 @@ module Server =
             address
             (GetWeb3Funcs currency web3Func)
 
-    let GetUnconfirmedBalance (currency: Currency) (address: string)
+    let GetUnconfirmedEtherBalance (currency: Currency) (address: string)
         : HexBigInteger =
         let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
             WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
@@ -97,8 +107,16 @@ module Server =
             address
             (GetWeb3Funcs currency web3Func)
 
+    let GetUnconfirmedTokenBalance (currency: Currency) (address: string): BigInteger =
+        let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+            let tokenService = TokenManager.DaiContract web3
+            WaitOnTask tokenService.GetBalanceOfAsync publicAddress
+        faultTolerantEthClient.Query<string,BigInteger>
+            address
+            (GetWeb3Funcs currency web3Func)
+
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
-    let private GetConfirmedBalanceInternal (web3: Web3) (publicAddress: string) =
+    let private GetConfirmedEtherBalanceInternal (web3: Web3) (publicAddress: string) =
         Task.Run(fun _ ->
             let latestBlockTask = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync ()
             latestBlockTask.Wait()
@@ -117,13 +135,49 @@ module Server =
             balanceTask.Result
         )
 
-    let GetConfirmedBalance (currency: Currency) (address: string)
+    let GetConfirmedEtherBalance (currency: Currency) (address: string)
         : HexBigInteger =
         let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-            WaitOnTask (GetConfirmedBalanceInternal web3) publicAddress
+            WaitOnTask (GetConfirmedEtherBalanceInternal web3) publicAddress
         faultTolerantEthClient.Query<string,HexBigInteger>
             address
             (GetWeb3Funcs currency web3Func)
+
+    let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Task<BigInteger> =
+        let balanceFunc(): Task<BigInteger> =
+            let latestBlockTask = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync ()
+            latestBlockTask.Wait()
+            let latestBlock = latestBlockTask.Result
+            let blockForConfirmationReference =
+                BlockParameter(HexBigInteger(BigInteger.Subtract(latestBlock.Value,
+                                                                 NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)))
+            let balanceOfFunctionMsg = TokenManager.BalanceOfFunctionFromErc20TokenContract publicAddress
+
+            let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
+            contractHandler.QueryAsync<TokenManager.BalanceOfFunctionFromErc20TokenContract,BigInteger>
+                                    (balanceOfFunctionMsg,
+                                     blockForConfirmationReference)
+        Task.Run<BigInteger> balanceFunc
+
+    let GetConfirmedTokenBalance (currency: Currency) (address: string): BigInteger =
+        let web3Func (web3: Web3) (publicddress: string): BigInteger =
+            WaitOnTask (GetConfirmedTokenBalanceInternal web3) address
+        faultTolerantEthClient.Query<string,BigInteger>
+            address
+            (GetWeb3Funcs currency web3Func)
+
+    let EstimateTokenTransferFee (account: IAccount) (amount: decimal) destination
+        : HexBigInteger =
+        let web3Func (web3: Web3) (_: unit): HexBigInteger =
+            let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
+            let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
+            let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
+                                                       To = destination,
+                                                       TokenAmount = amountInWei)
+            WaitOnTask contractHandler.EstimateGasAsync transferFunctionMsg
+        faultTolerantEthClient.Query<unit,HexBigInteger>
+            ()
+            (GetWeb3Funcs account.Currency web3Func)
 
     let GetGasPrice (currency: Currency)
         : HexBigInteger =

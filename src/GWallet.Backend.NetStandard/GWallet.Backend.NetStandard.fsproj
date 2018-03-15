@@ -45,29 +45,38 @@
     <Compile Include="..\GWallet.Backend\FaultTolerantClient.fs">
       <Link>FaultTolerantClient.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\Bitcoin\ElectrumServer.fs">
-      <Link>Bitcoin\ElectrumServer.fs</Link>
+    <Compile Include="..\GWallet.Backend\UtxoCoin\ElectrumServer.fs">
+      <Link>UtxoCoin\ElectrumServer.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\Bitcoin\StratumClient.fs">
-      <Link>Bitcoin\StratumClient.fs</Link>
+    <Compile Include="..\GWallet.Backend\UtxoCoin\StratumClient.fs">
+      <Link>UtxoCoin\StratumClient.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\Bitcoin\ElectrumClient.fs">
-      <Link>Bitcoin\ElectrumClient.fs</Link>
+    <Compile Include="..\GWallet.Backend\UtxoCoin\ElectrumClient.fs">
+      <Link>UtxoCoin\ElectrumClient.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\Bitcoin\UnitConversion.fs">
-      <Link>Bitcoin\UnitConversion.fs</Link>
+    <Compile Include="..\GWallet.Backend\UtxoCoin\UnitConversion.fs">
+      <Link>UtxoCoin\UnitConversion.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\Bitcoin\BitcoinMinerFee.fs">
-      <Link>Bitcoin\BitcoinMinerFee.fs</Link>
+    <Compile Include="..\GWallet.Backend\UtxoCoin\BitcoinMinerFee.fs">
+      <Link>UtxoCoin\BitcoinMinerFee.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\Bitcoin\TransactionTypes.fs">
-      <Link>Bitcoin\TransactionTypes.fs</Link>
+    <Compile Include="..\GWallet.Backend\UtxoCoin\TransactionTypes.fs">
+      <Link>UtxoCoin\TransactionTypes.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\Bitcoin\BitcoinAccount.fs">
-      <Link>Bitcoin\BitcoinAccount.fs</Link>
+    <Compile Include="..\GWallet.Backend\UtxoCoin\UtxoCoinAccount.fs">
+      <Link>UtxoCoin\UtxoCoinAccount.fs</Link>
     </Compile>
+    <EmbeddedResource Include="..\GWallet.Backend\UtxoCoin\btc-servers.json">
+      <Link>UtxoCoin\btc-servers.json</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\GWallet.Backend\UtxoCoin\ltc-servers.json">
+      <Link>UtxoCoin\ltc-servers.json</Link>
+    </EmbeddedResource>
     <Compile Include="..\GWallet.Backend\Ether\EtherMinerFee.fs">
       <Link>Ether\EtherMinerFee.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Ether\TokenManager.fs">
+      <Link>Ether\TokenManager.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\Ether\EtherServer.fs">
       <Link>Ether\EtherServer.fs</Link>
@@ -87,22 +96,25 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="NBitcoin" Version="3.0.2.24" />
     <PackageReference Include="SharpRavenLight" Version="1.0.0-beta5" />
-    <PackageReference Include="Nethereum.ABI" Version="2.0.1" />
-    <PackageReference Include="Nethereum.Contracts" Version="2.0.1" />
-    <PackageReference Include="Nethereum.Hex" Version="2.0.1" />
-    <PackageReference Include="Nethereum.Util" Version="2.0.1" />
-    <PackageReference Include="Nethereum.Web3" Version="2.0.1" />
-    <PackageReference Include="Nethereum.Signer" Version="2.0.1" />
-    <PackageReference Include="Nethereum.RPC" Version="2.0.1" />
-    <PackageReference Include="Nethereum.RLP" Version="2.0.1" />
-    <PackageReference Include="Nethereum.KeyStore" Version="2.0.1" />
-    <PackageReference Include="Nethereum.JsonRpc.Client" Version="2.0.1" />
-    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="2.0.1" />
+    <PackageReference Include="NBitcoin.Litecoin" Version="1.0.0.9" />
+    <PackageReference Include="NBitcoin" Version="4.0.0.51" />
+    <PackageReference Include="Nethereum.Signer" Version="2.4.0" />
+    <PackageReference Include="Nethereum.RPC" Version="2.4.0" />
+    <PackageReference Include="Nethereum.RLP" Version="2.4.0" />
+    <PackageReference Include="Nethereum.KeyStore" Version="2.4.0" />
+    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="2.4.0" />
+    <PackageReference Include="Nethereum.JsonRpc.Client" Version="2.4.0" />
+    <PackageReference Include="Nethereum.Hex" Version="2.4.0" />
+    <PackageReference Include="Nethereum.Contracts" Version="2.4.0" />
+    <PackageReference Include="Nethereum.ABI" Version="2.4.0" />
+    <PackageReference Include="Nethereum.Web3" Version="2.4.0" />
+    <PackageReference Include="Nethereum.Util" Version="2.4.0" />
+    <PackageReference Include="FSharp.Data" Version="2.4.5" />
+    <PackageReference Include="Nethereum.StandardTokenEIP20" Version="2.4.0" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Bitcoin\" />
+    <Folder Include="UtxoCoin\" />
     <Folder Include="Ether\" />
   </ItemGroup>
 </Project>

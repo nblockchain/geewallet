@@ -34,7 +34,8 @@ module Presentation =
 
     let internal ExchangeRateUnreachableMsg = " (USD exchange rate unreachable... offline?)"
 
-    let ShowFee currency (estimatedFee: IBlockchainFeeInfo) =
+    let ShowFee (estimatedFee: IBlockchainFeeInfo) =
+        let currency = estimatedFee.Currency
         let estimatedFeeInUsd =
             match FiatValueEstimation.UsdValue(currency) with
             | Fresh(usdValue) ->
@@ -54,7 +55,7 @@ module Presentation =
 
     let ShowTransactionData<'T when 'T:> IBlockchainFeeInfo> (trans: UnsignedTransaction<'T>) =
         let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Currency)
-        let estimatedAmountInUsd: Option<string> =
+        let maybeEstimatedAmountInUsd: Option<string> =
             match maybeUsdPrice with
             | Fresh(usdPrice) ->
                 Some(sprintf "~ %s USD"
@@ -70,9 +71,13 @@ module Presentation =
         Console.WriteLine("Transaction data:")
         Console.WriteLine("Sender: " + trans.Proposal.OriginAddress)
         Console.WriteLine("Recipient: " + trans.Proposal.DestinationAddress)
-        Console.Write("Amount: " +
-                      (trans.Proposal.Amount.ValueToSend |> ShowDecimalForHumans CurrencyType.Crypto))
-        if (estimatedAmountInUsd.IsSome) then
-            Console.Write("  " + estimatedAmountInUsd.Value)
+        let fiatAmount =
+            match maybeEstimatedAmountInUsd with
+            | Some(estimatedAmountInUsd) -> estimatedAmountInUsd
+            | _ -> String.Empty
+        Console.WriteLine (sprintf "Amount: %s %s %s"
+                                   (trans.Proposal.Amount.ValueToSend |> ShowDecimalForHumans CurrencyType.Crypto)
+                                   (trans.Proposal.Currency.ToString())
+                                   fiatAmount)
         Console.WriteLine()
-        ShowFee trans.Proposal.Currency trans.Metadata
+        ShowFee trans.Metadata

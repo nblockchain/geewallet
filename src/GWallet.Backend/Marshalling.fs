@@ -78,4 +78,5 @@ module Marshalling =
             failwith ("Could not deserialize from JSON: " + json)
 
     let Serialize<'S>(value: 'S): string =
-        JsonConvert.SerializeObject(SerializableValue<'S>(value))
+        JsonConvert.SerializeObject(SerializableValue<'S>(value),
+                                    JsonSerializerSettings(DateTimeZoneHandling = DateTimeZoneHandling.Utc))

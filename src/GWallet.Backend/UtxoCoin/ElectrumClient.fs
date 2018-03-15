@@ -1,4 +1,4 @@
-﻿namespace GWallet.Backend.Bitcoin
+﻿namespace GWallet.Backend.UtxoCoin
 
 open System
 
@@ -8,10 +8,10 @@ exception ServerTooOld of string
 
 type internal ElectrumClient (electrumServer: ElectrumServer) =
     let Init(): StratumClient =
-        if electrumServer.Ports.InsecurePort.IsNone then
+        if electrumServer.UnencryptedPort.IsNone then
             raise(JsonRpcSharp.TlsNotSupportedYetInGWalletException())
 
-        let jsonRpcClient = new JsonRpcSharp.Client(electrumServer.Host, electrumServer.Ports.InsecurePort.Value)
+        let jsonRpcClient = new JsonRpcSharp.Client(electrumServer.Fqdn, electrumServer.UnencryptedPort.Value)
         let stratumClient = new StratumClient(jsonRpcClient)
 
         // this is the last version of Electrum released at the time of writing this module

@@ -111,6 +111,79 @@
   </Choose>
   <Import Condition="'$(FSharpTargetsPath)' != ''" Project="$(FSharpTargetsPath)" />
   <ItemGroup>
+    <Reference Include="FSharp.Data">
+      <HintPath>..\..\packages\FSharp.Data.2.3.3\lib\net40\FSharp.Data.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="mscorlib" />
+    <Reference Include="SharpRavenLight">
+      <HintPath>..\..\packages\SharpRavenLight.1.0.0-beta5\lib\net46\SharpRavenLight.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="BouncyCastle.Crypto">
+      <HintPath>..\..\packages\BouncyCastle.1.8.1\lib\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="FSharp.Core">
+      <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.4.0.0.51\lib\net452\NBitcoin.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin.Litecoin">
+      <HintPath>..\..\packages\NBitcoin.Litecoin.1.0.0.9\lib\net452\NBitcoin.Litecoin.dll</HintPath>
+    </Reference>
+    <Reference Include="Common.Logging.Core">
+      <HintPath>..\..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Hex">
+      <HintPath>..\..\packages\Nethereum.Hex.2.4.0\lib\net451\Nethereum.Hex.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Util">
+      <HintPath>..\..\packages\Nethereum.Util.2.4.0\lib\net451\Nethereum.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.ABI">
+      <HintPath>..\..\packages\Nethereum.ABI.2.4.0\lib\net451\Nethereum.ABI.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.JsonRpc.Client">
+      <HintPath>..\..\packages\Nethereum.JsonRpc.Client.2.4.0\lib\net451\Nethereum.JsonRpc.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.KeyStore">
+      <HintPath>..\..\packages\Nethereum.KeyStore.2.4.0\lib\net451\Nethereum.KeyStore.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RLP">
+      <HintPath>..\..\packages\Nethereum.RLP.2.4.0\lib\net451\Nethereum.RLP.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RPC">
+      <HintPath>..\..\packages\Nethereum.RPC.2.4.0\lib\net451\Nethereum.RPC.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Signer">
+      <HintPath>..\..\packages\Nethereum.Signer.2.4.0\lib\net451\Nethereum.Signer.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Accounts">
+      <HintPath>..\..\packages\Nethereum.Accounts.2.4.0\lib\net451\Nethereum.Accounts.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.JsonRpc.RpcClient">
+      <HintPath>..\..\packages\Nethereum.JsonRpc.RpcClient.2.4.0\lib\net451\Nethereum.JsonRpc.RpcClient.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Contracts">
+      <HintPath>..\..\packages\Nethereum.Contracts.2.4.0\lib\net451\Nethereum.Contracts.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Web3">
+      <HintPath>..\..\packages\Nethereum.Web3.2.4.0\lib\net451\Nethereum.Web3.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.StandardTokenEIP20">
+      <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.2.4.0\lib\net451\Nethereum.StandardTokenEIP20.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="FSharpUtil.fs" />
     <Compile Include="CommonAssemblyInfo.fs" />
     <Compile Include="AssemblyInfo.fs" />
@@ -126,88 +199,24 @@
     <Compile Include="Caching.fs" />
     <Compile Include="Transaction.fs" />
     <Compile Include="FaultTolerantClient.fs" />
-    <Compile Include="Bitcoin\ElectrumServer.fs" />
-    <Compile Include="Bitcoin\StratumClient.fs" />
-    <Compile Include="Bitcoin\ElectrumClient.fs" />
-    <Compile Include="Bitcoin\UnitConversion.fs" />
-    <Compile Include="Bitcoin\BitcoinMinerFee.fs" />
-    <Compile Include="Bitcoin\TransactionTypes.fs" />
-    <Compile Include="Bitcoin\BitcoinAccount.fs" />
+    <Compile Include="UtxoCoin\ElectrumServer.fs" />
+    <Compile Include="UtxoCoin\StratumClient.fs" />
+    <Compile Include="UtxoCoin\ElectrumClient.fs" />
+    <Compile Include="UtxoCoin\UnitConversion.fs" />
+    <Compile Include="UtxoCoin\BitcoinMinerFee.fs" />
+    <Compile Include="UtxoCoin\TransactionTypes.fs" />
+    <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
+    <EmbeddedResource Include="UtxoCoin\btc-servers.json" />
+    <EmbeddedResource Include="UtxoCoin\ltc-servers.json" />
     <Compile Include="Ether\EtherMinerFee.fs" />
-    <Compile Include="Ether\EtherServer.fs" />
     <Compile Include="Ether\TransactionMetadata.fs" />
+    <Compile Include="Ether\TokenManager.fs" />
+    <Compile Include="Ether\EtherServer.fs" />
     <Compile Include="Ether\EtherAccount.fs" />
     <Compile Include="Account.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="Infrastructure.fs" />
     <Content Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="FSharp.Data">
-      <HintPath>..\..\packages\FSharp.Data.2.3.3\lib\net40\FSharp.Data.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="mscorlib" />
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\BouncyCastle.1.8.1\lib\BouncyCastle.Crypto.dll</HintPath>
-    </Reference>
-    <Reference Include="EdjCase.JsonRpc.Core">
-      <HintPath>..\..\packages\EdjCase.JsonRpc.Core.1.3.1\lib\net451\EdjCase.JsonRpc.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="EdjCase.JsonRpc.Client">
-      <HintPath>..\..\packages\EdjCase.JsonRpc.Client.1.3.1\lib\net451\EdjCase.JsonRpc.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http" />
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.Hex.2.0.1\lib\net451\Nethereum.Hex.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.Util.2.0.1\lib\net451\Nethereum.Util.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.ABI.2.0.1\lib\net451\Nethereum.ABI.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.JsonRpc.Client">
-      <HintPath>..\..\packages\Nethereum.JsonRpc.Client.2.0.1\lib\net451\Nethereum.JsonRpc.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.RPC.2.0.1\lib\net451\Nethereum.RPC.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.Contracts.2.0.1\lib\net451\Nethereum.Contracts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.RLP.2.0.1\lib\net451\Nethereum.RLP.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.KeyStore.2.0.1\lib\net451\Nethereum.KeyStore.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.JsonRpc.RpcClient">
-      <HintPath>..\..\packages\Nethereum.JsonRpc.RpcClient.2.0.1\lib\net451\Nethereum.JsonRpc.RpcClient.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.Signer.2.0.1\lib\net451\Nethereum.Signer.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.Web3.2.0.1\lib\net451\Nethereum.Web3.dll</HintPath>
-    </Reference>
-    <Reference Include="FSharp.Core">
-      <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpRavenLight">
-      <HintPath>..\..\packages\SharpRavenLight.1.0.0-beta5\lib\net46\SharpRavenLight.dll</HintPath>
-    </Reference>
-    <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.4.0.0.38\lib\net452\NBitcoin.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">
     <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
