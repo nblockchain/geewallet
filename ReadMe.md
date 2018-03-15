@@ -48,10 +48,11 @@ This list is the (intended) order of preference for new features:
 
 Things we will never develop (if you want them, feel free to fork us):
 
-- ZCash support (I don't like the trusted setup, if you want privacy just wait for MimbleWimble).
+- ZCash/Dash/Monero support (I don't like the trusted setup of the first, plus the others use substandard
+privacy solutions which in my opinion will all be surpassed by MimbleWimble).
 - Ripple/Stellar/OneCoin support (they're all a scam).
-- Dash/Monero (I prefer other privacy solutions to the way these currencies have tried to deal with it)
-
+- BCash (as it's less evolved, technically speaking; I don't want to deal with transaction malleability
+or lack of Layer2 scaling).
 
 # How to compile/install/use?
 
