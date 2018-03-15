@@ -31,9 +31,9 @@ module Account =
 
         match maybeBalance with
         | None ->
-            NotFresh(Caching.RetreiveLastBalance(account.PublicAddress))
+            NotFresh(Caching.RetreiveLastBalance(account.PublicAddress, account.Currency))
         | Some(balance) ->
-            Caching.StoreLastBalance(account.PublicAddress, balance)
+            Caching.StoreLastBalance (account.PublicAddress, account.Currency), balance
             Fresh(balance)
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount) =

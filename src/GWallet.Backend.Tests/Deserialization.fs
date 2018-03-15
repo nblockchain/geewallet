@@ -19,8 +19,11 @@ module Deserialization =
         Assert.That(deserializedCache, Is.Not.Null)
 
         Assert.That(deserializedCache.Balances, Is.Not.Null)
-        Assert.That(deserializedCache.Balances.ContainsKey("0xFOOBARBAZ"))
-        let balance,date = deserializedCache.Balances.Item "0xFOOBARBAZ"
+        let etcBalances = deserializedCache.Balances.TryFind Currency.ETC
+        Assert.That(etcBalances.IsSome)
+        let accountBalance = etcBalances.Value.TryFind "0xFOOBARBAZ"
+        Assert.That(accountBalance.IsSome)
+        let balance,date = accountBalance.Value
         Assert.That(balance, Is.EqualTo(123456789.12345678m))
         Assert.That(date, Is.EqualTo (MarshallingData.SomeDate))
 

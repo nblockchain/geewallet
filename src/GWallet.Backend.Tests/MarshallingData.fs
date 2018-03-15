@@ -53,8 +53,8 @@ module MarshallingData =
                 version (EmptyCachingDataExample.GetType().FullName) +
                 "\"Value\":{\"UsdPrice\":{},\"Balances\":{}}}"
 
-    let private balances = Map.empty.Add("1fooBarBaz", (0m, SomeDate))
-                            .Add("0xFOOBARBAZ", (123456789.12345678m, SomeDate))
+    let private balances = Map.empty.Add(Currency.BTC, Map.empty.Add("1fooBarBaz", (0m, SomeDate)))
+                                    .Add(Currency.ETC, Map.empty.Add("0xFOOBARBAZ", (123456789.12345678m, SomeDate)))
     let private fiatValues = Map.empty.Add(Currency.ETH, (161.796m, SomeDate))
                               .Add(Currency.ETC, (169.99999999m, SomeDate))
     let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Balances = balances }
@@ -64,10 +64,10 @@ module MarshallingData =
         JsonConvert.SerializeObject (SomeDate) +
         "},\"ETC\":{\"Item1\":169.99999999,\"Item2\":" +
         JsonConvert.SerializeObject (SomeDate) +
-        "}},\"Balances\":{\"0xFOOBARBAZ\":{\"Item1\":123456789.12345678,\"Item2\":" +
-        JsonConvert.SerializeObject (SomeDate) + "}" +
-        ",\"1fooBarBaz\":{\"Item1\":0.0,\"Item2\":" +
-        JsonConvert.SerializeObject (SomeDate) + "}}}"
+        "}},\"Balances\":{\"BTC\":{\"1fooBarBaz\":{\"Item1\":0.0,\"Item2\":" +
+        JsonConvert.SerializeObject (SomeDate) + "}}," +
+        "\"ETC\":{\"0xFOOBARBAZ\":{\"Item1\":123456789.12345678,\"Item2\":" +
+        JsonConvert.SerializeObject (SomeDate) + "}}}}"
 
     let SofisticatedCachingDataExampleInJson =
         (sprintf "{\"Version\":\"%s\",\"TypeName\":\"%s\","
@@ -166,10 +166,9 @@ module MarshallingData =
             |> Map.ofSeq
 
     let private realBalancesDataSample =
-        [ ("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E", (7.08m, DateTime.Parse "2018-03-14T16:50:00.431234"));
-          ("3Buz1evVsQeHtDfQAmwfAKQsUzAt3f4TuR", (0.0m, DateTime.Parse "2018-03-14T16:45:07.971836"));
-          ("MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm", (0.0m, DateTime.Parse "2018-03-14T16:45:15.544517")); ]
-            |> Map.ofSeq
+        Map.empty.Add(Currency.BTC, Map.empty.Add("3Buz1evVsQeHtDfQAmwfAKQsUzAt3f4TuR", (0.0m, DateTime.Parse "2018-03-14T16:45:07.971836")))
+                 .Add(Currency.ETH, Map.empty.Add("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E", (7.08m, DateTime.Parse "2018-03-14T16:50:00.431234")))
+                 .Add(Currency.LTC, Map.empty.Add("MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm", (0.0m, DateTime.Parse "2018-03-14T16:45:15.544517")))
 
     let private realCachingDataExample =
         { UsdPrice = realUsdPriceDataSample; Balances = realBalancesDataSample }
