@@ -203,7 +203,7 @@
     <Compile Include="UtxoCoin\StratumClient.fs" />
     <Compile Include="UtxoCoin\ElectrumClient.fs" />
     <Compile Include="UtxoCoin\UnitConversion.fs" />
-    <Compile Include="UtxoCoin\BitcoinMinerFee.fs" />
+    <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
     <Compile Include="UtxoCoin\TransactionTypes.fs" />
     <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
     <EmbeddedResource Include="UtxoCoin\btc-servers.json" />
