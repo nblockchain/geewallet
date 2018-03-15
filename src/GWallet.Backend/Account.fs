@@ -33,7 +33,7 @@ module Account =
         | None ->
             NotFresh(Caching.RetreiveLastBalance(account.PublicAddress, account.Currency))
         | Some(balance) ->
-            Caching.StoreLastBalance (account.PublicAddress, account.Currency), balance
+            Caching.StoreLastBalance (account.PublicAddress, account.Currency) balance
             Fresh(balance)
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount) =
