@@ -32,6 +32,7 @@
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DocumentationFile>bin\Release\GWallet.Backend.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
