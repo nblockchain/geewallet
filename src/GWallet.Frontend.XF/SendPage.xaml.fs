@@ -127,8 +127,13 @@ type SendPage(account: NormalAccount) =
             this.DisplayAlert("Alert", msg, "OK") |> ignore
             None
         | AddressWithInvalidChecksum(maybeAddressWithValidChecksum) ->
-            //FIXME: warn user about bad checksum, to see if he wants to continue or not
-            // (this text is better borrowed from the Frontend.Console project)
+            if maybeAddressWithValidChecksum.IsNone then
+                let msg = "Address doesn't seem to be valid, please try again."
+                this.DisplayAlert("Alert", msg, "OK") |> ignore
+            else
+                //FIXME: warn user about bad checksum, to see if he wants to continue or not
+                // (this text is better borrowed from the Frontend.Console project)
+                ()
             maybeAddressWithValidChecksum
                 
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
