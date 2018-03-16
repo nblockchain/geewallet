@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Frontend.XF
 
 open System
+open System.Linq
 open System.Threading.Tasks
 
 open Xamarin.Forms
@@ -127,14 +128,22 @@ type SendPage(account: NormalAccount) =
             this.DisplayAlert("Alert", msg, "OK") |> ignore
             None
         | AddressWithInvalidChecksum(maybeAddressWithValidChecksum) ->
-            if maybeAddressWithValidChecksum.IsNone then
+            let final =
+                match maybeAddressWithValidChecksum with
+                | None -> None
+                | _ ->
+                    //FIXME: warn user about bad checksum in any case (not only if the original address has mixed
+                    // lowecase and uppercase like if had been validated, to see if he wants to continue or not
+                    // (this text is better borrowed from the Frontend.Console project)
+                    if not (destinationAddress.All(fun char -> Char.IsLower char)) then
+                        None
+                    else
+                        maybeAddressWithValidChecksum
+            if final.IsNone then
                 let msg = "Address doesn't seem to be valid, please try again."
                 this.DisplayAlert("Alert", msg, "OK") |> ignore
-            else
-                //FIXME: warn user about bad checksum, to see if he wants to continue or not
-                // (this text is better borrowed from the Frontend.Console project)
-                ()
-            maybeAddressWithValidChecksum
+            final
+
                 
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
