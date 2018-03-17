@@ -7,7 +7,10 @@
                  Padding="20,20,20,20"
                  VerticalOptions="Center">
         <Label Text="GWallet" x:Name="titleLabel"
-               VerticalOptions="Center" HorizontalOptions="Center" />
-
+               VerticalOptions="Center" HorizontalOptions="Center"
+               FontAttributes="Bold" FontSize="Large" />
+        <Label Text="Loading..." x:Name="loadingLabel"
+               VerticalOptions="Center" HorizontalOptions="Center"
+               Margin="40,40,40,40" />
     </StackLayout>
 </ContentPage>

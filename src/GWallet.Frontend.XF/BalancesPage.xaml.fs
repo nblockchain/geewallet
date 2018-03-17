@@ -35,6 +35,7 @@ type BalancesPage() as this =
     do
         this.Init()
 
+    member this.StartTimer() =
         balanceRefreshTimer.Elapsed.Add (fun _ ->
             for normalAccount,accountBalance,sendButton in accountsAndBalances do
                 let balance = Account.GetShowableBalance normalAccount
@@ -50,7 +51,7 @@ type BalancesPage() as this =
         )
         balanceRefreshTimer.Start()
 
-    member this.Init() =
+    member this.PopulateGrid (initialBalancesTasksWithDetails: seq<Task<_>*NormalAccount*Label*Button>) =
         let grid = Grid(ColumnSpacing = 1.0)
         let starGridLength = GridLength(1.0, GridUnitType.Star)
         let autoGridLength = GridLength(1.0, GridUnitType.Auto)
@@ -62,17 +63,16 @@ type BalancesPage() as this =
         let columnDef3 = ColumnDefinition(Width = autoGridLength)
         grid.ColumnDefinitions.Add(columnDef3)
 
+        mainLayout.Children.Remove(mainLayout.FindByName<Label>("loadingLabel")) |> ignore
         mainLayout.Children.Add(grid)
-
         let mutable rowCount = 0 //TODO: do this recursively instead of imperatively
-
-        for normalAccount,accountBalance,sendButton in accountsAndBalances do
+        for balanceTask,normalAccount,accountBalance,sendButton in initialBalancesTasksWithDetails do
             let account = normalAccount :> IAccount
 
             let rowDefinition = RowDefinition(Height = starGridLength)
             grid.RowDefinitions.Add(rowDefinition)
 
-            let balance = Account.GetShowableBalance account
+            let balance = balanceTask.Result
 
             sendButton.Clicked.Subscribe(fun _ ->
                 this.Navigation.PushModalAsync(SendPage(normalAccount)) |> FrontendHelpers.DoubleCheckCompletion
@@ -129,3 +129,26 @@ type BalancesPage() as this =
         if (grid.RowSpacing = 0) then
             grid.RowSpacing <- 0.5
 #endif
+
+
+    member this.Init () =
+
+        let initialBalancesTasksWithDetails =
+            seq {
+                for normalAccount,accountBalanceLabel,sendButton in accountsAndBalances do
+                    let balanceTask = Task<MaybeCached<decimal>>.Run(fun _ ->
+                        Account.GetShowableBalance (normalAccount :> IAccount)
+                    )
+                    yield balanceTask,normalAccount,accountBalanceLabel,sendButton
+            } |> List.ofSeq
+
+        let allBalancesTask = Task.WhenAll(initialBalancesTasksWithDetails.Select(fun (t,_,_,_) -> t))
+        allBalancesTask.ContinueWith(fun (t:Task<MaybeCached<decimal>[]>) ->
+            Device.BeginInvokeOnMainThread(fun _ ->
+                this.PopulateGrid initialBalancesTasksWithDetails
+            )
+            this.StartTimer()
+        ) |> FrontendHelpers.DoubleCheckCompletion
+
+        ()
+
