@@ -7,6 +7,8 @@ open Newtonsoft.Json
 
 type DeserializationException (message:string, innerException: Exception) =
    inherit Exception (message, innerException)
+type SerializationException(message:string, innerException: Exception) =
+    inherit Exception (message, innerException)
 type VersionMismatchDuringDeserializationException (message:string, innerException: Exception) =
    inherit DeserializationException (message, innerException)
 
@@ -74,6 +76,15 @@ module Marshalling =
         | :? NullReferenceException ->
             failwith ("Could not deserialize from JSON: " + json)
 
-    let Serialize<'S>(value: 'S): string =
+    let private SerializeInternal<'S>(value: 'S): string =
         JsonConvert.SerializeObject(SerializableValue<'S>(value),
                                     JsonSerializerSettings(DateTimeZoneHandling = DateTimeZoneHandling.Utc))
+
+    let Serialize<'S>(value: 'S): string =
+        try
+            SerializeInternal value
+        with
+        | exn ->
+            raise(SerializationException(sprintf "Could not serialize object of type '%s' and value '%A'"
+                                                  (typeof<'S>.FullName) value, exn))
+
