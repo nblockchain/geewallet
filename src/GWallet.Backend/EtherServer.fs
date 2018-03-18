@@ -32,26 +32,17 @@ module EtherServer =
                 web3.Eth.Transactions.SendRawTransaction.SendRequestAsync transaction
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
-    let private PUBLIC_WEB3_API_ETH_INFURA_MEW = "https://mainnet.infura.io/mew"
-    let private PUBLIC_WEB3_API_ETH_MEW = "https://api.myetherapi.com/eth" // docs: https://www.myetherapi.com/
+    let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
+    let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
 
     // TODO: add the one from https://etcchain.com/api/ too
-    let private PUBLIC_WEB3_API_ETC_EPOOL_IO = "https://mewapi.epool.io"
-    let private PUBLIC_WEB3_API_ETC_0XINFRA_GETH = "https://etc-geth.0xinfra.com"
-    let private PUBLIC_WEB3_API_ETC_0XINFRA_PARITY = "https://etc-parity.0xinfra.com"
-    let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH = "https://etcrpc.viperid.online"
+    let private etcWeb3ePoolIo = SomeWeb3("https://mewapi.epool.io")
+    let private etcWeb3ZeroXInfraGeth = SomeWeb3("https://etc-geth.0xinfra.com")
+    let private etcWeb3ZeroXInfraParity = SomeWeb3("https://etc-parity.0xinfra.com")
+    let private etcWeb3CommonWealthGeth = SomeWeb3("https://etcrpc.viperid.online")
     // FIXME: the below one doesn't seem to work; we should include it anyway and make the algorithm discard it at runtime
-    //let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_MANTIS = "https://etc-mantis.callisto.network"
-    let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY = "https://etc-parity.callisto.network"
-
-    let private ethWeb3Infura = SomeWeb3(PUBLIC_WEB3_API_ETH_INFURA_MEW)
-    let private ethWeb3Mew = SomeWeb3(PUBLIC_WEB3_API_ETH_MEW)
-
-    let private etcWeb3CommonWealthParity = SomeWeb3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY)
-    let private etcWeb3CommonWealthGeth = SomeWeb3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH)
-    let private etcWeb3ZeroXInfraGeth = SomeWeb3(PUBLIC_WEB3_API_ETC_0XINFRA_GETH)
-    let private etcWeb3ZeroXInfraParity = SomeWeb3(PUBLIC_WEB3_API_ETC_0XINFRA_PARITY)
-    let private etcWeb3ePoolIo = SomeWeb3(PUBLIC_WEB3_API_ETC_EPOOL_IO)
+    //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
+    let private etcWeb3CommonWealthParity = SomeWeb3("https://etc-parity.callisto.network")
 
     let GetWeb3Servers (currency: Currency): list<IWeb3> =
         match currency with
