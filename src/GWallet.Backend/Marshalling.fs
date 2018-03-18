@@ -5,8 +5,15 @@ open System.Reflection
 
 open Newtonsoft.Json
 
-type DeserializationException (message:string, innerException: Exception) =
-   inherit Exception (message, innerException)
+type DeserializationException =
+   inherit Exception
+
+   new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
+   new(message: string) = { inherit Exception(message) }
+
+type SerializationException(message:string, innerException: Exception) =
+    inherit Exception (message, innerException)
+
 type VersionMismatchDuringDeserializationException (message:string, innerException: Exception) =
    inherit DeserializationException (message, innerException)
 
@@ -66,17 +73,26 @@ module Marshalling =
                         let msg = sprintf "Incompatible marshalling version found (%s vs. current %s) while trying to deserialize JSON"
                                           version currentVersion
                         raise (new VersionMismatchDuringDeserializationException(msg, ex))
-                raise (new DeserializationException("Exception when trying to deserialize", ex))
+                raise (new DeserializationException(sprintf "Exception when trying to deserialize '%s'" json, ex))
 
 
-        // FIXME: use Object.ReferenceEquals(deserialized.Value, null) instead of catching NullReferenceException
-        try
-            deserialized.Value.ToString() |> ignore
-            deserialized.Value
-        with
-        | :? NullReferenceException ->
-            failwith ("Could not deserialize from JSON: " + json)
+        if Object.ReferenceEquals(deserialized, null) then
+            raise (new DeserializationException(sprintf "JsonConvert.DeserializeObject returned null when trying to deserialize '%s'"
+                                                        json))
+        if Object.ReferenceEquals(deserialized.Value, null) then
+            raise (new DeserializationException(sprintf "JsonConvert.DeserializeObject could not deserialize the Value member of '%s'"
+                                                        json))
+        deserialized.Value
 
-    let Serialize<'S>(value: 'S): string =
+    let private SerializeInternal<'S>(value: 'S): string =
         JsonConvert.SerializeObject(SerializableValue<'S>(value),
                                     JsonSerializerSettings(DateTimeZoneHandling = DateTimeZoneHandling.Utc))
+
+    let Serialize<'S>(value: 'S): string =
+        try
+            SerializeInternal value
+        with
+        | exn ->
+            raise(SerializationException(sprintf "Could not serialize object of type '%s' and value '%A'"
+                                                  (typeof<'S>.FullName) value, exn))
+

@@ -32,6 +32,7 @@ This list is the (intended) order of preference for new features:
 - Payment channels support.
 - Mac/Windows CI support via Travis & AppVeyor respectively.
 - Flatpak & snap packaging.
+- WarpWallet (brainwallet) private key generation.
 - Paranoid-build mode (using git submodules instead of nuget deps).
 - Fee selection for custom priority.
 - Multi-sig support.
