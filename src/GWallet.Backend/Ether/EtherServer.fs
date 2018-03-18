@@ -15,6 +15,11 @@ open GWallet.Backend
 
 module Server =
 
+    type SomeWeb3(url: string) =
+        inherit Web3(url)
+
+        member val Url = url with get
+
     type ConnectionUnsuccessfulException =
         inherit Exception
 
@@ -38,15 +43,15 @@ module Server =
     //let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_MANTIS = "https://etc-mantis.callisto.network"
     let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY = "https://etc-parity.callisto.network"
 
-    let private ethWeb3Infura = Web3(PUBLIC_WEB3_API_ETH_INFURA_MEW)
-    let private ethWeb3Mew = Web3(PUBLIC_WEB3_API_ETH_MEW)
+    let private ethWeb3Infura = SomeWeb3(PUBLIC_WEB3_API_ETH_INFURA_MEW)
+    let private ethWeb3Mew = SomeWeb3(PUBLIC_WEB3_API_ETH_MEW)
 
-    let private etcWeb3CommonWealthParity = Web3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY)
-    let private etcWeb3CommonWealthGeth = Web3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH)
-    let private etcWeb3ePoolIo = Web3(PUBLIC_WEB3_API_ETC_EPOOL_IO)
+    let private etcWeb3CommonWealthParity = SomeWeb3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY)
+    let private etcWeb3CommonWealthGeth = SomeWeb3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH)
+    let private etcWeb3ePoolIo = SomeWeb3(PUBLIC_WEB3_API_ETC_EPOOL_IO)
 
     // FIXME: we should randomize the result of this function, to mimic what we do in the bitcoin side
-    let GetWeb3Servers (currency: Currency): list<Web3> =
+    let GetWeb3Servers (currency: Currency): list<SomeWeb3> =
         if (currency = Currency.ETC) then
             [ etcWeb3CommonWealthParity; etcWeb3CommonWealthGeth; etcWeb3ePoolIo ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
@@ -79,12 +84,18 @@ module Server =
     let private faultTolerantEthClient =
         FaultTolerantClient<ConnectionUnsuccessfulException> NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS
 
-    let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: Web3->'T->'R): list<'T->'R> =
+    let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): list<'T->'R> =
         let servers = GetWeb3Servers currency
         let serverFuncs =
-            List.map (fun (web3: Web3) ->
+            List.map (fun (web3: SomeWeb3) ->
                           (fun (arg: 'T) ->
+                              try
                                   web3Func web3 arg
+                              with
+                              | :? ConnectionUnsuccessfulException ->
+                                  reraise()
+                              | ex ->
+                                  raise (Exception(sprintf "Some problem when connecting to %s" web3.Url, ex))
                            )
                      )
                      servers
