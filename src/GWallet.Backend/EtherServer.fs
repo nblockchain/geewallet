@@ -14,7 +14,11 @@ module EtherServer =
         abstract member GetGasPrice: unit -> Task<HexBigInteger>
         abstract member BroadcastTransaction: string -> Task<string>
 
-    type SomeWeb3(web3: Web3) =
+    type SomeWeb3(url: string) as this =
+        inherit Web3(url)
+
+        let web3 = this
+
         interface IWeb3 with
             member this.GetTransactionCount (publicAddress): Task<HexBigInteger> =
                 web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
@@ -40,14 +44,14 @@ module EtherServer =
     //let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_MANTIS = "https://etc-mantis.callisto.network"
     let private PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY = "https://etc-parity.callisto.network"
 
-    let private ethWeb3Infura = SomeWeb3(Web3(PUBLIC_WEB3_API_ETH_INFURA_MEW)):>IWeb3
-    let private ethWeb3Mew = SomeWeb3(Web3(PUBLIC_WEB3_API_ETH_MEW)):>IWeb3
+    let private ethWeb3Infura = SomeWeb3(PUBLIC_WEB3_API_ETH_INFURA_MEW)
+    let private ethWeb3Mew = SomeWeb3(PUBLIC_WEB3_API_ETH_MEW)
 
-    let private etcWeb3CommonWealthParity = SomeWeb3(Web3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY))
-    let private etcWeb3CommonWealthGeth = SomeWeb3(Web3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH))
-    let private etcWeb3ZeroXInfraGeth = SomeWeb3(Web3(PUBLIC_WEB3_API_ETC_0XINFRA_GETH))
-    let private etcWeb3ZeroXInfraParity = SomeWeb3(Web3(PUBLIC_WEB3_API_ETC_0XINFRA_PARITY))
-    let private etcWeb3ePoolIo = SomeWeb3(Web3(PUBLIC_WEB3_API_ETC_EPOOL_IO))
+    let private etcWeb3CommonWealthParity = SomeWeb3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_PARITY)
+    let private etcWeb3CommonWealthGeth = SomeWeb3(PUBLIC_WEB3_API_ETC_COMMONWEALTH_GETH)
+    let private etcWeb3ZeroXInfraGeth = SomeWeb3(PUBLIC_WEB3_API_ETC_0XINFRA_GETH)
+    let private etcWeb3ZeroXInfraParity = SomeWeb3(PUBLIC_WEB3_API_ETC_0XINFRA_PARITY)
+    let private etcWeb3ePoolIo = SomeWeb3(PUBLIC_WEB3_API_ETC_EPOOL_IO)
 
     let GetWeb3Servers (currency: Currency): list<IWeb3> =
         match currency with
