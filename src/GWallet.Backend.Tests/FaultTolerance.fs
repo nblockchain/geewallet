@@ -206,3 +206,24 @@ module FaultTolerance =
                                       [ func1; func2; func3; func4 ]
                                           |> ignore )
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
+
+    [<Test>]
+    let ``retries at least once if all fail``() =
+        let someStringArg = "foo"
+        let mutable count1 = 0
+        let func1 (arg: string) =
+            count1 <- count1 + 1
+            if (count1 = 1) then
+                raise SomeException
+            0
+        let mutable count2 = 0
+        let func2 (arg: string) =
+            count2 <- count2 + 1
+            if (count2 = 1) then
+                raise SomeException
+            0
+
+        let client = FaultTolerantClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency)
+        client.Query<string,int> someStringArg [ func1; func2 ]
+            // enough to know that it doesn't throw
+            |> ignore

@@ -21,6 +21,8 @@ type internal ResultOrFailure<'R,'E when 'E :> Exception> =
     | Failure of 'E
 
 type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesRequired: int) =
+    let NUMBER_OF_RETRIES_TO_PERFORM = uint16 1
+
     do
         if typeof<'E> = typeof<Exception> then
             raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
@@ -28,12 +30,20 @@ type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesReq
             raise (ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired"))
 
     member self.Query<'T,'R when 'R : equality> (args: 'T) (funcs: list<'T->'R>): 'R =
-        let rec queryInternal (args: 'T) (resultsSoFar: list<'R>) (lastEx: Exception) (funcs: list<'T->'R>) =
+        let rec queryInternal (args: 'T)
+                              (resultsSoFar: list<'R>)
+                              (lastEx: Exception)
+                              (funcs: list<'T->'R>)
+                              (failedFuncs: list<'T->'R>)
+                              (retries: uint16) =
             match funcs with
             | [] ->
                 match resultsSoFar with
                 | [] ->
-                    raise (NoneAvailableException("Not available", lastEx))
+                    if (retries = NUMBER_OF_RETRIES_TO_PERFORM) then
+                        raise (NoneAvailableException("Not available", lastEx))
+                    else
+                        queryInternal args resultsSoFar lastEx failedFuncs [] (uint16 (retries + uint16 1))
                 | _ ->
                     let totalNumberOfSuccesfulResultsObtained = resultsSoFar.Count()
                     let resultsByCountOrdered =
@@ -62,9 +72,10 @@ type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesReq
                         result
                     else
                         let newResults = result::resultsSoFar
-                        queryInternal args newResults lastEx tail
+                        queryInternal args newResults lastEx tail failedFuncs retries
                 | Failure(ex) ->
-                    queryInternal args resultsSoFar ex tail
+                    let newFailedFuncs = head::failedFuncs
+                    queryInternal args resultsSoFar ex tail newFailedFuncs retries
 
         if not (funcs.Any()) then
             raise(ArgumentException("number of funcs must be higher than zero",
@@ -72,4 +83,4 @@ type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesReq
         if (funcs.Count() < numberOfConsistentResponsesRequired) then
             raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
                                     "funcs"))
-        queryInternal args [] null funcs
+        queryInternal args [] null funcs [] (uint16 0)
