@@ -36,6 +36,9 @@ module JsonRpcSharp =
     type ServerTimedOutException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
+    type ProtocolGlitchException(message: string, innerException: Exception) =
+       inherit ConnectionUnsuccessfulException (message, innerException)
+
     type ServerCannotBeResolvedException =
        inherit ConnectionUnsuccessfulException
 
@@ -122,6 +125,13 @@ module JsonRpcSharp =
                 if not (connectTask.Wait(Config.DEFAULT_NETWORK_TIMEOUT)) then
                     raise(ServerUnresponsiveException())
             with
+
+            // FIXME: we should log this one on Sentry as a warning because it's really strange, I bet it's a bug
+            // on Mono that could maybe go away with higher versions of it (higher versions of Xamarin-Android), see
+            // git blame to look at the whole stacktrace (ex.ToString())
+            | :? NotSupportedException as nse ->
+                raise(ProtocolGlitchException(exceptionMsg, nse))
+
             | ex ->
                 let socketException = FSharpUtil.FindException<SocketException>(ex)
                 if (socketException.IsNone) then
