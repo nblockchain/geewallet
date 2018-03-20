@@ -183,7 +183,21 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-256x256.png" />
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-60x60.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-58x58.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-40x40.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-87x87.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-80x80.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-120x120.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-152x152.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-167x167.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-1024x1024.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-48x48.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-88x88.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-32x32.png" />
     <ImageAsset Include="Assets.xcassets\Contents.json" />
     <InterfaceDefinition Include="LaunchScreen.storyboard" />
     <None Include="Info.plist" />
