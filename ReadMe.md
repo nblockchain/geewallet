@@ -18,6 +18,8 @@ Given GWallet can handle multiple cryptocurrencies, its UX needs to be as generi
 
 This is also because we prioritize security & convenience over privacy. For example GWallet has cold-storage support (you can run it in off-line mode and import/export transactions in JSON files) but still hasn't implemented TLS for communication with Electrum servers (this only hinders privacy but doesn't pose any security risk; but given that in the Ethereum world the users don't expect such high levels of privacy, due to the lack of HD wallets or change addresses for example, we consider the common denominator between currencies to be our standard).
 
+Remember, cold storage is not the same as 'hardware wallet'. GWallet is a software wallet, but which works in air-gapped devices (computers/smartphones), which means that it's safer than hardware wallets (after all, bugs and security issues are constantly being found on hardware wallets, e.g.: https://saleemrashid.com/2018/03/20/breaking-ledger-security-model/).
+
 GWallet will always be standing in the shoulders of giants, which means we have a complete commitment to opensource as way of evolving the product and achieving the maximum level of security/auditability; unlike other multi-currency wallets (cough... Jaxx ...cough).
 
 
