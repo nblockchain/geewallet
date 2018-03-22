@@ -17,19 +17,23 @@ type BalancesPage() as this =
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
-    let normalAccounts = GWallet.Backend.Account.GetAllActiveAccounts().Cast<NormalAccount>()
+    let normalAccounts = GWallet.Backend.Account.GetAllActiveAccounts().OfType<NormalAccount>() |> List.ofSeq
 
     let timeToRefreshBalances = TimeSpan.FromSeconds 60.0
     let balanceRefreshTimer = new Timer(timeToRefreshBalances.TotalMilliseconds)
 
-    let accountsAndBalances =
+    let CreateWidgetsForAccount(account: NormalAccount): Label*Button =
+        let accountBalanceLabel = Label(Text = "...")
+        let sendButton = Button(Text = "Send",
+                                //FIXME: rather enable it always, and give error when balance is not fresh
+                                IsEnabled = false)
+        accountBalanceLabel,sendButton
+
+    let accountsAndBalances: List<NormalAccount*Label*Button> =
         seq {
             for normalAccount in normalAccounts do
-                let accountBalanceLabel = Label(Text = "...")
-                let sendButton = Button(Text = "Send",
-                                        //FIXME: rather enable it always, and give error when balance is not fresh
-                                        IsEnabled = false)
-                yield normalAccount,accountBalanceLabel,sendButton
+                let label,button = CreateWidgetsForAccount normalAccount
+                yield normalAccount,label,button
         } |> List.ofSeq
 
     do
