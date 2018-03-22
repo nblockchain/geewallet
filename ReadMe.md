@@ -8,7 +8,7 @@ GWallet is a minimalistic and pragmatist lightweight wallet for people that want
 | -------- | ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------  |
 | stable   | ETC & ETH support, console-based frontend, cold-storage support          | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/stable/build.svg)](https://gitlab.com/knocte/gwallet/commits/stable)     |
 | master   | +BTC&LTC support (including SegWit & RBF support) + DAI (ERC20)          | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/master/build.svg)](https://gitlab.com/knocte/gwallet/commits/master)     |
-| frontend | +Xamarin.Forms frontends in progress (now: Android, iOS; soon: gtk, UWP) | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/frontend/build.svg)](https://gitlab.com/knocte/gwallet/commits/frontend) |
+| frontend | +Xamarin.Forms frontends (now: Android & iOS & Mac; soon: gtk#, UWP)     | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/frontend/build.svg)](https://gitlab.com/knocte/gwallet/commits/frontend) |
 
 [![Landing mobile-page screenshot](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-welcome.jpg)](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-welcome.jpg)
 
