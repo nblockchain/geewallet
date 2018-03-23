@@ -11,14 +11,14 @@ module Initialization =
     let private GlobalInit () =
         Infrastructure.SetupSentryHook ()
 
-    let internal LandingPage(): ContentPage =
+    let internal LandingPage(): Page =
         GlobalInit ()
 
         let accounts = Account.GetAllActiveAccounts()
         if not (accounts.Any()) then
-            WelcomePage() :> ContentPage
+            NavigationPage(WelcomePage()) :> Page
         else
-            BalancesPage() :> ContentPage
+            BalancesPage() :> Page
 
 type App() =
     inherit Application(MainPage = Initialization.LandingPage())

@@ -29,7 +29,9 @@ type WelcomePage() =
                 Account.CreateBaseAccount passphrase.Text |> ignore
             ).ContinueWith(fun _ ->
                 Device.BeginInvokeOnMainThread(fun _ ->
-                    this.Navigation.PushModalAsync(BalancesPage()) |> ignore
+                    let balancesPage = BalancesPage()
+                    this.Navigation.InsertPageBefore(balancesPage, this)
+                    this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
                 )
             ) |> FrontendHelpers.DoubleCheckCompletion
 
