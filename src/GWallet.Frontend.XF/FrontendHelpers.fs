@@ -1,5 +1,6 @@
 ﻿namespace GWallet.Frontend.XF
 
+open System
 open System.Threading.Tasks
 
 open Xamarin.Forms
@@ -22,4 +23,16 @@ type FrontendHelpers =
                     raise(task.Exception)
                 )
         ) |> ignore
+
+    static member ChangeTextAndChangeBack (button: Button) (newText: string) =
+        let initialText = button.Text
+        button.IsEnabled <- false
+        button.Text <- newText
+        Task.Run(fun _ ->
+            Task.Delay(TimeSpan.FromSeconds(2.0)).Wait()
+            Device.BeginInvokeOnMainThread(fun _ ->
+                button.Text <- initialText
+                button.IsEnabled <- true
+            )
+        ) |> FrontendHelpers.DoubleCheckCompletion
 

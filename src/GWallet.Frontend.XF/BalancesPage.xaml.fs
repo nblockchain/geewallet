@@ -94,23 +94,18 @@ type BalancesPage() as this =
             accountBalance.Text <- sprintf "%s %s" balanceAmount (account.Currency.ToString())
             let receiveButton = Button(Text = "Receive")
             receiveButton.Clicked.Subscribe(fun _ ->
-            (* maybe the code below will be useful for platforms in which we cannot manage to render QR codes:
+                // no support for visualizing QR codes in Mac yet, but at least support for clipboard's "copy"
+                if (Device.RuntimePlatform = Device.macOS) then
+                    FrontendHelpers.ChangeTextAndChangeBack receiveButton "Copied"
 
-                CrossClipboard.Current.SetText account.PublicAddress
-                receiveButton.IsEnabled <- false
-                receiveButton.Text <- "Copied"
-                Task.Run(fun _ ->
-                    Task.Delay(TimeSpan.FromSeconds(2.0)).Wait()
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        receiveButton.Text <- "Receive"
-                        receiveButton.IsEnabled <- true
-                    )
-                ) |> FrontendHelpers.DoubleCheckCompletion
-            *)
-                this.Navigation.PushModalAsync(ReceivePage(normalAccount)) |> FrontendHelpers.DoubleCheckCompletion
+                    CrossClipboard.Current.SetText account.PublicAddress
+                else
+                    this.Navigation.PushModalAsync(ReceivePage(normalAccount))
+                        |> FrontendHelpers.DoubleCheckCompletion
             ) |> ignore
 
             // TODO: add a "List transactions" button using Device.OpenUri() with etherscan, gastracker, etc
+
             accountBalance.HorizontalOptions <- LayoutOptions.End
             accountBalance.VerticalOptions <- LayoutOptions.Center
             grid.Children.Add(accountBalance, 0, rowCount)
