@@ -224,7 +224,7 @@ type SendPage(account: NormalAccount) =
                         let txMetadataWithFeeEstimation = txMetadataWithFeeEstimationTask.Result
                         let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s"
                                               (txMetadataWithFeeEstimation.FeeValue |> ShowDecimalForHumans CurrencyType.Crypto)
-                                              (currency.ToString())
+                                              (txMetadataWithFeeEstimation.Currency.ToString())
                         Device.BeginInvokeOnMainThread(fun _ ->
                             let askFeeTask = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")
 
