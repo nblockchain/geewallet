@@ -110,6 +110,7 @@ type BalancesPage() as this =
                 this.Navigation.PushModalAsync(ReceivePage(normalAccount)) |> FrontendHelpers.DoubleCheckCompletion
             ) |> ignore
 
+            // TODO: add a "List transactions" button using Device.OpenUri() with etherscan, gastracker, etc
             accountBalance.HorizontalOptions <- LayoutOptions.End
             accountBalance.VerticalOptions <- LayoutOptions.Center
             grid.Children.Add(accountBalance, 0, rowCount)
