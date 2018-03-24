@@ -117,6 +117,9 @@ module Account =
         else
             failwith (sprintf "Unknown currency %A" currency)
 
+    // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
+    // but send it to as many as possible, otherwise it could happen that some server doesn't
+    // broadcast it even if you sent it
     let BroadcastTransaction (trans: SignedTransaction<_>) =
         let currency = trans.TransactionInfo.Proposal.Currency
         if currency.IsEtherBased() then
