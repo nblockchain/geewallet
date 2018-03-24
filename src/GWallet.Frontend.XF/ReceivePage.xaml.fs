@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Frontend.XF
 
 open System
+open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -21,7 +22,6 @@ type ReceivePage(account: NormalAccount) as this =
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     do
         this.Init()
-
 
     member this.Init() =
         let titleLabel = base.FindByName<Label>("receiveTitleLabel")
@@ -46,5 +46,8 @@ type ReceivePage(account: NormalAccount) as this =
         ()
 
     member this.OnCopyToClipboardClicked(sender: Object, args: EventArgs) =
+        let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
+        FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
+
         CrossClipboard.Current.SetText (account :> IAccount).PublicAddress
         ()
