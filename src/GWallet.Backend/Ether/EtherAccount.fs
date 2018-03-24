@@ -287,7 +287,7 @@ module internal Account =
         else
             privateKey
 
-    let Create currency (password: string) (seed: Option<array<byte>>) =
+    let Create (password: string) (seed: Option<array<byte>>) =
         let privateKey =
             match seed with
             | None -> Create32BytesPrivateKey()
