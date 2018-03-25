@@ -25,15 +25,14 @@ type WelcomePage() =
             createButton.IsEnabled <- false
             createButton.Text <- "Creating..."
 
-            Task.Run(fun _ ->
-                Account.CreateBaseAccount passphrase.Text |> ignore
-            ).ContinueWith(fun _ ->
+            async {
+                let! accounts = Account.CreateBaseAccount passphrase.Text
                 Device.BeginInvokeOnMainThread(fun _ ->
                     let balancesPage = BalancesPage()
                     this.Navigation.InsertPageBefore(balancesPage, this)
                     this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
                 )
-            ) |> FrontendHelpers.DoubleCheckCompletion
+            } |> FrontendHelpers.DoubleCheckCompletion
 
     member this.OnPassphraseTextChanged(sender: Object, args: EventArgs) =
 

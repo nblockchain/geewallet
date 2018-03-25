@@ -24,6 +24,19 @@ type FrontendHelpers =
                 )
         ) |> ignore
 
+    static member DoubleCheckCompletion<'T> (work: Async<'T>): unit =
+        async {
+            try
+                let! _ = work
+                ()
+            with
+            | ex ->
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    raise(ex)
+                )
+            return ()
+        } |> Async.Start
+
     static member ChangeTextAndChangeBack (button: Button) (newText: string) =
         let initialText = button.Text
         button.IsEnabled <- false
