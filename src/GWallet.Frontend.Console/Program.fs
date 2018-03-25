@@ -204,10 +204,10 @@ let rec PerformOptions(numAccounts: int) =
         let password = UserInteraction.AskPassword true
         match specificCurrency with
         | Some(currency) ->
-            let account = Account.CreateNormalAccount currency password None
+            let account = Async.RunSynchronously (Account.CreateNormalAccount currency password None)
             Console.WriteLine("Account created: " + (account:>IAccount).PublicAddress)
         | None ->
-            Account.CreateBaseAccount password |> ignore
+            Async.RunSynchronously (Account.CreateBaseAccount password) |> ignore
             Console.WriteLine("Base accounts created")
         UserInteraction.PressAnyKeyToContinue()
     | Options.Refresh -> ()

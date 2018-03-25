@@ -287,7 +287,7 @@ module internal Account =
         else
             privateKey
 
-    let Create (password: string) (seed: Option<array<byte>>) =
+    let private CreateInternal (password: string) (seed: Option<array<byte>>) =
         let privateKey =
             match seed with
             | None -> Create32BytesPrivateKey()
@@ -304,6 +304,11 @@ module internal Account =
                                                                     publicAddress)
         let fileNameForAccount = KeyStoreService.GenerateUTCFileName(publicAddress)
         fileNameForAccount,accountSerializedJson
+
+    let Create (password: string) (seed: Option<array<byte>>) =
+        async {
+            return CreateInternal password seed
+        }
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
