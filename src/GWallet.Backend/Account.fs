@@ -129,6 +129,9 @@ module Account =
         else
             failwith (sprintf "Unknown currency %A" currency)
 
+    // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
+    // but send it to as many as possible, otherwise it could happen that some server doesn't
+    // broadcast it even if you sent it
     let BroadcastTransaction (trans: SignedTransaction<_>) =
         let currency = trans.TransactionInfo.Proposal.Currency
         if currency.IsEtherBased() then
@@ -278,29 +281,74 @@ module Account =
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
 
-    let CreateNormalAccount (currency: Currency) (password: string) (seed: Option<array<byte>>): NormalAccount =
-        let (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
+    let private CreateNormalEtherAccountInternal (password: string) (seed: Option<array<byte>>)
+                                                 : Async<(string*string)*(FileInfo->string)> =
+        async {
+            let! fileName,encryptedPrivateKeyInJson = Ether.Account.Create password seed
+            return (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
+        }
+
+    let private CreateNormalAccountInternal (currency: Currency) (password: string) (seed: Option<array<byte>>)
+                                            : Async<(string*string)*(FileInfo->string)> =
+        async {
             if currency.IsUtxo() then
-                let publicKey,encryptedPrivateKey = UtxoCoin.Account.Create currency password seed
-                (publicKey,encryptedPrivateKey), UtxoCoin.Account.GetPublicAddressFromAccountFile currency
+                let! publicKey,encryptedPrivateKey = UtxoCoin.Account.Create currency password seed
+                return (publicKey,encryptedPrivateKey), UtxoCoin.Account.GetPublicAddressFromAccountFile currency
             elif currency.IsEtherBased() then
-                let fileName,encryptedPrivateKeyInJson = Ether.Account.Create currency password seed
-                (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
+                return! CreateNormalEtherAccountInternal password seed
             else
-                failwith (sprintf "Unknown currency %A" currency)
-        let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
-        NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
+                return failwith (sprintf "Unknown currency %A" currency)
+        }
+
+
+    let CreateNormalAccount (currency: Currency) (password: string) (seed: Option<array<byte>>)
+                            : Async<NormalAccount> =
+        async {
+            let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
+                CreateNormalAccountInternal currency password seed
+            let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
+            return NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
+        }
+
+    let private CreateNormalAccountAux (currency: Currency) (password: string) (seed: Option<array<byte>>)
+                            : Async<List<NormalAccount>> =
+        async {
+            let! singleAccount = CreateNormalAccount currency password seed
+            return singleAccount::[]
+        }
+
+    let CreateEtherNormalAccounts (password: string) (seed: Option<array<byte>>)
+                                  : seq<Currency>*Async<List<NormalAccount>> =
+        let etherCurrencies = Currency.GetAll().Where(fun currency -> currency.IsEtherBased())
+        let etherAccounts = async {
+            let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
+                CreateNormalEtherAccountInternal password seed
+            return seq {
+                for etherCurrency in etherCurrencies do
+                    let newAccountFile = Config.AddNormalAccount etherCurrency fileName encryptedPrivateKey
+                    yield NormalAccount(etherCurrency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
+            } |> List.ofSeq
+        }
+        etherCurrencies,etherAccounts
 
     let private LENGTH_OF_PRIVATE_KEYS = 32
-    let CreateBaseAccount (password: string) : list<NormalAccount> =
+    let CreateBaseAccount (password: string) =
         let privateKeyBytes = Array.zeroCreate LENGTH_OF_PRIVATE_KEYS
         SecureRandom().NextBytes(privateKeyBytes)
-        seq {
-            let allCurrencies = Currency.GetAll()
 
-            for currency in allCurrencies do
-                yield CreateNormalAccount currency password (Some(privateKeyBytes))
-        } |> List.ofSeq
+        let ethCurrencies,etherAccounts = CreateEtherNormalAccounts password (Some(privateKeyBytes))
+        let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (ethCurrencies.Contains currency))
+
+        let nonEtherAccounts: List<Async<List<NormalAccount>>> =
+            seq {
+                // TODO: figure out if we can reuse CPU computation of WIF creation between BTC&LTC
+                for nonEthCurrency in nonEthCurrencies do
+                    yield CreateNormalAccountAux nonEthCurrency password (Some(privateKeyBytes))
+            } |> List.ofSeq
+
+        let allAccounts = etherAccounts::nonEtherAccounts
+
+        Async.Parallel allAccounts
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans

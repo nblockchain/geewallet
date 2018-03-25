@@ -399,7 +399,7 @@ module internal Account =
                               currency txMetadata destination.PublicAddress amount privateKey
         BroadcastRawTransaction currency (signedTrans.ToHex())
 
-    let Create currency (password: string) (seed: Option<array<byte>>) =
+    let private CreateInternal currency (password: string) (seed: Option<array<byte>>) =
         let privkey =
             match seed with
             | None ->
@@ -413,6 +413,11 @@ module internal Account =
         let encryptedPrivateKey = encryptedSecret.ToWif()
         let publicKey = secret.PubKey.ToString()
         publicKey,encryptedPrivateKey
+
+    let Create currency (password: string) (seed: Option<array<byte>>) =
+        async {
+            return CreateInternal currency password seed
+        }
 
     let ValidateAddress (currency: Currency) (address: string) =
         let UTXOCOIN_MIN_ADDRESSES_LENGTH = 27
