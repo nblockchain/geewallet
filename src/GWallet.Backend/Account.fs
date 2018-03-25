@@ -65,7 +65,9 @@ module Account =
 
 // uncomment this block below, manually, if when testing you need to go back to test the WelcomePage.xaml
 #if FALSE
+#if DEBUG
         WipeConfig allCurrencies
+#endif
 #endif
 
         seq {
