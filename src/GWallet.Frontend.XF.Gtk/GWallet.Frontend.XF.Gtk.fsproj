@@ -162,4 +162,9 @@
   </ItemGroup>
   <Import Project="$(FSharpTargetsPath)" />
   <Import Project="..\..\packages\Xamarin.Forms.3.0.0.296286-pre2\build\netstandard2.0\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.3.0.0.296286-pre2\build\netstandard2.0\Xamarin.Forms.targets')" />
+
+  <!-- workaround for https://github.com/dotnet/corefx/issues/19914 / https://bugzilla.xamarin.com/show_bug.cgi?id=60315 -->
+  <Target Name="AfterBuild">
+    <Delete Files="bin\$(Configuration)\System.Net.Http.dll" />
+  </Target>
 </Project>
