@@ -56,15 +56,13 @@ type BalancesPage() as this =
         balanceRefreshTimer.Start()
 
     member this.PopulateGrid (initialBalancesTasksWithDetails: seq<Task<_>*NormalAccount*Label*Button>) =
-        let grid = Grid(ColumnSpacing = 1.0)
-        let starGridLength = GridLength(1.0, GridUnitType.Star)
-        let autoGridLength = GridLength(1.0, GridUnitType.Auto)
+        let grid = Grid(HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand)
 
-        let columnDef1 = ColumnDefinition(Width = starGridLength)
+        let columnDef1 = ColumnDefinition()
         grid.ColumnDefinitions.Add(columnDef1)
-        let columnDef2 = ColumnDefinition(Width = starGridLength)
+        let columnDef2 = ColumnDefinition()
         grid.ColumnDefinitions.Add(columnDef2)
-        let columnDef3 = ColumnDefinition(Width = autoGridLength)
+        let columnDef3 = ColumnDefinition()
         grid.ColumnDefinitions.Add(columnDef3)
 
         mainLayout.Children.Remove(mainLayout.FindByName<Label>("loadingLabel")) |> ignore
@@ -73,7 +71,7 @@ type BalancesPage() as this =
         for balanceTask,normalAccount,accountBalance,sendButton in initialBalancesTasksWithDetails do
             let account = normalAccount :> IAccount
 
-            let rowDefinition = RowDefinition(Height = starGridLength)
+            let rowDefinition = RowDefinition()
             grid.RowDefinitions.Add(rowDefinition)
 
             let balance = balanceTask.Result
