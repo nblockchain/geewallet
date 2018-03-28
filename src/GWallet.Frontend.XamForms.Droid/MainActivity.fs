@@ -27,3 +27,6 @@ type MainActivity() =
 
         this.LoadApplication (new GWallet.Frontend.XF.App ())
 
+        // workaround for bug https://github.com/xamarin/Xamarin.Forms/issues/2203
+        this.ActionBar.SetIcon(int Android.Graphics.Color.Transparent)
+
