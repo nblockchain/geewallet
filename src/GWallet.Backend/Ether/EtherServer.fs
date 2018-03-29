@@ -80,9 +80,11 @@ module Server =
 
     // we only have infura and mew for now, so requiring more than 1 would make it not fault tolerant...:
     let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 1
+    let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 2
 
     let private faultTolerantEthClient =
-        FaultTolerantClient<ConnectionUnsuccessfulException> NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS
+        FaultTolerantClient<ConnectionUnsuccessfulException>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS,
+                                                             NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS)
 
     let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): list<'T->'R> =
         let servers = GetWeb3Servers currency
