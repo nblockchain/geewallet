@@ -37,25 +37,29 @@ module internal Account =
                 "0x" + rawPublicAddress
         publicAddress
 
-    let GetConfirmedBalance(account: IAccount): decimal =
+    let GetConfirmedBalance(account: IAccount): Async<decimal> = async {
         if (account.Currency.IsEther()) then
-            let etherBalance = Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress
-            UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
+            let! etherBalance = Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress
+            return UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
         elif (account.Currency.IsEthToken()) then
-            let tokenBalance = Ether.Server.GetConfirmedTokenBalance account.Currency account.PublicAddress
-            UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
+            let! tokenBalance = Ether.Server.GetConfirmedTokenBalance account.Currency account.PublicAddress
+            return UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
         else
-            failwith (sprintf "Assertion failed: currency %s should be Ether or Ether token" (account.Currency.ToString()))
+            return failwith (sprintf "Assertion failed: currency %s should be Ether or Ether token"
+                                     (account.Currency.ToString()))
+        }
 
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): decimal =
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): Async<decimal> = async {
         if (account.Currency.IsEther()) then
-            let etherBalance = Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress
-            UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
+            let! etherBalance = Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress
+            return UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
         elif (account.Currency.IsEthToken()) then
-            let tokenBalance = Ether.Server.GetUnconfirmedTokenBalance account.Currency account.PublicAddress
-            UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
+            let! tokenBalance = Ether.Server.GetUnconfirmedTokenBalance account.Currency account.PublicAddress
+            return UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
         else
-            failwith (sprintf "Assertion failed: currency %s should be Ether or Ether token" (account.Currency.ToString()))
+            return failwith (sprintf "Assertion failed: currency %s should be Ether or Ether token"
+                                     (account.Currency.ToString()))
+        }
 
     let ValidateAddress (currency: Currency) (address: string) =
         let ETHEREUM_ADDRESSES_LENGTH = 42
@@ -71,34 +75,38 @@ module internal Account =
             let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
             raise (AddressWithInvalidChecksum(Some validCheckSumAddress))
 
-    let private GetTransactionCount (currency: Currency) (publicAddress: string) =
-        let result = (Ether.Server.GetTransactionCount currency publicAddress).Value
-        if (result > BigInteger(Int64.MaxValue)) then
+    let private GetTransactionCount (currency: Currency) (publicAddress: string): Async<int64> = async {
+        let! result = Ether.Server.GetTransactionCount currency publicAddress
+        let value = result.Value
+        if (value > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
                           (result.ToString()))
-        let int64result:Int64 = BigInteger.op_Explicit result
-        int64result
+        let int64result:Int64 = BigInteger.op_Explicit value
+        return int64result
+        }
 
-    let private GetGasPrice currency: Int64 =
-        let gasPrice = Ether.Server.GetGasPrice currency
+    let private GetGasPrice currency: Async<int64> = async {
+        let! gasPrice = Ether.Server.GetGasPrice currency
         if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
                           (gasPrice.Value.ToString()))
         let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
-        gasPrice64
+        return gasPrice64
+        }
 
     let private GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION:int64 = 21000L
 
-    let EstimateEtherTransferFee (account: IAccount): TransactionMetadata =
-        let gasPrice64 = GetGasPrice account.Currency
+    let EstimateEtherTransferFee (account: IAccount): Async<TransactionMetadata> = async {
+        let! gasPrice64 = GetGasPrice account.Currency
         let ethMinerFee = MinerFee(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION, gasPrice64, DateTime.Now, account.Currency)
-        let txCount = GetTransactionCount account.Currency account.PublicAddress
-        { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
+        let! txCount = GetTransactionCount account.Currency account.PublicAddress
+        return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
+        }
 
-    let EstimateTokenTransferFee (account: IAccount) amount destination: TransactionMetadata =
-        let gasPrice64 = GetGasPrice account.Currency
+    let EstimateTokenTransferFee (account: IAccount) amount destination: Async<TransactionMetadata> = async {
+        let! gasPrice64 = GetGasPrice account.Currency
 
-        let tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination
+        let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination
         if (tokenTransferFee.Value > BigInteger(Int64.MaxValue)) then
             failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
                           (tokenTransferFee.Value.ToString()))
@@ -108,16 +116,19 @@ module internal Account =
             | DAI -> ETH
             | _ -> failwithf "Unknown token %s" (account.Currency.ToString())
         let ethMinerFee = MinerFee(gasCost64, gasPrice64, DateTime.Now, baseCurrency)
-        let txCount = GetTransactionCount account.Currency account.PublicAddress
-        { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
+        let! txCount = GetTransactionCount account.Currency account.PublicAddress
+        return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
+        }
 
-    let EstimateFee (account: IAccount) amount destination: TransactionMetadata =
+    let EstimateFee (account: IAccount) amount destination: Async<TransactionMetadata> = async {
         if account.Currency.IsEther() then
-            EstimateEtherTransferFee account
+            return! EstimateEtherTransferFee account
         elif account.Currency.IsEthToken() then
-            EstimateTokenTransferFee account amount destination
+            return! EstimateTokenTransferFee account amount destination
         else
-            failwith (sprintf "Assertion failed: currency %s should be Ether or Ether token" (account.Currency.ToString()))
+            return failwith (sprintf "Assertion failed: currency %s should be Ether or Ether token"
+                                     (account.Currency.ToString()))
+        }
 
     let private BroadcastRawTransaction (currency: Currency) trans =
         let insufficientFundsMsg = "Insufficient funds"

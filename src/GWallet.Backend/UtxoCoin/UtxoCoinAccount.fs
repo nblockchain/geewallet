@@ -93,13 +93,19 @@ module internal Account =
                 (GetRandomizedFuncs account.Currency electrumGetBalance)
         balance
 
-    let GetConfirmedBalance(account: IAccount): decimal =
-        let balance = GetBalance account
-        balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+    let GetConfirmedBalance(account: IAccount): Async<decimal> =
+        async {
+            let! balance = GetBalance account
+            let confirmedBalance = balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+            return confirmedBalance
+        }
 
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): decimal =
-        let balance = GetBalance account
-        balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): Async<decimal> =
+        async {
+            let! balance = GetBalance account
+            let confirmedBalance = balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+            return confirmedBalance
+        }
 
     let private CreateTransactionAndCoinsToBeSigned currency (transactionDraft: TransactionDraft): Transaction*list<Coin> =
         let transaction = Transaction()
@@ -144,7 +150,7 @@ module internal Account =
     // FIXME: anyway I should use NBitcoin's estimation facilicities
     let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 131
 
-    let EstimateFee account (amount: decimal) (destination: string): TransactionMetadata =
+    let EstimateFee account (amount: decimal) (destination: string): Async<TransactionMetadata> = async {
         let rec addInputsUntilAmount (utxos: list<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount
@@ -167,7 +173,7 @@ module internal Account =
 
         let electrumGetUtxos (ec: ElectrumClient) (address: string) =
             ec.GetUnspentTransactionOutputs address
-        let utxos =
+        let! utxos =
             faultTolerantElectrumClient.Query<string,array<BlockchainAddressListUnspentInnerResult>>
                 baseAccount.PublicAddress
                 (GetRandomizedFuncs baseAccount.Currency electrumGetUtxos)
@@ -189,15 +195,19 @@ module internal Account =
 
         let electrumGetTx (ec: ElectrumClient) (txId: string) =
             ec.GetBlockchainTransaction txId
-        let inputs =
+
+        let asyncInputs =
             seq {
                 for utxo in utxosToUse do
-                    let transRaw =
-                        faultTolerantElectrumClient.Query<string,string>
-                            utxo.TransactionId
-                            (GetRandomizedFuncs baseAccount.Currency electrumGetTx)
-                    yield { RawTransaction = transRaw; OutputIndex = utxo.OutputIndex }
-            } |> List.ofSeq
+                    yield async {
+                        let! transRaw =
+                            faultTolerantElectrumClient.Query<string,string>
+                                utxo.TransactionId
+                                (GetRandomizedFuncs baseAccount.Currency electrumGetTx)
+                        return { RawTransaction = transRaw; OutputIndex = utxo.OutputIndex }
+                    }
+            }
+        let! inputs = Async.Parallel asyncInputs
 
         let outputs =
             seq {
@@ -207,7 +217,7 @@ module internal Account =
                     yield { ValueInSatoshis = changeAmount; DestinationAddress = (account:>IAccount).PublicAddress }
             } |> List.ofSeq
 
-        let transactionDraftWithoutMinerFee = { Inputs = inputs; Outputs = outputs }
+        let transactionDraftWithoutMinerFee = { Inputs = inputs |> List.ofArray; Outputs = outputs }
         let unsignedTransaction,_ =
             CreateTransactionAndCoinsToBeSigned baseAccount.Currency transactionDraftWithoutMinerFee
 
@@ -220,14 +230,15 @@ module internal Account =
         let estimatedFinalTransSize =
             transactionSizeInBytes + (BYTES_PER_INPUT_ESTIMATION_CONSTANT * unsignedTransaction.Inputs.Count)
             + (numberOfInputs - 1)
-        let btcPerKiloByteForFastTrans =
+        let! btcPerKiloByteForFastTrans =
             faultTolerantElectrumClient.Query<int,decimal>
                 //querying for 1 will always return -1 surprisingly...
                 2
                 (GetRandomizedFuncs baseAccount.Currency electrumEstimateFee)
 
         let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, account.Currency)
-        { TransactionDraft = transactionDraftWithoutMinerFee; Fee = minerFee }
+        return { TransactionDraft = transactionDraftWithoutMinerFee; Fee = minerFee }
+        }
 
     let private SubstractMinerFeeToTransactionDraft (transactionDraftWithoutMinerFee: TransactionDraft)
                                                     (amountToBeSentInSatoshisNotConsideringChange)

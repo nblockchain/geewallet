@@ -154,12 +154,13 @@ type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesReq
                     failwith "Assertion failed: if results is not consistent enough, there should be no unfinished tasks"
                 QueryInternal args (restOfFuncs |> List.ofSeq) allResultsSoFar (exceptions |> List.ofSeq) retries
 
-    member self.Query<'T,'R when 'R : equality> (args: 'T) (funcs: list<'T->'R>): 'R =
+    member self.Query<'T,'R when 'R : equality> (args: 'T) (funcs: list<'T->'R>): Async<'R> =
         if not (funcs.Any()) then
             raise(ArgumentException("number of funcs must be higher than zero",
                                     "funcs"))
         if (funcs.Count() < numberOfConsistentResponsesRequired) then
             raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
                                     "funcs"))
-
-        QueryInternal args funcs [] [] (uint16 0)
+        async {
+            return QueryInternal args funcs [] [] (uint16 0)
+        }

@@ -104,29 +104,35 @@ module Server =
         serverFuncs
 
     let GetTransactionCount (currency: Currency) (address: string)
-        : HexBigInteger =
-        let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-            WaitOnTask web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
-                           publicAddress
-        faultTolerantEthClient.Query<string,HexBigInteger>
-            address
-            (GetWeb3Funcs currency web3Func)
+                                : Async<HexBigInteger> =
+        async {
+            let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
+                WaitOnTask web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
+                               publicAddress
+            return! faultTolerantEthClient.Query<string,HexBigInteger>
+                address
+                (GetWeb3Funcs currency web3Func)
+        }
 
     let GetUnconfirmedEtherBalance (currency: Currency) (address: string)
-        : HexBigInteger =
-        let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-            WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
-        faultTolerantEthClient.Query<string,HexBigInteger>
-            address
-            (GetWeb3Funcs currency web3Func)
+                                       : Async<HexBigInteger> =
+        async {
+            let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
+                WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
+            return! faultTolerantEthClient.Query<string,HexBigInteger>
+                address
+                (GetWeb3Funcs currency web3Func)
+        }
 
-    let GetUnconfirmedTokenBalance (currency: Currency) (address: string): BigInteger =
-        let web3Func (web3: Web3) (publicAddress: string): BigInteger =
-            let tokenService = TokenManager.DaiContract web3
-            WaitOnTask tokenService.GetBalanceOfAsync publicAddress
-        faultTolerantEthClient.Query<string,BigInteger>
-            address
-            (GetWeb3Funcs currency web3Func)
+    let GetUnconfirmedTokenBalance (currency: Currency) (address: string): Async<BigInteger> =
+        async {
+            let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+                let tokenService = TokenManager.DaiContract web3
+                WaitOnTask tokenService.GetBalanceOfAsync publicAddress
+            return! faultTolerantEthClient.Query<string,BigInteger>
+                address
+                (GetWeb3Funcs currency web3Func)
+        }
 
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
     let private GetConfirmedEtherBalanceInternal (web3: Web3) (publicAddress: string) =
@@ -149,12 +155,14 @@ module Server =
         )
 
     let GetConfirmedEtherBalance (currency: Currency) (address: string)
-        : HexBigInteger =
-        let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-            WaitOnTask (GetConfirmedEtherBalanceInternal web3) publicAddress
-        faultTolerantEthClient.Query<string,HexBigInteger>
-            address
-            (GetWeb3Funcs currency web3Func)
+                                     : Async<HexBigInteger> =
+        async {
+            let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
+                WaitOnTask (GetConfirmedEtherBalanceInternal web3) publicAddress
+            return! faultTolerantEthClient.Query<string,HexBigInteger>
+                        address
+                        (GetWeb3Funcs currency web3Func)
+        }
 
     let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Task<BigInteger> =
         let balanceFunc(): Task<BigInteger> =
@@ -172,38 +180,46 @@ module Server =
                                      blockForConfirmationReference)
         Task.Run<BigInteger> balanceFunc
 
-    let GetConfirmedTokenBalance (currency: Currency) (address: string): BigInteger =
-        let web3Func (web3: Web3) (publicddress: string): BigInteger =
-            WaitOnTask (GetConfirmedTokenBalanceInternal web3) address
-        faultTolerantEthClient.Query<string,BigInteger>
-            address
-            (GetWeb3Funcs currency web3Func)
+    let GetConfirmedTokenBalance (currency: Currency) (address: string): Async<BigInteger> =
+        async {
+            let web3Func (web3: Web3) (publicddress: string): BigInteger =
+                WaitOnTask (GetConfirmedTokenBalanceInternal web3) address
+            return! faultTolerantEthClient.Query<string,BigInteger>
+                        address
+                        (GetWeb3Funcs currency web3Func)
+        }
 
     let EstimateTokenTransferFee (account: IAccount) (amount: decimal) destination
-        : HexBigInteger =
-        let web3Func (web3: Web3) (_: unit): HexBigInteger =
-            let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
-            let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
-            let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
-                                                       To = destination,
-                                                       TokenAmount = amountInWei)
-            WaitOnTask contractHandler.EstimateGasAsync transferFunctionMsg
-        faultTolerantEthClient.Query<unit,HexBigInteger>
-            ()
-            (GetWeb3Funcs account.Currency web3Func)
+                                     : Async<HexBigInteger> =
+        async {
+            let web3Func (web3: Web3) (_: unit): HexBigInteger =
+                let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
+                let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
+                let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
+                                                           To = destination,
+                                                           TokenAmount = amountInWei)
+                WaitOnTask contractHandler.EstimateGasAsync transferFunctionMsg
+            return! faultTolerantEthClient.Query<unit,HexBigInteger>
+                        ()
+                        (GetWeb3Funcs account.Currency web3Func)
+        }
 
     let GetGasPrice (currency: Currency)
-        : HexBigInteger =
-        let web3Func (web3: Web3) (_: unit): HexBigInteger =
-            WaitOnTask web3.Eth.GasPrice.SendRequestAsync ()
-        faultTolerantEthClient.Query<unit,HexBigInteger>
-            ()
-            (GetWeb3Funcs currency web3Func)
+        : Async<HexBigInteger> =
+        async {
+            let web3Func (web3: Web3) (_: unit): HexBigInteger =
+                WaitOnTask web3.Eth.GasPrice.SendRequestAsync ()
+            return! faultTolerantEthClient.Query<unit,HexBigInteger>
+                        ()
+                        (GetWeb3Funcs currency web3Func)
+        }
 
     let BroadcastTransaction (currency: Currency) transaction
-        : string =
-        let web3Func (web3: Web3) (tx: string): string =
-            WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
-        faultTolerantEthClient.Query<string,string>
-            transaction
-            (GetWeb3Funcs currency web3Func)
+        : Async<string> =
+        async {
+            let web3Func (web3: Web3) (tx: string): string =
+                WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
+            return! faultTolerantEthClient.Query<string,string>
+                        transaction
+                        (GetWeb3Funcs currency web3Func)
+        }

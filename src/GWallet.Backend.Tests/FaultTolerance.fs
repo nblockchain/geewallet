@@ -25,6 +25,7 @@ module FaultTolerance =
             someResult
         let dataRetreived =
             defaultFaultTolerantClient.Query<string,int> someStringArg [ func ]
+                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -37,6 +38,7 @@ module FaultTolerance =
         let func2 (arg: string) =
             someResult
         let dataRetreived = defaultFaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
+                                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -44,7 +46,7 @@ module FaultTolerance =
     let ``throws ArgumentException if no funcs``(): unit =
         let client = defaultFaultTolerantClient
         Assert.Throws<ArgumentException>(
-            fun _ -> client.Query<string,int> "_" [] |> ignore
+            fun _ -> client.Query<string,int> "_" [] |> Async.RunSynchronously |> ignore
         ) |> ignore
 
     [<Test>]
@@ -57,6 +59,7 @@ module FaultTolerance =
             someResult
         let dataRetreived =
             defaultFaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
+                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -75,6 +78,7 @@ module FaultTolerance =
                     (FaultTolerantClient<SomeException> (one_consistent_result_because_this_test_doesnt_test_consistency,
                                                          not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
                         .Query<string,int> someStringArg [ func1; func2 ]
+                            |> Async.RunSynchronously
                 Some(result)
             with
             | ex ->
@@ -98,7 +102,7 @@ module FaultTolerance =
             (FaultTolerantClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency,
                                                 not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
                 .Query<string,int> someStringArg [ func1; func2 ]
-
+                    |> Async.RunSynchronously
         Assert.That(result, Is.EqualTo(someResult))
 
     exception SomeOtherException
@@ -115,6 +119,7 @@ module FaultTolerance =
             (FaultTolerantClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency,
                                                 not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
                 .Query<string,int> someStringArg [ func1; func2 ]
+                    |> Async.RunSynchronously
                     |> ignore )
 
         Assert.That((FSharpUtil.FindException<SomeOtherException> ex).IsSome, Is.True)
@@ -154,6 +159,7 @@ module FaultTolerance =
             consistencyGuardClient
                 .Query<string,int> someStringArg
                                    [ funcInconsistent; funcConsistentA; funcConsistentB; ]
+                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
 
@@ -161,6 +167,7 @@ module FaultTolerance =
             consistencyGuardClient
                 .Query<string,int> someStringArg
                                    [ funcConsistentA; funcInconsistent; funcConsistentB; ]
+                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
 
@@ -168,6 +175,7 @@ module FaultTolerance =
             consistencyGuardClient
                 .Query<string,int> someStringArg
                                    [ funcConsistentA; funcConsistentB; funcInconsistent; ]
+                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
 
@@ -206,6 +214,7 @@ module FaultTolerance =
             client.Query<string,int>
                 someStringArg
                 [ func1; func2 ]
+                |> Async.RunSynchronously
                     |> ignore ) |> ignore
 
     [<Test>]
@@ -233,6 +242,7 @@ module FaultTolerance =
                                   client.Query<string,int>
                                       someStringArg
                                       [ func1; func2; func3; func4 ]
+                                          |> Async.RunSynchronously
                                           |> ignore )
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
 
@@ -255,6 +265,7 @@ module FaultTolerance =
         let client = FaultTolerantClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency,
                                                         not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
         client.Query<string,int> someStringArg [ func1; func2 ]
+            |> Async.RunSynchronously
             // enough to know that it doesn't throw
             |> ignore
 
@@ -276,7 +287,8 @@ module FaultTolerance =
 
         let client = FaultTolerantClient<SomeException>(NUMBER_OF_CONSISTENT_RESULTS,
                                                         NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED)
-        client.Query<string,int> someStringArg [ func1; func2 ] |> ignore
+        client.Query<string,int> someStringArg [ func1; func2 ]
+            |> Async.RunSynchronously |> ignore
 
         Assert.That(func1Called, Is.True)
         Assert.That(func2Called, Is.True)
@@ -285,7 +297,8 @@ module FaultTolerance =
         func2Called <- false
 
         //same as before, but with different order now
-        client.Query<string,int> someStringArg [ func2; func1 ] |> ignore
+        client.Query<string,int> someStringArg [ func2; func1 ]
+            |> Async.RunSynchronously |> ignore
 
         Assert.That(func1Called, Is.True)
         Assert.That(func2Called, Is.True)
