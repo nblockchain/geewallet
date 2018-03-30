@@ -28,7 +28,7 @@ type internal ConsistencyResult<'T,'R,'E when 'E :> Exception> =
     | ConsistentResult of 'R
     | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'T,'R,'E>*UnfinishedTasks<'R,'E>
 
-type FaultTolerantClient<'E when 'E :> Exception>(numberOfConsistentResponsesRequired: int,
+type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResponsesRequired: int,
                                                   numberOfMaximumParallelJobs: int) =
     let NUMBER_OF_RETRIES_TO_PERFORM = uint16 1
 

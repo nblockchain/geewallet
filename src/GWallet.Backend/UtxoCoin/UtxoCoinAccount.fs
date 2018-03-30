@@ -44,7 +44,7 @@ module internal Account =
         | _ -> failwith (sprintf "Assertion failed: UTXO currency %s not supported?" (currency.ToString()))
 
     let private faultTolerantElectrumClient =
-        FaultTolerantClient<ElectrumServerDiscarded>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS,
+        FaultTolerantParallelClient<ElectrumServerDiscarded>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS,
                                                      NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS)
 
     let private GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
