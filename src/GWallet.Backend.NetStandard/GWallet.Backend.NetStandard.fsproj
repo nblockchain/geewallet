@@ -110,8 +110,8 @@
     <PackageReference Include="Nethereum.ABI" Version="2.4.0" />
     <PackageReference Include="Nethereum.Web3" Version="2.4.0" />
     <PackageReference Include="Nethereum.Util" Version="2.4.0" />
-    <PackageReference Include="FSharp.Data" Version="2.4.5" />
     <PackageReference Include="Nethereum.StandardTokenEIP20" Version="2.4.0" />
+    <PackageReference Include="FSharp.Data" Version="2.3.3" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />
