@@ -1,6 +1,7 @@
 The MIT License
 
-Copyright (c) 2017 Andres G. Aragoneses
+Copyright (c) 2017-2018 Andres G. Aragoneses
+Copyright (c) 2018 Diginex Ltd (www.diginex.com)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

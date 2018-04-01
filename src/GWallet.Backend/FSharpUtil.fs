@@ -8,7 +8,7 @@ open Newtonsoft.Json
 
 module FSharpUtil =
 
-    let rec internal FindException<'T when 'T:> Exception>(ex: Exception): Option<'T> =
+    let rec public FindException<'T when 'T:> Exception>(ex: Exception): Option<'T> =
         if (ex = null) then
             None
         else

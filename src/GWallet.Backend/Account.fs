@@ -11,30 +11,40 @@ open Newtonsoft.Json
 
 module Account =
 
-    let private GetBalanceFromServerOrCache(account: IAccount) (onlyConfirmed: bool): MaybeCached<decimal> =
-        let maybeBalance =
-            try
-                if account.Currency.IsEtherBased() then
-                    if (onlyConfirmed) then
-                        Some(Ether.Account.GetConfirmedBalance account)
-                    else
-                        Some(Ether.Account.GetUnconfirmedPlusConfirmedBalance account)
-                elif (account.Currency.IsUtxo()) then
-                    if (onlyConfirmed) then
-                        Some(UtxoCoin.Account.GetConfirmedBalance account)
-                    else
-                        Some(UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance account)
+    let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool): Async<decimal> =
+        async {
+            if account.Currency.IsEtherBased() then
+                if (onlyConfirmed) then
+                    return! Ether.Account.GetConfirmedBalance account
                 else
-                    failwith (sprintf "Unknown currency %A" account.Currency)
-            with
-            | :? NoneAvailableException as ex -> None
+                    return! Ether.Account.GetUnconfirmedPlusConfirmedBalance account
+            elif (account.Currency.IsUtxo()) then
+                if (onlyConfirmed) then
+                    return! UtxoCoin.Account.GetConfirmedBalance account
+                else
+                    return! UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance account
+            else
+                return failwith (sprintf "Unknown currency %A" account.Currency)
+        }
 
-        match maybeBalance with
-        | None ->
-            NotFresh(Caching.RetreiveLastBalance(account.PublicAddress, account.Currency))
-        | Some(balance) ->
-            Caching.StoreLastBalance (account.PublicAddress, account.Currency) balance
-            Fresh(balance)
+    let private GetBalanceFromServerOrCache(account: IAccount) (onlyConfirmed: bool): Async<MaybeCached<decimal>> =
+        async {
+            let! maybeBalance =
+                async {
+                    try
+                        let! balance = GetBalanceInternal account onlyConfirmed
+                        return Some balance
+                    with
+                    | :? NoneAvailableException as ex -> return None
+                }
+
+            match maybeBalance with
+            | None ->
+                return NotFresh(Caching.RetreiveLastBalance(account.PublicAddress, account.Currency))
+            | Some(balance) ->
+                Caching.StoreLastBalance (account.PublicAddress, account.Currency) balance
+                return Fresh(balance)
+        }
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount) =
         GetBalanceFromServerOrCache account false
@@ -42,16 +52,17 @@ module Account =
     let GetConfirmedBalance(account: IAccount) =
         GetBalanceFromServerOrCache account true
 
-    let GetShowableBalance(account: IAccount) =
-        let unconfirmed = GetUnconfirmedPlusConfirmedBalance account
-        let confirmed = GetConfirmedBalance account
+    let GetShowableBalance(account: IAccount): Async<MaybeCached<decimal>> = async {
+        let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account
+        let! confirmed = GetConfirmedBalance account
         match unconfirmed,confirmed with
         | Fresh(unconfirmedAmount),Fresh(confirmedAmount) ->
             if (unconfirmedAmount < confirmedAmount) then
-                unconfirmed
+                return unconfirmed
             else
-                confirmed
-        | _ -> confirmed
+                return confirmed
+        | _ -> return confirmed
+        }
 
     let mutable wiped = false
     let private WipeConfig(allCurrencies: seq<Currency>) =
@@ -88,8 +99,8 @@ module Account =
 
         } |> List.ofSeq
 
-    let GetArchivedAccountsWithPositiveBalance(): seq<ArchivedAccount*decimal> =
-        seq {
+    let GetArchivedAccountsWithPositiveBalance(): Async<seq<ArchivedAccount*decimal>> =
+        let asyncJobs = seq<Async<ArchivedAccount*Option<decimal>>> {
             let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
@@ -103,14 +114,31 @@ module Account =
 
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
                     let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
-
-                    match GetUnconfirmedPlusConfirmedBalance(account) with
-                    | NotFresh(NotAvailable) -> ()
-                    | Fresh(balance) ->
-                        if (balance > 0m) then
-                            yield account,balance
-                    | NotFresh(Cached(balance,time)) ->
-                        () // TODO: do something in this case??
+                    let maybeBalance = GetUnconfirmedPlusConfirmedBalance(account)
+                    yield async {
+                        let! unconfirmedBalance = maybeBalance
+                        let positiveBalance =
+                            match unconfirmedBalance with
+                            | NotFresh(NotAvailable) -> None
+                            | Fresh(balance) ->
+                                if (balance > 0m) then
+                                    Some(balance)
+                                else
+                                    None
+                            | NotFresh(Cached(balance,time)) ->
+                                None // TODO: do something in this case??
+                        return account,positiveBalance
+                    }
+        }
+        let executedBalances = Async.Parallel asyncJobs
+        async {
+            let! accountAndPositiveBalances = executedBalances
+            return seq {
+                for account,maybePositiveBalance in accountAndPositiveBalances do
+                    match maybePositiveBalance with
+                    | Some positiveBalance -> yield account,positiveBalance
+                    | _ -> ()
+            }
         }
 
     // TODO: add tests for these (just in case address validation breaks after upgrading our dependencies)
@@ -122,14 +150,18 @@ module Account =
         else
             failwith (sprintf "Unknown currency %A" currency)
 
-    let EstimateFee account amount destination: IBlockchainFeeInfo =
+    let EstimateFee account amount destination: Async<IBlockchainFeeInfo> =
         let currency = (account:>IAccount).Currency
-        if currency.IsUtxo() then
-            UtxoCoin.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
-        elif currency.IsEtherBased() then
-            Ether.Account.EstimateFee account amount destination :> IBlockchainFeeInfo
-        else
-            failwith (sprintf "Unknown currency %A" currency)
+        async {
+            if currency.IsUtxo() then
+                let! fee = UtxoCoin.Account.EstimateFee account amount destination
+                return fee :> IBlockchainFeeInfo
+            elif currency.IsEtherBased() then
+                let! fee = Ether.Account.EstimateFee account amount destination
+                return fee :> IBlockchainFeeInfo
+            else
+                return failwith (sprintf "Unknown currency %A" currency)
+        }
 
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't

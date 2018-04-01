@@ -142,6 +142,8 @@ module JsonRpcSharp =
                     raise(ServerTimedOutException(exceptionMsg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.NetworkUnreachable) then
                     raise(ServerUnreachableException(exceptionMsg, ex))
+                if (socketException.Value.ErrorCode = int SocketError.AddressNotAvailable) then
+                    raise(ServerUnreachableException(exceptionMsg, ex))
                 raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
 
         member self.Request (request: string): string =

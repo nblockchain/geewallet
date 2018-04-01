@@ -198,7 +198,7 @@
     <Compile Include="TransferAmount.fs" />
     <Compile Include="Caching.fs" />
     <Compile Include="Transaction.fs" />
-    <Compile Include="FaultTolerantClient.fs" />
+    <Compile Include="FaultTolerantParallelClient.fs" />
     <Compile Include="UtxoCoin\ElectrumServer.fs" />
     <Compile Include="UtxoCoin\StratumClient.fs" />
     <Compile Include="UtxoCoin\ElectrumClient.fs" />

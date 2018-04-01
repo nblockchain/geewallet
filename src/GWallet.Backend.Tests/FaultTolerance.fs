@@ -11,9 +11,11 @@ module FaultTolerance =
     exception SomeSpecificException
 
     let private one_consistent_result_because_this_test_doesnt_test_consistency = 1
+    let private not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1
 
-    let private defaultFaultTolerantClient =
-        FaultTolerantClient<SomeSpecificException> one_consistent_result_because_this_test_doesnt_test_consistency
+    let private defaultFaultTolerantParallelClient =
+        FaultTolerantParallelClient<SomeSpecificException>(one_consistent_result_because_this_test_doesnt_test_consistency,
+                                                   not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
 
     [<Test>]
     let ``can retrieve basic T for single func``() =
@@ -22,7 +24,8 @@ module FaultTolerance =
         let func (arg: string) =
             someResult
         let dataRetreived =
-            defaultFaultTolerantClient.Query<string,int> someStringArg [ func ]
+            defaultFaultTolerantParallelClient.Query<string,int> someStringArg [ func ]
+                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -34,15 +37,16 @@ module FaultTolerance =
             someResult
         let func2 (arg: string) =
             someResult
-        let dataRetreived = defaultFaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
+        let dataRetreived = defaultFaultTolerantParallelClient.Query<string,int> someStringArg [ func1; func2 ]
+                                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
     let ``throws ArgumentException if no funcs``(): unit =
-        let client = defaultFaultTolerantClient
+        let client = defaultFaultTolerantParallelClient
         Assert.Throws<ArgumentException>(
-            fun _ -> client.Query<string,int> "_" [] |> ignore
+            fun _ -> client.Query<string,int> "_" [] |> Async.RunSynchronously |> ignore
         ) |> ignore
 
     [<Test>]
@@ -54,7 +58,8 @@ module FaultTolerance =
         let func2 (arg: string) =
             someResult
         let dataRetreived =
-            defaultFaultTolerantClient.Query<string,int> someStringArg [ func1; func2 ]
+            defaultFaultTolerantParallelClient.Query<string,int> someStringArg [ func1; func2 ]
+                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
@@ -70,12 +75,14 @@ module FaultTolerance =
         let dataRetrieved =
             try
                 let result =
-                    (FaultTolerantClient<SomeException> one_consistent_result_because_this_test_doesnt_test_consistency)
+                    (FaultTolerantParallelClient<SomeException> (one_consistent_result_because_this_test_doesnt_test_consistency,
+                                                         not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
                         .Query<string,int> someStringArg [ func1; func2 ]
+                            |> Async.RunSynchronously
                 Some(result)
             with
             | ex ->
-                Assert.That (ex, Is.TypeOf<NoneAvailableException>())
+                Assert.That (ex, Is.TypeOf<NoneAvailableException>(), "ex.Message is: " + ex.Message)
                 Assert.That (ex.InnerException, Is.Not.Null)
                 Assert.That (ex.InnerException, Is.TypeOf<SomeException>())
                 None
@@ -92,9 +99,10 @@ module FaultTolerance =
             someResult
 
         let result =
-            (FaultTolerantClient<SomeException> one_consistent_result_because_this_test_doesnt_test_consistency)
+            (FaultTolerantParallelClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency,
+                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
                 .Query<string,int> someStringArg [ func1; func2 ]
-
+                    |> Async.RunSynchronously
         Assert.That(result, Is.EqualTo(someResult))
 
     exception SomeOtherException
@@ -107,10 +115,14 @@ module FaultTolerance =
         let func2 (arg: string) =
             someResult
 
-        Assert.Throws<SomeOtherException>(fun _ ->
-            (FaultTolerantClient<SomeException> one_consistent_result_because_this_test_doesnt_test_consistency)
+        let ex = Assert.Throws<AggregateException>(fun _ ->
+            (FaultTolerantParallelClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency,
+                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
                 .Query<string,int> someStringArg [ func1; func2 ]
-                    |> ignore ) |> ignore
+                    |> Async.RunSynchronously
+                    |> ignore )
+
+        Assert.That((FSharpUtil.FindException<SomeOtherException> ex).IsSome, Is.True)
 
     [<Test>]
     let ``exception passed in must not be SystemException, otherwise it throws``() =
@@ -121,7 +133,8 @@ module FaultTolerance =
             "someResult2"
 
         Assert.Throws<ArgumentException>(fun _ ->
-            (FaultTolerantClient<Exception> one_consistent_result_because_this_test_doesnt_test_consistency)
+            (FaultTolerantParallelClient<Exception>(one_consistent_result_because_this_test_doesnt_test_consistency,
+                                            not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
                 |> ignore ) |> ignore
 
     [<Test>]
@@ -139,10 +152,30 @@ module FaultTolerance =
         let funcConsistentB (arg: string) =
             someConsistentResult
 
+        let consistencyGuardClient = FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
+                                                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
+
         let dataRetreived =
-            FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe).Query<string,int>
-                someStringArg
-                [ funcInconsistent; funcConsistentA; funcConsistentB ]
+            consistencyGuardClient
+                .Query<string,int> someStringArg
+                                   [ funcInconsistent; funcConsistentA; funcConsistentB; ]
+                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
+
+        let dataRetreived =
+            consistencyGuardClient
+                .Query<string,int> someStringArg
+                                   [ funcConsistentA; funcInconsistent; funcConsistentB; ]
+                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
+
+        let dataRetreived =
+            consistencyGuardClient
+                .Query<string,int> someStringArg
+                                   [ funcConsistentA; funcConsistentB; funcInconsistent; ]
+                |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
 
@@ -151,13 +184,15 @@ module FaultTolerance =
         let numberOfConsistentResponsesToBeConsideredSafe = 0
 
         Assert.Throws<ArgumentException>(fun _ ->
-            FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe)
+            FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
+                                                       not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
                     |> ignore ) |> ignore
 
         let numberOfConsistentResponsesToBeConsideredSafe = -1
 
         Assert.Throws<ArgumentException>(fun _ ->
-            FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe)
+            FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
+                                                       not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
                     |> ignore ) |> ignore
 
     [<Test>]
@@ -172,12 +207,14 @@ module FaultTolerance =
         let func2 (arg: string) =
             someResult
 
-        let client = FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe)
+        let client = FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
+                                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
 
         Assert.Throws<ArgumentException>(fun _ ->
             client.Query<string,int>
                 someStringArg
                 [ func1; func2 ]
+                |> Async.RunSynchronously
                     |> ignore ) |> ignore
 
     [<Test>]
@@ -198,12 +235,14 @@ module FaultTolerance =
         let func4 (arg: string) =
             mostConsistentResult
 
-        let client = FaultTolerantClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe)
+        let client = FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
+                                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
 
         let inconsistencyEx = Assert.Throws<ResultInconsistencyException>(fun _ ->
                                   client.Query<string,int>
                                       someStringArg
                                       [ func1; func2; func3; func4 ]
+                                          |> Async.RunSynchronously
                                           |> ignore )
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
 
@@ -223,7 +262,9 @@ module FaultTolerance =
                 raise SomeException
             0
 
-        let client = FaultTolerantClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency)
+        let client = FaultTolerantParallelClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency,
+                                                        not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
         client.Query<string,int> someStringArg [ func1; func2 ]
+            |> Async.RunSynchronously
             // enough to know that it doesn't throw
             |> ignore

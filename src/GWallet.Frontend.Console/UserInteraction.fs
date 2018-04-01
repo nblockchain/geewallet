@@ -155,7 +155,7 @@ module UserInteraction =
                 (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
                 (time |> Presentation.ShowSaneDate)
 
-    let DisplayAccountStatus accountNumber (account: IAccount) =
+    let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
         let maybeReadOnly =
             match account with
             | :? ReadOnlyAccount -> "(READ-ONLY)"
@@ -169,7 +169,6 @@ module UserInteraction =
 
         let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
 
-        let maybeBalance = Account.GetShowableBalance account
         match maybeBalance with
         | NotFresh(NotAvailable) ->
             Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
@@ -186,15 +185,22 @@ module UserInteraction =
                                 (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
 
-        maybeBalance
+    let private GetAccountBalances (accounts: seq<IAccount>): Async<array<IAccount*MaybeCached<decimal>>> =
+        let getAccountBalance(account: IAccount): Async<IAccount*MaybeCached<decimal>> =
+            async {
+                let! balance = Account.GetShowableBalance account
+                return (account,balance)
+            }
+        let accountAndBalancesToBeQueried = accounts |> Seq.map getAccountBalance
+        Async.Parallel accountAndBalancesToBeQueried
 
     let DisplayAccountStatuses(whichAccount: WhichAccount) =
-        let rec displayAllAndSumBalance (accounts: seq<IAccount>)
+        let rec displayAllAndSumBalance (accounts: seq<IAccount*MaybeCached<decimal>>)
                                          currentIndex
                                         (currentSumMap: Map<Currency,Option<decimal>>)
                                         : Map<Currency,Option<decimal>> =
-            let account = accounts.ElementAt(currentIndex)
-            let maybeBalance = DisplayAccountStatus (currentIndex+1) account
+            let account,maybeBalance = accounts.ElementAt(currentIndex)
+            DisplayAccountStatus (currentIndex+1) account maybeBalance
             Console.WriteLine ()
 
             let balanceToSum: Option<decimal> =
@@ -257,7 +263,8 @@ module UserInteraction =
             Console.WriteLine "*** STATUS ***"
 
             if (accounts.Any()) then
-                let currencyTotals = displayAllAndSumBalance accounts 0 Map.empty
+                let accountsWithBalances = GetAccountBalances accounts |> Async.RunSynchronously
+                let currencyTotals = displayAllAndSumBalance accountsWithBalances 0 Map.empty
 
                 let maybeTotalInUsd = displayTotalAndSumFiatBalance currencyTotals
                 match maybeTotalInUsd with
@@ -387,8 +394,8 @@ module UserInteraction =
         | Some(usdAmount) -> Some(usdAmount / usdValue)
 
     let rec internal AskAmount account: Option<TransferAmount> =
-
-        match Account.GetShowableBalance account with
+        let showableBalance = Account.GetShowableBalance account |> Async.RunSynchronously
+        match showableBalance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Balance not available if offline."
             None
@@ -428,7 +435,8 @@ module UserInteraction =
                         Some(TransferAmount(cryptoAmount, balance-cryptoAmount))
 
     let AskFee account amount destination: Option<IBlockchainFeeInfo> =
-        let txMetadataWithFeeEstimation = Account.EstimateFee account amount destination
+        let txMetadataWithFeeEstimation =
+            Account.EstimateFee account amount destination |> Async.RunSynchronously
         Presentation.ShowFee txMetadataWithFeeEstimation
         let accept = AskYesNo "Do you accept?"
         if accept then

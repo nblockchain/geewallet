@@ -8,7 +8,9 @@ open GWallet.Frontend.Console
 let rec TrySendAmount account transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
     try
-        let txId = Account.SendPayment account transactionMetadata destination amount password
+        let txId =
+            Account.SendPayment account transactionMetadata destination amount password
+                |> Async.RunSynchronously
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
         UserInteraction.PressAnyKeyToContinue ()
     with
@@ -43,7 +45,9 @@ let BroadcastPayment() =
     // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
     Presentation.ShowTransactionData(signedTransaction.TransactionInfo)
     if UserInteraction.AskYesNo "Do you accept?" then
-        let txId = Account.BroadcastTransaction signedTransaction
+        let txId =
+            Account.BroadcastTransaction signedTransaction
+                |> Async.RunSynchronously
         Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
         UserInteraction.PressAnyKeyToContinue ()
 
@@ -169,7 +173,8 @@ let ArchiveAccount() =
             Console.WriteLine "Read-only account removed."
             UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
-        match Account.GetShowableBalance account with
+        let balance = Account.GetShowableBalance account |> Async.RunSynchronously
+        match balance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Removing accounts when offline is not supported."
             ()
@@ -233,7 +238,7 @@ let rec GetAccountOfSameCurrency currency =
         account
 
 let rec CheckArchivedAccountsAreEmpty(): bool =
-    let archivedAccountsInNeedOfAction = Account.GetArchivedAccountsWithPositiveBalance()
+    let archivedAccountsInNeedOfAction = Account.GetArchivedAccountsWithPositiveBalance() |> Async.RunSynchronously
     for archivedAccount,balance in archivedAccountsInNeedOfAction do
         let currency = (archivedAccount:>IAccount).Currency
         Console.WriteLine (sprintf "ALERT! An archived account has received funds:%sAddress: %s Balance: %s%s"
@@ -248,7 +253,9 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
         match maybeFee with
         | None -> ()
         | Some(feeInfo) ->
-            let txId = Account.SweepArchivedFunds archivedAccount balance account feeInfo
+            let txId =
+                Account.SweepArchivedFunds archivedAccount balance account feeInfo
+                    |> Async.RunSynchronously
             Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
             UserInteraction.PressAnyKeyToContinue ()
 
