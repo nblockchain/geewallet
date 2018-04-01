@@ -43,6 +43,7 @@ type BalancesPage() as this =
         balanceRefreshTimer.Elapsed.Add (fun _ ->
             for normalAccount,accountBalance,sendButton in accountsAndBalances do
                 let balance = Account.GetShowableBalance normalAccount
+                                  |> Async.RunSynchronously
                 let account = normalAccount :> IAccount
                 match balance with
                 | Fresh(amount) ->
@@ -55,7 +56,7 @@ type BalancesPage() as this =
         )
         balanceRefreshTimer.Start()
 
-    member this.PopulateGrid (initialBalancesTasksWithDetails: seq<Task<_>*NormalAccount*Label*Button>) =
+    member this.PopulateGrid (initialBalancesTasksWithDetails: seq<_*NormalAccount*Label*Button>) =
         let grid = Grid(HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand)
 
         let columnDef1 = ColumnDefinition()
@@ -68,28 +69,16 @@ type BalancesPage() as this =
         mainLayout.Children.Remove(mainLayout.FindByName<Label>("loadingLabel")) |> ignore
         mainLayout.Children.Add(grid)
         let mutable rowCount = 0 //TODO: do this recursively instead of imperatively
-        for balanceTask,normalAccount,accountBalance,sendButton in initialBalancesTasksWithDetails do
+        for _,normalAccount,accountBalance,sendButton in initialBalancesTasksWithDetails do
             let account = normalAccount :> IAccount
 
             let rowDefinition = RowDefinition()
             grid.RowDefinitions.Add(rowDefinition)
 
-            let balance = balanceTask.Result
-
             sendButton.Clicked.Subscribe(fun _ ->
                 this.Navigation.PushModalAsync(SendPage(normalAccount)) |> FrontendHelpers.DoubleCheckCompletion
             ) |> ignore
 
-            let balanceAmount =
-                match balance with
-                | NotFresh(NotAvailable) -> "?"
-                | NotFresh(Cached(amount,_)) -> amount.ToString()
-                | Fresh(amount) ->
-                    if (amount > 0.0m) then
-                        sendButton.IsEnabled <- true
-                    amount.ToString()
-
-            accountBalance.Text <- sprintf "%s %s" balanceAmount (account.Currency.ToString())
             let receiveButton = Button(Text = "Receive")
             receiveButton.Clicked.Subscribe(fun _ ->
                 // no support for visualizing QR codes in Mac yet, but at least support for clipboard's "copy"
@@ -129,24 +118,37 @@ type BalancesPage() as this =
 #endif
 
 
-    member this.Init () =
+    member this.Init (): unit =
 
         let initialBalancesTasksWithDetails =
             seq {
                 for normalAccount,accountBalanceLabel,sendButton in accountsAndBalances do
-                    let balanceTask = Task<MaybeCached<decimal>>.Run(fun _ ->
-                        Account.GetShowableBalance (normalAccount :> IAccount)
-                    )
-                    yield balanceTask,normalAccount,accountBalanceLabel,sendButton
-            } |> List.ofSeq
+                    let account = normalAccount :> IAccount
+                    let balanceJob = async {
+                        let! balance = Account.GetShowableBalance account
+                        let balanceAmount =
+                            match balance with
+                            | NotFresh(NotAvailable) -> "?"
+                            | NotFresh(Cached(amount,_)) -> amount.ToString()
+                            | Fresh(amount) ->
+                                if (amount > 0.0m) then
+                                    sendButton.IsEnabled <- true
+                                amount.ToString()
+                        accountBalanceLabel.Text <- sprintf "%s %A" balanceAmount account.Currency
+                    }
+                    yield balanceJob,normalAccount,accountBalanceLabel,sendButton
+            }
 
-        let allBalancesTask = Task.WhenAll(initialBalancesTasksWithDetails.Select(fun (t,_,_,_) -> t))
-        allBalancesTask.ContinueWith(fun (t:Task<MaybeCached<decimal>[]>) ->
+        let allBalancesJob = Async.Parallel (initialBalancesTasksWithDetails |> Seq.map (fun (j,_,_,_) -> j))
+        let populateGrid = async {
+            let! _ = allBalancesJob
             Device.BeginInvokeOnMainThread(fun _ ->
                 this.PopulateGrid initialBalancesTasksWithDetails
             )
             this.StartTimer()
-        ) |> FrontendHelpers.DoubleCheckCompletion
+        }
+        Async.StartAsTask populateGrid
+            |> FrontendHelpers.DoubleCheckCompletion
 
         ()
 

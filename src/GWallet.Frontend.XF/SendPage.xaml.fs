@@ -64,7 +64,7 @@ type SendPage(account: NormalAccount) =
                                     transactionInfo.Destination
                                     transactionInfo.Amount
                                     transactionInfo.Passphrase
-                                        |> Some
+                                        |> Async.RunSynchronously |> Some
             with
             | :? DestinationEqualToOrigin ->
                 let errMsg = "Transaction's origin cannot be the same as the destination."
@@ -218,9 +218,10 @@ type SendPage(account: NormalAccount) =
                 | None -> this.ReenableButtons()
                 | Some(destinationAddress) ->
 
-                    let txFeeInfoTask: Task<IBlockchainFeeInfo> = Task.Run(fun _ ->
+                    let txFeeInfoTask: Task<IBlockchainFeeInfo> =
                         Account.EstimateFee account amount destinationAddress
-                    )
+                            |> Async.StartAsTask
+
                     txFeeInfoTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<IBlockchainFeeInfo>) ->
                         let txMetadataWithFeeEstimation = txMetadataWithFeeEstimationTask.Result
                         let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s"

@@ -42,7 +42,7 @@
     <Compile Include="..\GWallet.Backend\Transaction.fs">
       <Link>Transaction.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\FaultTolerantClient.fs">
+    <Compile Include="..\GWallet.Backend\FaultTolerantParallelClient.fs">
       <Link>FaultTolerantClient.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\UtxoCoin\ElectrumServer.fs">
