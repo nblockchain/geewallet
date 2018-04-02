@@ -82,7 +82,8 @@ type BalancesPage() as this =
             let receiveButton = Button(Text = "Receive")
             receiveButton.Clicked.Subscribe(fun _ ->
                 // no support for visualizing QR codes in Mac yet, but at least support for clipboard's "copy"
-                if (Device.RuntimePlatform = Device.macOS) then
+                if (Device.RuntimePlatform = Device.macOS ||
+                    Device.RuntimePlatform = Device.GTK) then
                     FrontendHelpers.ChangeTextAndChangeBack receiveButton "Copied"
 
                     CrossClipboard.Current.SetText account.PublicAddress

@@ -25,6 +25,6 @@
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
     <PackageReference Include="ZXing.Net.Mobile.Forms" Version="2.3.2" />
     <PackageReference Include="Xamarin.Forms" Version="3.0.0.296286-pre2" />
-    <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.1.3" />
+    <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
   </ItemGroup>
 </Project>
