@@ -19,7 +19,8 @@ module internal Config =
         false
 #endif
 
-    let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds(3.0)
+    // TODO: move to FaultTolerantParallelClient
+    let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 60.0
 
     let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
