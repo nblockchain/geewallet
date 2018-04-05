@@ -26,11 +26,18 @@ module Server =
         new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
         new(message: string) = { inherit Exception(message) }
 
-    type ServerTimedOutException(message:string) =
-       inherit ConnectionUnsuccessfulException (message)
+    type ServerTimedOutException =
+       inherit ConnectionUnsuccessfulException
+
+       new(message: string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
+       new(message: string) = { inherit ConnectionUnsuccessfulException(message) }
 
     type ServerCannotBeResolvedException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
+
+    type CloudFlareError =
+        | ConnectionTimeOut = 522
+        | WebServerDown = 521
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
@@ -69,7 +76,14 @@ module Server =
             | ex ->
                 let maybeWebEx = FSharpUtil.FindException<WebException> ex
                 match maybeWebEx with
-                | None -> reraise()
+                | None ->
+                    let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
+                    match maybeHttpReqEx with
+                    | None -> reraise()
+                    | Some(httpReqEx) ->
+                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.ConnectionTimeOut))) then
+                            raise (ServerTimedOutException(exMsg, httpReqEx))
+                        reraise()
                 | Some(webEx) ->
                     if (webEx.Status = WebExceptionStatus.NameResolutionFailure) then
                         raise (ServerCannotBeResolvedException(exMsg, webEx))
