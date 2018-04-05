@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
@@ -90,6 +90,9 @@
     <Compile Include="..\GWallet.Backend\Account.fs">
       <Link>Account.fs</Link>
     </Compile>
+    <Compile Include="..\GWallet.Backend\FiatValueEstimation.fs">
+      <Link>FiatValueEstimation.fs</Link>
+    </Compile>
     <Compile Include="..\GWallet.Backend\Infrastructure.fs">
       <Link>Infrastructure.fs</Link>
     </Compile>
@@ -111,7 +114,7 @@
     <PackageReference Include="Nethereum.Web3" Version="2.4.0" />
     <PackageReference Include="Nethereum.Util" Version="2.4.0" />
     <PackageReference Include="Nethereum.StandardTokenEIP20" Version="2.4.0" />
-    <PackageReference Include="FSharp.Data" Version="2.4.6" />
+    <PackageReference Include="FSharp.Data" Version="3.0.0-beta" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />

@@ -176,11 +176,11 @@
     <Reference Include="Nethereum.StandardTokenEIP20">
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.2.4.0\lib\net451\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.Data">
-      <HintPath>..\..\packages\FSharp.Data.2.4.6\lib\net45\FSharp.Data.dll</HintPath>
-    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.3.4\lib\net45\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharp.Data">
+      <HintPath>..\..\packages\FSharp.Data.3.0.0-beta\lib\net45\FSharp.Data.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
