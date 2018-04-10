@@ -18,3 +18,6 @@ run:
 
 update-servers:
 	@./scripts/make.sh update-servers
+
+nuget:
+	@./scripts/make.sh nuget
