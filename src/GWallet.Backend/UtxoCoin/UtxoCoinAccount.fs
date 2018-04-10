@@ -67,7 +67,7 @@ module internal Account =
             List.map (fun (es:ElectrumServer) ->
                           (fun (arg: 'T) ->
                               try
-                                  let ec = new ElectrumClient(es)
+                                  use ec = new ElectrumClient(es)
                                   ecFunc ec arg
                               with
                               | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
