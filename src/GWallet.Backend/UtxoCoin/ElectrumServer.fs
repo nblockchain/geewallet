@@ -82,10 +82,12 @@ module ElectrumServerSeedList =
     let DefaultBtcList =
         ExtractServerListFromEmbeddedResource "btc-servers.json"
             |> Seq.filter FilterCompatibleServer
+            |> List.ofSeq
 
     let DefaultLtcList =
         ExtractServerListFromEmbeddedResource "ltc-servers.json"
             |> Seq.filter FilterCompatibleServer
+            |> List.ofSeq
 
     let Randomize currency =
         let serverList =
