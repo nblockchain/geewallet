@@ -27,9 +27,6 @@ module JsonRpcSharp =
     type NoResponseReceivedAfterRequestException() =
        inherit ConnectionUnsuccessfulException()
 
-    type TlsNotSupportedYetInGWalletException() =
-       inherit ConnectionUnsuccessfulException()
-
     type ServerRefusedException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 

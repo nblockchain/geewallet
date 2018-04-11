@@ -4,12 +4,25 @@ open System
 
 open GWallet.Backend
 
-exception ServerTooOld of string
+type IncompatibleServerException(message) =
+    inherit JsonRpcSharp.ConnectionUnsuccessfulException(message)
+
+type IncompatibleProtocolException(message) =
+    inherit IncompatibleServerException(message)
+
+type ServerTooNewException(message) =
+    inherit IncompatibleProtocolException(message)
+
+type ServerTooOldException(message) =
+    inherit IncompatibleProtocolException(message)
+
+type TlsNotSupportedYetInGWalletException(message) =
+   inherit IncompatibleServerException(message)
 
 type ElectrumClient (electrumServer: ElectrumServer) =
     let Init(): StratumClient =
         if electrumServer.UnencryptedPort.IsNone then
-            raise(JsonRpcSharp.TlsNotSupportedYetInGWalletException())
+            raise(TlsNotSupportedYetInGWalletException("TLS not yet supported"))
 
         let jsonRpcClient = new JsonRpcSharp.Client(electrumServer.Fqdn, electrumServer.UnencryptedPort.Value)
         let stratumClient = new StratumClient(jsonRpcClient)
@@ -26,10 +39,21 @@ type ElectrumClient (electrumServer: ElectrumServer) =
         // [4] https://electrumx.readthedocs.io/en/latest/protocol-changes.html
         let PROTOCOL_VERSION_SUPPORTED = Version("0.10")
 
-        let versionSupportedByServer = stratumClient.ServerVersion CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION_SUPPORTED
+        let versionSupportedByServer =
+            try
+                stratumClient.ServerVersion CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION_SUPPORTED
+            with
+            | :? ElectrumServerReturningErrorException as ex ->
+                if (ex.ErrorCode = 1 && ex.Message.StartsWith "unsupported protocol version" &&
+                                        ex.Message.EndsWith (PROTOCOL_VERSION_SUPPORTED.ToString())) then
+                    raise (ServerTooNewException(sprintf "Version of server rejects our client version (%s)"
+                                                         (PROTOCOL_VERSION_SUPPORTED.ToString())))
+                else
+                    reraise()
         if versionSupportedByServer < PROTOCOL_VERSION_SUPPORTED then
-            raise (ServerTooOld (sprintf "Version of server is older (%s) than the client (%s)"
-                                        (versionSupportedByServer.ToString()) (PROTOCOL_VERSION_SUPPORTED.ToString())))
+            raise (ServerTooOldException (sprintf "Version of server is older (%s) than the client (%s)"
+                                                  (versionSupportedByServer.ToString())
+                                                  (PROTOCOL_VERSION_SUPPORTED.ToString())))
         stratumClient
 
     let stratumClient = Init()
