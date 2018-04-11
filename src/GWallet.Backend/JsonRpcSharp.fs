@@ -140,6 +140,8 @@ module JsonRpcSharp =
                     raise(ServerRefusedException(exceptionMsg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.TimedOut) then
                     raise(ServerTimedOutException(exceptionMsg, ex))
+                if (socketException.Value.ErrorCode = int SocketError.AddressFamilyNotSupported) then
+                    raise(ServerUnreachableException(exceptionMsg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.HostUnreachable) then
                     raise(ServerUnreachableException(exceptionMsg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.NetworkUnreachable) then
