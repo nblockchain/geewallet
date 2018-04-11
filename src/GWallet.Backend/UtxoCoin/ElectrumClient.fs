@@ -4,25 +4,10 @@ open System
 
 open GWallet.Backend
 
-type IncompatibleServerException(message) =
-    inherit JsonRpcSharp.ConnectionUnsuccessfulException(message)
-
-type IncompatibleProtocolException(message) =
-    inherit IncompatibleServerException(message)
-
-type ServerTooNewException(message) =
-    inherit IncompatibleProtocolException(message)
-
-type ServerTooOldException(message) =
-    inherit IncompatibleProtocolException(message)
-
-type TlsNotSupportedYetInGWalletException(message) =
-   inherit IncompatibleServerException(message)
-
 type ElectrumClient (electrumServer: ElectrumServer) =
+
     let Init(): StratumClient =
-        if electrumServer.UnencryptedPort.IsNone then
-            raise(TlsNotSupportedYetInGWalletException("TLS not yet supported"))
+        electrumServer.CheckCompatibility()
 
         let jsonRpcClient = new JsonRpcSharp.Client(electrumServer.Fqdn, electrumServer.UnencryptedPort.Value)
         let stratumClient = new StratumClient(jsonRpcClient)

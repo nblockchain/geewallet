@@ -9,6 +9,24 @@ open FSharp.Data.JsonExtensions
 
 open GWallet.Backend
 
+type IncompatibleServerException(message) =
+    inherit JsonRpcSharp.ConnectionUnsuccessfulException(message)
+
+type IncompatibleProtocolException(message) =
+    inherit IncompatibleServerException(message)
+
+type ServerTooNewException(message) =
+    inherit IncompatibleProtocolException(message)
+
+type ServerTooOldException(message) =
+    inherit IncompatibleProtocolException(message)
+
+type TlsNotSupportedYetInGWalletException(message) =
+   inherit IncompatibleServerException(message)
+
+type TorNotSupportedYetInGWalletException(message) =
+   inherit IncompatibleServerException(message)
+
 type ElectrumServer =
     {
         Fqdn: string;
@@ -17,6 +35,11 @@ type ElectrumServer =
         UnencryptedPort: Option<int>;
         Version: string;
     }
+    member this.CheckCompatibility (): unit =
+        if this.UnencryptedPort.IsNone then
+            raise(TlsNotSupportedYetInGWalletException("TLS not yet supported"))
+        if this.Fqdn.EndsWith ".onion" then
+            raise(TorNotSupportedYetInGWalletException("Tor(onion) not yet supported"))
 
 module ElectrumServerSeedList =
 
@@ -49,11 +72,20 @@ module ElectrumServerSeedList =
             }
         servers |> List.ofSeq
 
+    let private FilterCompatibleServer (electrumServer: ElectrumServer) =
+        try
+            electrumServer.CheckCompatibility()
+            true
+        with
+        | :? IncompatibleServerException -> false
+
     let DefaultBtcList =
         ExtractServerListFromEmbeddedResource "btc-servers.json"
+            |> Seq.filter FilterCompatibleServer
 
     let DefaultLtcList =
         ExtractServerListFromEmbeddedResource "ltc-servers.json"
+            |> Seq.filter FilterCompatibleServer
 
     let Randomize currency =
         let serverList =

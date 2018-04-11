@@ -7,6 +7,31 @@ open NUnit.Framework
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 
+// TODO: move this to its own file
+module ElectrumServerUnitTests =
+
+    [<Test>]
+    let ``filters electrum BTC servers``() =
+        for electrumServer in ElectrumServerSeedList.DefaultBtcList do
+            Assert.That (electrumServer.UnencryptedPort, Is.Not.EqualTo(None),
+                sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
+                        electrumServer.Fqdn)
+
+            Assert.That (electrumServer.Fqdn, Is.Not.StringEnding(".onion"),
+                sprintf "BTC servers list should be filtered against onion servers, but %s was found"
+                        electrumServer.Fqdn)
+
+    [<Test>]
+    let ``filters electrum LTC servers``() =
+        for electrumServer in ElectrumServerSeedList.DefaultLtcList do
+            Assert.That (electrumServer.UnencryptedPort, Is.Not.EqualTo(None),
+                sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
+                        electrumServer.Fqdn)
+
+            Assert.That (electrumServer.Fqdn, Is.Not.StringEnding(".onion"),
+                sprintf "BTC servers list should be filtered against onion servers, but %s was found"
+                        electrumServer.Fqdn)
+
 module ElectrumIntegrationTests =
 
     // probably a satoshi address because it was used in blockheight 2 and is unspent yet
@@ -49,7 +74,7 @@ module ElectrumIntegrationTests =
             innerCheck electrumServer
 
     [<Test>]
-    let ``can retreive electrum BTC servers``() =
+    let ``can connect to some electrum BTC servers``() =
         let reachableServers = seq {
             for electrumServer in ElectrumServerSeedList.DefaultBtcList do
                 match CheckServerIsReachable electrumServer SATOSHI_ADDRESS None with
@@ -65,7 +90,7 @@ module ElectrumIntegrationTests =
         Assert.That(reachableServersCount, Is.GreaterThan(1))
 
     [<Test>]
-    let ``can retreive electrum LTC servers``() =
+    let ``can connect to some electrum LTC servers``() =
         let reachableServers = seq {
             for electrumServer in ElectrumServerSeedList.DefaultLtcList do
                 match CheckServerIsReachable electrumServer LTC_GENESIS_BLOCK_ADDRESS None with
