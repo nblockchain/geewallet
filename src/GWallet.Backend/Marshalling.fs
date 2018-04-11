@@ -2,8 +2,10 @@
 
 open System
 open System.Reflection
+open System.Text.RegularExpressions
 
 open Newtonsoft.Json
+open Newtonsoft.Json.Serialization
 
 type DeserializationException =
    inherit Exception
@@ -41,8 +43,19 @@ type DeserializableValue<'T>(version, typeName, value: 'T) =
     member this.Value
         with get() = value
 
+type private PascalCase2LowercasePlusUnderscoreContractResolver() =
+    inherit DefaultContractResolver()
+
+    // https://stackoverflow.com/a/20952003/544947
+    let pascalToUnderScoreRegex = Regex("((?<=.)[A-Z][a-zA-Z]*)|((?<=[a-zA-Z])\d+)", RegexOptions.Multiline)
+    let pascalToUnderScoreReplacementExpression = "_$1$2"
+    override this.ResolvePropertyName (propertyName: string) =
+        pascalToUnderScoreRegex.Replace(propertyName, pascalToUnderScoreReplacementExpression).ToLower()
 
 module Marshalling =
+
+    let internal PascalCase2LowercasePlusUnderscoreConversionSettings =
+        JsonSerializerSettings(ContractResolver = PascalCase2LowercasePlusUnderscoreContractResolver())
 
     let private currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
