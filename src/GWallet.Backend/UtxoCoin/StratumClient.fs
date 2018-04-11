@@ -80,14 +80,19 @@ type public ElectrumServerReturningErrorInJsonResponseException(message: string,
     member val ErrorCode: int =
         code with get
 
-type public ElectrumServerReturningErrorException(message: string, code: int, originalRequest: string) =
+type public ElectrumServerReturningErrorException(message: string, code: int,
+                                                  originalRequest: string, originalResponse: string) =
     inherit ElectrumServerReturningErrorInJsonResponseException(message, code)
 
     member val OriginalRequest: string =
         originalRequest with get
 
-type public ElectrumServerReturningInternalErrorException(message: string, code: int, originalRequest: string) =
-    inherit ElectrumServerReturningErrorException(message, code, originalRequest)
+    member val OriginalResponse: string =
+        originalResponse with get
+
+type public ElectrumServerReturningInternalErrorException(message: string, code: int,
+                                                          originalRequest: string, originalResponse: string) =
+    inherit ElectrumServerReturningErrorException(message, code, originalRequest, originalResponse)
 
 type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
 
@@ -97,14 +102,14 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
 
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): 'R =
+        let rawResponse = jsonRpcClient.Request jsonRequest
         try
-            let rawResponse = jsonRpcClient.Request jsonRequest
             StratumClient.Deserialize<'R> rawResponse
         with
         | :? ElectrumServerReturningErrorInJsonResponseException as ex ->
             if (ex.ErrorCode = -32603) then
-                raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest))
-            raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest))
+                raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
+            raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
 
     static member public Deserialize<'T> (result: string): 'T =
         let resultTrimmed = result.Trim()
