@@ -28,7 +28,7 @@ type ElectrumClient (electrumServer: ElectrumServer) =
         let stratumClient = new StratumClient(jsonRpcClient)
 
         // this is the last version of Electrum released at the time of writing this module
-        let CURRENT_ELECTRUM_FAKED_VERSION = Version("2.8.3")
+        let CURRENT_ELECTRUM_FAKED_VERSION = Version("3.0.5")
 
         // last version of the protocol [1] as of electrum's source code [2] at the time of
         // writing this... actually this changes rarely, last change was for 2.4 version [3]
@@ -37,7 +37,7 @@ type ElectrumClient (electrumServer: ElectrumServer) =
         // [2] https://github.com/spesmilo/electrum/blob/master/lib/version.py
         // [3] https://github.com/spesmilo/electrum/commit/118052d81597eff3eb636d242eacdd0437dabdd6
         // [4] https://electrumx.readthedocs.io/en/latest/protocol-changes.html
-        let PROTOCOL_VERSION_SUPPORTED = Version("0.10")
+        let PROTOCOL_VERSION_SUPPORTED = Version("1.0")
 
         let versionSupportedByServer =
             try
@@ -46,6 +46,8 @@ type ElectrumClient (electrumServer: ElectrumServer) =
             | :? ElectrumServerReturningErrorException as ex ->
                 if (ex.ErrorCode = 1 && ex.Message.StartsWith "unsupported protocol version" &&
                                         ex.Message.EndsWith (PROTOCOL_VERSION_SUPPORTED.ToString())) then
+
+                    // FIXME: even if this ex is already handled to ignore the server, we should report to sentry as WARN
                     raise (ServerTooNewException(sprintf "Version of server rejects our client version (%s)"
                                                          (PROTOCOL_VERSION_SUPPORTED.ToString())))
                 else

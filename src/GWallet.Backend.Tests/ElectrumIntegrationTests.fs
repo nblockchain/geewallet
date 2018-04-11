@@ -36,7 +36,7 @@ module ElectrumIntegrationTests =
                 // to make sure this exception type is an abstract class
                 Assert.That(ex.GetType(), Is.Not.EqualTo(typeof<JsonRpcSharp.ConnectionUnsuccessfulException>))
 
-                // TODO: make sure the type is not ServerTooNewException, to catch protocol version mismatches earlier
+                Assert.That(ex, Is.Not.InstanceOf(typeof<ServerTooNewException>), ex.ToString())
                 None
 
         match maybeFilter with
