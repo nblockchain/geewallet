@@ -6,7 +6,7 @@ open GWallet.Backend
 
 exception ServerTooOld of string
 
-type internal ElectrumClient (electrumServer: ElectrumServer) =
+type ElectrumClient (electrumServer: ElectrumServer) =
     let Init(): StratumClient =
         if electrumServer.UnencryptedPort.IsNone then
             raise(JsonRpcSharp.TlsNotSupportedYetInGWalletException())
@@ -19,9 +19,11 @@ type internal ElectrumClient (electrumServer: ElectrumServer) =
 
         // last version of the protocol [1] as of electrum's source code [2] at the time of
         // writing this... actually this changes rarely, last change was for 2.4 version [3]
-        // [1] http://docs.electrum.org/en/latest/protocol.html
+        // (changes documented here[4])
+        // [1] https://electrumx.readthedocs.io/en/latest/protocol.html
         // [2] https://github.com/spesmilo/electrum/blob/master/lib/version.py
         // [3] https://github.com/spesmilo/electrum/commit/118052d81597eff3eb636d242eacdd0437dabdd6
+        // [4] https://electrumx.readthedocs.io/en/latest/protocol-changes.html
         let PROTOCOL_VERSION_SUPPORTED = Version("0.10")
 
         let versionSupportedByServer = stratumClient.ServerVersion CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION_SUPPORTED

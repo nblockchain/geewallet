@@ -9,7 +9,7 @@ open FSharp.Data.JsonExtensions
 
 open GWallet.Backend
 
-type internal ElectrumServer =
+type ElectrumServer =
     {
         Fqdn: string;
         Pruning: string;
@@ -18,7 +18,7 @@ type internal ElectrumServer =
         Version: string;
     }
 
-module internal ElectrumServerSeedList =
+module ElectrumServerSeedList =
 
     let private ExtractServerListFromEmbeddedResource resourceName =
         let assembly = Assembly.GetExecutingAssembly()
@@ -49,16 +49,16 @@ module internal ElectrumServerSeedList =
             }
         servers |> List.ofSeq
 
-    let defaultBtcList =
+    let DefaultBtcList =
         ExtractServerListFromEmbeddedResource "btc-servers.json"
 
-    let defaultLtcList =
+    let DefaultLtcList =
         ExtractServerListFromEmbeddedResource "ltc-servers.json"
 
     let Randomize currency =
         let serverList =
             match currency with
-            | BTC -> defaultBtcList
-            | LTC -> defaultLtcList
+            | BTC -> DefaultBtcList
+            | LTC -> DefaultLtcList
             | _ -> failwithf "Currency %s is not UTXO" (currency.ToString())
         Shuffler.Unsort serverList
