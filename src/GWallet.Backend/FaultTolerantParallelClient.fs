@@ -22,7 +22,7 @@ type internal SuccessfulResultOrFailure<'R,'E when 'E :> Exception> =
     | Failure of 'E
 
 type internal ResultsSoFar<'R> = List<'R>
-type internal ExceptionsSoFar<'T,'R,'E> = seq<('T->'R)*'E>
+type internal ExceptionsSoFar<'T,'R,'E> = List<('T->'R)*'E>
 type internal ConsistencyResult<'T,'R,'E when 'E :> Exception> =
     | ConsistentResult of 'R
     | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'T,'R,'E>
@@ -45,11 +45,11 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
     let rec WhenSomeInternal (numberOfResultsRequired: int)
                              (tasks: List<('T->'R)*(Task<SuccessfulResultOrFailure<'R,'E>>)>)
                              (resultsSoFar: List<'R>)
-                             (failedFuncsSoFar: List<('T->'R)*'E>)
+                             (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
                              : ConsistencyResult<'T,'R,'E> =
         match tasks with
         | [] ->
-            InconsistentOrNotEnoughResults(resultsSoFar,Seq.ofList failedFuncsSoFar)
+            InconsistentOrNotEnoughResults(resultsSoFar,failedFuncsSoFar)
         | someFuncAndTasks ->
             let theTasks = someFuncAndTasks |> Seq.map snd
             let taskToWaitForFirstFinishedTask = Task.WhenAny theTasks
@@ -61,7 +61,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
             let restOfTasks: seq<('T->'R)*(Task<SuccessfulResultOrFailure<'R,'E>>)> =
                 someFuncAndTasks.Where(fun (_,task) -> not (Object.ReferenceEquals(task, finishedTask))) |> seq
 
-            let newResults,newFailedFuncs: List<'R>*List<('T->'R)*'E> =
+            let newResults,newFailedFuncs =
                 match finishedTask.Result with
                 | SuccessfulResult newResult ->
                     newResult::resultsSoFar,failedFuncsSoFar
@@ -85,7 +85,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
     let WhenSome (numberOfConsistentResultsRequired: int)
                  (jobs: seq<('T->'R)*Async<SuccessfulResultOrFailure<'R,'E>>>)
                  (resultsSoFar: List<'R>)
-                 (failedFuncsSoFar: List<('T->'R)*'E>)
+                 (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
                  : ConsistencyResult<'T,'R,'E> =
         let tasks =
             jobs
@@ -95,7 +95,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
     let rec QueryInternal (args: 'T)
                           (funcs: List<'T->'R>)
                           (resultsSoFar: List<'R>)
-                          (failedFuncsSoFar: List<('T->'R)*'E>)
+                          (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
                           (retries: uint16)
                               : 'R =
         match funcs with
