@@ -82,7 +82,7 @@ module FaultTolerance =
                 Some(result)
             with
             | ex ->
-                Assert.That (ex, Is.TypeOf<NoneAvailableException>(), "ex.Message is: " + ex.Message)
+                Assert.That (ex, Is.TypeOf<NoneAvailableException<SomeException>>(), "ex.Message is: " + ex.Message)
                 Assert.That (ex.InnerException, Is.Not.Null)
                 Assert.That (ex.InnerException, Is.TypeOf<SomeException>())
                 None

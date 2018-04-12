@@ -35,7 +35,7 @@ module Account =
                         let! balance = GetBalanceInternal account onlyConfirmed
                         return Some balance
                     with
-                    | :? NoneAvailableException as ex -> return None
+                    | :? NoneAvailableException<_> as ex -> return None
                 }
 
             match maybeBalance with

@@ -4,7 +4,7 @@ open System
 open System.Linq
 open System.Threading.Tasks
 
-type NoneAvailableException (message:string, lastException: Exception) =
+type NoneAvailableException<'E when 'E :> Exception> (message:string, lastException: 'E) =
    inherit Exception (message, lastException)
 
 
@@ -22,7 +22,7 @@ type internal SuccessfulResultOrFailure<'R,'E when 'E :> Exception> =
     | Failure of 'E
 
 type internal ResultsSoFar<'R> = List<'R>
-type internal ExceptionsSoFar<'T,'R,'E> = List<('T->'R)*'E>
+type internal ExceptionsSoFar<'T,'R,'E when 'E :> Exception> = List<('T->'R)*'E>
 type internal ConsistencyResult<'T,'R,'E when 'E :> Exception> =
     | ConsistentResult of 'R
     | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'T,'R,'E>
@@ -46,17 +46,17 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                              (tasks: List<('T->'R)*(Task<SuccessfulResultOrFailure<'R,'E>>)>)
                              (resultsSoFar: List<'R>)
                              (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
-                             : ConsistencyResult<'T,'R,'E> =
+                             : Async<ConsistencyResult<'T,'R,'E>> = async {
         match tasks with
         | [] ->
-            InconsistentOrNotEnoughResults(resultsSoFar,failedFuncsSoFar)
+            return InconsistentOrNotEnoughResults(resultsSoFar,failedFuncsSoFar)
         | someFuncAndTasks ->
             let theTasks = someFuncAndTasks |> Seq.map snd
             let taskToWaitForFirstFinishedTask = Task.WhenAny theTasks
-            taskToWaitForFirstFinishedTask.Wait()
+            let! fastestTask = Async.AwaitTask taskToWaitForFirstFinishedTask
             let finishedFunc,finishedTask =
                 (someFuncAndTasks
-                    |> Seq.filter (fun (func,task) -> task = taskToWaitForFirstFinishedTask.Result)).First()
+                    |> Seq.filter (fun (func,task) -> task = fastestTask)).First()
 
             let restOfTasks: seq<('T->'R)*(Task<SuccessfulResultOrFailure<'R,'E>>)> =
                 someFuncAndTasks.Where(fun (_,task) -> not (Object.ReferenceEquals(task, finishedTask))) |> seq
@@ -71,12 +71,13 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
             let resultsSortedByCount = MeasureConsistency newResults
             match resultsSortedByCount with
             | [] ->
-                WhenSomeInternal numberOfResultsRequired (restOfTasks |> List.ofSeq) newResults newFailedFuncs
+                return! WhenSomeInternal numberOfResultsRequired (restOfTasks |> List.ofSeq) newResults newFailedFuncs
             | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                 if (maxNumberOfConsistentResultsObtained = numberOfResultsRequired) then
-                    ConsistentResult mostConsistentResult
+                    return ConsistentResult mostConsistentResult
                 else
-                    WhenSomeInternal numberOfResultsRequired (restOfTasks |> List.ofSeq) newResults newFailedFuncs
+                    return! WhenSomeInternal numberOfResultsRequired (restOfTasks |> List.ofSeq) newResults newFailedFuncs
+    }
 
     // at the time of writing this, I only found a Task.WhenAny() equivalent function in the asyncF# world, called
     // "Async.WhenAny" in TomasP's tryJoinads source code, however it seemed a bit complex for me to wrap my head around
@@ -86,7 +87,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                  (jobs: seq<('T->'R)*Async<SuccessfulResultOrFailure<'R,'E>>>)
                  (resultsSoFar: List<'R>)
                  (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
-                 : ConsistencyResult<'T,'R,'E> =
+                 : Async<ConsistencyResult<'T,'R,'E>> =
         let tasks =
             jobs
                 |> Seq.map (fun (func,job) -> func,Async.StartAsTask job) |> List.ofSeq
@@ -97,27 +98,28 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                           (resultsSoFar: List<'R>)
                           (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
                           (retries: uint16)
-                              : 'R =
+                              : Async<'R> = async {
         match funcs with
         | [] ->
             if (resultsSoFar.Length = 0) then
                 if (failedFuncsSoFar.Length = 0) then
                     failwith "No more funcs provided and no exceptions so far, please report this bug"
                 if (retries = NUMBER_OF_RETRIES_TO_PERFORM) then
-                    raise (NoneAvailableException("Not available", failedFuncsSoFar.First() |> snd))
+                    let firstEx = failedFuncsSoFar.First() |> snd
+                    return raise (NoneAvailableException("Not available", firstEx))
                 else
                     let failedFuncs: List<'T->'R> = failedFuncsSoFar |> List.map fst
-                    QueryInternal args failedFuncs resultsSoFar [] (uint16 (retries + uint16 1))
+                    return! QueryInternal args failedFuncs resultsSoFar [] (uint16 (retries + uint16 1))
             else
                 let totalNumberOfSuccesfulResultsObtained = resultsSoFar.Length
                 let resultsOrderedByCount = MeasureConsistency resultsSoFar
                 match resultsOrderedByCount with
                 | [] ->
-                    failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
+                    return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
                 | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
-                    raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
-                                                        maxNumberOfConsistentResultsObtained,
-                                                        numberOfConsistentResponsesRequired))
+                    return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
+                                                               maxNumberOfConsistentResultsObtained,
+                                                               numberOfConsistentResponsesRequired))
 
         | someFuncs ->
 
@@ -143,12 +145,14 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                         }
                 }
 
-            let result =
+            let! result =
                 WhenSome numberOfConsistentResponsesRequired asyncJobsToRunInParallelAsAsync resultsSoFar failedFuncsSoFar
             match result with
-            | ConsistentResult consistentResult -> consistentResult
+            | ConsistentResult consistentResult ->
+                return consistentResult
             | InconsistentOrNotEnoughResults(allResultsSoFar,exceptions) ->
-                QueryInternal args (restOfFuncs |> List.ofSeq) allResultsSoFar (exceptions |> List.ofSeq) retries
+                return! QueryInternal args (restOfFuncs |> List.ofSeq) allResultsSoFar (exceptions |> List.ofSeq) retries
+    }
 
     member self.Query<'T,'R when 'R : equality> (args: 'T) (funcs: list<'T->'R>): Async<'R> =
         if not (funcs.Any()) then
@@ -157,6 +161,4 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
         if (funcs.Count() < numberOfConsistentResponsesRequired) then
             raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
                                     "funcs"))
-        async {
-            return QueryInternal args funcs [] [] (uint16 0)
-        }
+        QueryInternal args funcs [] [] (uint16 0)
