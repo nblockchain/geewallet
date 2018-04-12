@@ -23,10 +23,9 @@ type internal SuccessfulResultOrFailure<'R,'E when 'E :> Exception> =
 
 type internal ResultsSoFar<'R> = List<'R>
 type internal ExceptionsSoFar<'T,'R,'E> = seq<('T->'R)*'E>
-type internal UnfinishedTasks<'R,'E when 'E :> Exception> = seq<Task<SuccessfulResultOrFailure<'R,'E>>>
 type internal ConsistencyResult<'T,'R,'E when 'E :> Exception> =
     | ConsistentResult of 'R
-    | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'T,'R,'E>*UnfinishedTasks<'R,'E>
+    | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'T,'R,'E>
 
 type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResponsesRequired: int,
                                                           numberOfMaximumParallelJobs: int) =
@@ -50,7 +49,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                              : ConsistencyResult<'T,'R,'E> =
         match tasks with
         | [] ->
-            InconsistentOrNotEnoughResults(resultsSoFar,Seq.ofList failedFuncsSoFar,Seq.empty)
+            InconsistentOrNotEnoughResults(resultsSoFar,Seq.ofList failedFuncsSoFar)
         | someFuncAndTasks ->
             let theTasks = someFuncAndTasks |> Seq.map snd
             let taskToWaitForFirstFinishedTask = Task.WhenAny theTasks
@@ -148,10 +147,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                 WhenSome numberOfConsistentResponsesRequired asyncJobsToRunInParallelAsAsync resultsSoFar failedFuncsSoFar
             match result with
             | ConsistentResult consistentResult -> consistentResult
-            | InconsistentOrNotEnoughResults(allResultsSoFar,exceptions,unfinishedTasks) ->
-                let unfinishedTasksList = unfinishedTasks |> List.ofSeq
-                if unfinishedTasksList.Length <> 0 then
-                    failwith "Assertion failed: if results is not consistent enough, there should be no unfinished tasks"
+            | InconsistentOrNotEnoughResults(allResultsSoFar,exceptions) ->
                 QueryInternal args (restOfFuncs |> List.ofSeq) allResultsSoFar (exceptions |> List.ofSeq) retries
 
     member self.Query<'T,'R when 'R : equality> (args: 'T) (funcs: list<'T->'R>): Async<'R> =
