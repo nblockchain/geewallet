@@ -35,12 +35,17 @@ module Server =
     type ServerCannotBeResolvedException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
+    type ServerUnreachableException(message:string, innerException: Exception) =
+        inherit ConnectionUnsuccessfulException (message, innerException)
+
     type ServerChannelNegotiationException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
+    // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
     type CloudFlareError =
         | ConnectionTimeOut = 522
         | WebServerDown = 521
+        | OriginUnreachable = 523
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
@@ -85,6 +90,8 @@ module Server =
                     | None -> reraise()
                     | Some(httpReqEx) ->
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.ConnectionTimeOut))) then
+                            raise (ServerTimedOutException(exMsg, httpReqEx))
+                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.OriginUnreachable))) then
                             raise (ServerTimedOutException(exMsg, httpReqEx))
                         reraise()
                 | Some(webEx) ->
