@@ -4,30 +4,43 @@ open System
 
 open GWallet.Backend
 
-exception ServerTooOld of string
+type ElectrumClient (electrumServer: ElectrumServer) =
 
-type internal ElectrumClient (electrumServer: ElectrumServer) =
     let Init(): StratumClient =
-        if electrumServer.UnencryptedPort.IsNone then
-            raise(JsonRpcSharp.TlsNotSupportedYetInGWalletException())
+        electrumServer.CheckCompatibility()
 
         let jsonRpcClient = new JsonRpcSharp.Client(electrumServer.Fqdn, electrumServer.UnencryptedPort.Value)
         let stratumClient = new StratumClient(jsonRpcClient)
 
         // this is the last version of Electrum released at the time of writing this module
-        let CURRENT_ELECTRUM_FAKED_VERSION = Version("2.8.3")
+        let CURRENT_ELECTRUM_FAKED_VERSION = Version("3.0.5")
 
         // last version of the protocol [1] as of electrum's source code [2] at the time of
         // writing this... actually this changes rarely, last change was for 2.4 version [3]
-        // [1] http://docs.electrum.org/en/latest/protocol.html
+        // (changes documented here[4])
+        // [1] https://electrumx.readthedocs.io/en/latest/protocol.html
         // [2] https://github.com/spesmilo/electrum/blob/master/lib/version.py
         // [3] https://github.com/spesmilo/electrum/commit/118052d81597eff3eb636d242eacdd0437dabdd6
-        let PROTOCOL_VERSION_SUPPORTED = Version("0.10")
+        // [4] https://electrumx.readthedocs.io/en/latest/protocol-changes.html
+        let PROTOCOL_VERSION_SUPPORTED = Version("1.0")
 
-        let versionSupportedByServer = stratumClient.ServerVersion CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION_SUPPORTED
+        let versionSupportedByServer =
+            try
+                stratumClient.ServerVersion CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION_SUPPORTED
+            with
+            | :? ElectrumServerReturningErrorException as ex ->
+                if (ex.ErrorCode = 1 && ex.Message.StartsWith "unsupported protocol version" &&
+                                        ex.Message.EndsWith (PROTOCOL_VERSION_SUPPORTED.ToString())) then
+
+                    // FIXME: even if this ex is already handled to ignore the server, we should report to sentry as WARN
+                    raise (ServerTooNewException(sprintf "Version of server rejects our client version (%s)"
+                                                         (PROTOCOL_VERSION_SUPPORTED.ToString())))
+                else
+                    reraise()
         if versionSupportedByServer < PROTOCOL_VERSION_SUPPORTED then
-            raise (ServerTooOld (sprintf "Version of server is older (%s) than the client (%s)"
-                                        (versionSupportedByServer.ToString()) (PROTOCOL_VERSION_SUPPORTED.ToString())))
+            raise (ServerTooOldException (sprintf "Version of server is older (%s) than the client (%s)"
+                                                  (versionSupportedByServer.ToString())
+                                                  (PROTOCOL_VERSION_SUPPORTED.ToString())))
         stratumClient
 
     let stratumClient = Init()

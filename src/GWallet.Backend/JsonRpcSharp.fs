@@ -27,9 +27,6 @@ module JsonRpcSharp =
     type NoResponseReceivedAfterRequestException() =
        inherit ConnectionUnsuccessfulException()
 
-    type TlsNotSupportedYetInGWalletException() =
-       inherit ConnectionUnsuccessfulException()
-
     type ServerRefusedException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
@@ -136,14 +133,26 @@ module JsonRpcSharp =
                 let socketException = FSharpUtil.FindException<SocketException>(ex)
                 if (socketException.IsNone) then
                     reraise()
+
                 if (socketException.Value.ErrorCode = int SocketError.ConnectionRefused) then
                     raise(ServerRefusedException(exceptionMsg, ex))
+
                 if (socketException.Value.ErrorCode = int SocketError.TimedOut) then
                     raise(ServerTimedOutException(exceptionMsg, ex))
+
+                // probably misleading errorCode (see fixed mono bug: https://github.com/mono/mono/pull/8041 )
+                // TODO: remove this when Mono X.Y (where X.Y=version to introduce this bugfix) is stable
+                //       everywhere (probably 8 years from now?), and see if we catch it again in sentry
+                if (socketException.Value.ErrorCode = int SocketError.AddressFamilyNotSupported) then
+                    raise(ServerUnreachableException(exceptionMsg, ex))
+
+                if (socketException.Value.ErrorCode = int SocketError.HostUnreachable) then
+                    raise(ServerUnreachableException(exceptionMsg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.NetworkUnreachable) then
                     raise(ServerUnreachableException(exceptionMsg, ex))
                 if (socketException.Value.ErrorCode = int SocketError.AddressNotAvailable) then
                     raise(ServerUnreachableException(exceptionMsg, ex))
+
                 raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
 
         member self.Request (request: string): string =

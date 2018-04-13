@@ -35,6 +35,9 @@ module Server =
     type ServerCannotBeResolvedException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
+    type ServerChannelNegotiationException(message:string, innerException: Exception) =
+       inherit ConnectionUnsuccessfulException (message, innerException)
+
     type CloudFlareError =
         | ConnectionTimeOut = 522
         | WebServerDown = 521
@@ -87,6 +90,8 @@ module Server =
                 | Some(webEx) ->
                     if (webEx.Status = WebExceptionStatus.NameResolutionFailure) then
                         raise (ServerCannotBeResolvedException(exMsg, webEx))
+                    if (webEx.Status = WebExceptionStatus.SecureChannelFailure) then
+                        raise (ServerChannelNegotiationException(exMsg, webEx))
                     reraise()
         if not finished then
             raise (ServerTimedOutException(exMsg))

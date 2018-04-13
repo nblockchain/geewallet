@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Linq
 #load "Infra.fs"
 open FSX.Infrastructure
 
@@ -43,12 +44,32 @@ set -e
 exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
 """
 
+let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+
+let PrintNugetVersion () =
+    let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
+    if not (nugetExe.Exists) then
+        false
+    else
+        let nugetProc = Process.Execute (sprintf "mono %s" nugetExe.FullName, false, true)
+        let firstChunk = nugetProc.Output.First()
+        match firstChunk with
+        | StdOut stdOut ->
+            Console.WriteLine stdOut
+            true
+        | StdErr stdErr ->
+            Process.PrintToScreen nugetProc.Output
+            Console.WriteLine()
+            failwith "nuget process' output contained errors ^"
+
 let JustBuild binaryConfig =
     Console.WriteLine "Compiling gwallet..."
     let xbuildParams = sprintf "%s /p:Configuration=%s"
                                BACKEND_SOLUTION_FILE (binaryConfig.ToString())
     let xbuild = Process.Execute (sprintf "xbuild %s" xbuildParams, true, false)
     if (xbuild.ExitCode <> 0) then
+        Console.Error.WriteLine "xbuild build failed"
+        PrintNugetVersion() |> ignore
         Environment.Exit 1
 
     Directory.CreateDirectory(launcherScriptPath.Directory.FullName) |> ignore
@@ -73,11 +94,17 @@ match maybeTarget with
 | Some("release") ->
     JustBuild BinaryConfig.Release
 
+| Some "nuget" ->
+    Console.WriteLine "This target is for debugging purposes."
+
+    if not (PrintNugetVersion()) then
+        Console.Error.WriteLine "Nuget executable has not been downloaded yet, try `make` alone first"
+        Environment.Exit 1
+
 | Some("zip") ->
     let zipCommand = "zip"
     MakeCheckCommand zipCommand
 
-    let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
     let version = Misc.GetCurrentVersion(rootDir).ToString()
 
     let release = BinaryConfig.Release

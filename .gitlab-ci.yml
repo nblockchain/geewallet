@@ -20,6 +20,8 @@ build:
   stage: build
   script:
     - time (./configure.sh && make && make install)
+    # so that we log the version of nuget for when it works
+    - make nuget
 
 test:
   stage: test

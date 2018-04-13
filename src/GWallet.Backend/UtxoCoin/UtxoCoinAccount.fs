@@ -67,7 +67,7 @@ module internal Account =
             List.map (fun (es:ElectrumServer) ->
                           (fun (arg: 'T) ->
                               try
-                                  let ec = new ElectrumClient(es)
+                                  use ec = new ElectrumClient(es)
                                   ecFunc ec arg
                               with
                               | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
@@ -77,8 +77,8 @@ module internal Account =
                                   let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
                                   raise (ElectrumServerDiscarded(msg, ex))
                               | :? ElectrumServerReturningErrorException as ex ->
-                                  failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request sent from client: '%s'"
-                                                    es.Fqdn ex.Message ex.ErrorCode ex.OriginalRequest)
+                                  failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
+                                                    es.Fqdn ex.Message ex.ErrorCode ex.OriginalRequest ex.OriginalResponse)
                            )
                      )
                      randomizedServers

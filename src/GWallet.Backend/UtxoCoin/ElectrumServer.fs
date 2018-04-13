@@ -10,7 +10,25 @@ open FSharp.Data.JsonExtensions
 
 open GWallet.Backend
 
-type internal ElectrumServer =
+type IncompatibleServerException(message) =
+    inherit JsonRpcSharp.ConnectionUnsuccessfulException(message)
+
+type IncompatibleProtocolException(message) =
+    inherit IncompatibleServerException(message)
+
+type ServerTooNewException(message) =
+    inherit IncompatibleProtocolException(message)
+
+type ServerTooOldException(message) =
+    inherit IncompatibleProtocolException(message)
+
+type TlsNotSupportedYetInGWalletException(message) =
+   inherit IncompatibleServerException(message)
+
+type TorNotSupportedYetInGWalletException(message) =
+   inherit IncompatibleServerException(message)
+
+type ElectrumServer =
     {
         Fqdn: string;
         Pruning: string;
@@ -18,8 +36,13 @@ type internal ElectrumServer =
         UnencryptedPort: Option<int>;
         Version: string;
     }
+    member this.CheckCompatibility (): unit =
+        if this.UnencryptedPort.IsNone then
+            raise(TlsNotSupportedYetInGWalletException("TLS not yet supported"))
+        if this.Fqdn.EndsWith ".onion" then
+            raise(TorNotSupportedYetInGWalletException("Tor(onion) not yet supported"))
 
-module internal ElectrumServerSeedList =
+module ElectrumServerSeedList =
 
     let private ExtractServerListFromEmbeddedResource resourceName =
         let assembly = Assembly.GetExecutingAssembly()
@@ -61,16 +84,27 @@ module internal ElectrumServerSeedList =
             }
         servers |> List.ofSeq
 
-    let defaultBtcList =
-        ExtractServerListFromEmbeddedResource "btc-servers.json"
+    let private FilterCompatibleServer (electrumServer: ElectrumServer) =
+        try
+            electrumServer.CheckCompatibility()
+            true
+        with
+        | :? IncompatibleServerException -> false
 
-    let defaultLtcList =
+    let DefaultBtcList =
+        ExtractServerListFromEmbeddedResource "btc-servers.json"
+            |> Seq.filter FilterCompatibleServer
+            |> List.ofSeq
+
+    let DefaultLtcList =
         ExtractServerListFromEmbeddedResource "ltc-servers.json"
+            |> Seq.filter FilterCompatibleServer
+            |> List.ofSeq
 
     let Randomize currency =
         let serverList =
             match currency with
-            | BTC -> defaultBtcList
-            | LTC -> defaultLtcList
+            | BTC -> DefaultBtcList
+            | LTC -> DefaultLtcList
             | _ -> failwithf "Currency %s is not UTXO" (currency.ToString())
         Shuffler.Unsort serverList

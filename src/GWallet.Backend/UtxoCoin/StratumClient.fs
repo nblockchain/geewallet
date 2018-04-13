@@ -1,21 +1,10 @@
 ﻿namespace GWallet.Backend.UtxoCoin
 
 open System
-open System.Text.RegularExpressions
 
 open Newtonsoft.Json
-open Newtonsoft.Json.Serialization
 
 open GWallet.Backend
-
-type private PascalCase2LowercasePlusUnderscoreContractResolver() =
-    inherit DefaultContractResolver()
-
-    // https://stackoverflow.com/a/20952003/544947
-    let pascalToUnderScoreRegex = Regex("((?<=.)[A-Z][a-zA-Z]*)|((?<=[a-zA-Z])\d+)", RegexOptions.Multiline)
-    let pascalToUnderScoreReplacementExpression = "_$1$2"
-    override this.ResolvePropertyName (propertyName: string) =
-        pascalToUnderScoreRegex.Replace(propertyName, pascalToUnderScoreReplacementExpression).ToLower()
 
 // can't make this type below private, or else Newtonsoft.Json will serialize it incorrectly
 type Request =
@@ -91,42 +80,43 @@ type public ElectrumServerReturningErrorInJsonResponseException(message: string,
     member val ErrorCode: int =
         code with get
 
-type public ElectrumServerReturningErrorException(message: string, code: int, originalRequest: string) =
+type public ElectrumServerReturningErrorException(message: string, code: int,
+                                                  originalRequest: string, originalResponse: string) =
     inherit ElectrumServerReturningErrorInJsonResponseException(message, code)
 
     member val OriginalRequest: string =
         originalRequest with get
 
-type public ElectrumServerReturningInternalErrorException(message: string, code: int, originalRequest: string) =
-    inherit ElectrumServerReturningErrorException(message, code, originalRequest)
+    member val OriginalResponse: string =
+        originalResponse with get
+
+type public ElectrumServerReturningInternalErrorException(message: string, code: int,
+                                                          originalRequest: string, originalResponse: string) =
+    inherit ElectrumServerReturningErrorException(message, code, originalRequest, originalResponse)
 
 type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
 
-    let jsonSerializerSettings = JsonSerializerSettings()
-    do jsonSerializerSettings.ContractResolver <- PascalCase2LowercasePlusUnderscoreContractResolver()
-
-    //FIXME: make the above and below converge into one, and that is only initialized once
-    static member public GetDefaultJsonSerializationSettings(): JsonSerializerSettings =
-        let jsonSerializerSettings = JsonSerializerSettings()
-        jsonSerializerSettings.ContractResolver <- PascalCase2LowercasePlusUnderscoreContractResolver()
-        jsonSerializerSettings
+    let Serialize(req: Request): string =
+        JsonConvert.SerializeObject(req, Formatting.None,
+                                    Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
 
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): 'R =
+        let rawResponse = jsonRpcClient.Request jsonRequest
         try
-            let rawResponse = jsonRpcClient.Request jsonRequest
             StratumClient.Deserialize<'R> rawResponse
         with
         | :? ElectrumServerReturningErrorInJsonResponseException as ex ->
             if (ex.ErrorCode = -32603) then
-                raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest))
-            raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest))
+                raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
+            raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
 
     static member public Deserialize<'T> (result: string): 'T =
         let resultTrimmed = result.Trim()
         let maybeError =
             try
-                JsonConvert.DeserializeObject<ErrorResult>(resultTrimmed, StratumClient.GetDefaultJsonSerializationSettings())
+                JsonConvert.DeserializeObject<ErrorResult>(resultTrimmed,
+                                                           Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
             with
             | ex -> raise(new Exception(sprintf "Failed deserializing JSON response (to check for error) '%s'" resultTrimmed, ex))
 
@@ -134,7 +124,8 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
             raise(ElectrumServerReturningErrorInJsonResponseException(maybeError.Error.Message, maybeError.Error.Code))
 
         try
-            JsonConvert.DeserializeObject<'T>(resultTrimmed, StratumClient.GetDefaultJsonSerializationSettings())
+            JsonConvert.DeserializeObject<'T>(resultTrimmed,
+                                              Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
         with
         | ex -> raise(new Exception(sprintf "Failed deserializing JSON response '%s'" resultTrimmed, ex))
 
@@ -144,7 +135,7 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
             Method = "blockchain.address.get_balance";
             Params = [address]
         }
-        let json = JsonConvert.SerializeObject(obj, Formatting.None, jsonSerializerSettings)
+        let json = Serialize obj
 
         self.Request<BlockchainAddressGetBalanceResult> json
 
@@ -168,7 +159,7 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
         // this below serializes to:
         //  (sprintf "{ \"id\": 0, \"method\": \"server.version\", \"params\": [ \"%s\", \"%s\" ] }"
         //      CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION)
-        let json = JsonConvert.SerializeObject(obj, Formatting.None, jsonSerializerSettings)
+        let json = Serialize obj
         let resObj = self.Request<ServerVersionResult> json
 
         // contradicting the spec, Result could contain "ElectrumX x.y.z.t" instead of just "x.y.z.t"
@@ -183,7 +174,7 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
             Method = "blockchain.address.listunspent";
             Params = [address]
         }
-        let json = JsonConvert.SerializeObject(obj, Formatting.None, jsonSerializerSettings)
+        let json = Serialize obj
         let resObj = self.Request<BlockchainAddressListUnspentResult> json
         resObj
 
@@ -193,7 +184,7 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
             Method = "blockchain.transaction.get";
             Params = [txHash]
         }
-        let json = JsonConvert.SerializeObject(obj, Formatting.None, jsonSerializerSettings)
+        let json = Serialize obj
 
         self.Request<BlockchainTransactionGetResult> json
 
@@ -203,7 +194,7 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
             Method = "blockchain.estimatefee";
             Params = [numBlocksTarget]
         }
-        let json = JsonConvert.SerializeObject(obj, Formatting.None, jsonSerializerSettings)
+        let json = Serialize obj
 
         self.Request<BlockchainEstimateFeeResult> json
 
@@ -213,7 +204,7 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
             Method = "blockchain.transaction.broadcast";
             Params = [txInHex]
         }
-        let json = JsonConvert.SerializeObject(obj, Formatting.None, jsonSerializerSettings)
+        let json = Serialize obj
 
         self.Request<BlockchainTransactionBroadcastResult> json
 
