@@ -80,7 +80,6 @@ module Parallelization =
         let someLongTime = TimeSpan.FromSeconds 10.0
 
         let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 2
-        // because this test doesn't deal with inconsistencies
         let NUMBER_OF_CONSISTENT_RESULTS = 2
 
         let func1 (arg: string) =
