@@ -44,6 +44,10 @@ module Server =
     type ServerMisconfiguredException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
+    type UnhandledWebException(status: WebExceptionStatus, innerException: Exception) =
+       inherit Exception (sprintf "GWallet not prepared for this WebException with Status[%d]" (int status),
+                          innerException)
+
     // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
     type CloudFlareError =
         | ConnectionTimeOut = 522
@@ -114,7 +118,8 @@ module Server =
                         raise (ServerCannotBeResolvedException(exMsg, webEx))
                     if (webEx.Status = WebExceptionStatus.SecureChannelFailure) then
                         raise (ServerChannelNegotiationException(exMsg, webEx))
-                    reraise()
+                    raise (UnhandledWebException(webEx.Status, webEx))
+
         if not finished then
             raise (ServerTimedOutException(exMsg))
         task.Result
