@@ -29,6 +29,7 @@ type WelcomePage() =
                 let! accounts = Account.CreateBaseAccount passphrase.Text
                 Device.BeginInvokeOnMainThread(fun _ ->
                     let balancesPage = BalancesPage()
+                    NavigationPage.SetHasNavigationBar(balancesPage, false)
                     this.Navigation.InsertPageBefore(balancesPage, this)
                     this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
                 )

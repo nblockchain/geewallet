@@ -16,7 +16,10 @@ module Initialization =
 
         let accounts = Account.GetAllActiveAccounts()
         if not (accounts.Any()) then
-            NavigationPage(WelcomePage()) :> Page
+            let welcomePage = WelcomePage()
+            let navPage = NavigationPage welcomePage
+            NavigationPage.SetHasNavigationBar(welcomePage, false)
+            navPage :> Page
         else
             BalancesPage() :> Page
 
