@@ -46,6 +46,7 @@ module Server =
         | ConnectionTimeOut = 522
         | WebServerDown = 521
         | OriginUnreachable = 523
+        | OriginSslHandshakeError = 525
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
@@ -93,6 +94,8 @@ module Server =
                             raise (ServerTimedOutException(exMsg, httpReqEx))
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.OriginUnreachable))) then
                             raise (ServerTimedOutException(exMsg, httpReqEx))
+                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.OriginSslHandshakeError))) then
+                            raise (ServerChannelNegotiationException(exMsg, httpReqEx))
                         reraise()
                 | Some(webEx) ->
                     if (webEx.Status = WebExceptionStatus.NameResolutionFailure) then
