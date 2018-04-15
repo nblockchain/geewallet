@@ -36,7 +36,7 @@ let binInstallPath = DirectoryInfo (Path.Combine (prefix, "bin"))
 
 let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", "gwallet"))
 let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__, "..",
-                                                   "src", DEFAULT_FRONTEND, "bin", "Debug"))
+                                                   "src", DEFAULT_FRONTEND, "bin", "Release"))
 
 let wrapperScript = """#!/bin/sh
 set -e
@@ -87,6 +87,7 @@ let GetPathToFrontend (binaryConfig: BinaryConfig) =
 let maybeTarget = GatherTarget (Util.FsxArguments(), None)
 match maybeTarget with
 | None ->
+    Console.WriteLine "Building gwallet in DEBUG mode..."
     JustBuild BinaryConfig.Debug
 
 | Some("release") ->
@@ -141,6 +142,9 @@ match maybeTarget with
         Environment.Exit 1
 
 | Some("install") ->
+    Console.WriteLine "Building gwallet in RELEASE mode..."
+    JustBuild BinaryConfig.Release
+
     Console.WriteLine "Installing gwallet..."
     Console.WriteLine ()
     Directory.CreateDirectory(libInstallPath.FullName) |> ignore
