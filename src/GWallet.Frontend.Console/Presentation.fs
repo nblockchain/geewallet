@@ -13,10 +13,12 @@ module Presentation =
     let Error(message: string): unit =
         Console.Error.WriteLine("Error: " + message)
 
+    // FIXME: share code between Frontend.Console and Frontend.XF
     // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh
     let ShowSaneDate (date: DateTime): string =
         date.ToString("dd-MMM-yyyy")
 
+    // FIXME: share code between Frontend.Console and Frontend.XF
     let ShowDecimalForHumans currencyType (amount: decimal): string =
         let amountOfDecimalsToShow =
             match currencyType with

@@ -7,11 +7,11 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="FrontendHelpers.fs" />
-    <Compile Include="ReceivePage.xaml.fs">
-      <DependentUpon>ReceivePage.xaml</DependentUpon>
-    </Compile>
     <Compile Include="SendPage.xaml.fs">
       <DependentUpon>SendPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="ReceivePage.xaml.fs">
+      <DependentUpon>ReceivePage.xaml</DependentUpon>
     </Compile>
     <Compile Include="BalancesPage.xaml.fs">
       <DependentUpon>BalancesPage.xaml</DependentUpon>

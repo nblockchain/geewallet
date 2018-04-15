@@ -9,9 +9,6 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
-type CurrencyType =
-    Fiat | Crypto
-
 type TransactionInfo =
     { Account: NormalAccount;
       Metadata: IBlockchainFeeInfo;
@@ -32,19 +29,6 @@ type SendPage(account: NormalAccount) =
         | Cached(theCachedBalance,_) -> theCachedBalance
 
     let lastCachedBalance: decimal = GetBalance()
-
-    //FIXME: borrowed this function from Frontend.Console, reuse
-    let ShowDecimalForHumans currencyType (amount: decimal): string =
-        let amountOfDecimalsToShow =
-            match currencyType with
-            | CurrencyType.Fiat -> 2
-            | CurrencyType.Crypto -> 5
-
-        Math.Round(amount, amountOfDecimalsToShow)
-
-            // line below is to add thousand separators and not show zeroes on the right...
-            .ToString("N" + amountOfDecimalsToShow.ToString())
-
 
     member private this.ReenableButtons() =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
@@ -225,7 +209,8 @@ type SendPage(account: NormalAccount) =
                     txFeeInfoTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<IBlockchainFeeInfo>) ->
                         let txMetadataWithFeeEstimation = txMetadataWithFeeEstimationTask.Result
                         let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s"
-                                              (txMetadataWithFeeEstimation.FeeValue |> ShowDecimalForHumans CurrencyType.Crypto)
+                                              (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto,
+                                                                                    txMetadataWithFeeEstimation.FeeValue))
                                               (txMetadataWithFeeEstimation.Currency.ToString())
                         Device.BeginInvokeOnMainThread(fun _ ->
                             let askFeeTask = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")

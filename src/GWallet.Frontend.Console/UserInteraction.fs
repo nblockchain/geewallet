@@ -145,6 +145,7 @@ module UserInteraction =
                 else
                     Some(allCurrencies.ElementAt(optionParsed - 1))
 
+    // FIXME: share code between Frontend.Console and Frontend.XF
     let private BalanceInUsdString balance maybeUsdValue =
         match maybeUsdValue with
         | NotFresh(NotAvailable) -> Presentation.ExchangeRateUnreachableMsg

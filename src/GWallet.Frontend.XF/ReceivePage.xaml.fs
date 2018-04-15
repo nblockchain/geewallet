@@ -13,7 +13,7 @@ open ZXing.Common
 
 open GWallet.Backend
 
-type ReceivePage(account: NormalAccount) as this =
+type ReceivePage(account: NormalAccount, accountBalance: Label, fiatBalance: Label) as this =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
@@ -24,8 +24,19 @@ type ReceivePage(account: NormalAccount) as this =
         this.Init()
 
     member this.Init() =
-        let titleLabel = base.FindByName<Label>("receiveTitleLabel")
-        titleLabel.Text <- "Receive " + acc.Currency.ToString()
+        let balanceLabel = mainLayout.FindByName<Label>("balanceLabel")
+        balanceLabel.Text <- accountBalance.Text
+        balanceLabel.FontSize <- FrontendHelpers.BigFontSize
+        let fiatBalanceLabel = mainLayout.FindByName<Label>("fiatBalanceLabel")
+        fiatBalanceLabel.Text <- fiatBalance.Text
+        fiatBalanceLabel.FontSize <- FrontendHelpers.MediumFontSize
+
+        // FIXME: pass the decimal instead of doing the HACK below:
+        if not (accountBalance.Text.StartsWith "0 ") then
+            mainLayout.FindByName<Button>("sendButton").IsEnabled <- true
+
+        // TODO: add a "List transactions" button using Device.OpenUri() with etherscan, gastracker, etc
+
         let size = 200
         let encodingOptions = EncodingOptions(Height = size,
                                               Width = size)
@@ -43,6 +54,11 @@ type ReceivePage(account: NormalAccount) as this =
             this.Navigation.PopModalAsync() |> FrontendHelpers.DoubleCheckCompletion
         ) |> ignore
         mainLayout.Children.Add(backButton)
+        ()
+
+    member this.OnSendPaymentClicked(sender: Object, args: EventArgs) =
+        this.Navigation.PushModalAsync(SendPage(account))
+            |> FrontendHelpers.DoubleCheckCompletion
         ()
 
     member this.OnCopyToClipboardClicked(sender: Object, args: EventArgs) =
