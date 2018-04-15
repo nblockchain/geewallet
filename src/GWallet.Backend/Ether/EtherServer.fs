@@ -41,6 +41,9 @@ module Server =
     type ServerChannelNegotiationException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
+    type ServerMisconfiguredException(message:string, innerException: Exception) =
+       inherit ConnectionUnsuccessfulException (message, innerException)
+
     // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
     type CloudFlareError =
         | ConnectionTimeOut = 522
@@ -88,7 +91,16 @@ module Server =
                 | None ->
                     let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
                     match maybeHttpReqEx with
-                    | None -> reraise()
+                    | None ->
+                        let maybeRpcResponseEx =
+                            FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex
+                        match maybeRpcResponseEx with
+                        | None ->
+                            reraise()
+                        | Some rpcResponseEx ->
+                            if (rpcResponseEx.Message.Contains "pruning=archive") then
+                                raise (ServerMisconfiguredException(exMsg, rpcResponseEx))
+                            reraise()
                     | Some(httpReqEx) ->
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.ConnectionTimeOut))) then
                             raise (ServerTimedOutException(exMsg, httpReqEx))
