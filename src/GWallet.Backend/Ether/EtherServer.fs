@@ -41,11 +41,19 @@ module Server =
     type ServerChannelNegotiationException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
+    type ServerMisconfiguredException(message:string, innerException: Exception) =
+       inherit ConnectionUnsuccessfulException (message, innerException)
+
+    type UnhandledWebException(status: WebExceptionStatus, innerException: Exception) =
+       inherit Exception (sprintf "GWallet not prepared for this WebException with Status[%d]" (int status),
+                          innerException)
+
     // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
     type CloudFlareError =
         | ConnectionTimeOut = 522
         | WebServerDown = 521
         | OriginUnreachable = 523
+        | OriginSslHandshakeError = 525
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
@@ -87,19 +95,31 @@ module Server =
                 | None ->
                     let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
                     match maybeHttpReqEx with
-                    | None -> reraise()
+                    | None ->
+                        let maybeRpcResponseEx =
+                            FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex
+                        match maybeRpcResponseEx with
+                        | None ->
+                            reraise()
+                        | Some rpcResponseEx ->
+                            if (rpcResponseEx.Message.Contains "pruning=archive") then
+                                raise (ServerMisconfiguredException(exMsg, rpcResponseEx))
+                            reraise()
                     | Some(httpReqEx) ->
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.ConnectionTimeOut))) then
                             raise (ServerTimedOutException(exMsg, httpReqEx))
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.OriginUnreachable))) then
                             raise (ServerTimedOutException(exMsg, httpReqEx))
+                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.OriginSslHandshakeError))) then
+                            raise (ServerChannelNegotiationException(exMsg, httpReqEx))
                         reraise()
                 | Some(webEx) ->
                     if (webEx.Status = WebExceptionStatus.NameResolutionFailure) then
                         raise (ServerCannotBeResolvedException(exMsg, webEx))
                     if (webEx.Status = WebExceptionStatus.SecureChannelFailure) then
                         raise (ServerChannelNegotiationException(exMsg, webEx))
-                    reraise()
+                    raise (UnhandledWebException(webEx.Status, webEx))
+
         if not finished then
             raise (ServerTimedOutException(exMsg))
         task.Result

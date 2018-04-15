@@ -4,7 +4,7 @@ open System
 open System.Linq
 open System.Threading.Tasks
 
-type NoneAvailableException<'E when 'E :> Exception> (message:string, lastException: 'E) =
+type NoneAvailableException (message:string, lastException: Exception) =
    inherit Exception (message, lastException)
 
 

@@ -35,7 +35,12 @@ module Account =
                         let! balance = GetBalanceInternal account onlyConfirmed
                         return Some balance
                     with
-                    | :? NoneAvailableException<_> as ex -> return None
+                    | ex ->
+                        if (FSharpUtil.FindException<NoneAvailableException> ex).IsSome then
+                            return None
+                        else
+                            // mmm, somehow the compiler doesn't allow me to just use "return reraise()" below, weird:
+                            return raise (Exception("Call to access the balance somehow returned unexpected error", ex))
                 }
 
             match maybeBalance with
