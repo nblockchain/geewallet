@@ -148,6 +148,7 @@ module internal Account =
     // 2inputs -> 386(total): 124+(X*2)
     // 3inputs -> 559(total): 165+(X*3)  ... therefore X = 131?
     // FIXME: anyway I should use NBitcoin's estimation facilicities
+    //        (i.e. by using TransactionBuilder, however, not before this bug gets fixed upstream: https://github.com/MetacoSA/NBitcoin/issues/396 )
     let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 131
 
     let EstimateFee account (amount: decimal) (destination: string): Async<TransactionMetadata> = async {
