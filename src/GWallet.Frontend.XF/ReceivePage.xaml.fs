@@ -17,7 +17,7 @@ type ReceivePage(account: NormalAccount, accountBalance: Label, fiatBalance: Lab
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
-    let acc = account :> IAccount
+    let baseAccount = account :> IAccount
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     do
@@ -43,7 +43,7 @@ type ReceivePage(account: NormalAccount, accountBalance: Label, fiatBalance: Lab
         let barCode = ZXingBarcodeImageView(HorizontalOptions = LayoutOptions.Center,
                                             VerticalOptions = LayoutOptions.Center,
                                             BarcodeFormat = BarcodeFormat.QR_CODE,
-                                            BarcodeValue = acc.PublicAddress,
+                                            BarcodeValue = baseAccount.PublicAddress,
                                             HeightRequest = float size,
                                             WidthRequest = float size,
                                             BarcodeOptions = encodingOptions)
@@ -65,5 +65,5 @@ type ReceivePage(account: NormalAccount, accountBalance: Label, fiatBalance: Lab
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
         FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
 
-        CrossClipboard.Current.SetText (account :> IAccount).PublicAddress
+        CrossClipboard.Current.SetText baseAccount.PublicAddress
         ()
