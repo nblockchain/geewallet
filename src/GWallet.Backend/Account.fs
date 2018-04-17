@@ -157,14 +157,18 @@ module Account =
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
     // broadcast it even if you sent it
-    let BroadcastTransaction (trans: SignedTransaction<_>) =
-        let currency = trans.TransactionInfo.Proposal.Currency
-        if currency.IsEtherBased() then
-            Ether.Account.BroadcastTransaction trans
-        elif currency.IsUtxo() then
-            UtxoCoin.Account.BroadcastTransaction currency trans
-        else
-            failwith (sprintf "Unknown currency %A" currency)
+    let BroadcastTransaction (trans: SignedTransaction<_>): Async<Uri> =
+        async {
+            let currency = trans.TransactionInfo.Proposal.Currency
+            let! txId =
+                if currency.IsEtherBased() then
+                    Ether.Account.BroadcastTransaction trans
+                elif currency.IsUtxo() then
+                    UtxoCoin.Account.BroadcastTransaction currency trans
+                else
+                    failwith (sprintf "Unknown currency %A" currency)
+            return BlockExplorer.GetTransaction currency txId
+        }
 
     let SignTransaction (account: NormalAccount)
                         (destination: string)
@@ -241,18 +245,23 @@ module Account =
         ValidateAddress baseAccount.Currency destination
 
         let currency = (account:>IAccount).Currency
-        if currency.IsUtxo() then
-            match txMetadata with
-            | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
-                UtxoCoin.Account.SendPayment account btcTxMetadata destination amount password
-            | _ -> failwith "fee for BTC currency should be Bitcoin.MinerFee type"
-        elif currency.IsEtherBased() then
-            match txMetadata with
-            | :? Ether.TransactionMetadata as etherTxMetadata ->
-                Ether.Account.SendPayment account etherTxMetadata destination amount password
-            | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
-        else
-            failwith (sprintf "Unknown currency %A" currency)
+
+        async {
+            let! txId =
+                if currency.IsUtxo() then
+                    match txMetadata with
+                    | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
+                        UtxoCoin.Account.SendPayment account btcTxMetadata destination amount password
+                    | _ -> failwith "fee for BTC currency should be Bitcoin.MinerFee type"
+                elif currency.IsEtherBased() then
+                    match txMetadata with
+                    | :? Ether.TransactionMetadata as etherTxMetadata ->
+                        Ether.Account.SendPayment account etherTxMetadata destination amount password
+                    | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
+                else
+                    failwith (sprintf "Unknown currency %A" currency)
+            return BlockExplorer.GetTransaction currency txId
+        }
 
     let SignUnsignedTransaction (account)
                                 (unsignedTrans: UnsignedTransaction<IBlockchainFeeInfo>)

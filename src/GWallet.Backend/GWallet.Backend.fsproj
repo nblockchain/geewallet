@@ -214,6 +214,7 @@
     <Compile Include="Ether\TokenManager.fs" />
     <Compile Include="Ether\EtherServer.fs" />
     <Compile Include="Ether\EtherAccount.fs" />
+    <Compile Include="BlockExplorer.fs" />
     <Compile Include="Account.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="Infrastructure.fs" />
