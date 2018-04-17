@@ -207,25 +207,50 @@ type SendPage(account: NormalAccount) =
                         Account.EstimateFee account amount destinationAddress
                             |> Async.StartAsTask
 
+                    let usdRateForCurrency = FiatValueEstimation.UsdValue currency
+
                     txFeeInfoTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<IBlockchainFeeInfo>) ->
-                        let txMetadataWithFeeEstimation = txMetadataWithFeeEstimationTask.Result
-                        let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s"
-                                              (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto,
-                                                                                    txMetadataWithFeeEstimation.FeeValue))
-                                              (txMetadataWithFeeEstimation.Currency.ToString())
-                        Device.BeginInvokeOnMainThread(fun _ ->
-                            let askFeeTask = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")
+                        match usdRateForCurrency with
+                        | NotFresh _ ->
+                            // this probably would never happen, because without internet connection we may get
+                            // then txFeeInfoTask throw before... so that's why I write the TODO below...
+                            Device.BeginInvokeOnMainThread(fun _ ->
+                                let alertInternetConnTask =
+                                    this.DisplayAlert("Alert",
+                                                      // TODO: support cold storage mode here
+                                                      "Internet connection not available at the moment, try again later",
+                                                      "OK")
+                                alertInternetConnTask.ContinueWith(fun _ -> this.ReenableButtons())
+                                    |> FrontendHelpers.DoubleCheckCompletion
+                            )
+                        | Fresh someUsdValue ->
+                            if (txMetadataWithFeeEstimationTask.Exception <> null) then
+                                raise txMetadataWithFeeEstimationTask.Exception
+                            let txMetadataWithFeeEstimation = txMetadataWithFeeEstimationTask.Result
+                            let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
+                            let feeInFiatValue = someUsdValue * feeInCrypto
+                            let feeInFiatValueStr = sprintf "~ %s USD"
+                                                            (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat,
+                                                                                                  feeInFiatValue))
 
-                            // FIXME: allow user to specify fiat and/or allbalance
-                            let transferAmount = TransferAmount(amount, lastCachedBalance - amount)
-                            let txInfo = { Account = account;
-                                           Metadata = txMetadataWithFeeEstimation;
-                                           Amount = transferAmount;
-                                           Destination = destinationAddress;
-                                           Passphrase = passphrase.Text; }
+                            let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s (%s)"
+                                                  (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto,
+                                                                                        feeInCrypto))
+                                                  (txMetadataWithFeeEstimation.Currency.ToString())
+                                                  feeInFiatValueStr
+                            Device.BeginInvokeOnMainThread(fun _ ->
+                                let askFeeTask = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")
 
-                            askFeeTask.ContinueWith(this.AnswerToFee txInfo) |> FrontendHelpers.DoubleCheckCompletion
-                        )
+                                // FIXME: allow user to specify fiat and/or allbalance
+                                let transferAmount = TransferAmount(amount, lastCachedBalance - amount)
+                                let txInfo = { Account = account;
+                                               Metadata = txMetadataWithFeeEstimation;
+                                               Amount = transferAmount;
+                                               Destination = destinationAddress;
+                                               Passphrase = passphrase.Text; }
+
+                                askFeeTask.ContinueWith(this.AnswerToFee txInfo) |> FrontendHelpers.DoubleCheckCompletion
+                            )
 
                     ) |> FrontendHelpers.DoubleCheckCompletion
 
