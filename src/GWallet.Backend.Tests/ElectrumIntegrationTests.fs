@@ -47,6 +47,9 @@ module ElectrumIntegrationTests =
                                (maybeFilter: Option<ElectrumServer -> bool>)
                                : Option<ElectrumServer> =
         let innerCheck server =
+            // this try-with block is similar to the one in UtxoCoinAccount, where it rethrows as
+            // ElectrumServerDiscarded error, maybe we should reuse that code so that this try-with block
+            // below only deals with ElectrumServerDiscarded instead of replicating the 2 |:? subblocks
             try
                 use electrumClient = new ElectrumClient(electrumServer)
                 let balance = electrumClient.GetBalance address
@@ -62,6 +65,8 @@ module ElectrumIntegrationTests =
                 Assert.That(ex.GetType(), Is.Not.EqualTo(typeof<JsonRpcSharp.ConnectionUnsuccessfulException>))
 
                 Assert.That(ex, Is.Not.InstanceOf(typeof<ServerTooNewException>), ex.ToString())
+                None
+            | :? ElectrumServerReturningInternalErrorException as ex ->
                 None
 
         match maybeFilter with
