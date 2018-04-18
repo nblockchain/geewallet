@@ -258,6 +258,9 @@ module internal Account =
                 if (amountToBeSentInSatoshisNotConsideringChange <> singleOutput.ValueInSatoshis) then
                     failwith "amount and transactionDraft's amount don't match"
                 let valueInSatoshisMinusMinerFee = singleOutput.ValueInSatoshis - minerFeeInSatoshis
+                if not (valueInSatoshisMinusMinerFee > 0L) then
+                    failwithf "Assertion failed: output's value should be higher than zero (now %d)"
+                              valueInSatoshisMinusMinerFee
                 let newSingleOutput =
                     { ValueInSatoshis = valueInSatoshisMinusMinerFee;
                       DestinationAddress = singleOutput.DestinationAddress; }
@@ -267,8 +270,12 @@ module internal Account =
                 if (amountToBeSentInSatoshisNotConsideringChange <> mainOutput.ValueInSatoshis) then
                     failwith "amount and transactionDraft's amount of first output should be equal (by convention first output is not the change output!)"
                 let changeOutput = transactionDraftWithoutMinerFee.Outputs.[1]
+                let valueInSatoshisMinusMinerFee = changeOutput.ValueInSatoshis - minerFeeInSatoshis
+                if not (valueInSatoshisMinusMinerFee > 0L) then
+                    failwithf "Assertion failed: output's value should be higher than zero (now %d)"
+                              valueInSatoshisMinusMinerFee
                 let newChangeOutput =
-                    { ValueInSatoshis = changeOutput.ValueInSatoshis - minerFeeInSatoshis;
+                    { ValueInSatoshis = valueInSatoshisMinusMinerFee;
                       DestinationAddress = changeOutput.DestinationAddress; }
                 [ mainOutput; newChangeOutput ]
 
