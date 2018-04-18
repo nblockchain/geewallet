@@ -87,6 +87,9 @@
     <Compile Include="..\GWallet.Backend\Ether\EtherAccount.fs">
       <Link>Ether\EtherAccount.fs</Link>
     </Compile>
+    <Compile Include="..\GWallet.Backend\BlockExplorer.fs">
+      <Link>BlockExplorer.fs</Link>
+    </Compile>
     <Compile Include="..\GWallet.Backend\Account.fs">
       <Link>Account.fs</Link>
     </Compile>

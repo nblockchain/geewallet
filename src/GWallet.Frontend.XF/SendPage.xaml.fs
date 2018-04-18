@@ -77,9 +77,10 @@ type SendPage(account: NormalAccount) =
         
         match maybeTxId with
         | None -> ()
-        | Some(txId) ->
+        | Some txIdUrlInBlockExplorer ->
+            // TODO: allow linking to tx in a button or something?
             Device.BeginInvokeOnMainThread(fun _ ->
-                this.DisplayAlert("Success", "Transaction sent: " + txId, "OK")
+                this.DisplayAlert("Success", "Transaction sent.", "OK")
                     .ContinueWith(fun _ ->
                         Device.BeginInvokeOnMainThread(fun _ ->
                             this.Navigation.PopModalAsync() |> FrontendHelpers.DoubleCheckCompletion
