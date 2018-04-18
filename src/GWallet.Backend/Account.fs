@@ -40,6 +40,7 @@ module Account =
                             return None
                         else
                             // mmm, somehow the compiler doesn't allow me to just use "return reraise()" below, weird:
+                            // UPDATE/FIXME: more info! https://stackoverflow.com/questions/7168801/how-to-use-reraise-in-async-workflows-in-f
                             return raise (Exception("Call to access the balance somehow returned unexpected error", ex))
                 }
 

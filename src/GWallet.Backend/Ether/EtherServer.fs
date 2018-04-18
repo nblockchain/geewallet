@@ -262,10 +262,29 @@ module Server =
 
     let BroadcastTransaction (currency: Currency) transaction
         : Async<string> =
+        let insufficientFundsMsg = "Insufficient funds"
+
+        // UPDATE/FIXME: can't use reraise inside async, blergh! https://stackoverflow.com/questions/7168801/how-to-use-reraise-in-async-workflows-in-f
+        let reraiseWorkAround ex =
+            Exception("Unhandled exception when trying to broadcast transaction", ex)
+
         async {
             let web3Func (web3: Web3) (tx: string): string =
                 WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
-            return! faultTolerantEthClient.Query<string,string>
-                        transaction
-                        (GetWeb3Funcs currency web3Func)
+            try
+                return! faultTolerantEthClient.Query<string,string>
+                            transaction
+                            (GetWeb3Funcs currency web3Func)
+            with
+            | ex ->
+                match FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex with
+                | None ->
+                    return raise (reraiseWorkAround ex)
+                | Some rpcResponseException ->
+                    // FIXME: this is fragile, ideally should respond with an error code
+                    if rpcResponseException.Message.StartsWith(insufficientFundsMsg,
+                                                               StringComparison.InvariantCultureIgnoreCase) then
+                        raise InsufficientFunds
+                    return raise (reraiseWorkAround ex)
+                return raise (reraiseWorkAround ex)
         }
