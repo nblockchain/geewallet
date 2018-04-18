@@ -72,7 +72,8 @@ module internal Account =
                               with
                               | ex ->
                                   if (ex :? JsonRpcSharp.ConnectionUnsuccessfulException ||
-                                      ex :? ElectrumServerReturningInternalErrorException) then
+                                      ex :? ElectrumServerReturningInternalErrorException ||
+                                      ex :? IncompatibleServerException) then
                                       let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
                                       raise (ElectrumServerDiscarded(msg, ex))
                                   match ex with
