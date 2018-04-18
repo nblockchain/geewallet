@@ -70,15 +70,17 @@ module internal Account =
                                   use ec = new ElectrumClient(es)
                                   ecFunc ec arg
                               with
-                              | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
-                                  let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
-                                  raise (ElectrumServerDiscarded(msg, ex))
-                              | :? ElectrumServerReturningInternalErrorException as ex ->
-                                  let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
-                                  raise (ElectrumServerDiscarded(msg, ex))
-                              | :? ElectrumServerReturningErrorException as ex ->
-                                  failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
-                                                    es.Fqdn ex.Message ex.ErrorCode ex.OriginalRequest ex.OriginalResponse)
+                              | ex ->
+                                  if (ex :? JsonRpcSharp.ConnectionUnsuccessfulException ||
+                                      ex :? ElectrumServerReturningInternalErrorException) then
+                                      let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                                      raise (ElectrumServerDiscarded(msg, ex))
+                                  match ex with
+                                  | :? ElectrumServerReturningErrorException as esEx ->
+                                      failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
+                                                        es.Fqdn esEx.Message esEx.ErrorCode esEx.OriginalRequest esEx.OriginalResponse)
+                                  | _ ->
+                                      reraise()
                            )
                      )
                      randomizedServers
