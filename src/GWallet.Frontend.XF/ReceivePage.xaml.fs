@@ -49,6 +49,12 @@ type ReceivePage(account: NormalAccount, accountBalance: Label, fiatBalance: Lab
                                             BarcodeOptions = encodingOptions)
         mainLayout.Children.Add(barCode)
 
+        let transactionHistoryButton = Button(Text = "View transaction history...")
+        transactionHistoryButton.Clicked.Subscribe(fun _ ->
+            Device.OpenUri (BlockExplorer.GetTransactionHistory baseAccount)
+        ) |> ignore
+        mainLayout.Children.Add(transactionHistoryButton)
+
         let backButton = Button(Text = "< Go back")
         backButton.Clicked.Subscribe(fun _ ->
             this.Navigation.PopModalAsync() |> FrontendHelpers.DoubleCheckCompletion
