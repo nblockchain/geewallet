@@ -303,7 +303,11 @@ module internal Account =
             failwith (sprintf "Assertion outputsCount==1 failed (it was %d)" transactionDraft.Outputs.Length)
         // it means there's change involved (send change back to change-address)
         if (amount.IdealValueRemainingAfterSending > 0.0m && transactionDraft.Outputs.Length <> 2) then
-            failwith (sprintf "Assertion outputsCount==2 failed (it was %d)" transactionDraft.Outputs.Length)
+            failwith (
+                sprintf "Assertion failed: outputsCount should be 2 but it was %d (IdealValueRemainingAfterSending: %M)"
+                    transactionDraft.Outputs.Length
+                    amount.IdealValueRemainingAfterSending
+            )
 
         let transactionWithMinerFeeSubstracted =
             SubstractMinerFeeToTransactionDraft transactionDraft amountInSatoshis minerFeeInSatoshis
