@@ -8,10 +8,10 @@ open GWallet.Frontend.Console
 let rec TrySendAmount account transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
     try
-        let txId =
+        let txIdUri =
             Account.SendPayment account transactionMetadata destination amount password
                 |> Async.RunSynchronously
-        Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
+        Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
         UserInteraction.PressAnyKeyToContinue ()
     with
     | :? DestinationEqualToOrigin ->
@@ -45,10 +45,10 @@ let BroadcastPayment() =
     // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
     Presentation.ShowTransactionData(signedTransaction.TransactionInfo)
     if UserInteraction.AskYesNo "Do you accept?" then
-        let txId =
+        let txIdUri =
             Account.BroadcastTransaction signedTransaction
                 |> Async.RunSynchronously
-        Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
+        Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
         UserInteraction.PressAnyKeyToContinue ()
 
 let SignOffPayment() =

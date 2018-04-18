@@ -131,13 +131,7 @@ module internal Account =
         }
 
     let private BroadcastRawTransaction (currency: Currency) trans =
-        let insufficientFundsMsg = "Insufficient funds"
-        try
-            let txId = Ether.Server.BroadcastTransaction currency ("0x" + trans)
-            txId
-        with
-        | ex when ex.Message.StartsWith(insufficientFundsMsg) || ex.InnerException.Message.StartsWith(insufficientFundsMsg) ->
-            raise (InsufficientFunds)
+        Ether.Server.BroadcastTransaction currency ("0x" + trans)
 
     let BroadcastTransaction (trans: SignedTransaction<_>) =
         BroadcastRawTransaction

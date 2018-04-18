@@ -47,6 +47,10 @@ module ElectrumIntegrationTests =
                                (maybeFilter: Option<ElectrumServer -> bool>)
                                : Option<ElectrumServer> =
         let innerCheck server =
+            // this try-with block is similar to the one in UtxoCoinAccount, where it rethrows as
+            // ElectrumServerDiscarded error, but here we catch 2 of the 3 errors that are caught there
+            // because we want the server incompatibilities to show up here (even if GWallet clients bypass
+            // them in order not to crash)
             try
                 use electrumClient = new ElectrumClient(electrumServer)
                 let balance = electrumClient.GetBalance address
@@ -60,8 +64,8 @@ module ElectrumIntegrationTests =
             | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
                 // to make sure this exception type is an abstract class
                 Assert.That(ex.GetType(), Is.Not.EqualTo(typeof<JsonRpcSharp.ConnectionUnsuccessfulException>))
-
-                Assert.That(ex, Is.Not.InstanceOf(typeof<ServerTooNewException>), ex.ToString())
+                None
+            | :? ElectrumServerReturningInternalErrorException as ex ->
                 None
 
         match maybeFilter with

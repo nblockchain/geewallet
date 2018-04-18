@@ -13,7 +13,7 @@ open Nethereum.StandardTokenEIP20.Functions
 
 module TokenManager =
 
-    let internal DAI_CONTRACT_ADDRESS = "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359"
+    let internal DAI_CONTRACT_ADDRESS = "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359"
     type DaiContract(web3) =
         inherit StandardTokenService(web3, DAI_CONTRACT_ADDRESS)
 

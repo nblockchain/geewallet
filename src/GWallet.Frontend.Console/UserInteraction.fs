@@ -186,6 +186,8 @@ module UserInteraction =
                                 (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
 
+        Console.WriteLine (sprintf "History -> %s" ((BlockExplorer.GetTransactionHistory account).ToString()))
+
     let private GetAccountBalances (accounts: seq<IAccount>): Async<array<IAccount*MaybeCached<decimal>>> =
         let getAccountBalance(account: IAccount): Async<IAccount*MaybeCached<decimal>> =
             async {
