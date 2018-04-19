@@ -368,8 +368,8 @@ module UserInteraction =
         | (false, _) ->
             Presentation.Error "Please enter a numeric amount."
             AskParticularAmount()
-        | (true, parsedAdmount) ->
-            parsedAdmount
+        | true, parsedAmount ->
+            parsedAmount
 
     let rec AskParticularUsdAmount currency usdValue (maybeTime:Option<DateTime>): Option<decimal> =
         let usdAmount = AskParticularAmount()
