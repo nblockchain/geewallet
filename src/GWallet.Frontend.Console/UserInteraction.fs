@@ -444,14 +444,19 @@ module UserInteraction =
 
         | Fresh(balance) | NotFresh(Cached(balance,_)) ->
 
-            Console.WriteLine("There are various options to specify the amount of your transaction:")
-            Console.WriteLine(sprintf "1. Exact amount in %A" account.Currency)
-            Console.WriteLine("2. Approximate amount in USD")
-            Console.WriteLine(sprintf "3. All balance existing in the account (%g %A)"
-                                      balance account.Currency)
+            if not (balance > 0m) then
+                // TODO: maybe we should check the balance before asking the destination address
+                Presentation.Error "Account needs to have positive balance."
+                None
+            else
+                Console.WriteLine "There are various options to specify the amount of your transaction:"
+                Console.WriteLine(sprintf "1. Exact amount in %A" account.Currency)
+                Console.WriteLine "2. Approximate amount in USD"
+                Console.WriteLine(sprintf "3. All balance existing in the account (%g %A)"
+                                          balance account.Currency)
 
-            let amountOption = AskAmountOption()
-            AskParticularAmountOption balance amountOption
+                let amountOption = AskAmountOption()
+                AskParticularAmountOption balance amountOption
 
     let AskFee account amount destination: Option<IBlockchainFeeInfo> =
         let txMetadataWithFeeEstimation =
