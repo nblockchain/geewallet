@@ -161,9 +161,9 @@ module UserInteraction =
             | :? ReadOnlyAccount -> "(READ-ONLY)"
             | _ -> String.Empty
 
-        let accountInfo = sprintf "Account %d: %s%sCurrency=[%s] Address=[%s]"
+        let accountInfo = sprintf "Account %d: %s%sCurrency=[%A] Address=[%s]"
                                 accountNumber maybeReadOnly Environment.NewLine
-                                (account.Currency.ToString())
+                                account.Currency
                                 account.PublicAddress
         Console.WriteLine(accountInfo)
 
@@ -250,7 +250,7 @@ module UserInteraction =
                             | NotFresh(NotAvailable) -> yield None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
                                 let fiatValue = BalanceInUsdString onlineBalance maybeUsdValue
-                                let total = sprintf "Total %s: %s (%s)" (currency.ToString()) (onlineBalance.ToString()) fiatValue
+                                let total = sprintf "Total %A: %s (%s)" currency (onlineBalance.ToString()) fiatValue
                                 yield Some(onlineBalance * usdValue)
                                 Console.WriteLine (total)
                 } |> List.ofSeq
@@ -286,9 +286,8 @@ module UserInteraction =
                                                      acc :? NormalAccount)
             let accountsMatching = allAccounts.Where(matchFilter)
             if (accountsMatching.Count() <> 1) then
-                failwith (sprintf
-                                "account %s(%s) not found in config, or more than one with same public address?"
-                                account.PublicAddress (account.Currency.ToString()))
+                failwithf "account %s(%A) not found in config, or more than one with same public address?"
+                          account.PublicAddress account.Currency
             for i = 0 to allAccounts.Count() - 1 do
                 let iterAccount = allAccounts.ElementAt(i)
                 if (matchFilter (iterAccount)) then
@@ -378,12 +377,12 @@ module UserInteraction =
             match maybeTime with
             | None -> String.Empty
             | Some(time) -> sprintf " (as of %s)" (Presentation.ShowSaneDate time)
-        let exchangeMsg = sprintf "%s USD per %s%s" (usdValue.ToString())
-                                                    (currency.ToString())
+        let exchangeMsg = sprintf "%s USD per %A%s" (usdValue.ToString())
+                                                    currency
                                                     exchangeRateDateMsg
         let etherAmount = usdAmount / usdValue
-        Console.WriteLine(sprintf "At an exchange rate of %s, %s amount would be:%s%s"
-                              exchangeMsg (currency.ToString())
+        Console.WriteLine(sprintf "At an exchange rate of %s, %A amount would be:%s%s"
+                              exchangeMsg currency
                               Environment.NewLine (etherAmount.ToString()))
         if AskYesNo "Do you accept?" then
             Some(usdAmount)
@@ -442,10 +441,10 @@ module UserInteraction =
         | Fresh(balance) | NotFresh(Cached(balance,_)) ->
 
             Console.WriteLine("There are various options to specify the amount of your transaction:")
-            Console.WriteLine(sprintf "1. Exact amount in %s" (account.Currency.ToString()))
+            Console.WriteLine(sprintf "1. Exact amount in %A" account.Currency)
             Console.WriteLine("2. Approximate amount in USD")
-            Console.WriteLine(sprintf "3. All balance existing in the account (%g %s)"
-                                      balance (account.Currency.ToString()))
+            Console.WriteLine(sprintf "3. All balance existing in the account (%g %A)"
+                                      balance account.Currency)
 
             let amountOption = AskAmountOption()
             AskParticularAmountOption balance amountOption

@@ -80,7 +80,7 @@ module Server =
         elif (currency.IsEthToken() || currency = Currency.ETH) then
             [ ethWeb3Mew; ethWeb3Infura ]
         else
-            failwith (sprintf "Assertion failed: Ether currency %s not supported?" (currency.ToString()))
+            failwithf "Assertion failed: Ether currency %A not supported?" currency
 
     let exMsg = "Could not communicate with EtherServer"
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =

@@ -37,11 +37,11 @@ module internal Account =
 
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
-            failwith (sprintf "Assertion failed: currency %s should be UTXO-type" (currency.ToString()))
+            failwithf "Assertion failed: currency %A should be UTXO-type" currency
         match currency with
         | BTC -> Config.BitcoinNet
         | LTC -> Config.LitecoinNet
-        | _ -> failwith (sprintf "Assertion failed: UTXO currency %s not supported?" (currency.ToString()))
+        | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
 
     let private faultTolerantElectrumClient =
         FaultTolerantParallelClient<ElectrumServerDiscarded>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS,
@@ -464,7 +464,7 @@ module internal Account =
                 let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
                 let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
                 [ LITECOIN_ADDRESS_PUBKEYHASH_PREFIX; LITECOIN_ADDRESS_SCRIPTHASH_PREFIX ]
-            | _ -> failwithf "Unknown UTXO currency %s" (currency.ToString())
+            | _ -> failwithf "Unknown UTXO currency %A" currency
 
         if not (utxoCoinValidAddressPrefixes.Any(fun prefix -> address.StartsWith prefix)) then
             raise (AddressMissingProperPrefix(utxoCoinValidAddressPrefixes))

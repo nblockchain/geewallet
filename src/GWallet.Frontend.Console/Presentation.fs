@@ -46,10 +46,10 @@ module Presentation =
                     (usdValue * estimatedFee.FeeValue |> ShowDecimalForHumans CurrencyType.Fiat)
                     (time |> ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
-        Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s %s %s"
+        Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s %A %s"
                               Environment.NewLine
                               (estimatedFee.FeeValue |> ShowDecimalForHumans CurrencyType.Crypto)
-                              (currency.ToString())
+                              currency
                               estimatedFeeInUsd
                          )
 
@@ -75,9 +75,9 @@ module Presentation =
             match maybeEstimatedAmountInUsd with
             | Some(estimatedAmountInUsd) -> estimatedAmountInUsd
             | _ -> String.Empty
-        Console.WriteLine (sprintf "Amount: %s %s %s"
+        Console.WriteLine (sprintf "Amount: %s %A %s"
                                    (trans.Proposal.Amount.ValueToSend |> ShowDecimalForHumans CurrencyType.Crypto)
-                                   (trans.Proposal.Currency.ToString())
+                                   trans.Proposal.Currency
                                    fiatAmount)
         Console.WriteLine()
         ShowFee trans.Metadata
