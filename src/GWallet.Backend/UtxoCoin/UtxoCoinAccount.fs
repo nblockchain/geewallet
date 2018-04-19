@@ -151,41 +151,33 @@ module internal Account =
                                                     (minerFeeInSatoshis)
             : TransactionDraft =
 
-        let newOutputs =
-            match transactionDraftWithoutMinerFee.Outputs.Length with
-            | 0 ->
+        let newOutputs = seq {
+
+            // maybe if we change this argument to be a discriminated union we would not need this <1 and >2 bullshit?
+            if transactionDraftWithoutMinerFee.Outputs.Length < 1 then
                 failwith "transactionDraftWithoutMinerFee should have output(s)"
-            | 1 ->
-                let singleOutput = transactionDraftWithoutMinerFee.Outputs.First()
-                if (amountToBeSentInSatoshisNotConsideringChange <> singleOutput.ValueInSatoshis) then
-                    failwith "amount and transactionDraft's amount don't match"
-                let valueInSatoshisMinusMinerFee = singleOutput.ValueInSatoshis - minerFeeInSatoshis
+            elif transactionDraftWithoutMinerFee.Outputs.Length > 2 then
+                failwithf "transactionDraftWithoutMinerFee should have 1 or 2 outputs, not more (now %d)"
+                          transactionDraftWithoutMinerFee.Outputs.Length
+            else
+                let firstOutput = transactionDraftWithoutMinerFee.Outputs.First()
+                if (amountToBeSentInSatoshisNotConsideringChange <> firstOutput.ValueInSatoshis) then
+                    failwith "Assertion failed: amount and transactionDraft's amount (first output) don't match"
+
+                let lastOutput = transactionDraftWithoutMinerFee.Outputs.Last()
+                let valueInSatoshisMinusMinerFee = lastOutput.ValueInSatoshis - minerFeeInSatoshis
                 if not (valueInSatoshisMinusMinerFee > 0L) then
                     failwithf "Assertion failed: output's value should be higher than zero (now %d)"
                               valueInSatoshisMinusMinerFee
-                let newSingleOutput =
-                    { ValueInSatoshis = valueInSatoshisMinusMinerFee;
-                      DestinationAddress = singleOutput.DestinationAddress; }
-                [ newSingleOutput ]
-            | 2 ->
-                let mainOutput = transactionDraftWithoutMinerFee.Outputs.First()
-                if (amountToBeSentInSatoshisNotConsideringChange <> mainOutput.ValueInSatoshis) then
-                    failwith "amount and transactionDraft's amount of first output should be equal (by convention first output is not the change output!)"
-                let changeOutput = transactionDraftWithoutMinerFee.Outputs.[1]
-                let valueInSatoshisMinusMinerFee = changeOutput.ValueInSatoshis - minerFeeInSatoshis
-                if not (valueInSatoshisMinusMinerFee > 0L) then
-                    failwithf "Assertion failed: output's value should be higher than zero (now %d)"
-                              valueInSatoshisMinusMinerFee
-                let newChangeOutput =
-                    { ValueInSatoshis = valueInSatoshisMinusMinerFee;
-                      DestinationAddress = changeOutput.DestinationAddress; }
-                [ mainOutput; newChangeOutput ]
 
-            | unexpectedCount ->
-                failwith (sprintf "transactionDraftWithoutMinerFee should have 1 or 2 outputs, not more (now %d)"
-                                  unexpectedCount)
+                let newOutput =
+                    { lastOutput with ValueInSatoshis = valueInSatoshisMinusMinerFee; }
+                if transactionDraftWithoutMinerFee.Outputs.Length = 2 then
+                    yield firstOutput
+                yield newOutput
+        }
 
-        { Inputs = transactionDraftWithoutMinerFee.Inputs; Outputs = newOutputs }
+        { transactionDraftWithoutMinerFee with Outputs = newOutputs |> List.ofSeq }
 
     // this is a rough guess between 3 tests with 1, 2 and 3 inputs:
     // 1input  -> 215(total): 83+(X*1)
