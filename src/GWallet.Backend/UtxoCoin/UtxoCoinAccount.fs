@@ -259,7 +259,7 @@ module internal Account =
                 yield { ValueInSatoshis = amountInSatoshis; DestinationAddress = destination }
                 if (amountInSatoshis <> totalValueOfInputs) then
                     let changeAmount = totalValueOfInputs - amountInSatoshis
-                    yield { ValueInSatoshis = changeAmount; DestinationAddress = (account:>IAccount).PublicAddress }
+                    yield { ValueInSatoshis = changeAmount; DestinationAddress = baseAccount.PublicAddress }
             } |> List.ofSeq
 
         let transactionDraftWithoutMinerFee = { Inputs = inputs |> List.ofArray; Outputs = outputs }
