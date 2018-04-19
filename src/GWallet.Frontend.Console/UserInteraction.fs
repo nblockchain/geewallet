@@ -405,7 +405,7 @@ module UserInteraction =
         | Fresh(balance) | NotFresh(Cached(balance,_)) ->
 
             Console.WriteLine("There are various options to specify the amount of your transaction:")
-            Console.WriteLine(sprintf "1. Exact amount in %s" ((account:>IAccount).Currency.ToString()))
+            Console.WriteLine(sprintf "1. Exact amount in %s" (account.Currency.ToString()))
             Console.WriteLine("2. Approximate amount in USD")
             Console.WriteLine(sprintf "3. All balance existing in the account (%g %s)"
                                       balance (account.Currency.ToString()))
