@@ -390,7 +390,7 @@ module UserInteraction =
         else
             None
 
-    let private GetCryptoAmount cryptoCurrency usdValue time: Option<decimal> =
+    let private AskParticularFiatAmountWithRate cryptoCurrency usdValue time: Option<decimal> =
         match AskParticularUsdAmount cryptoCurrency usdValue time with
         | None -> None
         | Some(usdAmount) -> Some(usdAmount / usdValue)
@@ -424,13 +424,13 @@ module UserInteraction =
                     Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
                     AskAmount account
                 | Fresh(usdValue) ->
-                    let maybeCryptoAmount = GetCryptoAmount account.Currency usdValue None
+                    let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue None
                     match maybeCryptoAmount with
                     | None -> None
                     | Some(cryptoAmount) ->
                         Some(TransferAmount(cryptoAmount, balance-cryptoAmount))
                 | NotFresh(Cached(usdValue,time)) ->
-                    let maybeCryptoAmount = GetCryptoAmount account.Currency usdValue (Some(time))
+                    let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue (Some(time))
                     match maybeCryptoAmount with
                     | None -> None
                     | Some(cryptoAmount) ->
