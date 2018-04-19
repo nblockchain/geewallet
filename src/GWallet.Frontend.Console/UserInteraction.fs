@@ -459,13 +459,23 @@ module UserInteraction =
                 AskParticularAmountOption balance amountOption
 
     let AskFee account amount destination: Option<IBlockchainFeeInfo> =
-        let txMetadataWithFeeEstimation =
-            Account.EstimateFee account amount destination |> Async.RunSynchronously
-        Presentation.ShowFee txMetadataWithFeeEstimation
-        let accept = AskYesNo "Do you accept?"
-        if accept then
-            Some(txMetadataWithFeeEstimation)
-        else
+        try
+            let txMetadataWithFeeEstimation =
+                Account.EstimateFee account amount destination |> Async.RunSynchronously
+            Presentation.ShowFee txMetadataWithFeeEstimation
+            let accept = AskYesNo "Do you accept?"
+            if accept then
+                Some(txMetadataWithFeeEstimation)
+            else
+                None
+        with
+        | InsufficientBalanceForFee feeValue ->
+            // TODO: show fiat value in this error msg below?
+            Presentation.Error (
+                sprintf
+                    "Estimated fee is too high (%M) for the remaining balance, use a different account or a different amount."
+                    feeValue
+            )
             None
 
     let rec AskAccount(): IAccount =

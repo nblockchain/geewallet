@@ -167,8 +167,8 @@ module internal Account =
                 let lastOutput = transactionDraftWithoutMinerFee.Outputs.Last()
                 let valueInSatoshisMinusMinerFee = lastOutput.ValueInSatoshis - minerFeeInSatoshis
                 if not (valueInSatoshisMinusMinerFee > 0L) then
-                    failwithf "Assertion failed: output's value should be higher than zero (now %d)"
-                              valueInSatoshisMinusMinerFee
+                    let minerFeeInMainCurrency = minerFeeInSatoshis |> UnitConversion.FromSatoshiToBtc
+                    raise (InsufficientBalanceForFee minerFeeInMainCurrency)
 
                 let newOutput =
                     { lastOutput with ValueInSatoshis = valueInSatoshisMinusMinerFee; }
@@ -187,7 +187,7 @@ module internal Account =
     //        (i.e. by using TransactionBuilder, however, not before this bug gets fixed upstream: https://github.com/MetacoSA/NBitcoin/issues/396 )
     let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 131
 
-    let EstimateFee account (amount: decimal) (destination: string): Async<TransactionMetadata> = async {
+    let EstimateFee account (amount: TransferAmount) (destination: string): Async<TransactionMetadata> = async {
         let rec addInputsUntilAmount (utxos: list<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount
@@ -195,6 +195,7 @@ module internal Account =
                                      : list<UnspentTransactionOutputInfo>*int64 =
             match utxos with
             | [] ->
+                // should `raise InsufficientFunds` instead?
                 failwith (sprintf "Not enough funds (needed: %s, got so far: %s)"
                                   (amount.ToString()) (soFarInSatoshis.ToString()))
             | utxoInfo::tail ->
@@ -226,7 +227,7 @@ module internal Account =
         // first ones are the smallest ones
         let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
 
-        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount
+        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
         let utxosToUse,totalValueOfInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis []
 
@@ -250,6 +251,9 @@ module internal Account =
             seq {
                 yield { ValueInSatoshis = amountInSatoshis; DestinationAddress = destination }
                 if (amountInSatoshis <> totalValueOfInputs) then
+                    if (amount.IdealValueRemainingAfterSending = 0m) then
+                        failwithf "Assertion failed: amountInSatoshis(%d)<>totalValueOfInputs(%d) but amount.IdealValueRemaining=0?"
+                                  amountInSatoshis totalValueOfInputs
                     let changeAmount = totalValueOfInputs - amountInSatoshis
                     yield { ValueInSatoshis = changeAmount; DestinationAddress = baseAccount.PublicAddress }
             } |> List.ofSeq

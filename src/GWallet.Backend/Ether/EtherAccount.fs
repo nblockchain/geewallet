@@ -94,13 +94,20 @@ module internal Account =
 
     let private GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION:int64 = 21000L
 
-    let EstimateEtherTransferFee (account: IAccount): Async<TransactionMetadata> = async {
+    let EstimateEtherTransferFee (account: IAccount) (amount: TransferAmount): Async<TransactionMetadata> = async {
         let! gasPrice64 = GetGasPrice account.Currency
         let ethMinerFee = MinerFee(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION, gasPrice64, DateTime.Now, account.Currency)
         let! txCount = GetTransactionCount account.Currency account.PublicAddress
-        return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
-        }
 
+        let feeValue = ethMinerFee.CalculateAbsoluteValue()
+        if (amount.IdealValueRemainingAfterSending > 0m &&
+            feeValue > amount.IdealValueRemainingAfterSending) then
+            raise (InsufficientBalanceForFee feeValue)
+
+        return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
+    }
+
+    // FIXME: this should raise InsufficientBalanceForFee
     let EstimateTokenTransferFee (account: IAccount) amount destination: Async<TransactionMetadata> = async {
         let! gasPrice64 = GetGasPrice account.Currency
 
@@ -118,11 +125,11 @@ module internal Account =
         return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
         }
 
-    let EstimateFee (account: IAccount) amount destination: Async<TransactionMetadata> = async {
+    let EstimateFee (account: IAccount) (amount: TransferAmount) destination: Async<TransactionMetadata> = async {
         if account.Currency.IsEther() then
-            return! EstimateEtherTransferFee account
+            return! EstimateEtherTransferFee account amount
         elif account.Currency.IsEthToken() then
-            return! EstimateTokenTransferFee account amount destination
+            return! EstimateTokenTransferFee account amount.ValueToSend destination
         else
             return failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         }

@@ -133,7 +133,7 @@ let SendPayment() =
     match maybeAmount with
     | None -> ()
     | Some(amount) ->
-        let maybeFee = UserInteraction.AskFee account amount.ValueToSend destination
+        let maybeFee = UserInteraction.AskFee account amount destination
         match maybeFee with
         | None -> ()
         | Some(fee) ->
@@ -249,7 +249,7 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
         Console.WriteLine "Please indicate the account you would like to transfer the funds to."
         let account = GetAccountOfSameCurrency currency
 
-        let maybeFee = UserInteraction.AskFee archivedAccount balance account.PublicAddress
+        let maybeFee = UserInteraction.AskFee archivedAccount (TransferAmount(balance, 0m)) account.PublicAddress
         match maybeFee with
         | None -> ()
         | Some(feeInfo) ->
