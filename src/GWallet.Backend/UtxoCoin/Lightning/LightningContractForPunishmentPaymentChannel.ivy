@@ -1,0 +1,19 @@
+contract LightningContractForPunishmentPaymentChannel(
+    channelCloserPartyPublicKey: PublicKey,
+    potentialPunisherPartyPublicKey: PublicKey,
+    channelCloserSecret: Sha256(Bytes),
+    revocationTimeWindow: Duration,
+    val: Value
+) {
+    clause reveal(potentialPunisherPartySig: Signature, string: Bytes) {
+        verify checkSig(potentialPunisherPartyPublicKey, potentialPunisherPartySig)
+        verify sha256(string) == channelCloserSecret
+        unlock val
+    }
+    clause timeout(channelCloserPartySig: Signature) {
+        verify checkSig(channelCloserPartyPublicKey, channelCloserPartySig)
+        verify older(revocationTimeWindow)
+        unlock val
+    }
+}
+

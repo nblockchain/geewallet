@@ -126,6 +126,7 @@
     <Compile Include="Parallelization.fs" />
     <Compile Include="Shuffling.fs" />
     <Compile Include="StratumParsing.fs" />
+    <Compile Include="Lightning.fs" />
     <Content Include="packages.config" />
     <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
@@ -159,6 +160,10 @@
     </Reference>
     <Reference Include="Nethereum.Signer">
       <HintPath>..\..\packages\Nethereum.Signer.2.4.0\lib\net451\Nethereum.Signer.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.4.0.0.51\lib\net452\NBitcoin.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">

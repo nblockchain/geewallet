@@ -185,6 +185,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="UtxoCoin\Lightning\" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="FSharpUtil.fs" />
     <Compile Include="CommonAssemblyInfo.fs" />
     <Compile Include="AssemblyInfo.fs" />
@@ -209,6 +212,9 @@
     <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
     <EmbeddedResource Include="UtxoCoin\btc-servers.json" />
     <EmbeddedResource Include="UtxoCoin\ltc-servers.json" />
+    <None Include="UtxoCoin\Lightning\LightningContractForPunishmentPaymentChannel.ivy" />
+    <None Include="UtxoCoin\Lightning\LightningContractForPunishmentPaymentChannel.ivy.tpl" />
+    <Compile Include="UtxoCoin\Lightning\IvyTemplateScript.fs" />
     <Compile Include="Ether\EtherMinerFee.fs" />
     <Compile Include="Ether\TransactionMetadata.fs" />
     <Compile Include="Ether\TokenManager.fs" />
