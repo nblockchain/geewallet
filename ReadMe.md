@@ -15,14 +15,17 @@ GWallet is a minimalistic and pragmatist lightweight wallet for people that want
 
 ## Principles
 
-Given GWallet can handle multiple cryptocurrencies, its UX needs to be as generic as possible to accomodate them, and should only contain minimal currency-specific features. The best example to describe this approach is the absence of change addresses concept; given that this concept doesn't exist in Ethereum-based cryptocurrencies, and it doesn't achieve much privacy anyway in the Bitcoin-based ones, GWallet approach will be to wait for other technologies to be adopted mainstream first that could help on this endeavour, such as TumbleBit or ConfidentialTransactions.
+GWallet is a wallet that prioritizes convenience & security over privacy. Examples:
 
-This is also because we prioritize security & convenience over privacy. For example GWallet has cold-storage support (you can run it in off-line mode and import/export transactions in JSON files) but still hasn't implemented TLS for communication with Electrum servers (this only hinders privacy but doesn't pose any security risk; but given that in the Ethereum world the users don't expect such high levels of privacy, due to the lack of HD wallets or change addresses for example, we consider the common denominator between currencies to be our standard).
+1. Convenience: it is a lightweight wallet (you don't need to download whole blockchains to use it, unlike with Bitcoin Core's wallet).
+2. Convenience over privacy (I): it's a wallet that handle multiple cryptocurrencies, so its UX needs to be as generic as possible to accomodate them, therefore only contains minimal currency-specific features. For example, given that the concept of "change-addresses" doesn't exist in the Ethereum world (a concept initially thought to help privacy in the bitcoin world, but which doesn't achieve much of it in the end), then it is not used by GWallet even when sending bitcoin, to avoid cluttering the UI/UX with currency-specific features/complexities. We will still be investigating the support of more robust privacy features such as the ones provided by TumbleBit or ConfidentialTransactions.
+3. Convenience over privacy (II): servers from other wallets' infrastructure is reused (e.g. Electrum's Stratum protocol), however TLS communication is still unsupported (this only hinders privacy but doesn't pose any security risk).
+4. Security (I): GWallet is a desktop/mobile wallet, not an online/web wallet like others (e.g. web wallets are easy targets: https://twitter.com/myetherwallet/status/988830652526092288 ).
+5. Security (II): GWallet has cold-storage support (you can run it in off-line mode and import/export transactions in JSON files), but not hardware wallet support. Remember, cold storage is not the same as 'hardware wallet'. GWallet is a software wallet, but which works in air-gapped devices (computers/smartphones) thanks to its cold-storage support, which means that it's safer than hardware wallets (after all, bugs and security issues are constantly being found on hardware wallets, e.g.: https://saleemrashid.com/2018/03/20/breaking-ledger-security-model/).
 
-Remember, cold storage is not the same as 'hardware wallet'. GWallet is a software wallet, but which works in air-gapped devices (computers/smartphones), which means that it's safer than hardware wallets (after all, bugs and security issues are constantly being found on hardware wallets, e.g.: https://saleemrashid.com/2018/03/20/breaking-ledger-security-model/).
-
-GWallet will always be standing in the shoulders of giants, which means we have a complete commitment to opensource as way of evolving the product and achieving the maximum level of security/auditability; unlike other multi-currency wallets (cough... Jaxx ...cough).
-
+In the development side of things, we advocate for simplicity:
+1. We will always be standing in the shoulders of giants, which means we have a complete commitment to opensource as way of evolving the product and achieving the maximum level of security/auditability; unlike other multi-currency wallets (cough... Jaxx ...cough).
+2. We will try to only add new features to the UX/UI that can be supported by all currencies that we support, and we will prioritize new features (Layer2: micropayments) over support for new currencies (no shitcoins thanks).
 
 ## Roadmap
 
