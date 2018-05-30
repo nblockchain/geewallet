@@ -52,6 +52,11 @@ This list is the (intended) order of preference for new features:
 - Decentralized currency exchange? or crosschain atomic swaps?
 - Tumblebit support?
 
+## Dev roadmap
+
+(Only intelligible if you're a GWallet developer):
+- Switch to use https://github.com/madelson/MedallionShell in Infra.fs.
+- Refactor bitcoin support to use NBitcoin's TransactionBuilder.
 
 ## Anti-roadmap
 
