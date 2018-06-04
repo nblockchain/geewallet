@@ -17,7 +17,7 @@ type Request =
 type ServerVersionResult =
     {
         Id: int;
-        Result: string;
+        Result: array<string>;
     }
 
 type BlockchainAddressGetBalanceInnerResult =
@@ -150,11 +150,11 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
         with
         | exn -> raise(Exception("Electrum Server's version disliked by .NET Version class: " + versionStr, exn))
 
-    member self.ServerVersion (clientVersion: Version) (protocolVersion: Version): Version =
+    member self.ServerVersion (clientName: string) (protocolVersion: Version): Version =
         let obj = {
             Id = 0;
             Method = "server.version";
-            Params = [clientVersion.ToString(); protocolVersion.ToString()]
+            Params = [clientName; protocolVersion.ToString()]
         }
         // this below serializes to:
         //  (sprintf "{ \"id\": 0, \"method\": \"server.version\", \"params\": [ \"%s\", \"%s\" ] }"
@@ -162,11 +162,12 @@ type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
         let json = Serialize obj
         let resObj = self.Request<ServerVersionResult> json
 
-        // contradicting the spec, Result could contain "ElectrumX x.y.z.t" instead of just "x.y.z.t"
-        let separatedBySpaces = resObj.Result.Split [|' '|]
-        let version = separatedBySpaces.[separatedBySpaces.Length - 1]
+        // e.g. "ElectrumX 1.4.3"
+        let serverNameAndVersion = resObj.Result.[0]
+        // e.g. "1.1"
+        let serverProtocolVersion = resObj.Result.[1]
 
-        StratumClient.CreateVersion(version)
+        StratumClient.CreateVersion(serverProtocolVersion)
 
     member self.BlockchainAddressListUnspent address: BlockchainAddressListUnspentResult =
         let obj = {
