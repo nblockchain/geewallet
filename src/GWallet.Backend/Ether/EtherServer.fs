@@ -118,6 +118,8 @@ module Server =
                         raise (ServerCannotBeResolvedException(exMsg, webEx))
                     if (webEx.Status = WebExceptionStatus.SecureChannelFailure) then
                         raise (ServerChannelNegotiationException(exMsg, webEx))
+                    if (webEx.Status = WebExceptionStatus.ReceiveFailure) then
+                        raise (ServerTimedOutException(exMsg, webEx))
                     raise (UnhandledWebException(webEx.Status, webEx))
 
         if not finished then
