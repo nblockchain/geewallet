@@ -207,9 +207,10 @@ type SendPage(account: NormalAccount) =
                         Account.EstimateFee account amount destinationAddress
                             |> Async.StartAsTask
 
-                    let usdRateForCurrency = FiatValueEstimation.UsdValue currency
-
                     txFeeInfoTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<IBlockchainFeeInfo>) ->
+                        let feeCurrency = txMetadataWithFeeEstimationTask.Result.Currency
+                        let usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
+
                         match usdRateForCurrency with
                         | NotFresh _ ->
                             // this probably would never happen, because without internet connection we may get
