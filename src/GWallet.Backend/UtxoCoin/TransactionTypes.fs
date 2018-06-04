@@ -29,6 +29,8 @@ type TransactionMetadata =
     }
     interface IBlockchainFeeInfo with
         member this.FeeEstimationTime with get() = this.Fee.EstimationTime
-        member this.FeeValue with get() = this.Fee.CalculateAbsoluteValue()
+        member this.FeeValue
+            with get() =
+                this.Fee.CalculateAbsoluteValueInSatoshis() |> UnitConversion.FromSatoshiToBtc
         member this.Currency with get() = this.Fee.Currency
 

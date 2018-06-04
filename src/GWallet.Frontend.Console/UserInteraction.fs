@@ -162,9 +162,9 @@ module UserInteraction =
             | :? ReadOnlyAccount -> "(READ-ONLY)"
             | _ -> String.Empty
 
-        let accountInfo = sprintf "Account %d: %s%sCurrency=[%s] Address=[%s]"
+        let accountInfo = sprintf "Account %d: %s%sCurrency=[%A] Address=[%s]"
                                 accountNumber maybeReadOnly Environment.NewLine
-                                (account.Currency.ToString())
+                                account.Currency
                                 account.PublicAddress
         Console.WriteLine(accountInfo)
 
@@ -251,7 +251,7 @@ module UserInteraction =
                             | NotFresh(NotAvailable) -> yield None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
                                 let fiatValue = BalanceInUsdString onlineBalance maybeUsdValue
-                                let total = sprintf "Total %s: %s (%s)" (currency.ToString()) (onlineBalance.ToString()) fiatValue
+                                let total = sprintf "Total %A: %s (%s)" currency (onlineBalance.ToString()) fiatValue
                                 yield Some(onlineBalance * usdValue)
                                 Console.WriteLine (total)
                 } |> List.ofSeq
@@ -287,9 +287,8 @@ module UserInteraction =
                                                      acc :? NormalAccount)
             let accountsMatching = allAccounts.Where(matchFilter)
             if (accountsMatching.Count() <> 1) then
-                failwith (sprintf
-                                "account %s(%s) not found in config, or more than one with same public address?"
-                                account.PublicAddress (account.Currency.ToString()))
+                failwithf "account %s(%A) not found in config, or more than one with same public address?"
+                          account.PublicAddress account.Currency
             for i = 0 to allAccounts.Count() - 1 do
                 let iterAccount = allAccounts.ElementAt(i)
                 if (matchFilter (iterAccount)) then
@@ -370,8 +369,12 @@ module UserInteraction =
         | (false, _) ->
             Presentation.Error "Please enter a numeric amount."
             AskParticularAmount()
-        | (true, parsedAdmount) ->
-            parsedAdmount
+        | true, parsedAmount ->
+            if not (parsedAmount > 0m) then
+                Presentation.Error "Please enter a positive amount."
+                AskParticularAmount()
+            else
+                parsedAmount
 
     let rec AskParticularUsdAmount currency usdValue (maybeTime:Option<DateTime>): Option<decimal> =
         let usdAmount = AskParticularAmount()
@@ -379,24 +382,61 @@ module UserInteraction =
             match maybeTime with
             | None -> String.Empty
             | Some(time) -> sprintf " (as of %s)" (Presentation.ShowSaneDate time)
-        let exchangeMsg = sprintf "%s USD per %s%s" (usdValue.ToString())
-                                                    (currency.ToString())
+        let exchangeMsg = sprintf "%s USD per %A%s" (usdValue.ToString())
+                                                    currency
                                                     exchangeRateDateMsg
         let etherAmount = usdAmount / usdValue
-        Console.WriteLine(sprintf "At an exchange rate of %s, %s amount would be:%s%s"
-                              exchangeMsg (currency.ToString())
+        Console.WriteLine(sprintf "At an exchange rate of %s, %A amount would be:%s%s"
+                              exchangeMsg currency
                               Environment.NewLine (etherAmount.ToString()))
         if AskYesNo "Do you accept?" then
             Some(usdAmount)
         else
             None
 
-    let private GetCryptoAmount cryptoCurrency usdValue time: Option<decimal> =
+    let private AskParticularFiatAmountWithRate cryptoCurrency usdValue time: Option<decimal> =
         match AskParticularUsdAmount cryptoCurrency usdValue time with
         | None -> None
         | Some(usdAmount) -> Some(usdAmount / usdValue)
 
-    let rec internal AskAmount account: Option<TransferAmount> =
+    exception InsufficientBalance
+    let rec internal AskAmount (account: IAccount): Option<TransferAmount> =
+        let rec AskParticularAmountOption currentBalance (amountOption: AmountOption): Option<TransferAmount> =
+            try
+                match amountOption with
+                | AmountOption.AllBalance ->
+                    TransferAmount(currentBalance, 0m) |> Some
+                | AmountOption.CertainCryptoAmount ->
+                    let specificCryptoAmount = AskParticularAmount()
+                    if (specificCryptoAmount > currentBalance) then
+                        raise InsufficientBalance
+                    TransferAmount(specificCryptoAmount, currentBalance - specificCryptoAmount) |> Some
+                | AmountOption.ApproxEquivalentFiatAmount ->
+                    match FiatValueEstimation.UsdValue account.Currency with
+                    | NotFresh(NotAvailable) ->
+                        Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
+                        AskAmount account
+                    | Fresh usdValue ->
+                        let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue None
+                        match maybeCryptoAmount with
+                        | None -> None
+                        | Some cryptoAmount ->
+                            if (cryptoAmount > currentBalance) then
+                                raise InsufficientBalance
+                            TransferAmount(cryptoAmount, currentBalance - cryptoAmount) |> Some
+                    | NotFresh(Cached(usdValue,time)) ->
+                        let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue (Some(time))
+                        match maybeCryptoAmount with
+                        | None -> None
+                        | Some cryptoAmount ->
+                            if (cryptoAmount > currentBalance) then
+                                raise InsufficientBalance
+                            TransferAmount(cryptoAmount, currentBalance - cryptoAmount) |> Some
+            with
+            | :? InsufficientBalance ->
+                Presentation.Error "Amount surpasses current balance, try again."
+                AskParticularAmountOption currentBalance amountOption
+
         let showableBalance = Account.GetShowableBalance account |> Async.RunSynchronously
         match showableBalance with
         | NotFresh(NotAvailable) ->
@@ -405,46 +445,38 @@ module UserInteraction =
 
         | Fresh(balance) | NotFresh(Cached(balance,_)) ->
 
-            Console.WriteLine("There are various options to specify the amount of your transaction:")
-            Console.WriteLine(sprintf "1. Exact amount in %s" ((account:>IAccount).Currency.ToString()))
-            Console.WriteLine("2. Approximate amount in USD")
-            Console.WriteLine(sprintf "3. All balance existing in the account (%g %s)"
-                                      balance (account.Currency.ToString()))
+            if not (balance > 0m) then
+                // TODO: maybe we should check the balance before asking the destination address
+                Presentation.Error "Account needs to have positive balance."
+                None
+            else
+                Console.WriteLine "There are various options to specify the amount of your transaction:"
+                Console.WriteLine(sprintf "1. Exact amount in %A" account.Currency)
+                Console.WriteLine "2. Approximate amount in USD"
+                Console.WriteLine(sprintf "3. All balance existing in the account (%g %A)"
+                                          balance account.Currency)
 
-            let amountToSend = AskAmountOption()
-
-            match amountToSend with
-            | AmountOption.AllBalance ->
-                Some(TransferAmount(balance, 0m))
-            | AmountOption.CertainCryptoAmount ->
-                let specificCryptoAmount = AskParticularAmount()
-                Some(TransferAmount(specificCryptoAmount, balance - specificCryptoAmount))
-            | AmountOption.ApproxEquivalentFiatAmount ->
-                match FiatValueEstimation.UsdValue account.Currency with
-                | NotFresh(NotAvailable) ->
-                    Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
-                    AskAmount account
-                | Fresh(usdValue) ->
-                    let maybeCryptoAmount = GetCryptoAmount account.Currency usdValue None
-                    match maybeCryptoAmount with
-                    | None -> None
-                    | Some(cryptoAmount) ->
-                        Some(TransferAmount(cryptoAmount, balance-cryptoAmount))
-                | NotFresh(Cached(usdValue,time)) ->
-                    let maybeCryptoAmount = GetCryptoAmount account.Currency usdValue (Some(time))
-                    match maybeCryptoAmount with
-                    | None -> None
-                    | Some(cryptoAmount) ->
-                        Some(TransferAmount(cryptoAmount, balance-cryptoAmount))
+                let amountOption = AskAmountOption()
+                AskParticularAmountOption balance amountOption
 
     let AskFee account amount destination: Option<IBlockchainFeeInfo> =
-        let txMetadataWithFeeEstimation =
-            Account.EstimateFee account amount destination |> Async.RunSynchronously
-        Presentation.ShowFee txMetadataWithFeeEstimation
-        let accept = AskYesNo "Do you accept?"
-        if accept then
-            Some(txMetadataWithFeeEstimation)
-        else
+        try
+            let txMetadataWithFeeEstimation =
+                Account.EstimateFee account amount destination |> Async.RunSynchronously
+            Presentation.ShowFee txMetadataWithFeeEstimation
+            let accept = AskYesNo "Do you accept?"
+            if accept then
+                Some(txMetadataWithFeeEstimation)
+            else
+                None
+        with
+        | InsufficientBalanceForFee feeValue ->
+            // TODO: show fiat value in this error msg below?
+            Presentation.Error (
+                sprintf
+                    "Estimated fee is too high (%M) for the remaining balance, use a different account or a different amount."
+                    feeValue
+            )
             None
 
     let rec AskAccount(): IAccount =

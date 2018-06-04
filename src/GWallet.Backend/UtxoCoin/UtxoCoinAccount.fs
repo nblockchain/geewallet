@@ -37,11 +37,11 @@ module internal Account =
 
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
-            failwith (sprintf "Assertion failed: currency %s should be UTXO-type" (currency.ToString()))
+            failwithf "Assertion failed: currency %A should be UTXO-type" currency
         match currency with
         | BTC -> Config.BitcoinNet
         | LTC -> Config.LitecoinNet
-        | _ -> failwith (sprintf "Assertion failed: UTXO currency %s not supported?" (currency.ToString()))
+        | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
 
     let private faultTolerantElectrumClient =
         FaultTolerantParallelClient<ElectrumServerDiscarded>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS,
@@ -146,6 +146,39 @@ module internal Account =
             Value: Int64;
         }
 
+    let private SubstractMinerFeeToTransactionDraft (transactionDraftWithoutMinerFee: TransactionDraft)
+                                                    (amountToBeSentInSatoshisNotConsideringChange)
+                                                    (minerFeeInSatoshis)
+            : TransactionDraft =
+
+        let newOutputs = seq {
+
+            // maybe if we change this argument to be a discriminated union we would not need this <1 and >2 bullshit?
+            if transactionDraftWithoutMinerFee.Outputs.Length < 1 then
+                failwith "transactionDraftWithoutMinerFee should have output(s)"
+            elif transactionDraftWithoutMinerFee.Outputs.Length > 2 then
+                failwithf "transactionDraftWithoutMinerFee should have 1 or 2 outputs, not more (now %d)"
+                          transactionDraftWithoutMinerFee.Outputs.Length
+            else
+                let firstOutput = transactionDraftWithoutMinerFee.Outputs.First()
+                if (amountToBeSentInSatoshisNotConsideringChange <> firstOutput.ValueInSatoshis) then
+                    failwith "Assertion failed: amount and transactionDraft's amount (first output) don't match"
+
+                let lastOutput = transactionDraftWithoutMinerFee.Outputs.Last()
+                let valueInSatoshisMinusMinerFee = lastOutput.ValueInSatoshis - minerFeeInSatoshis
+                if not (valueInSatoshisMinusMinerFee > 0L) then
+                    let minerFeeInMainCurrency = minerFeeInSatoshis |> UnitConversion.FromSatoshiToBtc
+                    raise (InsufficientBalanceForFee minerFeeInMainCurrency)
+
+                let newOutput =
+                    { lastOutput with ValueInSatoshis = valueInSatoshisMinusMinerFee; }
+                if transactionDraftWithoutMinerFee.Outputs.Length = 2 then
+                    yield firstOutput
+                yield newOutput
+        }
+
+        { transactionDraftWithoutMinerFee with Outputs = newOutputs |> List.ofSeq }
+
     // this is a rough guess between 3 tests with 1, 2 and 3 inputs:
     // 1input  -> 215(total): 83+(X*1)
     // 2inputs -> 386(total): 124+(X*2)
@@ -154,7 +187,7 @@ module internal Account =
     //        (i.e. by using TransactionBuilder, however, not before this bug gets fixed upstream: https://github.com/MetacoSA/NBitcoin/issues/396 )
     let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 131
 
-    let EstimateFee account (amount: decimal) (destination: string): Async<TransactionMetadata> = async {
+    let EstimateFee account (amount: TransferAmount) (destination: string): Async<TransactionMetadata> = async {
         let rec addInputsUntilAmount (utxos: list<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount
@@ -162,6 +195,7 @@ module internal Account =
                                      : list<UnspentTransactionOutputInfo>*int64 =
             match utxos with
             | [] ->
+                // should `raise InsufficientFunds` instead?
                 failwith (sprintf "Not enough funds (needed: %s, got so far: %s)"
                                   (amount.ToString()) (soFarInSatoshis.ToString()))
             | utxoInfo::tail ->
@@ -193,7 +227,7 @@ module internal Account =
         // first ones are the smallest ones
         let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
 
-        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount
+        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
         let utxosToUse,totalValueOfInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis []
 
@@ -217,8 +251,11 @@ module internal Account =
             seq {
                 yield { ValueInSatoshis = amountInSatoshis; DestinationAddress = destination }
                 if (amountInSatoshis <> totalValueOfInputs) then
+                    if (amount.IdealValueRemainingAfterSending = 0m) then
+                        failwithf "Assertion failed: amountInSatoshis(%d)<>totalValueOfInputs(%d) but amount.IdealValueRemaining=0?"
+                                  amountInSatoshis totalValueOfInputs
                     let changeAmount = totalValueOfInputs - amountInSatoshis
-                    yield { ValueInSatoshis = changeAmount; DestinationAddress = (account:>IAccount).PublicAddress }
+                    yield { ValueInSatoshis = changeAmount; DestinationAddress = baseAccount.PublicAddress }
             } |> List.ofSeq
 
         let transactionDraftWithoutMinerFee = { Inputs = inputs |> List.ofArray; Outputs = outputs }
@@ -241,42 +278,13 @@ module internal Account =
                 (GetRandomizedFuncs baseAccount.Currency electrumEstimateFee)
 
         let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, account.Currency)
-        return { TransactionDraft = transactionDraftWithoutMinerFee; Fee = minerFee }
-        }
+        let minerFeeInSatoshis = minerFee.CalculateAbsoluteValueInSatoshis()
 
-    let private SubstractMinerFeeToTransactionDraft (transactionDraftWithoutMinerFee: TransactionDraft)
-                                                    (amountToBeSentInSatoshisNotConsideringChange)
-                                                    (minerFeeInSatoshis)
-            : TransactionDraft =
+        let transactionWithMinerFeeSubstracted =
+            SubstractMinerFeeToTransactionDraft transactionDraftWithoutMinerFee amountInSatoshis minerFeeInSatoshis
 
-        let newOutputs =
-            match transactionDraftWithoutMinerFee.Outputs.Length with
-            | 0 ->
-                failwith "transactionDraftWithoutMinerFee should have output(s)"
-            | 1 ->
-                let singleOutput = transactionDraftWithoutMinerFee.Outputs.First()
-                if (amountToBeSentInSatoshisNotConsideringChange <> singleOutput.ValueInSatoshis) then
-                    failwith "amount and transactionDraft's amount don't match"
-                let valueInSatoshisMinusMinerFee = singleOutput.ValueInSatoshis - minerFeeInSatoshis
-                let newSingleOutput =
-                    { ValueInSatoshis = valueInSatoshisMinusMinerFee;
-                      DestinationAddress = singleOutput.DestinationAddress; }
-                [ newSingleOutput ]
-            | 2 ->
-                let mainOutput = transactionDraftWithoutMinerFee.Outputs.First()
-                if (amountToBeSentInSatoshisNotConsideringChange <> mainOutput.ValueInSatoshis) then
-                    failwith "amount and transactionDraft's amount of first output should be equal (by convention first output is not the change output!)"
-                let changeOutput = transactionDraftWithoutMinerFee.Outputs.[1]
-                let newChangeOutput =
-                    { ValueInSatoshis = changeOutput.ValueInSatoshis - minerFeeInSatoshis;
-                      DestinationAddress = changeOutput.DestinationAddress; }
-                [ mainOutput; newChangeOutput ]
-
-            | unexpectedCount ->
-                failwith (sprintf "transactionDraftWithoutMinerFee should have 1 or 2 outputs, not more (now %d)"
-                                  unexpectedCount)
-
-        { Inputs = transactionDraftWithoutMinerFee.Inputs; Outputs = newOutputs }
+        return { TransactionDraft = transactionWithMinerFeeSubstracted; Fee = minerFee }
+    }
 
     let private SignTransactionWithPrivateKey (currency: Currency)
                                               (txMetadata: TransactionMetadata)
@@ -284,29 +292,31 @@ module internal Account =
                                               (amount: TransferAmount)
                                               (privateKey: Key) =
 
-        let transactionDraft = txMetadata.TransactionDraft
+        let transactionWithMinerFeeSubstracted = txMetadata.TransactionDraft
         let btcMinerFee = txMetadata.Fee
-        let minerFee = txMetadata :> IBlockchainFeeInfo
-        let minerFeeInSatoshis = UnitConversion.FromBtcToSatoshis minerFee.FeeValue
         let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
 
-        if (transactionDraft.Outputs.Length < 1 || transactionDraft.Outputs.Length > 2) then
+        if (transactionWithMinerFeeSubstracted.Outputs.Length < 1 ||
+            transactionWithMinerFeeSubstracted.Outputs.Length > 2) then
             failwith (sprintf "draftTransaction should have 1 or 2 outputs, not more, not less (now %d)"
-                              transactionDraft.Outputs.Length)
-        if (transactionDraft.Outputs.[0].DestinationAddress <> destination) then
+                              transactionWithMinerFeeSubstracted.Outputs.Length)
+        if (transactionWithMinerFeeSubstracted.Outputs.[0].DestinationAddress <> destination) then
             failwith "Destination address and the first output's destination address should match"
         if (amount.IdealValueRemainingAfterSending < 0.0m) then
             failwith "Assertion failed: idealValueRemainingAfterSending cannot be negative"
 
         // it means we're sending all balance!
-        if (amount.IdealValueRemainingAfterSending = 0.0m && transactionDraft.Outputs.Length <> 1) then
-            failwith (sprintf "Assertion outputsCount==1 failed (it was %d)" transactionDraft.Outputs.Length)
+        if (amount.IdealValueRemainingAfterSending = 0.0m && transactionWithMinerFeeSubstracted.Outputs.Length <> 1) then
+            failwith (sprintf "Assertion outputsCount==1 failed (it was %d)"
+                              transactionWithMinerFeeSubstracted.Outputs.Length)
         // it means there's change involved (send change back to change-address)
-        if (amount.IdealValueRemainingAfterSending > 0.0m && transactionDraft.Outputs.Length <> 2) then
-            failwith (sprintf "Assertion outputsCount==2 failed (it was %d)" transactionDraft.Outputs.Length)
+        if (amount.IdealValueRemainingAfterSending > 0.0m && transactionWithMinerFeeSubstracted.Outputs.Length <> 2) then
+            failwith (
+                sprintf "Assertion failed: outputsCount should be 2 but it was %d (IdealValueRemainingAfterSending: %M)"
+                    transactionWithMinerFeeSubstracted.Outputs.Length
+                    amount.IdealValueRemainingAfterSending
+            )
 
-        let transactionWithMinerFeeSubstracted =
-            SubstractMinerFeeToTransactionDraft transactionDraft amountInSatoshis minerFeeInSatoshis
 
         let finalTransaction,coins = CreateTransactionAndCoinsToBeSigned currency transactionWithMinerFeeSubstracted
 
@@ -450,7 +460,7 @@ module internal Account =
                 let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
                 let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
                 [ LITECOIN_ADDRESS_PUBKEYHASH_PREFIX; LITECOIN_ADDRESS_SCRIPTHASH_PREFIX ]
-            | _ -> failwithf "Unknown UTXO currency %s" (currency.ToString())
+            | _ -> failwithf "Unknown UTXO currency %A" currency
 
         if not (utxoCoinValidAddressPrefixes.Any(fun prefix -> address.StartsWith prefix)) then
             raise (AddressMissingProperPrefix(utxoCoinValidAddressPrefixes))

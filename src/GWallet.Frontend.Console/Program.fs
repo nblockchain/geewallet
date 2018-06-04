@@ -69,8 +69,9 @@ let SignOffPayment() =
         if not (accounts.Any()) then
             Presentation.Error(
                 sprintf
-                    "The transaction corresponds to an address of the accounts in this wallet, but it's a readonly account or it maps a different currency than %s."
-                     (unsignedTransaction.Proposal.Currency.ToString()))
+                    "The transaction corresponds to an address of the accounts in this wallet, but it's a readonly account or it maps a different currency than %A."
+                    unsignedTransaction.Proposal.Currency
+            )
             UserInteraction.PressAnyKeyToContinue()
         else
             let account = accounts.First()
@@ -132,7 +133,7 @@ let SendPayment() =
     match maybeAmount with
     | None -> ()
     | Some(amount) ->
-        let maybeFee = UserInteraction.AskFee account amount.ValueToSend destination
+        let maybeFee = UserInteraction.AskFee account amount destination
         match maybeFee with
         | None -> ()
         | Some(fee) ->
@@ -231,8 +232,7 @@ let rec PerformOptions(numAccounts: int) =
 let rec GetAccountOfSameCurrency currency =
     let account = UserInteraction.AskAccount()
     if (account.Currency <> currency) then
-        Presentation.Error (sprintf "The account selected doesn't match the currency %s"
-                                (currency.ToString()))
+        Presentation.Error (sprintf "The account selected doesn't match the currency %A" currency)
         GetAccountOfSameCurrency currency
     else
         account
@@ -241,15 +241,15 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
     let archivedAccountsInNeedOfAction = Account.GetArchivedAccountsWithPositiveBalance() |> Async.RunSynchronously
     for archivedAccount,balance in archivedAccountsInNeedOfAction do
         let currency = (archivedAccount:>IAccount).Currency
-        Console.WriteLine (sprintf "ALERT! An archived account has received funds:%sAddress: %s Balance: %s%s"
+        Console.WriteLine (sprintf "ALERT! An archived account has received funds:%sAddress: %s Balance: %s%A"
                                Environment.NewLine
                                (archivedAccount:>IAccount).PublicAddress
                                (balance.ToString())
-                               (currency.ToString()))
+                               currency)
         Console.WriteLine "Please indicate the account you would like to transfer the funds to."
         let account = GetAccountOfSameCurrency currency
 
-        let maybeFee = UserInteraction.AskFee archivedAccount balance account.PublicAddress
+        let maybeFee = UserInteraction.AskFee archivedAccount (TransferAmount(balance, 0m)) account.PublicAddress
         match maybeFee with
         | None -> ()
         | Some(feeInfo) ->

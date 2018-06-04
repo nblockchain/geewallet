@@ -156,7 +156,7 @@ module Account =
         else
             failwith (sprintf "Unknown currency %A" currency)
 
-    let EstimateFee account amount destination: Async<IBlockchainFeeInfo> =
+    let EstimateFee account (amount: TransferAmount) destination: Async<IBlockchainFeeInfo> =
         let currency = (account:>IAccount).Currency
         async {
             if currency.IsUtxo() then

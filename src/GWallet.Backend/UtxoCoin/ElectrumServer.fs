@@ -106,5 +106,5 @@ module ElectrumServerSeedList =
             match currency with
             | BTC -> DefaultBtcList
             | LTC -> DefaultLtcList
-            | _ -> failwithf "Currency %s is not UTXO" (currency.ToString())
+            | _ -> failwithf "Currency %A is not UTXO" currency
         Shuffler.Unsort serverList

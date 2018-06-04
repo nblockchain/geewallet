@@ -13,7 +13,7 @@ type ElectrumClient (electrumServer: ElectrumServer) =
         let stratumClient = new StratumClient(jsonRpcClient)
 
         // this is the last version of Electrum released at the time of writing this module
-        let CURRENT_ELECTRUM_FAKED_VERSION = Version("3.0.5")
+        let CLIENT_NAME_SENT_TO_STRATUM_SERVER_WHEN_HELLO = "geewallet"
 
         // last version of the protocol [1] as of electrum's source code [2] at the time of
         // writing this... actually this changes rarely, last change was for 2.4 version [3]
@@ -22,11 +22,11 @@ type ElectrumClient (electrumServer: ElectrumServer) =
         // [2] https://github.com/spesmilo/electrum/blob/master/lib/version.py
         // [3] https://github.com/spesmilo/electrum/commit/118052d81597eff3eb636d242eacdd0437dabdd6
         // [4] https://electrumx.readthedocs.io/en/latest/protocol-changes.html
-        let PROTOCOL_VERSION_SUPPORTED = Version("1.0")
+        let PROTOCOL_VERSION_SUPPORTED = Version("1.1")
 
         let versionSupportedByServer =
             try
-                stratumClient.ServerVersion CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION_SUPPORTED
+                stratumClient.ServerVersion CLIENT_NAME_SENT_TO_STRATUM_SERVER_WHEN_HELLO PROTOCOL_VERSION_SUPPORTED
             with
             | :? ElectrumServerReturningErrorException as ex ->
                 if (ex.ErrorCode = 1 && ex.Message.StartsWith "unsupported protocol version" &&
