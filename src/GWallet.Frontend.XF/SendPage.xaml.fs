@@ -130,7 +130,6 @@ type SendPage(account: NormalAccount) =
                 this.DisplayAlert("Alert", msg, "OK") |> ignore
             final
 
-                
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         if (mainLayout = null) then
@@ -181,11 +180,61 @@ type SendPage(account: NormalAccount) =
         else
             this.ReenableButtons()
 
-    member this.OnSendButtonClicked(sender: Object, args: EventArgs) =
+    member private this.ShowFeeAndSend (maybeTxMetadataWithFeeEstimation: Option<IBlockchainFeeInfo>,
+                                        transferAmount: TransferAmount,
+                                        destinationAddress: string,
+                                        passphrase: string) =
+        match maybeTxMetadataWithFeeEstimation with
+        | None -> ()
+        | Some txMetadataWithFeeEstimation ->
+            let feeCurrency = txMetadataWithFeeEstimation.Currency
+            let usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
+            match usdRateForCurrency with
+            | NotFresh _ ->
+                // this probably would never happen, because without internet connection we may get
+                // then txFeeInfoTask throw before... so that's why I write the TODO below...
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    let alertInternetConnTask =
+                        this.DisplayAlert("Alert",
+                                          // TODO: support cold storage mode here
+                                          "Internet connection not available at the moment, try again later",
+                                          "OK")
+                    alertInternetConnTask.ContinueWith(fun _ -> this.ReenableButtons())
+                        |> FrontendHelpers.DoubleCheckCompletion
+                )
+            | Fresh someUsdValue ->
+
+                let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
+                let feeInFiatValue = someUsdValue * feeInCrypto
+                let feeInFiatValueStr = sprintf "~ %s USD"
+                                                (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat,
+                                                                                      feeInFiatValue))
+
+                let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s (%s)"
+                                      (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto,
+                                                                            feeInCrypto))
+                                      (txMetadataWithFeeEstimation.Currency.ToString())
+                                      feeInFiatValueStr
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    let askFeeTask = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")
+
+                    let txInfo = { Account = account;
+                                   Metadata = txMetadataWithFeeEstimation;
+                                   Amount = transferAmount;
+                                   Destination = destinationAddress;
+                                   Passphrase = passphrase; }
+
+                    askFeeTask.ContinueWith(this.AnswerToFee txInfo) |> FrontendHelpers.DoubleCheckCompletion
+                )
+
+
+    member this.OnSendButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
-        let passphrase = mainLayout.FindByName<Entry>("passphrase")
-        let destinationAddress = mainLayout.FindByName<Entry>("destinationAddress")
+        let passphraseEntry = mainLayout.FindByName<Entry>("passphrase")
+        let passphrase = passphraseEntry.Text
+        let destinationAddressEntry = mainLayout.FindByName<Entry>("destinationAddress")
+        let destinationAddress = destinationAddressEntry.Text
 
         match Decimal.TryParse(amountToSend.Text) with
         | false,_ ->
@@ -195,64 +244,45 @@ type SendPage(account: NormalAccount) =
             if not (amount > 0.0m) then
                 this.DisplayAlert("Alert", "Amount should be positive", "OK") |> FrontendHelpers.DoubleCheckCompletion
             else
+                let amountRemaining = lastCachedBalance - amount
+                if (amountRemaining < 0.0m) then
+                    failwith "Somehow the UI didn't avoid the user entering a transfer amount larger than current balance?"
+                let transferAmount = TransferAmount(amount, amountRemaining)
+
                 this.DisableButtons()
 
                 let currency = (account:>IAccount).Currency
-                let validatedAddress = this.ValidateAddress currency destinationAddress.Text
-                match validatedAddress with
+                let maybeValidatedAddress = this.ValidateAddress currency destinationAddress
+                match maybeValidatedAddress with
                 | None -> this.ReenableButtons()
-                | Some(destinationAddress) ->
+                | Some validatedDestinationAddress ->
 
-                    let txFeeInfoTask: Task<IBlockchainFeeInfo> =
-                        Account.EstimateFee account amount destinationAddress
-                            |> Async.StartAsTask
-
-                    txFeeInfoTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<IBlockchainFeeInfo>) ->
-                        let feeCurrency = txMetadataWithFeeEstimationTask.Result.Currency
-                        let usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
-
-                        match usdRateForCurrency with
-                        | NotFresh _ ->
-                            // this probably would never happen, because without internet connection we may get
-                            // then txFeeInfoTask throw before... so that's why I write the TODO below...
+                    let maybeTxMetadataWithFeeEstimationAsync = async {
+                        try
+                            let! txMetadataWithFeeEstimation =
+                                Account.EstimateFee account transferAmount validatedDestinationAddress
+                            return Some txMetadataWithFeeEstimation
+                        with
+                        | :? InsufficientBalanceForFee ->
                             Device.BeginInvokeOnMainThread(fun _ ->
-                                let alertInternetConnTask =
+                                let alertLowBalanceForFeeTask =
                                     this.DisplayAlert("Alert",
                                                       // TODO: support cold storage mode here
-                                                      "Internet connection not available at the moment, try again later",
+                                                      "Remaining balance would be too low for the estimated fee, try sending lower amount",
                                                       "OK")
-                                alertInternetConnTask.ContinueWith(fun _ -> this.ReenableButtons())
+                                alertLowBalanceForFeeTask.ContinueWith(fun _ -> this.ReenableButtons())
                                     |> FrontendHelpers.DoubleCheckCompletion
                             )
-                        | Fresh someUsdValue ->
-                            if (txMetadataWithFeeEstimationTask.Exception <> null) then
-                                raise txMetadataWithFeeEstimationTask.Exception
-                            let txMetadataWithFeeEstimation = txMetadataWithFeeEstimationTask.Result
-                            let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
-                            let feeInFiatValue = someUsdValue * feeInCrypto
-                            let feeInFiatValueStr = sprintf "~ %s USD"
-                                                            (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat,
-                                                                                                  feeInFiatValue))
+                            return None
+                    }
 
-                            let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s (%s)"
-                                                  (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto,
-                                                                                        feeInCrypto))
-                                                  (txMetadataWithFeeEstimation.Currency.ToString())
-                                                  feeInFiatValueStr
-                            Device.BeginInvokeOnMainThread(fun _ ->
-                                let askFeeTask = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")
+                    let maybeTxMetadataWithFeeEstimationTask = maybeTxMetadataWithFeeEstimationAsync |> Async.StartAsTask
 
-                                // FIXME: allow user to specify fiat and/or allbalance
-                                let transferAmount = TransferAmount(amount, lastCachedBalance - amount)
-                                let txInfo = { Account = account;
-                                               Metadata = txMetadataWithFeeEstimation;
-                                               Amount = transferAmount;
-                                               Destination = destinationAddress;
-                                               Passphrase = passphrase.Text; }
-
-                                askFeeTask.ContinueWith(this.AnswerToFee txInfo) |> FrontendHelpers.DoubleCheckCompletion
-                            )
-
+                    maybeTxMetadataWithFeeEstimationTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<Option<IBlockchainFeeInfo>>) ->
+                        this.ShowFeeAndSend(txMetadataWithFeeEstimationTask.Result,
+                                            transferAmount,
+                                            validatedDestinationAddress,
+                                            passphrase)
                     ) |> FrontendHelpers.DoubleCheckCompletion
 
-
+                    ()
