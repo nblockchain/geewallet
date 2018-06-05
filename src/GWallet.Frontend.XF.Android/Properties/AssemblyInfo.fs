@@ -1,8 +1,9 @@
-﻿namespace GWalletFrontendXamForms.Droid
+﻿namespace GWallet.Frontend.XF.Android.Properties
+
 open System.Reflection
 open System.Runtime.CompilerServices
 
-[<assembly: AssemblyTitle("GWallet.Frontend.XamForms.Droid")>]
+[<assembly: AssemblyTitle("GWallet.Frontend.XF.Android")>]
 [<assembly: AssemblyDescription("")>]
 [<assembly: AssemblyConfiguration("")>]
 [<assembly: AssemblyCompany("")>]

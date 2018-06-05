@@ -1,9 +1,8 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <EnableDefaultEmbeddedResourceItems>true</EnableDefaultEmbeddedResourceItems>
   </PropertyGroup>
-
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="FrontendHelpers.fs" />
@@ -23,8 +22,9 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
+    <PackageReference Include="FSharp.Core" Version="4.3.3" />
+    <PackageReference Include="Xamarin.Forms" Version="3.0.0.446417" />
     <PackageReference Include="ZXing.Net.Mobile.Forms" Version="2.3.2" />
-    <PackageReference Include="Xamarin.Forms" Version="3.0.0.296286-pre2" />
     <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
   </ItemGroup>
 </Project>

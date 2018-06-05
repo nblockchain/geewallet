@@ -1,4 +1,4 @@
-﻿namespace GWalletFrontendXamForms.iOS
+﻿namespace GWallet.Frontend.XF.iOS
 
 open System
 open UIKit
@@ -23,4 +23,3 @@ module Main =
     let main args =
         UIApplication.Main(args, null, "AppDelegate")
         0
-

@@ -140,9 +140,6 @@
     <Reference Include="Nethereum.StandardTokenEIP20">
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.2.4.0\lib\net451\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.Data">
-      <HintPath>..\..\packages\FSharp.Data.2.4.6\lib\net45\FSharp.Data.dll</HintPath>
-    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.3.4\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
@@ -164,6 +161,9 @@
     <Reference Include="ZXing.Net.Mobile.Forms">
       <HintPath>..\..\packages\ZXing.Net.Mobile.Forms.2.3.2\lib\portable-net45+netcore45+wpa81+wp8\ZXing.Net.Mobile.Forms.dll</HintPath>
     </Reference>
+    <Reference Include="FSharp.Data">
+      <HintPath>..\..\packages\FSharp.Data.3.0.0-beta\lib\net45\FSharp.Data.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
@@ -174,7 +174,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
-      <Project>{19C613A6-21D8-4120-8E5D-C092193D1003}</Project>
+      <Project>{85236682-6463-4209-B66C-E0643EF12B46}</Project>
       <Name>GWallet.Frontend.XF</Name>
     </ProjectReference>
   </ItemGroup>
