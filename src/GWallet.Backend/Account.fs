@@ -4,6 +4,7 @@ open System
 open System.Net
 open System.Linq
 open System.Numerics
+open System.Text
 open System.IO
 
 open Org.BouncyCastle.Security
@@ -316,14 +317,14 @@ module Account =
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
 
-    let private CreateNormalEtherAccountInternal (password: string) (seed: Option<array<byte>>)
+    let private CreateNormalEtherAccountInternal (password: string) (seed: array<byte>)
                                                  : Async<(string*string)*(FileInfo->string)> =
         async {
             let! fileName,encryptedPrivateKeyInJson = Ether.Account.Create password seed
             return (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
         }
 
-    let private CreateNormalAccountInternal (currency: Currency) (password: string) (seed: Option<array<byte>>)
+    let private CreateNormalAccountInternal (currency: Currency) (password: string) (seed: array<byte>)
                                             : Async<(string*string)*(FileInfo->string)> =
         async {
             if currency.IsUtxo() then
@@ -336,7 +337,7 @@ module Account =
         }
 
 
-    let CreateNormalAccount (currency: Currency) (password: string) (seed: Option<array<byte>>)
+    let CreateNormalAccount (currency: Currency) (password: string) (seed: array<byte>)
                             : Async<NormalAccount> =
         async {
             let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
@@ -345,14 +346,14 @@ module Account =
             return NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
         }
 
-    let private CreateNormalAccountAux (currency: Currency) (password: string) (seed: Option<array<byte>>)
+    let private CreateNormalAccountAux (currency: Currency) (password: string) (seed: array<byte>)
                             : Async<List<NormalAccount>> =
         async {
             let! singleAccount = CreateNormalAccount currency password seed
             return singleAccount::[]
         }
 
-    let CreateEtherNormalAccounts (password: string) (seed: Option<array<byte>>)
+    let CreateEtherNormalAccounts (password: string) (seed: array<byte>)
                                   : seq<Currency>*Async<List<NormalAccount>> =
         let etherCurrencies = Currency.GetAll().Where(fun currency -> currency.IsEtherBased())
         let etherAccounts = async {
@@ -367,18 +368,21 @@ module Account =
         etherCurrencies,etherAccounts
 
     let private LENGTH_OF_PRIVATE_KEYS = 32
-    let CreateBaseAccount (password: string) =
-        let privateKeyBytes = Array.zeroCreate LENGTH_OF_PRIVATE_KEYS
-        SecureRandom().NextBytes(privateKeyBytes)
+    let CreateBaseAccount (passphrase: string)
+                          (dobPartOfSalt: DateTime) (emailPartOfSalt: string)
+                          (encryptionPassword: string) =
 
-        let ethCurrencies,etherAccounts = CreateEtherNormalAccounts password (Some(privateKeyBytes))
+        let salt = sprintf "%s+%s" (dobPartOfSalt.Date.ToString("yyyyMMdd")) emailPartOfSalt
+        let privateKeyBytes = WarpKey.CreatePrivateKey passphrase salt
+
+        let ethCurrencies,etherAccounts = CreateEtherNormalAccounts encryptionPassword privateKeyBytes
         let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (ethCurrencies.Contains currency))
 
         let nonEtherAccounts: List<Async<List<NormalAccount>>> =
             seq {
                 // TODO: figure out if we can reuse CPU computation of WIF creation between BTC&LTC
                 for nonEthCurrency in nonEthCurrencies do
-                    yield CreateNormalAccountAux nonEthCurrency password (Some(privateKeyBytes))
+                    yield CreateNormalAccountAux nonEthCurrency encryptionPassword privateKeyBytes
             } |> List.ofSeq
 
         let allAccounts = etherAccounts::nonEtherAccounts

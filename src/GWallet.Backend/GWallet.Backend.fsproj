@@ -183,6 +183,9 @@
     <Reference Include="Nethereum.StandardTokenEIP20">
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.2.4.0\lib\net451\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
+    <Reference Include="CryptSharp">
+      <HintPath>..\..\packages\CryptSharpOfficial.2.1.0.0\lib\CryptSharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FSharpUtil.fs" />
@@ -215,6 +218,7 @@
     <Compile Include="Ether\EtherServer.fs" />
     <Compile Include="Ether\EtherAccount.fs" />
     <Compile Include="BlockExplorer.fs" />
+    <Compile Include="WarpKey.fs" />
     <Compile Include="Account.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="Infrastructure.fs" />

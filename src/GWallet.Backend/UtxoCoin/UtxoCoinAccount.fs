@@ -426,14 +426,9 @@ module internal Account =
                               currency txMetadata destination.PublicAddress amount privateKey
         BroadcastRawTransaction currency (signedTrans.ToHex())
 
-    let private CreateInternal currency (password: string) (seed: Option<array<byte>>) =
-        let privkey =
-            match seed with
-            | None ->
-                RandomUtils.Random <- BouncyCastleSecureRandomWrapperForNBitcoin()
-                Key()
-            | Some(bytes) ->
-                Key(bytes)
+    let private LENGTH_OF_PRIVATE_KEYS = 32
+    let private CreateInternal currency (password: string) (seed: array<byte>) =
+        let privkey = Key(seed, LENGTH_OF_PRIVATE_KEYS, false)
         let network = GetNetwork currency
         let secret = privkey.GetBitcoinSecret network
         let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
@@ -441,7 +436,7 @@ module internal Account =
         let publicKey = secret.PubKey.ToString()
         publicKey,encryptedPrivateKey
 
-    let Create currency (password: string) (seed: Option<array<byte>>) =
+    let Create currency (password: string) (seed: array<byte>) =
         async {
             return CreateInternal currency password seed
         }

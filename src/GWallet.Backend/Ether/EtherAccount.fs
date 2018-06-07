@@ -284,24 +284,8 @@ module internal Account =
 
         BroadcastRawTransaction currency trans
 
-    let private NUMBER_OF_BYTES_REQUIRED_FOR_ETHER_PRIVATE_KEY = 32
-    let rec private Create32BytesPrivateKey() =
-        let privateKey = EthECKey.GenerateKey()
-        let privateKeyAsBytes = privateKey.GetPrivateKeyAsBytes()
-
-        // TODO: don't ask me why sometimes this version of NEthereum generates N bytes, where N != 32,
-        //       we should report this upstream to Nethereum
-        if privateKeyAsBytes.Length <> NUMBER_OF_BYTES_REQUIRED_FOR_ETHER_PRIVATE_KEY then
-            Create32BytesPrivateKey()
-        else
-            privateKey
-
-    let private CreateInternal (password: string) (seed: Option<array<byte>>) =
-        let privateKey =
-            match seed with
-            | None -> Create32BytesPrivateKey()
-            | Some(bytes) ->
-                EthECKey(bytes, true)
+    let private CreateInternal (password: string) (seed: array<byte>) =
+        let privateKey = EthECKey(seed, true)
         let privateKeyBytes = privateKey.GetPrivateKeyAsBytes()
         let publicAddress = privateKey.GetPublicAddress()
         if not (addressUtil.IsChecksumAddress(publicAddress)) then
@@ -314,7 +298,7 @@ module internal Account =
         let fileNameForAccount = KeyStoreService.GenerateUTCFileName(publicAddress)
         fileNameForAccount,accountSerializedJson
 
-    let Create (password: string) (seed: Option<array<byte>>) =
+    let Create (password: string) (seed: array<byte>) =
         async {
             return CreateInternal password seed
         }

@@ -113,24 +113,6 @@
     <Folder Include="data\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\GWallet.Frontend.Console\App.config">
-      <Link>App.config</Link>
-    </Content>
-    <Compile Include="..\GWallet.Backend\CommonAssemblyInfo.fs">
-      <Link>CommonAssemblyInfo.fs</Link>
-    </Compile>
-    <Compile Include="MarshallingData.fs" />
-    <Compile Include="Serialization.fs" />
-    <Compile Include="Deserialization.fs" />
-    <Compile Include="FaultTolerance.fs" />
-    <Compile Include="Parallelization.fs" />
-    <Compile Include="Shuffling.fs" />
-    <Compile Include="StratumParsing.fs" />
-    <Content Include="packages.config" />
-    <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
-    <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
-  </ItemGroup>
-  <ItemGroup>
     <Reference Include="mscorlib" />
     <Reference Include="nunit.framework">
       <HintPath>..\..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
@@ -160,6 +142,10 @@
     <Reference Include="Nethereum.Signer">
       <HintPath>..\..\packages\Nethereum.Signer.2.4.0\lib\net451\Nethereum.Signer.dll</HintPath>
     </Reference>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.4.0.0.51\lib\net452\NBitcoin.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">
     <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
@@ -170,10 +156,27 @@
   </Target>
   -->
   <ItemGroup>
+    <Content Include="..\GWallet.Frontend.Console\App.config">
+      <Link>App.config</Link>
+    </Content>
+    <Compile Include="..\GWallet.Backend\CommonAssemblyInfo.fs">
+      <Link>CommonAssemblyInfo.fs</Link>
+    </Compile>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
       <Project>{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}</Project>
       <Name>GWallet.Backend</Name>
     </ProjectReference>
+    <Compile Include="MarshallingData.fs" />
+    <Compile Include="Serialization.fs" />
+    <Compile Include="Deserialization.fs" />
+    <Compile Include="FaultTolerance.fs" />
+    <Compile Include="Parallelization.fs" />
+    <Compile Include="Shuffling.fs" />
+    <Compile Include="StratumParsing.fs" />
+    <Content Include="packages.config" />
+    <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
+    <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
     <Compile Include="ElectrumIntegrationTests.fs" />
+    <Compile Include="WarpWallet.fs" />
   </ItemGroup>
 </Project>
