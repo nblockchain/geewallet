@@ -182,6 +182,9 @@
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0-beta\lib\net45\FSharp.Data.dll</HintPath>
     </Reference>
+    <Reference Include="CryptSharp">
+      <HintPath>..\..\packages\CryptSharpOfficial.2.1.0.0\lib\CryptSharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FSharpUtil.fs" />
@@ -214,6 +217,7 @@
     <Compile Include="Ether\EtherServer.fs" />
     <Compile Include="Ether\EtherAccount.fs" />
     <Compile Include="BlockExplorer.fs" />
+    <Compile Include="WarpKey.fs" />
     <Compile Include="Account.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="Infrastructure.fs" />

@@ -3,13 +3,14 @@
 open System
 open System.IO
 open System.Linq
+open System.Globalization
 
 open GWallet.Backend
 
 type internal Options =
     | Exit               = 0
     | Refresh            = 1
-    | CreateAccount      = 2
+    | CreateAccounts     = 2
     | SendPayment        = 3
     | AddReadonlyAccount = 4
     | SignOffPayment     = 5
@@ -64,10 +65,12 @@ module UserInteraction =
                     FindMatchingOption(optIntroduced, tail)
 
     let internal OptionAvailable (option: Options) (numAccounts: int) =
-        let anyAccount = numAccounts > 0
+        let noAccounts = numAccounts = 0
         match option with
-        | Options.SendPayment -> anyAccount
-        | Options.ArchiveAccount -> anyAccount
+        | Options.SendPayment -> not noAccounts
+        | Options.SignOffPayment -> not noAccounts
+        | Options.ArchiveAccount -> not noAccounts
+        | Options.CreateAccounts -> noAccounts
         | _ -> true
 
     let rec internal AskFileNameToLoad (askText: string): FileInfo =
@@ -103,6 +106,45 @@ module UserInteraction =
             FindMatchingOption(optIntroduced, allOptionsAvailable)
         with
         | :? NoOptionFound -> AskOption(numAccounts)
+
+    let rec private AskDob(): DateTime =
+        let format = "dd/MM/yyyy"
+        Console.Write(sprintf "Write your date of birth (format '%s'): " format)
+        let dob = Console.ReadLine()
+        match (DateTime.TryParseExact(dob, format, CultureInfo.InvariantCulture, DateTimeStyles.None)) with
+        | false,_ ->
+            Presentation.Error "Incorrect date or date format, please try again."
+            AskDob()
+        | true,parsedDateTime ->
+            parsedDateTime
+
+    let rec private AskEmail(): string =
+        Console.Write("Write your e-mail address (that you'll never forget): ")
+        let email = Console.ReadLine()
+        Console.Write("Repeat it: ")
+        let email2 = Console.ReadLine()
+        if (email <> email2) then
+            Presentation.Error "E-mail addresses are not the same, please try again."
+            AskEmail()
+        else
+            email
+
+    let rec AskBrainSeed(): string*DateTime*string =
+        Console.WriteLine()
+
+        Console.Write("Write a passphrase for your new wallet: ")
+        let passphrase = ConsoleReadPasswordLine()
+
+        Console.Write("Repeat the passphrase: ")
+        let passphrase2 = ConsoleReadPasswordLine()
+        if (passphrase <> passphrase2) then
+            Presentation.Error "Passphrases are not the same, please try again."
+            AskBrainSeed ()
+        else
+            let dob = AskDob()
+            let email = AskEmail()
+            passphrase,dob,email
+
 
     let rec AskPassword(repeat: bool): string =
         Console.WriteLine()

@@ -22,6 +22,7 @@ GWallet is a wallet that prioritizes convenience & security over privacy. Exampl
 3. Convenience over privacy (II): servers from other wallets' infrastructure is reused (e.g. Electrum's Stratum protocol), however TLS communication is still unsupported (this only hinders privacy but doesn't pose any security risk).
 4. Security (I): GWallet is a desktop/mobile wallet, not an online/web wallet like others (e.g. web wallets are easy targets: https://twitter.com/myetherwallet/status/988830652526092288 ).
 5. Security (II): GWallet has cold-storage support (you can run it in off-line mode and import/export transactions in JSON files), but not hardware wallet support. Remember, cold storage is not the same as 'hardware wallet'. GWallet is a software wallet, but which works in air-gapped devices (computers/smartphones) thanks to its cold-storage support, which means that it's safer than hardware wallets (after all, bugs and security issues are constantly being found on hardware wallets, e.g.: https://saleemrashid.com/2018/03/20/breaking-ledger-security-model/).
+6. Convenience (II): there are no pre-generated seeds, geewallet is a brainwallet that uses your passphrase as a seed phrase, so that you don't need to keep backups anymore (and if you have any doubt about the security of this, understand that a hacker will always want to try to solve the WarpWallet challenge rather than target you directly).
 
 In the development side of things, we advocate for simplicity:
 1. We will always be standing in the shoulders of giants, which means we have a complete commitment to opensource as way of evolving the product and achieving the maximum level of security/auditability; unlike other multi-currency wallets (cough... Jaxx ...cough).
@@ -39,7 +40,6 @@ This list is the (intended) order of preference for new features:
 - Payment channels support.
 - Mac/Windows CI support via Travis & AppVeyor respectively.
 - Flatpak & snap packaging.
-- WarpWallet (brainwallet) private key generation.
 - Paranoid-build mode (using git submodules instead of nuget deps).
 - Fee selection for custom priority.
 - Multi-sig support.

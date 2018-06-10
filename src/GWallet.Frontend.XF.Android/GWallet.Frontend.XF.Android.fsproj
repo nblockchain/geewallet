@@ -217,6 +217,9 @@
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0-beta\lib\netstandard2.0\FSharp.Data.dll</HintPath>
     </Reference>
+    <Reference Include="CryptSharp">
+      <HintPath>..\..\packages\CryptSharpOfficial.2.1.0.0\lib\CryptSharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MainActivity.fs" />

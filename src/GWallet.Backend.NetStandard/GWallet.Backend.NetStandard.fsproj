@@ -90,6 +90,9 @@
     <Compile Include="..\GWallet.Backend\BlockExplorer.fs">
       <Link>BlockExplorer.fs</Link>
     </Compile>
+    <Compile Include="..\GWallet.Backend\WarpKey.fs">
+      <Link>WarpKey.fs</Link>
+    </Compile>
     <Compile Include="..\GWallet.Backend\Account.fs">
       <Link>Account.fs</Link>
     </Compile>
@@ -118,6 +121,7 @@
     <PackageReference Include="Nethereum.Util" Version="2.4.0" />
     <PackageReference Include="Nethereum.StandardTokenEIP20" Version="2.4.0" />
     <PackageReference Include="FSharp.Data" Version="3.0.0-beta" />
+    <PackageReference Include="CryptSharpOfficial" Version="2.1.0" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />

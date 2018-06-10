@@ -204,17 +204,11 @@ let ArchiveAccount() =
 let rec PerformOptions(numAccounts: int) =
     match UserInteraction.AskOption(numAccounts) with
     | Options.Exit -> exit 0
-    | Options.CreateAccount ->
-        let allowBaseAccountWithAllCurrencies = (numAccounts = 0)
-        let specificCurrency = UserInteraction.AskCurrency allowBaseAccountWithAllCurrencies
+    | Options.CreateAccounts ->
+        let passphrase,dob,email = UserInteraction.AskBrainSeed()
         let password = UserInteraction.AskPassword true
-        match specificCurrency with
-        | Some(currency) ->
-            let account = Async.RunSynchronously (Account.CreateNormalAccount currency password None)
-            Console.WriteLine("Account created: " + (account:>IAccount).PublicAddress)
-        | None ->
-            Async.RunSynchronously (Account.CreateBaseAccount password) |> ignore
-            Console.WriteLine("Base accounts created")
+        Async.RunSynchronously (Account.CreateBaseAccount passphrase dob email password) |> ignore
+        Console.WriteLine("Accounts created")
         UserInteraction.PressAnyKeyToContinue()
     | Options.Refresh -> ()
     | Options.SendPayment ->
