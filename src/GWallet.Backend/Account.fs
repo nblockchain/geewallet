@@ -372,7 +372,7 @@ module Account =
                           (dobPartOfSalt: DateTime) (emailPartOfSalt: string)
                           (encryptionPassword: string) =
 
-        let salt = sprintf "%s+%s" (dobPartOfSalt.Date.ToString("yyyyMMdd")) emailPartOfSalt
+        let salt = sprintf "%s+%s" (dobPartOfSalt.Date.ToString("yyyyMMdd")) (emailPartOfSalt.ToLower())
         let privateKeyBytes = WarpKey.CreatePrivateKey passphrase salt
 
         let ethCurrencies,etherAccounts = CreateEtherNormalAccounts encryptionPassword privateKeyBytes
