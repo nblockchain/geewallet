@@ -54,4 +54,4 @@ module WarpKey =
             failwithf "Something went horribly wrong because length of privKey was not %d but %d"
                       LENGTH_OF_PRIVATE_KEYS privKeyBytes.Length
         privKeyBytes
-        //NBitcoin.Key(privKeyBytes, LENGTH_OF_PRIVATE_KEYS, false)
+

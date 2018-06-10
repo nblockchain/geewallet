@@ -428,7 +428,7 @@ module internal Account =
 
     let private LENGTH_OF_PRIVATE_KEYS = 32
     let private CreateInternal currency (password: string) (seed: array<byte>) =
-        let privkey = Key(seed, LENGTH_OF_PRIVATE_KEYS, false)
+        let privkey = Key(seed)
         let network = GetNetwork currency
         let secret = privkey.GetBitcoinSecret network
         let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)

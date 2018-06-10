@@ -26,6 +26,8 @@ module WarpWallet =
 
         let privKeyBytes = WarpKey.CreatePrivateKey passphrase salt
         let LENGTH_OF_PRIVATE_KEYS = 32
+        // we use uncompressed keys here in the tests (as opposed to the real wallet) because the original test vectors
+        // of warp wallet are outdated, having 5-prefixed private keys instead of K/L ones
         let privKey = NBitcoin.Key(privKeyBytes, LENGTH_OF_PRIVATE_KEYS, false)
         Assert.That(privKey.GetWif(NBitcoin.Network.Main).ToWif(), Is.EqualTo privKeyWif)
 
