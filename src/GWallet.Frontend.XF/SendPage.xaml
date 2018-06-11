@@ -26,7 +26,8 @@
         <Entry x:Name="amountToSend" Keyboard="Numeric"
                TextChanged="OnEntryTextChanged" />
 
-        <Label Text="Passphrase:" />
+        <Label Text="Password:"
+               />
         <Entry x:Name="passphrase" IsPassword="true"
                TextChanged="OnEntryTextChanged" />
 
