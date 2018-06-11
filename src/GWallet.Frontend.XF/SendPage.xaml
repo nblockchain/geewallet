@@ -4,13 +4,21 @@
              x:Class="GWallet.Frontend.XF.SendPage">
     <StackLayout x:Name="mainLayout"
                  Padding="10,10,10,10"
-                 VerticalOptions="Center">
+                 VerticalOptions="Center"
+                 HorizontalOptions="FillAndExpand">
         <Label Text="Destination address:" />
         <Entry x:Name="destinationAddress"
                TextChanged="OnEntryTextChanged"
                 />
 
-        <Label Text="Amount:" />
+        <StackLayout Orientation="Horizontal" HorizontalOptions="FillAndExpand">
+            <Label Text="Amount:"
+                   HorizontalOptions="Start"
+                   VerticalOptions="End" />
+            <Button Text="All balance"
+                    HorizontalOptions="EndAndExpand"
+                    Clicked="OnAllBalanceButtonClicked" />
+        </StackLayout>
         <Entry x:Name="amountToSend" Keyboard="Numeric"
                TextChanged="OnEntryTextChanged" />
 

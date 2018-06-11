@@ -40,6 +40,11 @@ type SendPage(account: NormalAccount) =
             sendButton.Text <- "Send"
         )
 
+    member this.OnAllBalanceButtonClicked(sender: Object, args: EventArgs): unit =
+        let mainLayout = base.FindByName<StackLayout>("mainLayout")
+        let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
+        amountToSend.Text <- (lastCachedBalance.ToString())
+
     member private this.SendTransaction (transactionInfo: TransactionInfo) =
         let maybeTxId =
             try
