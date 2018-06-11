@@ -1,14 +1,8 @@
 ﻿namespace GWallet.Backend
 
 open System
-open System.Net
 open System.Linq
-open System.Numerics
-open System.Text
 open System.IO
-
-open Org.BouncyCastle.Security
-open Newtonsoft.Json
 
 module Account =
 

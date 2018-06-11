@@ -9,15 +9,8 @@ open System.Security
 open System.Linq
 
 open NBitcoin
-open Org.BouncyCastle.Security
 
 open GWallet.Backend
-
-type BouncyCastleSecureRandomWrapperForNBitcoin() =
-    let secureRandomInstance = SecureRandom()
-    interface IRandom with
-        member this.GetBytes(buf: array<byte>) =
-            secureRandomInstance.NextBytes(buf)
 
 type internal TransactionOutpoint =
     {

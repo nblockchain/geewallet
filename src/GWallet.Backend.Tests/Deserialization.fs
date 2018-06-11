@@ -1,10 +1,8 @@
 ﻿namespace GWallet.Backend.Tests
 
 open System
-open System.Numerics
 
 open NUnit.Framework
-open Newtonsoft.Json
 
 open GWallet.Backend
 

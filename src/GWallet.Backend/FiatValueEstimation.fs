@@ -1,6 +1,5 @@
 ﻿namespace GWallet.Backend
 
-open System
 open System.Net
 
 open FSharp.Data
