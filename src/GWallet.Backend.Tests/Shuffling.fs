@@ -1,6 +1,5 @@
 ﻿namespace GWallet.Backend.Tests
 
-open System
 open System.Linq
 
 open NUnit.Framework

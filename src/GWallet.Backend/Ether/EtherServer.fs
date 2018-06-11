@@ -112,6 +112,8 @@ module Server =
                             raise (ServerTimedOutException(exMsg, httpReqEx))
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.OriginSslHandshakeError))) then
                             raise (ServerChannelNegotiationException(exMsg, httpReqEx))
+                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int HttpStatusCode.BadGateway))) then
+                            raise (ServerUnreachableException(exMsg, httpReqEx))
                         reraise()
                 | Some(webEx) ->
                     if (webEx.Status = WebExceptionStatus.NameResolutionFailure) then
