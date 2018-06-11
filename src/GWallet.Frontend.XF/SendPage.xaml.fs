@@ -6,6 +6,7 @@ open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
+open ZXing.Net.Mobile.Forms
 
 open GWallet.Backend
 
@@ -29,6 +30,11 @@ type SendPage(account: NormalAccount) =
         | Cached(theCachedBalance,_) -> theCachedBalance
 
     let lastCachedBalance: decimal = GetBalance()
+    let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let scanQrCodeButton = mainLayout.FindByName<Button>("scanQrCode")
+    do
+        if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
+            scanQrCodeButton.IsVisible <- true
 
     member private this.ReenableButtons() =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
@@ -39,6 +45,26 @@ type SendPage(account: NormalAccount) =
             cancelButton.IsEnabled <- true
             sendButton.Text <- "Send"
         )
+
+    member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
+        let mainLayout = base.FindByName<StackLayout>("mainLayout")
+        let scanPage = new ZXingScannerPage()
+        scanPage.add_OnScanResult(fun result ->
+            scanPage.IsScanning <- false
+
+            Device.BeginInvokeOnMainThread(fun _ ->
+                let task = this.Navigation.PopModalAsync()
+                task.ContinueWith(fun (t: Task<Page>) ->
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        let destinationAddressEntry = mainLayout.FindByName<Entry>("destinationAddress")
+                        destinationAddressEntry.Text <- result.Text
+                        ()
+                    )
+                ) |> FrontendHelpers.DoubleCheckCompletion
+            )
+        )
+        this.Navigation.PushModalAsync(scanPage)
+            |> FrontendHelpers.DoubleCheckCompletion
 
     member this.OnAllBalanceButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")

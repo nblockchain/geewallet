@@ -6,7 +6,23 @@
                  Padding="10,10,10,10"
                  VerticalOptions="Center"
                  HorizontalOptions="FillAndExpand">
-        <Label Text="Destination address:" />
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="FillAndExpand"
+                     >
+            <Label Text="Destination address:"
+                   HorizontalOptions="Start"
+                   VerticalOptions="End"
+                   />
+            <Button x:Name="scanQrCode"
+                    Text="Scan QR code"
+                    HorizontalOptions="EndAndExpand"
+                    VerticalOptions="End"
+                    HeightRequest="40"
+                    Clicked="OnScanQrCodeButtonClicked"
+                    IsVisible="false"
+                    />
+        </StackLayout>
+
         <Entry x:Name="destinationAddress"
                TextChanged="OnEntryTextChanged"
                 />
