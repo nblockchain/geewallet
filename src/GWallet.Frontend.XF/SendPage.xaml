@@ -11,12 +11,16 @@
                TextChanged="OnEntryTextChanged"
                 />
 
-        <StackLayout Orientation="Horizontal" HorizontalOptions="FillAndExpand">
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="FillAndExpand"
+                     Padding="0,10,0,0">
             <Label Text="Amount:"
                    HorizontalOptions="Start"
                    VerticalOptions="End" />
             <Button Text="All balance"
                     HorizontalOptions="EndAndExpand"
+                    VerticalOptions="End"
+                    HeightRequest="35"
                     Clicked="OnAllBalanceButtonClicked" />
         </StackLayout>
         <Entry x:Name="amountToSend" Keyboard="Numeric"
