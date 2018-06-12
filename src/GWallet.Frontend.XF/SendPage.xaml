@@ -17,10 +17,17 @@
                     Text="Scan QR code"
                     HorizontalOptions="EndAndExpand"
                     VerticalOptions="End"
-                    HeightRequest="40"
                     Clicked="OnScanQrCodeButtonClicked"
                     IsVisible="false"
-                    />
+            >
+                <Button.HeightRequest>
+                    <OnPlatform x:TypeArguments="x:Double">
+                        <On Platform="iOS">15</On>
+                        <On Platform="Android">36</On>
+                        <On Platform="GTK">25</On>
+                    </OnPlatform>
+                </Button.HeightRequest>
+            </Button>
         </StackLayout>
 
         <Entry x:Name="destinationAddress"
@@ -33,11 +40,19 @@
             <Label Text="Amount:"
                    HorizontalOptions="Start"
                    VerticalOptions="End" />
-            <Button Text="All balance"
+            <Button x:Name="allBalance"
+                    Text="All balance"
                     HorizontalOptions="EndAndExpand"
                     VerticalOptions="End"
-                    HeightRequest="35"
-                    Clicked="OnAllBalanceButtonClicked" />
+                    Clicked="OnAllBalanceButtonClicked">
+                <Button.HeightRequest>
+                    <OnPlatform x:TypeArguments="x:Double">
+                        <On Platform="iOS">15</On>
+                        <On Platform="Android">36</On>
+                        <On Platform="GTK">25</On>
+                    </OnPlatform>
+                </Button.HeightRequest>
+            </Button>
         </StackLayout>
         <Entry x:Name="amountToSend" Keyboard="Numeric"
                TextChanged="OnEntryTextChanged" />
