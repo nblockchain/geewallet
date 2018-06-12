@@ -54,7 +54,7 @@ This list is the (intended) order of preference for new features:
 ## Dev roadmap
 
 (Only intelligible if you're a GWallet developer):
-- Switch to use https://github.com/madelson/MedallionShell in Infra.fs.
+- Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/).
 - Refactor bitcoin support to use NBitcoin's TransactionBuilder.
 
 ## Anti-roadmap
