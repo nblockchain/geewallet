@@ -54,7 +54,7 @@ type BalancesPage() as this =
 
     let totalFiatAmountLabel = Label(Text="...",
                                      FontSize = FrontendHelpers.BigFontSize,
-                                     Margin = Thickness(0.,30.,0.,30.),
+                                     Margin = Thickness(0.,20.,0.,20.),
                                      VerticalOptions = LayoutOptions.CenterAndExpand,
                                      HorizontalOptions = LayoutOptions.Center)
 

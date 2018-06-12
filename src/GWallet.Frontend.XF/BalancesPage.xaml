@@ -7,7 +7,8 @@
                  Padding="20,100,20,50"
                  VerticalOptions="Center">
         <Label Text="GWallet" x:Name="titleLabel"
-               VerticalOptions="Center" HorizontalOptions="Center"
+               VerticalOptions="Start"
+               HorizontalOptions="Center"
                FontAttributes="Bold" FontSize="Large" />
         <Label Text="Loading..." x:Name="loadingLabel"
                VerticalOptions="Center" HorizontalOptions="Center"
