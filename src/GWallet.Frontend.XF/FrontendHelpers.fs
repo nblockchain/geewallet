@@ -25,17 +25,36 @@ type FrontendHelpers =
     static member ShowSaneDate (date: DateTime): string =
         date.ToString("dd-MMM-yyyy")
 
+    static member private MathRound (amount: decimal, decimals: int, maybeMaxAmount: Option<decimal>) =
+        match maybeMaxAmount with
+        | Some maxAmount ->
+            // https://stackoverflow.com/a/25451689/544947
+            let truncated = amount - (amount % (1m / decimal(decimals * 10)))
+            if (truncated > maxAmount) then
+                failwithf "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
+            truncated
+        | None ->
+            Math.Round(amount, decimals)
+
     //FIXME: share code between Frontend.Console and Frontend.XF
-    static member ShowDecimalForHumans (currencyType: CurrencyType, amount: decimal): string =
+    static member private ShowDecimalForHumansInternal (currencyType: CurrencyType, amount: decimal,
+                                                        maxAmount: Option<decimal>): string =
         let amountOfDecimalsToShow =
             match currencyType with
             | CurrencyType.Fiat -> 2
             | CurrencyType.Crypto -> 5
 
-        Math.Round(amount, amountOfDecimalsToShow)
+        FrontendHelpers.MathRound(amount, amountOfDecimalsToShow, maxAmount)
 
             // line below is to add thousand separators and not show zeroes on the right...
+            // FIXME: figure out how to discard zeroes at the end
             .ToString("N" + amountOfDecimalsToShow.ToString())
+
+    static member ShowDecimalForHumansWithMax (currencyType: CurrencyType, amount: decimal, maxAmount: decimal): string =
+        FrontendHelpers.ShowDecimalForHumansInternal (currencyType, amount, Some maxAmount)
+
+    static member ShowDecimalForHumans (currencyType: CurrencyType, amount: decimal): string =
+        FrontendHelpers.ShowDecimalForHumansInternal (currencyType, amount, None)
 
     // FIXME: share code between Frontend.Console and Frontend.XF
     static member BalanceInUsdString (balance: decimal, maybeUsdValue: MaybeCached<decimal>)

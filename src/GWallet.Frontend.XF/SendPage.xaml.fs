@@ -21,8 +21,8 @@ type SendPage(account: NormalAccount) =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<SendPage>)
 
+    let baseAccount = account:>IAccount
     let GetBalance() =
-        let baseAccount = account:>IAccount
         // FIXME: should make sure to get the unconfirmed balance
         let cachedBalance = Caching.RetreiveLastBalance (baseAccount.PublicAddress, baseAccount.Currency)
         match cachedBalance with
@@ -30,9 +30,21 @@ type SendPage(account: NormalAccount) =
         | Cached(theCachedBalance,_) -> theCachedBalance
 
     let lastCachedBalance: decimal = GetBalance()
+    let usdRate = FiatValueEstimation.UsdValue baseAccount.Currency
+
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let scanQrCodeButton = mainLayout.FindByName<Button>("scanQrCode")
+    let currencySelectorPicker = mainLayout.FindByName<Picker>("currencySelector")
     do
+        let accountCurrency = baseAccount.Currency.ToString()
+        currencySelectorPicker.Items.Add "USD"
+        currencySelectorPicker.Items.Add accountCurrency
+        currencySelectorPicker.SelectedItem <- accountCurrency
+        match usdRate with
+        | NotFresh NotAvailable ->
+            currencySelectorPicker.IsEnabled <- false
+        | _ -> ()
+
         if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
             scanQrCodeButton.IsVisible <- true
 
@@ -69,7 +81,40 @@ type SendPage(account: NormalAccount) =
     member this.OnAllBalanceButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
-        amountToSend.Text <- (lastCachedBalance.ToString())
+        let allBalanceAmount =
+            match currencySelectorPicker.SelectedItem.ToString() with
+            | "USD" ->
+                match usdRate with
+                | Fresh rate | NotFresh(Cached(rate,_)) ->
+                    lastCachedBalance * rate
+                | NotFresh NotAvailable ->
+                    failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+            | _ -> lastCachedBalance
+        amountToSend.Text <- allBalanceAmount.ToString()
+
+    member this.OnCurrencySelectorTextChanged(sender: Object, args: EventArgs): unit =
+        let currentAmountTypedEntry = mainLayout.FindByName<Entry>("amountToSend")
+        let currentAmountTyped = currentAmountTypedEntry.Text
+        match Decimal.TryParse currentAmountTyped with
+        | false,_ ->
+            ()
+        | true,decimalAmountTyped ->
+            match usdRate with
+            | NotFresh NotAvailable ->
+                failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+            | Fresh rate | NotFresh(Cached(rate,_)) ->
+
+                //FIXME: maybe only use ShowDecimalForHumans if amount in textbox is not allbalance?
+                let convertedAmount =
+                    // we choose the WithMax overload because we don't want to surpass current allBalance & be red
+                    match currencySelectorPicker.SelectedItem.ToString() with
+                    | "USD" ->
+                        FrontendHelpers.ShowDecimalForHumansWithMax(CurrencyType.Fiat,
+                                                                    rate * decimalAmountTyped,
+                                                                    lastCachedBalance * rate)
+                    | _ ->
+                        FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto, decimalAmountTyped / rate)
+                currentAmountTypedEntry.Text <- convertedAmount
 
     member private this.SendTransaction (transactionInfo: TransactionInfo) =
         let maybeTxId =
@@ -175,22 +220,47 @@ type SendPage(account: NormalAccount) =
                 amountToSend = null) then
                 ()
             else
+                let equivalentAmount = mainLayout.FindByName<Label>("equivalentAmountInAlternativeCurrency")
                 let sendButton = mainLayout.FindByName<Button>("sendButton")
                 if (amountToSend.Text <> null && amountToSend.Text.Length > 0) then
+                    let allBalanceInSelectedCurrency =
+                        match currencySelectorPicker.SelectedItem.ToString() with
+                        | "USD" ->
+                            match usdRate with
+                            | NotFresh NotAvailable ->
+                                failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                            | NotFresh(Cached(rate,_)) | Fresh rate ->
+                                lastCachedBalance * rate
+                        | _ -> lastCachedBalance
 
                     // FIXME: marking as red should not even mark button as disabled but give the reason in Alert?
                     match Decimal.TryParse(amountToSend.Text) with
                     | false,_ ->
                         amountToSend.TextColor <- Color.Red
                         sendButton.IsEnabled <- false
+                        equivalentAmount.Text <- String.Empty
                     | true,amount ->
-                        if (amount <= 0.0m || amount > lastCachedBalance) then
+                        if (amount <= 0.0m || amount > allBalanceInSelectedCurrency) then
                             amountToSend.TextColor <- Color.Red
                             sendButton.IsEnabled <- false
+                            equivalentAmount.Text <- "(Not enough funds)"
                         else
                             amountToSend.TextColor <- Color.Default
                             sendButton.IsEnabled <- passphrase.Text <> null && passphrase.Text.Length > 0 &&
                                                     destinationAddress.Text <> null && destinationAddress.Text.Length > 0
+
+                            match usdRate with
+                            | NotFresh NotAvailable -> ()
+                            | NotFresh(Cached(rate,_)) | Fresh rate ->
+                                let eqAmount,otherCurrency =
+                                    match currencySelectorPicker.SelectedItem.ToString() with
+                                    | "USD" ->
+                                        FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto, amount / rate),
+                                            baseAccount.Currency.ToString()
+                                    | _ ->
+                                        FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat, rate * amount),"USD" 
+                                let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
+                                equivalentAmount.Text <- usdAmount
                 else
                     sendButton.IsEnabled <- false
 
@@ -275,10 +345,21 @@ type SendPage(account: NormalAccount) =
             if not (amount > 0.0m) then
                 this.DisplayAlert("Alert", "Amount should be positive", "OK") |> FrontendHelpers.DoubleCheckCompletion
             else
-                let amountRemaining = lastCachedBalance - amount
+
+                let amountInAccountCurrency =
+                    match currencySelectorPicker.SelectedItem.ToString() with
+                    | "USD" ->
+                        match usdRate with
+                        | Fresh rate | NotFresh(Cached(rate,_)) ->
+                            amount / rate
+                        | NotFresh NotAvailable ->
+                            failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                    | _ -> amount
+
+                let amountRemaining = lastCachedBalance - amountInAccountCurrency
                 if (amountRemaining < 0.0m) then
                     failwith "Somehow the UI didn't avoid the user entering a transfer amount larger than current balance?"
-                let transferAmount = TransferAmount(amount, amountRemaining)
+                let transferAmount = TransferAmount(amountInAccountCurrency, amountRemaining)
 
                 this.DisableButtons()
 

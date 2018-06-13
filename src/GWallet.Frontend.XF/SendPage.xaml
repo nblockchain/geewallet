@@ -40,6 +40,11 @@
             <Label Text="Amount:"
                    HorizontalOptions="Start"
                    VerticalOptions="End" />
+            <Label x:Name="equivalentAmountInAlternativeCurrency"
+                   Text=""
+                   FontAttributes="Italic" FontSize="Small"
+                   HorizontalOptions="Center"
+                   VerticalOptions="End" />
             <Button x:Name="allBalance"
                     Text="All balance"
                     HorizontalOptions="EndAndExpand"
@@ -54,8 +59,20 @@
                 </Button.HeightRequest>
             </Button>
         </StackLayout>
-        <Entry x:Name="amountToSend" Keyboard="Numeric"
-               TextChanged="OnEntryTextChanged" />
+
+        <StackLayout Orientation="Horizontal"
+                     HorizontalOptions="FillAndExpand"
+                     >
+            <Picker x:Name="currencySelector"
+                    HorizontalOptions="Start"
+                    VerticalOptions="End"
+                    SelectedIndexChanged="OnCurrencySelectorTextChanged"
+                    />
+            <Entry x:Name="amountToSend" Keyboard="Numeric"
+                   HorizontalOptions="FillAndExpand"
+                   TextChanged="OnEntryTextChanged" />
+
+        </StackLayout>
 
         <Label Text="Password:"
                />
