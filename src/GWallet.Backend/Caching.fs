@@ -197,14 +197,15 @@ module Caching =
                     { UsdPrice = Map.empty;
                       Balances = Map.empty.Add(currency, Map.empty.Add(address, (lastBalance, time)))}
                 | Some(previousCachedData) ->
-                    match previousCachedData.Balances.TryFind currency with
-                    | None ->
-                        { UsdPrice = previousCachedData.UsdPrice;
-                          Balances = previousCachedData.Balances.Add(currency, Map.empty.Add(address, (lastBalance, time)))}
-                    | Some(currencyBalances) ->
-                        { UsdPrice = previousCachedData.UsdPrice;
-                          Balances = previousCachedData.Balances.Add(currency,
-                                                                     currencyBalances.Add(address, (lastBalance,time)))}
+                    let newCurrencyBalances =
+                        match previousCachedData.Balances.TryFind currency with
+                        | None ->
+                            Map.empty
+                        | Some currencyBalances ->
+                            currencyBalances
+                    { UsdPrice = previousCachedData.UsdPrice;
+                      Balances = previousCachedData.Balances.Add(currency,
+                                                                 newCurrencyBalances.Add(address, (lastBalance,time))) }
             sessionCachedNetworkData <- Some(newCachedValue)
 
             SaveToDisk newCachedValue
