@@ -114,7 +114,13 @@ module Server =
                             raise (ServerChannelNegotiationException(exMsg, httpReqEx))
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int HttpStatusCode.BadGateway))) then
                             raise (ServerUnreachableException(exMsg, httpReqEx))
+
+                        // TODO: maybe in this case below, blacklist the server somehow if it keeps giving this error:
+                        if httpReqEx.Message.StartsWith(sprintf "%d " (int HttpStatusCode.Forbidden)) then
+                            raise (ServerMisconfiguredException(exMsg, httpReqEx))
+
                         reraise()
+
                 | Some(webEx) ->
                     if (webEx.Status = WebExceptionStatus.NameResolutionFailure) then
                         raise (ServerCannotBeResolvedException(exMsg, webEx))

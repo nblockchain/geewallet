@@ -24,8 +24,9 @@ GWallet is a wallet that prioritizes convenience & security over privacy. Exampl
 6. Convenience (II): there are no pre-generated seeds, geewallet is a brainwallet that uses your passphrase as a seed phrase, so that you don't need to keep backups anymore (and if you have any doubt about the security of this, understand that a hacker will always want to try to solve the WarpWallet challenge rather than target you directly).
 
 In the development side of things, we advocate for simplicity:
-1. We will always be standing in the shoulders of giants, which means we have a complete commitment to opensource as way of evolving the product and achieving the maximum level of security/auditability; unlike other multi-currency wallets (cough... Jaxx ...cough).
+1. We will always be standing in the shoulders of giants, which means that we should not reinvent the wheel, thus we have a complete commitment to opensource as way of evolving the product and achieving the maximum level of security/auditability; unlike other multi-currency wallets (cough... Jaxx ...cough).
 2. We will try to only add new features to the UX/UI that can be supported by all currencies that we support, and we will prioritize new features (Layer2: micropayments) over support for new currencies (no shitcoins thanks).
+3. Thanks to our usage of Xamarin.Forms toolkit, our frontends are based on a single codebase, instead of having to repeat logic for each platform.
 
 ## Roadmap
 
@@ -54,7 +55,7 @@ This list is the (intended) order of preference for new features:
 ## Dev roadmap
 
 (Only intelligible if you're a GWallet developer):
-- Switch to use https://github.com/madelson/MedallionShell in Infra.fs.
+- Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/).
 - Refactor bitcoin support to use NBitcoin's TransactionBuilder.
 
 ## Anti-roadmap
