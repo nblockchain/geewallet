@@ -199,7 +199,7 @@ module Caching =
                 | Some(previousCachedData) ->
                     match previousCachedData.Balances.TryFind currency with
                     | None ->
-                        { UsdPrice = Map.empty;
+                        { UsdPrice = previousCachedData.UsdPrice;
                           Balances = previousCachedData.Balances.Add(currency, Map.empty.Add(address, (lastBalance, time)))}
                     | Some(currencyBalances) ->
                         { UsdPrice = previousCachedData.UsdPrice;
