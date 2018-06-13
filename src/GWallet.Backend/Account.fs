@@ -67,19 +67,21 @@ module Account =
 
     let mutable wiped = false
     let private WipeConfig(allCurrencies: seq<Currency>) =
+#if DEBUG
         if not wiped then
             for currency in allCurrencies do
                 Config.Wipe currency
             wiped <- true
+#else
+        ()
+#endif
 
     let GetAllActiveAccounts(): list<IAccount> =
         let allCurrencies = Currency.GetAll()
 
 // uncomment this block below, manually, if when testing you need to go back to test the WelcomePage.xaml
 #if FALSE
-#if DEBUG
         WipeConfig allCurrencies
-#endif
 #endif
 
         seq {
