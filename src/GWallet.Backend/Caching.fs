@@ -4,17 +4,17 @@ open System
 open System.IO
 open System.Collections.Generic
 
-type Cached<'T> = ('T*DateTime)
+type CachedValue<'T> = ('T*DateTime)
 type NotFresh<'T> =
-    NotAvailable | Cached of Cached<'T>
+    NotAvailable | Cached of CachedValue<'T>
 type MaybeCached<'T> =
     NotFresh of NotFresh<'T> | Fresh of 'T
 type PublicAddress = string
 
 type CachedNetworkData =
     {
-        UsdPrice: Map<Currency,Cached<decimal>>;
-        Balances: Map<Currency,Map<PublicAddress,Cached<decimal>>>
+        UsdPrice: Map<Currency,CachedValue<decimal>>;
+        Balances: Map<Currency,Map<PublicAddress,CachedValue<decimal>>>;
     }
 
 module Caching =
@@ -61,10 +61,10 @@ module Caching =
         let json = ExportToJson (newCachedData)
         File.WriteAllText(lastCacheFile, json)
 
-    let rec private MergeRatesInternal (oldMap: Map<'K, Cached<'V>>)
-                                  (newMap: Map<'K, Cached<'V>>)
-                                  (currencyList: list<'K>)
-                                  (accumulator: Map<'K, Cached<'V>>) =
+    let rec private MergeRatesInternal (oldMap: Map<'K, CachedValue<'V>>)
+                                       (newMap: Map<'K, CachedValue<'V>>)
+                                       (currencyList: list<'K>)
+                                       (accumulator: Map<'K, CachedValue<'V>>) =
         match currencyList with
         | [] -> accumulator
         | address::tail ->
@@ -83,15 +83,15 @@ module Caching =
                         accumulator
                 MergeRatesInternal oldMap newMap tail newAcc
 
-    let private MergeRates (oldMap: Map<'K, Cached<'V>>) (newMap: Map<'K, Cached<'V>>) =
+    let private MergeRates (oldMap: Map<'K, CachedValue<'V>>) (newMap: Map<'K, CachedValue<'V>>) =
         let currencyList = Map.toList newMap |> List.map fst
         MergeRatesInternal oldMap newMap currencyList oldMap
 
-    let rec private MergeBalancesInternal (oldMap: Map<Currency, Map<PublicAddress,Cached<'V>>>)
-                                  (newMap: Map<Currency, Map<PublicAddress,Cached<'V>>>)
-                                  (addressList: list<Currency*PublicAddress>)
-                                  (accumulator: Map<Currency, Map<PublicAddress,Cached<'V>>>)
-                                      : Map<Currency, Map<PublicAddress,Cached<'V>>> =
+    let rec private MergeBalancesInternal (oldMap: Map<Currency, Map<PublicAddress,CachedValue<'V>>>)
+                                          (newMap: Map<Currency, Map<PublicAddress,CachedValue<'V>>>)
+                                          (addressList: list<Currency*PublicAddress>)
+                                          (accumulator: Map<Currency, Map<PublicAddress,CachedValue<'V>>>)
+                                              : Map<Currency, Map<PublicAddress,CachedValue<'V>>> =
         match addressList with
         | [] -> accumulator
         | (currency,address)::tail ->
@@ -121,9 +121,9 @@ module Caching =
                             accumulator
                     MergeBalancesInternal oldMap newMap tail newAcc
 
-    let private MergeBalances (oldMap: Map<Currency, Map<PublicAddress,Cached<'V>>>)
-                      (newMap: Map<Currency, Map<PublicAddress,Cached<'V>>>)
-                          : Map<Currency, Map<PublicAddress,Cached<'V>>> =
+    let private MergeBalances (oldMap: Map<Currency, Map<PublicAddress,CachedValue<'V>>>)
+                              (newMap: Map<Currency, Map<PublicAddress,CachedValue<'V>>>)
+                                  : Map<Currency, Map<PublicAddress,CachedValue<'V>>> =
         let addressList =
             seq {
                 for currency,subMap in Map.toList newMap do
