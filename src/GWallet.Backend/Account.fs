@@ -41,9 +41,9 @@ module Account =
 
             match maybeBalance with
             | None ->
-                return NotFresh(Caching.RetreiveLastBalance(account.PublicAddress, account.Currency))
+                return NotFresh(Caching.Instance.RetreiveLastBalance(account.PublicAddress, account.Currency))
             | Some(balance) ->
-                Caching.StoreLastBalance (account.PublicAddress, account.Currency) balance
+                Caching.Instance.StoreLastBalance (account.PublicAddress, account.Currency) balance
                 return Fresh(balance)
         }
 

@@ -83,7 +83,7 @@ let SignOffPayment() =
                 failwith "Previous account filtering should have discarded readonly accounts already. Please report this issue"
             | :? NormalAccount as normalAccount ->
                 Console.WriteLine ("Importing external data...")
-                Caching.SaveSnapshot unsignedTransaction.Cache
+                Caching.Instance.SaveSnapshot unsignedTransaction.Cache
 
                 Console.WriteLine ("Account to use when signing off this transaction:")
                 Console.WriteLine ()

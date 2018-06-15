@@ -26,14 +26,14 @@ module Caching =
             configDir.Create()
         configDir
 
-    let private lastCacheFile = Path.Combine(GetCacheDir().FullName, "last.json")
+    let private defaultCacheFile = FileInfo(Path.Combine(GetCacheDir().FullName, "last.json"))
 
     let public ImportFromJson (cacheData: string): CachedNetworkData =
         Marshalling.Deserialize cacheData
 
-    let private LoadFromDisk (): Option<CachedNetworkData> =
+    let private LoadFromDisk (file: FileInfo): Option<CachedNetworkData> =
         try
-            let json = File.ReadAllText(lastCacheFile)
+            let json = File.ReadAllText file.FullName
             let deserializedJson = ImportFromJson(json)
             Some(deserializedJson)
         with
@@ -46,20 +46,8 @@ module Caching =
             Console.Error.WriteLine("Warning: cleaning incompatible cache data found")
             None
 
-    let mutable private sessionCachedNetworkData: Option<CachedNetworkData> = LoadFromDisk ()
-    let private lockObject = Object()
-
-    let internal GetLastCachedData (): CachedNetworkData =
-        lock lockObject (fun _ ->
-            sessionCachedNetworkData.Value
-        )
-
     let public ExportToJson (newCachedData: CachedNetworkData): string =
         Marshalling.Serialize(newCachedData)
-
-    let private SaveToDisk (newCachedData: CachedNetworkData) =
-        let json = ExportToJson (newCachedData)
-        File.WriteAllText(lastCacheFile, json)
 
     let rec private MergeRatesInternal (oldMap: Map<'K, CachedValue<'V>>)
                                        (newMap: Map<'K, CachedValue<'V>>)
@@ -132,83 +120,103 @@ module Caching =
             } |> List.ofSeq
         MergeBalancesInternal oldMap newMap addressList oldMap
 
-    let public SaveSnapshot(newCachedData: CachedNetworkData) =
-        lock lockObject (fun _ ->
-            let newSessionCachedNetworkData =
+
+    type MainCache(maybeCacheFile: Option<FileInfo>) =
+        let cacheFile =
+            match maybeCacheFile with
+            | Some file -> file
+            | None -> defaultCacheFile
+
+        let mutable sessionCachedNetworkData: Option<CachedNetworkData> = LoadFromDisk cacheFile
+        let lockObject = Object()
+
+        let SaveToDisk (newCachedData: CachedNetworkData) =
+            let json = ExportToJson (newCachedData)
+            File.WriteAllText (cacheFile.FullName, json)
+
+        member self.SaveSnapshot(newCachedData: CachedNetworkData) =
+            lock lockObject (fun _ ->
+                let newSessionCachedNetworkData =
+                    match sessionCachedNetworkData with
+                    | None ->
+                        newCachedData
+                    | Some networkData ->
+                        let mergedBalances = MergeBalances networkData.Balances newCachedData.Balances
+                        let mergedUsdPrices = MergeRates networkData.UsdPrice newCachedData.UsdPrice
+                        { UsdPrice = mergedUsdPrices; Balances = mergedBalances}
+
+                sessionCachedNetworkData <- Some(newSessionCachedNetworkData)
+                SaveToDisk newSessionCachedNetworkData
+            )
+
+        member self.GetLastCachedData (): CachedNetworkData =
+            lock lockObject (fun _ ->
+                sessionCachedNetworkData.Value
+            )
+
+        member self.RetreiveLastKnownUsdPrice (currency): NotFresh<decimal> =
+            lock lockObject (fun _ ->
                 match sessionCachedNetworkData with
-                | None ->
-                    newCachedData
+                | None -> NotAvailable
                 | Some(networkData) ->
-                    let mergedBalances = MergeBalances networkData.Balances newCachedData.Balances
-                    let mergedUsdPrices = MergeRates networkData.UsdPrice newCachedData.UsdPrice
-                    { UsdPrice = mergedUsdPrices; Balances = mergedBalances}
+                    try
+                        Cached(networkData.UsdPrice.Item currency)
+                    with
+                    | :? KeyNotFoundException -> NotAvailable
+            )
 
-            sessionCachedNetworkData <- Some(newSessionCachedNetworkData)
-            SaveToDisk newSessionCachedNetworkData
-        )
+        member self.StoreLastFiatUsdPrice (currency, lastFiatUsdPrice: decimal): unit =
+            lock lockObject (fun _ ->
+                let time = DateTime.Now
 
-    let internal RetreiveLastKnownUsdPrice (currency): NotFresh<decimal> =
-        lock lockObject (fun _ ->
-            match sessionCachedNetworkData with
-            | None -> NotAvailable
-            | Some(networkData) ->
-                try
-                    Cached(networkData.UsdPrice.Item currency)
-                with
-                | :? KeyNotFoundException -> NotAvailable
-        )
+                let newCachedValue =
+                    match sessionCachedNetworkData with
+                    | None ->
+                        { UsdPrice = Map.empty.Add(currency, (lastFiatUsdPrice, time));
+                          Balances = Map.empty }
+                    | Some(previousCachedData) ->
+                        { UsdPrice = previousCachedData.UsdPrice.Add(currency, (lastFiatUsdPrice, time));
+                          Balances = previousCachedData.Balances }
+                sessionCachedNetworkData <- Some(newCachedValue)
 
-    let internal RetreiveLastBalance (address: PublicAddress, currency: Currency): NotFresh<decimal> =
-        lock lockObject (fun _ ->
-            match sessionCachedNetworkData with
-            | None -> NotAvailable
-            | Some(networkData) ->
-                try
-                    Cached((networkData.Balances.Item currency).Item address)
-                with
-                | :? KeyNotFoundException -> NotAvailable
-        )
+                SaveToDisk newCachedValue
+            )
+            ()
 
-    let internal StoreLastFiatUsdPrice (currency, lastFiatUsdPrice: decimal): unit =
-        lock lockObject (fun _ ->
-            let time = DateTime.Now
-
-            let newCachedValue =
+        member self.RetreiveLastBalance (address: PublicAddress, currency: Currency): NotFresh<decimal> =
+            lock lockObject (fun _ ->
                 match sessionCachedNetworkData with
-                | None ->
-                    { UsdPrice = Map.empty.Add(currency, (lastFiatUsdPrice, time));
-                      Balances = Map.empty }
-                | Some(previousCachedData) ->
-                    { UsdPrice = previousCachedData.UsdPrice.Add(currency, (lastFiatUsdPrice, time));
-                      Balances = previousCachedData.Balances }
-            sessionCachedNetworkData <- Some(newCachedValue)
+                | None -> NotAvailable
+                | Some networkData ->
+                    try
+                        Cached((networkData.Balances.Item currency).Item address)
+                    with
+                    | :? KeyNotFoundException -> NotAvailable
+            )
 
-            SaveToDisk newCachedValue
-        )
-        ()
+        member self.StoreLastBalance (address: PublicAddress, currency: Currency) (lastBalance: decimal): unit =
+            lock lockObject (fun _ ->
+                let time = DateTime.Now
 
-    let internal StoreLastBalance (address: PublicAddress, currency: Currency) (lastBalance: decimal): unit =
-        lock lockObject (fun _ ->
-            let time = DateTime.Now
+                let newCachedValue =
+                    match sessionCachedNetworkData with
+                    | None ->
+                        { UsdPrice = Map.empty;
+                          Balances = Map.empty.Add(currency, Map.empty.Add(address, (lastBalance, time)))}
+                    | Some previousCachedData ->
+                        let newCurrencyBalances =
+                            match previousCachedData.Balances.TryFind currency with
+                            | None ->
+                                Map.empty
+                            | Some currencyBalances ->
+                                currencyBalances
+                        { UsdPrice = previousCachedData.UsdPrice;
+                          Balances = previousCachedData.Balances.Add(currency,
+                                                                     newCurrencyBalances.Add(address, (lastBalance,time))) }
+                sessionCachedNetworkData <- Some newCachedValue
 
-            let newCachedValue =
-                match sessionCachedNetworkData with
-                | None ->
-                    { UsdPrice = Map.empty;
-                      Balances = Map.empty.Add(currency, Map.empty.Add(address, (lastBalance, time)))}
-                | Some(previousCachedData) ->
-                    let newCurrencyBalances =
-                        match previousCachedData.Balances.TryFind currency with
-                        | None ->
-                            Map.empty
-                        | Some currencyBalances ->
-                            currencyBalances
-                    { UsdPrice = previousCachedData.UsdPrice;
-                      Balances = previousCachedData.Balances.Add(currency,
-                                                                 newCurrencyBalances.Add(address, (lastBalance,time))) }
-            sessionCachedNetworkData <- Some(newCachedValue)
+                SaveToDisk newCachedValue
+            )
+            ()
 
-            SaveToDisk newCachedValue
-        )
-        ()
-
+    let Instance = MainCache None

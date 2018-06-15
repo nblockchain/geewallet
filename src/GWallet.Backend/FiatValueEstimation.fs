@@ -44,7 +44,7 @@ module FiatValueEstimation =
 
         match maybeJson with
         | None ->
-            NotFresh(Caching.RetreiveLastKnownUsdPrice(currency))
+            NotFresh(Caching.Instance.RetreiveLastKnownUsdPrice(currency))
         | Some(json) ->
             let ticker = CoinMarketCapJsonProvider.Parse(json)
             if (ticker.Length <> 1) then
@@ -52,5 +52,5 @@ module FiatValueEstimation =
 
             let usdPrice = ticker.[0].PriceUsd
             let result = usdPrice
-            Caching.StoreLastFiatUsdPrice(currency, usdPrice)
+            Caching.Instance.StoreLastFiatUsdPrice(currency, usdPrice)
             Fresh(result)

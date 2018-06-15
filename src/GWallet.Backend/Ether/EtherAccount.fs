@@ -311,7 +311,7 @@ module internal Account =
         let unsignedTransaction =
             {
                 Proposal = transProposal;
-                Cache = Caching.GetLastCachedData();
+                Cache = Caching.Instance.GetLastCachedData();
                 Metadata = txMetadata;
             }
         let json = ExportUnsignedTransactionToJson unsignedTransaction
