@@ -240,9 +240,8 @@ module Account =
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
 
-        ValidateAddress baseAccount.Currency destination
-
-        let currency = (account:>IAccount).Currency
+        let currency = baseAccount.Currency
+        ValidateAddress currency destination
 
         async {
             let! txId =
