@@ -36,7 +36,9 @@ module Account =
                         else
                             // mmm, somehow the compiler doesn't allow me to just use "return reraise()" below, weird:
                             // UPDATE/FIXME: more info! https://stackoverflow.com/questions/7168801/how-to-use-reraise-in-async-workflows-in-f
-                            return raise (Exception("Call to access the balance somehow returned unexpected error", ex))
+                            return raise
+                                (Exception(sprintf "Call to access the %A balance somehow returned unexpected error"
+                                                   account.Currency, ex))
                 }
 
             match maybeBalance with
