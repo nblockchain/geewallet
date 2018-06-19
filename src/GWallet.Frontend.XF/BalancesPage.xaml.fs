@@ -122,9 +122,11 @@ type BalancesPage() as this =
                 match maybeBalanceAmount with
                 | None -> "?", NotFresh(NotAvailable), "?"
                 | Some balanceAmount ->
+                    let cryptoAmount = FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto, balanceAmount)
+                    let cryptoAmountStr = sprintf "%s %A" cryptoAmount normalAccount.Currency
                     let usdRate = FiatValueEstimation.UsdValue normalAccount.Currency
                     let fiatAmount,fiatAmountStr = FrontendHelpers.BalanceInUsdString (balanceAmount, usdRate)
-                    (sprintf "%s %A" (balanceAmount.ToString()) normalAccount.Currency),fiatAmount,fiatAmountStr
+                    cryptoAmountStr,fiatAmount,fiatAmountStr
             Device.BeginInvokeOnMainThread(fun _ ->
                 balanceLabel.Text <- balanceAmountStr
                 fiatBalanceLabel.Text <- fiatAmountStr

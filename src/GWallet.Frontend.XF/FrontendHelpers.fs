@@ -47,8 +47,7 @@ type FrontendHelpers =
         FrontendHelpers.MathRound(amount, amountOfDecimalsToShow, maxAmount)
 
             // line below is to add thousand separators and not show zeroes on the right...
-            // FIXME: figure out how to discard zeroes at the end
-            .ToString("N" + amountOfDecimalsToShow.ToString())
+            .ToString("0." + String('#', amountOfDecimalsToShow))
 
     static member ShowDecimalForHumansWithMax (currencyType: CurrencyType, amount: decimal, maxAmount: decimal): string =
         FrontendHelpers.ShowDecimalForHumansInternal (currencyType, amount, Some maxAmount)
