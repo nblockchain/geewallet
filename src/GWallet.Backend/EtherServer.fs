@@ -34,6 +34,8 @@ module EtherServer =
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
     let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
+    let private ethWeb3Giveth = SomeWeb3("https://mew.giveth.io")
+    let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
 
     // TODO: add the one from https://etcchain.com/api/ too
     let private etcWeb3ePoolIo = SomeWeb3("https://mewapi.epool.io")
@@ -55,7 +57,12 @@ module EtherServer =
                 etcWeb3ZeroXInfraGeth;
             ]
         | Currency.ETH ->
-            [ ethWeb3Infura; ethWeb3Mew ]
+            [
+                ethWeb3Infura;
+                ethWeb3Mew;
+                ethWeb3Giveth;
+                ethMyCrypto;
+            ]
 
     let private timeoutSpan = TimeSpan.FromSeconds(3.0)
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
