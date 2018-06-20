@@ -58,6 +58,8 @@ module Server =
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
     let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
+    let private ethWeb3Giveth = SomeWeb3("https://mew.giveth.io")
+    let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
 
     // TODO: add the one from https://etcchain.com/api/ too
     let private etcWeb3ePoolIo = SomeWeb3("https://mewapi.epool.io")
@@ -78,7 +80,12 @@ module Server =
                 etcWeb3ZeroXInfraGeth;
             ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
-            [ ethWeb3Mew; ethWeb3Infura ]
+            [
+                ethWeb3Infura;
+                ethWeb3Mew;
+                ethWeb3Giveth;
+                ethMyCrypto;
+            ]
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
 
