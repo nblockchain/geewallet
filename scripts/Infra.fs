@@ -76,7 +76,7 @@ module Misc =
 
         let versionNumberStartPosInLine = lineContainingVersionNumber.IndexOf("\"")
         if (versionNumberStartPosInLine = -1) then
-            Console.Error.WriteLine "Format unexpected in version string (expecting a stating double quote), cannot extract version number"
+            Console.Error.WriteLine "Format unexpected in version string (expecting a starting double quote), cannot extract version number"
             Environment.Exit 1
 
         let versionNumberEndPosInLine = lineContainingVersionNumber.IndexOf("\"", versionNumberStartPosInLine + 1)
