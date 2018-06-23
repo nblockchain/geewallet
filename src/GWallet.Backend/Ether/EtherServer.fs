@@ -155,6 +155,10 @@ module Server =
             raise (ServerTimedOutException(exMsg))
         task.Result
 
+    // FIXME: we need different instances with different parameters for each kind of request (e.g.:
+    //          a) broadcast transaction -> no need for consistency
+    //          b) get gas price -> average between all responses (e.g. once I got 1430000000,1500000000,1000000000)
+    //          c) rest: can have a sane consistency number param such as 2, like below
     let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
