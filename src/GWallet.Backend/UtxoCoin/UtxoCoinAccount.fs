@@ -244,8 +244,8 @@ module internal Account =
             seq {
                 yield { ValueInSatoshis = amountInSatoshis; DestinationAddress = destination }
                 if (amountInSatoshis <> totalValueOfInputs) then
-                    if (amount.IdealValueRemainingAfterSending = 0m) then
-                        failwithf "Assertion failed: amountInSatoshis(%d)<>totalValueOfInputs(%d) but amount.IdealValueRemaining=0?"
+                    if (amount.ValueToSend = amount.BalanceAtTheMomentOfSending) then
+                        failwithf "Assertion failed: amountInSatoshis(%d)<>totalValueOfInputs(%d) but ValueToSend=BalanceAtTheMomentOfSending?"
                                   amountInSatoshis totalValueOfInputs
                     let changeAmount = totalValueOfInputs - amountInSatoshis
                     yield { ValueInSatoshis = changeAmount; DestinationAddress = baseAccount.PublicAddress }
@@ -295,20 +295,21 @@ module internal Account =
                               transactionWithMinerFeeSubstracted.Outputs.Length)
         if (transactionWithMinerFeeSubstracted.Outputs.[0].DestinationAddress <> destination) then
             failwith "Destination address and the first output's destination address should match"
-        if (amount.IdealValueRemainingAfterSending < 0.0m) then
-            failwith "Assertion failed: idealValueRemainingAfterSending cannot be negative"
 
         // it means we're sending all balance!
-        if (amount.IdealValueRemainingAfterSending = 0.0m && transactionWithMinerFeeSubstracted.Outputs.Length <> 1) then
-            failwith (sprintf "Assertion outputsCount==1 failed (it was %d)"
-                              transactionWithMinerFeeSubstracted.Outputs.Length)
+        if (amount.ValueToSend = amount.BalanceAtTheMomentOfSending) then
+            if (transactionWithMinerFeeSubstracted.Outputs.Length <> 1) then
+                failwith (sprintf "Assertion outputsCount==1 failed (it was %d)"
+                                  transactionWithMinerFeeSubstracted.Outputs.Length)
         // it means there's change involved (send change back to change-address)
-        if (amount.IdealValueRemainingAfterSending > 0.0m && transactionWithMinerFeeSubstracted.Outputs.Length <> 2) then
-            failwith (
-                sprintf "Assertion failed: outputsCount should be 2 but it was %d (IdealValueRemainingAfterSending: %M)"
-                    transactionWithMinerFeeSubstracted.Outputs.Length
-                    amount.IdealValueRemainingAfterSending
-            )
+        else
+            if (transactionWithMinerFeeSubstracted.Outputs.Length <> 2) then
+                failwith (
+                    sprintf "Assertion failed: outputsCount should be 2 but it was %d (ValueToSend: %M; BalanceAtTheMomentOfSending: %M)"
+                        transactionWithMinerFeeSubstracted.Outputs.Length
+                        amount.ValueToSend
+                        amount.BalanceAtTheMomentOfSending
+                )
 
 
         let finalTransaction,coins = CreateTransactionAndCoinsToBeSigned currency transactionWithMinerFeeSubstracted
@@ -413,7 +414,7 @@ module internal Account =
                            (txMetadata: TransactionMetadata) =
         let currency = (account:>IAccount).Currency
         let network = GetNetwork currency
-        let amount = TransferAmount(balance, 0.0m)
+        let amount = TransferAmount(balance, balance, currency)
         let privateKey = Key.Parse(account.PrivateKey, network)
         let signedTrans = SignTransactionWithPrivateKey
                               currency txMetadata destination.PublicAddress amount privateKey

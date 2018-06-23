@@ -54,7 +54,7 @@ module Presentation =
                          )
 
     let ShowTransactionData<'T when 'T:> IBlockchainFeeInfo> (trans: UnsignedTransaction<'T>) =
-        let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Currency)
+        let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Amount.Currency)
         let maybeEstimatedAmountInUsd: Option<string> =
             match maybeUsdPrice with
             | Fresh(usdPrice) ->
@@ -77,7 +77,7 @@ module Presentation =
             | _ -> String.Empty
         Console.WriteLine (sprintf "Amount: %s %A %s"
                                    (trans.Proposal.Amount.ValueToSend |> ShowDecimalForHumans CurrencyType.Crypto)
-                                   trans.Proposal.Currency
+                                   trans.Proposal.Amount.Currency
                                    fiatAmount)
         Console.WriteLine()
         ShowFee trans.Metadata

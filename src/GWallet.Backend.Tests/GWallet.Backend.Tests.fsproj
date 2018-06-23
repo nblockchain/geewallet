@@ -178,5 +178,6 @@
     <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
     <Compile Include="ElectrumIntegrationTests.fs" />
     <Compile Include="WarpWallet.fs" />
+    <Compile Include="CompoundBalanceCaching.fs" />
   </ItemGroup>
 </Project>

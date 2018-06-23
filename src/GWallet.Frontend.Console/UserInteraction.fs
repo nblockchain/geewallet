@@ -446,12 +446,12 @@ module UserInteraction =
             try
                 match amountOption with
                 | AmountOption.AllBalance ->
-                    TransferAmount(currentBalance, 0m) |> Some
+                    TransferAmount(currentBalance, currentBalance, account.Currency) |> Some
                 | AmountOption.CertainCryptoAmount ->
                     let specificCryptoAmount = AskParticularAmount()
                     if (specificCryptoAmount > currentBalance) then
                         raise InsufficientBalance
-                    TransferAmount(specificCryptoAmount, currentBalance - specificCryptoAmount) |> Some
+                    TransferAmount(specificCryptoAmount, currentBalance, account.Currency) |> Some
                 | AmountOption.ApproxEquivalentFiatAmount ->
                     match FiatValueEstimation.UsdValue account.Currency with
                     | NotFresh(NotAvailable) ->
@@ -464,7 +464,7 @@ module UserInteraction =
                         | Some cryptoAmount ->
                             if (cryptoAmount > currentBalance) then
                                 raise InsufficientBalance
-                            TransferAmount(cryptoAmount, currentBalance - cryptoAmount) |> Some
+                            TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Some
                     | NotFresh(Cached(usdValue,time)) ->
                         let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue (Some(time))
                         match maybeCryptoAmount with
@@ -472,7 +472,7 @@ module UserInteraction =
                         | Some cryptoAmount ->
                             if (cryptoAmount > currentBalance) then
                                 raise InsufficientBalance
-                            TransferAmount(cryptoAmount, currentBalance - cryptoAmount) |> Some
+                            TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Some
             with
             | :? InsufficientBalance ->
                 Presentation.Error "Amount surpasses current balance, try again."

@@ -2,7 +2,6 @@
 
 type UnsignedTransactionProposal =
     {
-        Currency: Currency;
         OriginAddress: string;
         Amount: TransferAmount;
         DestinationAddress: string;
