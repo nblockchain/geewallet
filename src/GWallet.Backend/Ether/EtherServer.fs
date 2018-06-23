@@ -115,8 +115,16 @@ module Server =
                                 raise (ServerTimedOutException(exMsg, rpcTimeoutEx))
                             reraise()
                         | Some rpcResponseEx ->
+                            (* FIXME: find out the RpcError of the exception below:
                             if (rpcResponseEx.Message.Contains "pruning=archive") then
                                 raise (ServerMisconfiguredException(exMsg, rpcResponseEx))
+                            *)
+                            if (rpcResponseEx.RpcError <> null) then
+                                raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
+                                                         rpcResponseEx.RpcError.Code
+                                                         rpcResponseEx.RpcError.Message
+                                                         rpcResponseEx.Message,
+                                                 rpcResponseEx))
                             reraise()
                     | Some(httpReqEx) ->
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.ConnectionTimeOut))) then
