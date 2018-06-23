@@ -123,21 +123,9 @@
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\packages\Newtonsoft.Json.10.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\BouncyCastle.1.8.1\lib\BouncyCastle.Crypto.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.Hex.2.4.0\lib\net451\Nethereum.Hex.dll</HintPath>
-    </Reference>
     <Reference Include="Nethereum.RLP">
       <HintPath>..\..\packages\Nethereum.RLP.2.4.0\lib\net451\Nethereum.RLP.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.Util.2.4.0\lib\net451\Nethereum.Util.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Signer">
       <HintPath>..\..\packages\Nethereum.Signer.2.4.0\lib\net451\Nethereum.Signer.dll</HintPath>
@@ -145,6 +133,18 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="NBitcoin">
       <HintPath>..\..\packages\NBitcoin.4.0.0.51\lib\net452\NBitcoin.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Crypto">
+      <HintPath>..\..\packages\BouncyCastle.1.8.2\lib\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Hex">
+      <HintPath>..\..\packages\Nethereum.Hex.2.5.2-CI-20180622-194216\lib\net451\Nethereum.Hex.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Util">
+      <HintPath>..\..\packages\Nethereum.Util.2.5.2-CI-20180622-194216\lib\net451\Nethereum.Util.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Target Name="BeforeBuild">

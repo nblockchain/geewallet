@@ -9,7 +9,7 @@ open Nethereum.Util
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
 open Nethereum.RPC.Eth.DTOs
-open Nethereum.StandardTokenEIP20.Functions
+open Nethereum.StandardTokenEIP20.CQS
 
 open GWallet.Backend
 
@@ -141,9 +141,8 @@ module Server =
             raise (ServerTimedOutException(exMsg))
         task.Result
 
-    // we only have infura and mew for now, so requiring more than 1 would make it not fault tolerant...:
-    let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 1
-    let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 2
+    let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
+    let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
     let private faultTolerantEthClient =
         FaultTolerantParallelClient<ConnectionUnsuccessfulException>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS,
@@ -260,7 +259,7 @@ module Server =
                 let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
                 let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                            To = destination,
-                                                           TokenAmount = amountInWei)
+                                                           Value = amountInWei)
                 WaitOnTask contractHandler.EstimateGasAsync transferFunctionMsg
             return! faultTolerantEthClient.Query<unit,HexBigInteger>
                         ()

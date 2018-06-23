@@ -9,7 +9,7 @@ open Nethereum.Contracts
 open Nethereum.Contracts.CQS
 open Nethereum.StandardTokenEIP20
 open Nethereum.ABI.FunctionEncoding.Attributes
-open Nethereum.StandardTokenEIP20.Functions
+open Nethereum.StandardTokenEIP20.CQS
 
 module TokenManager =
 
@@ -31,7 +31,7 @@ module TokenManager =
 
             let transferFunctionMsg = TransferFunction(FromAddress = origin,
                                                        To = destination,
-                                                       TokenAmount = tokenAmountInWei)
+                                                       Value = tokenAmountInWei)
             let tokenValue = HexBigInteger tokenAmountInWei
             let transactionInput = transferFuncBuilder.CreateTransactionInput(transferFunctionMsg,
                                                                               origin,
