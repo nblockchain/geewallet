@@ -25,8 +25,11 @@ module Presentation =
 
         Math.Round(amount, amountOfDecimalsToShow)
 
+            // FIXME: the below returns "0" when the decimal is too low, e.g. for non crypto 0.001 USD -> 0
+            //                                                  (in this case maybe we should round up to 0.01)
+
             // line below is to add thousand separators and not show zeroes on the right...
-            .ToString("N" + amountOfDecimalsToShow.ToString())
+            .ToString("#,0." + String('#', amountOfDecimalsToShow))
 
     let ConvertPascalCaseToSentence(pascalCaseElement: string) =
         Regex.Replace(pascalCaseElement, "[a-z][A-Z]",

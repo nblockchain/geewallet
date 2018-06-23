@@ -292,7 +292,8 @@ module UserInteraction =
                             | NotFresh(NotAvailable) -> yield None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
                                 let fiatValue = BalanceInUsdString onlineBalance maybeUsdValue
-                                let total = sprintf "Total %A: %s (%s)" currency (onlineBalance.ToString()) fiatValue
+                                let cryptoValue = Presentation.ShowDecimalForHumans CurrencyType.Crypto onlineBalance
+                                let total = sprintf "Total %A: %s (%s)" currency cryptoValue fiatValue
                                 yield Some(onlineBalance * usdValue)
                                 Console.WriteLine (total)
                 } |> List.ofSeq
