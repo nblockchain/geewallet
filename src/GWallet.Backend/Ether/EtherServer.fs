@@ -107,6 +107,12 @@ module Server =
                             FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex
                         match maybeRpcResponseEx with
                         | None ->
+                            let maybeRpcTimeoutException = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcClientTimeoutException> ex
+                            match maybeRpcTimeoutException with
+                            | None ->
+                                reraise()
+                            | Some rpcTimeoutEx ->
+                                raise (ServerTimedOutException(exMsg, rpcTimeoutEx))
                             reraise()
                         | Some rpcResponseEx ->
                             if (rpcResponseEx.Message.Contains "pruning=archive") then
