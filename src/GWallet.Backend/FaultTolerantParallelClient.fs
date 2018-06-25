@@ -69,7 +69,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                 | SuccessfulFirstResult(newResult,unlaunchedJobWithMoreTasks) ->
                     let newTask = Async.StartAsTask unlaunchedJobWithMoreTasks
                     (newResult::resultsSoFar),(newTask::restOfTasks)
-                | NoneAvailable _ ->
+                | NoneAvailable ->
                     resultsSoFar,restOfTasks
             let newFailedFuncs = List.append failedFuncsSoFar failuresOfTask
 
