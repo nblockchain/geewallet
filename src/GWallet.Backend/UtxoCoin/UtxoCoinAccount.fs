@@ -38,7 +38,9 @@ module internal Account =
 
     let private faultTolerantElectrumClient =
         FaultTolerantParallelClient<ElectrumServerDiscarded>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS,
-                                                     NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS)
+                                                             NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS,
+                                                             Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS,
+                                                             Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS)
 
     let private GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()

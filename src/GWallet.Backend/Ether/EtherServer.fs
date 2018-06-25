@@ -164,7 +164,9 @@ module Server =
 
     let private faultTolerantEthClient =
         FaultTolerantParallelClient<ConnectionUnsuccessfulException>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS,
-                                                             NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS)
+                                                                     NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS,
+                                                                     Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS,
+                                                                     Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS)
 
     let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): list<'T->'R> =
         let servers = GetWeb3Servers currency

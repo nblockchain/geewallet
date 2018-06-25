@@ -12,10 +12,13 @@ module FaultTolerance =
 
     let private one_consistent_result_because_this_test_doesnt_test_consistency = 1
     let private not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1
+    let internal test_does_not_involve_retries = uint16 0
 
     let private defaultFaultTolerantParallelClient =
         FaultTolerantParallelClient<SomeSpecificException>(one_consistent_result_because_this_test_doesnt_test_consistency,
-                                                   not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
+                                                           not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                           test_does_not_involve_retries,
+                                                           test_does_not_involve_retries)
 
     [<Test>]
     let ``can retrieve basic T for single func``() =
@@ -76,7 +79,9 @@ module FaultTolerance =
             try
                 let result =
                     (FaultTolerantParallelClient<SomeException> (one_consistent_result_because_this_test_doesnt_test_consistency,
-                                                         not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
+                                                                 not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                                 test_does_not_involve_retries,
+                                                                 test_does_not_involve_retries))
                         .Query<string,int> someStringArg [ func1; func2 ]
                             |> Async.RunSynchronously
                 Some(result)
@@ -100,7 +105,9 @@ module FaultTolerance =
 
         let result =
             (FaultTolerantParallelClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency,
-                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
+                                                        not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                        test_does_not_involve_retries,
+                                                        test_does_not_involve_retries))
                 .Query<string,int> someStringArg [ func1; func2 ]
                     |> Async.RunSynchronously
         Assert.That(result, Is.EqualTo(someResult))
@@ -117,7 +124,9 @@ module FaultTolerance =
 
         let ex = Assert.Throws<AggregateException>(fun _ ->
             (FaultTolerantParallelClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency,
-                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
+                                                        not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                        test_does_not_involve_retries,
+                                                        test_does_not_involve_retries))
                 .Query<string,int> someStringArg [ func1; func2 ]
                     |> Async.RunSynchronously
                     |> ignore )
@@ -134,7 +143,9 @@ module FaultTolerance =
 
         Assert.Throws<ArgumentException>(fun _ ->
             (FaultTolerantParallelClient<Exception>(one_consistent_result_because_this_test_doesnt_test_consistency,
-                                            not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization))
+                                                    not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                    test_does_not_involve_retries,
+                                                    test_does_not_involve_retries))
                 |> ignore ) |> ignore
 
     [<Test>]
@@ -153,7 +164,9 @@ module FaultTolerance =
             someConsistentResult
 
         let consistencyGuardClient = FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
-                                                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
+                                                                                        not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                                                        test_does_not_involve_retries,
+                                                                                        test_does_not_involve_retries)
 
         let dataRetreived =
             consistencyGuardClient
@@ -185,14 +198,18 @@ module FaultTolerance =
 
         Assert.Throws<ArgumentException>(fun _ ->
             FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
-                                                       not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
+                                                               not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                               test_does_not_involve_retries,
+                                                               test_does_not_involve_retries)
                     |> ignore ) |> ignore
 
         let numberOfConsistentResponsesToBeConsideredSafe = -1
 
         Assert.Throws<ArgumentException>(fun _ ->
             FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
-                                                       not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
+                                                               not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                               test_does_not_involve_retries,
+                                                               test_does_not_involve_retries)
                     |> ignore ) |> ignore
 
     [<Test>]
@@ -208,7 +225,9 @@ module FaultTolerance =
             someResult
 
         let client = FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
-                                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
+                                                                        not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                                        test_does_not_involve_retries,
+                                                                        test_does_not_involve_retries)
 
         Assert.Throws<ArgumentException>(fun _ ->
             client.Query<string,int>
@@ -236,7 +255,9 @@ module FaultTolerance =
             mostConsistentResult
 
         let client = FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
-                                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
+                                                                        not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                                        test_does_not_involve_retries,
+                                                                        test_does_not_involve_retries)
 
         let inconsistencyEx = Assert.Throws<ResultInconsistencyException>(fun _ ->
                                   client.Query<string,int>
@@ -263,8 +284,64 @@ module FaultTolerance =
             0
 
         let client = FaultTolerantParallelClient<SomeException>(one_consistent_result_because_this_test_doesnt_test_consistency,
-                                                        not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization)
+                                                                not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                                uint16 1,
+                                                                uint16 0)
         client.Query<string,int> someStringArg [ func1; func2 ]
             |> Async.RunSynchronously
             // enough to know that it doesn't throw
             |> ignore
+
+    [<Test>]
+    let ``it retries before throwing inconsistency exception``() =
+        let numberOfConsistentResponsesToBeConsideredSafe = 3
+
+        let someStringArg = "foo"
+        let mostConsistentResult = 1
+        let someOtherResultA = 2
+        let someOtherResultB = 3
+
+
+
+        let func1 (arg: string) =
+            someOtherResultA
+        let func2 (arg: string) =
+            mostConsistentResult
+
+        let mutable countA = 0
+        let func3whichGetsConsistentAtSecondTry (arg: string) =
+            countA <- countA + 1
+            if (countA = 1) then
+                someOtherResultB
+            else
+                mostConsistentResult
+
+        let mutable countB = 0
+        let func3whichGetsConsistentAtThirdTry (arg: string) =
+            countB <- countB + 1
+            if (countB < 3) then
+                someOtherResultB
+            else
+                mostConsistentResult
+        let func4 (arg: string) =
+            mostConsistentResult
+
+        let client = FaultTolerantParallelClient<SomeSpecificException>(numberOfConsistentResponsesToBeConsideredSafe,
+                                                                        not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization,
+                                                                        uint16 0,
+                                                                        uint16 1)
+
+
+        client.Query<string,int>
+            someStringArg
+            [ func1; func2; func3whichGetsConsistentAtSecondTry; func4 ]
+                |> Async.RunSynchronously
+                |> ignore
+
+        let inconsistencyEx = Assert.Throws<ResultInconsistencyException>(fun _ ->
+                                  client.Query<string,int>
+                                      someStringArg
+                                      [ func1; func2; func3whichGetsConsistentAtThirdTry; func4 ]
+                                          |> Async.RunSynchronously
+                                          |> ignore )
+        Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))

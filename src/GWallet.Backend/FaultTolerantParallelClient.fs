@@ -30,9 +30,9 @@ and internal NonParallelResults<'T,'R,'E when 'E :> Exception> =
     ExceptionsSoFar<'T,'R,'E> * NonParallelResultWithAdditionalWork<'T,'R,'E>
 
 type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResponsesRequired: int,
-                                                          numberOfMaximumParallelJobs: int) =
-    let NUMBER_OF_RETRIES_TO_PERFORM = uint16 1
-
+                                                          numberOfMaximumParallelJobs: int,
+                                                          numberOfRetries: uint16,
+                                                          numberOfRetriesForInconsistency: uint16) =
     do
         if typeof<'E> = typeof<Exception> then
             raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
@@ -124,6 +124,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                           (resultsSoFar: List<'R>)
                           (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
                           (retries: uint16)
+                          (retriesForInconsistency: uint16)
                               : Async<'R> = async {
         if not (funcs.Any()) then
             return raise(ArgumentException("number of funcs must be higher than zero",
@@ -157,12 +158,17 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
         | InconsistentOrNotEnoughResults(allResultsSoFar,failedFuncsWithTheirExceptions) ->
 
             if (allResultsSoFar.Length = 0) then
-                if (retries = NUMBER_OF_RETRIES_TO_PERFORM) then
+                if (retries = numberOfRetries) then
                     let firstEx = failedFuncsWithTheirExceptions.First() |> snd
                     return raise (NoneAvailableException("Not available", firstEx))
                 else
                     let failedFuncs: List<'T->'R> = failedFuncsWithTheirExceptions |> List.map fst
-                    return! QueryInternal args failedFuncs allResultsSoFar [] (uint16 (retries + uint16 1))
+                    return! QueryInternal args
+                                          failedFuncs
+                                          allResultsSoFar
+                                          []
+                                          (uint16 (retries + uint16 1))
+                                          retriesForInconsistency
             else
                 let totalNumberOfSuccesfulResultsObtained = allResultsSoFar.Length
                 let resultsOrderedByCount = MeasureConsistency allResultsSoFar
@@ -170,11 +176,19 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                 | [] ->
                     return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
                 | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
-                    return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
-                                                               maxNumberOfConsistentResultsObtained,
-                                                               numberOfConsistentResponsesRequired))
+                    if (retriesForInconsistency = numberOfRetriesForInconsistency) then
+                        return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
+                                                                   maxNumberOfConsistentResultsObtained,
+                                                                   numberOfConsistentResponsesRequired))
+                    else
+                        return! QueryInternal args
+                                              funcs
+                                              []
+                                              []
+                                              retries
+                                              (uint16 (retriesForInconsistency + uint16 1))
     }
 
     member self.Query<'T,'R when 'R : equality> (args: 'T) (funcs: list<'T->'R>): Async<'R> =
 
-        QueryInternal args funcs [] [] (uint16 0)
+        QueryInternal args funcs [] [] (uint16 0) (uint16 0)

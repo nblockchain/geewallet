@@ -28,7 +28,9 @@ module Parallelization =
             0
 
         let client = FaultTolerantParallelClient<SomeException>(NUMBER_OF_CONSISTENT_RESULTS,
-                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED)
+                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED,
+                                                                FaultTolerance.test_does_not_involve_retries,
+                                                                FaultTolerance.test_does_not_involve_retries)
         client.Query<string,int> someStringArg [ func1; func2 ]
             |> Async.RunSynchronously |> ignore
 
@@ -67,7 +69,9 @@ module Parallelization =
 
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<SomeException>(NUMBER_OF_CONSISTENT_RESULTS,
-                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED)
+                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED,
+                                                                FaultTolerance.test_does_not_involve_retries,
+                                                                FaultTolerance.test_does_not_involve_retries)
         let result = client.Query<string,int> someStringArg [ func1; func2; func3 ]
                          |> Async.RunSynchronously
 
@@ -94,7 +98,9 @@ module Parallelization =
 
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<SomeException>(NUMBER_OF_CONSISTENT_RESULTS,
-                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED)
+                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED,
+                                                                FaultTolerance.test_does_not_involve_retries,
+                                                                FaultTolerance.test_does_not_involve_retries)
         let result = client.Query<string,int> someStringArg [ func1; func2; func3 ]
                          |> Async.RunSynchronously
 
@@ -105,7 +111,9 @@ module Parallelization =
         // different order of funcs
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<SomeException>(NUMBER_OF_CONSISTENT_RESULTS,
-                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED)
+                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED,
+                                                                FaultTolerance.test_does_not_involve_retries,
+                                                                FaultTolerance.test_does_not_involve_retries)
         let result = client.Query<string,int> someStringArg [ func1; func3; func2; ]
                          |> Async.RunSynchronously
 
@@ -116,7 +124,9 @@ module Parallelization =
         // different order of funcs
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<SomeException>(NUMBER_OF_CONSISTENT_RESULTS,
-                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED)
+                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED,
+                                                                FaultTolerance.test_does_not_involve_retries,
+                                                                FaultTolerance.test_does_not_involve_retries)
         let result = client.Query<string,int> someStringArg [ func3; func2; func1; ]
                          |> Async.RunSynchronously
 
@@ -127,7 +137,9 @@ module Parallelization =
         // different order of funcs
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<SomeException>(NUMBER_OF_CONSISTENT_RESULTS,
-                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED)
+                                                                NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED,
+                                                                FaultTolerance.test_does_not_involve_retries,
+                                                                FaultTolerance.test_does_not_involve_retries)
         let result = client.Query<string,int> someStringArg [ func3; func1; func2; ]
                          |> Async.RunSynchronously
 
