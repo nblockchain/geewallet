@@ -22,11 +22,19 @@ type internal TransactionOutpoint =
 
 module internal Account =
 
-    let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS = 2
-    let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 5
-
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
+
+    let private faultTolerantParallelClientSettings =
+        {
+            NumberOfMaximumParallelJobs = uint16 5;
+            NumberOfConsistentResponsesRequired = uint16 2;
+            NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+        }
+
+    let private faultTolerantElectrumClient =
+        FaultTolerantParallelClient<ElectrumServerDiscarded>(faultTolerantParallelClientSettings)
 
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
@@ -35,12 +43,6 @@ module internal Account =
         | BTC -> Config.BitcoinNet
         | LTC -> Config.LitecoinNet
         | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
-
-    let private faultTolerantElectrumClient =
-        FaultTolerantParallelClient<ElectrumServerDiscarded>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS,
-                                                             NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS,
-                                                             Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS,
-                                                             Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS)
 
     let private GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()

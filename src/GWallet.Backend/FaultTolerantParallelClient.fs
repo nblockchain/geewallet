@@ -10,7 +10,7 @@ type NoneAvailableException (message:string, lastException: Exception) =
 
 type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                    maxNumberOfConsistentResultsObtained: int,
-                                   numberOfConsistentResultsRequired: int) =
+                                   numberOfConsistentResultsRequired: uint16) =
   inherit Exception ("Results obtained were not enough to be considered consistent" +
                       sprintf " (received: %d, consistent: %d, required: %d)"
                                   totalNumberOfSuccesfulResultsObtained
@@ -29,16 +29,21 @@ type internal NonParallelResultWithAdditionalWork<'T,'R,'E when 'E :> Exception>
 and internal NonParallelResults<'T,'R,'E when 'E :> Exception> =
     ExceptionsSoFar<'T,'R,'E> * NonParallelResultWithAdditionalWork<'T,'R,'E>
 
-type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResponsesRequired: int,
-                                                          numberOfMaximumParallelJobs: int,
-                                                          numberOfRetries: uint16,
-                                                          numberOfRetriesForInconsistency: uint16) =
+type FaultTolerantParallelClientSettings =
+    {
+        NumberOfMaximumParallelJobs: uint16;
+        NumberOfConsistentResponsesRequired: uint16;
+        NumberOfRetries: uint16;
+        NumberOfRetriesForInconsistency: uint16;
+    }
+
+type FaultTolerantParallelClient<'E when 'E :> Exception>(settings: FaultTolerantParallelClientSettings) =
     do
         if typeof<'E> = typeof<Exception> then
             raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
-        if numberOfConsistentResponsesRequired < 1 then
+        if settings.NumberOfConsistentResponsesRequired < uint16 1 then
             raise (ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired"))
-        if numberOfMaximumParallelJobs < 1 then
+        if settings.NumberOfMaximumParallelJobs < uint16 1 then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 
     let MeasureConsistency (results: List<'R>) =
@@ -47,7 +52,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
     let LaunchAsyncJobs(jobs:List<Async<NonParallelResults<'T,'R,'E>>>): List<Task<NonParallelResults<'T,'R,'E>>> =
         jobs |> Seq.map (fun asyncJob -> Async.StartAsTask asyncJob) |> List.ofSeq
 
-    let rec WhenSomeInternal (numberOfResultsRequired: int)
+    let rec WhenSomeInternal (numberOfResultsRequired: uint16)
                              (tasks: List<Task<NonParallelResults<'T,'R,'E>>>)
                              (resultsSoFar: List<'R>)
                              (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
@@ -78,7 +83,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
             | [] ->
                 return! WhenSomeInternal numberOfResultsRequired newRestOfTasks newResults newFailedFuncs
             | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
-                if (maxNumberOfConsistentResultsObtained = numberOfResultsRequired) then
+                if (maxNumberOfConsistentResultsObtained = int numberOfResultsRequired) then
                     return ConsistentResult mostConsistentResult
                 else
                     return! WhenSomeInternal numberOfResultsRequired newRestOfTasks newResults newFailedFuncs
@@ -88,7 +93,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
     // "Async.WhenAny" in TomasP's tryJoinads source code, however it seemed a bit complex for me to wrap my head around
     // it (and I couldn't just consume it and call it a day, I had to modify it to be "WhenSome" instead of "WhenAny",
     // as in when N>1), so I decided to write my own, using Tasks to make sure I would not spawn duplicate jobs
-    let WhenSome (numberOfConsistentResultsRequired: int)
+    let WhenSome (numberOfConsistentResultsRequired: uint16)
                  (jobs: List<Async<NonParallelResults<'T,'R,'E>>>)
                  (resultsSoFar: List<'R>)
                  (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
@@ -129,12 +134,14 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
         if not (funcs.Any()) then
             return raise(ArgumentException("number of funcs must be higher than zero",
                                            "funcs"))
-        if (funcs.Count() < numberOfConsistentResponsesRequired) then
+        let howManyFuncs = uint16 funcs.Length
+        if (howManyFuncs < settings.NumberOfConsistentResponsesRequired) then
             return raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
                                            "funcs"))
 
+        let numberOfMaximumParallelJobs = int settings.NumberOfMaximumParallelJobs
         let funcsToRunInParallel,restOfFuncs =
-            if (funcs.Length > numberOfMaximumParallelJobs) then
+            if (howManyFuncs > settings.NumberOfMaximumParallelJobs) then
                 funcs |> Seq.take numberOfMaximumParallelJobs, funcs |> Seq.skip numberOfMaximumParallelJobs
             else
                 funcs |> Seq.ofList, Seq.empty
@@ -151,14 +158,14 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                              funcBuckets.Length numberOfMaximumParallelJobs
 
         let! result =
-            WhenSome numberOfConsistentResponsesRequired funcBuckets resultsSoFar failedFuncsSoFar
+            WhenSome settings.NumberOfConsistentResponsesRequired funcBuckets resultsSoFar failedFuncsSoFar
         match result with
         | ConsistentResult consistentResult ->
             return consistentResult
         | InconsistentOrNotEnoughResults(allResultsSoFar,failedFuncsWithTheirExceptions) ->
 
             if (allResultsSoFar.Length = 0) then
-                if (retries = numberOfRetries) then
+                if (retries = settings.NumberOfRetries) then
                     let firstEx = failedFuncsWithTheirExceptions.First() |> snd
                     return raise (NoneAvailableException("Not available", firstEx))
                 else
@@ -176,10 +183,10 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(numberOfConsistentResp
                 | [] ->
                     return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
                 | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
-                    if (retriesForInconsistency = numberOfRetriesForInconsistency) then
+                    if (retriesForInconsistency = settings.NumberOfRetriesForInconsistency) then
                         return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
                                                                    maxNumberOfConsistentResultsObtained,
-                                                                   numberOfConsistentResponsesRequired))
+                                                                   settings.NumberOfConsistentResponsesRequired))
                     else
                         return! QueryInternal args
                                               funcs

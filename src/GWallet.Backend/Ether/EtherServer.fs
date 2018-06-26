@@ -155,18 +155,23 @@ module Server =
             raise (ServerTimedOutException(exMsg))
         task.Result
 
-    // FIXME: we need different instances with different parameters for each kind of request (e.g.:
-    //          a) broadcast transaction -> no need for consistency
-    //          b) get gas price -> average between all responses (e.g. once I got 1430000000,1500000000,1000000000)
-    //          c) rest: can have a sane consistency number param such as 2, like below
+    let faultTolerantParallelClientSettings =
+        {
+            // FIXME: we need different instances with different parameters for each kind of request (e.g.:
+            //          a) broadcast transaction -> no need for consistency
+            //          b) get gas price -> average between all responses (e.g. once I got 1430000000,1500000000,1000000000)
+            //          c) rest: can have a sane consistency number param such as 2, like below
+            NumberOfMaximumParallelJobs = uint16 3;
+            NumberOfConsistentResponsesRequired = uint16 2;
+            NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+        }
+
     let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
     let private faultTolerantEthClient =
-        FaultTolerantParallelClient<ConnectionUnsuccessfulException>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS,
-                                                                     NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS,
-                                                                     Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS,
-                                                                     Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS)
+        FaultTolerantParallelClient<ConnectionUnsuccessfulException>(faultTolerantParallelClientSettings)
 
     let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): list<'T->'R> =
         let servers = GetWeb3Servers currency
