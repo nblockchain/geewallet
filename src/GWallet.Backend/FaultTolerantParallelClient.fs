@@ -147,6 +147,9 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>(settings: FaultToleran
                 funcs |> Seq.ofList, Seq.empty
 
         // each bucket can be run in parallel, each bucket contains 1 or more funcs that cannot be run in parallel
+        // e.g. if we have funcs A, B, C, D and numberOfMaximumParallelJobs=2, then we have funcBucket1(A,B) and
+        //      funcBucket2(C,D), then fb1&fb2 are started at the same time (A&C start at the same time), and B
+        //      starts only when A finishes or fails, and D only starts when C finishes or fails
         let funcBuckets =
             Seq.splitInto numberOfMaximumParallelJobs funcs
             |> Seq.map List.ofArray
