@@ -3,6 +3,7 @@
 open System
 open System.Net
 open System.Numerics
+open System.Linq
 open System.Threading.Tasks
 
 open Nethereum.Util
@@ -155,14 +156,13 @@ module Server =
             raise (ServerTimedOutException(exMsg))
         task.Result
 
-    let faultTolerantParallelClientSettings =
+    let private FaultTolerantParallelClientSettings() =
         {
             // FIXME: we need different instances with different parameters for each kind of request (e.g.:
             //          a) broadcast transaction -> no need for consistency
-            //          b) get gas price -> average between all responses (e.g. once I got 1430000000,1500000000,1000000000)
-            //          c) rest: can have a sane consistency number param such as 2, like below
+            //          b) rest: can have a sane consistency number param such as 2, like below
             NumberOfMaximumParallelJobs = uint16 3;
-            NumberOfConsistentResponsesRequired = uint16 2;
+            ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 2);
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
         }
@@ -171,7 +171,7 @@ module Server =
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
     let private faultTolerantEthClient =
-        FaultTolerantParallelClient<ConnectionUnsuccessfulException>(faultTolerantParallelClientSettings)
+        FaultTolerantParallelClient<ConnectionUnsuccessfulException>()
 
     let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): list<'T->'R> =
         let servers = GetWeb3Servers currency
@@ -197,6 +197,7 @@ module Server =
                 WaitOnTask web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
                                publicAddress
             return! faultTolerantEthClient.Query<string,HexBigInteger>
+                (FaultTolerantParallelClientSettings())
                 address
                 (GetWeb3Funcs currency web3Func)
         }
@@ -207,6 +208,7 @@ module Server =
             let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
                 WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
             return! faultTolerantEthClient.Query<string,HexBigInteger>
+                (FaultTolerantParallelClientSettings())
                 address
                 (GetWeb3Funcs currency web3Func)
         }
@@ -217,6 +219,7 @@ module Server =
                 let tokenService = TokenManager.DaiContract web3
                 WaitOnTask tokenService.GetBalanceOfAsync publicAddress
             return! faultTolerantEthClient.Query<string,BigInteger>
+                (FaultTolerantParallelClientSettings())
                 address
                 (GetWeb3Funcs currency web3Func)
         }
@@ -247,6 +250,7 @@ module Server =
             let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
                 WaitOnTask (GetConfirmedEtherBalanceInternal web3) publicAddress
             return! faultTolerantEthClient.Query<string,HexBigInteger>
+                        (FaultTolerantParallelClientSettings())
                         address
                         (GetWeb3Funcs currency web3Func)
         }
@@ -272,6 +276,7 @@ module Server =
             let web3Func (web3: Web3) (publicddress: string): BigInteger =
                 WaitOnTask (GetConfirmedTokenBalanceInternal web3) address
             return! faultTolerantEthClient.Query<string,BigInteger>
+                        (FaultTolerantParallelClientSettings())
                         address
                         (GetWeb3Funcs currency web3Func)
         }
@@ -287,16 +292,26 @@ module Server =
                                                            Value = amountInWei)
                 WaitOnTask contractHandler.EstimateGasAsync transferFunctionMsg
             return! faultTolerantEthClient.Query<unit,HexBigInteger>
+                        (FaultTolerantParallelClientSettings())
                         ()
                         (GetWeb3Funcs account.Currency web3Func)
         }
+
+    let private AverageGasPrice (gasPricesFromDifferentServers: List<HexBigInteger>): HexBigInteger =
+        let sum = gasPricesFromDifferentServers.Select(fun hbi -> hbi.Value)
+                                               .Aggregate(fun bi1 bi2 -> BigInteger.Add(bi1, bi2))
+        let avg = BigInteger.Divide(sum, BigInteger(gasPricesFromDifferentServers.Length))
+        HexBigInteger(avg)
 
     let GetGasPrice (currency: Currency)
         : Async<HexBigInteger> =
         async {
             let web3Func (web3: Web3) (_: unit): HexBigInteger =
                 WaitOnTask web3.Eth.GasPrice.SendRequestAsync ()
+            let minResponsesRequired = uint16 2
             return! faultTolerantEthClient.Query<unit,HexBigInteger>
+                        { FaultTolerantParallelClientSettings() with
+                              ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
                         ()
                         (GetWeb3Funcs currency web3Func)
         }
@@ -314,6 +329,7 @@ module Server =
                 WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
             try
                 return! faultTolerantEthClient.Query<string,string>
+                            (FaultTolerantParallelClientSettings())
                             transaction
                             (GetWeb3Funcs currency web3Func)
             with

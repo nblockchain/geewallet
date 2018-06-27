@@ -25,16 +25,16 @@ module internal Account =
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
 
-    let private faultTolerantParallelClientSettings =
+    let private FaultTolerantParallelClientSettings() =
         {
             NumberOfMaximumParallelJobs = uint16 5;
-            NumberOfConsistentResponsesRequired = uint16 2;
+            ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 2);
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
         }
 
     let private faultTolerantElectrumClient =
-        FaultTolerantParallelClient<ElectrumServerDiscarded>(faultTolerantParallelClientSettings)
+        FaultTolerantParallelClient<ElectrumServerDiscarded>()
 
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
@@ -89,6 +89,7 @@ module internal Account =
             ec.GetBalance address
         let balance =
             faultTolerantElectrumClient.Query<string,BlockchainAddressGetBalanceInnerResult>
+                (FaultTolerantParallelClientSettings())
                 account.PublicAddress
                 (GetRandomizedFuncs account.Currency electrumGetBalance)
         balance
@@ -210,6 +211,7 @@ module internal Account =
             ec.GetUnspentTransactionOutputs address
         let! utxos =
             faultTolerantElectrumClient.Query<string,array<BlockchainAddressListUnspentInnerResult>>
+                (FaultTolerantParallelClientSettings())
                 baseAccount.PublicAddress
                 (GetRandomizedFuncs baseAccount.Currency electrumGetUtxos)
 
@@ -237,6 +239,7 @@ module internal Account =
                     yield async {
                         let! transRaw =
                             faultTolerantElectrumClient.Query<string,string>
+                                (FaultTolerantParallelClientSettings())
                                 utxo.TransactionId
                                 (GetRandomizedFuncs baseAccount.Currency electrumGetTx)
                         return { RawTransaction = transRaw; OutputIndex = utxo.OutputIndex }
@@ -268,8 +271,16 @@ module internal Account =
         let estimatedFinalTransSize =
             transactionSizeInBytes + (BYTES_PER_INPUT_ESTIMATION_CONSTANT * unsignedTransaction.Inputs.Count)
             + (numberOfInputs - 1)
+
+        let averageFee (feesFromDifferentServers: List<decimal>): decimal =
+            let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
+            avg
+
+        let minResponsesRequired = uint16 3
         let! btcPerKiloByteForFastTrans =
             faultTolerantElectrumClient.Query<int,decimal>
+                { FaultTolerantParallelClientSettings() with
+                      ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, averageFee) }
                 //querying for 1 will always return -1 surprisingly...
                 2
                 (GetRandomizedFuncs baseAccount.Currency electrumEstimateFee)
@@ -372,6 +383,7 @@ module internal Account =
             ec.BroadcastTransaction rawTx
         let newTxId =
             faultTolerantElectrumClient.Query<string,string>
+                (FaultTolerantParallelClientSettings())
                 rawTx
                 (GetRandomizedFuncs currency electrumBroadcastTx)
         newTxId

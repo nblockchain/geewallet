@@ -29,7 +29,7 @@ module Account =
                 return Some balance
             with
             | ex ->
-                if (FSharpUtil.FindException<NoneAvailableException> ex).IsSome then
+                if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
                     return None
                 else
                     // mmm, somehow the compiler doesn't allow me to just use "return reraise()" below, weird:

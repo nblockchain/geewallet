@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend.Tests
 
 open System
+open System.Linq
 
 open NUnit.Framework
 
@@ -14,16 +15,16 @@ module FaultTolerance =
     let private not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1
     let internal test_does_not_involve_retries = uint16 0
 
-    let defaultSettingsForNoConsistencyNoParallelismAndNoRetries =
+    let internal defaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         {
             NumberOfMaximumParallelJobs = uint16 1;
-            NumberOfConsistentResponsesRequired = uint16 1;
+            ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 1);
             NumberOfRetries = uint16 0;
             NumberOfRetriesForInconsistency = uint16 0;
         }
 
     let private defaultFaultTolerantParallelClient =
-        FaultTolerantParallelClient<SomeSpecificException>(defaultSettingsForNoConsistencyNoParallelismAndNoRetries)
+        FaultTolerantParallelClient<SomeSpecificException>()
 
     [<Test>]
     let ``can retrieve basic T for single func``() =
@@ -32,7 +33,8 @@ module FaultTolerance =
         let func (arg: string) =
             someResult
         let dataRetreived =
-            defaultFaultTolerantParallelClient.Query<string,int> someStringArg [ func ]
+            defaultFaultTolerantParallelClient.Query<string,int>
+                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func ]
                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
@@ -45,7 +47,9 @@ module FaultTolerance =
             someResult
         let func2 (arg: string) =
             someResult
-        let dataRetreived = defaultFaultTolerantParallelClient.Query<string,int> someStringArg [ func1; func2 ]
+        let dataRetreived = defaultFaultTolerantParallelClient.Query<string,int>
+                                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ func1; func2 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
@@ -54,7 +58,9 @@ module FaultTolerance =
     let ``throws ArgumentException if no funcs``(): unit =
         let client = defaultFaultTolerantParallelClient
         Assert.Throws<ArgumentException>(
-            fun _ -> client.Query<string,int> "_" [] |> Async.RunSynchronously |> ignore
+            fun _ -> client.Query<string,int>
+                            (defaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                            "_" [] |> Async.RunSynchronously |> ignore
         ) |> ignore
 
     [<Test>]
@@ -66,14 +72,15 @@ module FaultTolerance =
         let func2 (arg: string) =
             someResult
         let dataRetreived =
-            defaultFaultTolerantParallelClient.Query<string,int> someStringArg [ func1; func2 ]
+            defaultFaultTolerantParallelClient.Query<string,int>
+                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     exception SomeException
     [<Test>]
-    let ``NoneAvailable exception contains innerException``() =
+    let ``ServerUnavailabilityException exception contains innerException``() =
         let someStringArg = "foo"
         let func1 (arg: string) =
             raise SomeException
@@ -83,13 +90,15 @@ module FaultTolerance =
         let dataRetrieved =
             try
                 let result =
-                    (FaultTolerantParallelClient<SomeException> (defaultSettingsForNoConsistencyNoParallelismAndNoRetries))
-                        .Query<string,int> someStringArg [ func1; func2 ]
+                    (FaultTolerantParallelClient<SomeException> ())
+                        .Query<string,int>
+                            (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
                             |> Async.RunSynchronously
                 Some(result)
             with
             | ex ->
-                Assert.That (ex, Is.TypeOf<NoneAvailableException>(), "ex.Message is: " + ex.Message)
+                Assert.That (ex :? ServerUnavailabilityException, Is.True)
+                Assert.That (ex.GetType().Name, Is.EqualTo "NoneAvailableException")
                 Assert.That (ex.InnerException, Is.Not.Null)
                 Assert.That (ex.InnerException, Is.TypeOf<SomeException>())
                 None
@@ -106,8 +115,9 @@ module FaultTolerance =
             someResult
 
         let result =
-            (FaultTolerantParallelClient<SomeException>(defaultSettingsForNoConsistencyNoParallelismAndNoRetries))
-                .Query<string,int> someStringArg [ func1; func2 ]
+            (FaultTolerantParallelClient<SomeException>())
+                .Query<string,int>
+                    (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
                     |> Async.RunSynchronously
         Assert.That(result, Is.EqualTo(someResult))
 
@@ -122,8 +132,9 @@ module FaultTolerance =
             someResult
 
         let ex = Assert.Throws<AggregateException>(fun _ ->
-            (FaultTolerantParallelClient<SomeException>(defaultSettingsForNoConsistencyNoParallelismAndNoRetries))
-                .Query<string,int> someStringArg [ func1; func2 ]
+            (FaultTolerantParallelClient<SomeException>())
+                .Query<string,int>
+                    (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
                     |> Async.RunSynchronously
                     |> ignore )
 
@@ -138,7 +149,7 @@ module FaultTolerance =
             "someResult2"
 
         Assert.Throws<ArgumentException>(fun _ ->
-            (FaultTolerantParallelClient<Exception>(defaultSettingsForNoConsistencyNoParallelismAndNoRetries))
+            (FaultTolerantParallelClient<Exception>())
                 |> ignore ) |> ignore
 
     [<Test>]
@@ -156,14 +167,15 @@ module FaultTolerance =
         let funcConsistentB (arg: string) =
             someConsistentResult
 
-        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries
-                         with NumberOfConsistentResponsesRequired = numberOfConsistentResponsesToBeConsideredSafe; }
+        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+                            ConsistencyConfig =
+                                NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
         let consistencyGuardClient =
-            FaultTolerantParallelClient<SomeSpecificException>(settings)
+            FaultTolerantParallelClient<SomeSpecificException>()
 
         let dataRetreived =
             consistencyGuardClient
-                .Query<string,int> someStringArg
+                .Query<string,int> settings someStringArg
                                    [ funcInconsistent; funcConsistentA; funcConsistentB; ]
                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
@@ -171,7 +183,7 @@ module FaultTolerance =
 
         let dataRetreived =
             consistencyGuardClient
-                .Query<string,int> someStringArg
+                .Query<string,int> settings someStringArg
                                    [ funcConsistentA; funcInconsistent; funcConsistentB; ]
                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
@@ -179,7 +191,7 @@ module FaultTolerance =
 
         let dataRetreived =
             consistencyGuardClient
-                .Query<string,int> someStringArg
+                .Query<string,int> settings someStringArg
                                    [ funcConsistentA; funcConsistentB; funcInconsistent; ]
                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
@@ -187,18 +199,20 @@ module FaultTolerance =
 
     [<Test>]
     let ``consistency precondition > 0``() =
-        let invalidSettings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries
-                                 with NumberOfConsistentResponsesRequired = uint16 0; }
+        let invalidSettings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries()
+                                    with ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 0); }
 
         Assert.Throws<ArgumentException>(fun _ ->
-            FaultTolerantParallelClient<SomeSpecificException>(invalidSettings)
+            FaultTolerantParallelClient<SomeSpecificException>().Query
+                invalidSettings () [ fun _ -> () ] |> Async.RunSynchronously
                     |> ignore ) |> ignore
 
     [<Test>]
     let ``consistency precondition > funcs``() =
         let numberOfConsistentResponsesToBeConsideredSafe = uint16 3
-        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries
-                         with NumberOfConsistentResponsesRequired = numberOfConsistentResponsesToBeConsideredSafe; }
+        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+                            ConsistencyConfig =
+                                NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
 
         let someStringArg = "foo"
         let someResult = 1
@@ -208,10 +222,11 @@ module FaultTolerance =
         let func2 (arg: string) =
             someResult
 
-        let client = FaultTolerantParallelClient<SomeSpecificException>(settings)
+        let client = FaultTolerantParallelClient<SomeSpecificException>()
 
         Assert.Throws<ArgumentException>(fun _ ->
             client.Query<string,int>
+                settings
                 someStringArg
                 [ func1; func2 ]
                 |> Async.RunSynchronously
@@ -220,8 +235,8 @@ module FaultTolerance =
     [<Test>]
     let ``if consistency is not found, throws inconsistency exception``() =
         let numberOfConsistentResponsesToBeConsideredSafe = uint16 3
-        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries
-                         with NumberOfConsistentResponsesRequired = numberOfConsistentResponsesToBeConsideredSafe; }
+        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+                             ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
 
         let someStringArg = "foo"
         let mostConsistentResult = 1
@@ -237,10 +252,11 @@ module FaultTolerance =
         let func4 (arg: string) =
             mostConsistentResult
 
-        let client = FaultTolerantParallelClient<SomeSpecificException>(settings)
+        let client = FaultTolerantParallelClient<SomeSpecificException>()
 
         let inconsistencyEx = Assert.Throws<ResultInconsistencyException>(fun _ ->
                                   client.Query<string,int>
+                                      settings
                                       someStringArg
                                       [ func1; func2; func3; func4 ]
                                           |> Async.RunSynchronously
@@ -263,12 +279,12 @@ module FaultTolerance =
                 raise SomeException
             0
 
-        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries with
+        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             NumberOfRetries = uint16 1;
                             NumberOfRetriesForInconsistency = uint16 0; }
 
-        let client = FaultTolerantParallelClient<SomeException>(settings)
-        client.Query<string,int> someStringArg [ func1; func2 ]
+        let client = FaultTolerantParallelClient<SomeException>()
+        client.Query<string,int> settings someStringArg [ func1; func2 ]
             |> Async.RunSynchronously
             // enough to know that it doesn't throw
             |> ignore
@@ -306,15 +322,17 @@ module FaultTolerance =
         let func4 (arg: string) =
             mostConsistentResult
 
-        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries with
-                            NumberOfConsistentResponsesRequired = numberOfConsistentResponsesToBeConsideredSafe
+        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+                            ConsistencyConfig =
+                                NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe;
                             NumberOfRetries = uint16 0;
                             NumberOfRetriesForInconsistency = uint16 1; }
 
-        let client = FaultTolerantParallelClient<SomeSpecificException>(settings)
+        let client = FaultTolerantParallelClient<SomeSpecificException>()
 
 
         client.Query<string,int>
+            settings
             someStringArg
             [ func1; func2; func3whichGetsConsistentAtSecondTry; func4 ]
                 |> Async.RunSynchronously
@@ -322,8 +340,41 @@ module FaultTolerance =
 
         let inconsistencyEx = Assert.Throws<ResultInconsistencyException>(fun _ ->
                                   client.Query<string,int>
+                                      settings
                                       someStringArg
                                       [ func1; func2; func3whichGetsConsistentAtThirdTry; func4 ]
                                           |> Async.RunSynchronously
                                           |> ignore )
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
+
+    [<Test>]
+    let ``using an average func instead of consistency``() =
+
+        let someStringArg = "foo"
+
+        let func1 (arg: string) =
+            1
+        let func2 (arg: string) =
+            5
+        let func3 (arg: string) =
+            6
+
+        let funcs = [ func1; func2; func3; ]
+
+        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+                            NumberOfMaximumParallelJobs = uint16 funcs.Length
+                            ConsistencyConfig =
+                                AverageBetweenResponses (uint16 funcs.Length,
+                                                         (fun (list:List<int>) ->
+                                                             list.Sum() / list.Length
+                                                         )); }
+
+        let client = FaultTolerantParallelClient<SomeSpecificException>()
+
+        let result = client.Query<string,int>
+                         settings
+                         someStringArg
+                         funcs
+                             |> Async.RunSynchronously
+
+        Assert.That(result, Is.EqualTo ((1+5+6)/3))
