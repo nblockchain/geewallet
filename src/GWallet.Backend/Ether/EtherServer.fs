@@ -135,6 +135,14 @@ module Server =
                         raise (ServerChannelNegotiationException(exMsg, webEx))
                     if (webEx.Status = WebExceptionStatus.ReceiveFailure) then
                         raise (ServerTimedOutException(exMsg, webEx))
+
+                    // TBH not sure if this one below happens only when TLS is not working...*, which means that either
+                    // a) we need to remove these 2 lines (to not catch it) and make sure it doesn't happen in the client
+                    // b) or, we should raise ServerChannelNegotiationException instead of ServerUnreachableException
+                    //    (and log a warning in Sentry?) * -> see https://sentry.io/nblockchain/gwallet/issues/592019902
+                    if (webEx.Status = WebExceptionStatus.SendFailure) then
+                        raise (ServerUnreachableException(exMsg, webEx))
+
                     raise (UnhandledWebException(webEx.Status, webEx))
 
         if not finished then
