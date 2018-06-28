@@ -136,7 +136,7 @@ module Caching =
     let MapCombinations<'K,'V when 'K: comparison> (map: Map<'K,'V>): List<List<'K*'V>> =
         Map.toList map |> ListCombinations
 
-    type MainCache(maybeCacheFile: Option<FileInfo>) =
+    type MainCache(maybeCacheFile: Option<FileInfo>, unconfTxExpirationSpan: TimeSpan) =
         let cacheFile =
             match maybeCacheFile with
             | Some file -> file
@@ -151,6 +151,7 @@ module Caching =
 
         let GetSumOfAllTransactions (trans: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>)
                                     currency address: decimal =
+            let now = DateTime.Now
             let currencyTrans = trans.TryFind currency
             match currencyTrans with
             | None -> 0m
@@ -160,7 +161,13 @@ module Caching =
                 | None -> 0m
                 | Some someMap ->
                     Map.toSeq someMap |>
-                        Seq.sumBy (fun (txId,(txAmount,_)) -> txAmount)
+                        Seq.sumBy (fun (txId,(txAmount,txDate)) ->
+                                        // FIXME: develop some kind of cache cleanup to remove these expired txs?
+                                        if (now < txDate + unconfTxExpirationSpan) then
+                                            txAmount
+                                        else
+                                            0m
+                                  )
 
         let rec RemoveRangeFromMap (map: Map<'K,'V>) (list: List<'K*'V>) =
             match list with
@@ -371,4 +378,4 @@ module Caching =
                 SaveToDisk newCachedValue
             )
 
-    let Instance = MainCache None
+    let Instance = MainCache (None, TimeSpan.FromDays 1.0)
