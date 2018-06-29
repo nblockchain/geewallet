@@ -41,3 +41,10 @@ module Formatting =
         let someCryptoDecimalAmount = 0.000016m
         let formattedAmount = Formatting.DecimalAmount CurrencyType.Crypto someCryptoDecimalAmount
         Assert.That(formattedAmount, Is.EqualTo "0.00002")
+
+    [<Test>]
+    [<Ignore("FIXME, not working yet")>]
+    let ``if it's not zero, even if super tiny, it shouldn't round to zero!``() =
+        let someVerySmallUsdDecimalAmount = 0.0000001m
+        let formattedAmount = Formatting.DecimalAmount CurrencyType.Fiat someVerySmallUsdDecimalAmount
+        Assert.That(formattedAmount, Is.EqualTo "0.01")
