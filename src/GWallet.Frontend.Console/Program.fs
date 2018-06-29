@@ -64,13 +64,13 @@ let SignOffPayment() =
     else
         let accounts =
             accountsWithSameAddress.Where(
-                fun acc -> acc.Currency = unsignedTransaction.Proposal.Currency &&
+                fun acc -> acc.Currency = unsignedTransaction.Proposal.Amount.Currency &&
                            acc :? NormalAccount)
         if not (accounts.Any()) then
             Presentation.Error(
                 sprintf
                     "The transaction corresponds to an address of the accounts in this wallet, but it's a readonly account or it maps a different currency than %A."
-                    unsignedTransaction.Proposal.Currency
+                    unsignedTransaction.Proposal.Amount.Currency
             )
             UserInteraction.PressAnyKeyToContinue()
         else
@@ -83,7 +83,7 @@ let SignOffPayment() =
                 failwith "Previous account filtering should have discarded readonly accounts already. Please report this issue"
             | :? NormalAccount as normalAccount ->
                 Console.WriteLine ("Importing external data...")
-                Caching.SaveSnapshot unsignedTransaction.Cache
+                Caching.Instance.SaveSnapshot unsignedTransaction.Cache
 
                 Console.WriteLine ("Account to use when signing off this transaction:")
                 Console.WriteLine ()
@@ -113,7 +113,6 @@ let SendPaymentOfSpecificAmount (account: IAccount)
         Console.Write("Introduce a file name to save the unsigned transaction: ")
         let filePath = Console.ReadLine()
         let proposal = {
-            Currency = account.Currency;
             OriginAddress = account.PublicAddress;
             Amount = amount;
             DestinationAddress = destination;
@@ -243,7 +242,8 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
         Console.WriteLine "Please indicate the account you would like to transfer the funds to."
         let account = GetAccountOfSameCurrency currency
 
-        let maybeFee = UserInteraction.AskFee archivedAccount (TransferAmount(balance, 0m)) account.PublicAddress
+        let allBalance = TransferAmount(balance, balance, account.Currency)
+        let maybeFee = UserInteraction.AskFee archivedAccount allBalance account.PublicAddress
         match maybeFee with
         | None -> ()
         | Some(feeInfo) ->

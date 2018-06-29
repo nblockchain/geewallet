@@ -1,15 +1,15 @@
 {
-	"Version":"0.2.0.0",
-	"TypeName":"GWallet.Backend.UnsignedTransaction`1[[GWallet.Backend.Ether.TransactionMetadata, GWallet.Backend, Version=0.2.0.0, Culture=neutral, PublicKeyToken=null]]",
+	"Version":"0.3.0.0",
+	"TypeName":"GWallet.Backend.UnsignedTransaction`1[[GWallet.Backend.Ether.TransactionMetadata, GWallet.Backend, Version=0.3.0.0, Culture=neutral, PublicKeyToken=null]]",
 	"Value":{
 		"Proposal":{
-			"Currency":{
-				"Case":"DAI"
-			},
 			"OriginAddress":"0xba766d6d13E2Cc921Bf6e896319D32502af9e37E",
 			"Amount":{
 				"ValueToSend":1.0,
-				"IdealValueRemainingAfterSending":6.08
+				"BalanceAtTheMomentOfSending":7.08,
+				"Currency":{
+					"Case":"DAI"
+				}
 			},
 			"DestinationAddress":"0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b"
 		},
@@ -66,6 +66,8 @@
 						"Item2":"2018-03-14T16:50:00.431234Z"
 					}
 				}
+			},
+			"OutgoingTransactions":{
 			}
 		}
 	}

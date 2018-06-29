@@ -192,10 +192,10 @@ module UserInteraction =
         match maybeUsdValue with
         | NotFresh(NotAvailable) -> Presentation.ExchangeRateUnreachableMsg
         | Fresh(usdValue) ->
-            sprintf "~ %s USD" (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
+            sprintf "~ %s USD" (balance * usdValue |> Formatting.DecimalAmount CurrencyType.Fiat)
         | NotFresh(Cached(usdValue,time)) ->
             sprintf "~ %s USD (last known rate as of %s)"
-                (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
+                (balance * usdValue |> Formatting.DecimalAmount CurrencyType.Fiat)
                 (time |> Presentation.ShowSaneDate)
 
     let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
@@ -217,14 +217,14 @@ module UserInteraction =
             Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
         | NotFresh(Cached(balance,time)) ->
             let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
-                                (balance |> Presentation.ShowDecimalForHumans CurrencyType.Crypto)
+                                (balance |> Formatting.DecimalAmount CurrencyType.Crypto)
                                 (time |> Presentation.ShowSaneDate)
                                 Environment.NewLine
                                 (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
         | Fresh(balance) ->
             let status = sprintf "Balance=[%s] %s"
-                                (balance |> Presentation.ShowDecimalForHumans CurrencyType.Crypto)
+                                (balance |> Formatting.DecimalAmount CurrencyType.Crypto)
                                 (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
 
@@ -293,7 +293,8 @@ module UserInteraction =
                             | NotFresh(NotAvailable) -> yield None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
                                 let fiatValue = BalanceInUsdString onlineBalance maybeUsdValue
-                                let total = sprintf "Total %A: %s (%s)" currency (onlineBalance.ToString()) fiatValue
+                                let cryptoValue = Formatting.DecimalAmount CurrencyType.Crypto onlineBalance
+                                let total = sprintf "Total %A: %s (%s)" currency cryptoValue fiatValue
                                 yield Some(onlineBalance * usdValue)
                                 Console.WriteLine (total)
                 } |> List.ofSeq
@@ -316,8 +317,8 @@ module UserInteraction =
                 | None -> ()
                 | Some(totalInUsd) ->
                     Console.WriteLine()
-                    Console.WriteLine("Total estimated value in USD: " +
-                        Presentation.ShowDecimalForHumans CurrencyType.Fiat totalInUsd)
+                    Console.WriteLine(sprintf "Total estimated value in USD: %s"
+                                          (Formatting.DecimalAmount CurrencyType.Fiat totalInUsd))
             else
                 Console.WriteLine("No accounts have been created so far.")
             Console.WriteLine()
@@ -447,12 +448,12 @@ module UserInteraction =
             try
                 match amountOption with
                 | AmountOption.AllBalance ->
-                    TransferAmount(currentBalance, 0m) |> Some
+                    TransferAmount(currentBalance, currentBalance, account.Currency) |> Some
                 | AmountOption.CertainCryptoAmount ->
                     let specificCryptoAmount = AskParticularAmount()
                     if (specificCryptoAmount > currentBalance) then
                         raise InsufficientBalance
-                    TransferAmount(specificCryptoAmount, currentBalance - specificCryptoAmount) |> Some
+                    TransferAmount(specificCryptoAmount, currentBalance, account.Currency) |> Some
                 | AmountOption.ApproxEquivalentFiatAmount ->
                     match FiatValueEstimation.UsdValue account.Currency with
                     | NotFresh(NotAvailable) ->
@@ -465,7 +466,7 @@ module UserInteraction =
                         | Some cryptoAmount ->
                             if (cryptoAmount > currentBalance) then
                                 raise InsufficientBalance
-                            TransferAmount(cryptoAmount, currentBalance - cryptoAmount) |> Some
+                            TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Some
                     | NotFresh(Cached(usdValue,time)) ->
                         let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue (Some(time))
                         match maybeCryptoAmount with
@@ -473,7 +474,7 @@ module UserInteraction =
                         | Some cryptoAmount ->
                             if (cryptoAmount > currentBalance) then
                                 raise InsufficientBalance
-                            TransferAmount(cryptoAmount, currentBalance - cryptoAmount) |> Some
+                            TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Some
             with
             | :? InsufficientBalance ->
                 Presentation.Error "Amount surpasses current balance, try again."

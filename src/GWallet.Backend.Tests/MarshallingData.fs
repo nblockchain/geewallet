@@ -39,25 +39,24 @@ module MarshallingData =
 
     let private someUnsignedEtherTransactionProposal =
         {
-            Currency = Currency.ETC;
             OriginAddress = "0xf3j4m0rjx94sushh03j";
-            Amount = TransferAmount(10.01m, 1.01m);
+            Amount = TransferAmount(10.01m, 12.02m, Currency.ETC);
             DestinationAddress = "0xf3j4m0rjxdddud9403j";
         }
 
     let EmptyCachingDataExample =
-        { UsdPrice = Map.empty; Balances = Map.empty }
+        { UsdPrice = Map.empty; Balances = Map.empty; OutgoingTransactions = Map.empty; }
 
     let EmptyCachingDataExampleInJson =
         sprintf "{\"Version\":\"%s\",\"TypeName\":\"%s\","
                 version (EmptyCachingDataExample.GetType().FullName) +
-                "\"Value\":{\"UsdPrice\":{},\"Balances\":{}}}"
+                "\"Value\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}"
 
     let private balances = Map.empty.Add(Currency.BTC, Map.empty.Add("1fooBarBaz", (0m, SomeDate)))
                                     .Add(Currency.ETC, Map.empty.Add("0xFOOBARBAZ", (123456789.12345678m, SomeDate)))
     let private fiatValues = Map.empty.Add(Currency.ETH, (161.796m, SomeDate))
                               .Add(Currency.ETC, (169.99999999m, SomeDate))
-    let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Balances = balances }
+    let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Balances = balances; OutgoingTransactions = Map.empty; }
 
     let private innerCachingDataForSofisticatedUseCase =
         "{\"UsdPrice\":{\"ETH\":{\"Item1\":161.796,\"Item2\":" +
@@ -67,7 +66,7 @@ module MarshallingData =
         "}},\"Balances\":{\"BTC\":{\"1fooBarBaz\":{\"Item1\":0.0,\"Item2\":" +
         JsonConvert.SerializeObject (SomeDate) + "}}," +
         "\"ETC\":{\"0xFOOBARBAZ\":{\"Item1\":123456789.12345678,\"Item2\":" +
-        JsonConvert.SerializeObject (SomeDate) + "}}}}"
+        JsonConvert.SerializeObject (SomeDate) + "}}},\"OutgoingTransactions\":{}}"
 
     let SofisticatedCachingDataExampleInJson =
         (sprintf "{\"Version\":\"%s\",\"TypeName\":\"%s\","
@@ -77,9 +76,8 @@ module MarshallingData =
 
     let private someUnsignedBtcTransactionProposal =
         {
-            Currency = Currency.BTC;
             OriginAddress = "16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR";
-            Amount = TransferAmount(10.01m, 1.01m);
+            Amount = TransferAmount(10.01m, 12.02m, Currency.BTC);
             DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5";
         }
 
@@ -105,9 +103,9 @@ module MarshallingData =
         (sprintf "{\"Version\":\"%s\"," version) +
         (sprintf "\"TypeName\":\"%s\",\"Value\":" (UnsignedBtcTransactionExample.GetType().FullName)) +
         "{\"Proposal\":" +
-        "{\"Currency\":{\"Case\":\"BTC\"}," +
+        "{" +
         "\"OriginAddress\":\"16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
+        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"BTC\"}}," +
         "\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}," +
         "\"Metadata\":{\"Fee\":" +
         "{\"EstimatedTransactionSizeInBytes\":10," +
@@ -117,7 +115,7 @@ module MarshallingData =
         "\"TransactionDraft\":{\"Inputs\":" +
         "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
         "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}}"
+        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}}"
 
     let SignedBtcTransactionExample =
         {
@@ -129,9 +127,9 @@ module MarshallingData =
         (sprintf "{\"Version\":\"%s\"," version) +
         (sprintf "\"TypeName\":\"%s\",\"Value\":" (SignedBtcTransactionExample.GetType().FullName)) +
         "{\"TransactionInfo\":{\"Proposal\":" +
-        "{\"Currency\":{\"Case\":\"BTC\"}," +
+        "{" +
         "\"OriginAddress\":\"16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
+        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"BTC\"}}," +
         "\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}," +
         "\"Metadata\":{\"Fee\":{" +
         "\"EstimatedTransactionSizeInBytes\":10," +
@@ -142,7 +140,7 @@ module MarshallingData =
         "\"TransactionDraft\":{\"Inputs\":" +
         "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
         "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}," +
+        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}," +
         "\"RawTransaction\":\"ropkrpork4p4rkpo4kprok4rp\"}}"
 
     let private someEtherTxMetadata =
@@ -171,7 +169,7 @@ module MarshallingData =
                  .Add(Currency.LTC, Map.empty.Add("MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm", (0.0m, DateTime.Parse "2018-03-14T16:45:15.544517")))
 
     let private realCachingDataExample =
-        { UsdPrice = realUsdPriceDataSample; Balances = realBalancesDataSample }
+        { UsdPrice = realUsdPriceDataSample; Balances = realBalancesDataSample; OutgoingTransactions = Map.empty; }
 
     let private someEtherMinerFeeForDaiTransfer = Ether.MinerFee(37298L,
                                                                  3343750000L,
@@ -184,9 +182,8 @@ module MarshallingData =
         }
     let private someUnsignedDaiTransactionProposal =
         {
-            Currency = Currency.DAI;
             OriginAddress = "0xba766d6d13E2Cc921Bf6e896319D32502af9e37E";
-            Amount = TransferAmount(1m, 6.08m);
+            Amount = TransferAmount(1m, 7.08m, Currency.DAI);
             DestinationAddress = "0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b";
         }
     let UnsignedDaiTransactionExample =
@@ -222,9 +219,9 @@ module MarshallingData =
         (sprintf "{\"Version\":\"%s\"," version) +
         (sprintf "\"TypeName\":\"%s\",\"Value\":" (SignedEtherTransactionExample.GetType().FullName)) +
         "{\"TransactionInfo\":{\"Proposal\":" +
-        "{\"Currency\":{\"Case\":\"ETC\"}," +
+        "{" +
         "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
+        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"ETC\"}}," +
         "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
         ",\"Metadata\":{" +
         "\"Fee\":{" +
@@ -241,9 +238,9 @@ module MarshallingData =
         (sprintf "{\"Version\":\"%s\"," version) +
         (sprintf "\"TypeName\":\"%s\",\"Value\":" (UnsignedEtherTransactionExample.GetType().FullName)) +
         "{\"Proposal\":" +
-        "{\"Currency\":{\"Case\":\"ETC\"}," +
+        "{" +
         "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"IdealValueRemainingAfterSending\":1.01}," +
+        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"ETC\"}}," +
         "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
         ",\"Metadata\":{" +
         "\"Fee\":{" +
@@ -253,4 +250,4 @@ module MarshallingData =
         "\"EstimationTime\":" +
         JsonConvert.SerializeObject(SomeDate) + "}," +
         "\"TransactionCount\":69}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{}}}}"
+        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}}"

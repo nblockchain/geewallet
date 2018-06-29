@@ -97,8 +97,8 @@ module internal Account =
         let! txCount = GetTransactionCount account.Currency account.PublicAddress
 
         let feeValue = ethMinerFee.CalculateAbsoluteValue()
-        if (amount.IdealValueRemainingAfterSending > 0m &&
-            feeValue > amount.IdealValueRemainingAfterSending) then
+        if (amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&
+            feeValue > (amount.BalanceAtTheMomentOfSending - amount.ValueToSend)) then
             raise (InsufficientBalanceForFee feeValue)
 
         return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
@@ -136,7 +136,7 @@ module internal Account =
 
     let BroadcastTransaction (trans: SignedTransaction<_>) =
         BroadcastRawTransaction
-            trans.TransactionInfo.Proposal.Currency
+            trans.TransactionInfo.Proposal.Amount.Currency
             trans.RawTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
@@ -171,7 +171,7 @@ module internal Account =
                                         txMetadata.Fee.Currency chain)
 
         let amountToSendConsideringMinerFee =
-            if (amount.IdealValueRemainingAfterSending = 0.0m) then
+            if (amount.ValueToSend = amount.BalanceAtTheMomentOfSending) then
                 amount.ValueToSend - (txMetadata :> IBlockchainFeeInfo).FeeValue
             else
                 amount.ValueToSend
@@ -260,7 +260,7 @@ module internal Account =
                            (destination: IAccount)
                            (txMetadata: TransactionMetadata) =
         let accountFrom = (account:>IAccount)
-        let amount = TransferAmount(balance, 0.0m)
+        let amount = TransferAmount(balance, balance, accountFrom.Currency)
         let ecPrivKey = EthECKey(account.PrivateKey)
         let signedTrans = SignTransactionWithPrivateKey
                               account txMetadata destination.PublicAddress amount ecPrivKey
@@ -311,7 +311,7 @@ module internal Account =
         let unsignedTransaction =
             {
                 Proposal = transProposal;
-                Cache = Caching.GetLastCachedData();
+                Cache = Caching.Instance.GetLastCachedData();
                 Metadata = txMetadata;
             }
         let json = ExportUnsignedTransactionToJson unsignedTransaction

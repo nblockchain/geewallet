@@ -22,47 +22,52 @@ module Account =
                 return failwith (sprintf "Unknown currency %A" account.Currency)
         }
 
-    let private GetBalanceFromServerOrCache(account: IAccount) (onlyConfirmed: bool): Async<MaybeCached<decimal>> =
+    let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool): Async<Option<decimal>> =
         async {
-            let! maybeBalance =
-                async {
-                    try
-                        let! balance = GetBalanceInternal account onlyConfirmed
-                        return Some balance
-                    with
-                    | ex ->
-                        if (FSharpUtil.FindException<NoneAvailableException> ex).IsSome then
-                            return None
-                        else
-                            // mmm, somehow the compiler doesn't allow me to just use "return reraise()" below, weird:
-                            // UPDATE/FIXME: more info! https://stackoverflow.com/questions/7168801/how-to-use-reraise-in-async-workflows-in-f
-                            return raise (Exception("Call to access the balance somehow returned unexpected error", ex))
-                }
-
-            match maybeBalance with
-            | None ->
-                return NotFresh(Caching.RetreiveLastBalance(account.PublicAddress, account.Currency))
-            | Some(balance) ->
-                Caching.StoreLastBalance (account.PublicAddress, account.Currency) balance
-                return Fresh(balance)
+            try
+                let! balance = GetBalanceInternal account onlyConfirmed
+                return Some balance
+            with
+            | ex ->
+                if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
+                    return None
+                else
+                    // mmm, somehow the compiler doesn't allow me to just use "return reraise()" below, weird:
+                    // UPDATE/FIXME: more info! https://stackoverflow.com/questions/7168801/how-to-use-reraise-in-async-workflows-in-f
+                    return raise
+                        (Exception(sprintf "Call to access the %A balance somehow returned unexpected error"
+                                           account.Currency, ex))
         }
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount) =
-        GetBalanceFromServerOrCache account false
+        GetBalanceFromServer account false
 
     let GetConfirmedBalance(account: IAccount) =
-        GetBalanceFromServerOrCache account true
+        GetBalanceFromServer account true
 
-    let GetShowableBalance(account: IAccount): Async<MaybeCached<decimal>> = async {
+    let private GetShowableBalanceInternal(account: IAccount): Async<Option<decimal>> = async {
         let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account
         let! confirmed = GetConfirmedBalance account
         match unconfirmed,confirmed with
-        | Fresh(unconfirmedAmount),Fresh(confirmedAmount) ->
+        | Some unconfirmedAmount,Some confirmedAmount ->
             if (unconfirmedAmount < confirmedAmount) then
                 return unconfirmed
             else
                 return confirmed
         | _ -> return confirmed
+    }
+
+    let GetShowableBalance(account: IAccount): Async<MaybeCached<decimal>> =
+        async {
+            let! maybeBalance = GetShowableBalanceInternal account
+            match maybeBalance with
+            | None ->
+                return NotFresh(Caching.Instance.RetreiveLastCompoundBalance(account.PublicAddress, account.Currency))
+            | Some balance ->
+                let compoundBalance,_ =
+                    Caching.Instance.RetreiveAndUpdateLastCompoundBalance (account.PublicAddress, account.Currency)
+                                                                          balance
+                return Fresh compoundBalance
         }
 
     let mutable wiped = false
@@ -122,14 +127,13 @@ module Account =
                         let! unconfirmedBalance = maybeBalance
                         let positiveBalance =
                             match unconfirmedBalance with
-                            | NotFresh(NotAvailable) -> None
-                            | Fresh(balance) ->
+                            | Some balance ->
                                 if (balance > 0m) then
                                     Some(balance)
                                 else
                                     None
-                            | NotFresh(Cached(balance,time)) ->
-                                None // TODO: do something in this case??
+                            | _ ->
+                                None
                         return account,positiveBalance
                     }
         }
@@ -171,7 +175,8 @@ module Account =
     // broadcast it even if you sent it
     let BroadcastTransaction (trans: SignedTransaction<_>): Async<Uri> =
         async {
-            let currency = trans.TransactionInfo.Proposal.Currency
+            let currency = trans.TransactionInfo.Proposal.Amount.Currency
+
             let! txId =
                 if currency.IsEtherBased() then
                     Ether.Account.BroadcastTransaction trans
@@ -179,6 +184,13 @@ module Account =
                     UtxoCoin.Account.BroadcastTransaction currency trans
                 else
                     failwith (sprintf "Unknown currency %A" currency)
+
+            Caching.Instance.StoreOutgoingTransaction
+                (trans.TransactionInfo.Proposal.OriginAddress,currency)
+                txId
+                (trans.TransactionInfo.Proposal.Amount.TotalValueIncludingFeeIfSameCurrency
+                    trans.TransactionInfo.Metadata)
+
             return BlockExplorer.GetTransaction currency txId
         }
 
@@ -254,9 +266,8 @@ module Account =
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
 
-        ValidateAddress baseAccount.Currency destination
-
-        let currency = (account:>IAccount).Currency
+        let currency = baseAccount.Currency
+        ValidateAddress currency destination
 
         async {
             let! txId =
@@ -272,6 +283,12 @@ module Account =
                     | _ -> failwith "fee for Ether currency should be EtherMinerFee type"
                 else
                     failwith (sprintf "Unknown currency %A" currency)
+
+            Caching.Instance.StoreOutgoingTransaction
+                (baseAccount.PublicAddress,currency)
+                txId
+                (amount.TotalValueIncludingFeeIfSameCurrency txMetadata)
+
             return BlockExplorer.GetTransaction currency txId
         }
 
@@ -406,7 +423,7 @@ module Account =
                                 (txMetadata: IBlockchainFeeInfo)
                                 (filePath: string) =
 
-        ValidateAddress transProposal.Currency transProposal.DestinationAddress
+        ValidateAddress transProposal.Amount.Currency transProposal.DestinationAddress
 
         match txMetadata with
         | :? Ether.TransactionMetadata as etherTxMetadata ->

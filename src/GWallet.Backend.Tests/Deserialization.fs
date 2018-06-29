@@ -42,9 +42,9 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Metadata, Is.Not.Null)
 
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.ValueToSend, Is.EqualTo(10.01m))
-        Assert.That(deserializedUnsignedTrans.Proposal.Amount.IdealValueRemainingAfterSending,
-                    Is.EqualTo(1.01m))
-        Assert.That(deserializedUnsignedTrans.Proposal.Currency, Is.EqualTo(Currency.BTC))
+        Assert.That(deserializedUnsignedTrans.Proposal.Amount.BalanceAtTheMomentOfSending,
+                    Is.EqualTo 12.02m)
+        Assert.That(deserializedUnsignedTrans.Proposal.Amount.Currency, Is.EqualTo Currency.BTC)
         Assert.That(deserializedUnsignedTrans.Proposal.DestinationAddress,
                     Is.EqualTo("13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5"))
         Assert.That(deserializedUnsignedTrans.Proposal.OriginAddress,
@@ -74,9 +74,9 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Metadata, Is.Not.Null)
 
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.ValueToSend, Is.EqualTo(10.01m))
-        Assert.That(deserializedUnsignedTrans.Proposal.Amount.IdealValueRemainingAfterSending,
-                    Is.EqualTo(1.01m))
-        Assert.That(deserializedUnsignedTrans.Proposal.Currency, Is.EqualTo(Currency.ETC))
+        Assert.That(deserializedUnsignedTrans.Proposal.Amount.BalanceAtTheMomentOfSending,
+                    Is.EqualTo 12.02m)
+        Assert.That(deserializedUnsignedTrans.Proposal.Amount.Currency, Is.EqualTo Currency.ETC)
         Assert.That(deserializedUnsignedTrans.Proposal.DestinationAddress,
                     Is.EqualTo("0xf3j4m0rjxdddud9403j"))
         Assert.That(deserializedUnsignedTrans.Proposal.OriginAddress,
@@ -111,9 +111,9 @@ module Deserialization =
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.ValueToSend,
                     Is.EqualTo(10.01m))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.IdealValueRemainingAfterSending,
-                    Is.EqualTo(1.01m))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Currency,
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.BalanceAtTheMomentOfSending,
+                    Is.EqualTo 12.02m)
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.Currency,
                     Is.EqualTo(Currency.BTC))
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.DestinationAddress,
                     Is.EqualTo("13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5"))
@@ -152,9 +152,9 @@ module Deserialization =
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.ValueToSend,
                     Is.EqualTo(10.01m))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.IdealValueRemainingAfterSending,
-                    Is.EqualTo(1.01m))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Currency,
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.BalanceAtTheMomentOfSending,
+                    Is.EqualTo 12.02m)
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.Currency,
                     Is.EqualTo(Currency.ETC))
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.DestinationAddress,
                     Is.EqualTo("0xf3j4m0rjxdddud9403j"))
@@ -187,9 +187,9 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Metadata, Is.Not.Null)
 
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.ValueToSend, Is.EqualTo(1m))
-        Assert.That(deserializedUnsignedTrans.Proposal.Amount.IdealValueRemainingAfterSending,
-                    Is.EqualTo(6.08m))
-        Assert.That(deserializedUnsignedTrans.Proposal.Currency, Is.EqualTo(Currency.DAI))
+        Assert.That(deserializedUnsignedTrans.Proposal.Amount.BalanceAtTheMomentOfSending,
+                    Is.EqualTo 7.08m)
+        Assert.That(deserializedUnsignedTrans.Proposal.Amount.Currency, Is.EqualTo Currency.DAI)
         Assert.That(deserializedUnsignedTrans.Proposal.DestinationAddress,
                     Is.EqualTo("0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b"))
         Assert.That(deserializedUnsignedTrans.Proposal.OriginAddress,
@@ -224,9 +224,9 @@ module Deserialization =
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.ValueToSend,
                     Is.EqualTo(1m))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.IdealValueRemainingAfterSending,
-                    Is.EqualTo(6.08m))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Currency,
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.BalanceAtTheMomentOfSending,
+                    Is.EqualTo 7.08m)
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.Currency,
                     Is.EqualTo(Currency.DAI))
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.DestinationAddress,
                     Is.EqualTo("0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b"))

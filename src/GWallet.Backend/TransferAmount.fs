@@ -1,13 +1,25 @@
 ﻿namespace GWallet.Backend
 
-    type TransferAmount(valueToSend: decimal, idealValueRemainingAfterSending: decimal) =
-        do
-            if valueToSend <= 0m then
-                invalidArg "valueToSend" "Amount has to be above zero"
-            if idealValueRemainingAfterSending < 0m then
-                invalidArg "idealValueRemainingAfterSending" "Amount has to be non-negative"
+open System
 
-        member this.ValueToSend = valueToSend
+type TransferAmount(valueToSend: decimal, balanceAtTheMomentOfSending: decimal, currency: Currency) =
+    do
+        if valueToSend <= 0m then
+            invalidArg "valueToSend" "Amount has to be above zero"
+        if balanceAtTheMomentOfSending < valueToSend then
+            invalidArg "balanceAtTheMomentOfSending" "balance has to be equal or higher than valueToSend"
 
-        // "Ideal" prefix means: in an ideal world in which fees don't exist
-        member this.IdealValueRemainingAfterSending = idealValueRemainingAfterSending
+    member this.ValueToSend
+        with get() = Math.Round(valueToSend, currency.DecimalPlaces())
+
+    member this.BalanceAtTheMomentOfSending
+        with get() = balanceAtTheMomentOfSending
+
+    member this.Currency
+        with get() = currency
+
+    member this.TotalValueIncludingFeeIfSameCurrency (feeInfo: IBlockchainFeeInfo) =
+        if valueToSend = balanceAtTheMomentOfSending || currency <> feeInfo.Currency then
+            this.ValueToSend
+        else
+            feeInfo.FeeValue + this.ValueToSend

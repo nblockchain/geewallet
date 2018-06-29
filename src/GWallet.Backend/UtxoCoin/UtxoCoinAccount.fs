@@ -22,11 +22,19 @@ type internal TransactionOutpoint =
 
 module internal Account =
 
-    let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS = 2
-    let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 5
-
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
+
+    let private FaultTolerantParallelClientSettings() =
+        {
+            NumberOfMaximumParallelJobs = uint16 5;
+            ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 2);
+            NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+        }
+
+    let private faultTolerantElectrumClient =
+        FaultTolerantParallelClient<ElectrumServerDiscarded>()
 
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
@@ -35,10 +43,6 @@ module internal Account =
         | BTC -> Config.BitcoinNet
         | LTC -> Config.LitecoinNet
         | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
-
-    let private faultTolerantElectrumClient =
-        FaultTolerantParallelClient<ElectrumServerDiscarded>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ELECTRUM_SERVER_RESULTS,
-                                                     NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS)
 
     let private GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
@@ -85,6 +89,7 @@ module internal Account =
             ec.GetBalance address
         let balance =
             faultTolerantElectrumClient.Query<string,BlockchainAddressGetBalanceInnerResult>
+                (FaultTolerantParallelClientSettings())
                 account.PublicAddress
                 (GetRandomizedFuncs account.Currency electrumGetBalance)
         balance
@@ -206,6 +211,7 @@ module internal Account =
             ec.GetUnspentTransactionOutputs address
         let! utxos =
             faultTolerantElectrumClient.Query<string,array<BlockchainAddressListUnspentInnerResult>>
+                (FaultTolerantParallelClientSettings())
                 baseAccount.PublicAddress
                 (GetRandomizedFuncs baseAccount.Currency electrumGetUtxos)
 
@@ -233,6 +239,7 @@ module internal Account =
                     yield async {
                         let! transRaw =
                             faultTolerantElectrumClient.Query<string,string>
+                                (FaultTolerantParallelClientSettings())
                                 utxo.TransactionId
                                 (GetRandomizedFuncs baseAccount.Currency electrumGetTx)
                         return { RawTransaction = transRaw; OutputIndex = utxo.OutputIndex }
@@ -244,8 +251,8 @@ module internal Account =
             seq {
                 yield { ValueInSatoshis = amountInSatoshis; DestinationAddress = destination }
                 if (amountInSatoshis <> totalValueOfInputs) then
-                    if (amount.IdealValueRemainingAfterSending = 0m) then
-                        failwithf "Assertion failed: amountInSatoshis(%d)<>totalValueOfInputs(%d) but amount.IdealValueRemaining=0?"
+                    if (amount.ValueToSend = amount.BalanceAtTheMomentOfSending) then
+                        failwithf "Assertion failed: amountInSatoshis(%d)<>totalValueOfInputs(%d) but ValueToSend=BalanceAtTheMomentOfSending?"
                                   amountInSatoshis totalValueOfInputs
                     let changeAmount = totalValueOfInputs - amountInSatoshis
                     yield { ValueInSatoshis = changeAmount; DestinationAddress = baseAccount.PublicAddress }
@@ -264,8 +271,16 @@ module internal Account =
         let estimatedFinalTransSize =
             transactionSizeInBytes + (BYTES_PER_INPUT_ESTIMATION_CONSTANT * unsignedTransaction.Inputs.Count)
             + (numberOfInputs - 1)
+
+        let averageFee (feesFromDifferentServers: List<decimal>): decimal =
+            let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
+            avg
+
+        let minResponsesRequired = uint16 3
         let! btcPerKiloByteForFastTrans =
             faultTolerantElectrumClient.Query<int,decimal>
+                { FaultTolerantParallelClientSettings() with
+                      ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, averageFee) }
                 //querying for 1 will always return -1 surprisingly...
                 2
                 (GetRandomizedFuncs baseAccount.Currency electrumEstimateFee)
@@ -295,20 +310,21 @@ module internal Account =
                               transactionWithMinerFeeSubstracted.Outputs.Length)
         if (transactionWithMinerFeeSubstracted.Outputs.[0].DestinationAddress <> destination) then
             failwith "Destination address and the first output's destination address should match"
-        if (amount.IdealValueRemainingAfterSending < 0.0m) then
-            failwith "Assertion failed: idealValueRemainingAfterSending cannot be negative"
 
         // it means we're sending all balance!
-        if (amount.IdealValueRemainingAfterSending = 0.0m && transactionWithMinerFeeSubstracted.Outputs.Length <> 1) then
-            failwith (sprintf "Assertion outputsCount==1 failed (it was %d)"
-                              transactionWithMinerFeeSubstracted.Outputs.Length)
+        if (amount.ValueToSend = amount.BalanceAtTheMomentOfSending) then
+            if (transactionWithMinerFeeSubstracted.Outputs.Length <> 1) then
+                failwith (sprintf "Assertion outputsCount==1 failed (it was %d)"
+                                  transactionWithMinerFeeSubstracted.Outputs.Length)
         // it means there's change involved (send change back to change-address)
-        if (amount.IdealValueRemainingAfterSending > 0.0m && transactionWithMinerFeeSubstracted.Outputs.Length <> 2) then
-            failwith (
-                sprintf "Assertion failed: outputsCount should be 2 but it was %d (IdealValueRemainingAfterSending: %M)"
-                    transactionWithMinerFeeSubstracted.Outputs.Length
-                    amount.IdealValueRemainingAfterSending
-            )
+        else
+            if (transactionWithMinerFeeSubstracted.Outputs.Length <> 2) then
+                failwith (
+                    sprintf "Assertion failed: outputsCount should be 2 but it was %d (ValueToSend: %M; BalanceAtTheMomentOfSending: %M)"
+                        transactionWithMinerFeeSubstracted.Outputs.Length
+                        amount.ValueToSend
+                        amount.BalanceAtTheMomentOfSending
+                )
 
 
         let finalTransaction,coins = CreateTransactionAndCoinsToBeSigned currency transactionWithMinerFeeSubstracted
@@ -367,6 +383,7 @@ module internal Account =
             ec.BroadcastTransaction rawTx
         let newTxId =
             faultTolerantElectrumClient.Query<string,string>
+                (FaultTolerantParallelClientSettings())
                 rawTx
                 (GetRandomizedFuncs currency electrumBroadcastTx)
         newTxId
@@ -401,7 +418,7 @@ module internal Account =
         let unsignedTransaction =
             {
                 Proposal = transProposal;
-                Cache = Caching.GetLastCachedData();
+                Cache = Caching.Instance.GetLastCachedData();
                 Metadata = txMetadata;
             }
         let json = ExportUnsignedTransactionToJson unsignedTransaction
@@ -413,7 +430,7 @@ module internal Account =
                            (txMetadata: TransactionMetadata) =
         let currency = (account:>IAccount).Currency
         let network = GetNetwork currency
-        let amount = TransferAmount(balance, 0.0m)
+        let amount = TransferAmount(balance, balance, currency)
         let privateKey = Key.Parse(account.PrivateKey, network)
         let signedTrans = SignTransactionWithPrivateKey
                               currency txMetadata destination.PublicAddress amount privateKey

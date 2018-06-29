@@ -3,13 +3,14 @@
 open System
 open System.Net
 open System.Numerics
+open System.Linq
 open System.Threading.Tasks
 
 open Nethereum.Util
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
 open Nethereum.RPC.Eth.DTOs
-open Nethereum.StandardTokenEIP20.Functions
+open Nethereum.StandardTokenEIP20.CQS
 
 open GWallet.Backend
 
@@ -58,6 +59,8 @@ module Server =
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
     let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
+    let private ethWeb3Giveth = SomeWeb3("https://mew.giveth.io")
+    let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
 
     // TODO: add the one from https://etcchain.com/api/ too
     let private etcWeb3ePoolIo = SomeWeb3("https://mewapi.epool.io")
@@ -78,7 +81,12 @@ module Server =
                 etcWeb3ZeroXInfraGeth;
             ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
-            [ ethWeb3Mew; ethWeb3Infura ]
+            [
+                ethWeb3Infura;
+                ethWeb3Mew;
+                ethWeb3Giveth;
+                ethMyCrypto;
+            ]
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
 
@@ -100,10 +108,24 @@ module Server =
                             FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex
                         match maybeRpcResponseEx with
                         | None ->
+                            let maybeRpcTimeoutException = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcClientTimeoutException> ex
+                            match maybeRpcTimeoutException with
+                            | None ->
+                                reraise()
+                            | Some rpcTimeoutEx ->
+                                raise (ServerTimedOutException(exMsg, rpcTimeoutEx))
                             reraise()
                         | Some rpcResponseEx ->
+                            (* FIXME: find out the RpcError of the exception below:
                             if (rpcResponseEx.Message.Contains "pruning=archive") then
                                 raise (ServerMisconfiguredException(exMsg, rpcResponseEx))
+                            *)
+                            if (rpcResponseEx.RpcError <> null) then
+                                raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
+                                                         rpcResponseEx.RpcError.Code
+                                                         rpcResponseEx.RpcError.Message
+                                                         rpcResponseEx.Message,
+                                                 rpcResponseEx))
                             reraise()
                     | Some(httpReqEx) ->
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.ConnectionTimeOut))) then
@@ -128,19 +150,36 @@ module Server =
                         raise (ServerChannelNegotiationException(exMsg, webEx))
                     if (webEx.Status = WebExceptionStatus.ReceiveFailure) then
                         raise (ServerTimedOutException(exMsg, webEx))
+
+                    // TBH not sure if this one below happens only when TLS is not working...*, which means that either
+                    // a) we need to remove these 2 lines (to not catch it) and make sure it doesn't happen in the client
+                    // b) or, we should raise ServerChannelNegotiationException instead of ServerUnreachableException
+                    //    (and log a warning in Sentry?) * -> see https://sentry.io/nblockchain/gwallet/issues/592019902
+                    if (webEx.Status = WebExceptionStatus.SendFailure) then
+                        raise (ServerUnreachableException(exMsg, webEx))
+
                     raise (UnhandledWebException(webEx.Status, webEx))
 
         if not finished then
             raise (ServerTimedOutException(exMsg))
         task.Result
 
-    // we only have infura and mew for now, so requiring more than 1 would make it not fault tolerant...:
-    let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 1
-    let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 2
+    let private FaultTolerantParallelClientSettings() =
+        {
+            // FIXME: we need different instances with different parameters for each kind of request (e.g.:
+            //          a) broadcast transaction -> no need for consistency
+            //          b) rest: can have a sane consistency number param such as 2, like below
+            NumberOfMaximumParallelJobs = uint16 3;
+            ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 2);
+            NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+        }
+
+    let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
+    let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
     let private faultTolerantEthClient =
-        FaultTolerantParallelClient<ConnectionUnsuccessfulException>(NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS,
-                                                             NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS)
+        FaultTolerantParallelClient<ConnectionUnsuccessfulException>()
 
     let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): list<'T->'R> =
         let servers = GetWeb3Servers currency
@@ -166,6 +205,7 @@ module Server =
                 WaitOnTask web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
                                publicAddress
             return! faultTolerantEthClient.Query<string,HexBigInteger>
+                (FaultTolerantParallelClientSettings())
                 address
                 (GetWeb3Funcs currency web3Func)
         }
@@ -176,6 +216,7 @@ module Server =
             let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
                 WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
             return! faultTolerantEthClient.Query<string,HexBigInteger>
+                (FaultTolerantParallelClientSettings())
                 address
                 (GetWeb3Funcs currency web3Func)
         }
@@ -186,6 +227,7 @@ module Server =
                 let tokenService = TokenManager.DaiContract web3
                 WaitOnTask tokenService.GetBalanceOfAsync publicAddress
             return! faultTolerantEthClient.Query<string,BigInteger>
+                (FaultTolerantParallelClientSettings())
                 address
                 (GetWeb3Funcs currency web3Func)
         }
@@ -216,6 +258,7 @@ module Server =
             let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
                 WaitOnTask (GetConfirmedEtherBalanceInternal web3) publicAddress
             return! faultTolerantEthClient.Query<string,HexBigInteger>
+                        (FaultTolerantParallelClientSettings())
                         address
                         (GetWeb3Funcs currency web3Func)
         }
@@ -241,6 +284,7 @@ module Server =
             let web3Func (web3: Web3) (publicddress: string): BigInteger =
                 WaitOnTask (GetConfirmedTokenBalanceInternal web3) address
             return! faultTolerantEthClient.Query<string,BigInteger>
+                        (FaultTolerantParallelClientSettings())
                         address
                         (GetWeb3Funcs currency web3Func)
         }
@@ -253,19 +297,29 @@ module Server =
                 let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
                 let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                            To = destination,
-                                                           TokenAmount = amountInWei)
+                                                           Value = amountInWei)
                 WaitOnTask contractHandler.EstimateGasAsync transferFunctionMsg
             return! faultTolerantEthClient.Query<unit,HexBigInteger>
+                        (FaultTolerantParallelClientSettings())
                         ()
                         (GetWeb3Funcs account.Currency web3Func)
         }
+
+    let private AverageGasPrice (gasPricesFromDifferentServers: List<HexBigInteger>): HexBigInteger =
+        let sum = gasPricesFromDifferentServers.Select(fun hbi -> hbi.Value)
+                                               .Aggregate(fun bi1 bi2 -> BigInteger.Add(bi1, bi2))
+        let avg = BigInteger.Divide(sum, BigInteger(gasPricesFromDifferentServers.Length))
+        HexBigInteger(avg)
 
     let GetGasPrice (currency: Currency)
         : Async<HexBigInteger> =
         async {
             let web3Func (web3: Web3) (_: unit): HexBigInteger =
                 WaitOnTask web3.Eth.GasPrice.SendRequestAsync ()
+            let minResponsesRequired = uint16 2
             return! faultTolerantEthClient.Query<unit,HexBigInteger>
+                        { FaultTolerantParallelClientSettings() with
+                              ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
                         ()
                         (GetWeb3Funcs currency web3Func)
         }
@@ -283,6 +337,7 @@ module Server =
                 WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
             try
                 return! faultTolerantEthClient.Query<string,string>
+                            (FaultTolerantParallelClientSettings())
                             transaction
                             (GetWeb3Funcs currency web3Func)
             with
