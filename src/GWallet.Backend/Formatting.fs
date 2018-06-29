@@ -8,12 +8,14 @@ type CurrencyType =
 module Formatting =
 
     let DecimalAmount currencyType (amount: decimal): string =
-        let amountOfDecimalsToShow =
+        let amountOfDecimalsToShow,formattingStrategy =
             match currencyType with
-            | CurrencyType.Fiat -> 2
-            | CurrencyType.Crypto -> 5
+            | CurrencyType.Fiat ->
+                let twoDecimals = 2
+                twoDecimals,sprintf "N%d" twoDecimals
+            | CurrencyType.Crypto ->
+                let fiveDecimals = 5
+                fiveDecimals,sprintf "#,0.%s" (String('#', fiveDecimals))
 
         Math.Round(amount, amountOfDecimalsToShow)
-
-            // line below is to add thousand separators and not show zeroes on the right...
-            .ToString("#,0." + String('#', amountOfDecimalsToShow))
+            .ToString formattingStrategy
