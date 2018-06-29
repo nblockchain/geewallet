@@ -222,6 +222,7 @@
     <Compile Include="Account.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="Infrastructure.fs" />
+    <Compile Include="Formatting.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <Target Name="BeforeBuild">

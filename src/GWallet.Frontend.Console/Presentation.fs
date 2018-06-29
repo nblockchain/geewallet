@@ -5,8 +5,6 @@ open System.Text.RegularExpressions
 
 open GWallet.Backend
 
-type CurrencyType =
-    Fiat | Crypto
 
 module Presentation =
 
@@ -16,20 +14,6 @@ module Presentation =
     // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh
     let ShowSaneDate (date: DateTime): string =
         date.ToString("dd-MMM-yyyy")
-
-    let ShowDecimalForHumans currencyType (amount: decimal): string =
-        let amountOfDecimalsToShow =
-            match currencyType with
-            | CurrencyType.Fiat -> 2
-            | CurrencyType.Crypto -> 5
-
-        Math.Round(amount, amountOfDecimalsToShow)
-
-            // FIXME: the below returns "0" when the decimal is too low, e.g. for non crypto 0.001 USD -> 0
-            //                                                  (in this case maybe we should round up to 0.01)
-
-            // line below is to add thousand separators and not show zeroes on the right...
-            .ToString("#,0." + String('#', amountOfDecimalsToShow))
 
     let ConvertPascalCaseToSentence(pascalCaseElement: string) =
         Regex.Replace(pascalCaseElement, "[a-z][A-Z]",
@@ -43,15 +27,15 @@ module Presentation =
             match FiatValueEstimation.UsdValue(currency) with
             | Fresh(usdValue) ->
                 sprintf "(~%s USD)"
-                    (usdValue * estimatedFee.FeeValue |> ShowDecimalForHumans CurrencyType.Fiat)
+                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Fiat)
             | NotFresh(Cached(usdValue,time)) ->
                 sprintf "(~%s USD [last known rate at %s])"
-                    (usdValue * estimatedFee.FeeValue |> ShowDecimalForHumans CurrencyType.Fiat)
+                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Fiat)
                     (time |> ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
         Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s %A %s"
                               Environment.NewLine
-                              (estimatedFee.FeeValue |> ShowDecimalForHumans CurrencyType.Crypto)
+                              (estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Crypto)
                               currency
                               estimatedFeeInUsd
                          )
@@ -63,11 +47,11 @@ module Presentation =
             | Fresh(usdPrice) ->
                 Some(sprintf "~ %s USD"
                              (trans.Proposal.Amount.ValueToSend * usdPrice
-                                 |> ShowDecimalForHumans CurrencyType.Fiat))
+                                 |> Formatting.DecimalAmount CurrencyType.Fiat))
             | NotFresh(Cached(usdPrice, time)) ->
                 Some(sprintf "~ %s USD (last exchange rate known at %s)"
                         (trans.Proposal.Amount.ValueToSend * usdPrice
-                            |> ShowDecimalForHumans CurrencyType.Fiat)
+                            |> Formatting.DecimalAmount CurrencyType.Fiat)
                         (time |> ShowSaneDate))
             | NotFresh(NotAvailable) -> None
 
@@ -79,7 +63,7 @@ module Presentation =
             | Some(estimatedAmountInUsd) -> estimatedAmountInUsd
             | _ -> String.Empty
         Console.WriteLine (sprintf "Amount: %s %A %s"
-                                   (trans.Proposal.Amount.ValueToSend |> ShowDecimalForHumans CurrencyType.Crypto)
+                                   (trans.Proposal.Amount.ValueToSend |> Formatting.DecimalAmount CurrencyType.Crypto)
                                    trans.Proposal.Amount.Currency
                                    fiatAmount)
         Console.WriteLine()

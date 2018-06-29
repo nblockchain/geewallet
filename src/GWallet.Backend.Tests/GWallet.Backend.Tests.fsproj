@@ -179,5 +179,6 @@
     <Compile Include="ElectrumIntegrationTests.fs" />
     <Compile Include="WarpWallet.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />
+    <Compile Include="Formatting.fs" />
   </ItemGroup>
 </Project>

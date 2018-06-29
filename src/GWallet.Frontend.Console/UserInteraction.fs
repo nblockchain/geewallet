@@ -191,10 +191,10 @@ module UserInteraction =
         match maybeUsdValue with
         | NotFresh(NotAvailable) -> Presentation.ExchangeRateUnreachableMsg
         | Fresh(usdValue) ->
-            sprintf "~ %s USD" (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
+            sprintf "~ %s USD" (balance * usdValue |> Formatting.DecimalAmount CurrencyType.Fiat)
         | NotFresh(Cached(usdValue,time)) ->
             sprintf "~ %s USD (last known rate as of %s)"
-                (balance * usdValue |> Presentation.ShowDecimalForHumans CurrencyType.Fiat)
+                (balance * usdValue |> Formatting.DecimalAmount CurrencyType.Fiat)
                 (time |> Presentation.ShowSaneDate)
 
     let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
@@ -216,14 +216,14 @@ module UserInteraction =
             Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
         | NotFresh(Cached(balance,time)) ->
             let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
-                                (balance |> Presentation.ShowDecimalForHumans CurrencyType.Crypto)
+                                (balance |> Formatting.DecimalAmount CurrencyType.Crypto)
                                 (time |> Presentation.ShowSaneDate)
                                 Environment.NewLine
                                 (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
         | Fresh(balance) ->
             let status = sprintf "Balance=[%s] %s"
-                                (balance |> Presentation.ShowDecimalForHumans CurrencyType.Crypto)
+                                (balance |> Formatting.DecimalAmount CurrencyType.Crypto)
                                 (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
 
@@ -292,7 +292,7 @@ module UserInteraction =
                             | NotFresh(NotAvailable) -> yield None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
                                 let fiatValue = BalanceInUsdString onlineBalance maybeUsdValue
-                                let cryptoValue = Presentation.ShowDecimalForHumans CurrencyType.Crypto onlineBalance
+                                let cryptoValue = Formatting.DecimalAmount CurrencyType.Crypto onlineBalance
                                 let total = sprintf "Total %A: %s (%s)" currency cryptoValue fiatValue
                                 yield Some(onlineBalance * usdValue)
                                 Console.WriteLine (total)
@@ -316,8 +316,8 @@ module UserInteraction =
                 | None -> ()
                 | Some(totalInUsd) ->
                     Console.WriteLine()
-                    Console.WriteLine("Total estimated value in USD: " +
-                        Presentation.ShowDecimalForHumans CurrencyType.Fiat totalInUsd)
+                    Console.WriteLine(sprintf "Total estimated value in USD: %s"
+                                          (Formatting.DecimalAmount CurrencyType.Fiat totalInUsd))
             else
                 Console.WriteLine("No accounts have been created so far.")
             Console.WriteLine()
