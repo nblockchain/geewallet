@@ -193,9 +193,9 @@ type BalancesPage() as this =
 
         let initialBalancesTasksWithDetails =
             seq {
-                for normalAccount,accountBalanceLabel,fiatBalance in accountsAndBalances do
-                    let balanceJob = this.UpdateBalance (normalAccount, accountBalanceLabel, fiatBalance)
-                    yield balanceJob,normalAccount,accountBalanceLabel,fiatBalance
+                for normalAccount,accountBalanceLabel,fiatBalanceLabel in accountsAndBalances do
+                    let balanceJob = this.UpdateBalance (normalAccount, accountBalanceLabel, fiatBalanceLabel)
+                    yield balanceJob,normalAccount,accountBalanceLabel,fiatBalanceLabel
             }
 
         let allBalancesJob = Async.Parallel (initialBalancesTasksWithDetails |> Seq.map (fun (j,_,_,_) -> j))
