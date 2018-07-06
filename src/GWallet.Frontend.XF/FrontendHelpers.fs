@@ -17,10 +17,22 @@ type FrontendHelpers =
 
     static member internal ExchangeRateUnreachableMsg = " (~ ? USD)"
 
+    //FIXME: right now the UI doesn't explain what the below element means when it shows it, we should add a legend...
+    static member internal ExchangeOutdatedVisualElement = "*"
+
+    // these days cryptos are not so volatile, so 30mins should be good...
+    static member internal TimeSpanToConsiderExchangeRateOutdated = TimeSpan.FromMinutes 30.0
+
     // FIXME: share code between Frontend.Console and Frontend.XF
     // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh
     static member ShowSaneDate (date: DateTime): string =
         date.ToString("dd-MMM-yyyy")
+
+    static member MaybeReturnOutdatedMarkForOldDate (date: DateTime) =
+        if (date + FrontendHelpers.TimeSpanToConsiderExchangeRateOutdated < DateTime.Now) then
+            FrontendHelpers.ExchangeOutdatedVisualElement
+        else
+            String.Empty
 
     // FIXME: add this use case to Formatting module, and with a unit test
     static member ShowDecimalForHumansWithMax (currencyType: CurrencyType, amount: decimal, maxAmount: decimal): string =
@@ -47,9 +59,9 @@ type FrontendHelpers =
                                    (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
         | NotFresh(Cached(usdValue,time)) ->
             let fiatBalance = usdValue * balance
-            NotFresh(Cached(fiatBalance,time)),sprintf "~ %s USD (as of %s)"
+            NotFresh(Cached(fiatBalance,time)),sprintf "~ %s USD%s"
                                                     (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
-                                                    (time |> FrontendHelpers.ShowSaneDate)
+                                                    (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
 
     // when running Task<unit> or Task<T> where we want to ignore the T, we should still make sure there is no exception,
     // & if there is, bring it to the main thread to fail fast, report to Sentry, etc, otherwise it gets ignored

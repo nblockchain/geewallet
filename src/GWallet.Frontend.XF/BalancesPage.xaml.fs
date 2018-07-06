@@ -67,9 +67,9 @@ type BalancesPage() as this =
             | Fresh amount ->
                 sprintf "~ %s USD" (Formatting.DecimalAmount CurrencyType.Fiat amount)
             | NotFresh(Cached(cachedAmount,time)) ->
-                sprintf "~ %s USD (as of %s)"
+                sprintf "~ %s USD%s"
                        (Formatting.DecimalAmount CurrencyType.Fiat cachedAmount)
-                       (time |> FrontendHelpers.ShowSaneDate)
+                       (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
         totalFiatAmountLabel.Text <- strBalance
 
     let rec UpdateGlobalFiatBalance (acc: MaybeCached<decimal>) fiatBalances =
