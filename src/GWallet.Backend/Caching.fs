@@ -31,7 +31,8 @@ module Caching =
     let public ImportFromJson (cacheData: string): CachedNetworkData =
         Marshalling.Deserialize cacheData
 
-    let private LoadFromDisk (file: FileInfo): Option<CachedNetworkData> =
+    let droppedCachedMsgWarning = "Warning: cleaning incompatible cache data found from different GWallet version"
+    let private LoadFromDiskInternal (file: FileInfo): Option<CachedNetworkData> =
         try
             let json = File.ReadAllText file.FullName
             if String.IsNullOrWhiteSpace json then
@@ -42,12 +43,25 @@ module Caching =
         with
         | :? FileNotFoundException -> None
         | :? VersionMismatchDuringDeserializationException ->
-            Console.Error.WriteLine("Warning: cleaning incompatible cache data found from different GWallet version")
+            Console.Error.WriteLine droppedCachedMsgWarning
             None
         | :? DeserializationException ->
             // FIXME: report a warning to sentry here...
             Console.Error.WriteLine("Warning: cleaning incompatible cache data found")
             None
+
+    let private LoadFromDisk (file: FileInfo): Option<CachedNetworkData> =
+        let maybeNetworkData = LoadFromDiskInternal file
+        match maybeNetworkData with
+        | None ->
+            None
+        | Some networkData ->
+            // this weird thing could happen because the previous version of GWallet didn't have an OutgoingTrans element
+            if (Object.ReferenceEquals(networkData.OutgoingTransactions, null)) then
+                Console.Error.WriteLine droppedCachedMsgWarning
+                None
+            else
+                maybeNetworkData
 
     let public ExportToJson (newCachedData: CachedNetworkData): string =
         Marshalling.Serialize(newCachedData)
