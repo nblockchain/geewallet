@@ -35,8 +35,6 @@ type ReceivePage(account: NormalAccount, accountBalance: Label, fiatBalance: Lab
         if not (accountBalance.Text.StartsWith "0 ") then
             mainLayout.FindByName<Button>("sendButton").IsEnabled <- true
 
-        // TODO: add a "List transactions" button using Device.OpenUri() with etherscan, gastracker, etc
-
         let size = 200
         let encodingOptions = EncodingOptions(Height = size,
                                               Width = size)
