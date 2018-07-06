@@ -7,9 +7,6 @@ open Xamarin.Forms
 
 open GWallet.Backend
 
-type CurrencyType =
-    Fiat | Crypto
-
 type FrontendHelpers =
 
     static member internal BigFontSize = 22.
@@ -25,35 +22,18 @@ type FrontendHelpers =
     static member ShowSaneDate (date: DateTime): string =
         date.ToString("dd-MMM-yyyy")
 
-    static member private MathRound (amount: decimal, decimals: int, maybeMaxAmount: Option<decimal>) =
-        match maybeMaxAmount with
-        | Some maxAmount ->
-            // https://stackoverflow.com/a/25451689/544947
-            let truncated = amount - (amount % (1m / decimal(decimals * 10)))
-            if (truncated > maxAmount) then
-                failwithf "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
-            truncated
-        | None ->
-            Math.Round(amount, decimals)
-
-    //FIXME: share code between Frontend.Console and Frontend.XF
-    static member private ShowDecimalForHumansInternal (currencyType: CurrencyType, amount: decimal,
-                                                        maxAmount: Option<decimal>): string =
+    // FIXME: add this use case to Formatting module, and with a unit test
+    static member ShowDecimalForHumansWithMax (currencyType: CurrencyType, amount: decimal, maxAmount: decimal): string =
         let amountOfDecimalsToShow =
             match currencyType with
             | CurrencyType.Fiat -> 2
             | CurrencyType.Crypto -> 5
+        // https://stackoverflow.com/a/25451689/544947
+        let truncated = amount - (amount % (1m / decimal(amountOfDecimalsToShow * 10)))
+        if (truncated > maxAmount) then
+            failwithf "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
 
-        FrontendHelpers.MathRound(amount, amountOfDecimalsToShow, maxAmount)
-
-            // line below is to add thousand separators and not show zeroes on the right...
-            .ToString("0." + String('#', amountOfDecimalsToShow))
-
-    static member ShowDecimalForHumansWithMax (currencyType: CurrencyType, amount: decimal, maxAmount: decimal): string =
-        FrontendHelpers.ShowDecimalForHumansInternal (currencyType, amount, Some maxAmount)
-
-    static member ShowDecimalForHumans (currencyType: CurrencyType, amount: decimal): string =
-        FrontendHelpers.ShowDecimalForHumansInternal (currencyType, amount, None)
+        Formatting.DecimalAmount currencyType truncated
 
     // FIXME: share code between Frontend.Console and Frontend.XF
     static member BalanceInUsdString (balance: decimal, maybeUsdValue: MaybeCached<decimal>)
@@ -64,11 +44,11 @@ type FrontendHelpers =
         | Fresh(usdValue) ->
             let fiatBalance = usdValue * balance
             Fresh(fiatBalance),sprintf "~ %s USD"
-                                   (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat, fiatBalance))
+                                   (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
         | NotFresh(Cached(usdValue,time)) ->
             let fiatBalance = usdValue * balance
             NotFresh(Cached(fiatBalance,time)),sprintf "~ %s USD (as of %s)"
-                                                    (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat, fiatBalance))
+                                                    (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
                                                     (time |> FrontendHelpers.ShowSaneDate)
 
     // when running Task<unit> or Task<T> where we want to ignore the T, we should still make sure there is no exception,

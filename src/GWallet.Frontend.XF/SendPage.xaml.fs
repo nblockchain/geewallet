@@ -113,7 +113,7 @@ type SendPage(account: NormalAccount) =
                                                                     rate * decimalAmountTyped,
                                                                     lastCachedBalance * rate)
                     | _ ->
-                        FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto, decimalAmountTyped / rate)
+                        Formatting.DecimalAmount CurrencyType.Crypto (decimalAmountTyped / rate)
                 currentAmountTypedEntry.Text <- convertedAmount
 
     member private this.SendTransaction (transactionInfo: TransactionInfo) =
@@ -255,10 +255,11 @@ type SendPage(account: NormalAccount) =
                                 let eqAmount,otherCurrency =
                                     match currencySelectorPicker.SelectedItem.ToString() with
                                     | "USD" ->
-                                        FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto, amount / rate),
+                                        Formatting.DecimalAmount CurrencyType.Crypto (amount / rate),
                                             baseAccount.Currency.ToString()
                                     | _ ->
-                                        FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat, rate * amount),"USD" 
+                                        Formatting.DecimalAmount CurrencyType.Fiat (rate * amount),
+                                            "USD"
                                 let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
                                 equivalentAmount.Text <- usdAmount
                 else
@@ -308,12 +309,10 @@ type SendPage(account: NormalAccount) =
                 let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
                 let feeInFiatValue = someUsdValue * feeInCrypto
                 let feeInFiatValueStr = sprintf "~ %s USD"
-                                                (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat,
-                                                                                      feeInFiatValue))
+                                                (Formatting.DecimalAmount CurrencyType.Fiat feeInFiatValue)
 
                 let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s (%s)"
-                                      (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto,
-                                                                            feeInCrypto))
+                                      (Formatting.DecimalAmount CurrencyType.Crypto feeInCrypto)
                                       (txMetadataWithFeeEstimation.Currency.ToString())
                                       feeInFiatValueStr
                 Device.BeginInvokeOnMainThread(fun _ ->

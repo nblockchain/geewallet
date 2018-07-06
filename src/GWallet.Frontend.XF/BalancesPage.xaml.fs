@@ -65,10 +65,10 @@ type BalancesPage() as this =
             | NotFresh NotAvailable ->
                 "? USD"
             | Fresh amount ->
-                sprintf "~ %s USD" (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat, amount))
+                sprintf "~ %s USD" (Formatting.DecimalAmount CurrencyType.Fiat amount)
             | NotFresh(Cached(cachedAmount,time)) ->
                 sprintf "~ %s USD (as of %s)"
-                       (FrontendHelpers.ShowDecimalForHumans(CurrencyType.Fiat, cachedAmount))
+                       (Formatting.DecimalAmount CurrencyType.Fiat cachedAmount)
                        (time |> FrontendHelpers.ShowSaneDate)
         totalFiatAmountLabel.Text <- strBalance
 
@@ -122,7 +122,7 @@ type BalancesPage() as this =
                 match maybeBalanceAmount with
                 | None -> "?", NotFresh(NotAvailable), "?"
                 | Some balanceAmount ->
-                    let cryptoAmount = FrontendHelpers.ShowDecimalForHumans(CurrencyType.Crypto, balanceAmount)
+                    let cryptoAmount = Formatting.DecimalAmount CurrencyType.Crypto balanceAmount
                     let cryptoAmountStr = sprintf "%s %A" cryptoAmount normalAccount.Currency
                     let usdRate = FiatValueEstimation.UsdValue normalAccount.Currency
                     let fiatAmount,fiatAmountStr = FrontendHelpers.BalanceInUsdString (balanceAmount, usdRate)

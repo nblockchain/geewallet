@@ -102,6 +102,9 @@
     <Compile Include="..\GWallet.Backend\Infrastructure.fs">
       <Link>Infrastructure.fs</Link>
     </Compile>
+    <Compile Include="..\GWallet.Backend\Formatting.fs">
+      <Link>Formatting.fs</Link>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="SharpRavenLight" Version="1.0.0-beta5" />
