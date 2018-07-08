@@ -287,10 +287,10 @@ module Server =
             let blockForConfirmationReference =
                 BlockParameter(HexBigInteger(BigInteger.Subtract(latestBlock.Value,
                                                                  NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)))
-            let balanceOfFunctionMsg = TokenManager.BalanceOfFunctionFromErc20TokenContract publicAddress
+            let balanceOfFunctionMsg = BalanceOfFunction(Owner = publicAddress)
 
             let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
-            contractHandler.QueryAsync<TokenManager.BalanceOfFunctionFromErc20TokenContract,BigInteger>
+            contractHandler.QueryAsync<BalanceOfFunction,BigInteger>
                                     (balanceOfFunctionMsg,
                                      blockForConfirmationReference)
         Task.Run<BigInteger> balanceFunc
