@@ -9,6 +9,30 @@ open GWallet.Backend
 
 type FrontendHelpers =
 
+    static member UpdateBalance balance currency (balanceLabel: Label) (fiatBalanceLabel: Label): MaybeCached<decimal> =
+        let maybeBalanceAmount =
+            match balance with
+            | NotFresh(NotAvailable) ->
+                None
+            | NotFresh(Cached(amount,_)) ->
+                Some amount
+            | Fresh(amount) ->
+                Some amount
+        let balanceAmountStr,fiatAmount,fiatAmountStr =
+            match maybeBalanceAmount with
+            | None -> "?", NotFresh(NotAvailable), "?"
+            | Some balanceAmount ->
+                let cryptoAmount = Formatting.DecimalAmount CurrencyType.Crypto balanceAmount
+                let cryptoAmountStr = sprintf "%s %A" cryptoAmount currency
+                let usdRate = FiatValueEstimation.UsdValue currency
+                let fiatAmount,fiatAmountStr = FrontendHelpers.BalanceInUsdString (balanceAmount, usdRate)
+                cryptoAmountStr,fiatAmount,fiatAmountStr
+        Device.BeginInvokeOnMainThread(fun _ ->
+            balanceLabel.Text <- balanceAmountStr
+            fiatBalanceLabel.Text <- fiatAmountStr
+        )
+        fiatAmount
+
     static member internal BigFontSize = 22.
 
     static member internal MediumFontSize = 20.

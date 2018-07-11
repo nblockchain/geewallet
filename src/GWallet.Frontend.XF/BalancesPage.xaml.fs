@@ -106,32 +106,11 @@ type BalancesPage() as this =
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) =
         UpdateGlobalFiatBalance (Fresh(0.0m)) (allFiatBalances |> List.ofSeq)
 
-    member this.UpdateBalance (normalAccount,balanceLabel: Label,fiatBalanceLabel: Label): Async<MaybeCached<decimal>> =
+    member this.UpdateBalanceAsync (normalAccount, balanceLabel: Label, fiatBalanceLabel: Label): Async<MaybeCached<decimal>> =
         async {
             let account = normalAccount :> IAccount
             let! balance = Account.GetShowableBalance normalAccount
-            let maybeBalanceAmount =
-                match balance with
-                | NotFresh(NotAvailable) ->
-                    None
-                | NotFresh(Cached(amount,_)) ->
-                    Some amount
-                | Fresh(amount) ->
-                    Some amount
-            let balanceAmountStr,fiatAmount,fiatAmountStr =
-                match maybeBalanceAmount with
-                | None -> "?", NotFresh(NotAvailable), "?"
-                | Some balanceAmount ->
-                    let cryptoAmount = Formatting.DecimalAmount CurrencyType.Crypto balanceAmount
-                    let cryptoAmountStr = sprintf "%s %A" cryptoAmount normalAccount.Currency
-                    let usdRate = FiatValueEstimation.UsdValue normalAccount.Currency
-                    let fiatAmount,fiatAmountStr = FrontendHelpers.BalanceInUsdString (balanceAmount, usdRate)
-                    cryptoAmountStr,fiatAmount,fiatAmountStr
-            Device.BeginInvokeOnMainThread(fun _ ->
-                balanceLabel.Text <- balanceAmountStr
-                fiatBalanceLabel.Text <- fiatAmountStr
-            )
-            return fiatAmount
+            return FrontendHelpers.UpdateBalance balance normalAccount.Currency balanceLabel fiatBalanceLabel
         }
 
     member this.StartTimer() =
@@ -140,7 +119,7 @@ type BalancesPage() as this =
                 let balanceUpdateJobs =
                     seq {
                         for normalAccount,accountBalance,fiatBalance in accountsAndBalances do
-                            yield this.UpdateBalance (normalAccount,accountBalance,fiatBalance)
+                            yield this.UpdateBalanceAsync (normalAccount,accountBalance,fiatBalance)
                     }
                 let allBalancesJob = Async.Parallel balanceUpdateJobs
                 let! allFiatBalances = allBalancesJob
@@ -169,7 +148,7 @@ type BalancesPage() as this =
 
             let tapGestureRecognizer = TapGestureRecognizer()
             tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                let receivePage = ReceivePage(normalAccount, accountBalance, fiatBalance, this)
+                let receivePage = ReceivePage(normalAccount, this)
                 NavigationPage.SetHasNavigationBar(receivePage, false)
                 let navPage = NavigationPage receivePage
                 NavigationPage.SetHasNavigationBar(navPage, false)
@@ -198,7 +177,7 @@ type BalancesPage() as this =
         let initialBalancesTasksWithDetails =
             seq {
                 for normalAccount,accountBalanceLabel,fiatBalanceLabel in accountsAndBalances do
-                    let balanceJob = this.UpdateBalance (normalAccount, accountBalanceLabel, fiatBalanceLabel)
+                    let balanceJob = this.UpdateBalanceAsync (normalAccount, accountBalanceLabel, fiatBalanceLabel)
                     yield balanceJob,normalAccount,accountBalanceLabel,fiatBalanceLabel
             }
 
