@@ -14,8 +14,6 @@ open ZXing.Common
 open GWallet.Backend
 
 type ReceivePage(account: NormalAccount,
-                 accountBalance: Label,
-                 fiatBalance: Label,
                  balancesPage: Page) as this =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
@@ -28,15 +26,21 @@ type ReceivePage(account: NormalAccount,
 
     member this.Init() =
         let balanceLabel = mainLayout.FindByName<Label>("balanceLabel")
-        balanceLabel.Text <- accountBalance.Text
-        balanceLabel.FontSize <- FrontendHelpers.BigFontSize
         let fiatBalanceLabel = mainLayout.FindByName<Label>("fiatBalanceLabel")
-        fiatBalanceLabel.Text <- fiatBalance.Text
+
+        let accountBalance =
+            Caching.Instance.RetreiveLastCompoundBalance (baseAccount.PublicAddress,baseAccount.Currency)
+        FrontendHelpers.UpdateBalance (NotFresh accountBalance) baseAccount.Currency balanceLabel fiatBalanceLabel
+            |> ignore
+
+        balanceLabel.FontSize <- FrontendHelpers.BigFontSize
         fiatBalanceLabel.FontSize <- FrontendHelpers.MediumFontSize
 
-        // FIXME: pass the decimal instead of doing the HACK below:
-        if not (accountBalance.Text.StartsWith "0 ") then
-            mainLayout.FindByName<Button>("sendButton").IsEnabled <- true
+        match accountBalance with
+        | Cached(amount,_) ->
+            if (amount > 0m) then
+                mainLayout.FindByName<Button>("sendButton").IsEnabled <- true
+        | _ -> ()
 
         let size = 200
         let encodingOptions = EncodingOptions(Height = size,
