@@ -17,7 +17,7 @@ type TransactionInfo =
       Amount: TransferAmount; 
       Passphrase: string; }
 
-type SendPage(account: NormalAccount, receivePage: Page) =
+type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: unit->Page) =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<SendPage>)
 
@@ -159,7 +159,14 @@ type SendPage(account: NormalAccount, receivePage: Page) =
                 this.DisplayAlert("Success", "Transaction sent.", "OK")
                     .ContinueWith(fun _ ->
                         Device.BeginInvokeOnMainThread(fun _ ->
-                            receivePage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+                            let newReceivePage = newReceivePageFunc()
+                            let navNewReceivePage = NavigationPage(newReceivePage)
+                            NavigationPage.SetHasNavigationBar(newReceivePage, false)
+                            NavigationPage.SetHasNavigationBar(navNewReceivePage, false)
+                            receivePage.Navigation.RemovePage receivePage
+                            this.Navigation.InsertPageBefore(navNewReceivePage, this)
+
+                            this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
                         )
                     ) |> FrontendHelpers.DoubleCheckCompletion
             )

@@ -71,7 +71,10 @@ type ReceivePage(account: NormalAccount,
         //</workaround>
 
     member this.OnSendPaymentClicked(sender: Object, args: EventArgs) =
-        let sendPage = SendPage(account, this)
+        let newReceivePageFunc = (fun _ ->
+            ReceivePage(account, balancesPage) :> Page
+        )
+        let sendPage = SendPage(account, this, newReceivePageFunc)
         NavigationPage.SetHasNavigationBar(sendPage, false)
         let navSendPage = NavigationPage sendPage
         NavigationPage.SetHasNavigationBar(navSendPage, false)
