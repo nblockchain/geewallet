@@ -60,7 +60,7 @@ type SendPage(account: NormalAccount) =
 
     member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
-        let scanPage = new ZXingScannerPage()
+        let scanPage = ZXingScannerPage()
         scanPage.add_OnScanResult(fun result ->
             scanPage.IsScanning <- false
 
@@ -75,7 +75,7 @@ type SendPage(account: NormalAccount) =
                 ) |> FrontendHelpers.DoubleCheckCompletion
             )
         )
-        this.Navigation.PushModalAsync(scanPage)
+        this.Navigation.PushModalAsync scanPage
             |> FrontendHelpers.DoubleCheckCompletion
 
     member this.OnAllBalanceButtonClicked(sender: Object, args: EventArgs): unit =
