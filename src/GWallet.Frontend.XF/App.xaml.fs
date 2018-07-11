@@ -11,7 +11,7 @@ module Initialization =
     let private GlobalInit () =
         Infrastructure.SetupSentryHook ()
 
-    let internal LandingPage(): Page =
+    let internal LandingPage(): NavigationPage =
         GlobalInit ()
 
         let accounts = Account.GetAllActiveAccounts()
@@ -19,9 +19,12 @@ module Initialization =
             let welcomePage = WelcomePage()
             let navPage = NavigationPage welcomePage
             NavigationPage.SetHasNavigationBar(welcomePage, false)
-            navPage :> Page
+            navPage
         else
-            BalancesPage() :> Page
+            let balancesPage = BalancesPage()
+            let navPage = NavigationPage(balancesPage)
+            NavigationPage.SetHasNavigationBar(balancesPage, false)
+            navPage
 
 type App() =
     inherit Application(MainPage = Initialization.LandingPage())

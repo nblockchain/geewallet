@@ -169,7 +169,15 @@ type BalancesPage() as this =
 
             let tapGestureRecognizer = TapGestureRecognizer()
             tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                this.Navigation.PushModalAsync(ReceivePage(normalAccount,accountBalance,fiatBalance))
+                let receivePage = ReceivePage(normalAccount, accountBalance, fiatBalance, this)
+                NavigationPage.SetHasNavigationBar(receivePage, false)
+                let navPage = NavigationPage receivePage
+
+                // workaround for https://github.com/xamarin/Xamarin.Forms/issues/3329 as Android has back button anyway
+                if (Device.RuntimePlatform = Device.Android) then
+                    NavigationPage.SetHasNavigationBar(navPage, false)
+
+                this.Navigation.PushAsync navPage
                      |> FrontendHelpers.DoubleCheckCompletion
             ) |> ignore
 
