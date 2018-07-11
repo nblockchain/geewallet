@@ -65,7 +65,9 @@ type ReceivePage(account: NormalAccount,
 
         let backButton = Button(Text = "< Go back")
         backButton.Clicked.Subscribe(fun _ ->
-            balancesPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+            Device.BeginInvokeOnMainThread(fun _ ->
+                balancesPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+            )
         ) |> ignore
         mainLayout.Children.Add(backButton)
         //</workaround>
