@@ -17,7 +17,7 @@ type TransactionInfo =
       Amount: TransferAmount; 
       Passphrase: string; }
 
-type SendPage(account: NormalAccount) =
+type SendPage(account: NormalAccount, receivePage: Page) =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<SendPage>)
 
@@ -159,7 +159,7 @@ type SendPage(account: NormalAccount) =
                 this.DisplayAlert("Success", "Transaction sent.", "OK")
                     .ContinueWith(fun _ ->
                         Device.BeginInvokeOnMainThread(fun _ ->
-                            this.Navigation.PopModalAsync() |> FrontendHelpers.DoubleCheckCompletion
+                            receivePage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
                         )
                     ) |> FrontendHelpers.DoubleCheckCompletion
             )
@@ -266,7 +266,9 @@ type SendPage(account: NormalAccount) =
                     sendButton.IsEnabled <- false
 
     member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
-        this.Navigation.PopModalAsync() |> FrontendHelpers.DoubleCheckCompletion
+        Device.BeginInvokeOnMainThread(fun _ ->
+            receivePage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+        )
 
     member private this.DisableButtons() =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")

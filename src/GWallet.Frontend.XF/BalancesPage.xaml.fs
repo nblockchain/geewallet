@@ -169,7 +169,11 @@ type BalancesPage() as this =
 
             let tapGestureRecognizer = TapGestureRecognizer()
             tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                this.Navigation.PushModalAsync(ReceivePage(normalAccount,accountBalance,fiatBalance))
+                let receivePage = ReceivePage(normalAccount, accountBalance, fiatBalance, this)
+                NavigationPage.SetHasNavigationBar(receivePage, false)
+                let navPage = NavigationPage receivePage
+                NavigationPage.SetHasNavigationBar(navPage, false)
+                this.Navigation.PushAsync navPage
                      |> FrontendHelpers.DoubleCheckCompletion
             ) |> ignore
 
