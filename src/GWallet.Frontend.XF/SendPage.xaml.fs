@@ -273,7 +273,9 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                     sendButton.IsEnabled <- false
 
     member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
-        receivePage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+        Device.BeginInvokeOnMainThread(fun _ ->
+            receivePage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+        )
 
     member private this.DisableButtons() =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
