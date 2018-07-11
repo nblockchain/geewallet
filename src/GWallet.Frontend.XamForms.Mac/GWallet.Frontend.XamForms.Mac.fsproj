@@ -150,6 +150,9 @@
     <Reference Include="Nethereum.StandardTokenEIP20">
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.2.5.2-CI-20180622-194216\lib\netstandard1.1\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
+    <Reference Include="CryptSharp">
+      <HintPath>..\..\packages\CryptSharpOfficial.2.1.0.0\lib\CryptSharp.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
