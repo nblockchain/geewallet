@@ -6,7 +6,7 @@
     <StackLayout x:Name="mainLayout"
                  Padding="20,100,20,50"
                  VerticalOptions="Center">
-        <Label Text="GWallet" x:Name="titleLabel"
+        <Label Text="geewallet" x:Name="titleLabel"
                VerticalOptions="Start"
                HorizontalOptions="Center"
                FontAttributes="Bold" FontSize="Large" />
