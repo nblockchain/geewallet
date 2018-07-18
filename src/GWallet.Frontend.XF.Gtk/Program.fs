@@ -15,7 +15,7 @@ module Main =
         let app = GWallet.Frontend.XF.App()
         use window = new FormsWindow()
         window.LoadApplication(app)
-        window.SetApplicationTitle("GWallet")
+        window.SetApplicationTitle "geewallet"
         window.Show()
         Gtk.Application.Run()
         0
