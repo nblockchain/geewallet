@@ -23,8 +23,8 @@
     </Compile>
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
     <PackageReference Include="FSharp.Core" Version="4.3.3" />
-    <PackageReference Include="Xamarin.Forms" Version="3.0.0.446417" />
     <PackageReference Include="ZXing.Net.Mobile.Forms" Version="2.3.2" />
     <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
+    <PackageReference Include="Xamarin.Forms" Version="3.1.0.637273" />
   </ItemGroup>
 </Project>

@@ -151,7 +151,7 @@ type BalancesPage() as this =
                 let receivePage = ReceivePage(normalAccount, this)
                 NavigationPage.SetHasNavigationBar(receivePage, false)
                 let navPage = NavigationPage receivePage
-                NavigationPage.SetHasNavigationBar(navPage, false)
+                //NavigationPage.SetHasNavigationBar(navPage, false)
                 this.Navigation.PushAsync navPage
                      |> FrontendHelpers.DoubleCheckCompletion
             ) |> ignore
