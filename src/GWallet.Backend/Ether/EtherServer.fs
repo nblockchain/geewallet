@@ -56,6 +56,19 @@ module Server =
         | OriginUnreachable = 523
         | OriginSslHandshakeError = 525
 
+    type RpcErrorCode =
+        // "This request is not supported because your node is running with state pruning. Run with --pruning=archive."
+        | StatePruningNode = -32000
+
+        // ambiguous or generic because I've seen same code applied to two different error messages already:
+        // "Transaction with the same hash was already imported. (Transaction with the same hash was already imported.)"
+        // AND
+        // "There are too many transactions in the queue. Your transaction was dropped due to limit.
+        //  Try increasing the fee. (There are too many transactions in the queue. Your transaction was dropped due to
+        //  limit. Try increasing the fee.)"
+        | AmbiguousOrGenericError = -32010
+
+
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
     let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
@@ -116,11 +129,13 @@ module Server =
                                 raise (ServerTimedOutException(exMsg, rpcTimeoutEx))
                             reraise()
                         | Some rpcResponseEx ->
-                            (* FIXME: find out the RpcError of the exception below:
-                            if (rpcResponseEx.Message.Contains "pruning=archive") then
-                                raise (ServerMisconfiguredException(exMsg, rpcResponseEx))
-                            *)
                             if (rpcResponseEx.RpcError <> null) then
+                                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode) then
+                                    if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
+                                        raise (Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
+                                                                 (int RpcErrorCode.StatePruningNode), rpcResponseEx))
+                                    else
+                                        raise (ServerMisconfiguredException(exMsg, rpcResponseEx))
                                 raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
                                                          rpcResponseEx.RpcError.Code
                                                          rpcResponseEx.RpcError.Message
@@ -168,6 +183,7 @@ module Server =
         {
             // FIXME: we need different instances with different parameters for each kind of request (e.g.:
             //          a) broadcast transaction -> no need for consistency
+            //             (just one server that doesn't throw exceptions, e.g. see the -32010 RPC error codes...)
             //          b) rest: can have a sane consistency number param such as 2, like below
             NumberOfMaximumParallelJobs = uint16 3;
             ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 2);
@@ -271,10 +287,10 @@ module Server =
             let blockForConfirmationReference =
                 BlockParameter(HexBigInteger(BigInteger.Subtract(latestBlock.Value,
                                                                  NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)))
-            let balanceOfFunctionMsg = TokenManager.BalanceOfFunctionFromErc20TokenContract publicAddress
+            let balanceOfFunctionMsg = BalanceOfFunction(Owner = publicAddress)
 
             let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
-            contractHandler.QueryAsync<TokenManager.BalanceOfFunctionFromErc20TokenContract,BigInteger>
+            contractHandler.QueryAsync<BalanceOfFunction,BigInteger>
                                     (balanceOfFunctionMsg,
                                      blockForConfirmationReference)
         Task.Run<BigInteger> balanceFunc
