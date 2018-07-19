@@ -13,7 +13,7 @@ open Xamarin.Forms.Platform.Android
 
 type Resources = GWallet.Frontend.XF.Android.Resource
 
-[<Activity (Label = "GWallet.Frontend.XF.Android", Icon = "@drawable/icon", Theme = "@style/MyTheme", MainLauncher = true, ConfigurationChanges = (ConfigChanges.ScreenSize ||| ConfigChanges.Orientation))>]
+[<Activity (Label = "geewallet", Icon = "@drawable/icon", Theme = "@style/MyTheme", MainLauncher = true, ConfigurationChanges = (ConfigChanges.ScreenSize ||| ConfigChanges.Orientation))>]
 type MainActivity() =
     inherit FormsAppCompatActivity()
 
