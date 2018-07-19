@@ -51,12 +51,3 @@ module TokenManager =
     // really used online; FIXME: propose "Web3-less" overload to Nethereum
     let private dummyOfflineWeb3 = Web3()
     let internal OfflineDaiContract = DaiContract(dummyOfflineWeb3)
-
-    // FIXME: remove this once it gets included in Nethereum, same as Transfer is already there:
-    // https://github.com/Nethereum/Nethereum/blob/master/src/Nethereum.StandardTokenEIP20/Functions/TransferFunction.cs
-    [<Function("balanceOf", "uint256")>]
-    type BalanceOfFunctionFromErc20TokenContract(owner: string) =
-        inherit ContractMessage()
-
-        [<Parameter("address", "_owner", 1)>]
-        member val Owner = owner with get
