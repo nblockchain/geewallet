@@ -2,12 +2,9 @@
 
 open System
 open System.Linq
-open System.Timers
-open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
-open Plugin.Clipboard
 
 open GWallet.Backend
 
@@ -20,7 +17,6 @@ type BalancesPage() as this =
     let normalAccounts = GWallet.Backend.Account.GetAllActiveAccounts().OfType<NormalAccount>() |> List.ofSeq
 
     let timeToRefreshBalances = TimeSpan.FromSeconds 60.0
-    let balanceRefreshTimer = new Timer(timeToRefreshBalances.TotalMilliseconds)
 
     let CreateWidgetsForAccount(account: NormalAccount): Label*Label =
         let accountBalanceLabel = Label(Text = "...",
@@ -114,7 +110,7 @@ type BalancesPage() as this =
         }
 
     member this.StartTimer() =
-        balanceRefreshTimer.Elapsed.Add (fun _ ->
+        Device.StartTimer(timeToRefreshBalances, fun _ ->
             async {
                 let balanceUpdateJobs =
                     seq {
@@ -127,8 +123,10 @@ type BalancesPage() as this =
                     this.UpdateGlobalFiatBalanceSum allFiatBalances
                 )
             } |> Async.StartAsTask |> FrontendHelpers.DoubleCheckCompletion
+
+            // to keep timer recurring
+            true
         )
-        balanceRefreshTimer.Start()
 
     member this.PopulateGrid (initialBalancesTasksWithDetails: seq<_*NormalAccount*Label*Label>) =
 
