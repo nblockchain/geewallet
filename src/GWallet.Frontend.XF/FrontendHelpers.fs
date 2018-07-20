@@ -35,7 +35,6 @@ type FrontendHelpers =
 
     static member UpdateBalanceAsync (normalAccount, balanceLabel: Label, fiatBalanceLabel: Label): Async<MaybeCached<decimal>> =
         async {
-            let account = normalAccount :> IAccount
             let! balance = Account.GetShowableBalance normalAccount
             return FrontendHelpers.UpdateBalance balance normalAccount.Currency balanceLabel fiatBalanceLabel
         }
