@@ -84,7 +84,7 @@ type WelcomePage() =
                     async {
                         let! accounts = Account.CreateBaseAccount passphrase.Text dateTime (email.Text.ToLower()) password.Text
                         FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage())
-                    } |> FrontendHelpers.DoubleCheckCompletion
+                    } |> FrontendHelpers.DoubleCheckCompletionAsync
 
     member this.OnDobTextChanged(sender: Object, args: EventArgs) =
         MaybeEnableCreateButton()

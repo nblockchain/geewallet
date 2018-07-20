@@ -53,7 +53,8 @@ type LoadingPage() as this =
         let initialBalancesTasksWithDetails =
             seq {
                 for normalAccount,accountBalanceLabel,fiatBalanceLabel in accountsAndBalances do
-                    let balanceJob = FrontendHelpers.UpdateBalanceAsync (normalAccount, accountBalanceLabel, fiatBalanceLabel)
+                    let balanceJob =
+                        FrontendHelpers.UpdateBalanceAsync normalAccount accountBalanceLabel fiatBalanceLabel
                     yield balanceJob,normalAccount,accountBalanceLabel,fiatBalanceLabel
             }
 

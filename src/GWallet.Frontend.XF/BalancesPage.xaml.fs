@@ -101,7 +101,7 @@ type BalancesPage() =
                 let balanceUpdateJobs =
                     seq {
                         for normalAccount,accountBalance,fiatBalance in accountsAndBalances do
-                            yield FrontendHelpers.UpdateBalanceAsync (normalAccount,accountBalance,fiatBalance)
+                            yield FrontendHelpers.UpdateBalanceAsync normalAccount accountBalance fiatBalance
                     }
                 let allBalancesJob = Async.Parallel balanceUpdateJobs
                 let! allFiatBalances = allBalancesJob
@@ -133,7 +133,7 @@ type BalancesPage() =
                     NavigationPage.SetHasNavigationBar(navPage, false)
 
                 this.Navigation.PushAsync navPage
-                     |> FrontendHelpers.DoubleCheckCompletion
+                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             ) |> ignore
 
             let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal)

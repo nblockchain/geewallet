@@ -7,9 +7,45 @@ open Xamarin.Forms
 
 open GWallet.Backend
 
-type FrontendHelpers =
+module FrontendHelpers =
 
-    static member UpdateBalance balance currency (balanceLabel: Label) (fiatBalanceLabel: Label): MaybeCached<decimal> =
+    let internal BigFontSize = 22.
+
+    let internal MediumFontSize = 20.
+
+    let internal MagicGtkNumber = 20.
+
+    let internal ExchangeRateUnreachableMsg = " (~ ? USD)"
+
+    //FIXME: right now the UI doesn't explain what the below element means when it shows it, we should add a legend...
+    let internal ExchangeOutdatedVisualElement = "*"
+
+    // these days cryptos are not so volatile, so 30mins should be good...
+    let internal TimeSpanToConsiderExchangeRateOutdated = TimeSpan.FromMinutes 30.0
+
+    let MaybeReturnOutdatedMarkForOldDate (date: DateTime) =
+        if (date + TimeSpanToConsiderExchangeRateOutdated < DateTime.Now) then
+            ExchangeOutdatedVisualElement
+        else
+            String.Empty
+
+    // FIXME: share code between Frontend.Console and Frontend.XF
+    let BalanceInUsdString (balance: decimal) (maybeUsdValue: MaybeCached<decimal>)
+                               : MaybeCached<decimal>*string =
+        match maybeUsdValue with
+        | NotFresh(NotAvailable) ->
+            NotFresh(NotAvailable),ExchangeRateUnreachableMsg
+        | Fresh(usdValue) ->
+            let fiatBalance = usdValue * balance
+            Fresh(fiatBalance),sprintf "~ %s USD"
+                                   (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
+        | NotFresh(Cached(usdValue,time)) ->
+            let fiatBalance = usdValue * balance
+            NotFresh(Cached(fiatBalance,time)),sprintf "~ %s USD%s"
+                                                    (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
+                                                    (MaybeReturnOutdatedMarkForOldDate time)
+
+    let UpdateBalance balance currency (balanceLabel: Label) (fiatBalanceLabel: Label): MaybeCached<decimal> =
         let maybeBalanceAmount =
             match balance with
             | NotFresh(NotAvailable) ->
@@ -25,7 +61,7 @@ type FrontendHelpers =
                 let cryptoAmount = Formatting.DecimalAmount CurrencyType.Crypto balanceAmount
                 let cryptoAmountStr = sprintf "%s %A" cryptoAmount currency
                 let usdRate = FiatValueEstimation.UsdValue currency
-                let fiatAmount,fiatAmountStr = FrontendHelpers.BalanceInUsdString (balanceAmount, usdRate)
+                let fiatAmount,fiatAmountStr = BalanceInUsdString balanceAmount usdRate
                 cryptoAmountStr,fiatAmount,fiatAmountStr
         Device.BeginInvokeOnMainThread(fun _ ->
             balanceLabel.Text <- balanceAmountStr
@@ -33,39 +69,20 @@ type FrontendHelpers =
         )
         fiatAmount
 
-    static member UpdateBalanceAsync (normalAccount, balanceLabel: Label, fiatBalanceLabel: Label): Async<MaybeCached<decimal>> =
+    let UpdateBalanceAsync normalAccount (balanceLabel: Label) (fiatBalanceLabel: Label): Async<MaybeCached<decimal>> =
         async {
             let! balance = Account.GetShowableBalance normalAccount
-            return FrontendHelpers.UpdateBalance balance normalAccount.Currency balanceLabel fiatBalanceLabel
+            return UpdateBalance balance normalAccount.Currency balanceLabel fiatBalanceLabel
         }
-
-    static member internal BigFontSize = 22.
-
-    static member internal MediumFontSize = 20.
-
-    static member internal MagicGtkNumber = 20.
-
-    static member internal ExchangeRateUnreachableMsg = " (~ ? USD)"
-
-    //FIXME: right now the UI doesn't explain what the below element means when it shows it, we should add a legend...
-    static member internal ExchangeOutdatedVisualElement = "*"
-
-    // these days cryptos are not so volatile, so 30mins should be good...
-    static member internal TimeSpanToConsiderExchangeRateOutdated = TimeSpan.FromMinutes 30.0
 
     // FIXME: share code between Frontend.Console and Frontend.XF
     // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh
-    static member ShowSaneDate (date: DateTime): string =
+    let ShowSaneDate (date: DateTime): string =
         date.ToString("dd-MMM-yyyy")
 
-    static member MaybeReturnOutdatedMarkForOldDate (date: DateTime) =
-        if (date + FrontendHelpers.TimeSpanToConsiderExchangeRateOutdated < DateTime.Now) then
-            FrontendHelpers.ExchangeOutdatedVisualElement
-        else
-            String.Empty
-
     // FIXME: add this use case to Formatting module, and with a unit test
-    static member ShowDecimalForHumansWithMax (currencyType: CurrencyType, amount: decimal, maxAmount: decimal): string =
+    let ShowDecimalForHumansWithMax (currencyType: CurrencyType) (amount: decimal) (maxAmount: decimal)
+                                                  : string =
         let amountOfDecimalsToShow =
             match currencyType with
             | CurrencyType.Fiat -> 2
@@ -77,32 +94,16 @@ type FrontendHelpers =
 
         Formatting.DecimalAmount currencyType truncated
 
-    // FIXME: share code between Frontend.Console and Frontend.XF
-    static member BalanceInUsdString (balance: decimal, maybeUsdValue: MaybeCached<decimal>)
-                                     : MaybeCached<decimal>*string =
-        match maybeUsdValue with
-        | NotFresh(NotAvailable) ->
-            NotFresh(NotAvailable),FrontendHelpers.ExchangeRateUnreachableMsg
-        | Fresh(usdValue) ->
-            let fiatBalance = usdValue * balance
-            Fresh(fiatBalance),sprintf "~ %s USD"
-                                   (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
-        | NotFresh(Cached(usdValue,time)) ->
-            let fiatBalance = usdValue * balance
-            NotFresh(Cached(fiatBalance,time)),sprintf "~ %s USD%s"
-                                                    (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
-                                                    (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
-
     // when running Task<unit> or Task<T> where we want to ignore the T, we should still make sure there is no exception,
     // & if there is, bring it to the main thread to fail fast, report to Sentry, etc, otherwise it gets ignored
-    static member DoubleCheckCompletion<'T> (task: Task<'T>) =
+    let DoubleCheckCompletion<'T> (task: Task<'T>) =
         task.ContinueWith(fun (t: Task<'T>) ->
             if (t.Exception <> null) then
                 Device.BeginInvokeOnMainThread(fun _ ->
                     raise(task.Exception)
                 )
         ) |> ignore
-    static member DoubleCheckCompletion (task: Task) =
+    let DoubleCheckCompletionNonGeneric (task: Task) =
         task.ContinueWith(fun (t: Task) ->
             if (t.Exception <> null) then
                 Device.BeginInvokeOnMainThread(fun _ ->
@@ -110,7 +111,7 @@ type FrontendHelpers =
                 )
         ) |> ignore
 
-    static member DoubleCheckCompletion<'T> (work: Async<'T>): unit =
+    let DoubleCheckCompletionAsync<'T> (work: Async<'T>): unit =
         async {
             try
                 let! _ = work
@@ -123,14 +124,14 @@ type FrontendHelpers =
             return ()
         } |> Async.Start
 
-    static member SwitchToNewPageDiscardingCurrentOne (currentPage: Page) (newPage: Page): unit =
+    let SwitchToNewPageDiscardingCurrentOne (currentPage: Page) (newPage: Page): unit =
         Device.BeginInvokeOnMainThread(fun _ ->
             NavigationPage.SetHasNavigationBar(newPage, false)
             currentPage.Navigation.InsertPageBefore(newPage, currentPage)
-            currentPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+            currentPage.Navigation.PopAsync() |> DoubleCheckCompletion
         )
 
-    static member ChangeTextAndChangeBack (button: Button) (newText: string) =
+    let ChangeTextAndChangeBack (button: Button) (newText: string) =
         let initialText = button.Text
         button.IsEnabled <- false
         button.Text <- newText
@@ -140,5 +141,5 @@ type FrontendHelpers =
                 button.Text <- initialText
                 button.IsEnabled <- true
             )
-        ) |> FrontendHelpers.DoubleCheckCompletion
+        ) |> DoubleCheckCompletionNonGeneric
 

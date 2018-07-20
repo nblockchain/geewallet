@@ -81,7 +81,7 @@ type ReceivePage(account: NormalAccount,
         let navSendPage = NavigationPage sendPage
         NavigationPage.SetHasNavigationBar(navSendPage, false)
         this.Navigation.PushAsync navSendPage
-            |> FrontendHelpers.DoubleCheckCompletion
+            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         ()
 
     member this.OnCopyToClipboardClicked(sender: Object, args: EventArgs) =

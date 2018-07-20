@@ -72,11 +72,11 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                         destinationAddressEntry.Text <- result.Text
                         ()
                     )
-                ) |> FrontendHelpers.DoubleCheckCompletion
+                ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
         this.Navigation.PushModalAsync scanPage
-            |> FrontendHelpers.DoubleCheckCompletion
+            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     member this.OnAllBalanceButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
@@ -109,9 +109,9 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                     // we choose the WithMax overload because we don't want to surpass current allBalance & be red
                     match currencySelectorPicker.SelectedItem.ToString() with
                     | "USD" ->
-                        FrontendHelpers.ShowDecimalForHumansWithMax(CurrencyType.Fiat,
-                                                                    rate * decimalAmountTyped,
-                                                                    lastCachedBalance * rate)
+                        FrontendHelpers.ShowDecimalForHumansWithMax CurrencyType.Fiat
+                                                                    (rate * decimalAmountTyped)
+                                                                    (lastCachedBalance * rate)
                     | _ ->
                         Formatting.DecimalAmount CurrencyType.Crypto (decimalAmountTyped / rate)
                 currentAmountTypedEntry.Text <- convertedAmount
@@ -131,7 +131,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
                         this.ReenableButtons()
-                    ) |> FrontendHelpers.DoubleCheckCompletion
+                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
                 None
             | :? InsufficientFunds ->
@@ -139,7 +139,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
                         this.ReenableButtons()
-                    ) |> FrontendHelpers.DoubleCheckCompletion
+                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
                 None
             | :? InvalidPassword ->
@@ -147,7 +147,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
                         this.ReenableButtons()
-                    ) |> FrontendHelpers.DoubleCheckCompletion
+                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
                 None
         
@@ -168,7 +168,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
 
                             this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
                         )
-                    ) |> FrontendHelpers.DoubleCheckCompletion
+                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
     
     member private this.ValidateAddress currency destinationAddress =
@@ -287,7 +287,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
 
     member private this.AnswerToFee (txInfo: TransactionInfo) (answer: Task<bool>):unit =
         if (answer.Result) then
-            Task.Run(fun _ -> this.SendTransaction txInfo) |> FrontendHelpers.DoubleCheckCompletion
+            Task.Run(fun _ -> this.SendTransaction txInfo) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         else
             this.ReenableButtons()
 
@@ -311,7 +311,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                                           "Internet connection not available at the moment, try again later",
                                           "OK")
                     alertInternetConnTask.ContinueWith(fun _ -> this.ReenableButtons())
-                        |> FrontendHelpers.DoubleCheckCompletion
+                        |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
             | Fresh someUsdValue ->
 
@@ -348,10 +348,11 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
         match Decimal.TryParse(amountToSend.Text) with
         | false,_ ->
             this.DisplayAlert("Alert", "The amount should be a decimal amount", "OK")
-                |> FrontendHelpers.DoubleCheckCompletion
+                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         | true,amount ->
             if not (amount > 0.0m) then
-                this.DisplayAlert("Alert", "Amount should be positive", "OK") |> FrontendHelpers.DoubleCheckCompletion
+                this.DisplayAlert("Alert", "Amount should be positive", "OK")
+                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             else
 
                 let amountInAccountCurrency =
@@ -390,7 +391,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                                                       "Remaining balance would be too low for the estimated fee, try sending lower amount",
                                                       "OK")
                                 alertLowBalanceForFeeTask.ContinueWith(fun _ -> this.ReenableButtons())
-                                    |> FrontendHelpers.DoubleCheckCompletion
+                                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                             )
                             return None
                     }
@@ -402,6 +403,6 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                                             transferAmount,
                                             validatedDestinationAddress,
                                             passphrase)
-                    ) |> FrontendHelpers.DoubleCheckCompletion
+                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
                     ()
