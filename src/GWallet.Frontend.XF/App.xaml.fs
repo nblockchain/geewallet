@@ -21,9 +21,9 @@ module Initialization =
             NavigationPage.SetHasNavigationBar(welcomePage, false)
             navPage
         else
-            let balancesPage = BalancesPage()
-            let navPage = NavigationPage(balancesPage)
-            NavigationPage.SetHasNavigationBar(balancesPage, false)
+            let loadingPage = LoadingPage()
+            let navPage = NavigationPage loadingPage
+            NavigationPage.SetHasNavigationBar(loadingPage, false)
             navPage
 
 type App() =

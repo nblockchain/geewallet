@@ -33,6 +33,13 @@ type FrontendHelpers =
         )
         fiatAmount
 
+    static member UpdateBalanceAsync (normalAccount, balanceLabel: Label, fiatBalanceLabel: Label): Async<MaybeCached<decimal>> =
+        async {
+            let account = normalAccount :> IAccount
+            let! balance = Account.GetShowableBalance normalAccount
+            return FrontendHelpers.UpdateBalance balance normalAccount.Currency balanceLabel fiatBalanceLabel
+        }
+
     static member internal BigFontSize = 22.
 
     static member internal MediumFontSize = 20.
@@ -116,6 +123,13 @@ type FrontendHelpers =
                 )
             return ()
         } |> Async.Start
+
+    static member SwitchToNewPageDiscardingCurrentOne (currentPage: Page) (newPage: Page): unit =
+        Device.BeginInvokeOnMainThread(fun _ ->
+            NavigationPage.SetHasNavigationBar(newPage, false)
+            currentPage.Navigation.InsertPageBefore(newPage, currentPage)
+            currentPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+        )
 
     static member ChangeTextAndChangeBack (button: Button) (newText: string) =
         let initialText = button.Text

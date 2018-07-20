@@ -4,14 +4,21 @@
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
              x:Class="GWallet.Frontend.XF.BalancesPage">
     <StackLayout x:Name="mainLayout"
-                 Padding="20,100,20,50"
-                 VerticalOptions="Center">
+                 Padding="0,0,0,0"
+                 VerticalOptions="FillAndExpand">
         <Label Text="geewallet" x:Name="titleLabel"
                VerticalOptions="Start"
                HorizontalOptions="Center"
+               Margin="0,40,0,0"
                FontAttributes="Bold" FontSize="Large" />
-        <Label Text="Loading..." x:Name="loadingLabel"
-               VerticalOptions="Center" HorizontalOptions="Center"
-               Margin="40,40,40,40" />
+        <Label Text="..." x:Name="totalFiatAmountLabel"
+               VerticalOptions="CenterAndExpand"
+               HorizontalOptions="Center"
+               Margin="0,20,0,20"
+               FontSize="22" />
+        <Label Text="www.diginex.com" x:Name="footerLabel"
+               VerticalOptions="End"
+               HorizontalOptions="Center"
+               Margin="0,30,0,30" />
     </StackLayout>
 </ContentPage>

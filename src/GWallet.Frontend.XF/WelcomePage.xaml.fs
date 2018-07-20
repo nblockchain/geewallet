@@ -83,12 +83,7 @@ type WelcomePage() =
 
                     async {
                         let! accounts = Account.CreateBaseAccount passphrase.Text dateTime (email.Text.ToLower()) password.Text
-                        Device.BeginInvokeOnMainThread(fun _ ->
-                            let balancesPage = BalancesPage()
-                            NavigationPage.SetHasNavigationBar(balancesPage, false)
-                            this.Navigation.InsertPageBefore(balancesPage, this)
-                            this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
-                        )
+                        FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage())
                     } |> FrontendHelpers.DoubleCheckCompletion
 
     member this.OnDobTextChanged(sender: Object, args: EventArgs) =

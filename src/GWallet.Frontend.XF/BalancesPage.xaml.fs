@@ -8,7 +8,7 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
-type BalancesPage() as this =
+type BalancesPage() =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
@@ -48,12 +48,6 @@ type BalancesPage() as this =
                 yield normalAccount,label,button
         } |> List.ofSeq
 
-    let totalFiatAmountLabel = Label(Text="...",
-                                     FontSize = FrontendHelpers.BigFontSize,
-                                     Margin = Thickness(0.,20.,0.,20.),
-                                     VerticalOptions = LayoutOptions.CenterAndExpand,
-                                     HorizontalOptions = LayoutOptions.Center)
-
     // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
     let UpdateGlobalFiatBalanceLabel (balance: MaybeCached<decimal>) =
         let strBalance =
@@ -66,6 +60,7 @@ type BalancesPage() as this =
                 sprintf "~ %s USD%s"
                        (Formatting.DecimalAmount CurrencyType.Fiat cachedAmount)
                        (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
+        let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
         totalFiatAmountLabel.Text <- strBalance
 
     let rec UpdateGlobalFiatBalance (acc: MaybeCached<decimal>) fiatBalances =
@@ -96,18 +91,9 @@ type BalancesPage() as this =
                     UpdateGlobalFiatBalance (NotFresh(Cached(newAmount+cachedAccAmount,accTime))) tail
                 | NotFresh(Cached(newCachedAmount,time)) ->
                     UpdateGlobalFiatBalance (NotFresh(Cached(newCachedAmount+cachedAccAmount,min accTime time))) tail
-    do
-        this.Init()
 
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) =
         UpdateGlobalFiatBalance (Fresh(0.0m)) (allFiatBalances |> List.ofSeq)
-
-    member this.UpdateBalanceAsync (normalAccount, balanceLabel: Label, fiatBalanceLabel: Label): Async<MaybeCached<decimal>> =
-        async {
-            let account = normalAccount :> IAccount
-            let! balance = Account.GetShowableBalance normalAccount
-            return FrontendHelpers.UpdateBalance balance normalAccount.Currency balanceLabel fiatBalanceLabel
-        }
 
     member this.StartTimer() =
         Device.StartTimer(timeToRefreshBalances, fun _ ->
@@ -115,7 +101,7 @@ type BalancesPage() as this =
                 let balanceUpdateJobs =
                     seq {
                         for normalAccount,accountBalance,fiatBalance in accountsAndBalances do
-                            yield this.UpdateBalanceAsync (normalAccount,accountBalance,fiatBalance)
+                            yield FrontendHelpers.UpdateBalanceAsync (normalAccount,accountBalance,fiatBalance)
                     }
                 let allBalancesJob = Async.Parallel balanceUpdateJobs
                 let! allFiatBalances = allBalancesJob
@@ -130,16 +116,8 @@ type BalancesPage() as this =
 
     member this.PopulateGrid (initialBalancesTasksWithDetails: seq<_*NormalAccount*Label*Label>) =
 
-        let titleLabel = mainLayout.FindByName<Label> "titleLabel"
-        mainLayout.Children.Remove(mainLayout.FindByName<Label>("loadingLabel")) |> ignore
-        mainLayout.VerticalOptions <- LayoutOptions.FillAndExpand
-        mainLayout.Padding <- Thickness(0.)
-        titleLabel.VerticalOptions <- LayoutOptions.Start
-
-        titleLabel.HorizontalOptions <- LayoutOptions.Center
-        titleLabel.Margin <- Thickness(0.,40.,0.,0.)
-
-        mainLayout.Children.Add(totalFiatAmountLabel)
+        let footerLabel = mainLayout.FindByName<Label> "footerLabel"
+        mainLayout.Children.Remove footerLabel |> ignore
 
         for _,normalAccount,accountBalance,fiatBalance in initialBalancesTasksWithDetails do
             let account = normalAccount :> IAccount
@@ -167,33 +145,15 @@ type BalancesPage() as this =
             stackLayout.Children.Add(fiatBalance)
             mainLayout.Children.Add(frame)
 
-        let footerLabel = Label(Text = "www.diginex.com",
-                                Margin = Thickness(0.,30.,0.,30.),
-                                VerticalOptions = LayoutOptions.End,
-                                HorizontalOptions = LayoutOptions.Center)
-        mainLayout.Children.Add(footerLabel)
+        mainLayout.Children.Add footerLabel
 
+    member this.Init (allFiatBalances: seq<MaybeCached<decimal>>)
+                     (initialBalancesTasksWithDetails: seq<_*NormalAccount*Label*Label>): unit =
 
-    member this.Init (): unit =
+        Device.BeginInvokeOnMainThread(fun _ ->
+            this.PopulateGrid initialBalancesTasksWithDetails
+            this.UpdateGlobalFiatBalanceSum allFiatBalances
+        )
+        this.StartTimer()
 
-        let initialBalancesTasksWithDetails =
-            seq {
-                for normalAccount,accountBalanceLabel,fiatBalanceLabel in accountsAndBalances do
-                    let balanceJob = this.UpdateBalanceAsync (normalAccount, accountBalanceLabel, fiatBalanceLabel)
-                    yield balanceJob,normalAccount,accountBalanceLabel,fiatBalanceLabel
-            }
-
-        let allBalancesJob = Async.Parallel (initialBalancesTasksWithDetails |> Seq.map (fun (j,_,_,_) -> j))
-        let populateGrid = async {
-            let! allFiatBalances = allBalancesJob
-            Device.BeginInvokeOnMainThread(fun _ ->
-                this.PopulateGrid initialBalancesTasksWithDetails
-                this.UpdateGlobalFiatBalanceSum allFiatBalances
-            )
-            this.StartTimer()
-        }
-        Async.StartAsTask populateGrid
-            |> FrontendHelpers.DoubleCheckCompletion
-
-        ()
 

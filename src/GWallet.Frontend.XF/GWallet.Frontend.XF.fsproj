@@ -15,6 +15,9 @@
     <Compile Include="BalancesPage.xaml.fs">
       <DependentUpon>BalancesPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="LoadingPage.xaml.fs">
+      <DependentUpon>LoadingPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="WelcomePage.xaml.fs">
       <DependentUpon>WelcomePage.xaml</DependentUpon>
     </Compile>
