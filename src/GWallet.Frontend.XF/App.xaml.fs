@@ -15,16 +15,15 @@ module Initialization =
         GlobalInit ()
 
         let accounts = Account.GetAllActiveAccounts()
-        if not (accounts.Any()) then
-            let welcomePage = WelcomePage()
-            let navPage = NavigationPage welcomePage
-            NavigationPage.SetHasNavigationBar(welcomePage, false)
-            navPage
-        else
-            let loadingPage = LoadingPage()
-            let navPage = NavigationPage loadingPage
-            NavigationPage.SetHasNavigationBar(loadingPage, false)
-            navPage
+        let landingPage:Page =
+            if not (accounts.Any()) then
+                WelcomePage() :> Page
+            else
+                LoadingPage() :> Page
+
+        let navPage = NavigationPage landingPage
+        NavigationPage.SetHasNavigationBar(landingPage, false)
+        navPage
 
 type App() =
     inherit Application(MainPage = Initialization.LandingPage())
