@@ -1,25 +1,42 @@
 ﻿namespace GWallet.Frontend.XF
 
+open System
 open System.Linq
 
 open Xamarin.Forms
 
 open GWallet.Backend
 
+type GlobalState() =
+    let lockObject = Object()
+    let mutable awake = false
+    let GetAwake() =
+        lock lockObject (fun _ ->
+            awake
+        )
+    member this.SetAwake(leValue: bool): unit =
+        lock lockObject (fun _ ->
+            awake <- leValue
+        )
+    interface FrontendHelpers.IGlobalAppState with
+        member val Awake = GetAwake() with get
+
 module Initialization =
+
+    let internal GlobalState = GlobalState()
 
     let private GlobalInit () =
         Infrastructure.SetupSentryHook ()
 
     let internal LandingPage(): NavigationPage =
-        GlobalInit ()
+        let state = GlobalInit ()
 
         let accounts = Account.GetAllActiveAccounts()
         let landingPage:Page =
             if not (accounts.Any()) then
-                WelcomePage() :> Page
+                (WelcomePage GlobalState) :> Page
             else
-                LoadingPage() :> Page
+                (LoadingPage GlobalState) :> Page
 
         let navPage = NavigationPage landingPage
         NavigationPage.SetHasNavigationBar(landingPage, false)
@@ -27,3 +44,19 @@ module Initialization =
 
 type App() =
     inherit Application(MainPage = Initialization.LandingPage())
+
+    override this.OnSleep(): unit =
+        Initialization.GlobalState.SetAwake false
+
+    override this.OnResume(): unit =
+        Initialization.GlobalState.SetAwake true
+
+        match this.MainPage with
+        | :? BalancesPage as balancesPage ->
+            balancesPage.StartTimer()
+        | :? NavigationPage as navPage ->
+            match navPage.RootPage with
+            | :? BalancesPage as balancesPage ->
+                balancesPage.StartTimer()
+            | _ -> ()
+        | _ -> ()

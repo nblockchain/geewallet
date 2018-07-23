@@ -9,7 +9,7 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
-type WelcomePage() =
+type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<WelcomePage>)
@@ -83,7 +83,7 @@ type WelcomePage() =
 
                     async {
                         let! accounts = Account.CreateBaseAccount passphrase.Text dateTime (email.Text.ToLower()) password.Text
-                        FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage())
+                        FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage state)
                     } |> FrontendHelpers.DoubleCheckCompletionAsync
 
     member this.OnDobTextChanged(sender: Object, args: EventArgs) =

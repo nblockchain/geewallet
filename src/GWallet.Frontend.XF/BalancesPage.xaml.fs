@@ -8,7 +8,7 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
-type BalancesPage() =
+type BalancesPage(state: FrontendHelpers.IGlobalAppState) =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
@@ -105,13 +105,14 @@ type BalancesPage() =
                     }
                 let allBalancesJob = Async.Parallel balanceUpdateJobs
                 let! allFiatBalances = allBalancesJob
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    this.UpdateGlobalFiatBalanceSum allFiatBalances
-                )
+                if (state.Awake) then
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        this.UpdateGlobalFiatBalanceSum allFiatBalances
+                    )
             } |> Async.StartAsTask |> FrontendHelpers.DoubleCheckCompletion
 
             // to keep timer recurring
-            true
+            state.Awake
         )
 
     member this.PopulateGrid (initialBalancesTasksWithDetails: seq<_*NormalAccount*Label*Label>) =

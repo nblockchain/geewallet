@@ -8,7 +8,7 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
-type LoadingPage() as this =
+type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
@@ -61,7 +61,7 @@ type LoadingPage() as this =
         let allBalancesJob = Async.Parallel (initialBalancesTasksWithDetails |> Seq.map (fun (j,_,_,_) -> j))
         let populateGrid = async {
             let! allFiatBalances = allBalancesJob
-            let balancesPage = BalancesPage()
+            let balancesPage = BalancesPage state
             balancesPage.Init allFiatBalances initialBalancesTasksWithDetails
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
         }

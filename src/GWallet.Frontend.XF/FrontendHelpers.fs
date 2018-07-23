@@ -9,6 +9,9 @@ open GWallet.Backend
 
 module FrontendHelpers =
 
+    type IGlobalAppState =
+        abstract member Awake: bool with get
+
     let internal BigFontSize = 22.
 
     let internal MediumFontSize = 20.
