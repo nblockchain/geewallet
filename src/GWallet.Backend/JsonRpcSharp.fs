@@ -75,7 +75,6 @@ module JsonRpcSharp =
                 else
                     (DateTime.Now > initTime + DEFAULT_TIMEOUT_FOR_SUBSEQUENT_DATA_AVAILABLE_SIGNAL_TO_HAPPEN)
 
-            let canRead = stream.CanRead
             if (not (stream.DataAvailable)) || (not (stream.CanRead)) then
                 if (timeIsUp()) then
                     WrapResult acc
