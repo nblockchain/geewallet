@@ -56,10 +56,12 @@ module Server =
         | OriginSslHandshakeError = 525
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
-    let private ethWeb3Infura = SomeWeb3("https://mainnet.infura.io/mew")
+    let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
     let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
     let private ethWeb3Giveth = SomeWeb3("https://mew.giveth.io")
     let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
+    let private ethBlockScale = SomeWeb3("https://api.dev.blockscale.net/dev/parity")
+    let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
 
     // TODO: add the one from https://etcchain.com/api/ too
     let private etcWeb3ePoolIo = SomeWeb3("https://mewapi.epool.io")
@@ -81,10 +83,12 @@ module Server =
             ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
             [
-                ethWeb3Infura;
+                ethWeb3InfuraMyCrypto;
                 ethWeb3Mew;
                 ethWeb3Giveth;
                 ethMyCrypto;
+                ethBlockScale;
+                ethWeb3InfuraMyEtherWallet;
             ]
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
