@@ -48,6 +48,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState) =
                 yield normalAccount,label,button
         } |> List.ofSeq
 
+    let balanceUpdateJobs =
+        seq {
+            for normalAccount,accountBalance,fiatBalance in accountsAndBalances do
+                yield FrontendHelpers.UpdateBalanceAsync normalAccount accountBalance fiatBalance
+        }
+    let allBalancesJob = Async.Parallel balanceUpdateJobs
+
     // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
     let UpdateGlobalFiatBalanceLabel (balance: MaybeCached<decimal>) =
         let strBalance =
@@ -97,19 +104,15 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState) =
 
     member this.StartTimer() =
         Device.StartTimer(timeToRefreshBalances, fun _ ->
-            async {
-                let balanceUpdateJobs =
-                    seq {
-                        for normalAccount,accountBalance,fiatBalance in accountsAndBalances do
-                            yield FrontendHelpers.UpdateBalanceAsync normalAccount accountBalance fiatBalance
-                    }
-                let allBalancesJob = Async.Parallel balanceUpdateJobs
-                let! allFiatBalances = allBalancesJob
-                if (state.Awake) then
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        this.UpdateGlobalFiatBalanceSum allFiatBalances
-                    )
-            } |> Async.StartAsTask |> FrontendHelpers.DoubleCheckCompletion
+            if (state.Awake) then
+                async {
+                    if (state.Awake) then
+                        let! allFiatBalances = allBalancesJob
+                        if (state.Awake) then
+                            Device.BeginInvokeOnMainThread(fun _ ->
+                                this.UpdateGlobalFiatBalanceSum allFiatBalances
+                            )
+                } |> Async.StartAsTask |> FrontendHelpers.DoubleCheckCompletion
 
             // to keep timer recurring
             state.Awake
