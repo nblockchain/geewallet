@@ -129,10 +129,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState) =
                 NavigationPage.SetHasNavigationBar(receivePage, false)
                 let navPage = NavigationPage receivePage
 
-                // workaround for https://github.com/xamarin/Xamarin.Forms/issues/3329 as Android has back button anyway
-                if (Device.RuntimePlatform = Device.Android) then
-                    NavigationPage.SetHasNavigationBar(navPage, false)
-
                 this.Navigation.PushAsync navPage
                      |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             ) |> ignore

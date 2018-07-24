@@ -3,6 +3,9 @@
 open System.Reflection
 open System.Runtime.CompilerServices
 
+// see https://github.com/xamarin/Xamarin.Forms/issues/3329 and https://github.com/mono/monodevelop/issues/5452
+[<assembly: Android.Runtime.ResourceDesigner("GWallet.Frontend.XF.Android.Resources", IsApplication=true)>]
+
 [<assembly: AssemblyTitle("GWallet.Frontend.XF.Android")>]
 [<assembly: AssemblyDescription("")>]
 [<assembly: AssemblyConfiguration("")>]
