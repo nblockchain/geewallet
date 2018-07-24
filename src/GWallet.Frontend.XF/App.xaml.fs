@@ -51,12 +51,20 @@ type App() =
     override this.OnResume(): unit =
         Initialization.GlobalState.SetAwake true
 
-        match this.MainPage with
-        | :? BalancesPage as balancesPage ->
-            balancesPage.StartTimer()
-        | :? NavigationPage as navPage ->
-            match navPage.RootPage with
+        let maybeBalancesPage =
+            match this.MainPage with
             | :? BalancesPage as balancesPage ->
-                balancesPage.StartTimer()
-            | _ -> ()
-        | _ -> ()
+                Some balancesPage
+            | :? NavigationPage as navPage ->
+                match navPage.RootPage with
+                | :? BalancesPage as balancesPage ->
+                    Some balancesPage
+                | _ ->
+                    None
+            | _ ->
+                None
+
+        match maybeBalancesPage with
+        | Some balancesPage ->
+            balancesPage.StartTimer()
+        | None -> ()
