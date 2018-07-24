@@ -29,6 +29,26 @@ In the development side of things, we advocate for simplicity:
 2. We will try to only add new features to the UX/UI that can be supported by all currencies that we support, and we will prioritize new features (Layer2: micropayments) over support for new currencies (no shitcoins thanks).
 3. Thanks to our usage of Xamarin.Forms toolkit, our frontends are based on a single codebase, instead of having to repeat logic for each platform.
 
+Comparing our product to other wallets in terms of features, we would want to highlight the following:
+
+| Wallet\Feature | Multi-currency | Opensource | Cold Storage | Brain seed | Truly crossplatform (+iPhone) |
+| -------------- | -------------- | ---------- | ------------ | ---------- | ----------------------------- |
+| Copay/Bitpay   | No             | Yes        | No           | No         | Yes                           |
+| Electrum       | No             | Yes        | Yes          | No         | No                            |
+| Bread          | Yes            | Yes        | Yes          | No         | Yes                           |
+| Jaxx           | Yes            | No         | No           | No         | Yes                           |
+| Coinomi        | Yes            | No         | No           | No         | Yes                           |
+| ParitySigner   | No             | Yes        | Yes          | No         | Yes                           |
+| WarpWallet     | No             | Yes        | No           | Yes        | No                            |
+| geewallet      | Yes            | Yes        | Yes          | Yes        | Yes                           |
+
+
+As you can see, geewallet is a good mixup of good features, which others never manage to get together in the same app. I should add to this that geewallet's future maintainability is very high due to:
+- Using a functional programming language.
+- Having lots of automated tests.
+- Employing a single code base for all frontends, requiring much less manpower and specific expertise.
+
+
 ## Roadmap
 
 This list is the (intended) order of preference for new features:
