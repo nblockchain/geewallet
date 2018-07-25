@@ -31,17 +31,20 @@ In the development side of things, we advocate for simplicity:
 
 Comparing our product to other wallets in terms of features, we would want to highlight the following:
 
-| Wallet\Feature | Multi-currency | Opensource | Cold Storage | Brain seed | Truly crossplatform (+iPhone) |
-| -------------- | -------------- | ---------- | ------------ | ---------- | ----------------------------- |
-| Copay/Bitpay   | No             | Yes        | No           | No         | Yes                           |
-| Electrum       | No             | Yes        | Yes          | No         | No                            |
-| Bread          | Yes            | Yes        | Yes          | No         | Yes                           |
-| Jaxx           | Yes            | No         | No           | No         | Yes                           |
-| Coinomi        | Yes            | No         | No           | No         | Yes                           |
-| ParitySigner   | No             | Yes        | Yes          | No         | Yes                           |
-| WarpWallet     | No             | Yes        | No           | Yes        | No                            |
-| geewallet      | Yes            | Yes        | Yes          | Yes        | Yes                           |
+| Wallet\Feature | Multi-currency | Opensource | Cold Storage | Brain seed | Truly crossplatform* |
+| -------------- | -------------- | ---------- | ------------ | ---------- | -------------------- |
+| Copay/Bitpay   | No             | Yes        | No           | No         | Yes                  |
+| Electrum       | No             | Yes        | Yes          | No         | No                   |
+| Bread          | Yes            | Yes        | Yes          | No         | Yes                  |
+| Jaxx           | Yes            | No         | No           | No         | Yes                  |
+| Coinomi        | Yes            | No         | No           | No         | Yes                  |
+| ParitySigner   | No             | Yes        | Yes          | No         | Yes                  |
+| imToken        | Yes            | No         | Yes          | No         | No                   |
+| status.im      | No             | Yes        | No           | No         | Yes                  |
+| WarpWallet     | No             | Yes        | No           | Yes        | No                   |
+| geewallet      | Yes            | Yes        | Yes          | Yes        | Yes                  |
 
+*=With truly crossplatform we mean Mobile (both Android & iPhone) & Desktop (main OSs: Linux, macOS & Windows)
 
 As you can see, geewallet is a good mixup of good features, which others never manage to get together in the same app. I should add to this that geewallet's future maintainability is very high due to:
 - Using a functional programming language.
