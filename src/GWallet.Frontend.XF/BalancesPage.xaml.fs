@@ -99,24 +99,41 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState) =
                 | NotFresh(Cached(newCachedAmount,time)) ->
                     UpdateGlobalFiatBalance (NotFresh(Cached(newCachedAmount+cachedAccAmount,min accTime time))) tail
 
+    let mutable timerRunning = false
+    let lockObject = Object()
+    let SetTimerRunning(leValue: bool): unit =
+        lock lockObject (fun _ ->
+            timerRunning <- leValue
+        )
+    let GetTimerRunning(): bool =
+        lock lockObject (fun _ ->
+            timerRunning
+        )
+
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) =
         UpdateGlobalFiatBalance (Fresh(0.0m)) (allFiatBalances |> List.ofSeq)
 
     member this.StartTimer() =
-        Device.StartTimer(timeToRefreshBalances, fun _ ->
-            if (state.Awake) then
-                async {
-                    if (state.Awake) then
-                        let! allFiatBalances = allBalancesJob
-                        if (state.Awake) then
-                            Device.BeginInvokeOnMainThread(fun _ ->
-                                this.UpdateGlobalFiatBalanceSum allFiatBalances
-                            )
-                } |> Async.StartAsTask |> FrontendHelpers.DoubleCheckCompletion
+        if not (GetTimerRunning()) then
+            Device.StartTimer(timeToRefreshBalances, fun _ ->
+                SetTimerRunning true
 
-            // to keep timer recurring
-            state.Awake
-        )
+                let awake = state.Awake
+                if (awake) then
+                    async {
+                        if (state.Awake) then
+                            let! allFiatBalances = allBalancesJob
+                            if (state.Awake) then
+                                Device.BeginInvokeOnMainThread(fun _ ->
+                                    this.UpdateGlobalFiatBalanceSum allFiatBalances
+                                )
+                    } |> Async.StartAsTask |> FrontendHelpers.DoubleCheckCompletion
+
+                SetTimerRunning awake
+
+                // to keep or stop timer recurring
+                awake
+            )
 
     member this.PopulateGrid (initialBalancesTasksWithDetails: seq<_*NormalAccount*Label*Label>) =
 
