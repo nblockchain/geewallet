@@ -370,7 +370,9 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                     failwith "Somehow the UI didn't avoid the user access the Send UI when balance is not positive?"
                 let transferAmount = TransferAmount(amountInAccountCurrency, lastCachedBalance, currency)
 
-                this.DisableButtons()
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    this.DisableButtons()
+                )
 
                 let maybeValidatedAddress = this.ValidateAddress currency destinationAddress
                 match maybeValidatedAddress with
