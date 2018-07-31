@@ -6,6 +6,7 @@ open System.Numerics
 open System.Linq
 open System.Threading.Tasks
 
+open Nethereum
 open Nethereum.Util
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
@@ -78,22 +79,26 @@ module Server =
     let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
 
     // TODO: add the one from https://etcchain.com/api/ too
-    let private etcWeb3ePoolIo = SomeWeb3("https://mewapi.epool.io")
+    let private etcWeb3ePoolIo1 = SomeWeb3("https://cry.epool.io")
+    let private etcWeb3ePoolIo2 = SomeWeb3("https://mewapi.epool.io")
     let private etcWeb3ZeroXInfraGeth = SomeWeb3("https://etc-geth.0xinfra.com")
     let private etcWeb3ZeroXInfraParity = SomeWeb3("https://etc-parity.0xinfra.com")
     let private etcWeb3CommonWealthGeth = SomeWeb3("https://etcrpc.viperid.online")
     // FIXME: the below one doesn't seem to work; we should include it anyway and make the algorithm discard it at runtime
     //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
     let private etcWeb3CommonWealthParity = SomeWeb3("https://etc-parity.callisto.network")
+    let private etcWeb3ChainKorea = SomeWeb3("https://node.classicexplorer.org/")
 
     let GetWeb3Servers (currency: Currency): list<SomeWeb3> =
         if currency = ETC then
             [
+                etcWeb3ePoolIo1;
+                etcWeb3ChainKorea;
                 etcWeb3CommonWealthParity;
                 etcWeb3CommonWealthGeth;
-                etcWeb3ePoolIo;
                 etcWeb3ZeroXInfraParity;
                 etcWeb3ZeroXInfraGeth;
+                etcWeb3ePoolIo2;
             ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
             [
@@ -199,6 +204,9 @@ module Server =
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
     let private faultTolerantEthClient =
+        // FIXME: update once https://github.com/Nethereum/Nethereum/issues/390 is fixed
+        JsonRpc.Client.RpcClient.ConnectionTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
+
         FaultTolerantParallelClient<ConnectionUnsuccessfulException>()
 
     let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): list<'T->'R> =

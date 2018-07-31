@@ -179,9 +179,10 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
             |> Seq.map (ConcatenateNonParallelFuncs args List.empty)
             |> List.ofSeq
 
-        if (funcBuckets.Length <> numberOfMaximumParallelJobs) then
+        let lengthOfBucketsSanityCheck = Math.Min(funcs.Length, numberOfMaximumParallelJobs)
+        if (lengthOfBucketsSanityCheck <> funcBuckets.Length) then
             return failwithf "Assertion failed, splitInto didn't work as expected? got %d, should be %d"
-                             funcBuckets.Length numberOfMaximumParallelJobs
+                             funcBuckets.Length lengthOfBucketsSanityCheck
 
         let! result =
             WhenSome settings.ConsistencyConfig funcBuckets resultsSoFar failedFuncsSoFar
