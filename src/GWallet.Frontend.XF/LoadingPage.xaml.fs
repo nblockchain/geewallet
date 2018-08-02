@@ -1,6 +1,5 @@
 ﻿namespace GWallet.Frontend.XF
 
-open System
 open System.Linq
 
 open Xamarin.Forms
@@ -15,7 +14,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
 
     let normalAccounts = GWallet.Backend.Account.GetAllActiveAccounts().OfType<NormalAccount>() |> List.ofSeq
 
-    let CreateWidgetsForAccount(account: NormalAccount): Label*Label =
+    let CreateWidgetsForAccount (): Label*Label =
         let accountBalanceLabel = Label(Text = "...",
                                         VerticalOptions = LayoutOptions.Center,
                                         HorizontalOptions = LayoutOptions.Start)
@@ -41,8 +40,8 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
     let accountsAndBalances: List<NormalAccount*Label*Label> =
         seq {
             for normalAccount in normalAccounts do
-                let label,button = CreateWidgetsForAccount normalAccount
-                yield normalAccount,label,button
+                let cryptoLabel,fiatLabel = CreateWidgetsForAccount ()
+                yield normalAccount,cryptoLabel,fiatLabel
         } |> List.ofSeq
 
     do
