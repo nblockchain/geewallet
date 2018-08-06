@@ -67,11 +67,32 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
             Device.BeginInvokeOnMainThread(fun _ ->
                 let task = this.Navigation.PopModalAsync()
                 task.ContinueWith(fun (t: Task<Page>) ->
+                    let address,maybeAmount =
+                        match baseAccount.Currency with
+                        | Currency.BTC -> UtxoCoin.Account.ParseAddressOrUrl result.Text
+                        | _ -> result.Text,None
+
                     Device.BeginInvokeOnMainThread(fun _ ->
                         let destinationAddressEntry = mainLayout.FindByName<Entry>("destinationAddress")
-                        destinationAddressEntry.Text <- result.Text
-                        ()
+                        destinationAddressEntry.Text <- address
                     )
+                    match maybeAmount with
+                    | None -> ()
+                    | Some amount ->
+                        let amountLabel = mainLayout.FindByName<Entry>("amountToSend")
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            let cryptoCurrencyInPicker =
+                                currencySelectorPicker.Items.FirstOrDefault(
+                                    fun item -> item.ToString() = baseAccount.Currency.ToString()
+                                )
+                            if (cryptoCurrencyInPicker = null) then
+                                failwithf "Could not find currency %A in picker?" baseAccount.Currency
+                            currencySelectorPicker.SelectedItem <- cryptoCurrencyInPicker
+                            let aPreviousAmountWasSet = not (String.IsNullOrWhiteSpace amountLabel.Text)
+                            amountLabel.Text <- amount.ToString()
+                            if aPreviousAmountWasSet then
+                                this.DisplayAlert("Alert", "Note: new amount has been set", "OK") |> ignore
+                        )
                 ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )

@@ -9,6 +9,7 @@ open System.Security
 open System.Linq
 
 open NBitcoin
+open NBitcoin.Payment
 
 open GWallet.Backend
 
@@ -20,7 +21,7 @@ type internal TransactionOutpoint =
     member self.ToCoin (): Coin =
         Coin(self.Transaction, uint32 self.OutputIndex)
 
-module internal Account =
+module Account =
 
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
@@ -450,6 +451,25 @@ module internal Account =
         async {
             return CreateInternal currency password seed
         }
+
+    let ParseAddressOrUrl (addressOrUrl: string) =
+        if (addressOrUrl.StartsWith "litecoin:") then
+            // FIXME: BitcoinUriBuilder class of NBitcoin doesn't support "litecoin:" scheme yet..., fix bug upstream
+            failwith "URI scheme 'litecoin:' not supported yet"
+
+        if not (addressOrUrl.StartsWith "bitcoin:") then
+            addressOrUrl,None
+        else
+            let uriBuilder = BitcoinUrlBuilder addressOrUrl
+            if (uriBuilder.UnknowParameters.Count > 0) then
+                failwithf "Unknown parameters found in URI %s: %s"
+                          addressOrUrl (String.Join(",", uriBuilder.UnknowParameters.Keys))
+
+            let address = uriBuilder.Address.ToString()
+            if (uriBuilder.Amount <> null) then
+                address,Some uriBuilder.Amount
+            else
+                address,None
 
     let ValidateAddress (currency: Currency) (address: string) =
         let UTXOCOIN_MIN_ADDRESSES_LENGTH = 27
