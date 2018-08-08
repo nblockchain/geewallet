@@ -18,8 +18,3 @@ type TransferAmount(valueToSend: decimal, balanceAtTheMomentOfSending: decimal, 
     member this.Currency
         with get() = currency
 
-    member this.TotalValueIncludingFeeIfSameCurrency (feeInfo: IBlockchainFeeInfo) =
-        if valueToSend = balanceAtTheMomentOfSending || currency <> feeInfo.Currency then
-            this.ValueToSend
-        else
-            feeInfo.FeeValue + this.ValueToSend

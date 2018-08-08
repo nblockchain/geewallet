@@ -176,8 +176,7 @@ module Account =
                 currency
                 feeCurrency
                 txId
-                (trans.TransactionInfo.Proposal.Amount.TotalValueIncludingFeeIfSameCurrency
-                    trans.TransactionInfo.Metadata)
+                trans.TransactionInfo.Proposal.Amount.ValueToSend
                 trans.TransactionInfo.Metadata.FeeValue
 
             return BlockExplorer.GetTransaction currency txId
@@ -279,7 +278,7 @@ module Account =
                 currency
                 feeCurrency
                 txId
-                (amount.TotalValueIncludingFeeIfSameCurrency txMetadata)
+                amount.ValueToSend
                 txMetadata.FeeValue
 
             return BlockExplorer.GetTransaction currency txId
