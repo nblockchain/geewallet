@@ -11,7 +11,7 @@ open Nethereum.Util
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
 open Nethereum.RPC.Eth.DTOs
-open Nethereum.StandardTokenEIP20.CQS
+open Nethereum.StandardTokenEIP20.ContractDefinition
 
 open GWallet.Backend
 
@@ -326,7 +326,7 @@ module Server =
                 let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                            To = destination,
                                                            Value = amountInWei)
-                WaitOnTask contractHandler.EstimateGasAsync transferFunctionMsg
+                WaitOnTask (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
             return! faultTolerantEthClient.Query<unit,HexBigInteger>
                         (FaultTolerantParallelClientSettings())
                         ()

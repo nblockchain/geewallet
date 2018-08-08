@@ -6,10 +6,8 @@ open System.Linq
 open Nethereum.Web3
 open Nethereum.Hex.HexTypes
 open Nethereum.Contracts
-open Nethereum.Contracts.CQS
 open Nethereum.StandardTokenEIP20
-open Nethereum.ABI.FunctionEncoding.Attributes
-open Nethereum.StandardTokenEIP20.CQS
+open Nethereum.StandardTokenEIP20.ContractDefinition
 
 module TokenManager =
 
@@ -27,7 +25,7 @@ module TokenManager =
             let transferFunc = contractAbi.Functions.FirstOrDefault(fun func -> func.Name = "transfer")
             if (transferFunc = null) then
                 failwith "Transfer function not found?"
-            let transferFuncBuilder = FunctionBuilder<TransferFunction>(contractBuilder, transferFunc)
+            let transferFuncBuilder = FunctionBuilder<TransferFunction>(DAI_CONTRACT_ADDRESS, transferFunc)
 
             let transferFunctionMsg = TransferFunction(FromAddress = origin,
                                                        To = destination,
