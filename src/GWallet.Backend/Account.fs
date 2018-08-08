@@ -62,10 +62,11 @@ module Account =
             let! maybeBalance = GetShowableBalanceInternal account
             match maybeBalance with
             | None ->
-                return NotFresh(Caching.Instance.RetreiveLastCompoundBalance(account.PublicAddress, account.Currency))
+                return NotFresh(Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency)
             | Some balance ->
                 let compoundBalance,_ =
-                    Caching.Instance.RetreiveAndUpdateLastCompoundBalance (account.PublicAddress, account.Currency)
+                    Caching.Instance.RetreiveAndUpdateLastCompoundBalance account.PublicAddress
+                                                                          account.Currency
                                                                           balance
                 return Fresh compoundBalance
         }
@@ -170,7 +171,8 @@ module Account =
                     failwith (sprintf "Unknown currency %A" currency)
 
             Caching.Instance.StoreOutgoingTransaction
-                (trans.TransactionInfo.Proposal.OriginAddress,currency)
+                trans.TransactionInfo.Proposal.OriginAddress
+                currency
                 txId
                 (trans.TransactionInfo.Proposal.Amount.TotalValueIncludingFeeIfSameCurrency
                     trans.TransactionInfo.Metadata)
@@ -269,7 +271,8 @@ module Account =
                     failwith (sprintf "Unknown currency %A" currency)
 
             Caching.Instance.StoreOutgoingTransaction
-                (baseAccount.PublicAddress,currency)
+                baseAccount.PublicAddress
+                currency
                 txId
                 (amount.TotalValueIncludingFeeIfSameCurrency txMetadata)
 
