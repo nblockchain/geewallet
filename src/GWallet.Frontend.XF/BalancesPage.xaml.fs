@@ -8,7 +8,7 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
-type BalancesPage(state: FrontendHelpers.IGlobalAppState) =
+type BalancesPage(state: FrontendHelpers.IGlobalAppState, accountsAndBalances: List<NormalAccount*Label*Label>) =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
@@ -17,36 +17,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState) =
     let normalAccounts = GWallet.Backend.Account.GetAllActiveAccounts().OfType<NormalAccount>() |> List.ofSeq
 
     let timeToRefreshBalances = TimeSpan.FromSeconds 60.0
-
-    let CreateWidgetsForAccount(account: NormalAccount): Label*Label =
-        let accountBalanceLabel = Label(Text = "...",
-                                        VerticalOptions = LayoutOptions.Center,
-                                        HorizontalOptions = LayoutOptions.Start)
-        let fiatBalanceLabel = Label(Text = "...",
-                                     VerticalOptions = LayoutOptions.Center,
-                                     HorizontalOptions = LayoutOptions.EndAndExpand)
-
-        // workaround to small default fonts in GTK (compared to other toolkits) so FIXME: file bug about this
-        let magicGtkNumber = FrontendHelpers.MagicGtkNumber
-        accountBalanceLabel.FontSize <- magicGtkNumber
-        fiatBalanceLabel.FontSize <- magicGtkNumber
-
-        if (Device.RuntimePlatform = Device.GTK) then
-            // workaround about Labels not respecting VerticalOptions.Center in GTK so FIXME: file bug about this
-            accountBalanceLabel.TranslationY <- magicGtkNumber
-            fiatBalanceLabel.TranslationY <- magicGtkNumber
-            // workaround about Labels not putting a decent default left margin in GTK so FIXME: file bug about this
-            accountBalanceLabel.TranslationX <- magicGtkNumber
-            fiatBalanceLabel.TranslationX <- magicGtkNumber
-
-        accountBalanceLabel,fiatBalanceLabel
-
-    let accountsAndBalances: List<NormalAccount*Label*Label> =
-        seq {
-            for normalAccount in normalAccounts do
-                let label,button = CreateWidgetsForAccount normalAccount
-                yield normalAccount,label,button
-        } |> List.ofSeq
 
     let balanceUpdateJobs =
         seq {
@@ -135,12 +105,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState) =
                 awake
             )
 
-    member this.PopulateGrid (initialBalancesTasksWithDetails: seq<_*NormalAccount*Label*Label>) =
+    member this.PopulateGrid (accountsAndTheirLabels: seq<NormalAccount*Label*Label>) =
 
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
         mainLayout.Children.Remove footerLabel |> ignore
 
-        for _,normalAccount,accountBalance,fiatBalance in initialBalancesTasksWithDetails do
+        for normalAccount,accountBalance,fiatBalance in accountsAndTheirLabels do
             let account = normalAccount :> IAccount
 
             let tapGestureRecognizer = TapGestureRecognizer()
@@ -165,10 +135,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState) =
         mainLayout.Children.Add footerLabel
 
     member this.Init (allFiatBalances: seq<MaybeCached<decimal>>)
-                     (initialBalancesTasksWithDetails: seq<_*NormalAccount*Label*Label>): unit =
+                         : unit =
 
         Device.BeginInvokeOnMainThread(fun _ ->
-            this.PopulateGrid initialBalancesTasksWithDetails
+            this.PopulateGrid accountsAndBalances
             this.UpdateGlobalFiatBalanceSum allFiatBalances
         )
         this.StartTimer()

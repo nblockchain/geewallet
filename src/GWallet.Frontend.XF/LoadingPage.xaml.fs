@@ -60,8 +60,8 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
         let allBalancesJob = Async.Parallel (initialBalancesTasksWithDetails |> Seq.map (fun (j,_,_,_) -> j))
         let populateGrid = async {
             let! allFiatBalances = allBalancesJob
-            let balancesPage = BalancesPage state
-            balancesPage.Init allFiatBalances initialBalancesTasksWithDetails
+            let balancesPage = BalancesPage(state, accountsAndBalances)
+            balancesPage.Init allFiatBalances
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
         }
         Async.StartAsTask populateGrid
