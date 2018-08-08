@@ -11,7 +11,7 @@ open Nethereum.Util
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
 open Nethereum.RPC.Eth.DTOs
-open Nethereum.StandardTokenEIP20.CQS
+open Nethereum.StandardTokenEIP20.ContractDefinition
 
 open GWallet.Backend
 
@@ -174,6 +174,8 @@ module Server =
                         raise (ServerChannelNegotiationException(exMsg, webEx))
                     if (webEx.Status = WebExceptionStatus.ReceiveFailure) then
                         raise (ServerTimedOutException(exMsg, webEx))
+                    if (webEx.Status = WebExceptionStatus.ConnectFailure) then
+                        raise (ServerUnreachableException(exMsg, webEx))
 
                     // TBH not sure if this one below happens only when TLS is not working...*, which means that either
                     // a) we need to remove these 2 lines (to not catch it) and make sure it doesn't happen in the client
@@ -326,7 +328,7 @@ module Server =
                 let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                            To = destination,
                                                            Value = amountInWei)
-                WaitOnTask contractHandler.EstimateGasAsync transferFunctionMsg
+                WaitOnTask (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
             return! faultTolerantEthClient.Query<unit,HexBigInteger>
                         (FaultTolerantParallelClientSettings())
                         ()
