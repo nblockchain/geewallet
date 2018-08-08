@@ -350,11 +350,11 @@ module Caching =
                 compoundBalance,time
             )
 
-        member self.StoreOutgoingTransaction (address: PublicAddress)
-                                             (currency: Currency)
-                                             (txId: string)
-                                             (amount: decimal)
-                                                 : unit =
+        member private self.StoreTransactionRecord (address: PublicAddress)
+                                                   (currency: Currency)
+                                                   (txId: string)
+                                                   (amount: decimal)
+                                                       : unit =
             let time = DateTime.Now
             lock lockObject (fun _ ->
                 let newCachedValue =
@@ -395,5 +395,18 @@ module Caching =
 
                 SaveToDisk newCachedValue
             )
+
+        member self.StoreOutgoingTransaction (address: PublicAddress)
+                                             (transactionCurrency: Currency)
+                                             (feeCurrency: Currency)
+                                             (txId: string)
+                                             (transactionAmount: decimal)
+                                             (feeAmount: decimal)
+                                                 : unit =
+            if (transactionCurrency = feeCurrency) then
+                self.StoreTransactionRecord address transactionCurrency txId (transactionAmount + feeAmount)
+            else
+                self.StoreTransactionRecord address transactionCurrency txId transactionAmount
+                self.StoreTransactionRecord address feeCurrency txId feeAmount
 
     let Instance = MainCache (None, TimeSpan.FromDays 1.0)

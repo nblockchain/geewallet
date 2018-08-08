@@ -170,12 +170,15 @@ module Account =
                 else
                     failwith (sprintf "Unknown currency %A" currency)
 
+            let feeCurrency = trans.TransactionInfo.Metadata.Currency
             Caching.Instance.StoreOutgoingTransaction
                 trans.TransactionInfo.Proposal.OriginAddress
                 currency
+                feeCurrency
                 txId
                 (trans.TransactionInfo.Proposal.Amount.TotalValueIncludingFeeIfSameCurrency
                     trans.TransactionInfo.Metadata)
+                trans.TransactionInfo.Metadata.FeeValue
 
             return BlockExplorer.GetTransaction currency txId
         }
@@ -270,11 +273,14 @@ module Account =
                 else
                     failwith (sprintf "Unknown currency %A" currency)
 
+            let feeCurrency = txMetadata.Currency
             Caching.Instance.StoreOutgoingTransaction
                 baseAccount.PublicAddress
                 currency
+                feeCurrency
                 txId
                 (amount.TotalValueIncludingFeeIfSameCurrency txMetadata)
+                txMetadata.FeeValue
 
             return BlockExplorer.GetTransaction currency txId
         }
