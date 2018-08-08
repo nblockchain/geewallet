@@ -112,20 +112,20 @@
     <PackageReference Include="NBitcoin" Version="4.0.0.51" />
     <PackageReference Include="FSharp.Data" Version="3.0.0-beta" />
     <PackageReference Include="CryptSharpOfficial" Version="2.1.0" />
-    <PackageReference Include="Nethereum.ABI" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.Contracts" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.Hex" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.JsonRpc.Client" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.RLP" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.KeyStore" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.Signer" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.RPC" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.Util" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.StandardTokenEIP20" Version="2.5.2-CI-20180622-194216" />
-    <PackageReference Include="Nethereum.Web3" Version="2.5.2-CI-20180622-194216" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.2" />
+    <PackageReference Include="Nethereum.StandardTokenEIP20" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.Signer" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.Util" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.Web3" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.RPC" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.RLP" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.KeyStore" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.JsonRpc.Client" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.Hex" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.Contracts" Version="3.0.0-rc1" />
+    <PackageReference Include="Nethereum.ABI" Version="3.0.0-rc1" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />
