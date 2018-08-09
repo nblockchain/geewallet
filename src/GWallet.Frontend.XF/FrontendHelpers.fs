@@ -52,7 +52,8 @@ module FrontendHelpers =
                                                     defaultFiatCurrency
                                                     (MaybeReturnOutdatedMarkForOldDate time)
 
-    let UpdateBalance balance currency (balanceLabel: Label) (fiatBalanceLabel: Label): MaybeCached<decimal> =
+    let UpdateBalance (balance:MaybeCached<decimal>) currency (balanceLabel: Label) (fiatBalanceLabel: Label)
+                          : MaybeCached<decimal> =
         let maybeBalanceAmount =
             match balance with
             | NotFresh(NotAvailable) ->
@@ -77,10 +78,33 @@ module FrontendHelpers =
         )
         fiatAmount
 
-    let UpdateBalanceAsync normalAccount (balanceLabel: Label) (fiatBalanceLabel: Label): Async<MaybeCached<decimal>> =
+    let UpdateBalanceAsync account (balanceLabel: Label) (fiatBalanceLabel: Label)
+                               : Async<IAccount*Label*Label*MaybeCached<decimal>> =
         async {
-            let! balance = Account.GetShowableBalance normalAccount
-            return UpdateBalance balance normalAccount.Currency balanceLabel fiatBalanceLabel
+            let! balance = Account.GetShowableBalance account
+            let fiatAmount = UpdateBalance balance account.Currency balanceLabel fiatBalanceLabel
+            return account,balanceLabel,fiatBalanceLabel,fiatAmount
+        }
+
+    let UpdateCachedBalancesAsync (accountsWithLabels: seq<IAccount*Label*Label>)
+                                      : Async<array<IAccount*Label*Label*MaybeCached<decimal>>> =
+        let rec updateBalanceAccumulator (accountsWithLabels: List<IAccount*Label*Label>)
+                                         (acc: List<IAccount*Label*Label*MaybeCached<decimal>>) =
+            match accountsWithLabels with
+            | [] -> acc
+            | (account,cryptoBalanceLabel,fiatBalanceLabel)::tail ->
+                let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+                match cachedBalance with
+                | Cached _ ->
+                    let fiatAmount =
+                        UpdateBalance (NotFresh cachedBalance) account.Currency cryptoBalanceLabel fiatBalanceLabel
+                    let newElem = account,cryptoBalanceLabel,fiatBalanceLabel,fiatAmount
+                    updateBalanceAccumulator tail (newElem::acc)
+                | _ ->
+                    failwith "Retreiving cached balance of a readonlyAccount(cold storage) returned N/A; but addition of this account should have stored it properly..."
+
+        async {
+            return (updateBalanceAccumulator (accountsWithLabels |> List.ofSeq) []) |> List.rev |> Array.ofList
         }
 
     // FIXME: share code between Frontend.Console and Frontend.XF
@@ -151,3 +175,32 @@ module FrontendHelpers =
             )
         ) |> DoubleCheckCompletionNonGeneric
 
+    let private CreateWidgetsForAccount (): Label*Label =
+        let accountBalanceLabel = Label(Text = "...",
+                                        VerticalOptions = LayoutOptions.Center,
+                                        HorizontalOptions = LayoutOptions.Start)
+        let fiatBalanceLabel = Label(Text = "...",
+                                     VerticalOptions = LayoutOptions.Center,
+                                     HorizontalOptions = LayoutOptions.EndAndExpand)
+
+        // workaround to small default fonts in GTK (compared to other toolkits) so FIXME: file bug about this
+        let magicGtkNumber = MagicGtkNumber
+        accountBalanceLabel.FontSize <- magicGtkNumber
+        fiatBalanceLabel.FontSize <- magicGtkNumber
+
+        if (Device.RuntimePlatform = Device.GTK) then
+            // workaround about Labels not respecting VerticalOptions.Center in GTK so FIXME: file bug about this
+            accountBalanceLabel.TranslationY <- magicGtkNumber
+            fiatBalanceLabel.TranslationY <- magicGtkNumber
+            // workaround about Labels not putting a decent default left margin in GTK so FIXME: file bug about this
+            accountBalanceLabel.TranslationX <- magicGtkNumber
+            fiatBalanceLabel.TranslationX <- magicGtkNumber
+
+        accountBalanceLabel,fiatBalanceLabel
+
+    let CreateWidgetsForAccounts(accounts: seq<IAccount>): List<IAccount*Label*Label> =
+        seq {
+            for account in accounts do
+                let cryptoLabel,fiatLabel = CreateWidgetsForAccount ()
+                yield account,cryptoLabel,fiatLabel
+        } |> List.ofSeq

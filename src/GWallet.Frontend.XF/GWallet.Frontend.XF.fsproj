@@ -9,6 +9,12 @@
     <Compile Include="SendPage.xaml.fs">
       <DependentUpon>SendPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="PairingFromPage.xaml.fs">
+      <DependentUpon>PairingFromPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="PairingToPage.xaml.fs">
+      <DependentUpon>PairingToPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ReceivePage.xaml.fs">
       <DependentUpon>ReceivePage.xaml</DependentUpon>
     </Compile>
@@ -29,5 +35,6 @@
     <PackageReference Include="Xamarin.Forms" Version="3.0.0.446417" />
     <PackageReference Include="ZXing.Net.Mobile.Forms" Version="2.3.2" />
     <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
+    <PackageReference Include="Xam.Plugin.Connectivity" Version="4.0.0.190-beta" />
   </ItemGroup>
 </Project>

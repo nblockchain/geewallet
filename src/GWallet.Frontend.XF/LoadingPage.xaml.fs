@@ -12,56 +12,36 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
 
-    let normalAccounts = GWallet.Backend.Account.GetAllActiveAccounts().OfType<NormalAccount>() |> List.ofSeq
-
-    let CreateWidgetsForAccount (): Label*Label =
-        let accountBalanceLabel = Label(Text = "...",
-                                        VerticalOptions = LayoutOptions.Center,
-                                        HorizontalOptions = LayoutOptions.Start)
-        let fiatBalanceLabel = Label(Text = "...",
-                                     VerticalOptions = LayoutOptions.Center,
-                                     HorizontalOptions = LayoutOptions.EndAndExpand)
-
-        // workaround to small default fonts in GTK (compared to other toolkits) so FIXME: file bug about this
-        let magicGtkNumber = FrontendHelpers.MagicGtkNumber
-        accountBalanceLabel.FontSize <- magicGtkNumber
-        fiatBalanceLabel.FontSize <- magicGtkNumber
-
-        if (Device.RuntimePlatform = Device.GTK) then
-            // workaround about Labels not respecting VerticalOptions.Center in GTK so FIXME: file bug about this
-            accountBalanceLabel.TranslationY <- magicGtkNumber
-            fiatBalanceLabel.TranslationY <- magicGtkNumber
-            // workaround about Labels not putting a decent default left margin in GTK so FIXME: file bug about this
-            accountBalanceLabel.TranslationX <- magicGtkNumber
-            fiatBalanceLabel.TranslationX <- magicGtkNumber
-
-        accountBalanceLabel,fiatBalanceLabel
-
-    let accountsAndBalances: List<NormalAccount*Label*Label> =
-        seq {
-            for normalAccount in normalAccounts do
-                let cryptoLabel,fiatLabel = CreateWidgetsForAccount ()
-                yield normalAccount,cryptoLabel,fiatLabel
-        } |> List.ofSeq
+    let allAccounts = Account.GetAllActiveAccounts()
+    let normalAccounts = allAccounts.OfType<NormalAccount>() |> List.ofSeq
+                         |> List.map (fun account -> account :> IAccount)
+    let readOnlyAccounts = allAccounts.OfType<ReadOnlyAccount>() |> List.ofSeq
+                           |> List.map (fun account -> account :> IAccount)
 
     do
         this.Init()
 
     member this.Init (): unit =
 
-        let initialBalancesTasksWithDetails =
+        let normalAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts normalAccounts
+        let allNormalAccountBalancesJob =
             seq {
-                for normalAccount,accountBalanceLabel,fiatBalanceLabel in accountsAndBalances do
+                for normalAccount,accountBalanceLabel,fiatBalanceLabel in normalAccountsWithLabels do
                     let balanceJob =
                         FrontendHelpers.UpdateBalanceAsync normalAccount accountBalanceLabel fiatBalanceLabel
-                    yield balanceJob,normalAccount,accountBalanceLabel,fiatBalanceLabel
-            }
+                    yield balanceJob
+            } |> Async.Parallel
 
-        let allBalancesJob = Async.Parallel (initialBalancesTasksWithDetails |> Seq.map (fun (j,_,_,_) -> j))
+        let readOnlyAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
+        let readOnlyAccountBalancesJob = FrontendHelpers.UpdateCachedBalancesAsync readOnlyAccountsWithLabels
+
         let populateGrid = async {
-            let! allFiatBalances = allBalancesJob
-            let balancesPage = BalancesPage(state, accountsAndBalances)
-            balancesPage.Init allFiatBalances
+            let allBalancesJob = Async.Parallel(allNormalAccountBalancesJob::(readOnlyAccountBalancesJob::[]))
+            let! allResolvedBalances = allBalancesJob
+            let allResolvedNormalAccountBalances = allResolvedBalances.ElementAt(0)
+            let allResolvedReadOnlyBalances = allResolvedBalances.ElementAt(1)
+
+            let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances, false)
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
         }
         Async.StartAsTask populateGrid
