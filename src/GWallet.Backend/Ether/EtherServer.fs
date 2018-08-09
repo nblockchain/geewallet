@@ -294,16 +294,25 @@ module Server =
         }
 
     let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Task<BigInteger> =
+        if (web3 = null) then
+            invalidArg "web3" "web3 argument should not be null"
+
         let balanceFunc(): Task<BigInteger> =
             let latestBlockTask = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync ()
+            if (latestBlockTask = null) then
+                failwith "latestBlockTask somehow is null"
             latestBlockTask.Wait()
             let latestBlock = latestBlockTask.Result
+            if (latestBlock = null) then
+                failwith "latestBlock somehow is null"
             let blockForConfirmationReference =
                 BlockParameter(HexBigInteger(BigInteger.Subtract(latestBlock.Value,
                                                                  NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)))
             let balanceOfFunctionMsg = BalanceOfFunction(Owner = publicAddress)
 
             let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
+            if (contractHandler = null) then
+                failwith "contractHandler somehow is null"
             contractHandler.QueryAsync<BalanceOfFunction,BigInteger>
                                     (balanceOfFunctionMsg,
                                      blockForConfirmationReference)
