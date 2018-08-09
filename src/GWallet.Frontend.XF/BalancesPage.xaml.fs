@@ -97,7 +97,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState, accountsAndBalances: L
 
         awake
 
-    member this.StartTimer() =
+    member private this.StartTimer(): unit =
         if not (GetTimerRunning()) then
             Device.StartTimer(timeToRefreshBalances, fun _ ->
                 SetTimerRunning true
@@ -107,6 +107,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState, accountsAndBalances: L
                 // to keep or stop timer recurring
                 awake
             )
+
+    member this.StartBalanceRefreshCycle (runImmediatelyToo: bool) =
+        if ((runImmediatelyToo && this.RefreshBalancesAndCheckIfAwake()) || (not runImmediatelyToo)) then
+            this.StartTimer()
 
     member this.PopulateGrid (accountsAndTheirLabels: seq<NormalAccount*Label*Label>) =
 
@@ -144,6 +148,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState, accountsAndBalances: L
             this.PopulateGrid accountsAndBalances
             this.UpdateGlobalFiatBalanceSum allFiatBalances
         )
-        this.StartTimer()
+        this.StartBalanceRefreshCycle false
 
 

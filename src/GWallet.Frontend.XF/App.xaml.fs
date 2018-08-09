@@ -66,5 +66,5 @@ type App() =
 
         match maybeBalancesPage with
         | Some balancesPage ->
-            balancesPage.StartTimer()
+            balancesPage.StartBalanceRefreshCycle true
         | None -> ()
