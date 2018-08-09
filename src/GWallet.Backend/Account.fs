@@ -62,10 +62,11 @@ module Account =
             let! maybeBalance = GetShowableBalanceInternal account
             match maybeBalance with
             | None ->
-                return NotFresh(Caching.Instance.RetreiveLastCompoundBalance(account.PublicAddress, account.Currency))
+                return NotFresh(Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency)
             | Some balance ->
                 let compoundBalance,_ =
-                    Caching.Instance.RetreiveAndUpdateLastCompoundBalance (account.PublicAddress, account.Currency)
+                    Caching.Instance.RetreiveAndUpdateLastCompoundBalance account.PublicAddress
+                                                                          account.Currency
                                                                           balance
                 return Fresh compoundBalance
         }
@@ -185,11 +186,14 @@ module Account =
                 else
                     failwith (sprintf "Unknown currency %A" currency)
 
+            let feeCurrency = trans.TransactionInfo.Metadata.Currency
             Caching.Instance.StoreOutgoingTransaction
-                (trans.TransactionInfo.Proposal.OriginAddress,currency)
+                trans.TransactionInfo.Proposal.OriginAddress
+                currency
+                feeCurrency
                 txId
-                (trans.TransactionInfo.Proposal.Amount.TotalValueIncludingFeeIfSameCurrency
-                    trans.TransactionInfo.Metadata)
+                trans.TransactionInfo.Proposal.Amount.ValueToSend
+                trans.TransactionInfo.Metadata.FeeValue
 
             return BlockExplorer.GetTransaction currency txId
         }
@@ -284,10 +288,14 @@ module Account =
                 else
                     failwith (sprintf "Unknown currency %A" currency)
 
+            let feeCurrency = txMetadata.Currency
             Caching.Instance.StoreOutgoingTransaction
-                (baseAccount.PublicAddress,currency)
+                baseAccount.PublicAddress
+                currency
+                feeCurrency
                 txId
-                (amount.TotalValueIncludingFeeIfSameCurrency txMetadata)
+                amount.ValueToSend
+                txMetadata.FeeValue
 
             return BlockExplorer.GetTransaction currency txId
         }

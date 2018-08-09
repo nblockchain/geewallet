@@ -1,16 +1,11 @@
-image: ubuntu:16.04
+image: ubuntu:18.04
 
 before_script:
   - apt-get update
 
-  # installing tzdata pkg is a workaround to Ubuntu messing up with deps in STABLE/LTS
-  # bug: https://bugzilla.xamarin.com/show_bug.cgi?id=56499
-  # downstream fix: https://anonscm.debian.org/cgit/pkg-mono/packages/mono.git/commit/?id=4d0e950
-  # upstream fix: https://github.com/mono/mono/commit/940944dcdefb56f7952cd35a43bcbd5f70ba78ef
-  - apt-get install -y tzdata
-
   - apt-get install -y curl
-  - apt-get install -y nuget mono-complete mono-xbuild fsharp
+  # https://askubuntu.com/a/1013396
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
 
 stages:
   - build

@@ -248,7 +248,7 @@ module Caching =
             )
             ()
 
-        member self.RetreiveLastCompoundBalance (address: PublicAddress, currency: Currency): NotFresh<decimal> =
+        member self.RetreiveLastCompoundBalance (address: PublicAddress) (currency: Currency): NotFresh<decimal> =
             lock lockObject (fun _ ->
                 match sessionCachedNetworkData with
                 | None -> NotAvailable
@@ -268,7 +268,8 @@ module Caching =
                         Cached(compoundBalance,time)
             )
 
-        member self.RetreiveAndUpdateLastCompoundBalance (address: PublicAddress, currency: Currency)
+        member self.RetreiveAndUpdateLastCompoundBalance (address: PublicAddress)
+                                                         (currency: Currency)
                                                          (newBalance: decimal)
                                                              : CachedValue<decimal> =
             let time = DateTime.Now
@@ -347,8 +348,11 @@ module Caching =
                 compoundBalance,time
             )
 
-        member self.StoreOutgoingTransaction (address: PublicAddress, currency: Currency)
-                                             (txId: string) (transactionAmount: decimal): unit =
+        member private self.StoreTransactionRecord (address: PublicAddress)
+                                                   (currency: Currency)
+                                                   (txId: string)
+                                                   (amount: decimal)
+                                                       : unit =
             let time = DateTime.Now
             lock lockObject (fun _ ->
                 let newCachedValue =
@@ -360,7 +364,7 @@ module Caching =
                             OutgoingTransactions = Map.empty.Add(currency,
                                                                  Map.empty.Add(address,
                                                                                Map.empty.Add(txId,
-                                                                                             (transactionAmount, time))));
+                                                                                             (amount, time))));
                         }
                     | Some previousCachedData ->
                         let newCurrencyAddresses =
@@ -372,9 +376,9 @@ module Caching =
                         let newAddressTransactions =
                             match newCurrencyAddresses.TryFind address with
                             | None ->
-                                Map.empty.Add(txId, (transactionAmount,time))
+                                Map.empty.Add(txId, (amount, time))
                             | Some addressTransactions ->
-                                addressTransactions.Add(txId, (transactionAmount,time))
+                                addressTransactions.Add(txId, (amount, time))
 
                         {
                             UsdPrice = previousCachedData.UsdPrice;
@@ -389,5 +393,18 @@ module Caching =
 
                 SaveToDisk newCachedValue
             )
+
+        member self.StoreOutgoingTransaction (address: PublicAddress)
+                                             (transactionCurrency: Currency)
+                                             (feeCurrency: Currency)
+                                             (txId: string)
+                                             (transactionAmount: decimal)
+                                             (feeAmount: decimal)
+                                                 : unit =
+            if (transactionCurrency = feeCurrency) then
+                self.StoreTransactionRecord address transactionCurrency txId (transactionAmount + feeAmount)
+            else
+                self.StoreTransactionRecord address transactionCurrency txId transactionAmount
+                self.StoreTransactionRecord address feeCurrency txId feeAmount
 
     let Instance = MainCache (None, TimeSpan.FromDays 1.0)

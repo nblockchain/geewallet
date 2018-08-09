@@ -72,6 +72,11 @@
     <Compile Include="..\GWallet.Backend\CommonAssemblyInfo.fs">
       <Link>CommonAssemblyInfo.fs</Link>
     </Compile>
+    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
+      <Name>GWallet.Backend</Name>
+      <Project>{96f9b3e5-11f8-4f5f-aadc-51d0d995b3d2}</Project>
+      <Private>True</Private>
+    </ProjectReference>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Presentation.fs" />
     <Compile Include="UserInteraction.fs" />
@@ -80,13 +85,6 @@
     <Content Include="gwallet.bat">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
-      <Name>GWallet.Backend</Name>
-      <Project>{96f9b3e5-11f8-4f5f-aadc-51d0d995b3d2}</Project>
-      <Private>True</Private>
-    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
