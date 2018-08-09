@@ -83,22 +83,25 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState, accountsAndBalances: L
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) =
         UpdateGlobalFiatBalance (Fresh(0.0m)) (allFiatBalances |> List.ofSeq)
 
+    member private this.RefreshBalancesAndCheckIfAwake(): bool =
+        let awake = state.Awake
+        if (awake) then
+            async {
+                if (state.Awake) then
+                    let! allFiatBalances = allBalancesJob
+                    if (state.Awake) then
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            this.UpdateGlobalFiatBalanceSum allFiatBalances
+                        )
+            } |> Async.StartAsTask |> FrontendHelpers.DoubleCheckCompletion
+
+        awake
+
     member this.StartTimer() =
         if not (GetTimerRunning()) then
             Device.StartTimer(timeToRefreshBalances, fun _ ->
                 SetTimerRunning true
-
-                let awake = state.Awake
-                if (awake) then
-                    async {
-                        if (state.Awake) then
-                            let! allFiatBalances = allBalancesJob
-                            if (state.Awake) then
-                                Device.BeginInvokeOnMainThread(fun _ ->
-                                    this.UpdateGlobalFiatBalanceSum allFiatBalances
-                                )
-                    } |> Async.StartAsTask |> FrontendHelpers.DoubleCheckCompletion
-
+                let awake = this.RefreshBalancesAndCheckIfAwake()
                 SetTimerRunning awake
 
                 // to keep or stop timer recurring
