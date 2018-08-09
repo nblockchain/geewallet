@@ -43,6 +43,7 @@ type App() =
 
     override this.OnSleep(): unit =
         Initialization.GlobalState.Awake <- false
+        Async.CancelDefaultToken()
 
     override this.OnResume(): unit =
         Initialization.GlobalState.Awake <- true
