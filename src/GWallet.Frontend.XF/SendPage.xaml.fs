@@ -24,7 +24,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
     let baseAccount = account:>IAccount
     let GetBalance() =
         // FIXME: should make sure to get the unconfirmed balance
-        let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance (baseAccount.PublicAddress, baseAccount.Currency)
+        let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance baseAccount.PublicAddress baseAccount.Currency
         match cachedBalance with
         | NotAvailable -> failwith "Assertion failed: send page should not be accessed if last balance saved on cache was not > 0"
         | Cached(theCachedBalance,_) -> theCachedBalance
