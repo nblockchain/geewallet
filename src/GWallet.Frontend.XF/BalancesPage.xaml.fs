@@ -14,7 +14,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState, accountsAndBalances: L
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
-    let normalAccounts = GWallet.Backend.Account.GetAllActiveAccounts().OfType<NormalAccount>() |> List.ofSeq
 
     let timeToRefreshBalances = TimeSpan.FromSeconds 60.0
 
