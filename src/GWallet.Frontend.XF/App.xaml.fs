@@ -10,16 +10,12 @@ open GWallet.Backend
 type GlobalState() =
     let lockObject = Object()
     let mutable awake = true
-    let GetAwake() =
-        lock lockObject (fun _ ->
-            awake
-        )
-    member this.SetAwake(leValue: bool): unit =
-        lock lockObject (fun _ ->
-            awake <- leValue
-        )
+    member internal this.Awake
+        with set value = lock lockObject (fun _ -> awake <- value)
+
     interface FrontendHelpers.IGlobalAppState with
-        member this.Awake with get() = GetAwake()
+        member this.Awake
+            with get() = lock lockObject (fun _ -> awake)
 
 module Initialization =
 
@@ -46,10 +42,10 @@ type App() =
     inherit Application(MainPage = Initialization.LandingPage())
 
     override this.OnSleep(): unit =
-        Initialization.GlobalState.SetAwake false
+        Initialization.GlobalState.Awake <- false
 
     override this.OnResume(): unit =
-        Initialization.GlobalState.SetAwake true
+        Initialization.GlobalState.Awake <- true
 
         let maybeBalancesPage =
             match this.MainPage with

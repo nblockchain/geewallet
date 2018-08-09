@@ -71,14 +71,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState, accountsAndBalances: L
 
     let mutable timerRunning = false
     let lockObject = Object()
-    let SetTimerRunning(leValue: bool): unit =
-        lock lockObject (fun _ ->
-            timerRunning <- leValue
-        )
-    let GetTimerRunning(): bool =
-        lock lockObject (fun _ ->
-            timerRunning
-        )
+    member private this.IsTimerRunning
+        with get() = lock lockObject (fun _ -> timerRunning)
+         and set value = lock lockObject (fun _ -> timerRunning <- value)
 
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) =
         UpdateGlobalFiatBalance (Fresh(0.0m)) (allFiatBalances |> List.ofSeq)
@@ -98,11 +93,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState, accountsAndBalances: L
         awake
 
     member private this.StartTimer(): unit =
-        if not (GetTimerRunning()) then
+        if not (this.IsTimerRunning) then
             Device.StartTimer(timeToRefreshBalances, fun _ ->
-                SetTimerRunning true
+                this.IsTimerRunning <- true
                 let awake = this.RefreshBalancesAndCheckIfAwake()
-                SetTimerRunning awake
+                this.IsTimerRunning <- awake
 
                 // to keep or stop timer recurring
                 awake
