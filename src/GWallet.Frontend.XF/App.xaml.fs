@@ -9,7 +9,7 @@ open GWallet.Backend
 
 type GlobalState() =
     let lockObject = Object()
-    let mutable awake = false
+    let mutable awake = true
     let GetAwake() =
         lock lockObject (fun _ ->
             awake
@@ -19,7 +19,7 @@ type GlobalState() =
             awake <- leValue
         )
     interface FrontendHelpers.IGlobalAppState with
-        member val Awake = GetAwake() with get
+        member this.Awake with get() = GetAwake()
 
 module Initialization =
 
