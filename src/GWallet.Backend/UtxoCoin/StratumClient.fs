@@ -94,7 +94,7 @@ type public ElectrumServerReturningInternalErrorException(message: string, code:
                                                           originalRequest: string, originalResponse: string) =
     inherit ElectrumServerReturningErrorException(message, code, originalRequest, originalResponse)
 
-type StratumClient (jsonRpcClient: JsonRpcSharp.Client) =
+type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
     let Serialize(req: Request): string =
         JsonConvert.SerializeObject(req, Formatting.None,

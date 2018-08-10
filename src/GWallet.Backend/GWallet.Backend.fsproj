@@ -197,6 +197,7 @@
     <Compile Include="AccountTypes.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="JsonRpcSharp.fs" />
+    <Compile Include="JsonRpcTcpClient.fs" />
     <Compile Include="IBlockchainFeeInfo.fs" />
     <Compile Include="TransferAmount.fs" />
     <Compile Include="Caching.fs" />

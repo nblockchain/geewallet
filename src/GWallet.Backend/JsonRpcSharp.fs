@@ -3,19 +3,10 @@
 open System
 open System.Linq
 open System.Text
-open System.Net
 open System.Net.Sockets
 open System.Threading
-open System.Threading.Tasks
 
 module JsonRpcSharp =
-
-    type internal UnhandledSocketException =
-        inherit Exception
-
-        new(socketErrorCode: int, innerException: Exception) =
-            { inherit Exception(sprintf "GWallet not prepared for this SocketException with ErrorCode[%d]" socketErrorCode,
-                                        innerException) }
 
     type ConnectionUnsuccessfulException =
         inherit Exception
@@ -27,29 +18,15 @@ module JsonRpcSharp =
     type NoResponseReceivedAfterRequestException() =
        inherit ConnectionUnsuccessfulException()
 
-    type ServerRefusedException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerTimedOutException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ProtocolGlitchException(message: string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerCannotBeResolvedException =
-       inherit ConnectionUnsuccessfulException
-
-       new(message) = { inherit ConnectionUnsuccessfulException(message) }
-       new(message:string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
-
     type ServerUnresponsiveException() =
        inherit ConnectionUnsuccessfulException()
 
-    type ServerUnreachableException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type Client (host: string, port: int) =
-        let tcpClient = new TcpClient()
+    // BIG TODO:
+    //   1. CONVERT THIS TO BE A CLASS THAT INHERITS FROM ClientBase CLASS
+    //   2. STOP USING BLOCKING API TO USE ASYNC API INSTEAD (e.g. from Thread.Sleep to Task.Delay), MAYBE USING:
+    //      https://blogs.msdn.microsoft.com/dotnet/2018/07/09/system-io-pipelines-high-performance-io-in-net/
+    type TcpClient (hostAndPort: unit->string*int) =
+        let tcpClient = new System.Net.Sockets.TcpClient()
 
         let rec WrapResult (acc: byte list): string =
             let reverse = List.rev acc
@@ -90,69 +67,17 @@ module JsonRpcSharp =
         let Read (stream: NetworkStream): string =
             ReadInternal stream [] DateTime.Now
 
-        let ResolveAsync (hostName: string) =
-            // FIXME: loop over all addresses?
-            Task.Run(fun _ -> Dns.GetHostEntry(hostName).AddressList.[0])
-
         let Connect(): unit =
             tcpClient.SendTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
             tcpClient.ReceiveTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
 
-            let exceptionMsg = "JsonRpcSharp faced some problem when trying communication"
-            let resolvedHost =
-                try
-                    let resolveTask = ResolveAsync host
-                    if not (resolveTask.Wait Config.DEFAULT_NETWORK_TIMEOUT) then
-                        raise(ServerCannotBeResolvedException(exceptionMsg))
-                    resolveTask.Result
-                with
-                | ex ->
-                    let socketException = FSharpUtil.FindException<SocketException>(ex)
-                    if (socketException.IsNone) then
-                        reraise()
-                    if (socketException.Value.ErrorCode = int SocketError.HostNotFound ||
-                        socketException.Value.ErrorCode = int SocketError.TryAgain) then
-                        raise(ServerCannotBeResolvedException(exceptionMsg, ex))
-                    raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
+            let host,port = hostAndPort()
+            let connectTask = tcpClient.ConnectAsync(host, port)
 
-            try
-                let connectTask = tcpClient.ConnectAsync(resolvedHost, port)
+            if not (connectTask.Wait(Config.DEFAULT_NETWORK_TIMEOUT)) then
+                raise(ServerUnresponsiveException())
 
-                if not (connectTask.Wait(Config.DEFAULT_NETWORK_TIMEOUT)) then
-                    raise(ServerUnresponsiveException())
-            with
-
-            // FIXME: we should log this one on Sentry as a warning because it's really strange, I bet it's a bug
-            // on Mono that could maybe go away with higher versions of it (higher versions of Xamarin-Android), see
-            // git blame to look at the whole stacktrace (ex.ToString())
-            | :? NotSupportedException as nse ->
-                raise(ProtocolGlitchException(exceptionMsg, nse))
-
-            | ex ->
-                let socketException = FSharpUtil.FindException<SocketException>(ex)
-                if (socketException.IsNone) then
-                    reraise()
-
-                if (socketException.Value.ErrorCode = int SocketError.ConnectionRefused) then
-                    raise(ServerRefusedException(exceptionMsg, ex))
-
-                if (socketException.Value.ErrorCode = int SocketError.TimedOut) then
-                    raise(ServerTimedOutException(exceptionMsg, ex))
-
-                // probably misleading errorCode (see fixed mono bug: https://github.com/mono/mono/pull/8041 )
-                // TODO: remove this when Mono X.Y (where X.Y=version to introduce this bugfix) is stable
-                //       everywhere (probably 8 years from now?), and see if we catch it again in sentry
-                if (socketException.Value.ErrorCode = int SocketError.AddressFamilyNotSupported) then
-                    raise(ServerUnreachableException(exceptionMsg, ex))
-
-                if (socketException.Value.ErrorCode = int SocketError.HostUnreachable) then
-                    raise(ServerUnreachableException(exceptionMsg, ex))
-                if (socketException.Value.ErrorCode = int SocketError.NetworkUnreachable) then
-                    raise(ServerUnreachableException(exceptionMsg, ex))
-                if (socketException.Value.ErrorCode = int SocketError.AddressNotAvailable) then
-                    raise(ServerUnreachableException(exceptionMsg, ex))
-
-                raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
+        new(host: string, port: int) = new TcpClient(fun _ -> host,port)
 
         member self.Request (request: string): string =
             if not (tcpClient.Connected) then
