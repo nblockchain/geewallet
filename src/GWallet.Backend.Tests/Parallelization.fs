@@ -172,3 +172,38 @@ module Parallelization =
                             "_" [] |> Async.RunSynchronously |> ignore
         ) |> ignore
 
+    [<Test>]
+    // this bug is probably the reason why the XamForms UI gets frozen after some time... too many unkilled threads
+    [<Ignore("not fixed yet")>]
+    let ``slower funcs get cancelled after consistent results have been gathered``() =
+        let someLongTime = TimeSpan.FromSeconds 1.0
+
+        let mutable longFuncFinishedExecution = false
+        let func1 (arg: unit) =
+            0
+        let func2 (arg: unit) =
+            0
+        let longFuncThatShouldBeCancelled (arg: unit) =
+            Thread.Sleep someLongTime
+            longFuncFinishedExecution <- true
+            0
+
+        let allFuncs = [ func1; func2; longFuncThatShouldBeCancelled ]
+        let number_of_parallel_jobs_allowed = uint16 allFuncs.Length
+        let NUMBER_OF_CONSISTENT_RESULTS = uint16 2
+
+        let settings = { FaultTolerance.defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+                             NumberOfMaximumParallelJobs = number_of_parallel_jobs_allowed;
+                             ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
+
+        let client = FaultTolerantParallelClient<SomeException>()
+        let result = client.Query<unit,int> settings () allFuncs
+                         |> Async.RunSynchronously
+
+        Assert.That(result, Is.EqualTo 0)
+
+        // we sleep longer than someLongTime, to make sure longFunc is finished
+        Thread.Sleep(someLongTime + someLongTime)
+
+        Assert.That(longFuncFinishedExecution, Is.EqualTo false)
+
