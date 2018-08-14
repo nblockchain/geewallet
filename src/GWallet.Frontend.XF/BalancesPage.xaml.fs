@@ -228,7 +228,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         NavigationPage.SetHasNavigationBar(navPage, false)
                         navPage :> Page
                     else
-                        let page = PairingFromPage this
+                        let normalAccountsAddresses = Account.GetAllActiveAccounts().OfType<NormalAccount>()
+                                                        .Select(fun acc -> (acc:>IAccount).PublicAddress) |> Set.ofSeq
+                        let addressesSeparatedByCommas = String.Join(",", normalAccountsAddresses)
+
+                        let page = PairingFromPage(this, "Copy addresses to clipboard", addressesSeparatedByCommas)
                         NavigationPage.SetHasNavigationBar(page, false)
                         let navPage = NavigationPage page
                         navPage :> Page

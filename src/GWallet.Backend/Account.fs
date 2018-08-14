@@ -1,8 +1,10 @@
 ﻿namespace GWallet.Backend
 
 open System
+open System.Text
 open System.Linq
 open System.IO
+open System.IO.Compression
 
 module Account =
 
@@ -440,8 +442,41 @@ module Account =
 
         Async.Parallel allAccounts
 
+    let Compress (uncompressedString: string): string =
+        use compressedStream = new MemoryStream()
+        use uncompressedStream = new MemoryStream(Encoding.UTF8.GetBytes uncompressedString)
+        let compressorStream = new DeflateStream(compressedStream, CompressionMode.Compress)
+        uncompressedStream.CopyTo compressorStream
+        // can't use "use" because it needs to be dissposed manually before getting the data
+        compressorStream.Dispose()
+        Convert.ToBase64String(compressedStream.ToArray())
+
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
+
+    let private SerializeUnsignedTransactionPlain (transProposal: UnsignedTransactionProposal)
+                                                  (txMetadata: IBlockchainFeeInfo)
+                                                      : string =
+
+        ValidateAddress transProposal.Amount.Currency transProposal.DestinationAddress
+
+        match txMetadata with
+        | :? Ether.TransactionMetadata as etherTxMetadata ->
+            Ether.Account.SaveUnsignedTransaction transProposal etherTxMetadata
+        | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
+            UtxoCoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata
+        | _ -> failwith "fee type unknown"
+
+    let SerializeUnsignedTransaction (transProposal: UnsignedTransactionProposal)
+                                     (txMetadata: IBlockchainFeeInfo)
+                                     (compressed: bool)
+                                         : string =
+
+        let json = SerializeUnsignedTransactionPlain transProposal txMetadata
+        if not compressed then
+            json
+        else
+            Compress json
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
                                 (txMetadata: IBlockchainFeeInfo)
@@ -449,12 +484,8 @@ module Account =
 
         ValidateAddress transProposal.Amount.Currency transProposal.DestinationAddress
 
-        match txMetadata with
-        | :? Ether.TransactionMetadata as etherTxMetadata ->
-            Ether.Account.SaveUnsignedTransaction transProposal etherTxMetadata filePath
-        | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
-            UtxoCoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata filePath
-        | _ -> failwith "fee type unknown"
+        let json = SerializeUnsignedTransaction transProposal txMetadata false
+        File.WriteAllText(filePath, json)
 
     let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<IBlockchainFeeInfo> =
 

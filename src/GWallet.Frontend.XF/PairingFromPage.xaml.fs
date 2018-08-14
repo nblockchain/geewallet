@@ -13,14 +13,9 @@ open ZXing.Common
 
 open GWallet.Backend
 
-type PairingFromPage(balancesPage: Page) as this =
+type PairingFromPage(previousPage: Page, clipBoardButtonCaption: string, qrCodeContents: string) as this =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<PairingFromPage>)
-
-    let normalAccountsAddresses = Account.GetAllActiveAccounts().OfType<NormalAccount>()
-                                    .Select(fun acc -> (acc:>IAccount).PublicAddress) |> Set.ofSeq
-
-    let addressesSeparatedByCommas = String.Join(",", normalAccountsAddresses)
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     do
@@ -28,13 +23,16 @@ type PairingFromPage(balancesPage: Page) as this =
 
     member this.Init() =
 
+        let clipBoardButton = mainLayout.FindByName<Button> "copyToClipboardButton"
+        clipBoardButton.Text <- clipBoardButtonCaption
+
         let size = 200
         let encodingOptions = EncodingOptions(Height = size,
                                               Width = size)
         let barCode = ZXingBarcodeImageView(HorizontalOptions = LayoutOptions.Center,
                                             VerticalOptions = LayoutOptions.Center,
                                             BarcodeFormat = BarcodeFormat.QR_CODE,
-                                            BarcodeValue = addressesSeparatedByCommas,
+                                            BarcodeValue = qrCodeContents,
                                             HeightRequest = float size,
                                             WidthRequest = float size,
                                             BarcodeOptions = encodingOptions)
@@ -46,7 +44,7 @@ type PairingFromPage(balancesPage: Page) as this =
         let backButton = Button(Text = "< Go back")
         backButton.Clicked.Subscribe(fun _ ->
             Device.BeginInvokeOnMainThread(fun _ ->
-                balancesPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+                previousPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
             )
         ) |> ignore
         mainLayout.Children.Add(backButton)
@@ -56,5 +54,5 @@ type PairingFromPage(balancesPage: Page) as this =
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
         FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
 
-        CrossClipboard.Current.SetText addressesSeparatedByCommas
+        CrossClipboard.Current.SetText qrCodeContents
         ()

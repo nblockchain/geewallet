@@ -13,8 +13,8 @@ open GWallet.Backend
 type TransactionInfo =
     { Metadata: IBlockchainFeeInfo;
       Destination: string; 
-      Amount: TransferAmount; 
-      Passphrase: string; }
+      Amount: TransferAmount;
+    }
 
 type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Page) =
     inherit ContentPage()
@@ -45,6 +45,16 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
         if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
             scanQrCodeButton.IsVisible <- true
+
+        match account with
+        | :? ReadOnlyAccount ->
+            let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
+            let passwordLabel = mainLayout.FindByName<Label> "passwordLabel"
+            Device.BeginInvokeOnMainThread(fun _ ->
+                passwordEntry.IsVisible <- false
+                passwordLabel.IsVisible <- false
+            )
+        | _ -> ()
 
     member private this.ReenableButtons() =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
@@ -135,14 +145,14 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         Formatting.DecimalAmount CurrencyType.Crypto (decimalAmountTyped / rate)
                 currentAmountTypedEntry.Text <- convertedAmount
 
-    member private this.SendTransaction (account: NormalAccount) (transactionInfo: TransactionInfo) =
+    member private this.SendTransaction (account: NormalAccount) (transactionInfo: TransactionInfo) (password: string) =
         let maybeTxId =
             try
                 Account.SendPayment account
                                     transactionInfo.Metadata
                                     transactionInfo.Destination
                                     transactionInfo.Amount
-                                    transactionInfo.Passphrase
+                                    password
                                         |> Async.RunSynchronously |> Some
             with
             | :? DestinationEqualToOrigin ->
@@ -162,7 +172,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 )
                 None
             | :? InvalidPassword ->
-                let errMsg = "Invalid passphrase, try again."
+                let errMsg = "Invalid password, try again."
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
                         this.ReenableButtons()
@@ -232,6 +242,18 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 this.DisplayAlert("Alert", msg, "OK") |> ignore
             final
 
+    member private this.IsPasswordUnfilledAndNeeded (mainLayout: StackLayout) =
+        match account with
+        | :? ReadOnlyAccount ->
+            false
+        | _ ->
+            let passwordEntry = mainLayout.FindByName<Entry>("passwordEntry")
+            if passwordEntry = null then
+                // not ready yet?
+                true
+            else
+                String.IsNullOrEmpty passwordEntry.Text
+
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         if (mainLayout = null) then
@@ -239,10 +261,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             ()
         else
             let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
-            let passphrase = mainLayout.FindByName<Entry>("passphrase")
             let destinationAddress = mainLayout.FindByName<Entry>("destinationAddress")
             if (destinationAddress = null ||
-                passphrase = null ||
+                this.IsPasswordUnfilledAndNeeded mainLayout ||
                 amountToSend = null) then
                 ()
             else
@@ -272,7 +293,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                             equivalentAmount.Text <- "(Not enough funds)"
                         else
                             amountToSend.TextColor <- Color.Default
-                            sendButton.IsEnabled <- passphrase.Text <> null && passphrase.Text.Length > 0 &&
+                            sendButton.IsEnabled <- (not (this.IsPasswordUnfilledAndNeeded mainLayout)) &&
                                                     destinationAddress.Text <> null && destinationAddress.Text.Length > 0
 
                             match usdRate with
@@ -308,10 +329,41 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         if (answer.Result) then
             match account with
             | :? NormalAccount as normalAccount ->
-                Task.Run(fun _ -> this.SendTransaction normalAccount txInfo)
+                let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
+                let password = passwordEntry.Text
+                Task.Run(fun _ -> this.SendTransaction normalAccount txInfo password)
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             | :? ReadOnlyAccount as readOnlyAccount ->
-                failwith "TODO: should push new PairingFromPage with the QR code of the proposal"
+                let proposal = {
+                    OriginAddress = account.PublicAddress;
+                    Amount = txInfo.Amount;
+                    DestinationAddress = txInfo.Destination;
+                }
+                let compressedTxProposal = Account.SerializeUnsignedTransaction proposal txInfo.Metadata true
+
+                let coldMsg =
+                    "Account belongs to cold storage, so you'll need to scan this as a transaction proposal in the next page."
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    let alertColdStorageTask =
+                        this.DisplayAlert("Alert",
+                                          coldMsg,
+                                          "OK")
+                    alertColdStorageTask.ContinueWith(
+                        fun _ ->
+                            let pairTransactionProposalPage = PairingFromPage(this,
+                                                                              "Copy proposal to the clipboard",
+                                                                              compressedTxProposal)
+                            NavigationPage.SetHasNavigationBar(pairTransactionProposalPage, false)
+                            let navPairPage = NavigationPage pairTransactionProposalPage
+                            NavigationPage.SetHasNavigationBar(navPairPage, false)
+                            Device.BeginInvokeOnMainThread(fun _ ->
+                                this.Navigation.PushAsync navPairPage
+                                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                            )
+
+                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                )
+
             | _ ->
                 failwith "Unexpected SendPage instance running on weird account type"
         else
@@ -319,8 +371,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     member private this.ShowFeeAndSend (maybeTxMetadataWithFeeEstimation: Option<IBlockchainFeeInfo>,
                                         transferAmount: TransferAmount,
-                                        destinationAddress: string,
-                                        passphrase: string) =
+                                        destinationAddress: string) =
         match maybeTxMetadataWithFeeEstimation with
         | None -> ()
         | Some txMetadataWithFeeEstimation ->
@@ -355,8 +406,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
                     let txInfo = { Metadata = txMetadataWithFeeEstimation;
                                    Amount = transferAmount;
-                                   Destination = destinationAddress;
-                                   Passphrase = passphrase; }
+                                   Destination = destinationAddress; }
 
                     askFeeTask.ContinueWith(this.AnswerToFee account txInfo) |> FrontendHelpers.DoubleCheckCompletion
                 )
@@ -365,8 +415,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     member this.OnSendButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
-        let passphraseEntry = mainLayout.FindByName<Entry>("passphrase")
-        let passphrase = passphraseEntry.Text
         let destinationAddressEntry = mainLayout.FindByName<Entry>("destinationAddress")
         let destinationAddress = destinationAddressEntry.Text
 
@@ -428,8 +476,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     maybeTxMetadataWithFeeEstimationTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<Option<IBlockchainFeeInfo>>) ->
                         this.ShowFeeAndSend(txMetadataWithFeeEstimationTask.Result,
                                             transferAmount,
-                                            validatedDestinationAddress,
-                                            passphrase)
+                                            validatedDestinationAddress)
                     ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
                     ()

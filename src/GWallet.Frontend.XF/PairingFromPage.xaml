@@ -6,7 +6,7 @@
                  Padding="10,10,10,10"
                  VerticalOptions="Center">
         <Button x:Name="copyToClipboardButton"
-                Text="Copy addresses to clipboard"
+                Text="..."
                 IsEnabled="true"
                 HorizontalOptions="Center"
                 Clicked="OnCopyToClipboardClicked"/>

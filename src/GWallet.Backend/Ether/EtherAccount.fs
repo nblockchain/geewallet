@@ -305,8 +305,7 @@ module internal Account =
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
                                 (txMetadata: TransactionMetadata)
-                                (filePath: string)
-                                =
+                                    : string =
 
         let unsignedTransaction =
             {
@@ -314,6 +313,5 @@ module internal Account =
                 Cache = Caching.Instance.GetLastCachedData();
                 Metadata = txMetadata;
             }
-        let json = ExportUnsignedTransactionToJson unsignedTransaction
-        File.WriteAllText(filePath, json)
+        ExportUnsignedTransactionToJson unsignedTransaction
 
