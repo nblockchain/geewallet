@@ -9,7 +9,7 @@ type ElectrumClient (electrumServer: ElectrumServer) =
     let Init(): StratumClient =
         electrumServer.CheckCompatibility()
 
-        let jsonRpcClient = new JsonRpcSharp.Client(electrumServer.Fqdn, electrumServer.UnencryptedPort.Value)
+        let jsonRpcClient = new JsonRpcTcpClient(electrumServer.Fqdn, electrumServer.UnencryptedPort.Value)
         let stratumClient = new StratumClient(jsonRpcClient)
 
         // this is the last version of Electrum released at the time of writing this module
