@@ -63,7 +63,8 @@ module FrontendHelpers =
                 Some amount
         let balanceAmountStr,fiatAmount,fiatAmountStr =
             match maybeBalanceAmount with
-            | None -> "?", NotFresh(NotAvailable), "?"
+            | None ->
+                sprintf "? %A" currency, NotFresh(NotAvailable), sprintf "? %s" defaultFiatCurrency
             | Some balanceAmount ->
                 let cryptoAmount = Formatting.DecimalAmount CurrencyType.Crypto balanceAmount
                 let cryptoAmountStr = sprintf "%s %A" cryptoAmount currency
