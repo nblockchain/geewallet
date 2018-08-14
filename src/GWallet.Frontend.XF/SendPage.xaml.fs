@@ -11,32 +11,30 @@ open ZXing.Net.Mobile.Forms
 open GWallet.Backend
 
 type TransactionInfo =
-    { Account: NormalAccount;
-      Metadata: IBlockchainFeeInfo;
+    { Metadata: IBlockchainFeeInfo;
       Destination: string; 
       Amount: TransferAmount; 
       Passphrase: string; }
 
-type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: unit->Page) =
+type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Page) =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<SendPage>)
 
-    let baseAccount = account:>IAccount
     let GetBalance() =
         // FIXME: should make sure to get the unconfirmed balance
-        let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance baseAccount.PublicAddress baseAccount.Currency
+        let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
         match cachedBalance with
         | NotAvailable -> failwith "Assertion failed: send page should not be accessed if last balance saved on cache was not > 0"
         | Cached(theCachedBalance,_) -> theCachedBalance
 
     let lastCachedBalance: decimal = GetBalance()
-    let usdRate = FiatValueEstimation.UsdValue baseAccount.Currency
+    let usdRate = FiatValueEstimation.UsdValue account.Currency
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let scanQrCodeButton = mainLayout.FindByName<Button>("scanQrCode")
     let currencySelectorPicker = mainLayout.FindByName<Picker>("currencySelector")
     do
-        let accountCurrency = baseAccount.Currency.ToString()
+        let accountCurrency = account.Currency.ToString()
         currencySelectorPicker.Items.Add "USD"
         currencySelectorPicker.Items.Add accountCurrency
         currencySelectorPicker.SelectedItem <- accountCurrency
@@ -68,7 +66,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                 let task = this.Navigation.PopModalAsync()
                 task.ContinueWith(fun (t: Task<Page>) ->
                     let address,maybeAmount =
-                        match baseAccount.Currency with
+                        match account.Currency with
                         | Currency.BTC -> UtxoCoin.Account.ParseAddressOrUrl result.Text
                         | _ -> result.Text,None
 
@@ -83,10 +81,10 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                         Device.BeginInvokeOnMainThread(fun _ ->
                             let cryptoCurrencyInPicker =
                                 currencySelectorPicker.Items.FirstOrDefault(
-                                    fun item -> item.ToString() = baseAccount.Currency.ToString()
+                                    fun item -> item.ToString() = account.Currency.ToString()
                                 )
                             if (cryptoCurrencyInPicker = null) then
-                                failwithf "Could not find currency %A in picker?" baseAccount.Currency
+                                failwithf "Could not find currency %A in picker?" account.Currency
                             currencySelectorPicker.SelectedItem <- cryptoCurrencyInPicker
                             let aPreviousAmountWasSet = not (String.IsNullOrWhiteSpace amountLabel.Text)
                             amountLabel.Text <- amount.ToString()
@@ -137,10 +135,10 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                         Formatting.DecimalAmount CurrencyType.Crypto (decimalAmountTyped / rate)
                 currentAmountTypedEntry.Text <- convertedAmount
 
-    member private this.SendTransaction (transactionInfo: TransactionInfo) =
+    member private this.SendTransaction (account: NormalAccount) (transactionInfo: TransactionInfo) =
         let maybeTxId =
             try
-                Account.SendPayment transactionInfo.Account
+                Account.SendPayment account
                                     transactionInfo.Metadata
                                     transactionInfo.Destination
                                     transactionInfo.Amount
@@ -284,7 +282,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                                     match currencySelectorPicker.SelectedItem.ToString() with
                                     | "USD" ->
                                         Formatting.DecimalAmount CurrencyType.Crypto (amount / rate),
-                                            baseAccount.Currency.ToString()
+                                            account.Currency.ToString()
                                     | _ ->
                                         Formatting.DecimalAmount CurrencyType.Fiat (rate * amount),
                                             "USD"
@@ -306,9 +304,16 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
         cancelButton.IsEnabled <- false
         sendButton.Text <- "Sending..."
 
-    member private this.AnswerToFee (txInfo: TransactionInfo) (answer: Task<bool>):unit =
+    member private this.AnswerToFee (account: IAccount) (txInfo: TransactionInfo) (answer: Task<bool>):unit =
         if (answer.Result) then
-            Task.Run(fun _ -> this.SendTransaction txInfo) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            match account with
+            | :? NormalAccount as normalAccount ->
+                Task.Run(fun _ -> this.SendTransaction normalAccount txInfo)
+                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            | :? ReadOnlyAccount as readOnlyAccount ->
+                failwith "TODO: should push new PairingFromPage with the QR code of the proposal"
+            | _ ->
+                failwith "Unexpected SendPage instance running on weird account type"
         else
             this.ReenableButtons()
 
@@ -348,13 +353,12 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                 Device.BeginInvokeOnMainThread(fun _ ->
                     let askFeeTask = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")
 
-                    let txInfo = { Account = account;
-                                   Metadata = txMetadataWithFeeEstimation;
+                    let txInfo = { Metadata = txMetadataWithFeeEstimation;
                                    Amount = transferAmount;
                                    Destination = destinationAddress;
                                    Passphrase = passphrase; }
 
-                    askFeeTask.ContinueWith(this.AnswerToFee txInfo) |> FrontendHelpers.DoubleCheckCompletion
+                    askFeeTask.ContinueWith(this.AnswerToFee account txInfo) |> FrontendHelpers.DoubleCheckCompletion
                 )
 
 
@@ -386,7 +390,7 @@ type SendPage(account: NormalAccount, receivePage: Page, newReceivePageFunc: uni
                             failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
                     | _ -> amount
 
-                let currency = baseAccount.Currency
+                let currency = account.Currency
                 if (lastCachedBalance <= 0.0m) then
                     failwith "Somehow the UI didn't avoid the user access the Send UI when balance is not positive?"
                 let transferAmount = TransferAmount(amountInAccountCurrency, lastCachedBalance, currency)

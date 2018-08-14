@@ -13,12 +13,10 @@ open ZXing.Common
 
 open GWallet.Backend
 
-type ReceivePage(account: NormalAccount,
+type ReceivePage(account: IAccount,
                  balancesPage: Page) as this =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
-
-    let baseAccount = account :> IAccount
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     do
@@ -29,8 +27,8 @@ type ReceivePage(account: NormalAccount,
         let fiatBalanceLabel = mainLayout.FindByName<Label>("fiatBalanceLabel")
 
         let accountBalance =
-            Caching.Instance.RetreiveLastCompoundBalance baseAccount.PublicAddress baseAccount.Currency
-        FrontendHelpers.UpdateBalance (NotFresh accountBalance) baseAccount.Currency balanceLabel fiatBalanceLabel
+            Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+        FrontendHelpers.UpdateBalance (NotFresh accountBalance) account.Currency balanceLabel fiatBalanceLabel
             |> ignore
 
         balanceLabel.FontSize <- FrontendHelpers.BigFontSize
@@ -48,7 +46,7 @@ type ReceivePage(account: NormalAccount,
         let barCode = ZXingBarcodeImageView(HorizontalOptions = LayoutOptions.Center,
                                             VerticalOptions = LayoutOptions.Center,
                                             BarcodeFormat = BarcodeFormat.QR_CODE,
-                                            BarcodeValue = baseAccount.PublicAddress,
+                                            BarcodeValue = account.PublicAddress,
                                             HeightRequest = float size,
                                             WidthRequest = float size,
                                             BarcodeOptions = encodingOptions)
@@ -56,7 +54,7 @@ type ReceivePage(account: NormalAccount,
 
         let transactionHistoryButton = Button(Text = "View transaction history...")
         transactionHistoryButton.Clicked.Subscribe(fun _ ->
-            Device.OpenUri (BlockExplorer.GetTransactionHistory baseAccount)
+            Device.OpenUri (BlockExplorer.GetTransactionHistory account)
         ) |> ignore
         mainLayout.Children.Add(transactionHistoryButton)
 
@@ -88,5 +86,5 @@ type ReceivePage(account: NormalAccount,
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
         FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
 
-        CrossClipboard.Current.SetText baseAccount.PublicAddress
+        CrossClipboard.Current.SetText account.PublicAddress
         ()

@@ -57,6 +57,11 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             Some "Mix lowercase and uppercase characters in your seed phrase please"
         elif (containsASpaceAtLeast && (not containsADigitAtLeast) && (not containsPunctuation)) then
             Some "For security reasons, please include numbers or punctuation in your passphrase (to increase entropy)"
+
+        // TODO: in case of cold storage mode (detection of offline network), we should be even more strict and maybe
+        // avoid passphrases that only contain words that belong to dictionaries (via using API being introduced in this
+        // pull request: https://github.com/MetacoSA/NBitcoin/pull/498 )
+
         else
             None
 

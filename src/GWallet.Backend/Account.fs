@@ -158,6 +158,21 @@ module Account =
         else
             failwith (sprintf "Unknown currency %A" currency)
 
+    let ValidateUnknownCurrencyAddress (address: string): List<Currency> =
+        if address.StartsWith "0x" then
+            let someEtherCurrency = Currency.ETC
+            Ether.Account.ValidateAddress someEtherCurrency address
+            let allEtherCurrencies = [ Currency.ETC; Currency.ETH; Currency.DAI ]
+            allEtherCurrencies
+        elif (address.StartsWith "L" || address.StartsWith "M") then
+            let ltc = Currency.LTC
+            UtxoCoin.Account.ValidateAddress ltc address
+            [ ltc ]
+        else
+            let btc = Currency.BTC
+            UtxoCoin.Account.ValidateAddress btc address
+            [ btc ]
+
     let EstimateFee account (amount: TransferAmount) destination: Async<IBlockchainFeeInfo> =
         let currency = (account:>IAccount).Currency
         async {
