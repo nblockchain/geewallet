@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
@@ -29,6 +29,9 @@
     </Compile>
     <Compile Include="..\GWallet.Backend\JsonRpcSharp.fs">
       <Link>JsonRpcSharp.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\JsonRpcTcpClient.fs">
+      <Link>JsonRpcTcpClient.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\IBlockchainFeeInfo.fs">
       <Link>IBlockchainFeeInfo.fs</Link>
