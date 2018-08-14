@@ -59,6 +59,7 @@ This list is the (intended) order of preference for new features:
 - Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/).
 - Refactor bitcoin support to use NBitcoin's TransactionBuilder.
 - Investigate better F#+MSBuild integration (less verbose way to import Microsoft.Fsharp.Targets file in every project).
+- Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ ).
 
 ## Anti-roadmap
 
