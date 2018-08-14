@@ -38,6 +38,9 @@ module Server =
     type ServerUnreachableException(message:string, innerException: Exception) =
         inherit ConnectionUnsuccessfulException (message, innerException)
 
+    type ServerUnavailableException(message:string, innerException: Exception) =
+       inherit ConnectionUnsuccessfulException (message, innerException)
+
     type ServerChannelNegotiationException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
@@ -129,6 +132,8 @@ module Server =
                             raise (ServerChannelNegotiationException(exMsg, httpReqEx))
                         if (httpReqEx.Message.StartsWith(sprintf "%d " (int HttpStatusCode.BadGateway))) then
                             raise (ServerUnreachableException(exMsg, httpReqEx))
+                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int HttpStatusCode.ServiceUnavailable))) then
+                            raise (ServerUnavailableException(exMsg, httpReqEx))
 
                         // TODO: maybe in this case below, blacklist the server somehow if it keeps giving this error:
                         if httpReqEx.Message.StartsWith(sprintf "%d " (int HttpStatusCode.Forbidden)) then
