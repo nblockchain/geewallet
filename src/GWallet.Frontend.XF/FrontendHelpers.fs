@@ -18,7 +18,9 @@ module FrontendHelpers =
 
     let internal MagicGtkNumber = 20.
 
-    let internal ExchangeRateUnreachableMsg = " (~ ? USD)"
+    let private defaultFiatCurrency = "USD"
+
+    let internal ExchangeRateUnreachableMsg = sprintf " (~ ? %s)" defaultFiatCurrency
 
     //FIXME: right now the UI doesn't explain what the below element means when it shows it, we should add a legend...
     let internal ExchangeOutdatedVisualElement = "*"
@@ -40,12 +42,14 @@ module FrontendHelpers =
             NotFresh(NotAvailable),ExchangeRateUnreachableMsg
         | Fresh(usdValue) ->
             let fiatBalance = usdValue * balance
-            Fresh(fiatBalance),sprintf "~ %s USD"
+            Fresh(fiatBalance),sprintf "~ %s %s"
                                    (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
+                                   defaultFiatCurrency
         | NotFresh(Cached(usdValue,time)) ->
             let fiatBalance = usdValue * balance
-            NotFresh(Cached(fiatBalance,time)),sprintf "~ %s USD%s"
+            NotFresh(Cached(fiatBalance,time)),sprintf "~ %s %s%s"
                                                     (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
+                                                    defaultFiatCurrency
                                                     (MaybeReturnOutdatedMarkForOldDate time)
 
     let UpdateBalance balance currency (balanceLabel: Label) (fiatBalanceLabel: Label): MaybeCached<decimal> =
