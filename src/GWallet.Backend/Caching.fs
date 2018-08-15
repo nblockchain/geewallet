@@ -16,6 +16,7 @@ type CachedNetworkData =
         Balances: Map<Currency,Map<PublicAddress,CachedValue<decimal>>>;
         OutgoingTransactions: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>;
     }
+    static member Empty = { UsdPrice = Map.empty; Balances = Map.empty; OutgoingTransactions = Map.empty; }
 
 module Caching =
 
@@ -187,6 +188,11 @@ module Caching =
             match list with
             | [] -> map
             | (key,value)::tail -> RemoveRangeFromMap (map.Remove key) tail
+
+#if DEBUG
+        member this.ClearAll () =
+            SaveToDisk CachedNetworkData.Empty
+#endif
 
         member self.SaveSnapshot(newCachedData: CachedNetworkData) =
             lock lockObject (fun _ ->
