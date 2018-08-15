@@ -56,16 +56,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             )
         | _ -> ()
 
-    member private this.ReenableButtons() =
-        let mainLayout = base.FindByName<StackLayout>("mainLayout")
-        Device.BeginInvokeOnMainThread(fun _ ->
-            let sendButton = mainLayout.FindByName<Button>("sendButton")
-            sendButton.IsEnabled <- true
-            let cancelButton = mainLayout.FindByName<Button>("cancelButton")
-            cancelButton.IsEnabled <- true
-            sendButton.Text <- "Send"
-        )
-
     member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         let scanPage = ZXingScannerPage()
@@ -159,7 +149,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let errMsg = "Transaction's origin cannot be the same as the destination."
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ReenableButtons()
+                        this.ToggleInputWidgetsEnabledOrDisabled true
                     ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
                 None
@@ -167,7 +157,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let errMsg = "Insufficient funds."
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ReenableButtons()
+                        this.ToggleInputWidgetsEnabledOrDisabled true
                     ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
                 None
@@ -175,7 +165,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let errMsg = "Invalid password, try again."
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ReenableButtons()
+                        this.ToggleInputWidgetsEnabledOrDisabled true
                     ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
                 None
@@ -317,13 +307,33 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             receivePage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
         )
 
-    member private this.DisableButtons() =
-        let mainLayout = base.FindByName<StackLayout>("mainLayout")
-        let sendButton = mainLayout.FindByName<Button>("sendButton")
-        sendButton.IsEnabled <- false
-        let cancelButton = mainLayout.FindByName<Button>("cancelButton")
-        cancelButton.IsEnabled <- false
-        sendButton.Text <- "Sending..."
+    member private this.ToggleInputWidgetsEnabledOrDisabled (enabled: bool) =
+        let sendButton = mainLayout.FindByName<Button> "sendButton"
+        let cancelButton = mainLayout.FindByName<Button> "cancelButton"
+        let scanQrCodeButton = mainLayout.FindByName<Button> "scanQrCode"
+        let destinationAddressEntry = mainLayout.FindByName<Entry> "destinationAddress"
+        let allBalanceButton = mainLayout.FindByName<Button> "allBalance"
+        let currencySelectorPicker = mainLayout.FindByName<Picker> "currencySelector"
+        let amountToSendEntry = mainLayout.FindByName<Entry> "amountToSend"
+        let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
+
+        let newSendButtonCaption =
+            if enabled then
+                "Send"
+            else
+                "Sending..."
+
+        Device.BeginInvokeOnMainThread(fun _ ->
+            sendButton.IsEnabled <- enabled
+            cancelButton.IsEnabled <- enabled
+            scanQrCodeButton.IsEnabled <- enabled
+            destinationAddressEntry.IsEnabled <- enabled
+            allBalanceButton.IsEnabled <- enabled
+            currencySelectorPicker.IsEnabled <- enabled
+            amountToSendEntry.IsEnabled <- enabled
+            passwordEntry.IsEnabled <- enabled
+            sendButton.Text <- newSendButtonCaption
+        )
 
     member private this.AnswerToFee (account: IAccount) (txInfo: TransactionInfo) (answer: Task<bool>):unit =
         if (answer.Result) then
@@ -367,7 +377,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             | _ ->
                 failwith "Unexpected SendPage instance running on weird account type"
         else
-            this.ReenableButtons()
+            this.ToggleInputWidgetsEnabledOrDisabled true
 
     member private this.ShowFeeAndSend (maybeTxMetadataWithFeeEstimation: Option<IBlockchainFeeInfo>,
                                         transferAmount: TransferAmount,
@@ -387,7 +397,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                           // TODO: support cold storage mode here
                                           "Internet connection not available at the moment, try again later",
                                           "OK")
-                    alertInternetConnTask.ContinueWith(fun _ -> this.ReenableButtons())
+                    alertInternetConnTask.ContinueWith(fun _ -> this.ToggleInputWidgetsEnabledOrDisabled true)
                         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
             | Fresh someUsdValue ->
@@ -443,13 +453,11 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     failwith "Somehow the UI didn't avoid the user access the Send UI when balance is not positive?"
                 let transferAmount = TransferAmount(amountInAccountCurrency, lastCachedBalance, currency)
 
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    this.DisableButtons()
-                )
+                this.ToggleInputWidgetsEnabledOrDisabled false
 
                 let maybeValidatedAddress = this.ValidateAddress currency destinationAddress
                 match maybeValidatedAddress with
-                | None -> this.ReenableButtons()
+                | None -> this.ToggleInputWidgetsEnabledOrDisabled true
                 | Some validatedDestinationAddress ->
 
                     let maybeTxMetadataWithFeeEstimationAsync = async {
@@ -465,7 +473,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                                       // TODO: support cold storage mode here
                                                       "Remaining balance would be too low for the estimated fee, try sending lower amount",
                                                       "OK")
-                                alertLowBalanceForFeeTask.ContinueWith(fun _ -> this.ReenableButtons())
+                                alertLowBalanceForFeeTask.ContinueWith(
+                                    fun _ -> this.ToggleInputWidgetsEnabledOrDisabled true
+                                )
                                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                             )
                             return None

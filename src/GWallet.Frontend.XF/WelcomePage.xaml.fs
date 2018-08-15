@@ -65,6 +65,32 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         else
             None
 
+    let ToggleInputWidgetsEnabledOrDisabled (enabled: bool) =
+        let entry1 = mainLayout.FindByName<Entry> "passphraseEntry"
+        let entry2 = mainLayout.FindByName<Entry> "passphraseEntryConfirmation"
+        let entry3 = mainLayout.FindByName<Entry> "dobEntry"
+        let entry4 = mainLayout.FindByName<Entry> "emailEntry"
+        let entry5 = mainLayout.FindByName<Entry> "passwordEntry"
+        let entry6 = mainLayout.FindByName<Entry> "passwordEntryConfirmation"
+        let createButton = mainLayout.FindByName<Button>("createButton")
+
+        let newCreateButtonCaption =
+            if enabled then
+                "Create my accounts"
+            else
+                "Creating..."
+
+        Device.BeginInvokeOnMainThread(fun _ ->
+            entry1.IsEnabled <- enabled
+            entry2.IsEnabled <- enabled
+            entry3.IsEnabled <- enabled
+            entry4.IsEnabled <- enabled
+            entry5.IsEnabled <- enabled
+            entry6.IsEnabled <- enabled
+            createButton.IsEnabled <- enabled
+            createButton.Text <- newCreateButtonCaption
+        )
+
     member this.OnCreateButtonClicked(sender: Object, args: EventArgs) =
         match VerifyPassphraseIsGoodAndSecureEnough() with
         | Some warning ->
@@ -82,9 +108,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
                 | true,dateTime ->
 
-                    let createButton = mainLayout.FindByName<Button>("createButton")
-                    createButton.IsEnabled <- false
-                    createButton.Text <- "Creating..."
+                    ToggleInputWidgetsEnabledOrDisabled false
 
                     async {
                         let! accounts = Account.CreateBaseAccount passphrase.Text dateTime (email.Text.ToLower()) password.Text
