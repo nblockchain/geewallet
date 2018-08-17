@@ -26,7 +26,7 @@ type PairingFromPage(previousPage: Page, clipBoardButtonCaption: string, qrCodeC
         let clipBoardButton = mainLayout.FindByName<Button> "copyToClipboardButton"
         clipBoardButton.Text <- clipBoardButtonCaption
 
-        let size = 200
+        let size = 500
         let encodingOptions = EncodingOptions(Height = size,
                                               Width = size)
         let barCode = ZXingBarcodeImageView(HorizontalOptions = LayoutOptions.Center,
