@@ -83,7 +83,10 @@ module MarshallingData =
 
     let private someBtcTransactionDraft =
         {
-            Inputs = [ { RawTransaction = "xyzt..."; OutputIndex = 1 } ];
+            Inputs = [ { TransactionHash = "xyzt...";
+                         OutputIndex = 1;
+                         ValueInSatoshis = int64 1000;
+                         DestinationInHex = "0123456789ABCD" } ];
             Outputs = [ { ValueInSatoshis = int64 10000; DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5" } ];
         }
     let private someBtcMinerFee = UtxoCoin.MinerFee(10, 0.1m, SomeDate, Currency.BTC)
@@ -113,7 +116,8 @@ module MarshallingData =
         "\"EstimationTime\":" + JsonConvert.SerializeObject (SomeDate) + ","+
         "\"Currency\":{\"Case\":\"BTC\"}}," +
         "\"TransactionDraft\":{\"Inputs\":" +
-        "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
+        "[{\"TransactionHash\":\"xyzt...\",\"OutputIndex\":1,\"ValueInSatoshis\":1000" +
+        ",\"DestinationInHex\":\"0123456789ABCD\"}]," +
         "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}}"
 
@@ -138,7 +142,8 @@ module MarshallingData =
         "\"Currency\":{\"Case\":\"BTC\"}}," +
 
         "\"TransactionDraft\":{\"Inputs\":" +
-        "[{\"RawTransaction\":\"xyzt...\",\"OutputIndex\":1}]," +
+        "[{\"TransactionHash\":\"xyzt...\",\"OutputIndex\":1,\"ValueInSatoshis\":1000," +
+        "\"DestinationInHex\":\"0123456789ABCD\"}]," +
         "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
         "\"Cache\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}," +
         "\"RawTransaction\":\"ropkrpork4p4rkpo4kprok4rp\"}}"

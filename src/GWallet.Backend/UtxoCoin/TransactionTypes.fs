@@ -10,15 +10,17 @@ type OutputInfo =
         DestinationAddress: string;
     }
 
-type RawTransactionOutpoint =
+type TransactionOutpointInfo =
     {
-        RawTransaction: string;
+        TransactionHash: string;
         OutputIndex: int;
+        ValueInSatoshis: int64;
+        DestinationInHex: string;
     }
 
 type TransactionDraft =
     {
-        Inputs: list<RawTransactionOutpoint>;
+        Inputs: list<TransactionOutpointInfo>;
         Outputs: list<OutputInfo>;
     }
 

@@ -113,15 +113,24 @@ module internal Account =
         let coins =
             seq {
                 for input in transactionDraft.Inputs do
-                    let inputTx = Transaction(input.RawTransaction)
-                    let inputAdded = transaction.AddInput(inputTx, input.OutputIndex)
+                    let nbitcoinInput = TxIn()
+                    let txHash = uint256(input.TransactionHash)
+                    nbitcoinInput.PrevOut.Hash <- txHash
+                    nbitcoinInput.PrevOut.N <- uint32 input.OutputIndex
+                    let inputAdded = transaction.AddInput nbitcoinInput
 
                     // mark RBF=enabled by default
                     inputAdded.Sequence <- Sequence(0)
                     if not inputAdded.Sequence.IsRBF then
                         failwith "input should have been marked as RBF by default"
 
-                    yield Coin(inputTx, uint32 input.OutputIndex)
+                    let scriptPubKeyInBytes = NBitcoin.DataEncoders.Encoders.Hex.DecodeData input.DestinationInHex
+                    let scriptPubKey = Script(scriptPubKeyInBytes)
+
+                    yield Coin(txHash,
+                               nbitcoinInput.PrevOut.N,
+                               Money(input.ValueInSatoshis),
+                               scriptPubKey)
             } |> List.ofSeq
 
         for output in transactionDraft.Outputs do
@@ -242,7 +251,18 @@ module internal Account =
                                 (FaultTolerantParallelClientSettings())
                                 utxo.TransactionId
                                 (GetRandomizedFuncs baseAccount.Currency electrumGetTx)
-                        return { RawTransaction = transRaw; OutputIndex = utxo.OutputIndex }
+                        let transaction = Transaction(transRaw)
+                        let txOut = transaction.Outputs.[utxo.OutputIndex]
+                        // should suggest a ToHex() method to NBitcoin's TxOut type?
+                        let valueInSatoshis = txOut.Value
+                        let destination = txOut.ScriptPubKey.ToHex()
+                        let ret = {
+                            TransactionHash = transaction.GetHash().ToString();
+                            OutputIndex = utxo.OutputIndex;
+                            ValueInSatoshis = txOut.Value.Satoshi;
+                            DestinationInHex = destination;
+                        }
+                        return ret
                     }
             }
         let! inputs = Async.Parallel asyncInputs
