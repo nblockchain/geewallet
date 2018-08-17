@@ -49,7 +49,7 @@ This list is the (intended) order of preference for new features:
 - MimbleWimble support?
 - Threshold signatures.
 - ETH gas station (to pay for token transactions with token value instead of ETH).
-- Decentralized naming resolution? (BlockStack vs ENS?)
+- Decentralized naming resolution? (BNS/ENS/OpenCAP/...)
 - Decentralized currency exchange? or crosschain atomic swaps?
 - Tumblebit support?
 
