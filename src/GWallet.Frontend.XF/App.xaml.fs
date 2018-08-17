@@ -63,5 +63,5 @@ type App() =
 
         match maybeBalancesPage with
         | Some balancesPage ->
-            balancesPage.StartBalanceRefreshCycle true
+            balancesPage.StartBalanceRefreshCycle CycleStart.ImmediateForAll
         | None -> ()

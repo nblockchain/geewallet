@@ -9,6 +9,11 @@ open Plugin.Connectivity
 
 open GWallet.Backend
 
+type CycleStart =
+    | ImmediateForAll
+    | ImmediateForReadOnlyAccounts
+    | Delayed
+
 type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                   normalAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>>,
                   readOnlyAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>>,
@@ -143,11 +148,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) totalFiatAmountLabel =
         UpdateGlobalFiatBalance (Fresh(0.0m)) (allFiatBalances |> List.ofSeq) totalFiatAmountLabel
 
-    member private this.RefreshBalancesAndCheckIfAwake(): bool =
+    member private this.RefreshBalancesAndCheckIfAwake (onlyReadOnlyAccounts: bool): bool =
         let awake = state.Awake
         if (awake) then
             async {
-                if (state.Awake) then
+                if (state.Awake && (not onlyReadOnlyAccounts)) then
                     let! resolvedNormalBalances = normalBalancesJob
                     let normalFiatBalances = resolvedNormalBalances.Select(fun (_,_,_,f) -> f)
                     Device.BeginInvokeOnMainThread(fun _ ->
@@ -168,15 +173,16 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         if not (this.IsTimerRunning) then
             Device.StartTimer(timeToRefreshBalances, fun _ ->
                 this.IsTimerRunning <- true
-                let awake = this.RefreshBalancesAndCheckIfAwake()
+                let awake = this.RefreshBalancesAndCheckIfAwake false
                 this.IsTimerRunning <- awake
 
                 // to keep or stop timer recurring
                 awake
             )
 
-    member this.StartBalanceRefreshCycle (runImmediatelyToo: bool) =
-        if ((runImmediatelyToo && this.RefreshBalancesAndCheckIfAwake()) || (not runImmediatelyToo)) then
+    member this.StartBalanceRefreshCycle (cycleStart: CycleStart) =
+        let onlyReadOnlyAccounts = (cycleStart = CycleStart.ImmediateForReadOnlyAccounts)
+        if ((cycleStart <> CycleStart.Delayed && this.RefreshBalancesAndCheckIfAwake onlyReadOnlyAccounts) || true) then
             this.StartTimer()
 
     member private this.ConfigureFiatAmountFrame (normalAccountsBalances: seq<IAccount*Label*Label*_>)
@@ -282,4 +288,4 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             this.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances totalFiatAmountLabel
             this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances totalReadOnlyFiatAmountLabel
         )
-        this.StartBalanceRefreshCycle false
+        this.StartBalanceRefreshCycle CycleStart.ImmediateForReadOnlyAccounts
