@@ -45,32 +45,31 @@ module MarshallingData =
         }
 
     let EmptyCachingDataExample =
-        { UsdPrice = Map.empty; Balances = Map.empty; OutgoingTransactions = Map.empty; }
+        { UsdPrice = Map.empty; Addresses = Map.empty; Balances = Map.empty; }
 
     let EmptyCachingDataExampleInJson =
         sprintf "{\"Version\":\"%s\",\"TypeName\":\"%s\","
                 version (EmptyCachingDataExample.GetType().FullName) +
-                "\"Value\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}"
+                "\"Value\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}"
 
-    let private balances = Map.empty.Add(Currency.BTC, Map.empty.Add("1fooBarBaz", (0m, SomeDate)))
-                                    .Add(Currency.ETC, Map.empty.Add("0xFOOBARBAZ", (123456789.12345678m, SomeDate)))
-    let private fiatValues = Map.empty.Add(Currency.ETH, (161.796m, SomeDate))
-                              .Add(Currency.ETC, (169.99999999m, SomeDate))
-    let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Balances = balances; OutgoingTransactions = Map.empty; }
+    let private balances = Map.empty.Add(Currency.BTC.ToString(), 0m)
+                                    .Add(Currency.ETC.ToString(), 123456789.12345678m)
+    let private addresses = Map.empty.Add("1fooBarBaz", [Currency.BTC.ToString()])
+                                     .Add("0xFOOBARBAZ", [Currency.ETC.ToString()])
+    let private fiatValues = Map.empty.Add(Currency.ETH.ToString(), 161.796m)
+                                      .Add(Currency.ETC.ToString(), 169.99999999m)
+    let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Addresses = addresses; Balances = balances; }
 
     let private innerCachingDataForSofisticatedUseCase =
-        "{\"UsdPrice\":{\"ETH\":{\"Item1\":161.796,\"Item2\":" +
-        JsonConvert.SerializeObject (SomeDate) +
-        "},\"ETC\":{\"Item1\":169.99999999,\"Item2\":" +
-        JsonConvert.SerializeObject (SomeDate) +
-        "}},\"Balances\":{\"BTC\":{\"1fooBarBaz\":{\"Item1\":0.0,\"Item2\":" +
-        JsonConvert.SerializeObject (SomeDate) + "}}," +
-        "\"ETC\":{\"0xFOOBARBAZ\":{\"Item1\":123456789.12345678,\"Item2\":" +
-        JsonConvert.SerializeObject (SomeDate) + "}}},\"OutgoingTransactions\":{}}"
+        "{\"UsdPrice\":{\"ETC\":169.99999999" +
+        ",\"ETH\":161.796" +
+        "},\"Addresses\":{\"0xFOOBARBAZ\":[\"ETC\"],\"1fooBarBaz\":[\"BTC\"]}," +
+        "\"Balances\":{\"BTC\":0.0," +
+        "\"ETC\":123456789.12345678}}"
 
     let SofisticatedCachingDataExampleInJson =
         (sprintf "{\"Version\":\"%s\",\"TypeName\":\"%s\","
-                 version (typedefof<CachedNetworkData>.FullName)) +
+                 version (typedefof<DietCache>.FullName)) +
                  "\"Value\":" + innerCachingDataForSofisticatedUseCase +
                  "}"
 
@@ -119,7 +118,7 @@ module MarshallingData =
         "[{\"TransactionHash\":\"xyzt...\",\"OutputIndex\":1,\"ValueInSatoshis\":1000" +
         ",\"DestinationInHex\":\"0123456789ABCD\"}]," +
         "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}}"
+        "\"Cache\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}}"
 
     let SignedBtcTransactionExample =
         {
@@ -145,7 +144,7 @@ module MarshallingData =
         "[{\"TransactionHash\":\"xyzt...\",\"OutputIndex\":1,\"ValueInSatoshis\":1000," +
         "\"DestinationInHex\":\"0123456789ABCD\"}]," +
         "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}," +
+        "\"Cache\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}," +
         "\"RawTransaction\":\"ropkrpork4p4rkpo4kprok4rp\"}}"
 
     let private someEtherTxMetadata =
@@ -161,20 +160,29 @@ module MarshallingData =
         }
 
     let private realUsdPriceDataSample =
-        [ (Currency.BTC, (9156.19m, DateTime.Parse "2018-03-14T16:45:22.330571"));
-          (Currency.LTC, (173.592m, DateTime.Parse "2018-03-14T16:45:22.344345"));
-          (Currency.ETH, (691.52m, DateTime.Parse "2018-03-14T16:50:09.717081"));
-          (Currency.ETC, (19.8644m, DateTime.Parse "2018-03-14T16:45:22.383916"));
-          (Currency.DAI, (1.00376m, DateTime.Parse "2018-03-14T16:45:22.415116")); ]
+        [ (Currency.BTC.ToString(), 9156.19m);
+          (Currency.LTC.ToString(), 173.592m);
+          (Currency.ETH.ToString(), 691.52m);
+          (Currency.ETC.ToString(), 19.8644m);
+          (Currency.DAI.ToString(), 1.00376m); ]
             |> Map.ofSeq
 
+    let private realAddressesSample =
+        Map.empty.Add("3Buz1evVsQeHtDfQAmwfAKQsUzAt3f4TuR",[Currency.BTC.ToString()])
+                 .Add("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E",[Currency.ETH.ToString();
+                                                                    Currency.DAI.ToString();
+                                                                    Currency.ETC.ToString()])
+                 .Add("MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm",[Currency.LTC.ToString()])
+
     let private realBalancesDataSample =
-        Map.empty.Add(Currency.BTC, Map.empty.Add("3Buz1evVsQeHtDfQAmwfAKQsUzAt3f4TuR", (0.0m, DateTime.Parse "2018-03-14T16:45:07.971836")))
-                 .Add(Currency.ETH, Map.empty.Add("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E", (7.08m, DateTime.Parse "2018-03-14T16:50:00.431234")))
-                 .Add(Currency.LTC, Map.empty.Add("MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm", (0.0m, DateTime.Parse "2018-03-14T16:45:15.544517")))
+        Map.empty.Add(Currency.BTC.ToString(), 0.0m)
+                 .Add(Currency.ETH.ToString(), 7.08m)
+                 .Add(Currency.ETC.ToString(), 8.0m)
+                 .Add(Currency.DAI.ToString(), 1.0m)
+                 .Add(Currency.LTC.ToString(), 0.0m)
 
     let private realCachingDataExample =
-        { UsdPrice = realUsdPriceDataSample; Balances = realBalancesDataSample; OutgoingTransactions = Map.empty; }
+        { UsdPrice = realUsdPriceDataSample; Addresses = realAddressesSample; Balances = realBalancesDataSample; }
 
     let private someEtherMinerFeeForDaiTransfer = Ether.MinerFee(37298L,
                                                                  3343750000L,
@@ -255,4 +263,4 @@ module MarshallingData =
         "\"EstimationTime\":" +
         JsonConvert.SerializeObject(SomeDate) + "}," +
         "\"TransactionCount\":69}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Balances\":{},\"OutgoingTransactions\":{}}}}"
+        "\"Cache\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}}"

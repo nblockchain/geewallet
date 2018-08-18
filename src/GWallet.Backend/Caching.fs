@@ -2,13 +2,23 @@
 
 open System
 open System.IO
+open System.Linq
 
 type CachedValue<'T> = ('T*DateTime)
 type NotFresh<'T> =
     NotAvailable | Cached of CachedValue<'T>
 type MaybeCached<'T> =
     NotFresh of NotFresh<'T> | Fresh of 'T
+
 type PublicAddress = string
+type private DietCurrency = string
+
+type DietCache =
+    {
+        UsdPrice: Map<DietCurrency,decimal>;
+        Addresses: Map<PublicAddress,List<DietCurrency>>;
+        Balances: Map<DietCurrency,decimal>;
+    }
 
 type CachedNetworkData =
     {
@@ -16,6 +26,47 @@ type CachedNetworkData =
         Balances: Map<Currency,Map<PublicAddress,CachedValue<decimal>>>;
         OutgoingTransactions: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>;
     }
+    static member FromDietCache (dietCache: DietCache): CachedNetworkData =
+        let now = DateTime.Now
+        let fiatPrices =
+            [ for KeyValue(currencyString, price) in dietCache.UsdPrice -> (Currency.Parse currencyString,(price,now)) ]
+                |> Map.ofSeq
+        let balances =
+            seq {
+                for KeyValue(address,currencies) in dietCache.Addresses do
+                    for currencyStr in currencies do
+                        match dietCache.Balances.TryFind currencyStr with
+                        | None -> ()
+                        | Some balance ->
+                            yield (Currency.Parse currencyStr),Map.empty.Add(address,(balance,now))
+            } |> Map.ofSeq
+        { UsdPrice = fiatPrices; Balances = balances; OutgoingTransactions = Map.empty }
+
+    member this.ToDietCache(readOnlyAccounts: seq<ReadOnlyAccount>) =
+        let rec extractAddressesFromAccounts (acc: Map<PublicAddress,List<DietCurrency>>) (accounts: List<IAccount>)
+            : Map<PublicAddress,List<DietCurrency>> =
+                match accounts with
+                | [] -> acc
+                | head::tail ->
+                    let existingCurrenciesForHeadAddress =
+                        match acc.TryFind head.PublicAddress with
+                        | None -> []
+                        | Some currencies -> currencies
+                    let newAcc = acc.Add(head.PublicAddress, head.Currency.ToString()::existingCurrenciesForHeadAddress)
+                    extractAddressesFromAccounts newAcc tail
+        let fiatPrices =
+            [ for (KeyValue(currency, (price,_))) in this.UsdPrice -> currency.ToString(),price ]
+                |> Map.ofSeq
+        let addresses = extractAddressesFromAccounts
+                            Map.empty (List.ofSeq readOnlyAccounts |> List.map (fun acc -> acc:>IAccount))
+        let balances =
+            seq {
+                for (KeyValue(currency, currencyBalances)) in this.Balances do
+                    for (KeyValue(address, (balance,_))) in currencyBalances do
+                        if readOnlyAccounts.Any(fun account -> (account:>IAccount).PublicAddress = address) then
+                            yield (currency.ToString(),balance)
+            } |> Map.ofSeq
+        { UsdPrice = fiatPrices; Addresses = addresses; Balances = balances; }
 
 module Caching =
 
@@ -62,9 +113,6 @@ module Caching =
                 None
             else
                 maybeNetworkData
-
-    let public ExportToJson (newCachedData: CachedNetworkData): string =
-        Marshalling.Serialize(newCachedData)
 
     let rec private MergeRatesInternal (oldMap: Map<'K, CachedValue<'V>>)
                                        (newMap: Map<'K, CachedValue<'V>>)
@@ -160,7 +208,7 @@ module Caching =
         let lockObject = Object()
 
         let SaveToDisk (newCachedData: CachedNetworkData) =
-            let json = ExportToJson (newCachedData)
+            let json = Marshalling.Serialize newCachedData
             File.WriteAllText (cacheFile.FullName, json)
 
         let GetSumOfAllTransactions (trans: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>)
@@ -188,7 +236,8 @@ module Caching =
             | [] -> map
             | (key,value)::tail -> RemoveRangeFromMap (map.Remove key) tail
 
-        member self.SaveSnapshot(newCachedData: CachedNetworkData) =
+        member self.SaveSnapshot(newDietCachedData: DietCache) =
+            let newCachedData = CachedNetworkData.FromDietCache newDietCachedData
             lock lockObject (fun _ ->
                 let newSessionCachedNetworkData =
                     match sessionCachedNetworkData with

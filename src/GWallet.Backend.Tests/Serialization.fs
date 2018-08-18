@@ -11,13 +11,13 @@ module Serialization =
 
     [<Test>]
     let ``basic caching export does not fail``() =
-        let json = Caching.ExportToJson MarshallingData.EmptyCachingDataExample
+        let json = Marshalling.Serialize MarshallingData.EmptyCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
     [<Test>]
     let ``basic caching export is accurate``() =
-        let json = Caching.ExportToJson MarshallingData.EmptyCachingDataExample
+        let json = Marshalling.Serialize MarshallingData.EmptyCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json, Is.EqualTo (MarshallingData.EmptyCachingDataExampleInJson))
@@ -25,7 +25,7 @@ module Serialization =
     [<Test>]
     let ``complex caching export works``() =
 
-        let json = Caching.ExportToJson MarshallingData.SofisticatedCachingDataExample
+        let json = Marshalling.Serialize MarshallingData.SofisticatedCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 

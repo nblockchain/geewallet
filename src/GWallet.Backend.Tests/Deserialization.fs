@@ -11,24 +11,26 @@ module Deserialization =
     [<Test>]
     let ``deserialize cache does not fail``() =
 
-        let deserializedCache = Caching.ImportFromJson
-                                    MarshallingData.SofisticatedCachingDataExampleInJson
+        let deserializedCache: DietCache = Marshalling.Deserialize
+                                               MarshallingData.SofisticatedCachingDataExampleInJson
 
         Assert.That(deserializedCache, Is.Not.Null)
 
+        Assert.That(deserializedCache.Addresses, Is.Not.Null)
+        let etcAddresses = deserializedCache.Addresses.TryFind "0xFOOBARBAZ"
+        Assert.That etcAddresses.IsSome
+        let addresses = etcAddresses.Value
+        Assert.That(addresses, Is.EqualTo [Currency.ETC.ToString()])
+
         Assert.That(deserializedCache.Balances, Is.Not.Null)
-        let etcBalances = deserializedCache.Balances.TryFind Currency.ETC
-        Assert.That(etcBalances.IsSome)
-        let accountBalance = etcBalances.Value.TryFind "0xFOOBARBAZ"
-        Assert.That(accountBalance.IsSome)
-        let balance,date = accountBalance.Value
+        let etcBalance = deserializedCache.Balances.TryFind (Currency.ETC.ToString())
+        Assert.That(etcBalance.IsSome)
+        let balance = etcBalance.Value
         Assert.That(balance, Is.EqualTo(123456789.12345678m))
-        Assert.That(date, Is.EqualTo (MarshallingData.SomeDate))
 
         Assert.That(deserializedCache.UsdPrice, Is.Not.Null)
-        let price,date = deserializedCache.UsdPrice.Item Currency.ETH
+        let price = deserializedCache.UsdPrice.Item (Currency.ETH.ToString())
         Assert.That(price, Is.EqualTo(161.796))
-        Assert.That(date, Is.EqualTo (MarshallingData.SomeDate))
 
     [<Test>]
     let ``unsigned btc transaction import``() =
@@ -202,7 +204,7 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Metadata.FeeEstimationTime,
                     Is.EqualTo(DateTime.Parse("2018-03-14T16:50:09.133411")))
 
-        Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo(3))
+        Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo 5)
         Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(5))
 
     [<Test>]
@@ -243,6 +245,6 @@ module Deserialization =
                     Is.EqualTo(DateTime.Parse("2018-03-14T16:50:09.133411")))
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.Balances.Count,
-                    Is.EqualTo(3))
+                    Is.EqualTo 5)
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.UsdPrice.Count,
                     Is.EqualTo(5))
