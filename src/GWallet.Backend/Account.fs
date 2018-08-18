@@ -411,9 +411,9 @@ module Account =
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
 
-    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
-                                (txMetadata: IBlockchainFeeInfo)
-                                (filePath: string) =
+    let private SerializeUnsignedTransactionPlain (transProposal: UnsignedTransactionProposal)
+                                                  (txMetadata: IBlockchainFeeInfo)
+                                                      : string =
 
         ValidateAddress transProposal.Amount.Currency transProposal.DestinationAddress
 
@@ -421,10 +421,16 @@ module Account =
 
         match txMetadata with
         | :? Ether.TransactionMetadata as etherTxMetadata ->
-            Ether.Account.SaveUnsignedTransaction transProposal etherTxMetadata readOnlyAccounts filePath
+            Ether.Account.SaveUnsignedTransaction transProposal etherTxMetadata readOnlyAccounts
         | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
-            UtxoCoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata readOnlyAccounts filePath
+            UtxoCoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata readOnlyAccounts
         | _ -> failwith "fee type unknown"
+
+    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
+                                (txMetadata: IBlockchainFeeInfo)
+                                (filePath: string) =
+        let json = SerializeUnsignedTransactionPlain transProposal txMetadata
+        File.WriteAllText(filePath, json)
 
     let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<IBlockchainFeeInfo> =
 

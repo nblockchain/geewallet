@@ -433,8 +433,7 @@ module internal Account =
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
                                 (txMetadata: TransactionMetadata)
                                 (readOnlyAccounts: seq<ReadOnlyAccount>)
-                                (filePath: string)
-                                =
+                                    : string =
 
         let unsignedTransaction =
             {
@@ -442,8 +441,7 @@ module internal Account =
                 Cache = Caching.Instance.GetLastCachedData().ToDietCache readOnlyAccounts;
                 Metadata = txMetadata;
             }
-        let json = ExportUnsignedTransactionToJson unsignedTransaction
-        File.WriteAllText(filePath, json)
+        ExportUnsignedTransactionToJson unsignedTransaction
 
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
