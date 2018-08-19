@@ -58,9 +58,9 @@ type PairingToPage(balancesPage: Page,
         )
 
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
-            Device.BeginInvokeOnMainThread(fun _ ->
-                pairButton.IsEnabled <- not (String.IsNullOrEmpty coldAddressesEntry.Text)
-            )
+        Device.BeginInvokeOnMainThread(fun _ ->
+            pairButton.IsEnabled <- not (String.IsNullOrEmpty coldAddressesEntry.Text)
+        )
 
     member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
         Device.BeginInvokeOnMainThread(fun _ ->
