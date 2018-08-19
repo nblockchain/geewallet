@@ -11,8 +11,8 @@
         <Label x:Name="fiatBalanceLabel"
                Text="..."
                HorizontalOptions="Center" />
-        <Button x:Name="sendButton"
-                Text="Send Payment"
+        <Button x:Name="paymentButton"
+                Text="..."
                 IsEnabled="false"
                 HorizontalOptions="Center"
                 Clicked="OnSendPaymentClicked"/>

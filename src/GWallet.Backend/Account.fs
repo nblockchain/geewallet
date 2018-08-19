@@ -1,10 +1,8 @@
 ﻿namespace GWallet.Backend
 
 open System
-open System.Text
 open System.Linq
 open System.IO
-open System.IO.Compression
 
 module Account =
 
@@ -329,11 +327,10 @@ module Account =
 
         { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
 
-    let public ExportSignedTransaction (trans: SignedTransaction<_>) =
+    let private ExportSignedTransaction (trans: SignedTransaction<_>) =
         Marshalling.Serialize trans
 
-    let SaveSignedTransaction (trans: SignedTransaction<_>) (filePath: string) =
-
+    let private SerializeSignedTransactionPlain (trans: SignedTransaction<_>): string =
         let json =
             match trans.TransactionInfo.Metadata.GetType() with
             | t when t = typeof<Ether.TransactionMetadata> ->
@@ -359,7 +356,20 @@ module Account =
                 }
                 ExportSignedTransaction signedBtcTx
             | _ -> failwith "Unknown miner fee type"
+        json
 
+    let SerializeSignedTransaction (transaction: SignedTransaction<_>)
+                                   (compressed: bool)
+                                       : string =
+
+        let json = SerializeSignedTransactionPlain transaction
+        if not compressed then
+            json
+        else
+            Marshalling.Compress json
+
+    let SaveSignedTransaction (trans: SignedTransaction<_>) (filePath: string) =
+        let json = SerializeSignedTransaction trans false
         File.WriteAllText(filePath, json)
 
     let AddPublicWatcher currency (publicAddress: string) =
@@ -442,15 +452,6 @@ module Account =
 
         Async.Parallel allAccounts
 
-    let Compress (uncompressedString: string): string =
-        use compressedStream = new MemoryStream()
-        use uncompressedStream = new MemoryStream(Encoding.UTF8.GetBytes uncompressedString)
-        let compressorStream = new DeflateStream(compressedStream, CompressionMode.Compress)
-        uncompressedStream.CopyTo compressorStream
-        // can't use "use" because it needs to be dissposed manually before getting the data
-        compressorStream.Dispose()
-        Convert.ToBase64String(compressedStream.ToArray())
-
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
 
@@ -478,7 +479,7 @@ module Account =
         if not compressed then
             json
         else
-            Compress json
+            Marshalling.Compress json
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
                                 (txMetadata: IBlockchainFeeInfo)
@@ -486,7 +487,14 @@ module Account =
         let json = SerializeUnsignedTransaction transProposal txMetadata false
         File.WriteAllText(filePath, json)
 
-    let public ImportUnsignedTransactionFromJson (json: string): UnsignedTransaction<IBlockchainFeeInfo> =
+    let public ImportUnsignedTransactionFromJson (jsonOrCompressedJson: string): UnsignedTransaction<IBlockchainFeeInfo> =
+
+        let json =
+            try
+                Marshalling.Decompress jsonOrCompressedJson
+            with
+            | :? Marshalling.CompressionOrDecompressionException ->
+                jsonOrCompressedJson
 
         let transType = Marshalling.ExtractType json
 

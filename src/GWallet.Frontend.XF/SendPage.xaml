@@ -6,6 +6,36 @@
                  Padding="10,10,10,10"
                  VerticalOptions="Center"
                  HorizontalOptions="FillAndExpand">
+        <StackLayout x:Name="transactionProposalLayout"
+                     Orientation="Horizontal"
+                     HorizontalOptions="FillAndExpand"
+                     IsVisible="false">
+            <Label Text="Transaction proposal:"
+                   HorizontalOptions="Start"
+                   VerticalOptions="End"
+                   />
+            <Button x:Name="transactionScanQrCodeButton"
+                    Text="Scan QR code"
+                    HorizontalOptions="EndAndExpand"
+                    VerticalOptions="End"
+                    Clicked="OnTransactionScanQrCodeButtonClicked"
+                    IsVisible="false"
+            >
+                <Button.HeightRequest>
+                    <OnPlatform x:TypeArguments="x:Double">
+                        <On Platform="iOS">15</On>
+                        <On Platform="Android">36</On>
+                        <On Platform="GTK">25</On>
+                    </OnPlatform>
+                </Button.HeightRequest>
+            </Button>
+        </StackLayout>
+
+        <Entry x:Name="transactionProposalEntry"
+               TextChanged="OnTransactionProposalEntryTextChanged"
+               IsVisible="false"
+               />
+
         <StackLayout Orientation="Horizontal"
                      HorizontalOptions="FillAndExpand"
                      >
@@ -13,7 +43,7 @@
                    HorizontalOptions="Start"
                    VerticalOptions="End"
                    />
-            <Button x:Name="scanQrCode"
+            <Button x:Name="destinationScanQrCodeButton"
                     Text="Scan QR code"
                     HorizontalOptions="EndAndExpand"
                     VerticalOptions="End"
@@ -30,7 +60,7 @@
             </Button>
         </StackLayout>
 
-        <Entry x:Name="destinationAddress"
+        <Entry x:Name="destinationAddressEntry"
                TextChanged="OnEntryTextChanged"
                 />
 
@@ -81,11 +111,11 @@
                IsPassword="true"
                TextChanged="OnEntryTextChanged" />
 
-        <Button x:Name="sendButton"
-                Text="Send"
+        <Button x:Name="sendOrSignButton"
+                Text="..."
                 IsEnabled="false"
                 HorizontalOptions="Center"
-                Clicked="OnSendButtonClicked"/>
+                Clicked="OnSendOrSignButtonClicked"/>
         <Button x:Name="cancelButton"
                 Text="Cancel"
                 IsEnabled="true"

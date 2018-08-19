@@ -1,7 +1,10 @@
 ﻿namespace GWallet.Backend
 
 open System
+open System.IO
+open System.Text
 open System.Reflection
+open System.IO.Compression
 open System.Text.RegularExpressions
 
 open Newtonsoft.Json
@@ -63,7 +66,12 @@ module Marshalling =
     let private currentVersion = VersionHelper.CurrentVersion()
 
     let ExtractType(json: string): Type =
-        let fullTypeName = (JsonConvert.DeserializeObject<DeserializableValueInfo> json).TypeName
+        let typeInfo =
+            try
+                JsonConvert.DeserializeObject<DeserializableValueInfo> json
+            with
+            | ex -> raise (DeserializationException("Could not extract type", ex))
+        let fullTypeName = (typeInfo).TypeName
         Type.GetType(fullTypeName)
 
     let Deserialize<'S,'T when 'S:> DeserializableValue<'T>>(json: string): 'T =
@@ -109,3 +117,31 @@ module Marshalling =
             raise(SerializationException(sprintf "Could not serialize object of type '%s' and value '%A'"
                                                   (typeof<'S>.FullName) value, exn))
 
+    type CompressionOrDecompressionException(msg: string, innerException: Exception) =
+        inherit Exception(msg, innerException)
+
+    // https://stackoverflow.com/a/43357353/544947
+    let Decompress (compressedString: string): string =
+        try
+            use decompressedStream = new MemoryStream()
+            use compressedStream = new MemoryStream(Convert.FromBase64String compressedString)
+            let decompressorStream = new DeflateStream(compressedStream, CompressionMode.Decompress)
+            decompressorStream.CopyTo(decompressedStream)
+            decompressorStream.Dispose()
+            Encoding.UTF8.GetString(decompressedStream.ToArray())
+        with
+        | ex ->
+            raise(CompressionOrDecompressionException("Could not decompress", ex))
+
+    let Compress (uncompressedString: string): string =
+        try
+            use compressedStream = new MemoryStream()
+            use uncompressedStream = new MemoryStream(Encoding.UTF8.GetBytes uncompressedString)
+            let compressorStream = new DeflateStream(compressedStream, CompressionMode.Compress)
+            uncompressedStream.CopyTo compressorStream
+            // can't use "use" because it needs to be dissposed manually before getting the data
+            compressorStream.Dispose()
+            Convert.ToBase64String(compressedStream.ToArray())
+        with
+        | ex ->
+            raise(CompressionOrDecompressionException("Could not compress", ex))

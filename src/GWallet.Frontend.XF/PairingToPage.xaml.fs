@@ -6,6 +6,8 @@ open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
+open ZXing
+open ZXing.Mobile
 open ZXing.Net.Mobile.Forms
 
 open GWallet.Backend
@@ -50,8 +52,10 @@ type PairingToPage(balancesPage: Page,
                 ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
-        this.Navigation.PushModalAsync scanPage
-            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+        Device.BeginInvokeOnMainThread(fun _ ->
+            this.Navigation.PushModalAsync scanPage
+                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+        )
 
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
             Device.BeginInvokeOnMainThread(fun _ ->

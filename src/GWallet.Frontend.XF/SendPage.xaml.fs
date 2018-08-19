@@ -4,6 +4,7 @@ open System
 open System.Linq
 open System.Threading.Tasks
 
+open Plugin.Connectivity
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open ZXing.Net.Mobile.Forms
@@ -16,49 +17,116 @@ type TransactionInfo =
       Amount: TransferAmount;
     }
 
-type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Page) =
+type TransactionProposal<'T when 'T :> IBlockchainFeeInfo> =
+    | NotAvailableBecauseOfHotMode
+    | ColdStorageMode of Option<UnsignedTransaction<'T>>
+
+type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Page) as this =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<SendPage>)
 
-    let GetBalance() =
+    let GetCachedBalance() =
         // FIXME: should make sure to get the unconfirmed balance
-        let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
-        match cachedBalance with
-        | NotAvailable -> failwith "Assertion failed: send page should not be accessed if last balance saved on cache was not > 0"
-        | Cached(theCachedBalance,_) -> theCachedBalance
+        Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
 
-    let lastCachedBalance: decimal = GetBalance()
-    let usdRate = FiatValueEstimation.UsdValue account.Currency
+    let usdRateAtPageCreation = FiatValueEstimation.UsdValue account.Currency
+    let cachedBalanceAtPageCreation = GetCachedBalance()
+
+    let sendCaption = "Send"
+    let sendWipCaption = "Sending..."
+    let signCaption = "Sign transaction"
+    let signWipCaption = "Signing..."
+
+    let lockObject = Object()
+    let mutable transactionProposal = NotAvailableBecauseOfHotMode
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
-    let scanQrCodeButton = mainLayout.FindByName<Button>("scanQrCode")
+    let destinationScanQrCodeButton = mainLayout.FindByName<Button> "destinationScanQrCodeButton"
+    let transactionScanQrCodeButton = mainLayout.FindByName<Button> "transactionScanQrCodeButton"
     let currencySelectorPicker = mainLayout.FindByName<Picker>("currencySelector")
+    let proposalLabel = mainLayout.FindByName<Picker> "proposalLabel"
+    let transactionProposalLayout = mainLayout.FindByName<StackLayout> "transactionProposalLayout"
+    let transactionProposalEntry = mainLayout.FindByName<Entry> "transactionProposalEntry"
+    let amountToSend = mainLayout.FindByName<Entry> "amountToSend"
+    let destinationAddressEntry = mainLayout.FindByName<Entry> "destinationAddressEntry"
+    let allBalanceButton = mainLayout.FindByName<Button> "allBalance"
+    let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
+    let passwordLabel = mainLayout.FindByName<Label> "passwordLabel"
+    let sendOrSignButton = mainLayout.FindByName<Button> "sendOrSignButton"
     do
         let accountCurrency = account.Currency.ToString()
         currencySelectorPicker.Items.Add "USD"
         currencySelectorPicker.Items.Add accountCurrency
         currencySelectorPicker.SelectedItem <- accountCurrency
-        match usdRate with
+        match usdRateAtPageCreation with
         | NotFresh NotAvailable ->
             currencySelectorPicker.IsEnabled <- false
         | _ -> ()
 
         if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
-            scanQrCodeButton.IsVisible <- true
+            destinationScanQrCodeButton.IsVisible <- true
 
+        sendOrSignButton.Text <- sendCaption
         match account with
         | :? ReadOnlyAccount ->
-            let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
-            let passwordLabel = mainLayout.FindByName<Label> "passwordLabel"
             Device.BeginInvokeOnMainThread(fun _ ->
                 passwordEntry.IsVisible <- false
                 passwordLabel.IsVisible <- false
             )
-        | _ -> ()
+        | _ ->
+            if not CrossConnectivity.IsSupported then
+                failwith "cross connectivity plugin not supported for this platform?"
+
+            use crossConnectivityInstance = CrossConnectivity.Current
+            if not crossConnectivityInstance.IsConnected then
+                lock lockObject (fun _ ->
+                    transactionProposal <- (ColdStorageMode None)
+                )
+
+                transactionProposalLayout.IsVisible <- true
+                transactionProposalEntry.IsVisible <- true
+                if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
+                    transactionScanQrCodeButton.IsVisible <- true
+                destinationScanQrCodeButton.IsVisible <- false
+                allBalanceButton.IsVisible <- false
+                sendOrSignButton.Text <- signCaption
+            this.AdjustWidgetsStateAccordingToConnectivity()
+
+    member private this.AdjustWidgetsStateAccordingToConnectivity() =
+        use crossConnectivityInstance = CrossConnectivity.Current
+        if not crossConnectivityInstance.IsConnected then
+            Device.BeginInvokeOnMainThread(fun _ ->
+                currencySelectorPicker.IsEnabled <- false
+                amountToSend.IsEnabled <- false
+                destinationAddressEntry.IsEnabled <- false
+            )
+
+    member this.OnTransactionScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
+        let mainLayout = base.FindByName<StackLayout> "mainLayout"
+        let transactionProposalEntry = mainLayout.FindByName<Entry> "transactionProposalEntry"
+
+        let scanPage = ZXingScannerPage ()
+        scanPage.add_OnScanResult(fun (result:ZXing.Result) ->
+            scanPage.IsScanning <- false
+            Device.BeginInvokeOnMainThread(fun _ ->
+                let task = this.Navigation.PopModalAsync()
+                task.ContinueWith(fun (t: Task<Page>) ->
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        transactionProposalEntry.Text <- result.Text
+                    )
+
+                ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            )
+        )
+        Device.BeginInvokeOnMainThread(fun _ ->
+            this.Navigation.PushModalAsync scanPage
+                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+        )
 
     member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
-        let scanPage = ZXingScannerPage()
+
+        let scanPage = ZXingScannerPage ()
         scanPage.add_OnScanResult(fun result ->
             scanPage.IsScanning <- false
 
@@ -71,7 +139,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         | _ -> result.Text,None
 
                     Device.BeginInvokeOnMainThread(fun _ ->
-                        let destinationAddressEntry = mainLayout.FindByName<Entry>("destinationAddress")
                         destinationAddressEntry.Text <- address
                     )
                     match maybeAmount with
@@ -98,26 +165,34 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     member this.OnAllBalanceButtonClicked(sender: Object, args: EventArgs): unit =
-        let mainLayout = base.FindByName<StackLayout>("mainLayout")
-        let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
-        let allBalanceAmount =
-            match currencySelectorPicker.SelectedItem.ToString() with
-            | "USD" ->
-                match usdRate with
-                | Fresh rate | NotFresh(Cached(rate,_)) ->
-                    lastCachedBalance * rate
-                | NotFresh NotAvailable ->
-                    failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
-            | _ -> lastCachedBalance
-        amountToSend.Text <- allBalanceAmount.ToString()
+        match cachedBalanceAtPageCreation with
+        | Cached(cachedBalance,_) ->
+            let usdRate = FiatValueEstimation.UsdValue account.Currency
+            let mainLayout = base.FindByName<StackLayout>("mainLayout")
+            let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
+
+            let allBalanceAmount =
+                match currencySelectorPicker.SelectedItem.ToString() with
+                | "USD" ->
+                    match usdRate with
+                    | Fresh rate | NotFresh(Cached(rate,_)) ->
+                        cachedBalance * rate
+                    | NotFresh NotAvailable ->
+                        failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                | _ -> cachedBalance
+            amountToSend.Text <- allBalanceAmount.ToString()
+        | _ ->
+            failwith "if no balance was available(offline?), allBalance button should have been disabled"
 
     member this.OnCurrencySelectorTextChanged(sender: Object, args: EventArgs): unit =
+
         let currentAmountTypedEntry = mainLayout.FindByName<Entry>("amountToSend")
         let currentAmountTyped = currentAmountTypedEntry.Text
         match Decimal.TryParse currentAmountTyped with
         | false,_ ->
             ()
         | true,decimalAmountTyped ->
+            let usdRate = FiatValueEstimation.UsdValue account.Currency
             match usdRate with
             | NotFresh NotAvailable ->
                 failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
@@ -128,9 +203,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     // we choose the WithMax overload because we don't want to surpass current allBalance & be red
                     match currencySelectorPicker.SelectedItem.ToString() with
                     | "USD" ->
-                        FrontendHelpers.ShowDecimalForHumansWithMax CurrencyType.Fiat
-                                                                    (rate * decimalAmountTyped)
-                                                                    (lastCachedBalance * rate)
+                        match cachedBalanceAtPageCreation with
+                        | Cached(cachedBalance,_) ->
+                            FrontendHelpers.ShowDecimalForHumansWithMax CurrencyType.Fiat
+                                                                        (rate * decimalAmountTyped)
+                                                                        (cachedBalance * rate)
+                        | _ ->
+                            failwith "if no balance was available(offline?), currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
                     | _ ->
                         Formatting.DecimalAmount CurrencyType.Crypto (decimalAmountTyped / rate)
                 currentAmountTypedEntry.Text <- convertedAmount
@@ -237,54 +316,111 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         | :? ReadOnlyAccount ->
             false
         | _ ->
-            let passwordEntry = mainLayout.FindByName<Entry>("passwordEntry")
             if passwordEntry = null then
                 // not ready yet?
                 true
             else
                 String.IsNullOrEmpty passwordEntry.Text
 
+    member this.OnTransactionProposalEntryTextChanged (sender: Object, args: EventArgs): unit =
+        let mainLayout = base.FindByName<StackLayout> "mainLayout"
+        let transactionProposalEntry = mainLayout.FindByName<Entry> "transactionProposalEntry"
+        let transactionProposalEntryText = transactionProposalEntry.Text
+        if not (String.IsNullOrWhiteSpace transactionProposalEntryText) then
+            let maybeUnsignedTransaction =
+                try
+                    Account.ImportUnsignedTransactionFromJson transactionProposalEntryText |> Some
+                with
+                | :? DeserializationException as dex ->
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        transactionProposalEntry.TextColor <- Color.Red
+                        let errMsg = "Transaction proposal corrupt or invalid"
+                        this.DisplayAlert("Alert", errMsg, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    )
+                    None
+
+            match maybeUnsignedTransaction with
+            | None -> ()
+            | Some unsignedTransaction ->
+                if account.Currency <> unsignedTransaction.Proposal.Amount.Currency then
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        transactionProposalEntry.TextColor <- Color.Red
+                        let err =
+                            sprintf "Transaction proposal's currency (%A) doesn't match with this currency's account (%A)"
+                                    unsignedTransaction.Proposal.Amount.Currency account.Currency
+                        this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    )
+                elif account.PublicAddress <> unsignedTransaction.Proposal.OriginAddress then
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        transactionProposalEntry.TextColor <- Color.Red
+                        let err = "Transaction proposal's sender address doesn't match with this currency's account"
+                        this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    )
+                else
+                    // to locally save balances and fiat rates from the online device
+                    Caching.Instance.SaveSnapshot unsignedTransaction.Cache
+
+                    lock lockObject (fun _ ->
+                        transactionProposal <- (ColdStorageMode (Some unsignedTransaction))
+                    )
+
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        transactionProposalEntry.TextColor <- Color.Default
+                        destinationAddressEntry.Text <- unsignedTransaction.Proposal.DestinationAddress
+                        amountToSend.Text <- unsignedTransaction.Proposal.Amount.ValueToSend.ToString()
+                        passwordEntry.Focus() |> ignore
+                    )
+        ()
+
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
+        let usdRate = FiatValueEstimation.UsdValue account.Currency
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         if (mainLayout = null) then
             //page not yet ready
             ()
         else
             let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
-            let destinationAddress = mainLayout.FindByName<Entry>("destinationAddress")
-            if (destinationAddress = null ||
+            if (destinationAddressEntry = null ||
+                String.IsNullOrEmpty destinationAddressEntry.Text ||
                 this.IsPasswordUnfilledAndNeeded mainLayout ||
                 amountToSend = null) then
                 ()
             else
                 let equivalentAmount = mainLayout.FindByName<Label>("equivalentAmountInAlternativeCurrency")
-                let sendButton = mainLayout.FindByName<Button>("sendButton")
                 if (amountToSend.Text <> null && amountToSend.Text.Length > 0) then
-                    let allBalanceInSelectedCurrency =
-                        match currencySelectorPicker.SelectedItem.ToString() with
-                        | "USD" ->
-                            match usdRate with
-                            | NotFresh NotAvailable ->
-                                failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
-                            | NotFresh(Cached(rate,_)) | Fresh rate ->
-                                lastCachedBalance * rate
-                        | _ -> lastCachedBalance
-
                     // FIXME: marking as red should not even mark button as disabled but give the reason in Alert?
                     match Decimal.TryParse(amountToSend.Text) with
                     | false,_ ->
                         amountToSend.TextColor <- Color.Red
-                        sendButton.IsEnabled <- false
+                        sendOrSignButton.IsEnabled <- false
                         equivalentAmount.Text <- String.Empty
                     | true,amount ->
+                        let lastCachedBalance: decimal =
+                            match GetCachedBalance() with
+                            | Cached(lastCachedBalance,_) ->
+                                lastCachedBalance
+                            | _ ->
+                                failwith "there should be a cached balance (either by being online, or because of importing a cache snapshot) at the point of changing the amount or destination address (respectively, by the user, or by importing a tx proposal)"
+
+                        let allBalanceInSelectedCurrency =
+                            match currencySelectorPicker.SelectedItem.ToString() with
+                            | "USD" ->
+                                match usdRate with
+                                | NotFresh NotAvailable ->
+                                    failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                                | NotFresh(Cached(rate,_)) | Fresh rate ->
+                                    lastCachedBalance * rate
+                            | _ -> lastCachedBalance
+
                         if (amount <= 0.0m || amount > allBalanceInSelectedCurrency) then
                             amountToSend.TextColor <- Color.Red
-                            sendButton.IsEnabled <- false
+                            sendOrSignButton.IsEnabled <- false
                             equivalentAmount.Text <- "(Not enough funds)"
                         else
                             amountToSend.TextColor <- Color.Default
-                            sendButton.IsEnabled <- (not (this.IsPasswordUnfilledAndNeeded mainLayout)) &&
-                                                    destinationAddress.Text <> null && destinationAddress.Text.Length > 0
+                            sendOrSignButton.IsEnabled <- (not (this.IsPasswordUnfilledAndNeeded mainLayout)) &&
+                                                    destinationAddressEntry.Text <> null &&
+                                                    destinationAddressEntry.Text.Length > 0
 
                             match usdRate with
                             | NotFresh NotAvailable -> ()
@@ -300,7 +436,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                 let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
                                 equivalentAmount.Text <- usdAmount
                 else
-                    sendButton.IsEnabled <- false
+                    sendOrSignButton.IsEnabled <- false
 
     member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
         Device.BeginInvokeOnMainThread(fun _ ->
@@ -308,32 +444,73 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         )
 
     member private this.ToggleInputWidgetsEnabledOrDisabled (enabled: bool) =
-        let sendButton = mainLayout.FindByName<Button> "sendButton"
         let cancelButton = mainLayout.FindByName<Button> "cancelButton"
-        let scanQrCodeButton = mainLayout.FindByName<Button> "scanQrCode"
-        let destinationAddressEntry = mainLayout.FindByName<Entry> "destinationAddress"
+        let transactionScanQrCodeButton = mainLayout.FindByName<Button> "transactionScanQrCodeButton"
+        let destinationScanQrCodeButton = mainLayout.FindByName<Button> "destinationScanQrCodeButton"
+        let destinationAddressEntry = mainLayout.FindByName<Entry> "destinationAddressEntry"
         let allBalanceButton = mainLayout.FindByName<Button> "allBalance"
         let currencySelectorPicker = mainLayout.FindByName<Picker> "currencySelector"
         let amountToSendEntry = mainLayout.FindByName<Entry> "amountToSend"
         let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
 
-        let newSendButtonCaption =
-            if enabled then
-                "Send"
+        let newSendOrSignButtonCaption =
+            if sendOrSignButton.Text = sendCaption || sendOrSignButton.Text = sendWipCaption then
+                if enabled then
+                    sendCaption
+                else
+                    sendWipCaption
             else
-                "Sending..."
+                if enabled then
+                    signCaption
+                else
+                    signWipCaption
 
         Device.BeginInvokeOnMainThread(fun _ ->
-            sendButton.IsEnabled <- enabled
+            sendOrSignButton.IsEnabled <- enabled
             cancelButton.IsEnabled <- enabled
-            scanQrCodeButton.IsEnabled <- enabled
+            transactionScanQrCodeButton.IsEnabled <- enabled
+            destinationScanQrCodeButton.IsEnabled <- enabled
             destinationAddressEntry.IsEnabled <- enabled
             allBalanceButton.IsEnabled <- enabled
             currencySelectorPicker.IsEnabled <- enabled
             amountToSendEntry.IsEnabled <- enabled
             passwordEntry.IsEnabled <- enabled
-            sendButton.Text <- newSendButtonCaption
+            sendOrSignButton.Text <- newSendOrSignButtonCaption
         )
+
+        this.AdjustWidgetsStateAccordingToConnectivity()
+
+    member private this.SignTransaction (normalAccount: NormalAccount) (unsignedTransaction) (password): unit =
+        let maybeRawTransaction =
+            try
+                Account.SignTransaction normalAccount
+                                        unsignedTransaction.Proposal.DestinationAddress
+                                        unsignedTransaction.Proposal.Amount
+                                        unsignedTransaction.Metadata
+                                        password |> Some
+            with
+            | :? InvalidPassword ->
+                let errMsg = "Invalid password, try again."
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
+                        this.ToggleInputWidgetsEnabledOrDisabled true
+                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                )
+                None
+        match maybeRawTransaction with
+        | None -> ()
+        | Some rawTransaction ->
+            let signedTransaction = { TransactionInfo = unsignedTransaction; RawTransaction = rawTransaction }
+            let compressedTransaction = Account.SerializeSignedTransaction signedTransaction true
+            let pairSignedTransactionPage =
+                PairingFromPage(this, "Copy signed transaction to the clipboard", compressedTransaction)
+            NavigationPage.SetHasNavigationBar(pairSignedTransactionPage, false)
+            let navPairPage = NavigationPage pairSignedTransactionPage
+            NavigationPage.SetHasNavigationBar(navPairPage, false)
+            Device.BeginInvokeOnMainThread(fun _ ->
+                this.Navigation.PushAsync navPairPage
+                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            )
 
     member private this.AnswerToFee (account: IAccount) (txInfo: TransactionInfo) (answer: Task<bool>):unit =
         if (answer.Result) then
@@ -341,8 +518,14 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             | :? NormalAccount as normalAccount ->
                 let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
                 let password = passwordEntry.Text
-                Task.Run(fun _ -> this.SendTransaction normalAccount txInfo password)
-                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                match lock lockObject (fun _ -> transactionProposal) with
+                | NotAvailableBecauseOfHotMode ->
+                    Task.Run(fun _ -> this.SendTransaction normalAccount txInfo password)
+                        |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                | ColdStorageMode (None) ->
+                    failwith "Fee dialog should not have been shown if no transaction proposal was stored"
+                | ColdStorageMode (Some someTransactionProposal) ->
+                    this.SignTransaction normalAccount someTransactionProposal password
             | :? ReadOnlyAccount as readOnlyAccount ->
                 let proposal = {
                     OriginAddress = account.PublicAddress;
@@ -383,24 +566,22 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                         transferAmount: TransferAmount,
                                         destinationAddress: string) =
         match maybeTxMetadataWithFeeEstimation with
+        // FIXME: should maybe do () in the caller of ShowFeeAndSend() -> change param from Option<IBFI> to just IBFI
         | None -> ()
         | Some txMetadataWithFeeEstimation ->
             let feeCurrency = txMetadataWithFeeEstimation.Currency
             let usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
             match usdRateForCurrency with
-            | NotFresh _ ->
-                // this probably would never happen, because without internet connection we may get
-                // then txFeeInfoTask throw before... so that's why I write the TODO below...
+            | NotFresh NotAvailable ->
                 Device.BeginInvokeOnMainThread(fun _ ->
                     let alertInternetConnTask =
                         this.DisplayAlert("Alert",
-                                          // TODO: support cold storage mode here
                                           "Internet connection not available at the moment, try again later",
                                           "OK")
                     alertInternetConnTask.ContinueWith(fun _ -> this.ToggleInputWidgetsEnabledOrDisabled true)
                         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
-            | Fresh someUsdValue ->
+            | Fresh someUsdValue | NotFresh (Cached(someUsdValue,_)) ->
 
                 let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
                 let feeInFiatValue = someUsdValue * feeInCrypto
@@ -422,10 +603,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 )
 
 
-    member this.OnSendButtonClicked(sender: Object, args: EventArgs): unit =
+    member this.OnSendOrSignButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
-        let destinationAddressEntry = mainLayout.FindByName<Entry>("destinationAddress")
         let destinationAddress = destinationAddressEntry.Text
 
         match Decimal.TryParse(amountToSend.Text) with
@@ -441,6 +621,12 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let amountInAccountCurrency =
                     match currencySelectorPicker.SelectedItem.ToString() with
                     | "USD" ->
+
+                        // FIXME: we should probably just grab the amount from the equivalentAmountInAlternativeCurrency
+                        // label to prevent rate difference from the moment the amount was written until the "Send"
+                        // button was pressed
+                        let usdRate = FiatValueEstimation.UsdValue account.Currency
+
                         match usdRate with
                         | Fresh rate | NotFresh(Cached(rate,_)) ->
                             amount / rate
@@ -449,9 +635,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     | _ -> amount
 
                 let currency = account.Currency
-                if (lastCachedBalance <= 0.0m) then
-                    failwith "Somehow the UI didn't avoid the user access the Send UI when balance is not positive?"
-                let transferAmount = TransferAmount(amountInAccountCurrency, lastCachedBalance, currency)
+
+                let transferAmount =
+                    match GetCachedBalance() with
+                    | Cached(lastCachedBalance,_) ->
+                        TransferAmount(amountInAccountCurrency, lastCachedBalance, currency)
+                    | _ ->
+                        failwith "there should be a cached balance (either by being online, or because of importing a cache snapshot) at the point of clicking the send button"
 
                 this.ToggleInputWidgetsEnabledOrDisabled false
 
@@ -460,33 +650,51 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 | None -> this.ToggleInputWidgetsEnabledOrDisabled true
                 | Some validatedDestinationAddress ->
 
-                    let maybeTxMetadataWithFeeEstimationAsync = async {
-                        try
-                            let! txMetadataWithFeeEstimation =
-                                Account.EstimateFee account transferAmount validatedDestinationAddress
-                            return Some txMetadataWithFeeEstimation
-                        with
-                        | :? InsufficientBalanceForFee ->
-                            Device.BeginInvokeOnMainThread(fun _ ->
-                                let alertLowBalanceForFeeTask =
-                                    this.DisplayAlert("Alert",
-                                                      // TODO: support cold storage mode here
-                                                      "Remaining balance would be too low for the estimated fee, try sending lower amount",
-                                                      "OK")
-                                alertLowBalanceForFeeTask.ContinueWith(
-                                    fun _ -> this.ToggleInputWidgetsEnabledOrDisabled true
-                                )
-                                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                            )
-                            return None
-                    }
+                    match lock lockObject (fun _ -> transactionProposal) with
+                    | ColdStorageMode (None) ->
+                        failwith "Sign button should not have been enabled if no transaction proposal was stored"
+                    | ColdStorageMode (Some someTransactionProposal) ->
+                        // FIXME: convert TransferAmount type into a record, to make it have default Equals() behaviour
+                        //        so that we can simplify the below 3 conditions of the `if` statements into 1:
+                        if (transferAmount.ValueToSend <> someTransactionProposal.Proposal.Amount.ValueToSend) ||
+                           (transferAmount.Currency <> someTransactionProposal.Proposal.Amount.Currency) ||
+                           (transferAmount.BalanceAtTheMomentOfSending <>
+                               someTransactionProposal.Proposal.Amount.BalanceAtTheMomentOfSending) then
+                            failwith "Amount's entry should have been disabled (readonly), but somehow it wasn't because it ended up being different than the transaction proposal"
+                        if (validatedDestinationAddress <> someTransactionProposal.Proposal.DestinationAddress) then
+                            failwith "Destination's entry should have been disabled (readonly), but somehow it wasn't because it ended up being different than the transaction proposal"
 
-                    let maybeTxMetadataWithFeeEstimationTask = maybeTxMetadataWithFeeEstimationAsync |> Async.StartAsTask
-
-                    maybeTxMetadataWithFeeEstimationTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<Option<IBlockchainFeeInfo>>) ->
-                        this.ShowFeeAndSend(txMetadataWithFeeEstimationTask.Result,
-                                            transferAmount,
+                        this.ShowFeeAndSend(Some someTransactionProposal.Metadata,
+                                            someTransactionProposal.Proposal.Amount,
                                             validatedDestinationAddress)
-                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    | NotAvailableBecauseOfHotMode ->
+                        let maybeTxMetadataWithFeeEstimationAsync = async {
+                            try
+                                let! txMetadataWithFeeEstimation =
+                                    Account.EstimateFee account transferAmount validatedDestinationAddress
+                                return Some txMetadataWithFeeEstimation
+                            with
+                            | :? InsufficientBalanceForFee ->
+                                Device.BeginInvokeOnMainThread(fun _ ->
+                                    let alertLowBalanceForFeeTask =
+                                        this.DisplayAlert("Alert",
+                                                          // TODO: support cold storage mode here
+                                                          "Remaining balance would be too low for the estimated fee, try sending lower amount",
+                                                          "OK")
+                                    alertLowBalanceForFeeTask.ContinueWith(
+                                        fun _ -> this.ToggleInputWidgetsEnabledOrDisabled true
+                                    )
+                                        |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                                )
+                                return None
+                        }
+
+                        let maybeTxMetadataWithFeeEstimationTask = maybeTxMetadataWithFeeEstimationAsync |> Async.StartAsTask
+
+                        maybeTxMetadataWithFeeEstimationTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<Option<IBlockchainFeeInfo>>) ->
+                            this.ShowFeeAndSend(txMetadataWithFeeEstimationTask.Result,
+                                                transferAmount,
+                                                validatedDestinationAddress)
+                        ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
                     ()
