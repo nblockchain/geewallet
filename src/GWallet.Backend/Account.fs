@@ -460,11 +460,13 @@ module Account =
 
         ValidateAddress transProposal.Amount.Currency transProposal.DestinationAddress
 
+        let readOnlyAccounts = GetAllActiveAccounts().OfType<ReadOnlyAccount>()
+
         match txMetadata with
         | :? Ether.TransactionMetadata as etherTxMetadata ->
-            Ether.Account.SaveUnsignedTransaction transProposal etherTxMetadata
+            Ether.Account.SaveUnsignedTransaction transProposal etherTxMetadata readOnlyAccounts
         | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
-            UtxoCoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata
+            UtxoCoin.Account.SaveUnsignedTransaction transProposal btcTxMetadata readOnlyAccounts
         | _ -> failwith "fee type unknown"
 
     let SerializeUnsignedTransaction (transProposal: UnsignedTransactionProposal)
@@ -481,9 +483,6 @@ module Account =
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
                                 (txMetadata: IBlockchainFeeInfo)
                                 (filePath: string) =
-
-        ValidateAddress transProposal.Amount.Currency transProposal.DestinationAddress
-
         let json = SerializeUnsignedTransaction transProposal txMetadata false
         File.WriteAllText(filePath, json)
 

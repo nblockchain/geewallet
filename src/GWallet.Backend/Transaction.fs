@@ -13,7 +13,7 @@ type UnsignedTransaction<'T when 'T:> IBlockchainFeeInfo> =
     {
         Proposal: UnsignedTransactionProposal;
         Metadata: 'T;
-        Cache: CachedNetworkData;
+        Cache: DietCache;
     }
     member self.ToAbstract(): UnsignedTransaction<IBlockchainFeeInfo> =
         {

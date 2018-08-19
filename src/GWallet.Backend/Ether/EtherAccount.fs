@@ -305,12 +305,13 @@ module internal Account =
 
     let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
                                 (txMetadata: TransactionMetadata)
+                                (readOnlyAccounts: seq<ReadOnlyAccount>)
                                     : string =
 
         let unsignedTransaction =
             {
                 Proposal = transProposal;
-                Cache = Caching.Instance.GetLastCachedData();
+                Cache = Caching.Instance.GetLastCachedData().ToDietCache readOnlyAccounts;
                 Metadata = txMetadata;
             }
         ExportUnsignedTransactionToJson unsignedTransaction

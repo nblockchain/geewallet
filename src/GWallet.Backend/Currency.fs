@@ -1,5 +1,6 @@
 ﻿namespace GWallet.Backend
 
+open System.Linq
 open System.ComponentModel
 
 // this attribute below is for Json.NET (Newtonsoft.Json) to be able to deserialize this as a dict key
@@ -15,6 +16,9 @@ type Currency =
             |> Array.map (fun info -> info.Name)
     static member GetAll(): seq<Currency> =
         FSharpUtil.GetAllElementsFromDiscriminatedUnion<Currency>()
+
+    static member Parse(currencyString: string): Currency =
+        Currency.GetAll().First(fun currency -> currencyString = currency.ToString())
 
     member self.IsEther() =
         self = Currency.ETC || self = Currency.ETH
