@@ -39,7 +39,7 @@ type PairingToPage(balancesPage: Page,
             List.empty
 
     member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
-        let scanPage = ZXingScannerPage()
+        let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun result ->
             scanPage.IsScanning <- false
 

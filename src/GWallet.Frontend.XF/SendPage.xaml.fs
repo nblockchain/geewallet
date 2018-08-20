@@ -105,28 +105,41 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         let mainLayout = base.FindByName<StackLayout> "mainLayout"
         let transactionProposalEntry = mainLayout.FindByName<Entry> "transactionProposalEntry"
 
-        let scanPage = ZXingScannerPage ()
+        let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun (result:ZXing.Result) ->
-            scanPage.IsScanning <- false
-            Device.BeginInvokeOnMainThread(fun _ ->
-                let task = this.Navigation.PopModalAsync()
-                task.ContinueWith(fun (t: Task<Page>) ->
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        transactionProposalEntry.Text <- result.Text
-                    )
+            // HACK: Sometimes with larger QR codes, the scan is wrong and returns a random number not larger than ~8
+            //       characters. As a transaction is much larger (~800-1,200 chars) then we use this hack to not gather
+            //       these bullshit results and make the user keep trying.
+            if (result.Text.Length > 20) then
+                scanPage.IsScanning <- false
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    let task = this.Navigation.PopModalAsync()
+                    task.ContinueWith(fun (t: Task<Page>) ->
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            transactionProposalEntry.Text <- result.Text
+                        )
 
-                ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-            )
+                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                )
         )
         Device.BeginInvokeOnMainThread(fun _ ->
-            this.Navigation.PushModalAsync scanPage
-                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            let alertColdStorageTask =
+                this.DisplayAlert("Alert",
+                                  FrontendHelpers.BigQrCodeWarning,
+                                  "OK")
+            alertColdStorageTask.ContinueWith(
+                fun _ ->
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        this.Navigation.PushModalAsync scanPage
+                            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    )
+            ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         )
 
     member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
 
-        let scanPage = ZXingScannerPage ()
+        let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun result ->
             scanPage.IsScanning <- false
 
@@ -534,8 +547,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 }
                 let compressedTxProposal = Account.SerializeUnsignedTransaction proposal txInfo.Metadata true
 
-                let coldMsg =
+                let shortColdMsg =
                     "Account belongs to cold storage, so you'll need to scan this as a transaction proposal in the next page."
+                let coldMsg =
+                    shortColdMsg + " " + FrontendHelpers.BigQrCodeWarning
                 Device.BeginInvokeOnMainThread(fun _ ->
                     let alertColdStorageTask =
                         this.DisplayAlert("Alert",

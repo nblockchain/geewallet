@@ -4,6 +4,8 @@ open System
 open System.Threading.Tasks
 
 open Xamarin.Forms
+open ZXing
+open ZXing.Mobile
 
 open GWallet.Backend
 
@@ -204,3 +206,14 @@ module FrontendHelpers =
                 let cryptoLabel,fiatLabel = CreateWidgetsForAccount ()
                 yield account,cryptoLabel,fiatLabel
         } |> List.ofSeq
+
+    let BarCodeScanningOptions = MobileBarcodeScanningOptions(
+                                     TryHarder = Nullable<bool> true,
+                                     // TODO: propose PR to ZXing.Net/ZXing.Net.Mobile to change this to IEnumerable<T>:
+                                     PossibleFormats = System.Collections.Generic.List<BarcodeFormat>(
+                                         [ BarcodeFormat.QR_CODE ]
+                                     ),
+                                     UseNativeScanning = true
+                                 )
+    let BigQrCodeWarning = "NOTE: the QR codes of transactions are larger than the ones for addresses, so try to focus the camera well and make the QR code fit the whole view (even if it gets out of the limits of the grayed area) to try to get a successful scan."
+
