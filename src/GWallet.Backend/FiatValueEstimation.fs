@@ -1,10 +1,13 @@
 ﻿namespace GWallet.Backend
 
+open System
 open System.Net
 
 open FSharp.Data
 
 module FiatValueEstimation =
+    let private PERIOD_TO_CONSIDER_PRICE_STILL_FRESH = TimeSpan.FromMinutes 2.0
+
     type CoinMarketCapJsonProvider = JsonProvider<"""
 [
     {
@@ -26,7 +29,7 @@ module FiatValueEstimation =
 ]
     """>
 
-    let UsdValue(currency: Currency): MaybeCached<decimal> =
+    let private RetreiveOnlineInternal currency: Option<string> =
         use webClient = new WebClient()
         let tickerName =
             match currency with
@@ -36,21 +39,36 @@ module FiatValueEstimation =
             | Currency.ETC -> "ethereum-classic"
             | Currency.DAI -> "dai"
 
-        let maybeJson =
-            try
-                Some(webClient.DownloadString(sprintf "https://api.coinmarketcap.com/v1/ticker/%s/" tickerName))
-            with
-            | :? WebException -> None
+        try
+            webClient.DownloadString(sprintf "https://api.coinmarketcap.com/v1/ticker/%s/" tickerName)
+                |> Some
+        with
+        | :? WebException -> None
 
-        match maybeJson with
-        | None ->
-            NotFresh(Caching.Instance.RetreiveLastKnownUsdPrice(currency))
-        | Some(json) ->
-            let ticker = CoinMarketCapJsonProvider.Parse(json)
-            if (ticker.Length <> 1) then
-                failwith ("Unexpected length of json main array: " + json)
+    let private ParseJson currency (json: string) =
+        let ticker = CoinMarketCapJsonProvider.Parse(json)
+        if (ticker.Length <> 1) then
+            failwith ("Unexpected length of json main array: " + json)
 
-            let usdPrice = ticker.[0].PriceUsd
-            let result = usdPrice
-            Caching.Instance.StoreLastFiatUsdPrice(currency, usdPrice)
-            Fresh(result)
+        let usdPrice = ticker.[0].PriceUsd
+        let result = usdPrice
+        Caching.Instance.StoreLastFiatUsdPrice(currency, usdPrice)
+        result
+
+    let private RetreiveOnline currency =
+        match RetreiveOnlineInternal currency with
+        | None -> NotFresh NotAvailable
+        | Some json ->
+            Fresh (ParseJson currency json)
+
+    let UsdValue(currency: Currency): MaybeCached<decimal> =
+        let maybeUsdPrice = Caching.Instance.RetreiveLastKnownUsdPrice currency
+        match maybeUsdPrice with
+        | NotAvailable ->
+            RetreiveOnline currency
+        | Cached(someValue,someDate) ->
+            if not (someDate + PERIOD_TO_CONSIDER_PRICE_STILL_FRESH > DateTime.Now) then
+                Fresh someValue
+            else
+                RetreiveOnline currency
+
