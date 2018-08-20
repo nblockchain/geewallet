@@ -510,7 +510,15 @@ module Account =
         | unexpectedType ->
             raise(new Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName))
 
-    let public ImportSignedTransactionFromJson (json: string): SignedTransaction<IBlockchainFeeInfo> =
+    let public ImportSignedTransactionFromJson (jsonOrCompressedJson: string): SignedTransaction<IBlockchainFeeInfo> =
+
+        let json =
+            try
+                Marshalling.Decompress jsonOrCompressedJson
+            with
+            | :? Marshalling.CompressionOrDecompressionException ->
+                jsonOrCompressedJson
+
         let transType = Marshalling.ExtractType json
 
         match transType with
@@ -524,6 +532,38 @@ module Account =
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
             raise(new Exception(sprintf "Unknown signedTransaction subtype: %s" unexpectedType.FullName))
+
+    let public ImportTransactionFromJson (jsonOrCompressedJson: string): ImportedTransaction<IBlockchainFeeInfo> =
+
+        let json =
+            try
+                Marshalling.Decompress jsonOrCompressedJson
+            with
+            | :? Marshalling.CompressionOrDecompressionException ->
+                jsonOrCompressedJson
+
+        let transType = Marshalling.ExtractType json
+
+        match transType with
+        | _ when transType = typeof<UnsignedTransaction<UtxoCoin.TransactionMetadata>> ->
+            let deserializedTransaction: UnsignedTransaction<UtxoCoin.TransactionMetadata> =
+                    Marshalling.Deserialize json
+            Unsigned(deserializedTransaction.ToAbstract())
+        | _ when transType = typeof<UnsignedTransaction<Ether.TransactionMetadata>> ->
+            let deserializedTransaction: UnsignedTransaction<Ether.TransactionMetadata> =
+                    Marshalling.Deserialize json
+            Unsigned(deserializedTransaction.ToAbstract())
+        | _ when transType = typeof<SignedTransaction<UtxoCoin.TransactionMetadata>> ->
+            let deserializedTransaction: SignedTransaction<UtxoCoin.TransactionMetadata> =
+                    Marshalling.Deserialize json
+            Signed(deserializedTransaction.ToAbstract())
+        | _ when transType = typeof<SignedTransaction<Ether.TransactionMetadata>> ->
+            let deserializedTransaction: SignedTransaction<Ether.TransactionMetadata> =
+                    Marshalling.Deserialize json
+            Signed(deserializedTransaction.ToAbstract())
+        | unexpectedType ->
+            raise(new Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName))
+
 
     let LoadSignedTransactionFromFile (filePath: string) =
         let signedTransInJson = File.ReadAllText(filePath)

@@ -14,6 +14,9 @@ module FrontendHelpers =
     type IGlobalAppState =
         abstract member Awake: bool with get
 
+    type IAugmentablePayPage =
+        abstract member AddTransactionScanner: unit -> unit
+
     let internal BigFontSize = 22.
 
     let internal MediumFontSize = 20.

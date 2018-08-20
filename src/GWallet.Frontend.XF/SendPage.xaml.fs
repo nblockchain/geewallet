@@ -18,8 +18,12 @@ type TransactionInfo =
     }
 
 type TransactionProposal<'T when 'T :> IBlockchainFeeInfo> =
+    // hot wallet dealing with normal or readonly account:
     | NotAvailableBecauseOfHotMode
+    // cold wallet about to scan proposal from hot wallet:
     | ColdStorageMode of Option<UnsignedTransaction<'T>>
+    // hot wallet about to broadcast transaction of ReadOnly account:
+    | ColdStorageRemoteControl of Option<SignedTransaction<'T>>
 
 type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Page) as this =
     inherit ContentPage()
@@ -36,23 +40,26 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     let sendWipCaption = "Sending..."
     let signCaption = "Sign transaction"
     let signWipCaption = "Signing..."
+    let broadcastCaption = "Broadcast transaction"
+    let broadcastWipCaption = "Broadcasting..."
 
     let lockObject = Object()
-    let mutable transactionProposal = NotAvailableBecauseOfHotMode
+    let mutable transaction = NotAvailableBecauseOfHotMode
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let destinationScanQrCodeButton = mainLayout.FindByName<Button> "destinationScanQrCodeButton"
     let transactionScanQrCodeButton = mainLayout.FindByName<Button> "transactionScanQrCodeButton"
     let currencySelectorPicker = mainLayout.FindByName<Picker>("currencySelector")
-    let proposalLabel = mainLayout.FindByName<Picker> "proposalLabel"
-    let transactionProposalLayout = mainLayout.FindByName<StackLayout> "transactionProposalLayout"
-    let transactionProposalEntry = mainLayout.FindByName<Entry> "transactionProposalEntry"
+    let transactionLayout = mainLayout.FindByName<StackLayout> "transactionLayout"
+    let transactionLabel = mainLayout.FindByName<Label> "transactionLabel"
+    let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
     let amountToSend = mainLayout.FindByName<Entry> "amountToSend"
     let destinationAddressEntry = mainLayout.FindByName<Entry> "destinationAddressEntry"
     let allBalanceButton = mainLayout.FindByName<Button> "allBalance"
     let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
     let passwordLabel = mainLayout.FindByName<Label> "passwordLabel"
     let sendOrSignButton = mainLayout.FindByName<Button> "sendOrSignButton"
+    let cancelButton = mainLayout.FindByName<Button> "cancelButton"
     do
         let accountCurrency = account.Currency.ToString()
         currencySelectorPicker.Items.Add "USD"
@@ -80,16 +87,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             use crossConnectivityInstance = CrossConnectivity.Current
             if not crossConnectivityInstance.IsConnected then
                 lock lockObject (fun _ ->
-                    transactionProposal <- (ColdStorageMode None)
+                    transaction <- (ColdStorageMode None)
                 )
 
-                transactionProposalLayout.IsVisible <- true
-                transactionProposalEntry.IsVisible <- true
-                if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
-                    transactionScanQrCodeButton.IsVisible <- true
-                destinationScanQrCodeButton.IsVisible <- false
-                allBalanceButton.IsVisible <- false
-                sendOrSignButton.Text <- signCaption
+                (this:>FrontendHelpers.IAugmentablePayPage).AddTransactionScanner()
             this.AdjustWidgetsStateAccordingToConnectivity()
 
     member private this.AdjustWidgetsStateAccordingToConnectivity() =
@@ -103,7 +104,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     member this.OnTransactionScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout> "mainLayout"
-        let transactionProposalEntry = mainLayout.FindByName<Entry> "transactionProposalEntry"
+        let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
 
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun (result:ZXing.Result) ->
@@ -116,7 +117,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     let task = this.Navigation.PopModalAsync()
                     task.ContinueWith(fun (t: Task<Page>) ->
                         Device.BeginInvokeOnMainThread(fun _ ->
-                            transactionProposalEntry.Text <- result.Text
+                            transactionEntry.Text <- result.Text
                         )
 
                     ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
@@ -335,29 +336,29 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             else
                 String.IsNullOrEmpty passwordEntry.Text
 
-    member this.OnTransactionProposalEntryTextChanged (sender: Object, args: EventArgs): unit =
+    member this.OnTransactionEntryTextChanged (sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout> "mainLayout"
-        let transactionProposalEntry = mainLayout.FindByName<Entry> "transactionProposalEntry"
-        let transactionProposalEntryText = transactionProposalEntry.Text
-        if not (String.IsNullOrWhiteSpace transactionProposalEntryText) then
-            let maybeUnsignedTransaction =
+        let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
+        let transactionEntryText = transactionEntry.Text
+        if not (String.IsNullOrWhiteSpace transactionEntryText) then
+            let maybeTransaction =
                 try
-                    Account.ImportUnsignedTransactionFromJson transactionProposalEntryText |> Some
+                    Account.ImportTransactionFromJson transactionEntryText |> Some
                 with
                 | :? DeserializationException as dex ->
                     Device.BeginInvokeOnMainThread(fun _ ->
-                        transactionProposalEntry.TextColor <- Color.Red
-                        let errMsg = "Transaction proposal corrupt or invalid"
+                        transactionEntry.TextColor <- Color.Red
+                        let errMsg = "Transaction corrupt or invalid"
                         this.DisplayAlert("Alert", errMsg, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     )
                     None
 
-            match maybeUnsignedTransaction with
+            match maybeTransaction with
             | None -> ()
-            | Some unsignedTransaction ->
+            | Some (Unsigned unsignedTransaction) ->
                 if account.Currency <> unsignedTransaction.Proposal.Amount.Currency then
                     Device.BeginInvokeOnMainThread(fun _ ->
-                        transactionProposalEntry.TextColor <- Color.Red
+                        transactionEntry.TextColor <- Color.Red
                         let err =
                             sprintf "Transaction proposal's currency (%A) doesn't match with this currency's account (%A)"
                                     unsignedTransaction.Proposal.Amount.Currency account.Currency
@@ -365,7 +366,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     )
                 elif account.PublicAddress <> unsignedTransaction.Proposal.OriginAddress then
                     Device.BeginInvokeOnMainThread(fun _ ->
-                        transactionProposalEntry.TextColor <- Color.Red
+                        transactionEntry.TextColor <- Color.Red
                         let err = "Transaction proposal's sender address doesn't match with this currency's account"
                         this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     )
@@ -374,14 +375,37 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     Caching.Instance.SaveSnapshot unsignedTransaction.Cache
 
                     lock lockObject (fun _ ->
-                        transactionProposal <- (ColdStorageMode (Some unsignedTransaction))
+                        transaction <- (ColdStorageMode (Some unsignedTransaction))
                     )
 
                     Device.BeginInvokeOnMainThread(fun _ ->
-                        transactionProposalEntry.TextColor <- Color.Default
+                        transactionEntry.TextColor <- Color.Default
                         destinationAddressEntry.Text <- unsignedTransaction.Proposal.DestinationAddress
                         amountToSend.Text <- unsignedTransaction.Proposal.Amount.ValueToSend.ToString()
                         passwordEntry.Focus() |> ignore
+                    )
+            | Some (Signed signedTransaction) ->
+                if account.Currency <> signedTransaction.TransactionInfo.Proposal.Amount.Currency then
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        transactionEntry.TextColor <- Color.Red
+                        let err =
+                            sprintf "Transaction's currency (%A) doesn't match with this currency's account (%A)"
+                                    signedTransaction.TransactionInfo.Proposal.Amount.Currency account.Currency
+                        this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    )
+                elif account.PublicAddress <> signedTransaction.TransactionInfo.Proposal.OriginAddress then
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        transactionEntry.TextColor <- Color.Red
+                        let err = "Transaction's sender address doesn't match with this currency's account"
+                        this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    )
+                else
+                    lock lockObject (fun _ ->
+                        transaction <- (ColdStorageRemoteControl (Some signedTransaction))
+                    )
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        transactionEntry.TextColor <- Color.Default
+                        sendOrSignButton.IsEnabled <- true
                     )
         ()
 
@@ -457,7 +481,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         )
 
     member private this.ToggleInputWidgetsEnabledOrDisabled (enabled: bool) =
-        let cancelButton = mainLayout.FindByName<Button> "cancelButton"
         let transactionScanQrCodeButton = mainLayout.FindByName<Button> "transactionScanQrCodeButton"
         let destinationScanQrCodeButton = mainLayout.FindByName<Button> "destinationScanQrCodeButton"
         let destinationAddressEntry = mainLayout.FindByName<Entry> "destinationAddressEntry"
@@ -472,6 +495,11 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     sendCaption
                 else
                     sendWipCaption
+            elif sendOrSignButton.Text = broadcastCaption || sendOrSignButton.Text = broadcastWipCaption then
+                if enabled then
+                    broadcastCaption
+                else
+                    broadcastWipCaption
             else
                 if enabled then
                     signCaption
@@ -516,7 +544,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             let signedTransaction = { TransactionInfo = unsignedTransaction; RawTransaction = rawTransaction }
             let compressedTransaction = Account.SerializeSignedTransaction signedTransaction true
             let pairSignedTransactionPage =
-                PairingFromPage(this, "Copy signed transaction to the clipboard", compressedTransaction)
+                PairingFromPage(this, "Copy signed transaction to the clipboard", compressedTransaction, None)
             NavigationPage.SetHasNavigationBar(pairSignedTransactionPage, false)
             let navPairPage = NavigationPage pairSignedTransactionPage
             NavigationPage.SetHasNavigationBar(navPairPage, false)
@@ -531,7 +559,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             | :? NormalAccount as normalAccount ->
                 let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
                 let password = passwordEntry.Text
-                match lock lockObject (fun _ -> transactionProposal) with
+                match lock lockObject (fun _ -> transaction) with
                 | NotAvailableBecauseOfHotMode ->
                     Task.Run(fun _ -> this.SendTransaction normalAccount txInfo password)
                         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
@@ -539,6 +567,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     failwith "Fee dialog should not have been shown if no transaction proposal was stored"
                 | ColdStorageMode (Some someTransactionProposal) ->
                     this.SignTransaction normalAccount someTransactionProposal password
+                | ColdStorageRemoteControl _ ->
+                    failwith "remote control should only happen in ReadOnly account handling"
+
             | :? ReadOnlyAccount as readOnlyAccount ->
                 let proposal = {
                     OriginAddress = account.PublicAddress;
@@ -558,9 +589,11 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                           "OK")
                     alertColdStorageTask.ContinueWith(
                         fun _ ->
-                            let pairTransactionProposalPage = PairingFromPage(this,
-                                                                              "Copy proposal to the clipboard",
-                                                                              compressedTxProposal)
+                            let pairTransactionProposalPage =
+                                PairingFromPage(this,
+                                                "Copy proposal to the clipboard",
+                                                compressedTxProposal,
+                                                Some ("Next step", this:>FrontendHelpers.IAugmentablePayPage))
                             NavigationPage.SetHasNavigationBar(pairTransactionProposalPage, false)
                             let navPairPage = NavigationPage pairTransactionProposalPage
                             NavigationPage.SetHasNavigationBar(navPairPage, false)
@@ -665,7 +698,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 | None -> this.ToggleInputWidgetsEnabledOrDisabled true
                 | Some validatedDestinationAddress ->
 
-                    match lock lockObject (fun _ -> transactionProposal) with
+                    match lock lockObject (fun _ -> transaction) with
                     | ColdStorageMode (None) ->
                         failwith "Sign button should not have been enabled if no transaction proposal was stored"
                     | ColdStorageMode (Some someTransactionProposal) ->
@@ -682,6 +715,30 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         this.ShowFeeAndSend(Some someTransactionProposal.Metadata,
                                             someTransactionProposal.Proposal.Amount,
                                             validatedDestinationAddress)
+
+                    | ColdStorageRemoteControl maybeSignedTransaction ->
+                        match maybeSignedTransaction with
+                        | None -> failwith "if broadcast button was enabled, signed transaction should have been deserialized already"
+                        | Some signedTransaction ->
+                            let broadcastTask = Async.StartAsTask (Account.BroadcastTransaction signedTransaction)
+                            broadcastTask.ContinueWith(fun (t: Task<Uri>) ->
+                                Device.BeginInvokeOnMainThread(fun _ ->
+                                    this.DisplayAlert("Success", "Transaction sent.", "OK")
+                                        .ContinueWith(fun _ ->
+                                            Device.BeginInvokeOnMainThread(fun _ ->
+                                                let newReceivePage = newReceivePageFunc()
+                                                let navNewReceivePage = NavigationPage(newReceivePage)
+                                                NavigationPage.SetHasNavigationBar(newReceivePage, false)
+                                                NavigationPage.SetHasNavigationBar(navNewReceivePage, false)
+                                                receivePage.Navigation.RemovePage receivePage
+                                                this.Navigation.InsertPageBefore(navNewReceivePage, this)
+
+                                                this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+                                            )
+                                        ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                                )
+                            ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+
                     | NotAvailableBecauseOfHotMode ->
                         let maybeTxMetadataWithFeeEstimationAsync = async {
                             try
@@ -713,3 +770,23 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
                     ()
+
+    interface FrontendHelpers.IAugmentablePayPage with
+        member this.AddTransactionScanner() =
+            Device.BeginInvokeOnMainThread(fun _ ->
+                transactionLayout.IsVisible <- true
+                transactionEntry.Text <- String.Empty
+                transactionEntry.IsVisible <- true
+                transactionScanQrCodeButton.IsEnabled <- true
+                if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
+                    transactionScanQrCodeButton.IsVisible <- true
+                destinationScanQrCodeButton.IsVisible <- false
+                allBalanceButton.IsVisible <- false
+
+                if sendOrSignButton.Text = sendWipCaption then
+                    transactionLabel.Text <- "Signed transaction:"
+                    sendOrSignButton.Text <- broadcastCaption
+                    cancelButton.IsEnabled <- true
+                else
+                    sendOrSignButton.Text <- signCaption
+            )

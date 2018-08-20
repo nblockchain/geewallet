@@ -6,11 +6,12 @@
                  Padding="10,10,10,10"
                  VerticalOptions="Center"
                  HorizontalOptions="FillAndExpand">
-        <StackLayout x:Name="transactionProposalLayout"
+        <StackLayout x:Name="transactionLayout"
                      Orientation="Horizontal"
                      HorizontalOptions="FillAndExpand"
                      IsVisible="false">
-            <Label Text="Transaction proposal:"
+            <Label x:Name="transactionLabel"
+                   Text="Transaction proposal:"
                    HorizontalOptions="Start"
                    VerticalOptions="End"
                    />
@@ -31,8 +32,8 @@
             </Button>
         </StackLayout>
 
-        <Entry x:Name="transactionProposalEntry"
-               TextChanged="OnTransactionProposalEntryTextChanged"
+        <Entry x:Name="transactionEntry"
+               TextChanged="OnTransactionEntryTextChanged"
                IsVisible="false"
                />
 

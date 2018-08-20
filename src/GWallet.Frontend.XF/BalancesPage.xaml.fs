@@ -238,7 +238,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                         .Select(fun acc -> (acc:>IAccount).PublicAddress) |> Set.ofSeq
                         let addressesSeparatedByCommas = String.Join(",", normalAccountsAddresses)
 
-                        let page = PairingFromPage(this, "Copy addresses to clipboard", addressesSeparatedByCommas)
+                        let page = PairingFromPage(this, "Copy addresses to clipboard", addressesSeparatedByCommas, None)
                         NavigationPage.SetHasNavigationBar(page, false)
                         let navPage = NavigationPage page
                         navPage :> Page
