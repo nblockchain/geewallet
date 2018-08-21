@@ -211,9 +211,7 @@ module Server =
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
     let private faultTolerantEthClient =
-        // FIXME: update once https://github.com/Nethereum/Nethereum/issues/390 is fixed
-        JsonRpc.Client.RpcClient.ConnectionTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
-
+        JsonRpc.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
         FaultTolerantParallelClient<ConnectionUnsuccessfulException>()
 
     let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): list<'T->'R> =
