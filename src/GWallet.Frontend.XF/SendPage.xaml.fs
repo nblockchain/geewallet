@@ -409,71 +409,75 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     )
         ()
 
+    member private this.UpdateEquivalentFiatLabel (): bool =
+        let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
+        if amountToSend = null || String.IsNullOrWhiteSpace amountToSend.Text then
+            false
+        else
+            let equivalentAmount = mainLayout.FindByName<Label> "equivalentAmountInAlternativeCurrency"
+            // FIXME: marking as red should not even mark button as disabled but give the reason in Alert?
+            match Decimal.TryParse(amountToSend.Text) with
+            | false,_ ->
+                amountToSend.TextColor <- Color.Red
+                sendOrSignButton.IsEnabled <- false
+                equivalentAmount.Text <- String.Empty
+                false
+            | true,amount ->
+                let usdRate = FiatValueEstimation.UsdValue account.Currency
+                let lastCachedBalance: decimal =
+                    match GetCachedBalance() with
+                    | Cached(lastCachedBalance,_) ->
+                        lastCachedBalance
+                    | _ ->
+                        failwith "there should be a cached balance (either by being online, or because of importing a cache snapshot) at the point of changing the amount or destination address (respectively, by the user, or by importing a tx proposal)"
+
+                let allBalanceInSelectedCurrency =
+                    match currencySelectorPicker.SelectedItem.ToString() with
+                    | "USD" ->
+                        match usdRate with
+                        | NotFresh NotAvailable ->
+                            failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                        | NotFresh(Cached(rate,_)) | Fresh rate ->
+                            lastCachedBalance * rate
+                    | _ -> lastCachedBalance
+
+                if (amount <= 0.0m || amount > allBalanceInSelectedCurrency) then
+                    amountToSend.TextColor <- Color.Red
+                    if (amount > 0.0m) then
+                        equivalentAmount.Text <- "(Not enough funds)"
+                    false
+                else
+                    amountToSend.TextColor <- Color.Default
+
+                    match usdRate with
+                    | NotFresh NotAvailable ->
+                        true
+                    | NotFresh(Cached(rate,_)) | Fresh rate ->
+                        let eqAmount,otherCurrency =
+                            match currencySelectorPicker.SelectedItem.ToString() with
+                            | "USD" ->
+                                Formatting.DecimalAmount CurrencyType.Crypto (amount / rate),
+                                    account.Currency.ToString()
+                            | _ ->
+                                Formatting.DecimalAmount CurrencyType.Fiat (rate * amount),
+                                    "USD"
+                        let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
+                        equivalentAmount.Text <- usdAmount
+                        true
+
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
-        let usdRate = FiatValueEstimation.UsdValue account.Currency
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         if (mainLayout = null) then
             //page not yet ready
             ()
         else
-            let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
-            if (destinationAddressEntry = null ||
-                String.IsNullOrEmpty destinationAddressEntry.Text ||
-                this.IsPasswordUnfilledAndNeeded mainLayout ||
-                amountToSend = null) then
-                ()
-            else
-                let equivalentAmount = mainLayout.FindByName<Label>("equivalentAmountInAlternativeCurrency")
-                if (amountToSend.Text <> null && amountToSend.Text.Length > 0) then
-                    // FIXME: marking as red should not even mark button as disabled but give the reason in Alert?
-                    match Decimal.TryParse(amountToSend.Text) with
-                    | false,_ ->
-                        amountToSend.TextColor <- Color.Red
-                        sendOrSignButton.IsEnabled <- false
-                        equivalentAmount.Text <- String.Empty
-                    | true,amount ->
-                        let lastCachedBalance: decimal =
-                            match GetCachedBalance() with
-                            | Cached(lastCachedBalance,_) ->
-                                lastCachedBalance
-                            | _ ->
-                                failwith "there should be a cached balance (either by being online, or because of importing a cache snapshot) at the point of changing the amount or destination address (respectively, by the user, or by importing a tx proposal)"
-
-                        let allBalanceInSelectedCurrency =
-                            match currencySelectorPicker.SelectedItem.ToString() with
-                            | "USD" ->
-                                match usdRate with
-                                | NotFresh NotAvailable ->
-                                    failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
-                                | NotFresh(Cached(rate,_)) | Fresh rate ->
-                                    lastCachedBalance * rate
-                            | _ -> lastCachedBalance
-
-                        if (amount <= 0.0m || amount > allBalanceInSelectedCurrency) then
-                            amountToSend.TextColor <- Color.Red
-                            sendOrSignButton.IsEnabled <- false
-                            equivalentAmount.Text <- "(Not enough funds)"
-                        else
-                            amountToSend.TextColor <- Color.Default
-                            sendOrSignButton.IsEnabled <- (not (this.IsPasswordUnfilledAndNeeded mainLayout)) &&
-                                                    destinationAddressEntry.Text <> null &&
-                                                    destinationAddressEntry.Text.Length > 0
-
-                            match usdRate with
-                            | NotFresh NotAvailable -> ()
-                            | NotFresh(Cached(rate,_)) | Fresh rate ->
-                                let eqAmount,otherCurrency =
-                                    match currencySelectorPicker.SelectedItem.ToString() with
-                                    | "USD" ->
-                                        Formatting.DecimalAmount CurrencyType.Crypto (amount / rate),
-                                            account.Currency.ToString()
-                                    | _ ->
-                                        Formatting.DecimalAmount CurrencyType.Fiat (rate * amount),
-                                            "USD"
-                                let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
-                                equivalentAmount.Text <- usdAmount
-                else
-                    sendOrSignButton.IsEnabled <- false
+            let sendOrSignButtonEnabled = this.UpdateEquivalentFiatLabel() &&
+                                          destinationAddressEntry <> null &&
+                                          (not (String.IsNullOrEmpty destinationAddressEntry.Text)) &&
+                                          (not (this.IsPasswordUnfilledAndNeeded mainLayout))
+            Device.BeginInvokeOnMainThread(fun _ ->
+                sendOrSignButton.IsEnabled <- sendOrSignButtonEnabled
+            )
 
     member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
         Device.BeginInvokeOnMainThread(fun _ ->
