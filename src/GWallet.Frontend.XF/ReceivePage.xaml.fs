@@ -15,7 +15,9 @@ open ZXing.Common
 open GWallet.Backend
 
 type ReceivePage(account: IAccount,
-                 balancesPage: Page) as this =
+                 balancesPage: Page,
+                 cryptoBalanceLabelInBalancesPage: Label,
+                 fiatBalanceLabelInBalancesPage: Label) as this =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
@@ -30,6 +32,14 @@ type ReceivePage(account: IAccount,
         let accountBalance =
             Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
         FrontendHelpers.UpdateBalance (NotFresh accountBalance) account.Currency balanceLabel fiatBalanceLabel
+            |> ignore
+
+        // this below is for the case when a new ReceivePage() instance is suddenly created after sending a transaction
+        // (we need to update the balance page ASAP in case the user goes back to it after sending the transaction)
+        FrontendHelpers.UpdateBalance (NotFresh accountBalance)
+                                      account.Currency
+                                      cryptoBalanceLabelInBalancesPage
+                                      fiatBalanceLabelInBalancesPage
             |> ignore
 
         balanceLabel.FontSize <- FrontendHelpers.BigFontSize
@@ -84,7 +94,7 @@ type ReceivePage(account: IAccount,
 
     member this.OnSendPaymentClicked(sender: Object, args: EventArgs) =
         let newReceivePageFunc = (fun _ ->
-            ReceivePage(account, balancesPage) :> Page
+            ReceivePage(account, balancesPage, cryptoBalanceLabelInBalancesPage, fiatBalanceLabelInBalancesPage) :> Page
         )
         let sendPage = SendPage(account, this, newReceivePageFunc)
         NavigationPage.SetHasNavigationBar(sendPage, false)

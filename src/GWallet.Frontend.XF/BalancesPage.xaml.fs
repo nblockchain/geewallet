@@ -123,7 +123,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
             let tapGestureRecognizer = TapGestureRecognizer()
             tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                let receivePage = ReceivePage(account, this)
+                let receivePage = ReceivePage(account, this, cryptoBalance, fiatBalance)
                 NavigationPage.SetHasNavigationBar(receivePage, false)
                 let navPage = NavigationPage receivePage
 
