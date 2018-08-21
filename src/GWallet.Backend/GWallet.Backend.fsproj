@@ -139,41 +139,38 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.Hex.3.0.0-rc1\lib\net451\Nethereum.Hex.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.JsonRpc.Client">
-      <HintPath>..\..\packages\Nethereum.JsonRpc.Client.3.0.0-rc1\lib\net451\Nethereum.JsonRpc.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.JsonRpc.RpcClient">
-      <HintPath>..\..\packages\Nethereum.JsonRpc.RpcClient.3.0.0-rc1\lib\net451\Nethereum.JsonRpc.RpcClient.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.KeyStore.3.0.0-rc1\lib\net451\Nethereum.KeyStore.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.RLP.3.0.0-rc1\lib\net451\Nethereum.RLP.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.Util.3.0.0-rc1\lib\net451\Nethereum.Util.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.ABI.3.0.0-rc1\lib\net451\Nethereum.ABI.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.RPC.3.0.0-rc1\lib\net451\Nethereum.RPC.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.Contracts.3.0.0-rc1\lib\net451\Nethereum.Contracts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.Signer.3.0.0-rc1\lib\net451\Nethereum.Signer.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Accounts">
-      <HintPath>..\..\packages\Nethereum.Accounts.3.0.0-rc1\lib\net451\Nethereum.Accounts.dll</HintPath>
+    <Reference Include="Nethereum.StandardTokenEIP20">
+      <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.3.0.0-CI-20180815-082224\lib\net451\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.Web3.3.0.0-rc1\lib\net451\Nethereum.Web3.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Web3.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Web3.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Signer">
+      <HintPath>..\..\packages\Nethereum.Signer.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Signer.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Accounts">
+      <HintPath>..\..\packages\Nethereum.Accounts.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Accounts.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Util">
+      <HintPath>..\..\packages\Nethereum.Util.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.ABI">
+      <HintPath>..\..\packages\Nethereum.ABI.3.0.0-CI-20180815-082224\lib\net451\Nethereum.ABI.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RPC">
+      <HintPath>..\..\packages\Nethereum.RPC.3.0.0-CI-20180815-082224\lib\net451\Nethereum.RPC.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Contracts">
+      <HintPath>..\..\packages\Nethereum.Contracts.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Contracts.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RLP">
+      <HintPath>..\..\packages\Nethereum.RLP.3.0.0-CI-20180815-082224\lib\net451\Nethereum.RLP.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.KeyStore">
+      <HintPath>..\..\packages\Nethereum.KeyStore.3.0.0-CI-20180815-082224\lib\net451\Nethereum.KeyStore.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.JsonRpc.RpcClient">
+      <HintPath>..\..\packages\Nethereum.JsonRpc.RpcClient.3.0.0-CI-20180815-082224\lib\net451\Nethereum.JsonRpc.RpcClient.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.3.4\lib\net45\FSharp.Core.dll</HintPath>
@@ -184,8 +181,11 @@
     <Reference Include="CryptSharp">
       <HintPath>..\..\packages\CryptSharpOfficial.2.1.0.0\lib\CryptSharp.dll</HintPath>
     </Reference>
-    <Reference Include="Nethereum.StandardTokenEIP20">
-      <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.3.0.0-rc1\lib\net451\Nethereum.StandardTokenEIP20.dll</HintPath>
+    <Reference Include="Nethereum.JsonRpc.Client">
+      <HintPath>..\..\packages\Nethereum.JsonRpc.Client.3.0.0-CI-20180815-082224\lib\net451\Nethereum.JsonRpc.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Hex">
+      <HintPath>..\..\packages\Nethereum.Hex.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Hex.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

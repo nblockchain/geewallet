@@ -51,17 +51,17 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.Hex.3.0.0-rc1\lib\net451\Nethereum.Hex.dll</HintPath>
-    </Reference>
     <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.RLP.3.0.0-rc1\lib\net451\Nethereum.RLP.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.Util.3.0.0-rc1\lib\net451\Nethereum.Util.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.RLP.3.0.0-CI-20180815-082224\lib\net451\Nethereum.RLP.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.Signer.3.0.0-rc1\lib\net451\Nethereum.Signer.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Signer.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Signer.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Util">
+      <HintPath>..\..\packages\Nethereum.Util.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Hex">
+      <HintPath>..\..\packages\Nethereum.Hex.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Hex.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.3.4\lib\net45\FSharp.Core.dll</HintPath>
