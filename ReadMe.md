@@ -41,6 +41,7 @@ Comparing our product to other wallets in terms of features, we would want to hi
 | ParitySigner   | No             | Yes        | Yes          | No         | Yes                  |
 | imToken        | Yes            | No         | Yes          | No         | No                   |
 | status.im      | No             | Yes        | No           | No         | Yes                  |
+| Edge           | Yes            | Yes?       | No           | No         | No                   |
 | WarpWallet     | No             | Yes        | No           | Yes        | No                   |
 | geewallet      | Yes            | Yes        | Yes          | Yes        | Yes                  |
 
