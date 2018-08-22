@@ -45,7 +45,7 @@ module FiatValueEstimation =
         with
         | :? WebException -> None
 
-    let private ParseJson currency (json: string) =
+    let private ParseJsonStoringInCache currency (json: string) =
         let ticker = CoinMarketCapJsonProvider.Parse(json)
         if (ticker.Length <> 1) then
             failwith ("Unexpected length of json main array: " + json)
@@ -55,20 +55,26 @@ module FiatValueEstimation =
         Caching.Instance.StoreLastFiatUsdPrice(currency, usdPrice)
         result
 
-    let private RetreiveOnline currency =
+    let private RetreiveOnline currency: Option<decimal> =
         match RetreiveOnlineInternal currency with
-        | None -> NotFresh NotAvailable
+        | None -> None
         | Some json ->
-            Fresh (ParseJson currency json)
+            Some (ParseJsonStoringInCache currency json)
 
     let UsdValue(currency: Currency): MaybeCached<decimal> =
         let maybeUsdPrice = Caching.Instance.RetreiveLastKnownUsdPrice currency
         match maybeUsdPrice with
         | NotAvailable ->
-            RetreiveOnline currency
+            match RetreiveOnline currency with
+            | None -> NotFresh NotAvailable
+            | Some value -> Fresh value
         | Cached(someValue,someDate) ->
             if not (someDate + PERIOD_TO_CONSIDER_PRICE_STILL_FRESH > DateTime.Now) then
                 Fresh someValue
             else
-                RetreiveOnline currency
+                match RetreiveOnline currency with
+                | None ->
+                    NotFresh (Cached(someValue,someDate))
+                | Some freshValue ->
+                    Fresh freshValue
 
