@@ -199,6 +199,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.fs" />
+    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
+      <Link>Properties\CommonAssemblyInfo.fs</Link>
+    </Compile>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-256x256.png" />
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json" />
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo-40x40.png" />

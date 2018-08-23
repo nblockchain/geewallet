@@ -4,7 +4,13 @@
     <EnableDefaultEmbeddedResourceItems>true</EnableDefaultEmbeddedResourceItems>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.fs" />
+    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
+      <Link>Properties\CommonAssemblyInfo.fs</Link>
+    </Compile>
     <Compile Include="FrontendHelpers.fs" />
     <Compile Include="PairingFromPage.xaml.fs">
       <DependentUpon>PairingFromPage.xaml</DependentUpon>

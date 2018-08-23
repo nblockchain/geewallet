@@ -3,11 +3,14 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
+      <Link>Properties\CommonAssemblyInfo.fs</Link>
+    </Compile>
     <Compile Include="..\GWallet.Backend\FSharpUtil.fs">
       <Link>FSharpUtil.fs</Link>
-    </Compile>
-    <Compile Include="..\GWallet.Backend\CommonAssemblyInfo.fs">
-      <Link>CommonAssemblyInfo.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\Shuffler.fs">
       <Link>Shuffler.fs</Link>
