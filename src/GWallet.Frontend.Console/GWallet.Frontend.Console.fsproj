@@ -68,16 +68,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="App.config" />
-    <Compile Include="..\GWallet.Backend\CommonAssemblyInfo.fs">
-      <Link>CommonAssemblyInfo.fs</Link>
+    <Compile Include="Properties\AssemblyInfo.fs" />
+    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
+      <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
       <Name>GWallet.Backend</Name>
       <Project>{96f9b3e5-11f8-4f5f-aadc-51d0d995b3d2}</Project>
       <Private>True</Private>
     </ProjectReference>
-    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Presentation.fs" />
     <Compile Include="UserInteraction.fs" />
     <Compile Include="Program.fs" />
