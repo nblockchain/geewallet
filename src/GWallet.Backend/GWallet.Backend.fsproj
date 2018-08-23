@@ -187,9 +187,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.fs" />
+    <Compile Include="Properties\CommonAssemblyInfo.fs" />
     <Compile Include="FSharpUtil.fs" />
-    <Compile Include="CommonAssemblyInfo.fs" />
-    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Shuffler.fs" />
     <Compile Include="Marshalling.fs" />
     <Compile Include="Currency.fs" />
