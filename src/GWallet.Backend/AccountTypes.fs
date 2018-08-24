@@ -2,6 +2,13 @@ namespace GWallet.Backend
 
 open System.IO
 
+type ConceptAccount =
+    {
+        Currency: Currency;
+        FileNameAndContent: string*string;
+        ExtractPublicKeyFromConfigFileFunc: FileInfo->string;
+    }
+
 type IAccount =
     abstract member Currency: Currency with get
     abstract member PublicAddress: string with get
