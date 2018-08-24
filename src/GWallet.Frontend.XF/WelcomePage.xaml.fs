@@ -111,7 +111,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                     ToggleInputWidgetsEnabledOrDisabled false
 
                     async {
-                        let! accounts = Account.CreateBaseAccount passphrase.Text dateTime (email.Text.ToLower()) password.Text
+                        do! Account.CreateBaseAccount passphrase.Text dateTime (email.Text.ToLower()) password.Text
                         FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage state)
                     } |> FrontendHelpers.DoubleCheckCompletionAsync
 
