@@ -4,12 +4,12 @@ Welcome!
 
 GWallet is a minimalistic and pragmatist lightweight wallet for people that want to hold the most important cryptocurrencies in the same application without hassle.
 
-| Branch    | Description                                                                | CI status                                                                                                                                 |
-| --------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| oldstable | (v0.1.0.x) ETC & ETH support, console-based frontend, cold-storage support | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/oldstable/build.svg)](https://gitlab.com/knocte/gwallet/commits/oldstable) |
-| stable    | (v0.2.0.x) +BTC&LTC support (including SegWit & RBF support) + DAI (ERC20) | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/stable/build.svg)](https://gitlab.com/knocte/gwallet/commits/stable)       |
-| master    | main branch where ongoing development takes place (unstable)               | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/master/build.svg)](https://gitlab.com/knocte/gwallet/commits/master)       |
-| frontend  | +Xamarin.Forms frontends (now: Android & iOS & Gtk & Mac; soon: UWP)       | [![Build status badge](http://gitlab.com/knocte/gwallet/badges/frontend/build.svg)](https://gitlab.com/knocte/gwallet/commits/frontend)   |
+| Branch    | Description                                                                | CI status                                                                                                                                             |
+| --------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| oldstable | (v0.1.0.x) ETC & ETH support, console-based frontend, cold-storage support | [![Build status badge](http://gitlab.com/Diginex_HK/geewallet/badges/oldstable/build.svg)](https://gitlab.com/Diginex_HK/geewallet/commits/oldstable) |
+| stable    | (v0.2.0.x) +BTC&LTC support (including SegWit & RBF support) + DAI (ERC20) | [![Build status badge](http://gitlab.com/Diginex_HK/geewallet/badges/stable/build.svg)](https://gitlab.com/Diginex_HK/geewallet/commits/stable)       |
+| master    | main branch where ongoing development takes place (unstable)               | [![Build status badge](http://gitlab.com/Diginex_HK/geewallet/badges/master/build.svg)](https://gitlab.com/Diginex_HK/geewallet/commits/master)       |
+| frontend  | +Xamarin.Forms frontends (now: Android & iOS & Gtk & Mac; soon: UWP)       | [![Build status badge](http://gitlab.com/Diginex_HK/geewallet/badges/frontend/build.svg)](https://gitlab.com/Diginex_HK/geewallet/commits/frontend)   |
 
 [![Balances mobile-page screenshot](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-balances.png)](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-balances.png)
 

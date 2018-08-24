@@ -380,60 +380,71 @@ module Account =
     let RemovePublicWatcher (account: ReadOnlyAccount) =
         Config.RemoveReadonly account
 
-    let private CreateNormalEtherAccountInternal (password: string) (seed: array<byte>)
+    let private CreateConceptEtherAccountInternal (password: string) (seed: array<byte>)
                                                  : Async<(string*string)*(FileInfo->string)> =
         async {
             let! fileName,encryptedPrivateKeyInJson = Ether.Account.Create password seed
             return (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
         }
 
-    let private CreateNormalAccountInternal (currency: Currency) (password: string) (seed: array<byte>)
+    let private CreateConceptAccountInternal (currency: Currency) (password: string) (seed: array<byte>)
                                             : Async<(string*string)*(FileInfo->string)> =
         async {
             if currency.IsUtxo() then
                 let! publicKey,encryptedPrivateKey = UtxoCoin.Account.Create currency password seed
                 return (publicKey,encryptedPrivateKey), UtxoCoin.Account.GetPublicAddressFromAccountFile currency
             elif currency.IsEtherBased() then
-                return! CreateNormalEtherAccountInternal password seed
+                return! CreateConceptEtherAccountInternal password seed
             else
                 return failwith (sprintf "Unknown currency %A" currency)
         }
 
 
-    let CreateNormalAccount (currency: Currency) (password: string) (seed: array<byte>)
-                            : Async<NormalAccount> =
+    let CreateConceptAccount (currency: Currency) (password: string) (seed: array<byte>)
+                            : Async<ConceptAccount> =
         async {
             let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
-                CreateNormalAccountInternal currency password seed
-            let newAccountFile = Config.AddNormalAccount currency fileName encryptedPrivateKey
-            return NormalAccount(currency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
+                CreateConceptAccountInternal currency password seed
+            return {
+                       Currency = currency;
+                       FileNameAndContent = fileName,encryptedPrivateKey;
+                       ExtractPublicKeyFromConfigFileFunc = fromEncPrivKeyToPubKeyFunc;
+                   }
         }
 
-    let private CreateNormalAccountAux (currency: Currency) (password: string) (seed: array<byte>)
-                            : Async<List<NormalAccount>> =
+    let private CreateConceptAccountAux (currency: Currency) (password: string) (seed: array<byte>)
+                            : Async<List<ConceptAccount>> =
         async {
-            let! singleAccount = CreateNormalAccount currency password seed
+            let! singleAccount = CreateConceptAccount currency password seed
             return singleAccount::[]
         }
 
     let CreateEtherNormalAccounts (password: string) (seed: array<byte>)
-                                  : seq<Currency>*Async<List<NormalAccount>> =
+                                  : seq<Currency>*Async<List<ConceptAccount>> =
         let etherCurrencies = Currency.GetAll().Where(fun currency -> currency.IsEtherBased())
         let etherAccounts = async {
             let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
-                CreateNormalEtherAccountInternal password seed
+                CreateConceptEtherAccountInternal password seed
             return seq {
                 for etherCurrency in etherCurrencies do
-                    let newAccountFile = Config.AddNormalAccount etherCurrency fileName encryptedPrivateKey
-                    yield NormalAccount(etherCurrency, newAccountFile, fromEncPrivKeyToPubKeyFunc)
+                    yield {
+                              Currency = etherCurrency;
+                              FileNameAndContent = fileName,encryptedPrivateKey;
+                              ExtractPublicKeyFromConfigFileFunc = fromEncPrivKeyToPubKeyFunc;
+                          }
             } |> List.ofSeq
         }
         etherCurrencies,etherAccounts
 
+    let CreateNormalAccount (conceptAccount: ConceptAccount): NormalAccount =
+        let fileName,fileContents = conceptAccount.FileNameAndContent
+        let newAccountFile = Config.AddNormalAccount conceptAccount
+        NormalAccount(conceptAccount.Currency, newAccountFile, conceptAccount.ExtractPublicKeyFromConfigFileFunc)
+
     let private LENGTH_OF_PRIVATE_KEYS = 32
     let CreateBaseAccount (passphrase: string)
                           (dobPartOfSalt: DateTime) (emailPartOfSalt: string)
-                          (encryptionPassword: string) =
+                          (encryptionPassword: string): Async<unit> =
 
         let salt = sprintf "%s+%s" (dobPartOfSalt.Date.ToString("yyyyMMdd")) (emailPartOfSalt.ToLower())
         let privateKeyBytes = WarpKey.CreatePrivateKey passphrase salt
@@ -441,16 +452,23 @@ module Account =
         let ethCurrencies,etherAccounts = CreateEtherNormalAccounts encryptionPassword privateKeyBytes
         let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (ethCurrencies.Contains currency))
 
-        let nonEtherAccounts: List<Async<List<NormalAccount>>> =
+        let nonEtherAccounts: List<Async<List<ConceptAccount>>> =
             seq {
                 // TODO: figure out if we can reuse CPU computation of WIF creation between BTC&LTC
                 for nonEthCurrency in nonEthCurrencies do
-                    yield CreateNormalAccountAux nonEthCurrency encryptionPassword privateKeyBytes
+                    yield CreateConceptAccountAux nonEthCurrency encryptionPassword privateKeyBytes
             } |> List.ofSeq
 
         let allAccounts = etherAccounts::nonEtherAccounts
 
-        Async.Parallel allAccounts
+        let createAllAccountsJob = Async.Parallel allAccounts
+
+        async {
+            let! allCreatedConceptAccounts = createAllAccountsJob
+            for accountGroup in allCreatedConceptAccounts do
+                for conceptAccount in accountGroup do
+                    CreateNormalAccount conceptAccount |> ignore
+        }
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans

@@ -103,8 +103,9 @@ module internal Config =
                        (account.GetType().FullName))
         Path.Combine(configDir.FullName, fileName)
 
-    let AddNormalAccount currency fileName jsonStoreContent =
-        let configDir = GetConfigDirForNormalAccountsOfThisCurrency(currency)
+    let AddNormalAccount conceptAccount =
+        let configDir = GetConfigDirForNormalAccountsOfThisCurrency conceptAccount.Currency
+        let fileName,jsonStoreContent = conceptAccount.FileNameAndContent
         let newAccountFile = Path.Combine(configDir.FullName, fileName)
         File.WriteAllText(newAccountFile, jsonStoreContent)
         FileInfo(newAccountFile)
