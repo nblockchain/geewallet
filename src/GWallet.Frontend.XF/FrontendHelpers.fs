@@ -16,6 +16,8 @@ module FrontendHelpers =
 
         [<CLIEvent>]
         abstract member Resumed: IEvent<unit> with get
+        [<CLIEvent>]
+        abstract member GoneToSleep: IEvent<unit> with get
 
     type IAugmentablePayPage =
         abstract member AddTransactionScanner: unit -> unit

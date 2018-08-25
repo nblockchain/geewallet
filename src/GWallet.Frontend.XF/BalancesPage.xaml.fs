@@ -291,3 +291,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         this.StartBalanceRefreshCycle CycleStart.ImmediateForReadOnlyAccounts
 
         state.Resumed.Add (fun _ -> this.StartBalanceRefreshCycle CycleStart.ImmediateForAll)
+
+        state.GoneToSleep.Add (fun _ -> Async.CancelDefaultToken())
+

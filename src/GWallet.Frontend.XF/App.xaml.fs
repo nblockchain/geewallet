@@ -10,6 +10,7 @@ open GWallet.Backend
 type GlobalState() =
 
     let resumed = new Event<unit>()
+    let goneToSleep = new Event<unit>()
 
     let lockObject = Object()
     let mutable awake = true
@@ -18,6 +19,8 @@ type GlobalState() =
 
     member internal this.FireResumed() =
         resumed.Trigger()
+    member internal this.FireGoneToSleep() =
+        goneToSleep.Trigger()
 
     interface FrontendHelpers.IGlobalAppState with
         member this.Awake
@@ -26,6 +29,9 @@ type GlobalState() =
         [<CLIEvent>]
         member this.Resumed
             with get() = resumed.Publish
+        [<CLIEvent>]
+        member this.GoneToSleep
+            with get() = goneToSleep.Publish
 
 module Initialization =
 
@@ -53,7 +59,7 @@ type App() =
 
     override this.OnSleep(): unit =
         Initialization.GlobalState.Awake <- false
-        Async.CancelDefaultToken()
+        Initialization.GlobalState.FireGoneToSleep()
 
     override this.OnResume(): unit =
         Initialization.GlobalState.Awake <- true
