@@ -8,14 +8,24 @@ open Xamarin.Forms
 open GWallet.Backend
 
 type GlobalState() =
+
+    let resumed = new Event<unit>()
+
     let lockObject = Object()
     let mutable awake = true
     member internal this.Awake
         with set value = lock lockObject (fun _ -> awake <- value)
 
+    member internal this.FireResumed() =
+        resumed.Trigger()
+
     interface FrontendHelpers.IGlobalAppState with
         member this.Awake
             with get() = lock lockObject (fun _ -> awake)
+
+        [<CLIEvent>]
+        member this.Resumed
+            with get() = resumed.Publish
 
 module Initialization =
 
@@ -47,21 +57,4 @@ type App() =
 
     override this.OnResume(): unit =
         Initialization.GlobalState.Awake <- true
-
-        let maybeBalancesPage =
-            match this.MainPage with
-            | :? BalancesPage as balancesPage ->
-                Some balancesPage
-            | :? NavigationPage as navPage ->
-                match navPage.RootPage with
-                | :? BalancesPage as balancesPage ->
-                    Some balancesPage
-                | _ ->
-                    None
-            | _ ->
-                None
-
-        match maybeBalancesPage with
-        | Some balancesPage ->
-            balancesPage.StartBalanceRefreshCycle CycleStart.ImmediateForAll
-        | None -> ()
+        Initialization.GlobalState.FireResumed()

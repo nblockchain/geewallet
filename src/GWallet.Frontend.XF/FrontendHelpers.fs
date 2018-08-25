@@ -14,6 +14,9 @@ module FrontendHelpers =
     type IGlobalAppState =
         abstract member Awake: bool with get
 
+        [<CLIEvent>]
+        abstract member Resumed: IEvent<unit> with get
+
     type IAugmentablePayPage =
         abstract member AddTransactionScanner: unit -> unit
 

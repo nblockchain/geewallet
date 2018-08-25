@@ -289,3 +289,5 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances totalReadOnlyFiatAmountLabel
         )
         this.StartBalanceRefreshCycle CycleStart.ImmediateForReadOnlyAccounts
+
+        state.Resumed.Add (fun _ -> this.StartBalanceRefreshCycle CycleStart.ImmediateForAll)
