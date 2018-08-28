@@ -2,6 +2,7 @@
 
 open System
 open System.Linq
+open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -15,8 +16,8 @@ type CycleStart =
     | Delayed
 
 type BalancesPage(state: FrontendHelpers.IGlobalAppState,
-                  normalAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>>,
-                  readOnlyAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>>,
+                  normalAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>*bool>,
+                  readOnlyAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>*_>,
                   startWithReadOnlyAccounts: bool)
                       as this =
     inherit ContentPage()
@@ -27,11 +28,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
     let totalReadOnlyFiatAmountLabel = mainLayout.FindByName<Label> "totalReadOnlyFiatAmountLabel"
 
-    let timeToRefreshBalances = TimeSpan.FromSeconds 60.0
+    let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
+    let standardTimeToRefreshBalancesWhenPaymentIsImminent = TimeSpan.FromMinutes 1.0
 
     let GetBalanceUpdateJobs accountsAndBalances =
         seq {
-            for normalAccount,accountBalance,fiatBalance,_ in accountsAndBalances do
+            for normalAccount,accountBalance,fiatBalance,_,_ in accountsAndBalances do
                 yield FrontendHelpers.UpdateBalanceAsync normalAccount accountBalance fiatBalance
         }
     let normalBalancesJob = Async.Parallel (GetBalanceUpdateJobs normalAccountsAndBalances)
@@ -100,6 +102,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 FindCryptoBalances layout tail resultsSoFar
 
     let mutable timerRunning = false
+    let mutable isIncomingPaymentImminent = false
     let lockObject = Object()
 
     do
@@ -110,6 +113,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> timerRunning)
          and set value = lock lockObject (fun _ -> timerRunning <- value)
 
+    member private this.IsIncomingPaymentImminent
+        with get() = lock lockObject (fun _ -> isIncomingPaymentImminent)
+         and set value = lock lockObject (fun _ -> isIncomingPaymentImminent <- value)
+
     member this.PopulateBalances balances =
 
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
@@ -119,7 +126,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         for currentCryptoBalance in currentCryptoBalances do
             mainLayout.Children.Remove currentCryptoBalance |> ignore
 
-        for account,cryptoBalance,fiatBalance,_ in balances do
+        for account,cryptoBalance,fiatBalance,_,_ in balances do
 
             let tapGestureRecognizer = TapGestureRecognizer()
             tapGestureRecognizer.Tapped.Subscribe(fun _ ->
@@ -151,33 +158,93 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     member private this.RefreshBalancesAndCheckIfAwake (onlyReadOnlyAccounts: bool): bool =
         let awake = state.Awake
         if (awake) then
-            async {
-                if (state.Awake && (not onlyReadOnlyAccounts)) then
-                    let! resolvedNormalBalances = normalBalancesJob
-                    let normalFiatBalances = resolvedNormalBalances.Select(fun (_,_,_,f) -> f)
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        this.UpdateGlobalFiatBalanceSum normalFiatBalances totalFiatAmountLabel
-                    )
-                if (state.Awake) then
-                    let! resolvedReadOnlyBalances = readOnlyBalancesJob
-                    let readOnlyFiatBalances = resolvedReadOnlyBalances.Select(fun (_,_,_,f) -> f)
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        this.UpdateGlobalFiatBalanceSum readOnlyFiatBalances totalReadOnlyFiatAmountLabel
-                    )
+            let normalAccountsBalanceUpdate =
+                async {
+                    if (state.Awake) then
+                        let! resolvedNormalBalances = normalBalancesJob
+                        let normalFiatBalances = resolvedNormalBalances.Select(fun (_,_,_,f,_) -> f)
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            this.UpdateGlobalFiatBalanceSum normalFiatBalances totalFiatAmountLabel
+                        )
+                        return resolvedNormalBalances.Any(fun (_,_,_,_,imminentPayment) -> imminentPayment) |> Some
+                    else
+                        return None
+                }
+            let readOnlyAccountsBalanceUpdate =
+                async {
+                    if (state.Awake) then
+                        let! resolvedReadOnlyBalances = readOnlyBalancesJob
+                        let readOnlyFiatBalances = resolvedReadOnlyBalances.Select(fun (_,_,_,f,_) -> f)
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            this.UpdateGlobalFiatBalanceSum readOnlyFiatBalances totalReadOnlyFiatAmountLabel
+                        )
+                        return resolvedReadOnlyBalances.Any(fun (_,_,_,_,imminentPayment) -> imminentPayment) |> Some
+                    else
+                        return None
+                }
+            let allBalanceUpdates =
+                if (not onlyReadOnlyAccounts) then
+                    Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
+                else
+                    Async.Parallel([readOnlyAccountsBalanceUpdate])
 
-            } |> Async.StartAsTask |> FrontendHelpers.DoubleCheckCompletion
+            let balanceUpdateTaskReturningImminentPayment = allBalanceUpdates |> Async.StartAsTask
+            balanceUpdateTaskReturningImminentPayment.ContinueWith(fun (t: Task<array<Option<bool>>>)->
+                if t.Result.Any(fun maybeImminentPayment ->
+                    match maybeImminentPayment with
+                    | Some imminentPayment -> imminentPayment = true
+                    | _ -> false
+                ) then
+                    this.IsIncomingPaymentImminent <- true
+                elif (not onlyReadOnlyAccounts) &&
+                      t.Result.All(fun maybeImminentPayment ->
+                    match maybeImminentPayment with
+                    | Some imminentPayment -> imminentPayment = false
+                    | _ -> false
+                ) then
+                    this.IsIncomingPaymentImminent <- false
+            ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
         awake
 
+    member private this.TimerIntervalMatchesImminentPaymentCondition (interval: TimeSpan): bool =
+        let result = (this.IsIncomingPaymentImminent && interval = standardTimeToRefreshBalancesWhenPaymentIsImminent)
+                     || (not (this.IsIncomingPaymentImminent) && interval = standardTimeToRefreshBalances)
+        result
+
     member private this.StartTimer(): unit =
         if not (this.IsTimerRunning) then
-            Device.StartTimer(timeToRefreshBalances, fun _ ->
+
+            let refreshTime =
+                // sync the below with TimerIntervalMatchesImminentPaymentCondition() func
+                if this.IsIncomingPaymentImminent then
+                    standardTimeToRefreshBalancesWhenPaymentIsImminent
+                else
+                    standardTimeToRefreshBalances
+
+            Device.StartTimer(refreshTime, fun _ ->
+
                 this.IsTimerRunning <- true
+
                 let awake = this.RefreshBalancesAndCheckIfAwake false
-                this.IsTimerRunning <- awake
+
+                let awakeAndSameInterval =
+                    if not awake then
+                        this.IsTimerRunning <- false
+                        false
+                    else
+                        if (this.TimerIntervalMatchesImminentPaymentCondition refreshTime) then
+                            true
+                        else
+                            // start timer again with new interval
+                            this.IsTimerRunning <- false
+                            this.StartTimer()
+
+                            // so we stop this timer that has an old interval
+                            false
 
                 // to keep or stop timer recurring
-                awake
+                awakeAndSameInterval
             )
 
     member this.StartBalanceRefreshCycle (cycleStart: CycleStart) =
@@ -185,8 +252,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         if ((cycleStart <> CycleStart.Delayed && this.RefreshBalancesAndCheckIfAwake onlyReadOnlyAccounts) || true) then
             this.StartTimer()
 
-    member private this.ConfigureFiatAmountFrame (normalAccountsBalances: seq<IAccount*Label*Label*_>)
-                                                 (readOnlyAccountsBalances: seq<IAccount*Label*Label*_>)
+    member private this.ConfigureFiatAmountFrame (normalAccountsBalances: seq<IAccount*Label*Label*_*_>)
+                                                 (readOnlyAccountsBalances: seq<IAccount*Label*Label*_*_>)
                                                  (readOnly: bool): TapGestureRecognizer =
         let totalCurrentFiatAmountFrameName,totalOtherFiatAmountFrameName =
             if readOnly then
@@ -270,13 +337,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 totalFiatAmountLabel.TextColor <- color
                 normalAccountsAndBalances,color
 
-        for _,readOnlyLabel1,readOnlyLabel2,_ in labels do
+        for _,readOnlyLabel1,readOnlyLabel2,_,_ in labels do
             readOnlyLabel1.TextColor <- color
             readOnlyLabel2.TextColor <- color
 
     member private this.Init () =
-        let allNormalAccountFiatBalances = normalAccountsAndBalances.Select(fun (_,_,_,f) -> f) |> List.ofSeq
-        let allReadOnlyAccountFiatBalances = readOnlyAccountsAndBalances.Select(fun (_,_,_,f) -> f) |> List.ofSeq
+        let allNormalAccountFiatBalances = normalAccountsAndBalances.Select(fun (_,_,_,f,_) -> f) |> List.ofSeq
+        let allReadOnlyAccountFiatBalances = readOnlyAccountsAndBalances.Select(fun (_,_,_,f,_) -> f) |> List.ofSeq
 
         Device.BeginInvokeOnMainThread(fun _ ->
             this.AssignColorLabels true

@@ -45,30 +45,34 @@ module Account =
     let GetConfirmedBalance(account: IAccount) =
         GetBalanceFromServer account true
 
-    let private GetShowableBalanceInternal(account: IAccount): Async<Option<decimal>> = async {
+    let private GetShowableBalanceAndImminentPaymentInternal(account: IAccount): Async<Option<decimal*bool>> = async {
         let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account
         let! confirmed = GetConfirmedBalance account
         match unconfirmed,confirmed with
         | Some unconfirmedAmount,Some confirmedAmount ->
-            if (unconfirmedAmount < confirmedAmount) then
-                return unconfirmed
+            if (unconfirmedAmount > confirmedAmount) then
+                return Some (confirmedAmount, true)
             else
-                return confirmed
-        | _ -> return confirmed
+                return Some (unconfirmedAmount, false)
+        | _ ->
+            match confirmed with
+            | None -> return None
+            | Some confirmedAmount -> return Some(confirmedAmount, false)
     }
 
-    let GetShowableBalance(account: IAccount): Async<MaybeCached<decimal>> =
+    let GetShowableBalanceAndImminentPayment (account: IAccount): Async<MaybeCached<decimal>*bool> =
         async {
-            let! maybeBalance = GetShowableBalanceInternal account
-            match maybeBalance with
+            let! maybeBalanceAndImminentPayment = GetShowableBalanceAndImminentPaymentInternal account
+            match maybeBalanceAndImminentPayment with
             | None ->
-                return NotFresh(Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency)
-            | Some balance ->
+                let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+                return (NotFresh cachedBalance, false)
+            | Some (balance,imminentPayment) ->
                 let compoundBalance,_ =
                     Caching.Instance.RetreiveAndUpdateLastCompoundBalance account.PublicAddress
                                                                           account.Currency
                                                                           balance
-                return Fresh compoundBalance
+                return (Fresh compoundBalance, imminentPayment)
         }
 
     let mutable wiped = false

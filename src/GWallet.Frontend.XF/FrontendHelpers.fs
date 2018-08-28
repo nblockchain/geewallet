@@ -89,17 +89,17 @@ module FrontendHelpers =
         fiatAmount
 
     let UpdateBalanceAsync account (balanceLabel: Label) (fiatBalanceLabel: Label)
-                               : Async<IAccount*Label*Label*MaybeCached<decimal>> =
+                               : Async<IAccount*Label*Label*MaybeCached<decimal>*bool> =
         async {
-            let! balance = Account.GetShowableBalance account
+            let! balance,imminentPayment = Account.GetShowableBalanceAndImminentPayment account
             let fiatAmount = UpdateBalance balance account.Currency balanceLabel fiatBalanceLabel
-            return account,balanceLabel,fiatBalanceLabel,fiatAmount
+            return account,balanceLabel,fiatBalanceLabel,fiatAmount,imminentPayment
         }
 
     let UpdateCachedBalancesAsync (accountsWithLabels: seq<IAccount*Label*Label>)
-                                      : Async<array<IAccount*Label*Label*MaybeCached<decimal>>> =
+                                      : Async<array<IAccount*Label*Label*MaybeCached<decimal>*bool>> =
         let rec updateBalanceAccumulator (accountsWithLabels: List<IAccount*Label*Label>)
-                                         (acc: List<IAccount*Label*Label*MaybeCached<decimal>>) =
+                                         (acc: List<IAccount*Label*Label*MaybeCached<decimal>*bool>) =
             match accountsWithLabels with
             | [] -> acc
             | (account,cryptoBalanceLabel,fiatBalanceLabel)::tail ->
@@ -108,7 +108,10 @@ module FrontendHelpers =
                 | Cached _ ->
                     let fiatAmount =
                         UpdateBalance (NotFresh cachedBalance) account.Currency cryptoBalanceLabel fiatBalanceLabel
-                    let newElem = account,cryptoBalanceLabel,fiatBalanceLabel,fiatAmount
+                    // dummy because retreiving balances from cache cannot tell us if it's imminent or not, but we need
+                    // to return this dummy false value to make signatures match with the non-cache funcs
+                    let dummyFalseImminentPayment = false
+                    let newElem = account,cryptoBalanceLabel,fiatBalanceLabel,fiatAmount,dummyFalseImminentPayment
                     updateBalanceAccumulator tail (newElem::acc)
                 | _ ->
                     failwith "Retreiving cached balance of a readonlyAccount(cold storage) returned N/A; but addition of this account should have stored it properly..."

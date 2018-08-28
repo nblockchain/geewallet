@@ -233,7 +233,7 @@ module UserInteraction =
     let private GetAccountBalances (accounts: seq<IAccount>): Async<array<IAccount*MaybeCached<decimal>>> =
         let getAccountBalance(account: IAccount): Async<IAccount*MaybeCached<decimal>> =
             async {
-                let! balance = Account.GetShowableBalance account
+                let! balance,_ = Account.GetShowableBalanceAndImminentPayment account
                 return (account,balance)
             }
         let accountAndBalancesToBeQueried = accounts |> Seq.map getAccountBalance
@@ -480,7 +480,7 @@ module UserInteraction =
                 Presentation.Error "Amount surpasses current balance, try again."
                 AskParticularAmountOption currentBalance amountOption
 
-        let showableBalance = Account.GetShowableBalance account |> Async.RunSynchronously
+        let showableBalance,_ = Account.GetShowableBalanceAndImminentPayment account |> Async.RunSynchronously
         match showableBalance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Balance not available if offline."

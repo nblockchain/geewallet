@@ -13,8 +13,8 @@ open ZXing.Net.Mobile.Forms
 open GWallet.Backend
 
 type PairingToPage(balancesPage: Page,
-                   normalAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>>,
-                   newBalancesPageFunc: seq<IAccount*Label*Label*_>*seq<IAccount*Label*Label*_> -> Page) =
+                   normalAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>*bool>,
+                   newBalancesPageFunc: seq<IAccount*Label*Label*_*_>*seq<IAccount*Label*Label*_*_> -> Page) =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<PairingToPage>)
 
@@ -75,7 +75,7 @@ type PairingToPage(balancesPage: Page,
         if addressesToCurrencies.Any(fun (_,currencies) -> currencies = List.empty) then
             let msg = "Some address doesn't seem to be valid, please try again."
             this.DisplayAlert("Alert", msg, "OK") |> ignore
-        elif (normalAccountsAndBalances.Any(fun (account,_,_,_) ->
+        elif (normalAccountsAndBalances.Any(fun (account,_,_,_,_) ->
                                                  addresses.Any(fun addr -> account.PublicAddress = addr))) then
             let msg = "Some address matches to an account that is already being held in this wallet."
             this.DisplayAlert("Alert", msg, "OK") |> ignore
@@ -100,7 +100,7 @@ type PairingToPage(balancesPage: Page,
                         yield FrontendHelpers.UpdateBalanceAsync account l1 l2
                 } |> Async.Parallel
             let normalAccountsBalancesJob =
-                FrontendHelpers.UpdateCachedBalancesAsync (normalAccountsAndBalances.Select(fun (a,l1,l2,_) -> a,l1,l2))
+                FrontendHelpers.UpdateCachedBalancesAsync (normalAccountsAndBalances.Select(fun (a,l1,l2,_,_) -> a,l1,l2))
 
             let updateBalancesInParallelAndSwitchBackToBalPage = async {
                 let allBalancesJob = Async.Parallel(normalAccountsBalancesJob::(checkReadOnlyBalancesInParallel::[]))

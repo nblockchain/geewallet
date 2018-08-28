@@ -173,7 +173,7 @@ let ArchiveAccount() =
             Console.WriteLine "Read-only account removed."
             UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
-        let balance = Account.GetShowableBalance account |> Async.RunSynchronously
+        let balance,_ = Account.GetShowableBalanceAndImminentPayment account |> Async.RunSynchronously
         match balance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Removing accounts when offline is not supported."
