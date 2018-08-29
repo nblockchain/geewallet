@@ -116,9 +116,6 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="mscorlib" />
-    <Reference Include="SharpRaven">
-      <HintPath>..\..\packages\SharpRaven.2.2.0\lib\net45\SharpRaven.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
@@ -185,6 +182,13 @@
     <Reference Include="Nethereum.Hex">
       <HintPath>..\..\packages\Nethereum.Hex.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Hex.dll</HintPath>
     </Reference>
+    <Reference Include="System.Runtime.InteropServices.RuntimeInformation">
+      <HintPath>..\..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpRaven">
+      <HintPath>..\..\packages\SharpRaven.2.4.0\lib\net45\SharpRaven.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Configuration" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
