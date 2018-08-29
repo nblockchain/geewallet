@@ -136,9 +136,6 @@
     <Reference Include="Common.Logging.Core">
       <HintPath>..\..\packages\Common.Logging.Core.3.4.1\lib\netstandard1.0\Common.Logging.Core.dll</HintPath>
     </Reference>
-    <Reference Include="SharpRavenLight">
-      <HintPath>..\..\packages\SharpRavenLight.1.0.0-beta5\lib\netstandard2.0\SharpRavenLight.dll</HintPath>
-    </Reference>
     <Reference Include="Zlib.Portable">
       <HintPath>..\..\packages\Zlib.Portable.1.11.0\lib\portable-net4+sl5+wp8+win8+wpa81+MonoTouch+MonoAndroid\Zlib.Portable.dll</HintPath>
     </Reference>
@@ -225,6 +222,12 @@
     </Reference>
     <Reference Include="Nethereum.JsonRpc.RpcClient">
       <HintPath>..\..\packages\Nethereum.JsonRpc.RpcClient.3.0.0-CI-20180815-082224\lib\netstandard1.1\Nethereum.JsonRpc.RpcClient.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Configuration.ConfigurationManager">
+      <HintPath>..\..\packages\System.Configuration.ConfigurationManager.4.4.0\lib\netstandard2.0\System.Configuration.ConfigurationManager.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpRaven">
+      <HintPath>..\..\packages\SharpRaven.2.4.0\lib\netstandard2.0\SharpRaven.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

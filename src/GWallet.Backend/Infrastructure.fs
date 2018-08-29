@@ -2,13 +2,13 @@
 
 open System
 
-open SharpRavenLight
-open SharpRavenLight.Data
+open SharpRaven
+open SharpRaven.Data
 
 module Infrastructure =
 
     let private sentryUrl = "https://4d1c6170ee37412fab20f8c63a2ade24:fc5e2c50990e48929d190fc283513f87@sentry.io/187797"
-    let private ravenClient = RavenClientLight sentryUrl
+    let private ravenClient = RavenClient sentryUrl
 
     let public Report (ex: Exception) =
 

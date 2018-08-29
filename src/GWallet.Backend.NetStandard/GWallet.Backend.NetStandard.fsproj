@@ -113,7 +113,6 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="SharpRavenLight" Version="1.0.0-beta5" />
     <PackageReference Include="NBitcoin.Litecoin" Version="1.0.0.9" />
     <PackageReference Include="NBitcoin" Version="4.0.0.51" />
     <PackageReference Include="FSharp.Data" Version="3.0.0-beta" />
@@ -132,6 +131,7 @@
     <PackageReference Include="Nethereum.RLP" Version="3.0.0-CI-20180815-082224" />
     <PackageReference Include="Nethereum.KeyStore" Version="3.0.0-CI-20180815-082224" />
     <PackageReference Include="Nethereum.RPC" Version="3.0.0-CI-20180815-082224" />
+    <PackageReference Include="SharpRaven" Version="2.4.0" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />
