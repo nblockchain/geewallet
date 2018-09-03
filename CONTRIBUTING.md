@@ -24,7 +24,18 @@ should we need to use F# partial application.
 * In case of doubt, we prefer to expliticly add the accessibility keywords
 (`private`, `public`, `internal`...), should the F# language allow it.
 * With `if` blocks we prefer to put the `then` keyword in the same line as the
-`if`, and the `else` or `elif` keywords indented to be aligned with the `if`.
+`if`, but use a newline afterwards; and the `else` or `elif` keywords indented
+to be aligned with the `if`. Example:
+
+```
+if foo.SomeBoolProperty then
+    DoSomething()
+elif foo.SomeFuncReturingBool() then
+    DoOtherThing()
+else
+    DoYetAnotherThing()
+```
+
 * A space should be added after the colon (and not before) when denoting a type,
 so: `(foo: Foo)`
 * When using property initializers, we prefer to use the immutable syntax sugar:
