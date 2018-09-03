@@ -1,3 +1,4 @@
 [submodule "build/ZXing.Net.Mobile"]
 	path = build/ZXing.Net.Mobile
-	url = https://github.com/Redth/ZXing.Net.Mobile.git
+	url = https://github.com/knocte/ZXing.Net.Mobile.git
+	branch = experiments/paranoid_mode
