@@ -41,6 +41,6 @@
     <PackageReference Include="Xamarin.Forms" Version="3.0.0.446417" />
     <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
     <PackageReference Include="Xam.Plugin.Connectivity" Version="4.0.0.190-beta" />
-    <PackageReference Include="ZXing.Net.Mobile.Forms" Version="2.4.1" />
+    <ProjectReference Include="..\..\build\ZXing.Net.Mobile\NetStandard\ZXing.Net.Mobile.Forms.ns\ZXing.Net.Mobile.Forms.ns.csproj" />
   </ItemGroup>
 </Project>

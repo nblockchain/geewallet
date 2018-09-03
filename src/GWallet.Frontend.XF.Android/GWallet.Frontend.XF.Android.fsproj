@@ -169,21 +169,6 @@
     <Reference Include="Plugin.Connectivity">
       <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\MonoAndroid10\Plugin.Connectivity.dll</HintPath>
     </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms.Android">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.Forms.2.4.1\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.Android.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.Forms.2.4.1\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\MonoAndroid71\ZXing.Net.Mobile.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\MonoAndroid71\zxing.portable.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\MonoAndroid71\ZXingNetMobile.dll</HintPath>
-    </Reference>
     <Reference Include="Nethereum.RLP">
       <HintPath>..\..\packages\Nethereum.RLP.3.0.0-CI-20180914-144604\lib\netstandard1.1\Nethereum.RLP.dll</HintPath>
     </Reference>
@@ -271,6 +256,22 @@
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj">
       <Project>{D1D192E0-F226-40AD-8D81-687F7E6F7DAB}</Project>
       <Name>GWallet.Backend.NetStandard</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\build\ZXing.Net.Mobile\Source\ZXing.Net.Mobile.Forms.Android\ZXing.Net.Mobile.Forms.Android.csproj">
+      <Project>{DC2FF2AE-4090-4056-BBE4-087BDE6567BD}</Project>
+      <Name>ZXing.Net.Mobile.Forms.Android</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\build\ZXing.Net.Mobile\Source\ZXing.Net.Mobile.Android\ZXing.Net.Mobile.Android.csproj">
+      <Project>{AC17589E-C817-4FA8-B3EC-CCEB25E55E59}</Project>
+      <Name>ZXing.Net.Mobile.Android</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\build\ZXing.Net.Mobile\NetStandard\ZXing.Net.Mobile.Core.ns\ZXing.Net.Mobile.Core.ns.csproj">
+      <Project>{6A56072C-34F2-4134-AD74-CC4FB5D15D89}</Project>
+      <Name>ZXing.Net.Mobile.Core.ns</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\build\ZXing.Net.Mobile\NetStandard\zxing.portable.ns\zxing.portable.ns.csproj">
+      <Project>{E502906B-4AEA-4D39-BA7B-3F33918DCE65}</Project>
+      <Name>zxing.portable.ns</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />
