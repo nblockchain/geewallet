@@ -70,6 +70,11 @@ We prefer to be verbose and readable than compact and clever.
 * Don't over-comment the code; splitting big chunks of code into smaller
 functions with understandable names is better than adding comments that may
 become obsolete as the code evolves.
+* We prefer the Java way of mapping project names and namespaces with the tree
+structure of the code. For example, a module whose full name is Foo.Bar.Baz
+should either live in a project called "Foo.Bar" (and be named "Baz" under
+the namespace "Foo.Bar"), or: in a project called "Foo", but in a subdirectory
+called "Bar" (and be named "Baz" under the namespace "Foo.Bar").
 * If you want to contribute a change to this project, you should create a
 MergeRequest in gitlab (not a PullRequest in github). The repo in gitlab is in:
 https://gitlab.com/knocte/gwallet
