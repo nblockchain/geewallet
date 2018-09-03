@@ -43,7 +43,17 @@ let rec private GatherOrGetDefaultPrefix(args: string list, previousIsPrefixArg:
         else if head.StartsWith(prefixArgWithEquals) then
             GatherOrGetDefaultPrefix(tail, false, GatherPrefix(head.Substring(prefixArgWithEquals.Length)))
         else
-            failwith (sprintf "argument not recognized: %s" head)
+            GatherOrGetDefaultPrefix(tail, false, None)
+
+let rec private GatherOptionalArg(args: string list, argName: string): bool =
+    match args with
+    | [] ->
+        false
+    | head::tail ->
+        if (head = argName) then
+            true
+        else
+            GatherOptionalArg(tail, argName)
 
 let prefix = DirectoryInfo(GatherOrGetDefaultPrefix(Util.FsxArguments(), false, None))
 
@@ -53,6 +63,13 @@ if not (prefix.Exists) then
 
 File.WriteAllText(Path.Combine(__SOURCE_DIRECTORY__, "build.config"),
                   sprintf "Prefix=%s" prefix.FullName)
+
+let paranoidMode = GatherOptionalArg(Util.FsxArguments(), "--paranoid")
+if paranoidMode then
+    ConfigCommandCheck "git"
+    let gitSubmoduleClone = Process.Execute("git submodule update --init --recursive", true, false)
+    if (gitSubmoduleClone.ExitCode <> 0) then
+        failwith "Cloning of submodules failed"
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let version = Misc.GetCurrentVersion(rootDir)
@@ -108,4 +125,12 @@ Console.WriteLine()
 Console.WriteLine(sprintf
                       "\t* Installation prefix: %s"
                       prefix.FullName)
+let paranoidModeOnOrOff =
+    if paranoidMode then
+        "ON"
+    else
+        "OFF"
+Console.WriteLine(sprintf
+                      "\t* Paranoid mode: %s"
+                      paranoidModeOnOrOff)
 Console.WriteLine()
