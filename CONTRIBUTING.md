@@ -67,6 +67,7 @@ https://gitlab.com/knocte/gwallet
 forget to include all explanations and reasonings in the commit messages,
 instead of just leaving them as part of the MergeRequest description.
 * Git commit messages should follow this style:
+
 ```
 Area/Sub-area: short title of what is changed (50 chars max)
 
