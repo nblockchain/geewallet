@@ -2,7 +2,6 @@
 
 open System
 open System.IO
-open System.Collections.Generic
 open System.Linq
 
 #load "Infra.fs"
@@ -23,7 +22,7 @@ ConfigCommandCheck "mono"
 // needed by NuGet.Restore.targets & the "update-servers" Makefile target
 ConfigCommandCheck "curl"
 
-let rec private GatherOrGetDefaultPrefix(args: string list, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
+let rec private GatherOrGetDefaultPrefix(args: List<string>, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
     let GatherPrefix(newPrefix: string): Option<string> =
         match prefixSet with
         | None -> Some(newPrefix)

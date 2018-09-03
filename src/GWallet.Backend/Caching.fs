@@ -118,7 +118,7 @@ module Caching =
 
     let rec private MergeRatesInternal (oldMap: Map<'K, CachedValue<'V>>)
                                        (newMap: Map<'K, CachedValue<'V>>)
-                                       (currencyList: list<'K>)
+                                       (currencyList: List<'K>)
                                        (accumulator: Map<'K, CachedValue<'V>>) =
         match currencyList with
         | [] -> accumulator
@@ -144,7 +144,7 @@ module Caching =
 
     let rec private MergeBalancesInternal (oldMap: Map<Currency, Map<PublicAddress,CachedValue<'V>>>)
                                           (newMap: Map<Currency, Map<PublicAddress,CachedValue<'V>>>)
-                                          (addressList: list<Currency*PublicAddress>)
+                                          (addressList: List<Currency*PublicAddress>)
                                           (accumulator: Map<Currency, Map<PublicAddress,CachedValue<'V>>>)
                                               : Map<Currency, Map<PublicAddress,CachedValue<'V>>> =
         match addressList with

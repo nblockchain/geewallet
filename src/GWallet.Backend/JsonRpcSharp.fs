@@ -28,7 +28,7 @@ module JsonRpcSharp =
     type TcpClient (hostAndPort: unit->string*int) =
         let tcpClient = new System.Net.Sockets.TcpClient()
 
-        let rec WrapResult (acc: byte list): string =
+        let rec WrapResult (acc: List<byte>): string =
             let reverse = List.rev acc
             Encoding.UTF8.GetString(reverse.ToArray())
 
