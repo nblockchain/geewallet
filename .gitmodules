@@ -1,0 +1,3 @@
+[submodule "build/ZXing.Net.Mobile"]
+	path = build/ZXing.Net.Mobile
+	url = https://github.com/Redth/ZXing.Net.Mobile.git

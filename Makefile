@@ -1,23 +1,23 @@
 all:
-	@./scripts/make.sh
+	@./build/make.sh
 
 install:
-	@./scripts/make.sh install
+	@./build/make.sh install
 
 check:
-	@./scripts/make.sh check
+	@./build/make.sh check
 
 release:
-	@./scripts/make.sh release
+	@./build/make.sh release
 
 zip:
-	@./scripts/make.sh zip
+	@./build/make.sh zip
 
 run:
-	@./scripts/make.sh run
+	@./build/make.sh run
 
 update-servers:
-	@./scripts/make.sh update-servers
+	@./build/make.sh update-servers
 
 nuget:
-	@./scripts/make.sh nuget
+	@./build/make.sh nuget

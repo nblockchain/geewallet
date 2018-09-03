@@ -12,12 +12,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{9DFD61F8
 	ProjectSection(SolutionItems) = preProject
 		configure.sh = configure.sh
 		Makefile = Makefile
-		scripts\configure.fsx = scripts\configure.fsx
-		scripts\fsicheck.sh = scripts\fsicheck.sh
-		scripts\Infra.fs = scripts\Infra.fs
-		scripts\make.fsx = scripts\make.fsx
-		scripts\make.sh = scripts\make.sh
-		scripts\replace.fsx = scripts\replace.fsx
+		build\configure.fsx = build\configure.fsx
+		build\fsicheck.sh = build\fsicheck.sh
+		build\Infra.fs = build\Infra.fs
+		build\make.fsx = build\make.fsx
+		build\make.sh = build\make.sh
+		build\replace.fsx = build\replace.fsx
 	EndProjectSection
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Backend.NetStandard", "src\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj", "{D1D192E0-F226-40AD-8D81-687F7E6F7DAB}"
