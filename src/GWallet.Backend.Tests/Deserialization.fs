@@ -6,10 +6,11 @@ open NUnit.Framework
 
 open GWallet.Backend
 
-module Deserialization =
+[<TestFixture>]
+type Deserialization() =
 
     [<Test>]
-    let ``deserialize cache does not fail``() =
+    member __.``deserialize cache does not fail``() =
 
         let deserializedCache: DietCache = Marshalling.Deserialize
                                                MarshallingData.SofisticatedCachingDataExampleInJson
@@ -33,7 +34,7 @@ module Deserialization =
         Assert.That(price, Is.EqualTo(161.796))
 
     [<Test>]
-    let ``unsigned btc transaction import``() =
+    member __.``unsigned btc transaction import``() =
         let deserializedUnsignedTrans: UnsignedTransaction<IBlockchainFeeInfo> =
             Account.ImportUnsignedTransactionFromJson
                 MarshallingData.UnsignedBtcTransactionExampleInJson
@@ -65,7 +66,7 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(0))
 
     [<Test>]
-    let ``unsigned ether transaction import``() =
+    member __.``unsigned ether transaction import``() =
         let deserializedUnsignedTrans: UnsignedTransaction<IBlockchainFeeInfo> =
             Account.ImportUnsignedTransactionFromJson
                 MarshallingData.UnsignedEtherTransactionExampleInJson
@@ -95,7 +96,7 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(0))
 
     [<Test>]
-    let ``signed btc transaction import``() =
+    member __.``signed btc transaction import``() =
 
         let deserializedSignedTrans: SignedTransaction<IBlockchainFeeInfo> =
             Account.ImportSignedTransactionFromJson
@@ -136,7 +137,7 @@ module Deserialization =
                     Is.EqualTo(0))
 
     [<Test>]
-    let ``signed ether transaction import``() =
+    member __.``signed ether transaction import``() =
 
         let deserializedSignedTrans: SignedTransaction<IBlockchainFeeInfo> =
             Account.ImportSignedTransactionFromJson
@@ -178,7 +179,7 @@ module Deserialization =
                     Is.EqualTo(2))
 
     [<Test>]
-    let ``unsigned DAI transaction import``() =
+    member __.``unsigned DAI transaction import``() =
         let deserializedUnsignedTrans: UnsignedTransaction<IBlockchainFeeInfo> =
             Account.ImportUnsignedTransactionFromJson
                 MarshallingData.UnsignedDaiTransactionExampleInJson
@@ -208,7 +209,7 @@ module Deserialization =
         Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(5))
 
     [<Test>]
-    let ``signed DAI transaction import``() =
+    member __.``signed DAI transaction import``() =
 
         let deserializedSignedTrans: SignedTransaction<IBlockchainFeeInfo> =
             Account.ImportSignedTransactionFromJson

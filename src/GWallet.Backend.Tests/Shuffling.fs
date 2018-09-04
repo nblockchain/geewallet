@@ -6,17 +6,18 @@ open NUnit.Framework
 
 open GWallet.Backend
 
-module Shuffling =
+[<TestFixture>]
+type Shuffling() =
 
     [<Test>]
-    let ``retreives same number of elements``() =
+    member __.``retreives same number of elements``() =
         let someList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; ]
         let randomizedList = Shuffler.Unsort someList
 
         Assert.That(randomizedList.Count(), Is.EqualTo(10))
 
     [<Test>]
-    let ``doesn't return same list'``() =
+    member __.``doesn't return same list'``() =
         let someList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; ]
         let randomizedList = Shuffler.Unsort someList
 
@@ -24,7 +25,7 @@ module Shuffling =
         Assert.That(someList, Is.Not.EqualTo(randomizedList))
 
     [<Test>]
-    let ``doesn't randomize in the same way'``() =
+    member __.``doesn't randomize in the same way'``() =
         let someList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; ]
         let randomizedList1 = Shuffler.Unsort someList
         let randomizedList2 = Shuffler.Unsort someList

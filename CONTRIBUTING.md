@@ -78,6 +78,10 @@ called "Bar" (and be named "Baz" under the namespace "Foo.Bar").
 * If you want to contribute a change to this project, you should create a
 MergeRequest in gitlab (not a PullRequest in github). The repo in gitlab is in:
 https://gitlab.com/knocte/gwallet
+* When adding NUnit tests, don't use `[<Test>]let Foo` and naked `module Bar`
+syntax, but `[<Test>]member __.Foo` and `[<TestFixture>]type Bar()` (note the
+parenthesis, as it's an important bit), otherwise the tests might not run in
+all platforms.
 * When contributing a MergeRequest, separate your commits in units of work
 (don't mix changes that have different concerns in the same commit). Don't
 forget to include all explanations and reasonings in the commit messages,

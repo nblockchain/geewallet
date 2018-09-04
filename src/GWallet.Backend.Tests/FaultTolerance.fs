@@ -7,15 +7,19 @@ open NUnit.Framework
 
 open GWallet.Backend
 
-module FaultTolerance =
 
-    exception SomeSpecificException
+exception SomeSpecificException
+exception SomeException
+exception SomeOtherException
 
-    let private one_consistent_result_because_this_test_doesnt_test_consistency = 1
-    let private not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1
-    let internal test_does_not_involve_retries = uint16 0
+[<TestFixture>]
+type FaultTolerance() =
 
-    let internal defaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
+    let one_consistent_result_because_this_test_doesnt_test_consistency = 1
+    let not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1
+    let test_does_not_involve_retries = uint16 0
+
+    let defaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         {
             NumberOfMaximumParallelJobs = uint16 1;
             ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 1);
@@ -23,11 +27,11 @@ module FaultTolerance =
             NumberOfRetriesForInconsistency = uint16 0;
         }
 
-    let private defaultFaultTolerantParallelClient =
+    let defaultFaultTolerantParallelClient =
         FaultTolerantParallelClient<SomeSpecificException>()
 
     [<Test>]
-    let ``can retrieve basic T for single func``() =
+    member __.``can retrieve basic T for single func``() =
         let someStringArg = "foo"
         let someResult = 1
         let func (arg: string) =
@@ -40,7 +44,7 @@ module FaultTolerance =
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
-    let ``can retrieve basic T for 2 funcs``() =
+    member __.``can retrieve basic T for 2 funcs``() =
         let someStringArg = "foo"
         let someResult = 1
         let func1 (arg: string) =
@@ -55,7 +59,7 @@ module FaultTolerance =
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
-    let ``throws ArgumentException if no funcs``(): unit =
+    member __.``throws ArgumentException if no funcs``(): unit =
         let client = defaultFaultTolerantParallelClient
         Assert.Throws<ArgumentException>(
             fun _ -> client.Query<string,int>
@@ -64,7 +68,7 @@ module FaultTolerance =
         ) |> ignore
 
     [<Test>]
-    let ``can retrieve one if 1 of the funcs throws``() =
+    member __.``can retrieve one if 1 of the funcs throws``() =
         let someStringArg = "foo"
         let someResult = 1
         let func1 (arg: string) =
@@ -78,9 +82,8 @@ module FaultTolerance =
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
-    exception SomeException
     [<Test>]
-    let ``ServerUnavailabilityException exception contains innerException``() =
+    member __.``ServerUnavailabilityException exception contains innerException``() =
         let someStringArg = "foo"
         let func1 (arg: string) =
             raise SomeException
@@ -106,7 +109,7 @@ module FaultTolerance =
         Assert.That(dataRetrieved, Is.EqualTo(None))
 
     [<Test>]
-    let ``exception typed passed in is ignored``() =
+    member __.``exception typed passed in is ignored``() =
         let someResult = 1
         let someStringArg = "foo"
         let func1 (arg: string) =
@@ -121,9 +124,8 @@ module FaultTolerance =
                     |> Async.RunSynchronously
         Assert.That(result, Is.EqualTo(someResult))
 
-    exception SomeOtherException
     [<Test>]
-    let ``exception not passed in is not ignored``() =
+    member __.``exception not passed in is not ignored``() =
         let someResult = 1
         let someStringArg = "foo"
         let func1 (arg: string) =
@@ -141,7 +143,7 @@ module FaultTolerance =
         Assert.That((FSharpUtil.FindException<SomeOtherException> ex).IsSome, Is.True)
 
     [<Test>]
-    let ``exception passed in must not be SystemException, otherwise it throws``() =
+    member __.``exception passed in must not be SystemException, otherwise it throws``() =
         let someStringArg = "foo"
         let func1 (arg: string) =
             "someResult1"
@@ -153,7 +155,7 @@ module FaultTolerance =
                 |> ignore ) |> ignore
 
     [<Test>]
-    let ``makes sure data is consistent across N funcs``() =
+    member __.``makes sure data is consistent across N funcs``() =
         let numberOfConsistentResponsesToBeConsideredSafe = uint16 2
 
         let someStringArg = "foo"
@@ -198,7 +200,7 @@ module FaultTolerance =
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
 
     [<Test>]
-    let ``consistency precondition > 0``() =
+    member __.``consistency precondition > 0``() =
         let invalidSettings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries()
                                     with ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 0); }
 
@@ -208,7 +210,7 @@ module FaultTolerance =
                     |> ignore ) |> ignore
 
     [<Test>]
-    let ``consistency precondition > funcs``() =
+    member __.``consistency precondition > funcs``() =
         let numberOfConsistentResponsesToBeConsideredSafe = uint16 3
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             ConsistencyConfig =
@@ -233,7 +235,7 @@ module FaultTolerance =
                     |> ignore ) |> ignore
 
     [<Test>]
-    let ``if consistency is not found, throws inconsistency exception``() =
+    member __.``if consistency is not found, throws inconsistency exception``() =
         let numberOfConsistentResponsesToBeConsideredSafe = uint16 3
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
@@ -264,7 +266,7 @@ module FaultTolerance =
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
 
     [<Test>]
-    let ``retries at least once if all fail``() =
+    member __.``retries at least once if all fail``() =
         let someStringArg = "foo"
         let mutable count1 = 0
         let func1 (arg: string) =
@@ -290,7 +292,7 @@ module FaultTolerance =
             |> ignore
 
     [<Test>]
-    let ``it retries before throwing inconsistency exception``() =
+    member __.``it retries before throwing inconsistency exception``() =
         let numberOfConsistentResponsesToBeConsideredSafe = uint16 3
 
         let someStringArg = "foo"
@@ -348,7 +350,7 @@ module FaultTolerance =
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
 
     [<Test>]
-    let ``using an average func instead of consistency``() =
+    member __.``using an average func instead of consistency``() =
 
         let someStringArg = "foo"
 
@@ -378,3 +380,9 @@ module FaultTolerance =
                              |> Async.RunSynchronously
 
         Assert.That(result, Is.EqualTo ((1+5+6)/3))
+
+    member private __.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
+        defaultSettingsForNoConsistencyNoParallelismAndNoRetries()
+
+    static member DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
+        FaultTolerance().DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()

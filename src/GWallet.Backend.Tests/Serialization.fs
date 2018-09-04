@@ -6,24 +6,25 @@ open NUnit.Framework
 
 open GWallet.Backend
 
-module Serialization =
+[<TestFixture>]
+type Serialization() =
     let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
     [<Test>]
-    let ``basic caching export does not fail``() =
+    member __.``basic caching export does not fail``() =
         let json = Marshalling.Serialize MarshallingData.EmptyCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
     [<Test>]
-    let ``basic caching export is accurate``() =
+    member __.``basic caching export is accurate``() =
         let json = Marshalling.Serialize MarshallingData.EmptyCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json, Is.EqualTo (MarshallingData.EmptyCachingDataExampleInJson))
 
     [<Test>]
-    let ``complex caching export works``() =
+    member __.``complex caching export works``() =
 
         let json = Marshalling.Serialize MarshallingData.SofisticatedCachingDataExample
         Assert.That(json, Is.Not.Null)
@@ -33,7 +34,7 @@ module Serialization =
                     Is.EqualTo (MarshallingData.SofisticatedCachingDataExampleInJson))
 
     [<Test>]
-    let ``unsigned BTC transaction export``() =
+    member __.``unsigned BTC transaction export``() =
         let json = Account.ExportUnsignedTransactionToJson
                                MarshallingData.UnsignedBtcTransactionExample
         Assert.That(json, Is.Not.Null)
@@ -42,7 +43,7 @@ module Serialization =
                     Is.EqualTo(MarshallingData.UnsignedBtcTransactionExampleInJson))
 
     [<Test>]
-    let ``unsigned ether transaction export``() =
+    member __.``unsigned ether transaction export``() =
         let json = Account.ExportUnsignedTransactionToJson
                                MarshallingData.UnsignedEtherTransactionExample
         Assert.That(json, Is.Not.Null)
@@ -51,21 +52,21 @@ module Serialization =
                     Is.EqualTo(MarshallingData.UnsignedEtherTransactionExampleInJson))
 
     [<Test>]
-    let ``signed btc transaction export``() =
+    member __.``signed btc transaction export``() =
         let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedBtcTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json, Is.EqualTo (MarshallingData.SignedBtcTransactionExampleInJson))
 
     [<Test>]
-    let ``signed ether transaction export``() =
+    member __.``signed ether transaction export``() =
         let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedEtherTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json, Is.EqualTo (MarshallingData.SignedEtherTransactionExampleInJson))
 
     [<Test>]
-    let ``unsigned DAI transaction export``() =
+    member __.``unsigned DAI transaction export``() =
         let json = Account.ExportUnsignedTransactionToJson
                                MarshallingData.UnsignedDaiTransactionExample
         Assert.That(json, Is.Not.Null)
@@ -74,7 +75,7 @@ module Serialization =
                     Is.EqualTo(MarshallingData.UnsignedDaiTransactionExampleInJson))
 
     [<Test>]
-    let ``signed DAI transaction export``() =
+    member __.``signed DAI transaction export``() =
         let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedDaiTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
