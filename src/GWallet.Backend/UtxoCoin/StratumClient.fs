@@ -217,7 +217,3 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
 
         self.Request<BlockchainTransactionBroadcastResult> json
-
-    interface IDisposable with
-        member x.Dispose() =
-            (jsonRpcClient:>IDisposable).Dispose()

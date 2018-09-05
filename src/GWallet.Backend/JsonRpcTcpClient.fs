@@ -36,12 +36,12 @@ type JsonRpcTcpClient (host: string, port: int) =
         Task.Run(fun _ -> Dns.GetHostEntry(hostName).AddressList.[0])
 
     let exceptionMsg = "JsonRpcSharp faced some problem when trying communication"
-    let ResolveHost(): string =
+    let ResolveHost(): IPAddress =
         try
             let resolveTask = ResolveAsync host
             if not (resolveTask.Wait Config.DEFAULT_NETWORK_TIMEOUT) then
                 raise(ServerCannotBeResolvedException(exceptionMsg))
-            resolveTask.Result.ToString()
+            resolveTask.Result
         with
         | ex ->
             let socketException = FSharpUtil.FindException<SocketException>(ex)
@@ -93,6 +93,3 @@ type JsonRpcTcpClient (host: string, port: int) =
 
             raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
 
-    interface IDisposable with
-        member x.Dispose() =
-            (rpcTcpClient:>IDisposable).Dispose()
