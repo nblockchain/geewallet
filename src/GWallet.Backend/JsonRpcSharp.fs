@@ -49,7 +49,6 @@ module JsonRpcSharp =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
     type Client (host: string, port: int) =
-        let tcpClient = new TcpClient()
 
         let rec WrapResult (acc: byte list): string =
             let reverse = List.rev acc
@@ -95,9 +94,7 @@ module JsonRpcSharp =
             // FIXME: loop over all addresses?
             Task.Run(fun _ -> Dns.GetHostEntry(hostName).AddressList.[0])
 
-        let Connect(): unit =
-            tcpClient.SendTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
-            tcpClient.ReceiveTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
+        let Connect(): System.Net.Sockets.TcpClient =
 
             let exceptionMsg = "JsonRpcSharp faced some problem when trying communication"
             let resolvedHost =
@@ -115,6 +112,10 @@ module JsonRpcSharp =
                         socketException.Value.ErrorCode = int SocketError.TryAgain) then
                         raise(ServerCannotBeResolvedException(exceptionMsg, ex))
                     raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
+
+            let tcpClient = new System.Net.Sockets.TcpClient(resolvedHost.AddressFamily)
+            tcpClient.SendTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
+            tcpClient.ReceiveTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
 
             try
                 let connectTask = tcpClient.ConnectAsync(resolvedHost, port)
@@ -154,10 +155,10 @@ module JsonRpcSharp =
                     raise(ServerUnreachableException(exceptionMsg, ex))
 
                 raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
+            tcpClient
 
         member self.Request (request: string): string =
-            if not (tcpClient.Connected) then
-                Connect()
+            use tcpClient = Connect()
             let stream = tcpClient.GetStream()
             if not stream.CanTimeout then
                 failwith "Inner NetworkStream should allow to set Read/Write Timeouts"
@@ -168,6 +169,3 @@ module JsonRpcSharp =
             stream.Flush()
             Read stream
 
-        interface IDisposable with
-            member x.Dispose() =
-                tcpClient.Close()

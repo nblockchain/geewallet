@@ -52,7 +52,7 @@ module ElectrumIntegrationTests =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                use electrumClient = new ElectrumClient(electrumServer)
+                let electrumClient = ElectrumClient electrumServer
                 let balance = electrumClient.GetBalance address
 
                 // if these ancient addresses get withdrawals it would be interesting in the crypto space...
