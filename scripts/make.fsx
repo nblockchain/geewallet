@@ -79,15 +79,19 @@ let PrintNugetVersion () =
             failwith "nuget process' output contained errors ^"
 
 let JustBuild binaryConfig =
+    let buildTool = Map.tryFind "BuildTool" buildConfigContents
+    if buildTool.IsNone then
+        failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+
     Console.WriteLine "Compiling gwallet..."
     let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
     let configOptions =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> sprintf "%s;DefineConstants=%s" configOption constants
         | None   -> configOption
-    let xbuild = Process.Execute (sprintf "xbuild %s" configOptions, true, false)
-    if (xbuild.ExitCode <> 0) then
-        Console.Error.WriteLine "xbuild build failed"
+    let buildProcess = Process.Execute (sprintf "%s %s" buildTool.Value configOptions, true, false)
+    if (buildProcess.ExitCode <> 0) then
+        Console.Error.WriteLine (sprintf "%s build failed" buildTool.Value)
         PrintNugetVersion() |> ignore
         Environment.Exit 1
 

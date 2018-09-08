@@ -22,7 +22,7 @@ ConfigCommandCheck "mono"
 // needed by NuGet.Restore.targets & the "update-servers" Makefile target
 ConfigCommandCheck "curl"
 
-let shouldUseLegacyTcpClient =
+let oldVersionOfMono =
     // we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that has a runtime bug
     let versionOfMonoWhereTheRuntimeBugWasFixed = "5.4"
 
@@ -70,10 +70,15 @@ if not (prefix.Exists) then
 
 let lines =
     let addLegacyTcpClientEntryIfNecessary (configEntries: Map<string,string>) =
+        let buildTool,shouldUseLegacyTcpClient =
+            match oldVersionOfMono with
+            | true -> "xbuild",true
+            | false -> "msbuild",false
+        let configEntriesPlusBuildTool = configEntries.Add("BuildTool", buildTool)
         if shouldUseLegacyTcpClient then
-            configEntries.Add("DefineConstants", "LEGACY_TCP_CLIENT")
+            configEntriesPlusBuildTool.Add("DefineConstants", "LEGACY_TCP_CLIENT")
         else
-            configEntries
+            configEntriesPlusBuildTool
     let toConfigFileLine (keyValuePair: System.Collections.Generic.KeyValuePair<string,string>) =
         sprintf "%s=%s" keyValuePair.Key keyValuePair.Value
 
