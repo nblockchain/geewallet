@@ -79,6 +79,3 @@ type ElectrumClient (electrumServer: ElectrumServer) =
         let blockchainTransactionBroadcastResult = stratumClient.BlockchainTransactionBroadcast transactionInHex
         blockchainTransactionBroadcastResult.Result
 
-    interface IDisposable with
-        member x.Dispose() =
-            (stratumClient:>IDisposable).Dispose()

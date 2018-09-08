@@ -17,6 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{9DFD61F8
 		scripts\Infra.fs = scripts\Infra.fs
 		scripts\make.fsx = scripts\make.fsx
 		scripts\make.sh = scripts\make.sh
+		scripts\replace.fsx = scripts\replace.fsx
 	EndProjectSection
 EndProject
 Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "GWallet.Backend.NetStandard", "src\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj", "{D1D192E0-F226-40AD-8D81-687F7E6F7DAB}"

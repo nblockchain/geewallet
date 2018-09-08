@@ -24,7 +24,18 @@ should we need to use F# partial application.
 * In case of doubt, we prefer to expliticly add the accessibility keywords
 (`private`, `public`, `internal`...), should the F# language allow it.
 * With `if` blocks we prefer to put the `then` keyword in the same line as the
-`if`, and the `else` or `elif` keywords indented to be aligned with the `if`.
+`if`, but use a newline afterwards; and the `else` or `elif` keywords indented
+to be aligned with the `if`. Example:
+
+```
+if foo.SomeBoolProperty then
+    DoSomething()
+elif foo.SomeFuncReturingBool() then
+    DoOtherThing()
+else
+    DoYetAnotherThing()
+```
+
 * A space should be added after the colon (and not before) when denoting a type,
 so: `(foo: Foo)`
 * When using property initializers, we prefer to use the immutable syntax sugar:
@@ -59,14 +70,24 @@ We prefer to be verbose and readable than compact and clever.
 * Don't over-comment the code; splitting big chunks of code into smaller
 functions with understandable names is better than adding comments that may
 become obsolete as the code evolves.
+* We prefer the Java way of mapping project names and namespaces with the tree
+structure of the code. For example, a module whose full name is Foo.Bar.Baz
+should either live in a project called "Foo.Bar" (and be named "Baz" under
+the namespace "Foo.Bar"), or: in a project called "Foo", but in a subdirectory
+called "Bar" (and be named "Baz" under the namespace "Foo.Bar").
 * If you want to contribute a change to this project, you should create a
 MergeRequest in gitlab (not a PullRequest in github). The repo in gitlab is in:
 https://gitlab.com/knocte/gwallet
+* When adding NUnit tests, don't use `[<Test>]let Foo` and naked `module Bar`
+syntax, but `[<Test>]member __.Foo` and `[<TestFixture>]type Bar()` (note the
+parenthesis, as it's an important bit), otherwise the tests might not run in
+all platforms.
 * When contributing a MergeRequest, separate your commits in units of work
 (don't mix changes that have different concerns in the same commit). Don't
 forget to include all explanations and reasonings in the commit messages,
 instead of just leaving them as part of the MergeRequest description.
 * Git commit messages should follow this style:
+
 ```
 Area/Sub-area: short title of what is changed (50 chars max)
 

@@ -31,23 +31,31 @@ type ServerUnreachableException(message:string, innerException: Exception) =
    inherit JsonRpcSharp.ConnectionUnsuccessfulException (message, innerException)
 
 type JsonRpcTcpClient (host: string, port: int) =
-    let ResolveAsync (hostName: string): Task<IPAddress> =
+    let ResolveAsync (hostName: string): Task<Option<IPAddress>> =
         // FIXME: loop over all addresses?
-        Task.Run(fun _ -> Dns.GetHostEntry(hostName).AddressList.[0])
+        Task.Run(fun _ ->
+            (Dns.GetHostEntry hostName).AddressList
+                |> Array.tryHead
+        )
 
     let exceptionMsg = "JsonRpcSharp faced some problem when trying communication"
-    let ResolveHost(): string =
+    let ResolveHost(): IPAddress =
         try
             let resolveTask = ResolveAsync host
             if not (resolveTask.Wait Config.DEFAULT_NETWORK_TIMEOUT) then
                 raise(ServerCannotBeResolvedException(exceptionMsg))
-            resolveTask.Result.ToString()
+            match resolveTask.Result with
+            | None ->
+                raise <| ServerCannotBeResolvedException
+                             (sprintf "DNS host entry lookup resulted in no records for %s" host)
+            | Some ipAddress -> ipAddress
         with
         | ex ->
             let socketException = FSharpUtil.FindException<SocketException>(ex)
             if (socketException.IsNone) then
                 reraise()
             if (socketException.Value.ErrorCode = int SocketError.HostNotFound ||
+                socketException.Value.ErrorCode = int SocketError.NoData ||
                 socketException.Value.ErrorCode = int SocketError.TryAgain) then
                 raise(ServerCannotBeResolvedException(exceptionMsg, ex))
             raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
@@ -93,6 +101,3 @@ type JsonRpcTcpClient (host: string, port: int) =
 
             raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
 
-    interface IDisposable with
-        member x.Dispose() =
-            (rpcTcpClient:>IDisposable).Dispose()

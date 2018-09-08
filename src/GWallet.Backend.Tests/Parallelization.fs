@@ -8,16 +8,19 @@ open NUnit.Framework
 
 open GWallet.Backend
 
-module Parallelization =
 
-    exception SomeException
+exception SomeExceptionDuringParallelWork
+
+[<TestFixture>]
+type Parallelization() =
+
     [<Test>]
-    let ``calls both funcs (because it launches them in parallel)``() =
+    member __.``calls both funcs (because it launches them in parallel)``() =
         let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = uint16 2
         // because this test doesn't deal with inconsistencies
         let NUMBER_OF_CONSISTENT_RESULTS = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
 
-        let settings = { FaultTolerance.defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+        let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
@@ -31,7 +34,7 @@ module Parallelization =
             func2Called <- true
             0
 
-        let client = FaultTolerantParallelClient<SomeException>()
+        let client = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>()
         client.Query<string,int> settings someStringArg [ func1; func2 ]
             |> Async.RunSynchronously |> ignore
 
@@ -49,19 +52,19 @@ module Parallelization =
         Assert.That(func2Called, Is.True)
 
     [<Test>]
-    let ``a long func doesn't block the others``() =
+    member __.``a long func doesn't block the others``() =
         let someLongTime = TimeSpan.FromSeconds 10.0
 
         let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = uint16 2
         // because this test doesn't deal with inconsistencies
         let NUMBER_OF_CONSISTENT_RESULTS = uint16 1
 
-        let settings = { FaultTolerance.defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+        let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let func1 (arg: string) =
-            raise SomeException
+            raise SomeExceptionDuringParallelWork
             0
         let func2 (arg: string) =
             Thread.Sleep someLongTime
@@ -73,7 +76,7 @@ module Parallelization =
         let someStringArg = "foo"
 
         let stopWatch = Stopwatch.StartNew()
-        let client = FaultTolerantParallelClient<SomeException>()
+        let client = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>()
         let result = client.Query<string,int> settings someStringArg [ func1; func2; func3 ]
                          |> Async.RunSynchronously
 
@@ -82,13 +85,13 @@ module Parallelization =
         Assert.That(stopWatch.Elapsed, Is.LessThan(someLongTime))
 
     [<Test>]
-    let ``a long func doesn't block gathering more succesful results for consistency``() =
+    member __.``a long func doesn't block gathering more succesful results for consistency``() =
         let someLongTime = TimeSpan.FromSeconds 10.0
 
         let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = uint16 2
         let NUMBER_OF_CONSISTENT_RESULTS = uint16 2
 
-        let settings = { FaultTolerance.defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+        let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
@@ -103,7 +106,7 @@ module Parallelization =
         let someStringArg = "foo"
 
         let stopWatch = Stopwatch.StartNew()
-        let client = FaultTolerantParallelClient<SomeException>()
+        let client = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>()
         let result = client.Query<string,int> settings someStringArg [ func1; func2; func3 ]
                          |> Async.RunSynchronously
 
@@ -113,7 +116,7 @@ module Parallelization =
 
         // different order of funcs
         let stopWatch = Stopwatch.StartNew()
-        let client = FaultTolerantParallelClient<SomeException>()
+        let client = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>()
         let result = client.Query<string,int> settings someStringArg [ func1; func3; func2; ]
                          |> Async.RunSynchronously
 
@@ -123,7 +126,7 @@ module Parallelization =
 
         // different order of funcs
         let stopWatch = Stopwatch.StartNew()
-        let client = FaultTolerantParallelClient<SomeException>()
+        let client = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>()
         let result = client.Query<string,int> settings someStringArg [ func3; func2; func1; ]
                          |> Async.RunSynchronously
 
@@ -133,7 +136,7 @@ module Parallelization =
 
         // different order of funcs
         let stopWatch = Stopwatch.StartNew()
-        let client = FaultTolerantParallelClient<SomeException>()
+        let client = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>()
         let result = client.Query<string,int> settings someStringArg [ func3; func1; func2; ]
                          |> Async.RunSynchronously
 
@@ -142,7 +145,7 @@ module Parallelization =
         Assert.That(stopWatch.Elapsed, Is.LessThan(someLongTime))
 
     [<Test>]
-    let ``using an average func encourages you (via throwing an exception) to use parallelism``() =
+    member __.``using an average func encourages you (via throwing an exception) to use parallelism``() =
 
         let someStringArg = "foo"
         let someReturnValue = 0
@@ -155,7 +158,7 @@ module Parallelization =
 
         let funcs = [ func1; func2; func3; ]
 
-        let settings = { FaultTolerance.defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+        let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             NumberOfMaximumParallelJobs = uint16 1
                             ConsistencyConfig =
                                 AverageBetweenResponses (uint16 2,
@@ -163,7 +166,7 @@ module Parallelization =
                                                              failwith "unreachable"
                                                          )); }
 
-        let client = FaultTolerantParallelClient<SomeException>()
+        let client = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>()
 
         // because 2>1
         Assert.Throws<ArgumentException>(
@@ -175,7 +178,7 @@ module Parallelization =
     [<Test>]
     // this bug is probably the reason why the XamForms UI gets frozen after some time... too many unkilled threads
     [<Ignore("not fixed yet")>]
-    let ``slower funcs get cancelled after consistent results have been gathered``() =
+    member __.``slower funcs get cancelled after consistent results have been gathered``() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
         let mutable longFuncFinishedExecution = false
@@ -192,11 +195,11 @@ module Parallelization =
         let number_of_parallel_jobs_allowed = uint16 allFuncs.Length
         let NUMBER_OF_CONSISTENT_RESULTS = uint16 2
 
-        let settings = { FaultTolerance.defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+        let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfMaximumParallelJobs = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
-        let client = FaultTolerantParallelClient<SomeException>()
+        let client = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>()
         let result = client.Query<unit,int> settings () allFuncs
                          |> Async.RunSynchronously
 

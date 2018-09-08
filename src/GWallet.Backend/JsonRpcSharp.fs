@@ -3,6 +3,7 @@
 open System
 open System.Linq
 open System.Text
+open System.Net
 open System.Net.Sockets
 open System.Threading
 
@@ -25,8 +26,7 @@ module JsonRpcSharp =
     //   1. CONVERT THIS TO BE A CLASS THAT INHERITS FROM ClientBase CLASS
     //   2. STOP USING BLOCKING API TO USE ASYNC API INSTEAD (e.g. from Thread.Sleep to Task.Delay), MAYBE USING:
     //      https://blogs.msdn.microsoft.com/dotnet/2018/07/09/system-io-pipelines-high-performance-io-in-net/
-    type TcpClient (hostAndPort: unit->string*int) =
-        let tcpClient = new System.Net.Sockets.TcpClient()
+    type TcpClient (hostAndPort: unit->IPAddress*int) =
 
         let rec WrapResult (acc: byte list): string =
             let reverse = List.rev acc
@@ -67,21 +67,24 @@ module JsonRpcSharp =
         let Read (stream: NetworkStream): string =
             ReadInternal stream [] DateTime.Now
 
-        let Connect(): unit =
+        let Connect(): System.Net.Sockets.TcpClient =
+
+            let host,port = hostAndPort()
+
+            let tcpClient = new System.Net.Sockets.TcpClient(host.AddressFamily)
             tcpClient.SendTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
             tcpClient.ReceiveTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
 
-            let host,port = hostAndPort()
             let connectTask = tcpClient.ConnectAsync(host, port)
 
             if not (connectTask.Wait(Config.DEFAULT_NETWORK_TIMEOUT)) then
                 raise(ServerUnresponsiveException())
+            tcpClient
 
-        new(host: string, port: int) = new TcpClient(fun _ -> host,port)
+        new(host: IPAddress, port: int) = new TcpClient(fun _ -> host,port)
 
         member self.Request (request: string): string =
-            if not (tcpClient.Connected) then
-                Connect()
+            use tcpClient = Connect()
             let stream = tcpClient.GetStream()
             if not stream.CanTimeout then
                 failwith "Inner NetworkStream should allow to set Read/Write Timeouts"
@@ -91,7 +94,3 @@ module JsonRpcSharp =
             stream.Write(bytes, 0, bytes.Length)
             stream.Flush()
             Read stream
-
-        interface IDisposable with
-            member x.Dispose() =
-                tcpClient.Close()

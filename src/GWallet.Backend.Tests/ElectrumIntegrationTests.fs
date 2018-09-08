@@ -8,10 +8,11 @@ open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 
 // TODO: move this to its own file
-module ElectrumServerUnitTests =
+[<TestFixture>]
+type ElectrumServerUnitTests() =
 
     [<Test>]
-    let ``filters electrum BTC servers``() =
+    member __.``filters electrum BTC servers``() =
         for electrumServer in ElectrumServerSeedList.DefaultBtcList do
             Assert.That (electrumServer.UnencryptedPort, Is.Not.EqualTo(None),
                 sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
@@ -22,7 +23,7 @@ module ElectrumServerUnitTests =
                         electrumServer.Fqdn)
 
     [<Test>]
-    let ``filters electrum LTC servers``() =
+    member __.``filters electrum LTC servers``() =
         for electrumServer in ElectrumServerSeedList.DefaultLtcList do
             Assert.That (electrumServer.UnencryptedPort, Is.Not.EqualTo(None),
                 sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
@@ -32,7 +33,8 @@ module ElectrumServerUnitTests =
                 sprintf "BTC servers list should be filtered against onion servers, but %s was found"
                         electrumServer.Fqdn)
 
-module ElectrumIntegrationTests =
+[<TestFixture>]
+type ElectrumIntegrationTests() =
 
     // probably a satoshi address because it was used in blockheight 2 and is unspent yet
     let SATOSHI_ADDRESS =
@@ -52,7 +54,7 @@ module ElectrumIntegrationTests =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                use electrumClient = new ElectrumClient(electrumServer)
+                let electrumClient = ElectrumClient electrumServer
                 let balance = electrumClient.GetBalance address
 
                 // if these ancient addresses get withdrawals it would be interesting in the crypto space...
@@ -78,7 +80,7 @@ module ElectrumIntegrationTests =
             innerCheck electrumServer
 
     [<Test>]
-    let ``can connect to some electrum BTC servers``() =
+    member __.``can connect to some electrum BTC servers``() =
         let reachableServers = seq {
             for electrumServer in ElectrumServerSeedList.DefaultBtcList do
                 match CheckServerIsReachable electrumServer SATOSHI_ADDRESS None with
@@ -94,7 +96,7 @@ module ElectrumIntegrationTests =
         Assert.That(reachableServersCount, Is.GreaterThan(1))
 
     [<Test>]
-    let ``can connect to some electrum LTC servers``() =
+    member __.``can connect to some electrum LTC servers``() =
         let reachableServers = seq {
             for electrumServer in ElectrumServerSeedList.DefaultLtcList do
                 match CheckServerIsReachable electrumServer LTC_GENESIS_BLOCK_ADDRESS None with

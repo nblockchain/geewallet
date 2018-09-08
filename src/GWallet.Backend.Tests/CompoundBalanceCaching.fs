@@ -7,16 +7,11 @@ open NUnit.Framework
 
 open GWallet.Backend
 
-module CompoundBalanceCaching =
+[<TestFixture>]
+type CompoundBalanceCaching() =
 
     let high_expiration_span_because_this_test_doesnt_involve_timing = TimeSpan.FromDays 100.0
     let zero_fee_because_this_test_does_not_involve_fees = 0.0m
-
-    [<Test>]
-    let ``combinations metatest``() =
-        let someMap: Map<string,int> = Map.empty.Add("x", 1).Add("y", 2).Add("z", 3)
-        let combinations = Caching.MapCombinations someMap
-        Assert.That(combinations.Length, Is.EqualTo 7)
 
     let someAddress = "0xABC"
     let someCurrency = Currency.ETC
@@ -28,7 +23,13 @@ module CompoundBalanceCaching =
         Caching.MainCache(Some tempFile, expirationSpan),tempFile
 
     [<Test>]
-    let ``non-compound balance``() =
+    member __.``combinations metatest``() =
+        let someMap: Map<string,int> = Map.empty.Add("x", 1).Add("y", 2).Add("z", 3)
+        let combinations = Caching.MapCombinations someMap
+        Assert.That(combinations.Length, Is.EqualTo 7)
+
+    [<Test>]
+    member __.``non-compound balance``() =
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
@@ -40,7 +41,7 @@ module CompoundBalanceCaching =
             File.Delete cacheFile.FullName
 
     [<Test>]
-    let ``single-compound balance``() =
+    member __.``single-compound balance``() =
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
@@ -64,7 +65,7 @@ module CompoundBalanceCaching =
             File.Delete cacheFile.FullName
 
     [<Test>]
-    let ``single-compound balance with dupe tx``() =
+    member __.``single-compound balance with dupe tx``() =
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
@@ -95,7 +96,7 @@ module CompoundBalanceCaching =
             File.Delete cacheFile.FullName
 
     [<Test>]
-    let ``double-compound balance``() =
+    member __.``double-compound balance``() =
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
@@ -127,7 +128,7 @@ module CompoundBalanceCaching =
             File.Delete cacheFile.FullName
 
     [<Test>]
-    let ``confirmed first transaction``() =
+    member __.``confirmed first transaction``() =
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
@@ -160,7 +161,7 @@ module CompoundBalanceCaching =
             File.Delete cacheFile.FullName
 
     [<Test>]
-    let ``confirmed second transaction``() =
+    member __.``confirmed second transaction``() =
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
@@ -194,7 +195,7 @@ module CompoundBalanceCaching =
             File.Delete cacheFile.FullName
 
     [<Test>]
-    let ``confirmed two transactions``() =
+    member __.``confirmed two transactions``() =
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
@@ -227,7 +228,7 @@ module CompoundBalanceCaching =
             File.Delete cacheFile.FullName
 
     [<Test>]
-    let ``single-compound balance with expired transaction (retrieve and update)``() =
+    member __.``single-compound balance with expired transaction (retrieve and update)``() =
         let expirationTime = TimeSpan.FromMilliseconds 100.0
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest expirationTime
@@ -250,7 +251,7 @@ module CompoundBalanceCaching =
             File.Delete cacheFile.FullName
 
     [<Test>]
-    let ``single-compound balance with expired transaction (just retreive)``() =
+    member __.``single-compound balance with expired transaction (just retreive)``() =
         let expirationTime = TimeSpan.FromMilliseconds 100.0
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest expirationTime
@@ -275,7 +276,7 @@ module CompoundBalanceCaching =
             File.Delete cacheFile.FullName
 
     [<Test>]
-    let ``substracting both currency X(e.g. DAI) and the currency Y(e.g.ETH) where fees are spent``() =
+    member __.``substracting both currency X(e.g. DAI) and the currency Y(e.g.ETH) where fees are spent``() =
         let cache,cacheFile =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
