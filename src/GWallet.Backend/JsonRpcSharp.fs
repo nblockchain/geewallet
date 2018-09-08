@@ -1,10 +1,13 @@
 ﻿namespace GWallet.Backend
 
 open System
+open System.Buffers
 open System.Linq
 open System.Text
+open System.IO.Pipelines
 open System.Net
 open System.Net.Sockets
+open System.Runtime.InteropServices
 open System.Threading
 
 module JsonRpcSharp =
@@ -22,12 +25,114 @@ module JsonRpcSharp =
     type ServerUnresponsiveException() =
        inherit ConnectionUnsuccessfulException()
 
+    // Translation of https://github.com/davidfowl/TcpEcho/blob/master/src/Program.cs
     // BIG TODO:
     //   1. CONVERT THIS TO BE A CLASS THAT INHERITS FROM ClientBase CLASS
-    //   2. STOP USING BLOCKING API TO USE ASYNC API INSTEAD (e.g. from Thread.Sleep to Task.Delay), MAYBE USING:
-    //      https://blogs.msdn.microsoft.com/dotnet/2018/07/09/system-io-pipelines-high-performance-io-in-net/
+    //   2. STOP USING BLOCKING API TO USE ASYNC API INSTEAD (e.g. from Thread.Sleep to Task.Delay)
     type TcpClient (hostAndPort: unit->IPAddress*int) =
 
+        [<Literal>]
+        let minimumBufferSize = 512
+
+        let IfNotNull f x = x |> Option.ofNullable |> Option.iter f
+
+        let GetArrayFromReadOnlyMemory memory: ArraySegment<byte> =
+            match MemoryMarshal.TryGetArray memory with
+            | true, segment -> segment
+            | false, _      -> raise <| InvalidOperationException("Buffer backed by array was expected")
+
+        let GetArray (memory: Memory<byte>) =
+            Memory<byte>.op_Implicit memory
+            |> GetArrayFromReadOnlyMemory
+
+        let ReceiveAsync (socket: Socket) memory socketFlags =
+            let arraySegment = GetArray memory
+            SocketTaskExtensions.ReceiveAsync(socket, arraySegment, socketFlags)
+
+        let GetAsciiString (buffer: ReadOnlySequence<byte>) =
+            // A likely better way of converting this buffer/sequence to a string can be found her:
+            // https://blogs.msdn.microsoft.com/dotnet/2018/07/09/system-io-pipelines-high-performance-io-in-net/
+            // But I cannot find the namespace of the presumably extension method "Create()" on System.String:
+            ref buffer
+            |> System.Buffers.BuffersExtensions.ToArray
+            |> System.Text.Encoding.ASCII.GetString
+
+        let rec ReadPipeInternal (reader: PipeReader) (stringBuilder: StringBuilder) =
+            let processLine (line:ReadOnlySequence<byte>) =
+                line |> GetAsciiString |> stringBuilder.AppendLine |> ignore
+
+            // TODO: convert to async!
+            let result = reader.ReadAsync().Result
+
+            let rec keepAdvancingPosition buffer =
+                // How to call a ref extension method using extension syntax?
+                System.Buffers.BuffersExtensions.PositionOf(ref buffer, byte '\n')
+                |> IfNotNull(fun pos ->
+                    buffer.Slice(0, pos)
+                    |> processLine
+                    buffer.GetPosition(1L, pos)
+                    |> buffer.Slice
+                    |> keepAdvancingPosition)
+            keepAdvancingPosition result.Buffer
+            reader.AdvanceTo(result.Buffer.Start, result.Buffer.End)
+            if not result.IsCompleted then
+                ReadPipeInternal reader stringBuilder
+            else
+                stringBuilder.ToString()
+
+        let ReadPipe pipeReader =
+            ReadPipeInternal pipeReader (StringBuilder())
+
+        let FillPipeAsync (socket: Socket) (writer: PipeWriter) =
+            // If incomplete messages become an issue here, consider reinstating the while/loop
+            // logic from the original C# source.  For now, assuming that every response is complete
+            // is working better than trying to handle potential incomplete responses.
+            let memory: Memory<byte> = writer.GetMemory minimumBufferSize
+            let receiveTask = ReceiveAsync socket memory SocketFlags.None
+            if receiveTask.Wait Config.DEFAULT_NETWORK_TIMEOUT then
+                let bytesRead = receiveTask.Result
+                if bytesRead > 0 then
+                    writer.Advance bytesRead
+                else
+                    raise <| NoResponseReceivedAfterRequestException()
+            else
+                raise <| NoResponseReceivedAfterRequestException()
+            writer.Complete()
+
+        let Connect () =
+            let host, port = hostAndPort()
+            let socket = new Socket(SocketType.Stream,
+                                    ProtocolType.Tcp)
+                                    // Not using timeout properties on Socket because FillPipeAsync retrieves data
+                                    // in a Task which we have timeout itself. But keep in mind that these socket
+                                    // timeout properties exist, and may prove to have some use:
+                                    //, SendTimeout = defaultNetworkTimeout, ReceiveTimeout = defaultNetworkTimeout)
+
+            socket.Connect(host, port)
+            socket
+
+        new(host: IPAddress, port: int) = new TcpClient(fun _ -> host, port)
+
+        member __.Request (request: string): string =
+            use socket = Connect ()
+            async {
+                let buffer =
+                    request + "\n"
+                    |> Encoding.UTF8.GetBytes
+                    |> ArraySegment<byte>
+
+                return! socket.SendAsync(buffer, SocketFlags.None) |> Async.AwaitTask
+            }
+                // TODO: convert to async!
+                |> Async.RunSynchronously
+
+                |> ignore // int bytesSent
+
+            let pipe = Pipe()
+            FillPipeAsync socket pipe.Writer
+            ReadPipe pipe.Reader
+
+    type LegacyTcpClient  (hostAndPort: unit->IPAddress*int) =
         let rec WrapResult (acc: byte list): string =
             let reverse = List.rev acc
             Encoding.UTF8.GetString(reverse.ToArray())
@@ -81,7 +186,7 @@ module JsonRpcSharp =
                 raise(ServerUnresponsiveException())
             tcpClient
 
-        new(host: IPAddress, port: int) = new TcpClient(fun _ -> host,port)
+        new(host: IPAddress, port: int) = new LegacyTcpClient(fun _ -> host, port)
 
         member self.Request (request: string): string =
             use tcpClient = Connect()

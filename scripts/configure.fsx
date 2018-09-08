@@ -23,6 +23,24 @@ ConfigCommandCheck "mono"
 // needed by NuGet.Restore.targets & the "update-servers" Makefile target
 ConfigCommandCheck "curl"
 
+let shouldUseLegacyTcpClient =
+    // we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that has a runtime bug
+    let versionOfMonoWhereTheRuntimeBugWasFixed = "5.4"
+
+    match Misc.GuessPlatform() with
+    | Misc.Platform.Windows ->
+        // not using Mono anyway
+        false
+    | Misc.Platform.Mac ->
+        // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
+        false
+    | Misc.Platform.Linux ->
+        let pkgConfig = "pkg-config"
+        ConfigCommandCheck pkgConfig
+        let pkgConfigCmd = sprintf "%s --atleast-version=%s mono" pkgConfig versionOfMonoWhereTheRuntimeBugWasFixed
+        let processResult = Process.Execute(pkgConfigCmd, false, false)
+        processResult.ExitCode <> 0
+
 let rec private GatherOrGetDefaultPrefix(args: string list, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
     let GatherPrefix(newPrefix: string): Option<string> =
         match prefixSet with
@@ -51,8 +69,21 @@ if not (prefix.Exists) then
     let warning = sprintf "WARNING: prefix doesn't exist: %s" prefix.FullName
     Console.Error.WriteLine warning
 
-File.WriteAllText(Path.Combine(__SOURCE_DIRECTORY__, "build.config"),
-                  sprintf "Prefix=%s" prefix.FullName)
+let lines =
+    let addLegacyTcpClientEntryIfNecessary (configEntries: Map<string,string>) =
+        if shouldUseLegacyTcpClient then
+            configEntries.Add("DefineConstants", "LEGACY_TCP_CLIENT")
+        else
+            configEntries
+    let toConfigFileLine (keyValuePair: KeyValuePair<string,string>) =
+        sprintf "%s=%s" keyValuePair.Key keyValuePair.Value
+
+    Map.empty.Add("Prefix", prefix.FullName)
+    |> addLegacyTcpClientEntryIfNecessary
+    |> Seq.map toConfigFileLine
+
+let path = Path.Combine(__SOURCE_DIRECTORY__, "build.config")
+File.WriteAllLines(path, lines |> Array.ofSeq)
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let version = Misc.GetCurrentVersion(rootDir)

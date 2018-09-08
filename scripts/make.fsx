@@ -22,15 +22,32 @@ let rec private GatherTarget (args: string list, targetSet: Option<string>): Opt
             failwith "only one target can be passed to make"
         GatherTarget (tail, Some (head))
 
-let GatherPrefix(): string =
+let buildConfigContents =
     let buildConfig = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "build.config"))
     if not (buildConfig.Exists) then
         Console.Error.WriteLine "ERROR: configure hasn't been run yet, run ./configure.sh first"
         Environment.Exit 1
-    let buildConfigContents = File.ReadAllText buildConfig.FullName
-    (buildConfigContents.Substring ("Prefix=".Length)).Trim()
 
-let prefix = GatherPrefix ()
+    let skipBlankLines line = not <| String.IsNullOrWhiteSpace line
+    let splitLineIntoKeyValueTuple (line:string) =
+        let pair = line.Split([|'='|], StringSplitOptions.RemoveEmptyEntries)
+        if pair.Length <> 2 then
+            failwith "All lines in build.config must conform to format:\n\tkey=value"
+        pair.[0], pair.[1]
+
+    let buildConfigContents =
+        File.ReadAllLines buildConfig.FullName
+        |> Array.filter skipBlankLines
+        |> Array.map splitLineIntoKeyValueTuple
+        |> Map.ofArray
+    buildConfigContents
+
+let GetOrExplain key map =
+    match map |> Map.tryFind key with
+    | Some k -> k
+    | None   -> failwithf "No entry exists in build.config with a key '%s'." key
+
+let prefix = buildConfigContents |> GetOrExplain "Prefix"
 let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", "gwallet"))
 let binInstallPath = DirectoryInfo (Path.Combine (prefix, "bin"))
 
@@ -64,7 +81,11 @@ let PrintNugetVersion () =
 let JustBuild binaryConfig =
     Console.WriteLine "Compiling gwallet..."
     let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
-    let xbuild = Process.Execute (sprintf "xbuild %s" configOption, true, false)
+    let configOptions =
+        match buildConfigContents |> Map.tryFind "DefineConstants" with
+        | Some constants -> sprintf "%s;DefineConstants=%s" configOption constants
+        | None   -> configOption
+    let xbuild = Process.Execute (sprintf "xbuild %s" configOptions, true, false)
     if (xbuild.ExitCode <> 0) then
         Console.Error.WriteLine "xbuild build failed"
         PrintNugetVersion() |> ignore
