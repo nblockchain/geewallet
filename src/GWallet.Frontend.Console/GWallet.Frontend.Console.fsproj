@@ -39,56 +39,6 @@
     <DocumentationFile>bin\Release\GWallet.Frontend.Console.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="mscorlib" />
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="FSharp.Core">
-      <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\BouncyCastle.1.8.2\lib\BouncyCastle.Crypto.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.RLP.3.0.0-CI-20180815-082224\lib\net451\Nethereum.RLP.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.Signer.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Signer.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.Util.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Util.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.Hex.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Hex.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Properties\" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="App.config" />
-    <Compile Include="Properties\AssemblyInfo.fs" />
-    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
-      <Link>Properties\CommonAssemblyInfo.fs</Link>
-    </Compile>
-    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
-      <Name>GWallet.Backend</Name>
-      <Project>{96f9b3e5-11f8-4f5f-aadc-51d0d995b3d2}</Project>
-      <Private>True</Private>
-    </ProjectReference>
-    <Compile Include="Presentation.fs" />
-    <Compile Include="UserInteraction.fs" />
-    <Compile Include="Program.fs" />
-    <Content Include="packages.config" />
-    <Content Include="gwallet.bat">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
@@ -107,7 +57,8 @@
         </When>
         <Otherwise>
           <PropertyGroup>
-            <FSharpSdkPathPrefix></FSharpSdkPathPrefix>
+            <FSharpSdkPathPrefix>
+            </FSharpSdkPathPrefix>
           </PropertyGroup>
         </Otherwise>
       </Choose>
@@ -119,7 +70,8 @@
   <Choose>
     <When Condition="'$(FSharpSdkPathPrefix)' == ''">
       <PropertyGroup>
-        <FSharpTargetsPath></FSharpTargetsPath>
+        <FSharpTargetsPath>
+        </FSharpTargetsPath>
       </PropertyGroup>
     </When>
     <Otherwise>
@@ -152,7 +104,8 @@
                     </When>
                     <Otherwise>
                       <PropertyGroup>
-                        <FSharpTargetsPath></FSharpTargetsPath>
+                        <FSharpTargetsPath>
+                        </FSharpTargetsPath>
                       </PropertyGroup>
                     </Otherwise>
                   </Choose>
@@ -170,4 +123,51 @@
   </Target>
   <Target Name="AfterBuild">
   </Target>
+  <ItemGroup>
+    <None Include="App.config" />
+    <Compile Include="Properties\AssemblyInfo.fs" />
+    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
+      <Link>Properties\CommonAssemblyInfo.fs</Link>
+    </Compile>
+    <Compile Include="Presentation.fs" />
+    <Compile Include="UserInteraction.fs" />
+    <Compile Include="Program.fs" />
+    <Content Include="packages.config" />
+    <Content Include="gwallet.bat">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="mscorlib" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="FSharp.Core">
+      <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Crypto">
+      <HintPath>..\..\packages\BouncyCastle.1.8.2\lib\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RLP">
+      <HintPath>..\..\packages\Nethereum.RLP.3.0.0-CI-20180815-082224\lib\net451\Nethereum.RLP.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Signer">
+      <HintPath>..\..\packages\Nethereum.Signer.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Signer.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Util">
+      <HintPath>..\..\packages\Nethereum.Util.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Hex">
+      <HintPath>..\..\packages\Nethereum.Hex.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Hex.dll</HintPath>
+    </Reference>
+    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
+      <Name>GWallet.Backend</Name>
+      <Project>{96f9b3e5-11f8-4f5f-aadc-51d0d995b3d2}</Project>
+      <Private>True</Private>
+    </ProjectReference>
+  </ItemGroup>
 </Project>

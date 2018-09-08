@@ -52,7 +52,8 @@
         </When>
         <Otherwise>
           <PropertyGroup>
-            <FSharpSdkPathPrefix></FSharpSdkPathPrefix>
+            <FSharpSdkPathPrefix>
+            </FSharpSdkPathPrefix>
           </PropertyGroup>
         </Otherwise>
       </Choose>
@@ -64,7 +65,8 @@
   <Choose>
     <When Condition="'$(FSharpSdkPathPrefix)' == ''">
       <PropertyGroup>
-        <FSharpTargetsPath></FSharpTargetsPath>
+        <FSharpTargetsPath>
+        </FSharpTargetsPath>
       </PropertyGroup>
     </When>
     <Otherwise>
@@ -97,7 +99,8 @@
                     </When>
                     <Otherwise>
                       <PropertyGroup>
-                        <FSharpTargetsPath></FSharpTargetsPath>
+                        <FSharpTargetsPath>
+                        </FSharpTargetsPath>
                       </PropertyGroup>
                     </Otherwise>
                   </Choose>
@@ -110,6 +113,48 @@
     </Otherwise>
   </Choose>
   <Import Condition="'$(FSharpTargetsPath)' != ''" Project="$(FSharpTargetsPath)" />
+  <Target Name="BeforeBuild">
+    <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
+  </Target>
+  <ItemGroup>
+    <Compile Include="Properties\AssemblyInfo.fs" />
+    <Compile Include="Properties\CommonAssemblyInfo.fs" />
+    <Compile Include="FSharpUtil.fs" />
+    <Compile Include="Shuffler.fs" />
+    <Compile Include="Marshalling.fs" />
+    <Compile Include="Currency.fs" />
+    <Compile Include="Exceptions.fs" />
+    <Compile Include="AccountTypes.fs" />
+    <Compile Include="Config.fs" />
+    <Compile Include="JsonRpcSharp.fs" />
+    <Compile Include="JsonRpcTcpClient.fs" />
+    <Compile Include="IBlockchainFeeInfo.fs" />
+    <Compile Include="TransferAmount.fs" />
+    <Compile Include="Caching.fs" />
+    <Compile Include="Transaction.fs" />
+    <Compile Include="FaultTolerantParallelClient.fs" />
+    <Compile Include="UtxoCoin\ElectrumServer.fs" />
+    <Compile Include="UtxoCoin\StratumClient.fs" />
+    <Compile Include="UtxoCoin\ElectrumClient.fs" />
+    <Compile Include="UtxoCoin\UnitConversion.fs" />
+    <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
+    <Compile Include="UtxoCoin\TransactionTypes.fs" />
+    <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
+    <EmbeddedResource Include="UtxoCoin\btc-servers.json" />
+    <EmbeddedResource Include="UtxoCoin\ltc-servers.json" />
+    <Compile Include="Ether\EtherMinerFee.fs" />
+    <Compile Include="Ether\TransactionMetadata.fs" />
+    <Compile Include="Ether\TokenManager.fs" />
+    <Compile Include="Ether\EtherServer.fs" />
+    <Compile Include="Ether\EtherAccount.fs" />
+    <Compile Include="BlockExplorer.fs" />
+    <Compile Include="WarpKey.fs" />
+    <Compile Include="Account.fs" />
+    <Compile Include="FiatValueEstimation.fs" />
+    <Compile Include="Infrastructure.fs" />
+    <Compile Include="Formatting.fs" />
+    <Content Include="packages.config" />
+  </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.2.3.3\lib\net40\FSharp.Data.dll</HintPath>
@@ -209,51 +254,6 @@
     </Reference>
     <Reference Include="System.Configuration" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Properties\" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.fs" />
-    <Compile Include="Properties\CommonAssemblyInfo.fs" />
-    <Compile Include="FSharpUtil.fs" />
-    <Compile Include="Shuffler.fs" />
-    <Compile Include="Marshalling.fs" />
-    <Compile Include="Currency.fs" />
-    <Compile Include="Exceptions.fs" />
-    <Compile Include="AccountTypes.fs" />
-    <Compile Include="Config.fs" />
-    <Compile Include="JsonRpcSharp.fs" />
-    <Compile Include="JsonRpcTcpClient.fs" />
-    <Compile Include="IBlockchainFeeInfo.fs" />
-    <Compile Include="TransferAmount.fs" />
-    <Compile Include="Caching.fs" />
-    <Compile Include="Transaction.fs" />
-    <Compile Include="FaultTolerantParallelClient.fs" />
-    <Compile Include="UtxoCoin\ElectrumServer.fs" />
-    <Compile Include="UtxoCoin\StratumClient.fs" />
-    <Compile Include="UtxoCoin\ElectrumClient.fs" />
-    <Compile Include="UtxoCoin\UnitConversion.fs" />
-    <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
-    <Compile Include="UtxoCoin\TransactionTypes.fs" />
-    <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
-    <EmbeddedResource Include="UtxoCoin\btc-servers.json" />
-    <EmbeddedResource Include="UtxoCoin\ltc-servers.json" />
-    <Compile Include="Ether\EtherMinerFee.fs" />
-    <Compile Include="Ether\TransactionMetadata.fs" />
-    <Compile Include="Ether\TokenManager.fs" />
-    <Compile Include="Ether\EtherServer.fs" />
-    <Compile Include="Ether\EtherAccount.fs" />
-    <Compile Include="BlockExplorer.fs" />
-    <Compile Include="WarpKey.fs" />
-    <Compile Include="Account.fs" />
-    <Compile Include="FiatValueEstimation.fs" />
-    <Compile Include="Infrastructure.fs" />
-    <Compile Include="Formatting.fs" />
-    <Content Include="packages.config" />
-  </ItemGroup>
-  <Target Name="BeforeBuild">
-    <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
-  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="AfterBuild">
