@@ -90,9 +90,12 @@ module JsonRpcSharp =
         let Read (stream: NetworkStream): string =
             ReadInternal stream [] DateTime.Now
 
-        let ResolveAsync (hostName: string) =
+        let ResolveAsync (hostName: string): Task<Option<IPAddress>> =
             // FIXME: loop over all addresses?
-            Task.Run(fun _ -> Dns.GetHostEntry(hostName).AddressList.[0])
+            Task.Run(fun _ ->
+                (Dns.GetHostEntry hostName).AddressList
+                    |> Array.tryHead
+            )
 
         let Connect(): System.Net.Sockets.TcpClient =
 
@@ -102,13 +105,18 @@ module JsonRpcSharp =
                     let resolveTask = ResolveAsync host
                     if not (resolveTask.Wait Config.DEFAULT_NETWORK_TIMEOUT) then
                         raise(ServerCannotBeResolvedException(exceptionMsg))
-                    resolveTask.Result
+                    match resolveTask.Result with
+                    | None ->
+                        raise <| ServerCannotBeResolvedException
+                                     (sprintf "DNS host entry lookup resulted in no records for %s" host)
+                    | Some ipAddress -> ipAddress
                 with
                 | ex ->
                     let socketException = FSharpUtil.FindException<SocketException>(ex)
                     if (socketException.IsNone) then
                         reraise()
                     if (socketException.Value.ErrorCode = int SocketError.HostNotFound ||
+                        socketException.Value.ErrorCode = int SocketError.NoData ||
                         socketException.Value.ErrorCode = int SocketError.TryAgain) then
                         raise(ServerCannotBeResolvedException(exceptionMsg, ex))
                     raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
