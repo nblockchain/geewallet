@@ -37,7 +37,7 @@ and internal NonParallelResults<'T,'R,'E when 'E :> Exception> =
 
 type ConsistencySettings<'R> =
     | NumberOfConsistentResponsesRequired of uint16
-    | AverageBetweenResponses of (uint16 * (list<'R> -> 'R))
+    | AverageBetweenResponses of (uint16 * (List<'R> -> 'R))
 
 type FaultTolerantParallelClientSettings<'R> =
     {
@@ -245,7 +245,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
 
     member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
                                                 (args: 'T)
-                                                (funcs: list<'T->'R>): Async<'R> =
+                                                (funcs: List<'T->'R>): Async<'R> =
         if settings.NumberOfMaximumParallelJobs < uint16 1 then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 

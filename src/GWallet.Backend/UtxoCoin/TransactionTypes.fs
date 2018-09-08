@@ -20,8 +20,8 @@ type TransactionOutpointInfo =
 
 type TransactionDraft =
     {
-        Inputs: list<TransactionOutpointInfo>;
-        Outputs: list<OutputInfo>;
+        Inputs: List<TransactionOutpointInfo>;
+        Outputs: List<OutputInfo>;
     }
 
 type TransactionMetadata =

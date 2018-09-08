@@ -58,7 +58,7 @@ module internal Account =
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
     //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
-    let private GetRandomizedFuncs<'T,'R> currency (ecFunc: ElectrumClient->'T->'R): list<'T->'R> =
+    let private GetRandomizedFuncs<'T,'R> currency (ecFunc: ElectrumClient->'T->'R): List<'T->'R> =
         let randomizedServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedFuncs =
             List.map (fun (es:ElectrumServer) ->
@@ -108,7 +108,7 @@ module internal Account =
             return confirmedBalance
         }
 
-    let private CreateTransactionAndCoinsToBeSigned currency (transactionDraft: TransactionDraft): Transaction*list<Coin> =
+    let private CreateTransactionAndCoinsToBeSigned currency (transactionDraft: TransactionDraft): Transaction*List<Coin> =
         let transaction = Transaction()
         let coins =
             seq {
@@ -195,11 +195,11 @@ module internal Account =
     let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 131
 
     let EstimateFee account (amount: TransferAmount) (destination: string): Async<TransactionMetadata> = async {
-        let rec addInputsUntilAmount (utxos: list<UnspentTransactionOutputInfo>)
+        let rec addInputsUntilAmount (utxos: List<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount
-                                     (acc: list<UnspentTransactionOutputInfo>)
-                                     : list<UnspentTransactionOutputInfo>*int64 =
+                                     (acc: List<UnspentTransactionOutputInfo>)
+                                     : List<UnspentTransactionOutputInfo>*int64 =
             match utxos with
             | [] ->
                 // should `raise InsufficientFunds` instead?

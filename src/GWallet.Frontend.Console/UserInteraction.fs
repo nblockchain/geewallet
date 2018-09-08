@@ -52,7 +52,7 @@ module UserInteraction =
 
     exception NoOptionFound
 
-    let rec FindMatchingOption<'T> (optIntroduced, allOptions: ('T*int) list): 'T =
+    let rec FindMatchingOption<'T> (optIntroduced, allOptions: List<'T*int>): 'T =
         match Int32.TryParse(optIntroduced) with
         | false, _ -> raise NoOptionFound
         | true, optionParsed ->

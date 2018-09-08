@@ -11,7 +11,13 @@ members, but camelCase for parameters, private fields, and local functions.
 * When writing non-static type members we prefer to use the word `self` or
 `this`.
 * We follow the same convention of C# to prefix interfaces with the letter 'I'.
-* We prefer the generic notation `list<Foo>` rather than `Foo list`.
+* Given that we use the C#ish style of PascalCase for type names (instead of
+camelCase), then it only makes sense to try to use the type names which start
+with uppercase, instead of the camelCased F# types (e.g. use `Option` and `List`
+instead of `option` and `list`). The only exception to this rule is: primitive
+types (where we prefer `string` and `int` over `String` and `Int32` unless we're
+using a static method of them).
+* We prefer the generic notation `List<Foo>` rather than `Foo list`.
 * We prefer to write parenthesis only when strictly necessary (e.g. in F# they
 are not required for `if` clauses, unlike C#) or for readability purposes (e.g.
 when it's not clear what operator would be applied first by the order preference

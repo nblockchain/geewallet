@@ -133,7 +133,7 @@ module JsonRpcSharp =
             ReadPipe pipe.Reader
 
     type LegacyTcpClient  (hostAndPort: unit->IPAddress*int) =
-        let rec WrapResult (acc: byte list): string =
+        let rec WrapResult (acc: List<byte>): string =
             let reverse = List.rev acc
             Encoding.UTF8.GetString(reverse.ToArray())
 

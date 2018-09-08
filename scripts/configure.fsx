@@ -2,7 +2,6 @@
 
 open System
 open System.IO
-open System.Collections.Generic
 open System.Linq
 
 #load "Infra.fs"
@@ -41,7 +40,7 @@ let shouldUseLegacyTcpClient =
         let processResult = Process.Execute(pkgConfigCmd, false, false)
         processResult.ExitCode <> 0
 
-let rec private GatherOrGetDefaultPrefix(args: string list, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
+let rec private GatherOrGetDefaultPrefix(args: List<string>, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
     let GatherPrefix(newPrefix: string): Option<string> =
         match prefixSet with
         | None -> Some(newPrefix)
@@ -75,7 +74,7 @@ let lines =
             configEntries.Add("DefineConstants", "LEGACY_TCP_CLIENT")
         else
             configEntries
-    let toConfigFileLine (keyValuePair: KeyValuePair<string,string>) =
+    let toConfigFileLine (keyValuePair: System.Collections.Generic.KeyValuePair<string,string>) =
         sprintf "%s=%s" keyValuePair.Key keyValuePair.Value
 
     Map.empty.Add("Prefix", prefix.FullName)
