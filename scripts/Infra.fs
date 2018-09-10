@@ -88,6 +88,22 @@ module Misc =
                                                     versionNumberEndPosInLine - versionNumberStartPosInLine - 1)
         Version(version)
 
+    // TODO: consider Android/iOS?
+    type Platform =
+    | Windows
+    | Linux
+    | Mac
+    let GuessPlatform() =
+        let macDirs = [ "/Applications"; "/System"; "/Users"; "/Volumes" ]
+        match Environment.OSVersion.Platform with
+        | PlatformID.MacOSX -> Platform.Mac
+        | PlatformID.Unix ->
+            if macDirs.All(fun dir -> Directory.Exists dir) then
+                Platform.Mac
+            else
+                Platform.Linux
+        | _ -> Platform.Windows
+
 
 module Process =
 

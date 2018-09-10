@@ -92,7 +92,7 @@ module Server =
     let private etcWeb3CommonWealthParity = SomeWeb3("https://etc-parity.callisto.network")
     let private etcWeb3ChainKorea = SomeWeb3("https://node.classicexplorer.org/")
 
-    let GetWeb3Servers (currency: Currency): list<SomeWeb3> =
+    let GetWeb3Servers (currency: Currency): List<SomeWeb3> =
         if currency = ETC then
             [
                 etcWeb3ePoolIo1;
@@ -214,7 +214,7 @@ module Server =
         JsonRpc.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
         FaultTolerantParallelClient<ConnectionUnsuccessfulException>()
 
-    let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): list<'T->'R> =
+    let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): List<'T->'R> =
         let servers = GetWeb3Servers currency
         let serverFuncs =
             List.map (fun (web3: SomeWeb3) ->

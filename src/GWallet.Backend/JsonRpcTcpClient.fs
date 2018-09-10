@@ -60,7 +60,11 @@ type JsonRpcTcpClient (host: string, port: int) =
                 raise(ServerCannotBeResolvedException(exceptionMsg, ex))
             raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
 
+#if LEGACY_TCP_CLIENT
+    let rpcTcpClient = new JsonRpcSharp.LegacyTcpClient(fun _ -> (ResolveHost(),port))
+#else
     let rpcTcpClient = new JsonRpcSharp.TcpClient(fun _ -> (ResolveHost(),port))
+#endif
 
     member self.Request (request: string): string =
         try
@@ -82,6 +86,8 @@ type JsonRpcTcpClient (host: string, port: int) =
 
             if (socketException.Value.ErrorCode = int SocketError.ConnectionRefused) then
                 raise(ServerRefusedException(exceptionMsg, ex))
+            if socketException.Value.ErrorCode = int SocketError.ConnectionReset then
+                raise <| ServerRefusedException(exceptionMsg, ex)
 
             if (socketException.Value.ErrorCode = int SocketError.TimedOut) then
                 raise(ServerTimedOutException(exceptionMsg, ex))

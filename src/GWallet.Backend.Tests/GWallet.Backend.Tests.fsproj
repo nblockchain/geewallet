@@ -51,7 +51,8 @@
         </When>
         <Otherwise>
           <PropertyGroup>
-            <FSharpSdkPathPrefix></FSharpSdkPathPrefix>
+            <FSharpSdkPathPrefix>
+            </FSharpSdkPathPrefix>
           </PropertyGroup>
         </Otherwise>
       </Choose>
@@ -63,7 +64,8 @@
   <Choose>
     <When Condition="'$(FSharpSdkPathPrefix)' == ''">
       <PropertyGroup>
-        <FSharpTargetsPath></FSharpTargetsPath>
+        <FSharpTargetsPath>
+        </FSharpTargetsPath>
       </PropertyGroup>
     </When>
     <Otherwise>
@@ -96,7 +98,8 @@
                     </When>
                     <Otherwise>
                       <PropertyGroup>
-                        <FSharpTargetsPath></FSharpTargetsPath>
+                        <FSharpTargetsPath>
+                        </FSharpTargetsPath>
                       </PropertyGroup>
                     </Otherwise>
                   </Choose>
@@ -109,9 +112,30 @@
     </Otherwise>
   </Choose>
   <Import Condition="'$(FSharpTargetsPath)' != ''" Project="$(FSharpTargetsPath)" />
+  <Target Name="BeforeBuild">
+    <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
+  </Target>
   <ItemGroup>
-    <Folder Include="data\" />
-    <Folder Include="Properties\" />
+    <Content Include="..\GWallet.Frontend.Console\App.config">
+      <Link>App.config</Link>
+    </Content>
+    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
+      <Link>Properties\CommonAssemblyInfo.fs</Link>
+    </Compile>
+    <Compile Include="MarshallingData.fs" />
+    <Compile Include="Serialization.fs" />
+    <Compile Include="Deserialization.fs" />
+    <Compile Include="FaultTolerance.fs" />
+    <Compile Include="Parallelization.fs" />
+    <Compile Include="Shuffling.fs" />
+    <Compile Include="StratumParsing.fs" />
+    <Content Include="packages.config" />
+    <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
+    <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
+    <Compile Include="ElectrumIntegrationTests.fs" />
+    <Compile Include="WarpWallet.fs" />
+    <Compile Include="CompoundBalanceCaching.fs" />
+    <Compile Include="Formatting.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
@@ -147,39 +171,14 @@
     <Reference Include="Nethereum.Hex">
       <HintPath>..\..\packages\Nethereum.Hex.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Hex.dll</HintPath>
     </Reference>
+    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
+      <Project>{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}</Project>
+      <Name>GWallet.Backend</Name>
+    </ProjectReference>
   </ItemGroup>
-  <Target Name="BeforeBuild">
-    <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
-  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="AfterBuild">
   </Target>
   -->
-  <ItemGroup>
-    <Content Include="..\GWallet.Frontend.Console\App.config">
-      <Link>App.config</Link>
-    </Content>
-    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
-      <Link>Properties\CommonAssemblyInfo.fs</Link>
-    </Compile>
-    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
-      <Project>{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}</Project>
-      <Name>GWallet.Backend</Name>
-    </ProjectReference>
-    <Compile Include="MarshallingData.fs" />
-    <Compile Include="Serialization.fs" />
-    <Compile Include="Deserialization.fs" />
-    <Compile Include="FaultTolerance.fs" />
-    <Compile Include="Parallelization.fs" />
-    <Compile Include="Shuffling.fs" />
-    <Compile Include="StratumParsing.fs" />
-    <Content Include="packages.config" />
-    <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
-    <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
-    <Compile Include="ElectrumIntegrationTests.fs" />
-    <Compile Include="WarpWallet.fs" />
-    <Compile Include="CompoundBalanceCaching.fs" />
-    <Compile Include="Formatting.fs" />
-  </ItemGroup>
 </Project>

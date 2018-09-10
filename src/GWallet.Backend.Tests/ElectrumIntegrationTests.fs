@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend.Tests
 
 open System
+open System.Linq
 
 open NUnit.Framework
 
@@ -45,9 +46,16 @@ type ElectrumIntegrationTests() =
     let LTC_GENESIS_BLOCK_ADDRESS = "Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2"
 
     let CheckServerIsReachable (electrumServer: ElectrumServer)
-                               (address: string)
+                               (currency: Currency)
                                (maybeFilter: Option<ElectrumServer -> bool>)
-                               : Option<ElectrumServer> =
+                               : Async<Option<ElectrumServer>> = async {
+
+        let address =
+            match currency with
+            | Currency.BTC -> SATOSHI_ADDRESS
+            | Currency.LTC -> LTC_GENESIS_BLOCK_ADDRESS
+            | _ -> failwith "Tests not ready for this currency"
+
         let innerCheck server =
             // this try-with block is similar to the one in UtxoCoinAccount, where it rethrows as
             // ElectrumServerDiscarded error, but here we catch 2 of the 3 errors that are caught there
@@ -61,52 +69,44 @@ type ElectrumIntegrationTests() =
                 // so let's make the test check a balance like this which is unlikely to change
                 Assert.That(balance.Confirmed, Is.Not.LessThan(998292))
 
+                Console.WriteLine (sprintf "%A server %s is reachable" currency server.Fqdn)
                 Some electrumServer
             with
             | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
                 // to make sure this exception type is an abstract class
                 Assert.That(ex.GetType(), Is.Not.EqualTo(typeof<JsonRpcSharp.ConnectionUnsuccessfulException>))
+
+                Console.WriteLine (sprintf "%A server %s is unreachable" currency server.Fqdn)
                 None
             | :? ElectrumServerReturningInternalErrorException as ex ->
+                Console.WriteLine (sprintf "%A server %s is unhealthy" currency server.Fqdn)
                 None
 
         match maybeFilter with
         | Some filterFunc ->
             if (filterFunc electrumServer) then
-                innerCheck electrumServer
+                return innerCheck electrumServer
             else
-                None
+                return None
         | _ ->
-            innerCheck electrumServer
+            return innerCheck electrumServer
+
+        }
+
+    let CheckElectrumServersConnection electrumServers currency =
+        let reachServerTasks = seq {
+            for electrumServer in electrumServers do
+                yield CheckServerIsReachable electrumServer currency None
+        }
+        let reachableServers = Async.Parallel reachServerTasks |> Async.RunSynchronously |> List.ofArray
+        let reachableServersCount = reachableServers.Count(fun server -> server.IsSome)
+        Console.WriteLine (sprintf "%d %A servers were reachable" reachableServersCount currency)
+        Assert.That(reachableServersCount, Is.GreaterThan(1))
 
     [<Test>]
     member __.``can connect to some electrum BTC servers``() =
-        let reachableServers = seq {
-            for electrumServer in ElectrumServerSeedList.DefaultBtcList do
-                match CheckServerIsReachable electrumServer SATOSHI_ADDRESS None with
-                | Some server ->
-                    Console.WriteLine (sprintf "BTC server %s is reachable" server.Fqdn)
-                    yield server
-                | None ->
-                    Console.WriteLine (sprintf "BTC server %s is unreachable or discarded" electrumServer.Fqdn)
-                    ()
-        }
-        let reachableServersCount = (reachableServers |> List.ofSeq).Length
-        Console.WriteLine (sprintf "%d BTC servers were reachable" reachableServersCount)
-        Assert.That(reachableServersCount, Is.GreaterThan(1))
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
 
     [<Test>]
     member __.``can connect to some electrum LTC servers``() =
-        let reachableServers = seq {
-            for electrumServer in ElectrumServerSeedList.DefaultLtcList do
-                match CheckServerIsReachable electrumServer LTC_GENESIS_BLOCK_ADDRESS None with
-                | Some server ->
-                    Console.WriteLine (sprintf "LTC server %s is reachable" server.Fqdn)
-                    yield server
-                | None ->
-                    Console.WriteLine (sprintf "LTC server %s is unreachable" electrumServer.Fqdn)
-                    ()
-        }
-        let reachableServersCount = (reachableServers |> List.ofSeq).Length
-        Console.WriteLine (sprintf "%d LTC servers were reachable" reachableServersCount)
-        Assert.That(reachableServersCount, Is.GreaterThan(1))
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC

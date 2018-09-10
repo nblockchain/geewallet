@@ -2,7 +2,6 @@
 
 open System
 open System.IO
-open System.Collections.Generic
 open System.Linq
 
 #load "Infra.fs"
@@ -17,13 +16,37 @@ let ConfigCommandCheck (commandName: string) =
     Console.WriteLine "found"
 
 ConfigCommandCheck "fsharpc"
-ConfigCommandCheck "xbuild"
 ConfigCommandCheck "mono"
 
 // needed by NuGet.Restore.targets & the "update-servers" Makefile target
 ConfigCommandCheck "curl"
 
-let rec private GatherOrGetDefaultPrefix(args: string list, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
+let oldVersionOfMono =
+    // we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that has a runtime bug
+    let versionOfMonoWhereTheRuntimeBugWasFixed = "5.4"
+
+    match Misc.GuessPlatform() with
+    | Misc.Platform.Windows ->
+        // not using Mono anyway
+        false
+    | Misc.Platform.Mac ->
+        // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
+        false
+    | Misc.Platform.Linux ->
+        let pkgConfig = "pkg-config"
+        ConfigCommandCheck pkgConfig
+        let pkgConfigCmd = sprintf "%s --atleast-version=%s mono" pkgConfig versionOfMonoWhereTheRuntimeBugWasFixed
+        let processResult = Process.Execute(pkgConfigCmd, false, false)
+        processResult.ExitCode <> 0
+
+let buildTool,shouldUseLegacyTcpClient =
+    if oldVersionOfMono then
+        "xbuild",true
+    else
+        "msbuild",false
+ConfigCommandCheck buildTool
+
+let rec private GatherOrGetDefaultPrefix(args: List<string>, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
     let GatherPrefix(newPrefix: string): Option<string> =
         match prefixSet with
         | None -> Some(newPrefix)
@@ -51,8 +74,22 @@ if not (prefix.Exists) then
     let warning = sprintf "WARNING: prefix doesn't exist: %s" prefix.FullName
     Console.Error.WriteLine warning
 
-File.WriteAllText(Path.Combine(__SOURCE_DIRECTORY__, "build.config"),
-                  sprintf "Prefix=%s" prefix.FullName)
+let lines =
+    let addLegacyTcpClientEntryIfNecessary (configEntries: Map<string,string>) =
+        let configEntriesPlusBuildTool = configEntries.Add("BuildTool", buildTool)
+        if shouldUseLegacyTcpClient then
+            configEntriesPlusBuildTool.Add("DefineConstants", "LEGACY_TCP_CLIENT")
+        else
+            configEntriesPlusBuildTool
+    let toConfigFileLine (keyValuePair: System.Collections.Generic.KeyValuePair<string,string>) =
+        sprintf "%s=%s" keyValuePair.Key keyValuePair.Value
+
+    Map.empty.Add("Prefix", prefix.FullName)
+    |> addLegacyTcpClientEntryIfNecessary
+    |> Seq.map toConfigFileLine
+
+let path = Path.Combine(__SOURCE_DIRECTORY__, "build.config")
+File.WriteAllLines(path, lines |> Array.ofSeq)
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let version = Misc.GetCurrentVersion(rootDir)
