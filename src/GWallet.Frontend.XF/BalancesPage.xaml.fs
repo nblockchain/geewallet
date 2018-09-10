@@ -188,22 +188,27 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 else
                     Async.Parallel([readOnlyAccountsBalanceUpdate])
 
-            let balanceUpdateTaskReturningImminentPayment = allBalanceUpdates |> Async.StartAsTask
-            balanceUpdateTaskReturningImminentPayment.ContinueWith(fun (t: Task<array<Option<bool>>>)->
-                if t.Result.Any(fun maybeImminentPayment ->
-                    match maybeImminentPayment with
-                    | Some imminentPayment -> imminentPayment = true
-                    | _ -> false
-                ) then
-                    this.IsIncomingPaymentImminent <- true
-                elif (not onlyReadOnlyAccounts) &&
-                      t.Result.All(fun maybeImminentPayment ->
-                    match maybeImminentPayment with
-                    | Some imminentPayment -> imminentPayment = false
-                    | _ -> false
-                ) then
-                    this.IsIncomingPaymentImminent <- false
-            ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            let balanceAndImminentPaymentUpdate =
+                async {
+                    let! balanceUpdates = allBalanceUpdates
+                    if balanceUpdates.Any(fun maybeImminentPayment ->
+                        match maybeImminentPayment with
+                        | Some imminentPayment -> imminentPayment
+                        | _ -> false
+                    ) then
+                        this.IsIncomingPaymentImminent <- true
+                    elif (not onlyReadOnlyAccounts) &&
+                          balanceUpdates.All(fun maybeImminentPayment ->
+                        match maybeImminentPayment with
+                        | Some imminentPayment -> (not imminentPayment)
+                        | _ -> false
+                    ) then
+                        this.IsIncomingPaymentImminent <- false
+                }
+
+            balanceAndImminentPaymentUpdate
+                |> Async.StartAsTask
+                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
         awake
 
