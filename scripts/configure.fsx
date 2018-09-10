@@ -16,7 +16,6 @@ let ConfigCommandCheck (commandName: string) =
     Console.WriteLine "found"
 
 ConfigCommandCheck "fsharpc"
-ConfigCommandCheck "xbuild"
 ConfigCommandCheck "mono"
 
 // needed by NuGet.Restore.targets & the "update-servers" Makefile target
@@ -39,6 +38,13 @@ let oldVersionOfMono =
         let pkgConfigCmd = sprintf "%s --atleast-version=%s mono" pkgConfig versionOfMonoWhereTheRuntimeBugWasFixed
         let processResult = Process.Execute(pkgConfigCmd, false, false)
         processResult.ExitCode <> 0
+
+let buildTool,shouldUseLegacyTcpClient =
+    if oldVersionOfMono then
+        "xbuild",true
+    else
+        "msbuild",false
+ConfigCommandCheck buildTool
 
 let rec private GatherOrGetDefaultPrefix(args: List<string>, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
     let GatherPrefix(newPrefix: string): Option<string> =
@@ -70,10 +76,6 @@ if not (prefix.Exists) then
 
 let lines =
     let addLegacyTcpClientEntryIfNecessary (configEntries: Map<string,string>) =
-        let buildTool,shouldUseLegacyTcpClient =
-            match oldVersionOfMono with
-            | true -> "xbuild",true
-            | false -> "msbuild",false
         let configEntriesPlusBuildTool = configEntries.Add("BuildTool", buildTool)
         if shouldUseLegacyTcpClient then
             configEntriesPlusBuildTool.Add("DefineConstants", "LEGACY_TCP_CLIENT")
