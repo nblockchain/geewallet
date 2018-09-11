@@ -132,6 +132,8 @@
     <PackageReference Include="Nethereum.KeyStore" Version="3.0.0-CI-20180815-082224" />
     <PackageReference Include="Nethereum.RPC" Version="3.0.0-CI-20180815-082224" />
     <PackageReference Include="SharpRaven" Version="2.4.0" />
+    <PackageReference Include="System.Buffers" Version="4.4.0" />
+    <PackageReference Include="System.IO.Pipelines" Version="4.5.0" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />
