@@ -79,26 +79,35 @@ let PrintNugetVersion () =
             Console.WriteLine()
             failwith "nuget process' output contained errors ^"
 
-let JustBuild binaryConfig =
-    let buildTool = Map.tryFind "BuildTool" buildConfigContents
-    if buildTool.IsNone then
-        failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+let BuildSolution buildTool solutionFileName binaryConfig extraOptions =
 
-    Console.WriteLine "Compiling gwallet..."
     let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
     let configOptions =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> sprintf "%s;DefineConstants=%s" configOption constants
         | None   -> configOption
-    let buildProcess = Process.Execute (sprintf "%s %s %s"
-                                                buildTool.Value
-                                                DEFAULT_SOLUTION_FILE
-                                                configOptions,
+    let buildProcess = Process.Execute (sprintf "%s %s %s %s"
+                                                buildTool
+                                                solutionFileName
+                                                configOptions
+                                                extraOptions,
                                         true, false)
     if (buildProcess.ExitCode <> 0) then
-        Console.Error.WriteLine (sprintf "%s build failed" buildTool.Value)
+        Console.Error.WriteLine (sprintf "%s build failed" buildTool)
         PrintNugetVersion() |> ignore
         Environment.Exit 1
+
+let JustBuild binaryConfig =
+    Console.WriteLine "Compiling gwallet..."
+    let buildTool = Map.tryFind "BuildTool" buildConfigContents
+    if buildTool.IsNone then
+        failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+
+    BuildSolution buildTool.Value DEFAULT_SOLUTION_FILE binaryConfig String.Empty
+
+    // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
+    if buildTool.Value = "msbuild" && Misc.GuessPlatform () = Misc.Platform.Linux then
+        BuildSolution "msbuild" "gwallet.linux.sln" binaryConfig "/t:Restore"
 
     Directory.CreateDirectory(launcherScriptPath.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
