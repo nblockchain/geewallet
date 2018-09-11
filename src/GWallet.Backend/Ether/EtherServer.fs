@@ -100,6 +100,9 @@ module Server =
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
 
+    let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int) =
+        ex.Message.StartsWith(sprintf "%d " errorCode)
+
     let exMsg = "Could not communicate with EtherServer"
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
         let task = func arg
@@ -124,19 +127,19 @@ module Server =
                                 raise (ServerMisconfiguredException(exMsg, rpcResponseEx))
                             reraise()
                     | Some(httpReqEx) ->
-                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.ConnectionTimeOut))) then
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
                             raise (ServerTimedOutException(exMsg, httpReqEx))
-                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.OriginUnreachable))) then
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
                             raise (ServerTimedOutException(exMsg, httpReqEx))
-                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int CloudFlareError.OriginSslHandshakeError))) then
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
                             raise (ServerChannelNegotiationException(exMsg, httpReqEx))
-                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int HttpStatusCode.BadGateway))) then
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
                             raise (ServerUnreachableException(exMsg, httpReqEx))
-                        if (httpReqEx.Message.StartsWith(sprintf "%d " (int HttpStatusCode.ServiceUnavailable))) then
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
                             raise (ServerUnavailableException(exMsg, httpReqEx))
 
                         // TODO: maybe in this case below, blacklist the server somehow if it keeps giving this error:
-                        if httpReqEx.Message.StartsWith(sprintf "%d " (int HttpStatusCode.Forbidden)) then
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
                             raise (ServerMisconfiguredException(exMsg, httpReqEx))
 
                         reraise()
