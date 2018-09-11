@@ -100,8 +100,8 @@ module Server =
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
 
-    let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int) =
-        ex.Message.StartsWith(sprintf "%d " errorCode)
+    let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
+        ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
 
     let exMsg = "Could not communicate with EtherServer"
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
