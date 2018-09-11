@@ -165,9 +165,6 @@
     <Reference Include="System.IO.Pipelines">
       <HintPath>..\..\packages\System.IO.Pipelines.4.5.0\lib\netstandard1.3\System.IO.Pipelines.dll</HintPath>
     </Reference>
-    <Reference Include="System.Memory">
-      <HintPath>..\..\packages\System.Memory.4.5.0\lib\netstandard1.1\System.Memory.dll</HintPath>
-    </Reference>
     <Reference Include="System.Net.Sockets">
       <HintPath>..\..\packages\System.Net.Sockets.4.3.0\lib\net46\System.Net.Sockets.dll</HintPath>
       <Private>True</Private>
@@ -255,6 +252,9 @@
       <HintPath>..\..\packages\SharpRaven.2.4.0\lib\net45\SharpRaven.dll</HintPath>
     </Reference>
     <Reference Include="System.Configuration" />
+    <Reference Include="System.Memory">
+      <HintPath>..\..\packages\System.Memory.4.5.1\lib\netstandard1.1\System.Memory.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
