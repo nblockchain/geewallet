@@ -104,6 +104,8 @@ type JsonRpcTcpClient (host: string, port: int) =
                 raise(ServerUnreachableException(exceptionMsg, ex))
             if (socketException.Value.ErrorCode = int SocketError.AddressNotAvailable) then
                 raise(ServerUnreachableException(exceptionMsg, ex))
+            if socketException.Value.ErrorCode = int SocketError.NetworkDown then
+                raise <| ServerUnreachableException(exceptionMsg, ex)
 
             raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
 
