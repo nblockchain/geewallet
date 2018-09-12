@@ -7,7 +7,9 @@ open System.Linq
 open FSX.Infrastructure
 
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
+let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
+let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
 
 type BinaryConfig =
     | Debug
@@ -107,7 +109,20 @@ let JustBuild binaryConfig =
 
     // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
     if buildTool.Value = "msbuild" && Misc.GuessPlatform () = Misc.Platform.Linux then
-        BuildSolution "msbuild" "gwallet.linux.sln" binaryConfig "/t:Restore"
+
+        let isGtkPresent = (Process.Execute("pkg-config gtk-sharp-2.0", true, false).ExitCode = 0)
+
+        if isGtkPresent then
+
+            // somehow, msbuild doesn't restore the dependencies of the GTK frontend (Xamarin.Forms in particular)
+            // when targetting the LINUX_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
+            let nugetWorkaround =
+                sprintf "mono .nuget/nuget.exe restore src/%s/%s.fsproj -SolutionDirectory ." GTK_FRONTEND GTK_FRONTEND
+            Process.Execute(nugetWorkaround, true, false) |> ignore
+
+            BuildSolution "msbuild" LINUX_SOLUTION_FILE binaryConfig "/t:Restore"
+            // TODO: report as a bug the fact that /t:Restore;Build doesn't work while /t:Restore and later /t:Build does
+            BuildSolution "msbuild" LINUX_SOLUTION_FILE binaryConfig "/t:Build"
 
     Directory.CreateDirectory(launcherScriptPath.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
