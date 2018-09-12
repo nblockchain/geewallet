@@ -172,7 +172,7 @@ type Parallelization() =
         Assert.Throws<ArgumentException>(
             fun _ -> client.Query<string,int>
                             settings
-                            "_" [] |> Async.RunSynchronously |> ignore
+                            "_" List.Empty |> Async.RunSynchronously |> ignore
         ) |> ignore
 
     [<Test>]

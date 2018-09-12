@@ -64,7 +64,7 @@ type FaultTolerance() =
         Assert.Throws<ArgumentException>(
             fun _ -> client.Query<string,int>
                             (defaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                            "_" [] |> Async.RunSynchronously |> ignore
+                            "_" List.Empty |> Async.RunSynchronously |> ignore
         ) |> ignore
 
     [<Test>]

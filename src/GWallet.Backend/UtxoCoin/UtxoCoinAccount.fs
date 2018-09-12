@@ -237,7 +237,7 @@ module internal Account =
 
         let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
         let utxosToUse,totalValueOfInputs =
-            addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis []
+            addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis List.Empty
 
         let electrumGetTx (ec: ElectrumClient) (txId: string) =
             ec.GetBlockchainTransaction txId

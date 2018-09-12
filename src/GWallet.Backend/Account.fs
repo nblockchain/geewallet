@@ -372,7 +372,7 @@ module Account =
                             : Async<List<ConceptAccount>> =
         async {
             let! singleAccount = CreateConceptAccount currency password seed
-            return singleAccount::[]
+            return singleAccount::List.Empty
         }
 
     let CreateEtherNormalAccounts (password: string) (seed: array<byte>)

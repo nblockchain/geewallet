@@ -41,7 +41,7 @@ type BlockchainAddressListUnspentInnerResult =
 type BlockchainAddressListUnspentResult =
     {
         Id: int;
-        Result: BlockchainAddressListUnspentInnerResult array;
+        Result: array<BlockchainAddressListUnspentInnerResult>;
     }
 
 type BlockchainTransactionGetResult =

@@ -50,7 +50,7 @@ type CachedNetworkData =
                 | head::tail ->
                     let existingCurrenciesForHeadAddress =
                         match acc.TryFind head.PublicAddress with
-                        | None -> []
+                        | None -> List.Empty
                         | Some currencies -> currencies
                     let newAcc = acc.Add(head.PublicAddress, head.Currency.ToString()::existingCurrenciesForHeadAddress)
                     extractAddressesFromAccounts newAcc tail
@@ -193,7 +193,7 @@ module Caching =
                 let next = [h]::List.map (fun el -> h::el) accLst @ accLst
                 comb next t
             | _ -> accLst
-        comb [] lst
+        comb List.Empty lst
 
     let MapCombinations<'K,'V when 'K: comparison> (map: Map<'K,'V>): List<List<'K*'V>> =
         Map.toList map |> ListCombinations
