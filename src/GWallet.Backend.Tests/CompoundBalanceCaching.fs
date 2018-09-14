@@ -11,7 +11,7 @@ open GWallet.Backend
 type CompoundBalanceCaching() =
 
     let high_expiration_span_because_this_test_doesnt_involve_timing = TimeSpan.FromDays 100.0
-    let zero_fee_because_this_test_does_not_involve_fees = 0.0m
+    let zero_fee_because_this_test_does_not_involve_fees = UnsignedDecimal 0.0m
 
     let someAddress = "0xABC"
     let someCurrency = Currency.ETC
@@ -34,7 +34,7 @@ type CompoundBalanceCaching() =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
-            let someBalance = 10m
+            let someBalance = UnsignedDecimal 10m
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
         finally
@@ -46,11 +46,11 @@ type CompoundBalanceCaching() =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
-            let someBalance = 10m
+            let someBalance = UnsignedDecimal 10m
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
-            let someTransactionValue = 1m
+            let someTransactionValue = UnsignedDecimal 1m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
@@ -70,11 +70,11 @@ type CompoundBalanceCaching() =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
-            let someBalance = 10m
+            let someBalance = UnsignedDecimal 10m
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
-            let someTransactionValue = 1m
+            let someTransactionValue = UnsignedDecimal 1m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
@@ -101,18 +101,18 @@ type CompoundBalanceCaching() =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
-            let someBalance = 10m
+            let someBalance = UnsignedDecimal 10m
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
-            let firstTransactionAmount = 1m
+            let firstTransactionAmount = UnsignedDecimal 1m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
                                            "x"
                                            firstTransactionAmount
                                            zero_fee_because_this_test_does_not_involve_fees
-            let secondTransactionAmount = 2m
+            let secondTransactionAmount = UnsignedDecimal 2m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
@@ -133,18 +133,18 @@ type CompoundBalanceCaching() =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
-            let someBalance = 10m
+            let someBalance = UnsignedDecimal 10m
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
-            let firstTransactionAmount = 1m
+            let firstTransactionAmount = UnsignedDecimal 1m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
                                            "x"
                                            firstTransactionAmount
                                            zero_fee_because_this_test_does_not_involve_fees
-            let secondTransactionAmount = 2m
+            let secondTransactionAmount = UnsignedDecimal 2m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
@@ -166,11 +166,11 @@ type CompoundBalanceCaching() =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
-            let someBalance = 10m
+            let someBalance = UnsignedDecimal 10m
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
-            let firstTransactionAmount = 1m
+            let firstTransactionAmount = UnsignedDecimal 1m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
@@ -178,7 +178,7 @@ type CompoundBalanceCaching() =
                                            firstTransactionAmount
                                            zero_fee_because_this_test_does_not_involve_fees
             let cachedBalance = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
-            let secondTransactionAmount = 2m
+            let secondTransactionAmount = UnsignedDecimal 2m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
@@ -200,18 +200,18 @@ type CompoundBalanceCaching() =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
-            let someBalance = 10m
+            let someBalance = UnsignedDecimal 10m
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
-            let firstTransactionAmount = 1m
+            let firstTransactionAmount = UnsignedDecimal 1m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
                                            "x"
                                            firstTransactionAmount
                                            zero_fee_because_this_test_does_not_involve_fees
-            let secondTransactionAmount = 2m
+            let secondTransactionAmount = UnsignedDecimal 2m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
@@ -234,15 +234,16 @@ type CompoundBalanceCaching() =
             SpawnNewCacheInstanceToTest expirationTime
 
         try
-            let someBalance = 10m
+            let someBalance = UnsignedDecimal 10m
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
+            let someTransactionAmount = UnsignedDecimal 1m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
                                            someDummyTxId
-                                           1m
+                                           someTransactionAmount
                                            zero_fee_because_this_test_does_not_involve_fees
             Threading.Thread.Sleep(expirationTime + expirationTime)
             let cachedBalance2,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
@@ -257,15 +258,16 @@ type CompoundBalanceCaching() =
             SpawnNewCacheInstanceToTest expirationTime
 
         try
-            let someBalance = 10m
+            let someBalance = UnsignedDecimal 10m
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
+            let someTransactionAmount = UnsignedDecimal 1m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
                                            someSameFeeCurrency
                                            someDummyTxId
-                                           1m
+                                           someTransactionAmount
                                            zero_fee_because_this_test_does_not_involve_fees
             Threading.Thread.Sleep(expirationTime + expirationTime)
             match cache.RetreiveLastCompoundBalance someAddress someCurrency with
@@ -282,9 +284,9 @@ type CompoundBalanceCaching() =
 
         try
             let someTokenCurrency = Currency.DAI
-            let someTokenBalance = 10m
+            let someTokenBalance = UnsignedDecimal 10m
             let someEthCurrency = Currency.ETH
-            let someEthBalance = 5m
+            let someEthBalance = UnsignedDecimal 5m
             let cachedTokenBalance,_ =
                 cache.RetreiveAndUpdateLastCompoundBalance someAddress someTokenCurrency someTokenBalance
             Assert.That(cachedTokenBalance, Is.EqualTo someTokenBalance)
@@ -292,8 +294,8 @@ type CompoundBalanceCaching() =
                 cache.RetreiveAndUpdateLastCompoundBalance someAddress someEthCurrency someEthBalance
             Assert.That(cachedEthBalance, Is.EqualTo someEthBalance)
 
-            let someTransactionAmount = 1m
-            let someFeeAmount = 0.1m
+            let someTransactionAmount = UnsignedDecimal 1m
+            let someFeeAmount = UnsignedDecimal 0.1m
             cache.StoreOutgoingTransaction someAddress
                                            someTokenCurrency
                                            someEthCurrency

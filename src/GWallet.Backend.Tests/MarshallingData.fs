@@ -40,7 +40,7 @@ module MarshallingData =
     let private someUnsignedEtherTransactionProposal =
         {
             OriginAddress = "0xf3j4m0rjx94sushh03j";
-            Amount = TransferAmount(10.01m, 12.02m, Currency.ETC);
+            Amount = TransferAmount(UnsignedDecimal 10.01m, UnsignedDecimal 12.02m, Currency.ETC);
             DestinationAddress = "0xf3j4m0rjxdddud9403j";
         }
 
@@ -52,12 +52,12 @@ module MarshallingData =
                 version (EmptyCachingDataExample.GetType().FullName) +
                 "\"Value\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}"
 
-    let private balances = Map.empty.Add(Currency.BTC.ToString(), 0m)
-                                    .Add(Currency.ETC.ToString(), 123456789.12345678m)
+    let private balances = Map.empty.Add(Currency.BTC.ToString(), UnsignedDecimal 0m)
+                                    .Add(Currency.ETC.ToString(), UnsignedDecimal 123456789.12345678m)
     let private addresses = Map.empty.Add("1fooBarBaz", [Currency.BTC.ToString()])
                                      .Add("0xFOOBARBAZ", [Currency.ETC.ToString()])
-    let private fiatValues = Map.empty.Add(Currency.ETH.ToString(), 161.796m)
-                                      .Add(Currency.ETC.ToString(), 169.99999999m)
+    let private fiatValues = Map.empty.Add(Currency.ETH.ToString(), UnsignedDecimal 161.796m)
+                                      .Add(Currency.ETC.ToString(), UnsignedDecimal 169.99999999m)
     let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Addresses = addresses; Balances = balances; }
 
     let private innerCachingDataForSofisticatedUseCase =
@@ -76,7 +76,7 @@ module MarshallingData =
     let private someUnsignedBtcTransactionProposal =
         {
             OriginAddress = "16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR";
-            Amount = TransferAmount(10.01m, 12.02m, Currency.BTC);
+            Amount = TransferAmount(UnsignedDecimal 10.01m, UnsignedDecimal 12.02m, Currency.BTC);
             DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5";
         }
 
@@ -88,7 +88,7 @@ module MarshallingData =
                          DestinationInHex = "0123456789ABCD" } ];
             Outputs = [ { ValueInSatoshis = int64 10000; DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5" } ];
         }
-    let private someBtcMinerFee = UtxoCoin.MinerFee(10, 0.1m, SomeDate, Currency.BTC)
+    let private someBtcMinerFee = UtxoCoin.MinerFee(10, UnsignedDecimal 0.1m, SomeDate, Currency.BTC)
     let private someBtcTxMetadata =
         {
             TransactionDraft = someBtcTransactionDraft;
@@ -160,11 +160,11 @@ module MarshallingData =
         }
 
     let private realUsdPriceDataSample =
-        [ (Currency.BTC.ToString(), 9156.19m);
-          (Currency.LTC.ToString(), 173.592m);
-          (Currency.ETH.ToString(), 691.52m);
-          (Currency.ETC.ToString(), 19.8644m);
-          (Currency.DAI.ToString(), 1.00376m); ]
+        [ (Currency.BTC.ToString(), UnsignedDecimal 9156.19m);
+          (Currency.LTC.ToString(), UnsignedDecimal 173.592m);
+          (Currency.ETH.ToString(), UnsignedDecimal 691.52m);
+          (Currency.ETC.ToString(), UnsignedDecimal 19.8644m);
+          (Currency.DAI.ToString(), UnsignedDecimal 1.00376m); ]
             |> Map.ofSeq
 
     let private realAddressesSample =
@@ -175,11 +175,11 @@ module MarshallingData =
                  .Add("MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm",[Currency.LTC.ToString()])
 
     let private realBalancesDataSample =
-        Map.empty.Add(Currency.BTC.ToString(), 0.0m)
-                 .Add(Currency.ETH.ToString(), 7.08m)
-                 .Add(Currency.ETC.ToString(), 8.0m)
-                 .Add(Currency.DAI.ToString(), 1.0m)
-                 .Add(Currency.LTC.ToString(), 0.0m)
+        Map.empty.Add(Currency.BTC.ToString(), UnsignedDecimal 0.0m)
+                 .Add(Currency.ETH.ToString(), UnsignedDecimal 7.08m)
+                 .Add(Currency.ETC.ToString(), UnsignedDecimal 8.0m)
+                 .Add(Currency.DAI.ToString(), UnsignedDecimal 1.0m)
+                 .Add(Currency.LTC.ToString(), UnsignedDecimal 0.0m)
 
     let private realCachingDataExample =
         { UsdPrice = realUsdPriceDataSample; Addresses = realAddressesSample; Balances = realBalancesDataSample; }
@@ -196,7 +196,7 @@ module MarshallingData =
     let private someUnsignedDaiTransactionProposal =
         {
             OriginAddress = "0xba766d6d13E2Cc921Bf6e896319D32502af9e37E";
-            Amount = TransferAmount(1m, 7.08m, Currency.DAI);
+            Amount = TransferAmount(UnsignedDecimal 1m, UnsignedDecimal 7.08m, Currency.DAI);
             DestinationAddress = "0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b";
         }
     let UnsignedDaiTransactionExample =

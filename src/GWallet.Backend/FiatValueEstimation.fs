@@ -51,17 +51,17 @@ module FiatValueEstimation =
             failwith ("Unexpected length of json main array: " + json)
 
         let usdPrice = ticker.[0].PriceUsd
-        let result = usdPrice
-        Caching.Instance.StoreLastFiatUsdPrice(currency, usdPrice)
+        let result = usdPrice |> UnsignedDecimal
+        Caching.Instance.StoreLastFiatUsdPrice(currency, result)
         result
 
-    let private RetreiveOnline currency: Option<decimal> =
+    let private RetreiveOnline currency: Option<UnsignedDecimal> =
         match RetreiveOnlineInternal currency with
         | None -> None
         | Some json ->
             Some (ParseJsonStoringInCache currency json)
 
-    let UsdValue(currency: Currency): MaybeCached<decimal> =
+    let UsdValue(currency: Currency): MaybeCached<UnsignedDecimal> =
         let maybeUsdPrice = Caching.Instance.RetreiveLastKnownUsdPrice currency
         match maybeUsdPrice with
         | NotAvailable ->

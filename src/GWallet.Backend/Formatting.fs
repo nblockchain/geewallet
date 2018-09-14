@@ -7,7 +7,7 @@ type CurrencyType =
 
 module Formatting =
 
-    let DecimalAmount currencyType (amount: decimal): string =
+    let DecimalAmount currencyType (amount: UnsignedDecimal): string =
         let amountOfDecimalsToShow,formattingStrategy =
             match currencyType with
             | CurrencyType.Fiat ->
@@ -17,5 +17,5 @@ module Formatting =
                 let fiveDecimals = 5
                 fiveDecimals,sprintf "#,0.%s" (String('#', fiveDecimals))
 
-        Math.Round(amount, amountOfDecimalsToShow)
+        Math.Round(amount.Value, amountOfDecimalsToShow)
             .ToString formattingStrategy

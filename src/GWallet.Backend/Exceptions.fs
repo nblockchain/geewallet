@@ -1,7 +1,7 @@
 ﻿namespace GWallet.Backend
 
 exception InsufficientFunds
-exception InsufficientBalanceForFee of decimal
+exception InsufficientBalanceForFee of UnsignedDecimal
 
 exception InvalidPassword
 exception DestinationEqualToOrigin

@@ -2,15 +2,13 @@
 
 open System
 
-type TransferAmount(valueToSend: decimal, balanceAtTheMomentOfSending: decimal, currency: Currency) =
+type TransferAmount(valueToSend: UnsignedDecimal, balanceAtTheMomentOfSending: UnsignedDecimal, currency: Currency) =
     do
-        if valueToSend <= 0m then
-            invalidArg "valueToSend" "Amount has to be above zero"
-        if balanceAtTheMomentOfSending < valueToSend then
+        if balanceAtTheMomentOfSending.Value < valueToSend.Value then
             invalidArg "balanceAtTheMomentOfSending" "balance has to be equal or higher than valueToSend"
 
     member this.ValueToSend
-        with get() = Math.Round(valueToSend, currency.DecimalPlaces())
+        with get() = Math.Round(valueToSend.Value, currency.DecimalPlaces()) |> UnsignedDecimal
 
     member this.BalanceAtTheMomentOfSending
         with get() = balanceAtTheMomentOfSending

@@ -94,17 +94,21 @@ module internal Account =
                 (GetRandomizedFuncs account.Currency electrumGetBalance)
         balance
 
-    let GetConfirmedBalance(account: IAccount): Async<decimal> =
+    let GetConfirmedBalance(account: IAccount): Async<UnsignedDecimal> =
         async {
             let! balance = GetBalance account
-            let confirmedBalance = balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+            let confirmedBalance = balance.Confirmed
+                                       |> UnitConversion.FromSatoshiToBtc
+                                       |> UnsignedDecimal
             return confirmedBalance
         }
 
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): Async<decimal> =
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): Async<UnsignedDecimal> =
         async {
             let! balance = GetBalance account
-            let confirmedBalance = balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+            let confirmedBalance = balance.Unconfirmed + balance.Confirmed
+                                       |> UnitConversion.FromSatoshiToBtc
+                                       |> UnsignedDecimal
             return confirmedBalance
         }
 
@@ -174,7 +178,8 @@ module internal Account =
                 let lastOutput = transactionDraftWithoutMinerFee.Outputs.Last()
                 let valueInSatoshisMinusMinerFee = lastOutput.ValueInSatoshis - minerFeeInSatoshis
                 if not (valueInSatoshisMinusMinerFee > 0L) then
-                    let minerFeeInMainCurrency = minerFeeInSatoshis |> UnitConversion.FromSatoshiToBtc
+                    let minerFeeInMainCurrency =
+                        minerFeeInSatoshis |> UnitConversion.FromSatoshiToBtc |> UnsignedDecimal
                     raise (InsufficientBalanceForFee minerFeeInMainCurrency)
 
                 let newOutput =
@@ -235,7 +240,7 @@ module internal Account =
         // first ones are the smallest ones
         let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
 
-        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
+        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend.Value
         let utxosToUse,totalValueOfInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis List.Empty
 
@@ -271,7 +276,7 @@ module internal Account =
             seq {
                 yield { ValueInSatoshis = amountInSatoshis; DestinationAddress = destination }
                 if (amountInSatoshis <> totalValueOfInputs) then
-                    if (amount.ValueToSend = amount.BalanceAtTheMomentOfSending) then
+                    if (amount.ValueToSend.Value = amount.BalanceAtTheMomentOfSending.Value) then
                         failwithf "Assertion failed: amountInSatoshis(%d)<>totalValueOfInputs(%d) but ValueToSend=BalanceAtTheMomentOfSending?"
                                   amountInSatoshis totalValueOfInputs
                     let changeAmount = totalValueOfInputs - amountInSatoshis
@@ -305,7 +310,10 @@ module internal Account =
                 2
                 (GetRandomizedFuncs baseAccount.Currency electrumEstimateFee)
 
-        let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, account.Currency)
+        let minerFee = MinerFee(estimatedFinalTransSize,
+                                btcPerKiloByteForFastTrans |> UnsignedDecimal,
+                                DateTime.Now,
+                                account.Currency)
         let minerFeeInSatoshis = minerFee.CalculateAbsoluteValueInSatoshis()
 
         let transactionWithMinerFeeSubstracted =
@@ -322,7 +330,7 @@ module internal Account =
 
         let transactionWithMinerFeeSubstracted = txMetadata.TransactionDraft
         let btcMinerFee = txMetadata.Fee
-        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
+        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend.Value
 
         if (transactionWithMinerFeeSubstracted.Outputs.Length < 1 ||
             transactionWithMinerFeeSubstracted.Outputs.Length > 2) then
@@ -342,8 +350,8 @@ module internal Account =
                 failwith (
                     sprintf "Assertion failed: outputsCount should be 2 but it was %d (ValueToSend: %M; BalanceAtTheMomentOfSending: %M)"
                         transactionWithMinerFeeSubstracted.Outputs.Length
-                        amount.ValueToSend
-                        amount.BalanceAtTheMomentOfSending
+                        amount.ValueToSend.Value
+                        amount.BalanceAtTheMomentOfSending.Value
                 )
 
 
@@ -444,7 +452,7 @@ module internal Account =
         ExportUnsignedTransactionToJson unsignedTransaction
 
     let SweepArchivedFunds (account: ArchivedAccount)
-                           (balance: decimal)
+                           (balance: UnsignedDecimal)
                            (destination: IAccount)
                            (txMetadata: TransactionMetadata) =
         let currency = (account:>IAccount).Currency

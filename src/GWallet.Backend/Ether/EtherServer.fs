@@ -334,12 +334,12 @@ module Server =
                         (GetWeb3Funcs currency web3Func)
         }
 
-    let EstimateTokenTransferFee (account: IAccount) (amount: decimal) destination
+    let EstimateTokenTransferFee (account: IAccount) (amount: UnsignedDecimal) destination
                                      : Async<HexBigInteger> =
         async {
             let web3Func (web3: Web3) (_: unit): HexBigInteger =
                 let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
-                let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
+                let amountInWei = UnitConversion.Convert.ToWei(amount.Value, UnitConversion.EthUnit.Ether)
                 let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                            To = destination,
                                                            Value = amountInWei)

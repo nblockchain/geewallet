@@ -6,7 +6,7 @@ open System.IO
 
 module Account =
 
-    let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool): Async<decimal> =
+    let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool): Async<UnsignedDecimal> =
         async {
             if account.Currency.IsEtherBased() then
                 if (onlyConfirmed) then
@@ -22,7 +22,7 @@ module Account =
                 return failwith (sprintf "Unknown currency %A" account.Currency)
         }
 
-    let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool): Async<Option<decimal>> =
+    let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool): Async<Option<UnsignedDecimal>> =
         async {
             try
                 let! balance = GetBalanceInternal account onlyConfirmed
@@ -45,19 +45,19 @@ module Account =
     let GetConfirmedBalance(account: IAccount) =
         GetBalanceFromServer account true
 
-    let private GetShowableBalanceInternal(account: IAccount): Async<Option<decimal>> = async {
+    let private GetShowableBalanceInternal(account: IAccount): Async<Option<UnsignedDecimal>> = async {
         let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account
         let! confirmed = GetConfirmedBalance account
         match unconfirmed,confirmed with
         | Some unconfirmedAmount,Some confirmedAmount ->
-            if (unconfirmedAmount < confirmedAmount) then
+            if (unconfirmedAmount.Value < confirmedAmount.Value) then
                 return unconfirmed
             else
                 return confirmed
         | _ -> return confirmed
     }
 
-    let GetShowableBalance(account: IAccount): Async<MaybeCached<decimal>> =
+    let GetShowableBalance(account: IAccount): Async<MaybeCached<UnsignedDecimal>> =
         async {
             let! maybeBalance = GetShowableBalanceInternal account
             match maybeBalance with
@@ -92,8 +92,8 @@ module Account =
                     yield NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
         }
 
-    let GetArchivedAccountsWithPositiveBalance(): Async<seq<ArchivedAccount*decimal>> =
-        let asyncJobs = seq<Async<ArchivedAccount*Option<decimal>>> {
+    let GetArchivedAccountsWithPositiveBalance(): Async<seq<ArchivedAccount*UnsignedDecimal>> =
+        let asyncJobs = seq<Async<ArchivedAccount*Option<UnsignedDecimal>>> {
             let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
@@ -113,7 +113,7 @@ module Account =
                         let positiveBalance =
                             match unconfirmedBalance with
                             | Some balance ->
-                                if (balance > 0m) then
+                                if (balance.Value > 0m) then
                                     Some(balance)
                                 else
                                     None
@@ -234,7 +234,7 @@ module Account =
         Config.RemoveNormal account
 
     let SweepArchivedFunds (account: ArchivedAccount)
-                           (balance: decimal)
+                           (balance: UnsignedDecimal)
                            (destination: IAccount)
                            (txMetadata: IBlockchainFeeInfo) =
         match txMetadata with

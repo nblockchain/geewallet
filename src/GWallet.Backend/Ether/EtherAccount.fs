@@ -34,24 +34,28 @@ module internal Account =
                 "0x" + rawPublicAddress
         publicAddress
 
-    let GetConfirmedBalance(account: IAccount): Async<decimal> = async {
+    let GetConfirmedBalance(account: IAccount): Async<UnsignedDecimal> = async {
         if (account.Currency.IsEther()) then
             let! etherBalance = Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress
             return UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
+                       |> UnsignedDecimal
         elif (account.Currency.IsEthToken()) then
             let! tokenBalance = Ether.Server.GetConfirmedTokenBalance account.Currency account.PublicAddress
             return UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
+                       |> UnsignedDecimal
         else
             return failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         }
 
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): Async<decimal> = async {
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): Async<UnsignedDecimal> = async {
         if (account.Currency.IsEther()) then
             let! etherBalance = Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress
             return UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
+                       |> UnsignedDecimal
         elif (account.Currency.IsEthToken()) then
             let! tokenBalance = Ether.Server.GetUnconfirmedTokenBalance account.Currency account.PublicAddress
             return UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
+                       |> UnsignedDecimal
         else
             return failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         }
@@ -98,7 +102,7 @@ module internal Account =
 
         let feeValue = ethMinerFee.CalculateAbsoluteValue()
         if (amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&
-            feeValue > (amount.BalanceAtTheMomentOfSending - amount.ValueToSend)) then
+            feeValue.Value > (amount.BalanceAtTheMomentOfSending - amount.ValueToSend).Value) then
             raise (InsufficientBalanceForFee feeValue)
 
         return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
@@ -175,7 +179,7 @@ module internal Account =
                 amount.ValueToSend - (txMetadata :> IBlockchainFeeInfo).FeeValue
             else
                 amount.ValueToSend
-        let amountInWei = UnitConversion.Convert.ToWei(amountToSendConsideringMinerFee,
+        let amountInWei = UnitConversion.Convert.ToWei(amountToSendConsideringMinerFee.Value,
                                                        UnitConversion.EthUnit.Ether)
 
         let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
@@ -203,7 +207,8 @@ module internal Account =
 
         let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
 
-        let amountInWei = UnitConversion.Convert.ToWei(amount.ValueToSend, UnitConversion.EthUnit.Ether)
+        let amountInWei = UnitConversion.Convert.ToWei(amount.ValueToSend.Value,
+                                                       UnitConversion.EthUnit.Ether)
         let gasLimit = BigInteger(txMetadata.Fee.GasLimit)
         let data = TokenManager.OfflineDaiContract.ComposeInputDataForTransferTransaction(origin,
                                                                                           destination,
@@ -256,7 +261,7 @@ module internal Account =
         SignTransactionWithPrivateKey account txMetadata destination amount privateKey
 
     let SweepArchivedFunds (account: ArchivedAccount)
-                           (balance: decimal)
+                           (balance: UnsignedDecimal)
                            (destination: IAccount)
                            (txMetadata: TransactionMetadata) =
         let accountFrom = (account:>IAccount)

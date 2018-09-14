@@ -15,16 +15,16 @@ type private DietCurrency = string
 
 type DietCache =
     {
-        UsdPrice: Map<DietCurrency,decimal>;
+        UsdPrice: Map<DietCurrency,UnsignedDecimal>;
         Addresses: Map<PublicAddress,List<DietCurrency>>;
-        Balances: Map<DietCurrency,decimal>;
+        Balances: Map<DietCurrency,UnsignedDecimal>;
     }
 
 type CachedNetworkData =
     {
-        UsdPrice: Map<Currency,CachedValue<decimal>>;
-        Balances: Map<Currency,Map<PublicAddress,CachedValue<decimal>>>;
-        OutgoingTransactions: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>;
+        UsdPrice: Map<Currency,CachedValue<UnsignedDecimal>>;
+        Balances: Map<Currency,Map<PublicAddress,CachedValue<UnsignedDecimal>>>;
+        OutgoingTransactions: Map<Currency,Map<PublicAddress,Map<string,CachedValue<UnsignedDecimal>>>>;
     }
     static member FromDietCache (dietCache: DietCache): CachedNetworkData =
         let now = DateTime.Now
@@ -211,24 +211,24 @@ module Caching =
             let json = Marshalling.Serialize newCachedData
             File.WriteAllText (cacheFile.FullName, json)
 
-        let GetSumOfAllTransactions (trans: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>)
-                                    currency address: decimal =
+        let GetSumOfAllTransactions (trans: Map<Currency,Map<PublicAddress,Map<string,CachedValue<UnsignedDecimal>>>>)
+                                    currency address: UnsignedDecimal =
             let now = DateTime.Now
             let currencyTrans = trans.TryFind currency
             match currencyTrans with
-            | None -> 0m
+            | None -> UnsignedDecimal.Zero
             | Some someMap ->
                 let addressTrans = someMap.TryFind address
                 match addressTrans with
-                | None -> 0m
+                | None -> UnsignedDecimal.Zero
                 | Some someMap ->
                     Map.toSeq someMap |>
                         Seq.sumBy (fun (txId,(txAmount,txDate)) ->
                                         // FIXME: develop some kind of cache cleanup to remove these expired txs?
                                         if (now < txDate + unconfTxExpirationSpan) then
-                                            txAmount
+                                            txAmount.Value |> UnsignedDecimal
                                         else
-                                            0m
+                                            UnsignedDecimal.Zero
                                   )
 
         let rec RemoveRangeFromMap (map: Map<'K,'V>) (list: List<'K*'V>) =
@@ -261,7 +261,7 @@ module Caching =
                 sessionCachedNetworkData.Value
             )
 
-        member self.RetreiveLastKnownUsdPrice (currency): NotFresh<decimal> =
+        member self.RetreiveLastKnownUsdPrice (currency): NotFresh<UnsignedDecimal> =
             lock lockObject (fun _ ->
                 match sessionCachedNetworkData with
                 | None -> NotAvailable
@@ -273,7 +273,7 @@ module Caching =
                     | :? System.Collections.Generic.KeyNotFoundException -> NotAvailable
             )
 
-        member self.StoreLastFiatUsdPrice (currency, lastFiatUsdPrice: decimal): unit =
+        member self.StoreLastFiatUsdPrice (currency, lastFiatUsdPrice: UnsignedDecimal): unit =
             lock lockObject (fun _ ->
                 let time = DateTime.Now
 
@@ -297,7 +297,7 @@ module Caching =
             )
             ()
 
-        member self.RetreiveLastCompoundBalance (address: PublicAddress) (currency: Currency): NotFresh<decimal> =
+        member self.RetreiveLastCompoundBalance (address: PublicAddress) (currency: Currency): NotFresh<UnsignedDecimal> =
             lock lockObject (fun _ ->
                 match sessionCachedNetworkData with
                 | None -> NotAvailable
@@ -319,8 +319,8 @@ module Caching =
 
         member self.RetreiveAndUpdateLastCompoundBalance (address: PublicAddress)
                                                          (currency: Currency)
-                                                         (newBalance: decimal)
-                                                             : CachedValue<decimal> =
+                                                         (newBalance: UnsignedDecimal)
+                                                             : CachedValue<UnsignedDecimal> =
             let time = DateTime.Now
             lock lockObject (fun _ ->
                 let newCachedValueWithNewBalance,previousBalance =
@@ -352,7 +352,8 @@ module Caching =
                     | None ->
                         newCachedValueWithNewBalance
                     | Some (previousCachedBalance,_) ->
-                        if newBalance <> previousCachedBalance && previousCachedBalance > newBalance then
+                        if newBalance.Value <> previousCachedBalance.Value &&
+                           previousCachedBalance.Value > newBalance.Value then
                             match newCachedValueWithNewBalance.OutgoingTransactions.TryFind currency with
                             | None ->
                                 newCachedValueWithNewBalance
@@ -402,7 +403,7 @@ module Caching =
         member private self.StoreTransactionRecord (address: PublicAddress)
                                                    (currency: Currency)
                                                    (txId: string)
-                                                   (amount: decimal)
+                                                   (amount: UnsignedDecimal)
                                                        : unit =
             let time = DateTime.Now
             lock lockObject (fun _ ->
@@ -449,8 +450,8 @@ module Caching =
                                              (transactionCurrency: Currency)
                                              (feeCurrency: Currency)
                                              (txId: string)
-                                             (transactionAmount: decimal)
-                                             (feeAmount: decimal)
+                                             (transactionAmount: UnsignedDecimal)
+                                             (feeAmount: UnsignedDecimal)
                                                  : unit =
             if (transactionCurrency = feeCurrency) then
                 self.StoreTransactionRecord address transactionCurrency txId (transactionAmount + feeAmount)

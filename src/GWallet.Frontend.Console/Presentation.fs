@@ -27,10 +27,10 @@ module Presentation =
             match FiatValueEstimation.UsdValue(currency) with
             | Fresh(usdValue) ->
                 sprintf "(~%s USD)"
-                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Fiat)
+                    (usdValue * estimatedFee.FeeValue.Value |> Formatting.DecimalAmount CurrencyType.Fiat)
             | NotFresh(Cached(usdValue,time)) ->
                 sprintf "(~%s USD [last known rate at %s])"
-                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Fiat)
+                    (usdValue * estimatedFee.FeeValue.Value |> Formatting.DecimalAmount CurrencyType.Fiat)
                     (time |> ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
         Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s %A %s"
@@ -46,7 +46,7 @@ module Presentation =
             match maybeUsdPrice with
             | Fresh(usdPrice) ->
                 Some(sprintf "~ %s USD"
-                             (trans.Proposal.Amount.ValueToSend * usdPrice
+                             (trans.Proposal.Amount.ValueToSend.Value * usdPrice
                                  |> Formatting.DecimalAmount CurrencyType.Fiat))
             | NotFresh(Cached(usdPrice, time)) ->
                 Some(sprintf "~ %s USD (last exchange rate known at %s)"

@@ -123,6 +123,7 @@
     <Compile Include="Shuffler.fs" />
     <Compile Include="Marshalling.fs" />
     <Compile Include="Currency.fs" />
+    <Compile Include="UnsignedDecimal.fs" />
     <Compile Include="Exceptions.fs" />
     <Compile Include="AccountTypes.fs" />
     <Compile Include="Config.fs" />
