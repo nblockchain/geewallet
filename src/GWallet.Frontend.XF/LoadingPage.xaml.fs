@@ -36,7 +36,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
         let readOnlyAccountBalancesJob = FrontendHelpers.UpdateCachedBalancesAsync readOnlyAccountsWithLabels
 
         let populateGrid = async {
-            let allBalancesJob = Async.Parallel(allNormalAccountBalancesJob::(readOnlyAccountBalancesJob::[]))
+            let allBalancesJob = Async.Parallel(allNormalAccountBalancesJob::(readOnlyAccountBalancesJob::List.Empty))
             let! allResolvedBalances = allBalancesJob
             let allResolvedNormalAccountBalances = allResolvedBalances.ElementAt(0)
             let allResolvedReadOnlyBalances = allResolvedBalances.ElementAt(1)

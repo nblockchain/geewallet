@@ -122,7 +122,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
         mainLayout.Children.Remove footerLabel |> ignore
 
-        let currentCryptoBalances = FindCryptoBalances mainLayout (mainLayout.Children |> List.ofSeq) []
+        let currentCryptoBalances = FindCryptoBalances mainLayout (mainLayout.Children |> List.ofSeq) List.Empty
         for currentCryptoBalance in currentCryptoBalances do
             mainLayout.Children.Remove currentCryptoBalance |> ignore
 

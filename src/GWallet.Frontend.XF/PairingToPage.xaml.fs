@@ -103,7 +103,8 @@ type PairingToPage(balancesPage: Page,
                 FrontendHelpers.UpdateCachedBalancesAsync (normalAccountsAndBalances.Select(fun (a,l1,l2,_,_) -> a,l1,l2))
 
             let updateBalancesInParallelAndSwitchBackToBalPage = async {
-                let allBalancesJob = Async.Parallel(normalAccountsBalancesJob::(checkReadOnlyBalancesInParallel::[]))
+                let allBalancesJob =
+                    Async.Parallel(normalAccountsBalancesJob::(checkReadOnlyBalancesInParallel::List.Empty))
                 let! allResolvedBalances = allBalancesJob
                 let allResolvedNormalAccountBalances = allResolvedBalances.ElementAt(0)
                 let allResolvedReadOnlyBalances = allResolvedBalances.ElementAt(1)

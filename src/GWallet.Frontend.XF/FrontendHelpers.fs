@@ -117,7 +117,7 @@ module FrontendHelpers =
                     failwith "Retreiving cached balance of a readonlyAccount(cold storage) returned N/A; but addition of this account should have stored it properly..."
 
         async {
-            return (updateBalanceAccumulator (accountsWithLabels |> List.ofSeq) []) |> List.rev |> Array.ofList
+            return (updateBalanceAccumulator (accountsWithLabels |> List.ofSeq) List.Empty) |> List.rev |> Array.ofList
         }
 
     // FIXME: share code between Frontend.Console and Frontend.XF
