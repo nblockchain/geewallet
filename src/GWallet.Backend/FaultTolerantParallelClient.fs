@@ -202,7 +202,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
                                           args
                                           failedFuncs
                                           allResultsSoFar
-                                          []
+                                          List.Empty
                                           (uint16 (retries + uint16 1))
                                           retriesForInconsistency
             else
@@ -224,8 +224,8 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
                             return! QueryInternal settings
                                                   args
                                                   funcs
-                                                  []
-                                                  []
+                                                  List.Empty
+                                                  List.Empty
                                                   retries
                                                   (uint16 (retriesForInconsistency + uint16 1))
                 | AverageBetweenResponses(minimumNumberOfResponses,averageFunc) ->
@@ -249,4 +249,4 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
         if settings.NumberOfMaximumParallelJobs < uint16 1 then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 
-        QueryInternal settings args funcs [] [] (uint16 0) (uint16 0)
+        QueryInternal settings args funcs List.Empty List.Empty (uint16 0) (uint16 0)

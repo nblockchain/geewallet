@@ -16,8 +16,12 @@ camelCase), then it only makes sense to try to use the type names which start
 with uppercase, instead of the camelCased F# types (e.g. use `Option` and `List`
 instead of `option` and `list`). The only exception to this rule is: primitive
 types (where we prefer `string` and `int` over `String` and `Int32` unless we're
-using a static method of them).
-* We prefer the generic notation `List<Foo>` rather than `Foo list`.
+using a static method of them; and `array` over `Array` because they are actually
+different things).
+* To not confuse array types with lists, we prefer to use `List.Empty` over `[]`
+(where it's possible; e.g. in match cases it's not possible), and `array<Foo>`
+over `Foo []`.
+* We prefer the generic notation `Foo<Bar>` rather than `Bar Foo`.
 * We prefer to write parenthesis only when strictly necessary (e.g. in F# they
 are not required for `if` clauses, unlike C#) or for readability purposes (e.g.
 when it's not clear what operator would be applied first by the order preference

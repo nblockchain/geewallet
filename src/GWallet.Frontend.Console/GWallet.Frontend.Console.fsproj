@@ -153,16 +153,16 @@
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.RLP.3.0.0-CI-20180815-082224\lib\net451\Nethereum.RLP.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.RLP.3.0.0-CI-20180914-144604\lib\net451\Nethereum.RLP.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.Signer.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Signer.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Signer.3.0.0-CI-20180914-144604\lib\net451\Nethereum.Signer.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.Util.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Util.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Util.3.0.0-CI-20180914-144604\lib\net451\Nethereum.Util.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.Hex.3.0.0-CI-20180815-082224\lib\net451\Nethereum.Hex.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.Hex.3.0.0-CI-20180914-144604\lib\net451\Nethereum.Hex.dll</HintPath>
     </Reference>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
       <Name>GWallet.Backend</Name>

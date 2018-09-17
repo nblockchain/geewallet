@@ -149,7 +149,7 @@ module JsonRpcSharp =
         let DEFAULT_TIME_TO_WAIT_BETWEEN_DATA_GAPS = TimeSpan.FromMilliseconds(1.0)
         let rec ReadInternal (stream: NetworkStream) acc (initTime: DateTime): string =
             let timeIsUp (): bool =
-                if (acc = []) then
+                if (List.Empty = acc) then
                     if (DateTime.Now > initTime + DEFAULT_TIMEOUT_FOR_FIRST_DATA_AVAILABLE_SIGNAL_TO_HAPPEN) then
                         raise(NoResponseReceivedAfterRequestException())
                     else
@@ -170,7 +170,7 @@ module JsonRpcSharp =
                     ReadInternal stream (byte::acc) DateTime.Now
 
         let Read (stream: NetworkStream): string =
-            ReadInternal stream [] DateTime.Now
+            ReadInternal stream List.Empty DateTime.Now
 
         let Connect(): System.Net.Sockets.TcpClient =
 
