@@ -2,11 +2,19 @@
 
 open System
 open System.Linq
+open System.Runtime.ExceptionServices
 open Microsoft.FSharp.Reflection
 
 open Newtonsoft.Json
 
 module FSharpUtil =
+
+    // FIXME: we should not need this workaround anymore when this gets addressed:
+    //        https://github.com/fsharp/fslang-suggestions/issues/660
+    let ReRaise (ex: Exception): Exception =
+            (ExceptionDispatchInfo.Capture ex).Throw ()
+            failwith "Should be unreachable"
+            ex
 
     let rec public FindException<'T when 'T:> Exception>(ex: Exception): Option<'T> =
         if (ex = null) then

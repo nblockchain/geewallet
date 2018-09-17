@@ -32,11 +32,7 @@ module Account =
                 if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
                     return None
                 else
-                    // mmm, somehow the compiler doesn't allow me to just use "return reraise()" below, weird:
-                    // UPDATE/FIXME: more info! https://stackoverflow.com/questions/7168801/how-to-use-reraise-in-async-workflows-in-f
-                    return raise
-                        (Exception(sprintf "Call to access the %A balance somehow returned unexpected error"
-                                           account.Currency, ex))
+                    return raise (FSharpUtil.ReRaise ex)
         }
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount) =
