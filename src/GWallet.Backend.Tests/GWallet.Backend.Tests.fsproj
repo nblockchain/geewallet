@@ -63,10 +63,19 @@
   </PropertyGroup>
   <Choose>
     <When Condition="'$(FSharpSdkPathPrefix)' == ''">
-      <PropertyGroup>
-        <FSharpTargetsPath>
-        </FSharpTargetsPath>
-      </PropertyGroup>
+      <Choose>
+        <When Condition="Exists('..\..\packages\FSharp.Compiler.Tools.10.2.1\tools\Microsoft.FSharp.Targets')">
+          <PropertyGroup>
+            <FSharpTargetsPath>..\..\packages\FSharp.Compiler.Tools.10.2.1\tools\Microsoft.FSharp.Targets</FSharpTargetsPath>
+          </PropertyGroup>
+        </When>
+        <Otherwise>
+          <PropertyGroup>
+            <FSharpTargetsPath>
+            </FSharpTargetsPath>
+          </PropertyGroup>
+        </Otherwise>
+      </Choose>
     </When>
     <Otherwise>
       <Choose>
