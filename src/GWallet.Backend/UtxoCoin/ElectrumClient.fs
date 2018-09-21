@@ -3,11 +3,10 @@
 open System
 
 open GWallet.Backend
-open System.Runtime.ExceptionServices
 
-type ElectrumClient (electrumServer: ElectrumServer) =
+module ElectrumClient =
 
-    let Init(): Async<StratumClient> =
+    let private Init (electrumServer: ElectrumServer): Async<StratumClient> =
         electrumServer.CheckCompatibility()
 
         let jsonRpcClient = new JsonRpcTcpClient(electrumServer.Fqdn, electrumServer.UnencryptedPort.Value)
@@ -46,9 +45,7 @@ type ElectrumClient (electrumServer: ElectrumServer) =
             return stratumClient
         }
 
-    let stratumClientAsync = Init()
-
-    member self.GetBalance address = async {
+    let GetBalance (electrumServer: ElectrumServer) address = async {
         // FIXME: we should rather implement this method in terms of:
         //        - querying all unspent transaction outputs (X) -> block heights included
         //        - querying transaction history (Y) -> block heights included
@@ -63,31 +60,31 @@ type ElectrumClient (electrumServer: ElectrumServer) =
         //    integrity (in a similar fashion as Electrum Wallet client already does), to not have to trust servers*
         //    [ see https://www.youtube.com/watch?v=hjYCXOyDy7Y&feature=youtu.be&t=1171 for more information ]
         // * -> although that would be fixing only half of the problem, we also need proof of completeness
-            let! stratumClient = stratumClientAsync
-            let! balanceResult = stratumClient.BlockchainAddressGetBalance address
-            return balanceResult.Result
-        }
+        let! stratumClient = Init electrumServer
+        let! balanceResult = stratumClient.BlockchainAddressGetBalance address
+        return balanceResult.Result
+    }
 
-    member self.GetUnspentTransactionOutputs address = async {
-        let! stratumClient = stratumClientAsync
+    let GetUnspentTransactionOutputs (electrumServer: ElectrumServer) address = async {
+        let! stratumClient = Init electrumServer
         let! unspentListResult = stratumClient.BlockchainAddressListUnspent address
         return unspentListResult.Result
     }
 
-    member self.GetBlockchainTransaction txHash = async {
-        let! stratumClient = stratumClientAsync
+    let GetBlockchainTransaction (electrumServer: ElectrumServer) txHash = async {
+        let! stratumClient = Init electrumServer
         let! blockchainTransactionResult = stratumClient.BlockchainTransactionGet txHash
         return blockchainTransactionResult.Result
     }
 
-    member self.EstimateFee (numBlocksTarget: int): Async<decimal> = async {
-        let! stratumClient = stratumClientAsync
+    let EstimateFee (electrumServer: ElectrumServer) (numBlocksTarget: int): Async<decimal> = async {
+        let! stratumClient = Init electrumServer
         let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
         return estimateFeeResult.Result
     }
 
-    member self.BroadcastTransaction (transactionInHex: string) = async {
-        let! stratumClient = stratumClientAsync
+    let BroadcastTransaction (electrumServer: ElectrumServer) (transactionInHex: string) = async {
+        let! stratumClient = Init electrumServer
         let! blockchainTransactionBroadcastResult = stratumClient.BlockchainTransactionBroadcast transactionInHex
         return blockchainTransactionBroadcastResult.Result
     }

@@ -58,14 +58,13 @@ module internal Account =
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
     //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
-    let private GetRandomizedFuncs<'T,'R> currency (ecFunc: ElectrumClient->'T->Async<'R>): List<'T->'R> =
+    let private GetRandomizedFuncs<'T,'R> currency (electrumClientFunc: ElectrumServer->'T->Async<'R>): List<'T->'R> =
         let randomizedServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedFuncs =
-            List.map (fun (es:ElectrumServer) ->
+            List.map (fun (electrumServer: ElectrumServer) ->
                           (fun (arg: 'T) ->
                               try
-                                  let electrumClient = ElectrumClient es
-                                  ecFunc electrumClient arg
+                                  electrumClientFunc electrumServer arg
                                       |> Async.RunSynchronously
                               with
                               | ex ->
@@ -77,7 +76,11 @@ module internal Account =
                                   match ex with
                                   | :? ElectrumServerReturningErrorException as esEx ->
                                       failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
-                                                        es.Fqdn esEx.Message esEx.ErrorCode esEx.OriginalRequest esEx.OriginalResponse)
+                                                        electrumServer.Fqdn
+                                                        esEx.Message
+                                                        esEx.ErrorCode
+                                                        esEx.OriginalRequest
+                                                        esEx.OriginalResponse)
                                   | _ ->
                                       reraise()
                            )
@@ -86,13 +89,11 @@ module internal Account =
         randomizedFuncs
 
     let private GetBalance(account: IAccount) =
-        let electrumGetBalance (ec: ElectrumClient) (address: string) =
-            ec.GetBalance address
         let balance =
             faultTolerantElectrumClient.Query<string,BlockchainAddressGetBalanceInnerResult>
                 (FaultTolerantParallelClientSettings())
                 account.PublicAddress
-                (GetRandomizedFuncs account.Currency electrumGetBalance)
+                (GetRandomizedFuncs account.Currency ElectrumClient.GetBalance)
         balance
 
     let GetConfirmedBalance(account: IAccount): Async<decimal> =
@@ -217,13 +218,11 @@ module internal Account =
 
         let baseAccount = (account:>IAccount)
 
-        let electrumGetUtxos (ec: ElectrumClient) (address: string) =
-            ec.GetUnspentTransactionOutputs address
         let! utxos =
             faultTolerantElectrumClient.Query<string,array<BlockchainAddressListUnspentInnerResult>>
                 (FaultTolerantParallelClientSettings())
                 baseAccount.PublicAddress
-                (GetRandomizedFuncs baseAccount.Currency electrumGetUtxos)
+                (GetRandomizedFuncs baseAccount.Currency ElectrumClient.GetUnspentTransactionOutputs)
 
         if not (utxos.Any()) then
             failwith "No UTXOs found!"
@@ -240,9 +239,6 @@ module internal Account =
         let utxosToUse,totalValueOfInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis List.Empty
 
-        let electrumGetTx (ec: ElectrumClient) (txId: string) =
-            ec.GetBlockchainTransaction txId
-
         let asyncInputs =
             seq {
                 for utxo in utxosToUse do
@@ -251,7 +247,7 @@ module internal Account =
                             faultTolerantElectrumClient.Query<string,string>
                                 (FaultTolerantParallelClientSettings())
                                 utxo.TransactionId
-                                (GetRandomizedFuncs baseAccount.Currency electrumGetTx)
+                                (GetRandomizedFuncs baseAccount.Currency ElectrumClient.GetBlockchainTransaction)
                         let transaction = Transaction(transRaw)
                         let txOut = transaction.Outputs.[utxo.OutputIndex]
                         // should suggest a ToHex() method to NBitcoin's TxOut type?
@@ -283,9 +279,6 @@ module internal Account =
         let unsignedTransaction,_ =
             CreateTransactionAndCoinsToBeSigned baseAccount.Currency transactionDraftWithoutMinerFee
 
-        let electrumEstimateFee (ec: ElectrumClient) (targetNumBlocks: int) =
-            ec.EstimateFee targetNumBlocks
-
         let transactionSizeInBytes = unsignedTransaction.ToBytes().Length
         //Console.WriteLine("transactionSize in bytes before signing: " + transactionSizeInBytes.ToString())
         let numberOfInputs = transactionDraftWithoutMinerFee.Inputs.Length
@@ -304,7 +297,7 @@ module internal Account =
                       ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, averageFee) }
                 //querying for 1 will always return -1 surprisingly...
                 2
-                (GetRandomizedFuncs baseAccount.Currency electrumEstimateFee)
+                (GetRandomizedFuncs baseAccount.Currency ElectrumClient.EstimateFee)
 
         let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, account.Currency)
         let minerFeeInSatoshis = minerFee.CalculateAbsoluteValueInSatoshis()
@@ -400,13 +393,11 @@ module internal Account =
         rawTransaction
 
     let private BroadcastRawTransaction currency (rawTx: string) =
-        let electrumBroadcastTx (ec: ElectrumClient) (rawTx: string): Async<string> =
-            ec.BroadcastTransaction rawTx
         let newTxId =
             faultTolerantElectrumClient.Query<string,string>
                 (FaultTolerantParallelClientSettings())
                 rawTx
-                (GetRandomizedFuncs currency electrumBroadcastTx)
+                (GetRandomizedFuncs currency ElectrumClient.BroadcastTransaction)
         newTxId
 
     let BroadcastTransaction currency (transaction: SignedTransaction<_>) =
