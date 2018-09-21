@@ -64,6 +64,7 @@ type ElectrumIntegrationTests() =
             try
                 let electrumClient = ElectrumClient electrumServer
                 let balance = electrumClient.GetBalance address
+                                  |> Async.RunSynchronously
 
                 // if these ancient addresses get withdrawals it would be interesting in the crypto space...
                 // so let's make the test check a balance like this which is unlikely to change

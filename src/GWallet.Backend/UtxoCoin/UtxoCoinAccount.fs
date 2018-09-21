@@ -58,7 +58,7 @@ module internal Account =
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
     //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
-    let private GetRandomizedFuncs<'T,'R> currency (ecFunc: ElectrumClient->'T->'R): List<'T->'R> =
+    let private GetRandomizedFuncs<'T,'R> currency (ecFunc: ElectrumClient->'T->Async<'R>): List<'T->'R> =
         let randomizedServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedFuncs =
             List.map (fun (es:ElectrumServer) ->
@@ -66,6 +66,7 @@ module internal Account =
                               try
                                   let electrumClient = ElectrumClient es
                                   ecFunc electrumClient arg
+                                      |> Async.RunSynchronously
                               with
                               | ex ->
                                   if (ex :? JsonRpcSharp.ConnectionUnsuccessfulException ||
@@ -399,7 +400,7 @@ module internal Account =
         rawTransaction
 
     let private BroadcastRawTransaction currency (rawTx: string) =
-        let electrumBroadcastTx (ec: ElectrumClient) (rawTx: string): string =
+        let electrumBroadcastTx (ec: ElectrumClient) (rawTx: string): Async<string> =
             ec.BroadcastTransaction rawTx
         let newTxId =
             faultTolerantElectrumClient.Query<string,string>

@@ -9,6 +9,14 @@ open Newtonsoft.Json
 
 module FSharpUtil =
 
+    let WithTimeout (timeSpan: TimeSpan) operation = async {
+        let! child = Async.StartChild (operation, int timeSpan.TotalMilliseconds)
+        try
+            let! result = child
+            return Some result
+        with :? TimeoutException -> return None
+    }
+
     // FIXME: we should not need this workaround anymore when this gets addressed:
     //        https://github.com/fsharp/fslang-suggestions/issues/660
     let ReRaise (ex: Exception): Exception =

@@ -101,15 +101,16 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
                                     Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
 
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
-    member private self.Request<'R> (jsonRequest: string): 'R =
-        let rawResponse = jsonRpcClient.Request jsonRequest
+    member private self.Request<'R> (jsonRequest: string): Async<'R> = async {
+        let! rawResponse = jsonRpcClient.Request jsonRequest
         try
-            StratumClient.Deserialize<'R> rawResponse
+            return StratumClient.Deserialize<'R> rawResponse
         with
         | :? ElectrumServerReturningErrorInJsonResponseException as ex ->
             if (ex.ErrorCode = -32603) then
-                raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
-            raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
+                return raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
+            return raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
+    }
 
     static member public Deserialize<'T> (result: string): 'T =
         let resultTrimmed = result.Trim()
@@ -138,7 +139,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         deserializedValue
 
-    member self.BlockchainAddressGetBalance address: BlockchainAddressGetBalanceResult =
+    member self.BlockchainAddressGetBalance address: Async<BlockchainAddressGetBalanceResult> =
         let obj = {
             Id = 0;
             Method = "blockchain.address.get_balance";
@@ -159,7 +160,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         with
         | exn -> raise(Exception("Electrum Server's version disliked by .NET Version class: " + versionStr, exn))
 
-    member self.ServerVersion (clientName: string) (protocolVersion: Version): Version =
+    member self.ServerVersion (clientName: string) (protocolVersion: Version): Async<Version> = async {
         let obj = {
             Id = 0;
             Method = "server.version";
@@ -169,16 +170,17 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         //  (sprintf "{ \"id\": 0, \"method\": \"server.version\", \"params\": [ \"%s\", \"%s\" ] }"
         //      CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION)
         let json = Serialize obj
-        let resObj = self.Request<ServerVersionResult> json
+        let! resObj = self.Request<ServerVersionResult> json
 
         // e.g. "ElectrumX 1.4.3"
         let serverNameAndVersion = resObj.Result.[0]
         // e.g. "1.1"
         let serverProtocolVersion = resObj.Result.[1]
 
-        StratumClient.CreateVersion(serverProtocolVersion)
+        return StratumClient.CreateVersion(serverProtocolVersion)
+    }
 
-    member self.BlockchainAddressListUnspent address: BlockchainAddressListUnspentResult =
+    member self.BlockchainAddressListUnspent address: Async<BlockchainAddressListUnspentResult> =
         let obj = {
             Id = 0;
             Method = "blockchain.address.listunspent";
@@ -188,7 +190,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let resObj = self.Request<BlockchainAddressListUnspentResult> json
         resObj
 
-    member self.BlockchainTransactionGet txHash: BlockchainTransactionGetResult =
+    member self.BlockchainTransactionGet txHash: Async<BlockchainTransactionGetResult> =
         let obj = {
             Id = 0;
             Method = "blockchain.transaction.get";
@@ -198,7 +200,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         self.Request<BlockchainTransactionGetResult> json
 
-    member self.BlockchainEstimateFee (numBlocksTarget: int): BlockchainEstimateFeeResult =
+    member self.BlockchainEstimateFee (numBlocksTarget: int): Async<BlockchainEstimateFeeResult> =
         let obj = {
             Id = 0;
             Method = "blockchain.estimatefee";
@@ -208,7 +210,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         self.Request<BlockchainEstimateFeeResult> json
 
-    member self.BlockchainTransactionBroadcast txInHex: BlockchainTransactionBroadcastResult =
+    member self.BlockchainTransactionBroadcast txInHex: Async<BlockchainTransactionBroadcastResult> =
         let obj = {
             Id = 0;
             Method = "blockchain.transaction.broadcast";
