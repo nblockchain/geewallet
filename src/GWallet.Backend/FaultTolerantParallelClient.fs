@@ -56,7 +56,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
         results |> Seq.countBy id |> Seq.sortByDescending (fun (_,count: int) -> count) |> List.ofSeq
 
     let LaunchAsyncJobs(jobs:List<Async<NonParallelResults<'T,'R,'E>>>): List<Task<NonParallelResults<'T,'R,'E>>> =
-        jobs |> Seq.map (fun asyncJob -> Async.StartAsTask asyncJob) |> List.ofSeq
+        jobs |> List.map Async.StartAsTask
 
     let rec WhenSomeInternal (consistencySettings: ConsistencySettings<'R>)
                              (tasks: List<Task<NonParallelResults<'T,'R,'E>>>)
