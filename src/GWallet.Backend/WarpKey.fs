@@ -1,4 +1,7 @@
-﻿namespace GWallet.Backend
+﻿// because of the use of obsolete NBitcoin.Crypto.Pbkdf2
+#nowarn "44"
+
+namespace GWallet.Backend
 
 open System
 open System.Text
@@ -42,8 +45,8 @@ module WarpKey =
 
         let hashAlgo = new HMACSHA256(passphraseByteList.ToArray())
 
-        // FIXME: use NBitcoin (instead of CryptSharp) when this has been merged: https://github.com/MetacoSA/NBitcoin/pull/444
-        CryptSharp.Utility.Pbkdf2.ComputeDerivedKey(hashAlgo, saltByteList.ToArray(), 65536, 32)
+        // TODO: remove nowarn when we switch to .NET BCL's impl instead of NBitcoin.Crypto
+        NBitcoin.Crypto.Pbkdf2.ComputeDerivedKey(hashAlgo, saltByteList.ToArray(), 65536, 32)
 
     let private LENGTH_OF_PRIVATE_KEYS = 32
     let CreatePrivateKey (passphrase: string) (salt: string) =
