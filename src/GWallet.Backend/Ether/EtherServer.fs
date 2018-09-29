@@ -138,9 +138,11 @@ module Server =
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
                             raise (ServerUnavailableException(exMsg, httpReqEx))
 
-                        // TODO: maybe in this case below, blacklist the server somehow if it keeps giving this error:
+                        // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
                             raise (ServerMisconfiguredException(exMsg, httpReqEx))
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
+                            raise <| ServerMisconfiguredException(exMsg, httpReqEx)
 
                         reraise()
 
