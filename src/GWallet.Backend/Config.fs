@@ -8,7 +8,7 @@ module internal Config =
     // we might want to test with TestNet at some point, so this below is the key:
     // (but we would need to get a seed list of testnet electrum servers, and testnet(/ropsten/rinkeby?), first...)
     let BitcoinNet = NBitcoin.Network.Main
-    let LitecoinNet = NBitcoin.Altcoins.Litecoin.Instance.Mainnet
+    let LitecoinNet = NBitcoin.Litecoin.Networks.Mainnet
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
     let EthNet = Nethereum.Signer.Chain.MainNet
 

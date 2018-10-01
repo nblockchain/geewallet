@@ -111,7 +111,7 @@ module internal Account =
         }
 
     let private CreateTransactionAndCoinsToBeSigned currency (transactionDraft: TransactionDraft): Transaction*List<Coin> =
-        let transaction = (GetNetwork currency).Consensus.ConsensusFactory.CreateTransaction()
+        let transaction = Transaction()
         let coins =
             seq {
                 for input in transactionDraft.Inputs do
@@ -248,7 +248,7 @@ module internal Account =
                                 (FaultTolerantParallelClientSettings())
                                 utxo.TransactionId
                                 (GetRandomizedFuncs baseAccount.Currency ElectrumClient.GetBlockchainTransaction)
-                        let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
+                        let transaction = Transaction(transRaw)
                         let txOut = transaction.Outputs.[utxo.OutputIndex]
                         // should suggest a ToHex() method to NBitcoin's TxOut type?
                         let valueInSatoshis = txOut.Value
