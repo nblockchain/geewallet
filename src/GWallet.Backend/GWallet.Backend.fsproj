@@ -171,9 +171,6 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="System" />
-    <Reference Include="System.Buffers">
-      <HintPath>..\..\packages\System.Buffers.4.4.0\lib\netstandard1.1\System.Buffers.dll</HintPath>
-    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.IO.Pipelines">
       <HintPath>..\..\packages\System.IO.Pipelines.4.5.0\lib\netstandard1.3\System.IO.Pipelines.dll</HintPath>
@@ -190,22 +187,12 @@
       <HintPath>..\..\packages\System.Threading.Tasks.Extensions.4.5.0\lib\portable-net45+win8+wp8+wpa81\System.Threading.Tasks.Extensions.dll</HintPath>
     </Reference>
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Net.Http" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.2.3\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.4.0.0.51\lib\net452\NBitcoin.dll</HintPath>
-    </Reference>
-    <Reference Include="NBitcoin.Litecoin">
-      <HintPath>..\..\packages\NBitcoin.Litecoin.1.0.0.9\lib\net452\NBitcoin.Litecoin.dll</HintPath>
-    </Reference>
     <Reference Include="Common.Logging.Core">
       <HintPath>..\..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="CryptSharp">
-      <HintPath>..\..\packages\CryptSharpOfficial.2.1.0.0\lib\CryptSharp.dll</HintPath>
     </Reference>
     <Reference Include="BouncyCastle.Crypto">
       <HintPath>..\..\packages\BouncyCastle.1.8.2\lib\BouncyCastle.Crypto.dll</HintPath>
@@ -261,6 +248,30 @@
     <Reference Include="System.Configuration" />
     <Reference Include="System.Memory">
       <HintPath>..\..\packages\System.Memory.4.5.1\lib\netstandard1.1\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard1.1\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Encoding">
+      <HintPath>..\..\packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Primitives">
+      <HintPath>..\..\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.Algorithms">
+      <HintPath>..\..\packages\System.Security.Cryptography.Algorithms.4.3.0\lib\net46\System.Security.Cryptography.Algorithms.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Security.Cryptography.X509Certificates">
+      <HintPath>..\..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net46\System.Security.Cryptography.X509Certificates.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http">
+      <HintPath>..\..\packages\System.Net.Http.4.3.3\lib\net46\System.Net.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin.Altcoins">
+      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.13\lib\net452\NBitcoin.Altcoins.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.4.1.1.50\lib\net452\NBitcoin.dll</HintPath>
     </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
