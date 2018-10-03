@@ -8,7 +8,8 @@ GWallet is a minimalistic and pragmatist lightweight wallet for people that want
 | --------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | oldstable | (v0.1.0.x) ETC & ETH support, console-based frontend, cold-storage support | [![Build status badge](http://gitlab.com/Diginex_HK/geewallet/badges/oldstable/build.svg)](https://gitlab.com/Diginex_HK/geewallet/commits/oldstable) |
 | stable    | (v0.2.0.x) +BTC&LTC support (including SegWit & RBF support) + DAI (ERC20) | [![Build status badge](http://gitlab.com/Diginex_HK/geewallet/badges/stable/build.svg)](https://gitlab.com/Diginex_HK/geewallet/commits/stable)       |
-| master    | main branch where ongoing development takes place (unstable)               | [![Build status badge](http://gitlab.com/Diginex_HK/geewallet/badges/master/build.svg)](https://gitlab.com/Diginex_HK/geewallet/commits/master)  [![Build status badge](https://ci.appveyor.com/api/projects/status/jwyryjrrvf5u8mhc/branch/master?svg=true)](https://ci.appveyor.com/project/diginex/geewallet/branch/master)   |       |
+| master    | main branch where ongoing development takes place (unstable)               | [![Linux build status badge](http://gitlab.com/Diginex_HK/geewallet/badges/master/build.svg)](https://gitlab.com/Diginex_HK/geewallet/commits/master) |
+|           |                                                                            | [![Windows build status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/geewallet-master-build-and-test)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=1)  |
 | frontend  | +Xamarin.Forms frontends (now: Android & iOS & Gtk & Mac; soon: UWP)       | [![Build status badge](http://gitlab.com/Diginex_HK/geewallet/badges/frontend/build.svg)](https://gitlab.com/Diginex_HK/geewallet/commits/frontend)   |
 
 [![Balances mobile-page screenshot](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-balances.png)](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-balances.png)
@@ -83,7 +84,7 @@ This list is the (intended) order of preference for new features:
 - Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/).
 - Refactor bitcoin support to use NBitcoin's TransactionBuilder.
 - Investigate better F#+MSBuild integration (less verbose way to import Microsoft.Fsharp.Targets file in every project).
-- Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ ).
+- Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
 
 ## Anti-roadmap
 

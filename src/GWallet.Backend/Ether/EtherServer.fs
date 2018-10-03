@@ -169,9 +169,11 @@ module Server =
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
                             raise (ServerUnavailableException(exMsg, httpReqEx))
 
-                        // TODO: maybe in this case below, blacklist the server somehow if it keeps giving this error:
+                        // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
                             raise (ServerMisconfiguredException(exMsg, httpReqEx))
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
+                            raise <| ServerMisconfiguredException(exMsg, httpReqEx)
 
                         reraise()
 
@@ -373,10 +375,6 @@ module Server =
         : Async<string> =
         let insufficientFundsMsg = "Insufficient funds"
 
-        // UPDATE/FIXME: can't use reraise inside async, blergh! https://stackoverflow.com/questions/7168801/how-to-use-reraise-in-async-workflows-in-f
-        let reraiseWorkAround ex =
-            Exception("Unhandled exception when trying to broadcast transaction", ex)
-
         async {
             let web3Func (web3: Web3) (tx: string): string =
                 WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
@@ -389,12 +387,12 @@ module Server =
             | ex ->
                 match FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex with
                 | None ->
-                    return raise (reraiseWorkAround ex)
+                    return raise (FSharpUtil.ReRaise ex)
                 | Some rpcResponseException ->
                     // FIXME: this is fragile, ideally should respond with an error code
                     if rpcResponseException.Message.StartsWith(insufficientFundsMsg,
                                                                StringComparison.InvariantCultureIgnoreCase) then
                         raise InsufficientFunds
-                    return raise (reraiseWorkAround ex)
-                return raise (reraiseWorkAround ex)
+                    return raise (FSharpUtil.ReRaise ex)
+                return raise (FSharpUtil.ReRaise ex)
         }

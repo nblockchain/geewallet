@@ -62,8 +62,8 @@ type ElectrumIntegrationTests() =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                let electrumClient = ElectrumClient electrumServer
-                let balance = electrumClient.GetBalance address
+                let balance = ElectrumClient.GetBalance electrumServer address
+                                  |> Async.RunSynchronously
 
                 // if these ancient addresses get withdrawals it would be interesting in the crypto space...
                 // so let's make the test check a balance like this which is unlikely to change

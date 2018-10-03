@@ -165,18 +165,31 @@ match maybeTarget with
     let binDir = "bin"
     Directory.CreateDirectory(binDir) |> ignore
 
-    let zipName = sprintf "gwallet.v.%s.zip" version
+    let zipNameWithoutExtension = sprintf "gwallet.v.%s" version
+    let zipName = sprintf "%s.zip" zipNameWithoutExtension
     let pathToZip = Path.Combine(binDir, zipName)
     if (File.Exists (pathToZip)) then
         File.Delete (pathToZip)
 
+    let pathToFolderToBeZipped = Path.Combine(binDir, zipNameWithoutExtension)
+    if (Directory.Exists (pathToFolderToBeZipped)) then
+        Directory.Delete (pathToFolderToBeZipped, true)
+
     let pathToFrontend = GetPathToFrontend release
-    let zipLaunch = sprintf "%s -j -r %s %s"
-                            zipCommand pathToZip pathToFrontend
+    let zipRun = Process.Execute(sprintf "cp -rfvp %s %s" pathToFrontend pathToFolderToBeZipped, true, false)
+    if (zipRun.ExitCode <> 0) then
+        Console.Error.WriteLine "Precopy for ZIP compression failed"
+        Environment.Exit 1
+
+    let previousCurrentDir = Directory.GetCurrentDirectory()
+    Directory.SetCurrentDirectory binDir
+    let zipLaunch = sprintf "%s -r %s %s"
+                            zipCommand zipName zipNameWithoutExtension
     let zipRun = Process.Execute(zipLaunch, true, false)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "ZIP compression failed"
         Environment.Exit 1
+    Directory.SetCurrentDirectory previousCurrentDir
 
 | Some("check") ->
     Console.WriteLine "Running tests..."

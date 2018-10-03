@@ -26,10 +26,7 @@ module JsonRpcSharp =
        inherit ConnectionUnsuccessfulException()
 
     // Translation of https://github.com/davidfowl/TcpEcho/blob/master/src/Program.cs
-    // BIG TODO:
-    //   1. CONVERT THIS TO BE A CLASS THAT INHERITS FROM ClientBase CLASS
-    //   2. STOP USING BLOCKING API TO USE ASYNC API INSTEAD (e.g. from Thread.Sleep to Task.Delay)
-    type TcpClient (hostAndPort: unit->IPAddress*int) =
+    type TcpClient (resolveHostAsync: unit->Async<IPAddress>, port) =
 
         [<Literal>]
         let minimumBufferSize = 512
@@ -45,9 +42,10 @@ module JsonRpcSharp =
             Memory<byte>.op_Implicit memory
             |> GetArrayFromReadOnlyMemory
 
-        let ReceiveAsync (socket: Socket) memory socketFlags =
+        let ReceiveAsync (socket: Socket) memory socketFlags = async {
             let arraySegment = GetArray memory
-            SocketTaskExtensions.ReceiveAsync(socket, arraySegment, socketFlags)
+            return! SocketTaskExtensions.ReceiveAsync(socket, arraySegment, socketFlags) |> Async.AwaitTask
+        }
 
         let GetAsciiString (buffer: ReadOnlySequence<byte>) =
             // A likely better way of converting this buffer/sequence to a string can be found her:
@@ -57,12 +55,11 @@ module JsonRpcSharp =
             |> System.Buffers.BuffersExtensions.ToArray
             |> System.Text.Encoding.ASCII.GetString
 
-        let rec ReadPipeInternal (reader: PipeReader) (stringBuilder: StringBuilder) =
+        let rec ReadPipeInternal (reader: PipeReader) (stringBuilder: StringBuilder) = async {
             let processLine (line:ReadOnlySequence<byte>) =
                 line |> GetAsciiString |> stringBuilder.AppendLine |> ignore
 
-            // TODO: convert to async!
-            let result = reader.ReadAsync().Result
+            let! result = reader.ReadAsync().AsTask() |> Async.AwaitTask
 
             let rec keepAdvancingPosition buffer =
                 // How to call a ref extension method using extension syntax?
@@ -76,31 +73,29 @@ module JsonRpcSharp =
             keepAdvancingPosition result.Buffer
             reader.AdvanceTo(result.Buffer.Start, result.Buffer.End)
             if not result.IsCompleted then
-                ReadPipeInternal reader stringBuilder
+                return! ReadPipeInternal reader stringBuilder
             else
-                stringBuilder.ToString()
+                return stringBuilder.ToString()
+        }
 
         let ReadPipe pipeReader =
             ReadPipeInternal pipeReader (StringBuilder())
 
-        let FillPipeAsync (socket: Socket) (writer: PipeWriter) =
+        let FillPipeAsync (socket: Socket) (writer: PipeWriter) = async {
             // If incomplete messages become an issue here, consider reinstating the while/loop
             // logic from the original C# source.  For now, assuming that every response is complete
             // is working better than trying to handle potential incomplete responses.
             let memory: Memory<byte> = writer.GetMemory minimumBufferSize
-            let receiveTask = ReceiveAsync socket memory SocketFlags.None
-            if receiveTask.Wait Config.DEFAULT_NETWORK_TIMEOUT then
-                let bytesRead = receiveTask.Result
-                if bytesRead > 0 then
-                    writer.Advance bytesRead
-                else
-                    raise <| NoResponseReceivedAfterRequestException()
+            let! bytesReceived = ReceiveAsync socket memory SocketFlags.None
+            if bytesReceived > 0 then
+                writer.Advance bytesReceived
             else
                 raise <| NoResponseReceivedAfterRequestException()
             writer.Complete()
+        }
 
-        let Connect () =
-            let host, port = hostAndPort()
+        let Connect () = async {
+            let! host = resolveHostAsync()
             let socket = new Socket(SocketType.Stream,
                                     ProtocolType.Tcp)
                                     // Not using timeout properties on Socket because FillPipeAsync retrieves data
@@ -108,31 +103,27 @@ module JsonRpcSharp =
                                     // timeout properties exist, and may prove to have some use:
                                     //, SendTimeout = defaultNetworkTimeout, ReceiveTimeout = defaultNetworkTimeout)
 
-            socket.Connect(host, port)
-            socket
+            do! socket.ConnectAsync(host, port) |> Async.AwaitTask
+            return socket
+        }
 
-        new(host: IPAddress, port: int) = new TcpClient(fun _ -> host, port)
+        new(host: IPAddress, port: int) = new TcpClient((fun _ -> async { return host }), port)
 
-        member __.Request (request: string): string =
-            use socket = Connect ()
-            async {
-                let buffer =
-                    request + "\n"
-                    |> Encoding.UTF8.GetBytes
-                    |> ArraySegment<byte>
+        member __.Request (request: string): Async<string> = async {
+            use! socket = Connect()
+            let buffer =
+                request + "\n"
+                |> Encoding.UTF8.GetBytes
+                |> ArraySegment<byte>
 
-                return! socket.SendAsync(buffer, SocketFlags.None) |> Async.AwaitTask
-            }
-                // TODO: convert to async!
-                |> Async.RunSynchronously
-
-                |> ignore // int bytesSent
-
+            let! bytesReceived = socket.SendAsync(buffer, SocketFlags.None) |> Async.AwaitTask
             let pipe = Pipe()
-            FillPipeAsync socket pipe.Writer
-            ReadPipe pipe.Reader
+            do! FillPipeAsync socket pipe.Writer
+            let! str = ReadPipe pipe.Reader
+            return str
+        }
 
-    type LegacyTcpClient  (hostAndPort: unit->IPAddress*int) =
+    type LegacyTcpClient  (resolveHostAsync: unit->Async<IPAddress>, port) =
         let rec WrapResult (acc: List<byte>): string =
             let reverse = List.rev acc
             Encoding.UTF8.GetString(reverse.ToArray())
@@ -174,7 +165,7 @@ module JsonRpcSharp =
 
         let Connect(): System.Net.Sockets.TcpClient =
 
-            let host,port = hostAndPort()
+            let host = resolveHostAsync() |> Async.RunSynchronously
 
             let tcpClient = new System.Net.Sockets.TcpClient(host.AddressFamily)
             tcpClient.SendTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
@@ -186,9 +177,9 @@ module JsonRpcSharp =
                 raise(ServerUnresponsiveException())
             tcpClient
 
-        new(host: IPAddress, port: int) = new LegacyTcpClient(fun _ -> host, port)
+        new(host: IPAddress, port: int) = new LegacyTcpClient((fun () -> async { return host }), port)
 
-        member self.Request (request: string): string =
+        member self.Request (request: string): Async<string> = async {
             use tcpClient = Connect()
             let stream = tcpClient.GetStream()
             if not stream.CanTimeout then
@@ -198,4 +189,5 @@ module JsonRpcSharp =
             let bytes = Encoding.UTF8.GetBytes(request + "\n");
             stream.Write(bytes, 0, bytes.Length)
             stream.Flush()
-            Read stream
+            return Read stream
+        }
