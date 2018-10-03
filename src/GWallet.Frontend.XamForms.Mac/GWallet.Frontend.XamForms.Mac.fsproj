@@ -75,12 +75,6 @@
     <Reference Include="Xamarin.Forms.Xaml">
       <HintPath>..\..\packages\Xamarin.Forms.3.0.0.296286-pre2\lib\Xamarin.Mac\Xamarin.Forms.Xaml.dll</HintPath>
     </Reference>
-    <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.4.0.0.51\lib\netstandard1.3\NBitcoin.dll</HintPath>
-    </Reference>
-    <Reference Include="NBitcoin.Litecoin">
-      <HintPath>..\..\packages\NBitcoin.Litecoin.1.0.0.9\lib\netstandard1.3\NBitcoin.Litecoin.dll</HintPath>
-    </Reference>
     <Reference Include="ZXing.Net.Mobile.Core">
       <HintPath>..\..\packages\ZXing.Net.Mobile.2.3.2\lib\portable-net45+netcore45+wpa81+wp8\ZXing.Net.Mobile.Core.dll</HintPath>
     </Reference>
@@ -107,9 +101,6 @@
     </Reference>
     <Reference Include="BouncyCastle.Crypto">
       <HintPath>..\..\packages\Portable.BouncyCastle.1.8.2\lib\netstandard2.0\BouncyCastle.Crypto.dll</HintPath>
-    </Reference>
-    <Reference Include="CryptSharp">
-      <HintPath>..\..\packages\CryptSharpOfficial.2.1.0.0\lib\CryptSharp.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.ABI">
       <HintPath>..\..\packages\Nethereum.ABI.3.0.0-CI-20180914-144604\lib\netstandard1.1\Nethereum.ABI.dll</HintPath>
@@ -156,9 +147,6 @@
     <Reference Include="SharpRaven">
       <HintPath>..\..\packages\SharpRaven.2.4.0\lib\netstandard2.0\SharpRaven.dll</HintPath>
     </Reference>
-    <Reference Include="System.Buffers">
-      <HintPath>..\..\packages\System.Buffers.4.4.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
-    </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
       <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.0\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
@@ -179,6 +167,12 @@
     </Reference>
     <Reference Include="Plugin.Connectivity">
       <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\Xamarin.Mac20\Plugin.Connectivity.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.4.1.1.50\lib\netstandard2.0\NBitcoin.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

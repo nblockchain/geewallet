@@ -57,16 +57,10 @@
     <Reference Include="System.Security.Cryptography.X509Certificates">
       <HintPath>..\..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
     </Reference>
-    <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.4.0.0.51\lib\net461\NBitcoin.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="Common.Logging.Core">
       <HintPath>..\..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="NBitcoin.Litecoin">
-      <HintPath>..\..\packages\NBitcoin.Litecoin.1.0.0.9\lib\net461\NBitcoin.Litecoin.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http">
       <HintPath>..\..\packages\System.Net.Http.4.3.3\lib\net46\System.Net.Http.dll</HintPath>
@@ -147,9 +141,6 @@
       <HintPath>..\..\packages\SharpRaven.2.4.0\lib\net45\SharpRaven.dll</HintPath>
     </Reference>
     <Reference Include="System.Configuration" />
-    <Reference Include="System.Buffers">
-      <HintPath>..\..\packages\System.Buffers.4.4.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
-    </Reference>
     <Reference Include="System.Numerics.Vectors">
       <HintPath>..\..\packages\System.Numerics.Vectors.4.4.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
     </Reference>
@@ -188,6 +179,15 @@
     </Reference>
     <Reference Include="Xamarin.Forms.Platform.GTK">
       <HintPath>..\..\packages\Xamarin.Forms.Platform.GTK.3.0.0.446417\lib\net45\Xamarin.Forms.Platform.GTK.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin">
+      <HintPath>..\..\packages\NBitcoin.4.1.1.50\lib\net461\NBitcoin.dll</HintPath>
+    </Reference>
+    <Reference Include="NBitcoin.Altcoins">
+      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.13\lib\net461\NBitcoin.Altcoins.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
