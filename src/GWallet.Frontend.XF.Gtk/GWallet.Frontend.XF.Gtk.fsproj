@@ -216,8 +216,10 @@
   <Import Project="$(FSharpTargetsPath)" />
 
   <!-- workaround for https://github.com/dotnet/corefx/issues/19914 / https://bugzilla.xamarin.com/show_bug.cgi?id=60315 -->
+  <!-- disable the workaround for now because this DLL needs to be shipped in the ZIP file for the GTK frontend (at least for Linux+Mono4.6.2)
   <Target Name="AfterBuild">
     <Delete Files="bin\$(Configuration)\System.Net.Http.dll" />
   </Target>
+  -->
   <Import Project="..\..\packages\Xamarin.Forms.3.0.0.446417\build\netstandard2.0\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.3.0.0.446417\build\netstandard2.0\Xamarin.Forms.targets')" />
 </Project>
