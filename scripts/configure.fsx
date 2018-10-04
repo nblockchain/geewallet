@@ -22,7 +22,7 @@ ConfigCommandCheck "mono"
 ConfigCommandCheck "curl"
 
 let oldVersionOfMono =
-    // we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that has a runtime bug
+    // we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) with no msbuild
     let versionOfMonoWhereTheRuntimeBugWasFixed = "5.4"
 
     match Misc.GuessPlatform() with
@@ -39,11 +39,11 @@ let oldVersionOfMono =
         let processResult = Process.Execute(pkgConfigCmd, false, false)
         processResult.ExitCode <> 0
 
-let buildTool,shouldUseLegacyTcpClient =
+let buildTool =
     if oldVersionOfMono then
-        "xbuild",true
+        "xbuild"
     else
-        "msbuild",false
+        "msbuild"
 ConfigCommandCheck buildTool
 
 let rec private GatherOrGetDefaultPrefix(args: List<string>, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
@@ -75,17 +75,11 @@ if not (prefix.Exists) then
     Console.Error.WriteLine warning
 
 let lines =
-    let addLegacyTcpClientEntryIfNecessary (configEntries: Map<string,string>) =
-        let configEntriesPlusBuildTool = configEntries.Add("BuildTool", buildTool)
-        if shouldUseLegacyTcpClient then
-            configEntriesPlusBuildTool.Add("DefineConstants", "LEGACY_TCP_CLIENT")
-        else
-            configEntriesPlusBuildTool
     let toConfigFileLine (keyValuePair: System.Collections.Generic.KeyValuePair<string,string>) =
         sprintf "%s=%s" keyValuePair.Key keyValuePair.Value
 
     Map.empty.Add("Prefix", prefix.FullName)
-    |> addLegacyTcpClientEntryIfNecessary
+             .Add("BuildTool", buildTool)
     |> Seq.map toConfigFileLine
 
 let path = Path.Combine(__SOURCE_DIRECTORY__, "build.config")

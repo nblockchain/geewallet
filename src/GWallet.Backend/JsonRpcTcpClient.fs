@@ -65,15 +65,19 @@ type JsonRpcTcpClient (host: string, port: int) =
             return raise <| UnhandledSocketException(socketException.Value.ErrorCode, ex)
     }
 
-#if LEGACY_TCP_CLIENT
-    let rpcTcpClient = new JsonRpcSharp.LegacyTcpClient(ResolveHost, port)
-#else
-    let rpcTcpClient = new JsonRpcSharp.TcpClient(ResolveHost, port)
-#endif
+    let rpcTcpClientInnerRequest =
+        let monoVersion = Config.GetMonoVersion()
+        //we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that has a runtime bug
+        if monoVersion.IsSome || monoVersion.Value < Version("5.4") then
+            let tcpClient = new JsonRpcSharp.LegacyTcpClient(ResolveHost, port)
+            tcpClient.Request
+        else
+            let tcpClient = new JsonRpcSharp.TcpClient(ResolveHost, port)
+            tcpClient.Request
 
     member self.Request (request: string): Async<string> = async {
         try
-            let! stringOption = rpcTcpClient.Request request |> FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT
+            let! stringOption = rpcTcpClientInnerRequest request |> FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT
             let str =
                 match stringOption with
                 | Some s -> s
