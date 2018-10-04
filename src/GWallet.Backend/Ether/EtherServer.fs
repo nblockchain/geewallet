@@ -72,6 +72,8 @@ module Server =
         //  limit. Try increasing the fee.)"
         | AmbiguousOrGenericError = -32010
 
+        | UnknownBlockNumber = -32602
+
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
@@ -151,6 +153,8 @@ module Server =
                                                                  (int RpcErrorCode.StatePruningNode), rpcResponseEx))
                                     else
                                         raise (ServerMisconfiguredException(exMsg, rpcResponseEx))
+                                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
+                                    raise (ServerMisconfiguredException(exMsg, rpcResponseEx))
                                 raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
                                                          rpcResponseEx.RpcError.Code
                                                          rpcResponseEx.RpcError.Message
