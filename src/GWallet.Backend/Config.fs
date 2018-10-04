@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Reflection
 
 module internal Config =
 
@@ -18,6 +19,21 @@ module internal Config =
 #else
         false
 #endif
+
+    let GetMonoVersion(): Option<Version> =
+        let maybeMonoRuntime = Type.GetType "Mono.Runtime" |> Option.ofObj
+        match maybeMonoRuntime with
+        | None -> None
+        | Some monoRuntime ->
+            let displayName: MethodInfo =
+                monoRuntime.GetMethod("GetDisplayName", BindingFlags.NonPublic ||| BindingFlags.Static)
+            if (displayName = null) then
+                failwith "MonoRuntime type was found but GetDisplayName wasn't, which is unexpected"
+
+            // example: 5.12.0.309 (2018-02/39d89a335c8 Thu Sep 27 06:54:53 EDT 2018)
+            let fullVersion = displayName.Invoke(null, null) :?> string
+            let simpleVersion = fullVersion.Substring(0, fullVersion.IndexOf(' ')) |> Version
+            simpleVersion |> Some
 
     // TODO: move to FaultTolerantParallelClient
     let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 60.0
