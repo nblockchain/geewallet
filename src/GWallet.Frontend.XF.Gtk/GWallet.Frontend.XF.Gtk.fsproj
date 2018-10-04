@@ -189,6 +189,12 @@
     <Reference Include="NBitcoin.Altcoins">
       <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.13\lib\net461\NBitcoin.Altcoins.dll</HintPath>
     </Reference>
+    <Reference Include="Plugin.Connectivity.Abstractions">
+      <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\net45\Plugin.Connectivity.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Plugin.Connectivity">
+      <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\net45\Plugin.Connectivity.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
