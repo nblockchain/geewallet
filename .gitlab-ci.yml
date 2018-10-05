@@ -32,6 +32,10 @@ stockmono_test:
 
 newmono_build:
   stage: build
+  artifacts:
+    paths:
+      - bin/*.zip
+    expire_in: 1 week
   script:
     # required by apt-key
     - apt install -y gnupg2
@@ -47,6 +51,9 @@ newmono_build:
     - time (./configure.sh && make && make install)
     # so that we log the version of nuget for when it works
     - make nuget
+
+    - apt-get install -y zip
+    - make zip
 
 newmono_test:
   stage: test
