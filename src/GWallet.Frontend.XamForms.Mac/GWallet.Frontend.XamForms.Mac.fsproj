@@ -173,9 +173,13 @@
     <Reference Include="NBitcoin">
       <HintPath>..\..\packages\NBitcoin.4.1.1.50\lib\netstandard2.0\NBitcoin.dll</HintPath>
     </Reference>
+    <Reference Include="NBitcoin.Altcoins">
+      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.13\lib\netstandard2.0\NBitcoin.Altcoins.dll</HintPath>
+    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.5.2\lib\netstandard1.6\FSharp.Core.dll</HintPath>
     </Reference>
+    <Reference Include="System.Numerics" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
