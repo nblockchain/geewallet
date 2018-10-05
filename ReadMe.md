@@ -42,7 +42,7 @@ This list is the (intended) order of preference for new features:
 - Payment channels support.
 - Mac/Windows CI support via Travis & AppVeyor respectively.
 - Flatpak & snap packaging.
-- Paranoid-build mode (using git submodules instead of nuget deps).
+- Paranoid-build mode (using git submodules instead of nuget deps), depending on this RFE (https://github.com/dotnet/sdk/issues/1151) or using any workaround mentioned there.
 - Fee selection for custom priority.
 - Multi-sig support.
 - Use bits instead of BTC as default unit.
