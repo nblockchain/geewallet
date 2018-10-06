@@ -9,6 +9,18 @@ open ZXing.Mobile
 
 open GWallet.Backend
 
+type BalanceSet = {
+    Account: IAccount;
+    CryptoLabel: Label;
+    FiatLabel: Label;
+}
+
+type BalanceState = {
+    BalanceSet: BalanceSet;
+    FiatAmount: MaybeCached<decimal>;
+    ImminentPayment: bool;
+}
+
 module FrontendHelpers =
 
     type IGlobalAppState =
@@ -88,30 +100,43 @@ module FrontendHelpers =
         )
         fiatAmount
 
-    let UpdateBalanceAsync account (balanceLabel: Label) (fiatBalanceLabel: Label)
-                               : Async<IAccount*Label*Label*MaybeCached<decimal>*bool> =
+    let UpdateBalanceAsync (balanceSet: BalanceSet)
+                               : Async<BalanceState> =
         async {
-            let! balance,imminentPayment = Account.GetShowableBalanceAndImminentPayment account
-            let fiatAmount = UpdateBalance balance account.Currency balanceLabel fiatBalanceLabel
-            return account,balanceLabel,fiatBalanceLabel,fiatAmount,imminentPayment
+            let! balance,imminentPayment = Account.GetShowableBalanceAndImminentPayment balanceSet.Account
+            let fiatAmount =
+                UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
+            return {
+                BalanceSet = balanceSet;
+                FiatAmount = fiatAmount;
+                ImminentPayment = imminentPayment;
+            }
         }
 
-    let UpdateCachedBalancesAsync (accountsWithLabels: seq<IAccount*Label*Label>)
-                                      : Async<array<IAccount*Label*Label*MaybeCached<decimal>*bool>> =
-        let rec updateBalanceAccumulator (accountsWithLabels: List<IAccount*Label*Label>)
-                                         (acc: List<IAccount*Label*Label*MaybeCached<decimal>*bool>) =
+    let UpdateCachedBalancesAsync (accountsWithLabels: seq<BalanceSet>)
+                                      : Async<array<BalanceState>> =
+        let rec updateBalanceAccumulator (accountsWithLabels: List<BalanceSet>)
+                                         (acc: List<BalanceState>) =
             match accountsWithLabels with
             | [] -> acc
-            | (account,cryptoBalanceLabel,fiatBalanceLabel)::tail ->
-                let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+            | balanceSet::tail ->
+                let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance balanceSet.Account.PublicAddress
+                                                                                 balanceSet.Account.Currency
                 match cachedBalance with
                 | Cached _ ->
                     let fiatAmount =
-                        UpdateBalance (NotFresh cachedBalance) account.Currency cryptoBalanceLabel fiatBalanceLabel
+                        UpdateBalance (NotFresh cachedBalance)
+                                      balanceSet.Account.Currency
+                                      balanceSet.CryptoLabel
+                                      balanceSet.FiatLabel
                     // dummy because retreiving balances from cache cannot tell us if it's imminent or not, but we need
                     // to return this dummy false value to make signatures match with the non-cache funcs
                     let dummyFalseImminentPayment = false
-                    let newElem = account,cryptoBalanceLabel,fiatBalanceLabel,fiatAmount,dummyFalseImminentPayment
+                    let newElem = {
+                        BalanceSet = balanceSet;
+                        FiatAmount = fiatAmount;
+                        ImminentPayment = dummyFalseImminentPayment;
+                    }
                     updateBalanceAccumulator tail (newElem::acc)
                 | _ ->
                     failwith "Retreiving cached balance of a readonlyAccount(cold storage) returned N/A; but addition of this account should have stored it properly..."
@@ -211,11 +236,15 @@ module FrontendHelpers =
 
         accountBalanceLabel,fiatBalanceLabel
 
-    let CreateWidgetsForAccounts(accounts: seq<IAccount>): List<IAccount*Label*Label> =
+    let CreateWidgetsForAccounts(accounts: seq<IAccount>): List<BalanceSet> =
         seq {
             for account in accounts do
                 let cryptoLabel,fiatLabel = CreateWidgetsForAccount ()
-                yield account,cryptoLabel,fiatLabel
+                yield {
+                    Account = account;
+                    CryptoLabel = cryptoLabel;
+                    FiatLabel = fiatLabel;
+                }
         } |> List.ofSeq
 
     let BarCodeScanningOptions = MobileBarcodeScanningOptions(

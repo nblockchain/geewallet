@@ -16,8 +16,8 @@ type CycleStart =
     | Delayed
 
 type BalancesPage(state: FrontendHelpers.IGlobalAppState,
-                  normalAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>*bool>,
-                  readOnlyAccountsAndBalances: seq<IAccount*Label*Label*MaybeCached<decimal>*_>,
+                  normalAccountsAndBalances: seq<BalanceState>,
+                  readOnlyAccountsAndBalances: seq<BalanceState>,
                   startWithReadOnlyAccounts: bool)
                       as this =
     inherit ContentPage()
@@ -33,8 +33,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     let GetBalanceUpdateJobs accountsAndBalances =
         seq {
-            for normalAccount,accountBalance,fiatBalance,_,_ in accountsAndBalances do
-                yield FrontendHelpers.UpdateBalanceAsync normalAccount accountBalance fiatBalance
+            for balanceState in accountsAndBalances do
+                yield FrontendHelpers.UpdateBalanceAsync balanceState.BalanceSet
         }
     let normalBalancesJob = Async.Parallel (GetBalanceUpdateJobs normalAccountsAndBalances)
     let readOnlyBalancesJob = Async.Parallel (GetBalanceUpdateJobs readOnlyAccountsAndBalances)
@@ -117,7 +117,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> isIncomingPaymentImminent)
          and set value = lock lockObject (fun _ -> isIncomingPaymentImminent <- value)
 
-    member this.PopulateBalances balances =
+    member this.PopulateBalances (balances: seq<BalanceState>) =
 
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
         mainLayout.Children.Remove footerLabel |> ignore
@@ -126,11 +126,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         for currentCryptoBalance in currentCryptoBalances do
             mainLayout.Children.Remove currentCryptoBalance |> ignore
 
-        for account,cryptoBalance,fiatBalance,_,_ in balances do
+        for balanceState in balances do
 
             let tapGestureRecognizer = TapGestureRecognizer()
             tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                let receivePage = ReceivePage(account, this, cryptoBalance, fiatBalance)
+                let receivePage =
+                    ReceivePage(balanceState.BalanceSet.Account, this,
+                                balanceState.BalanceSet.CryptoLabel, balanceState.BalanceSet.FiatLabel)
                 NavigationPage.SetHasNavigationBar(receivePage, false)
                 let navPage = NavigationPage receivePage
 
@@ -139,8 +141,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             ) |> ignore
 
             let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal)
-            stackLayout.Children.Add cryptoBalance
-            stackLayout.Children.Add fiatBalance
+            stackLayout.Children.Add balanceState.BalanceSet.CryptoLabel
+            stackLayout.Children.Add balanceState.BalanceSet.FiatLabel
 
             let frame = Frame(HasShadow = false,
                               ClassId = cryptoBalanceClassId,
@@ -162,11 +164,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 async {
                     if (state.Awake) then
                         let! resolvedNormalBalances = normalBalancesJob
-                        let normalFiatBalances = resolvedNormalBalances.Select(fun (_,_,_,f,_) -> f)
+                        let normalFiatBalances = resolvedNormalBalances.Select(fun balanceState ->
+                                                                                   balanceState.FiatAmount)
                         Device.BeginInvokeOnMainThread(fun _ ->
                             this.UpdateGlobalFiatBalanceSum normalFiatBalances totalFiatAmountLabel
                         )
-                        return resolvedNormalBalances.Any(fun (_,_,_,_,imminentPayment) -> imminentPayment) |> Some
+                        return resolvedNormalBalances.Any(fun balanceState -> balanceState.ImminentPayment) |> Some
                     else
                         return None
                 }
@@ -174,11 +177,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 async {
                     if (state.Awake) then
                         let! resolvedReadOnlyBalances = readOnlyBalancesJob
-                        let readOnlyFiatBalances = resolvedReadOnlyBalances.Select(fun (_,_,_,f,_) -> f)
+                        let readOnlyFiatBalances = resolvedReadOnlyBalances.Select(fun balanceState ->
+                                                                                       balanceState.FiatAmount)
                         Device.BeginInvokeOnMainThread(fun _ ->
                             this.UpdateGlobalFiatBalanceSum readOnlyFiatBalances totalReadOnlyFiatAmountLabel
                         )
-                        return resolvedReadOnlyBalances.Any(fun (_,_,_,_,imminentPayment) -> imminentPayment) |> Some
+                        return resolvedReadOnlyBalances.Any(fun balanceState -> balanceState.ImminentPayment) |> Some
                     else
                         return None
                 }
@@ -257,8 +261,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         if ((cycleStart <> CycleStart.Delayed && this.RefreshBalancesAndCheckIfAwake onlyReadOnlyAccounts) || true) then
             this.StartTimer()
 
-    member private this.ConfigureFiatAmountFrame (normalAccountsBalances: seq<IAccount*Label*Label*_*_>)
-                                                 (readOnlyAccountsBalances: seq<IAccount*Label*Label*_*_>)
+    member private this.ConfigureFiatAmountFrame (normalAccountsBalances: seq<BalanceState>)
+                                                 (readOnlyAccountsBalances: seq<BalanceState>)
                                                  (readOnly: bool): TapGestureRecognizer =
         let totalCurrentFiatAmountFrameName,totalOtherFiatAmountFrameName =
             if readOnly then
@@ -342,13 +346,15 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 totalFiatAmountLabel.TextColor <- color
                 normalAccountsAndBalances,color
 
-        for _,readOnlyLabel1,readOnlyLabel2,_,_ in labels do
-            readOnlyLabel1.TextColor <- color
-            readOnlyLabel2.TextColor <- color
+        for readonlyAccountBalance in labels do
+            readonlyAccountBalance.BalanceSet.CryptoLabel.TextColor <- color
+            readonlyAccountBalance.BalanceSet.FiatLabel.TextColor <- color
 
     member private this.Init () =
-        let allNormalAccountFiatBalances = normalAccountsAndBalances.Select(fun (_,_,_,f,_) -> f) |> List.ofSeq
-        let allReadOnlyAccountFiatBalances = readOnlyAccountsAndBalances.Select(fun (_,_,_,f,_) -> f) |> List.ofSeq
+        let allNormalAccountFiatBalances =
+            normalAccountsAndBalances.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
+        let allReadOnlyAccountFiatBalances =
+            readOnlyAccountsAndBalances.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
 
         Device.BeginInvokeOnMainThread(fun _ ->
             this.AssignColorLabels true

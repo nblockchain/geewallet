@@ -26,14 +26,14 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
         let normalAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts normalAccounts
         let allNormalAccountBalancesJob =
             seq {
-                for normalAccount,accountBalanceLabel,fiatBalanceLabel in normalAccountsWithLabels do
+                for balanceSet in normalAccountsWithLabels do
                     let balanceJob =
-                        FrontendHelpers.UpdateBalanceAsync normalAccount accountBalanceLabel fiatBalanceLabel
+                        FrontendHelpers.UpdateBalanceAsync balanceSet
                     yield balanceJob
             } |> Async.Parallel
 
-        let readOnlyAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
-        let readOnlyAccountBalancesJob = FrontendHelpers.UpdateCachedBalancesAsync readOnlyAccountsWithLabels
+        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
+        let readOnlyAccountBalancesJob = FrontendHelpers.UpdateCachedBalancesAsync readOnlyAccountsBalances
 
         let populateGrid = async {
             let allBalancesJob = Async.Parallel(allNormalAccountBalancesJob::(readOnlyAccountBalancesJob::List.Empty))
