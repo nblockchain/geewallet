@@ -93,31 +93,33 @@ type JsonRpcTcpClient (host: string, port: int) =
         | :? NotSupportedException as nse ->
             return raise <| ProtocolGlitchException(exceptionMsg, nse)
         | ex ->
-            let socketException = FSharpUtil.FindException<SocketException>(ex)
-            if (socketException.IsNone) then
-                ExceptionDispatchInfo.Capture(ex).Throw()
-            if (socketException.Value.ErrorCode = int SocketError.ConnectionRefused) then
-                return raise <| ServerRefusedException(exceptionMsg, ex)
-            if socketException.Value.ErrorCode = int SocketError.ConnectionReset then
-                return raise <| ServerRefusedException(exceptionMsg, ex)
+            let maybeSocketException = FSharpUtil.FindException<SocketException>(ex)
+            match maybeSocketException with
+            | None ->
+                return raise <| FSharpUtil.ReRaise ex
+            | Some socketException ->
+                if socketException.ErrorCode = int SocketError.ConnectionRefused then
+                    return raise <| ServerRefusedException(exceptionMsg, ex)
+                if socketException.ErrorCode = int SocketError.ConnectionReset then
+                    return raise <| ServerRefusedException(exceptionMsg, ex)
 
-            if (socketException.Value.ErrorCode = int SocketError.TimedOut) then
-                return raise <| ServerTimedOutException(exceptionMsg, ex)
+                if socketException.ErrorCode = int SocketError.TimedOut then
+                    return raise <| ServerTimedOutException(exceptionMsg, ex)
 
-            // probably misleading errorCode (see fixed mono bug: https://github.com/mono/mono/pull/8041 )
-            // TODO: remove this when Mono X.Y (where X.Y=version to introduce this bugfix) is stable
-            //       everywhere (probably 8 years from now?), and see if we catch it again in sentry
-            if (socketException.Value.ErrorCode = int SocketError.AddressFamilyNotSupported) then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
+                // probably misleading errorCode (see fixed mono bug: https://github.com/mono/mono/pull/8041 )
+                // TODO: remove this when Mono X.Y (where X.Y=version to introduce this bugfix) is stable
+                //       everywhere (probably 8 years from now?), and see if we catch it again in sentry
+                if socketException.ErrorCode = int SocketError.AddressFamilyNotSupported then
+                    return raise <| ServerUnreachableException(exceptionMsg, ex)
 
-            if (socketException.Value.ErrorCode = int SocketError.HostUnreachable) then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
-            if (socketException.Value.ErrorCode = int SocketError.NetworkUnreachable) then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
-            if (socketException.Value.ErrorCode = int SocketError.AddressNotAvailable) then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
-            if socketException.Value.ErrorCode = int SocketError.NetworkDown then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
+                if socketException.ErrorCode = int SocketError.HostUnreachable then
+                    return raise <| ServerUnreachableException(exceptionMsg, ex)
+                if socketException.ErrorCode = int SocketError.NetworkUnreachable then
+                    return raise <| ServerUnreachableException(exceptionMsg, ex)
+                if socketException.ErrorCode = int SocketError.AddressNotAvailable then
+                    return raise <| ServerUnreachableException(exceptionMsg, ex)
+                if socketException.ErrorCode = int SocketError.NetworkDown then
+                    return raise <| ServerUnreachableException(exceptionMsg, ex)
 
-            return raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
+                return raise <| UnhandledSocketException(socketException.ErrorCode, ex)
     }
