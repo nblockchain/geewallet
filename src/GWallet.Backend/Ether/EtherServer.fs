@@ -143,7 +143,6 @@ module Server =
                                     raise socketRewrappedException
                             | Some rpcTimeoutEx ->
                                 raise (ServerTimedOutException(exMsg, rpcTimeoutEx))
-                            reraise()
                         | Some rpcResponseEx ->
                             if (rpcResponseEx.RpcError <> null) then
                                 if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode) then
