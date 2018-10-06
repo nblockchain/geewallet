@@ -12,18 +12,8 @@ open System.Threading
 
 module JsonRpcSharp =
 
-    type ConnectionUnsuccessfulException =
-        inherit Exception
-
-        new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
-        new(message: string) = { inherit Exception(message) }
-        new() = { inherit Exception() }
-
-    type NoResponseReceivedAfterRequestException() =
-       inherit ConnectionUnsuccessfulException()
-
-    type ServerUnresponsiveException() =
-       inherit ConnectionUnsuccessfulException()
+    exception NoResponseReceivedAfterRequestException
+    exception ServerUnresponsiveException
 
     // Translation of https://github.com/davidfowl/TcpEcho/blob/master/src/Program.cs
     type TcpClient (resolveHostAsync: unit->Async<IPAddress>, port) =
@@ -90,7 +80,7 @@ module JsonRpcSharp =
             if bytesReceived > 0 then
                 writer.Advance bytesReceived
             else
-                raise <| NoResponseReceivedAfterRequestException()
+                raise NoResponseReceivedAfterRequestException
             writer.Complete()
         }
 
@@ -142,7 +132,7 @@ module JsonRpcSharp =
             let timeIsUp (): bool =
                 if (List.Empty = acc) then
                     if (DateTime.Now > initTime + DEFAULT_TIMEOUT_FOR_FIRST_DATA_AVAILABLE_SIGNAL_TO_HAPPEN) then
-                        raise(NoResponseReceivedAfterRequestException())
+                        raise NoResponseReceivedAfterRequestException
                     else
                         false
                 else
@@ -174,7 +164,7 @@ module JsonRpcSharp =
             let connectTask = tcpClient.ConnectAsync(host, port)
 
             if not (connectTask.Wait(Config.DEFAULT_NETWORK_TIMEOUT)) then
-                raise(ServerUnresponsiveException())
+                raise ServerUnresponsiveException
             tcpClient
 
         new(host: IPAddress, port: int) = new LegacyTcpClient((fun () -> async { return host }), port)

@@ -22,12 +22,6 @@ module Server =
 
         member val Url = url with get
 
-    type ConnectionUnsuccessfulException =
-        inherit Exception
-
-        new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
-        new(message: string) = { inherit Exception(message) }
-
     type ServerTimedOutException =
        inherit ConnectionUnsuccessfulException
 
@@ -141,7 +135,12 @@ module Server =
                             let maybeRpcTimeoutException = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcClientTimeoutException> ex
                             match maybeRpcTimeoutException with
                             | None ->
-                                reraise()
+                                let maybeSocketRewrappedException = Networking.FindSocketExceptionToRethrow ex exMsg
+                                match maybeSocketRewrappedException with
+                                | None ->
+                                    reraise()
+                                | Some socketRewrappedException ->
+                                    raise socketRewrappedException
                             | Some rpcTimeoutEx ->
                                 raise (ServerTimedOutException(exMsg, rpcTimeoutEx))
                             reraise()
