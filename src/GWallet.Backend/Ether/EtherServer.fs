@@ -200,7 +200,10 @@ module Server =
                         raise (ServerUnreachableException(exMsg, webEx))
                     *)
 
-                    if not Config.Tls12Support then
+                    let monoVersion = Config.GetMonoVersion()
+                    //we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that
+                    //doesn't have TLS1.2 support
+                    if monoVersion.IsSome && monoVersion.Value < Version("4.8") then
                         if (webEx.Status = WebExceptionStatus.TrustFailure) then
                             raise <| ServerUnreachableException(exMsg, webEx)
 
@@ -227,9 +230,6 @@ module Server =
 
     let private faultTolerantEthClient =
         JsonRpc.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
-        if not Config.Tls12Support then
-            ServicePointManager.ServerCertificateValidationCallback <-
-                System.Net.Security.RemoteCertificateValidationCallback(fun _ _ _ _ -> true)
         FaultTolerantParallelClient<ConnectionUnsuccessfulException>()
 
     let private GetWeb3Funcs<'T,'R> (currency: Currency) (web3Func: SomeWeb3->'T->'R): List<'T->'R> =
