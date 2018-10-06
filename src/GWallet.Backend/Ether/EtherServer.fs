@@ -191,20 +191,13 @@ module Server =
                     if (webEx.Status = WebExceptionStatus.ConnectFailure) then
                         raise (ServerUnreachableException(exMsg, webEx))
 
-                    (* let's catch this again, to know with which Mono versions it happens:
-                    // TBH not sure if this one below happens only when TLS is not working...*, which means that either
-                    // a) we need to remove these 2 lines (to not catch it) and make sure it doesn't happen in the client
-                    // b) or, we should raise ServerChannelNegotiationException instead of ServerUnreachableException
-                    //    (and log a warning in Sentry?) * -> see https://sentry.io/nblockchain/gwallet/issues/592019902
-                    if (webEx.Status = WebExceptionStatus.SendFailure) then
-                        raise (ServerUnreachableException(exMsg, webEx))
-                    *)
+                    if (webEx.Status = WebExceptionStatus.TrustFailure) then
+                        raise <| ServerChannelNegotiationException(exMsg, webEx)
 
                     let monoVersion = Config.GetMonoVersion()
-                    //we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that
-                    //doesn't have TLS1.2 support
+                    // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
                     if monoVersion.IsSome && monoVersion.Value < Version("4.8") then
-                        if (webEx.Status = WebExceptionStatus.TrustFailure) then
+                        if (webEx.Status = WebExceptionStatus.SendFailure) then
                             raise <| ServerUnreachableException(exMsg, webEx)
 
                     raise (UnhandledWebException(webEx.Status, webEx))
