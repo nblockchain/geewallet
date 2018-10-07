@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="0.4.0.60" package="com.diginex.geewallet" android:versionCode="62">
+	<uses-sdk android:minSdkVersion="21" android:targetSdkVersion="27" />
+	<application android:label="GWallet.Frontend.XF.CSharp.Android"></application>
+</manifest>

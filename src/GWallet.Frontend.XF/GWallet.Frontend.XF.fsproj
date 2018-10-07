@@ -48,5 +48,7 @@
     <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
     <PackageReference Include="Xam.Plugin.Connectivity" Version="4.0.0.190-beta" />
     <ProjectReference Include="..\..\build\ZXing.Net.Mobile\NetStandard\ZXing.Net.Mobile.Forms.ns\ZXing.Net.Mobile.Forms.ns.csproj" />
+    <ProjectReference Include="..\..\build\ZXing.Net.Mobile\NetStandard\ZXing.Net.Mobile.Core.ns\ZXing.Net.Mobile.Core.ns.csproj" />
+    <ProjectReference Include="..\..\build\ZXing.Net.Mobile\NetStandard\zxing.portable.ns\zxing.portable.ns.csproj" />
   </ItemGroup>
 </Project>

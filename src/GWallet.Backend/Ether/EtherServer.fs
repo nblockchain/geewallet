@@ -86,7 +86,7 @@ module Server =
     let private etcWeb3ePoolIo3 = SomeWeb3("https://mewapi.epool.io")
     let private etcWeb3ZeroXInfraGeth = SomeWeb3("https://etc-geth.0xinfra.com")
     let private etcWeb3ZeroXInfraParity = SomeWeb3("https://etc-parity.0xinfra.com")
-    let private etcWeb3CommonWealthGeth = SomeWeb3("https://etcrpc.viperid.online")
+    //let private etcWeb3CommonWealthGeth = SomeWeb3("https://etcrpc.viperid.online")
     // FIXME: the below one doesn't seem to work; we should include it anyway and make the algorithm discard it at runtime
     //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
     let private etcWeb3CommonWealthParity = SomeWeb3("https://etc-parity.callisto.network")
@@ -100,20 +100,20 @@ module Server =
                 etcWeb3EtcCooperative;
                 etcWeb3GasTracker;
                 etcWeb3ePoolIo1;
-                etcWeb3ChainKorea;
+                //etcWeb3ChainKorea;
                 etcWeb3CommonWealthParity;
-                etcWeb3CommonWealthGeth;
+                //etcWeb3CommonWealthGeth;
                 etcWeb3ZeroXInfraParity;
                 etcWeb3ZeroXInfraGeth;
-                etcWeb3ePoolIo2;
+                //etcWeb3ePoolIo2;
                 etcWeb3ePoolIo3;
             ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
             [
                 ethWeb3MewAws;
                 ethWeb3InfuraMyCrypto;
-                ethWeb3Mew;
-                ethWeb3Giveth;
+                //ethWeb3Mew;
+                //ethWeb3Giveth;
                 ethMyCrypto;
                 ethBlockScale;
                 ethWeb3InfuraMyEtherWallet;

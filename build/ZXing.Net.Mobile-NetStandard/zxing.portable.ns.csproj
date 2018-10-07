@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>zxing.portable</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\*.cs">
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\*AndroidBitmap*.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\*.*Bitmap*.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\*.Color32.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\Geometry*.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\*UIImage.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\Bitmap*.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\*.Drawing.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\*.NetCE.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\*.NetFx.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\*.Presentation.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\**\*.Silverlight.cs" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\client\result\optional\*.*" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\presentation\*.*" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\unity\*.*" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\xamarin\*.*" />
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\silverlight\*.*" />
+
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\Properties\AssemblyInfo.cs" />
+
+    <Compile Include="..\ZXing.Net.Mobile\Source\ZXing.Net\Source\lib\BinaryBitmap.cs">
+      <Link>BinaryBitmap.cs</Link>
+    </Compile>
+  </ItemGroup>
+</Project>

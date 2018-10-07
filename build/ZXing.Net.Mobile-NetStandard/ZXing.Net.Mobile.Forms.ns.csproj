@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>ZXing.Net.Mobile.Forms</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Source\ZXing.Net.Mobile.Forms\**\*.cs">
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
+  </ItemGroup>
+ <ItemGroup>
+    <Compile Remove="..\ZXing.Net.Mobile\Source\ZXing.Net.Mobile.Forms\Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ZXing.Net.Mobile\Source\ZXing.Net.Mobile.Core\ZXing.Net.Mobile.Core.csproj" />
+    <ProjectReference Include="zxing.portable.ns.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Xamarin.Forms" Version="3.0.0.446417" />
+  </ItemGroup>
+</Project>
