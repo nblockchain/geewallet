@@ -108,15 +108,17 @@ module internal Account =
     let EstimateTokenTransferFee (account: IAccount) amount destination: Async<TransactionMetadata> = async {
         let! gasPrice64 = GetGasPrice account.Currency
 
-        let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination
-        if (tokenTransferFee.Value > BigInteger(Int64.MaxValue)) then
-            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
-                          (tokenTransferFee.Value.ToString()))
-        let gasCost64: Int64 = BigInteger.op_Explicit tokenTransferFee.Value
         let baseCurrency =
             match account.Currency with
             | DAI -> ETH
             | _ -> failwithf "Unknown token %A" account.Currency
+
+        let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee baseCurrency account amount destination
+        if (tokenTransferFee.Value > BigInteger(Int64.MaxValue)) then
+            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
+                          (tokenTransferFee.Value.ToString()))
+        let gasCost64: Int64 = BigInteger.op_Explicit tokenTransferFee.Value
+
         let ethMinerFee = MinerFee(gasCost64, gasPrice64, DateTime.Now, baseCurrency)
         let! txCount = GetTransactionCount account.Currency account.PublicAddress
         return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
