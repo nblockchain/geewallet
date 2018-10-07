@@ -72,9 +72,9 @@ type ElectrumIntegrationTests() =
                 Console.WriteLine (sprintf "%A server %s is reachable" currency server.Fqdn)
                 Some electrumServer
             with
-            | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
+            | :? ConnectionUnsuccessfulException as ex ->
                 // to make sure this exception type is an abstract class
-                Assert.That(ex.GetType(), Is.Not.EqualTo(typeof<JsonRpcSharp.ConnectionUnsuccessfulException>))
+                Assert.That(ex.GetType(), Is.Not.EqualTo(typeof<ConnectionUnsuccessfulException>))
 
                 Console.WriteLine (sprintf "%A server %s is unreachable" currency server.Fqdn)
                 None

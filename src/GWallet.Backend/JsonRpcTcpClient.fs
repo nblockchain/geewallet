@@ -3,33 +3,15 @@
 open System
 open System.Net
 open System.Net.Sockets
-open System.Threading.Tasks
-open System.Runtime.ExceptionServices
-
-type internal UnhandledSocketException =
-    inherit Exception
-
-    new(socketErrorCode: int, innerException: Exception) =
-        { inherit Exception(sprintf "GWallet not prepared for this SocketException with ErrorCode[%d]" socketErrorCode,
-                                    innerException) }
-
-type ServerRefusedException(message:string, innerException: Exception) =
-   inherit JsonRpcSharp.ConnectionUnsuccessfulException (message, innerException)
-
-type ServerTimedOutException(message:string, innerException: Exception) =
-   inherit JsonRpcSharp.ConnectionUnsuccessfulException (message, innerException)
 
 type ProtocolGlitchException(message: string, innerException: Exception) =
-   inherit JsonRpcSharp.ConnectionUnsuccessfulException (message, innerException)
+   inherit ConnectionUnsuccessfulException (message, innerException)
 
 type ServerCannotBeResolvedException =
-   inherit JsonRpcSharp.ConnectionUnsuccessfulException
+   inherit ConnectionUnsuccessfulException
 
-   new(message) = { inherit JsonRpcSharp.ConnectionUnsuccessfulException(message) }
-   new(message:string, innerException: Exception) = { inherit JsonRpcSharp.ConnectionUnsuccessfulException(message, innerException) }
-
-type ServerUnreachableException(message:string, innerException: Exception) =
-   inherit JsonRpcSharp.ConnectionUnsuccessfulException (message, innerException)
+   new(message) = { inherit ConnectionUnsuccessfulException(message) }
+   new(message:string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
 
 type JsonRpcTcpClient (host: string, port: int) =
 
@@ -81,11 +63,15 @@ type JsonRpcTcpClient (host: string, port: int) =
             let str =
                 match stringOption with
                 | Some s -> s
-                | None   -> raise <| JsonRpcSharp.NoResponseReceivedAfterRequestException()
+                | None   -> raise <| ServerTimedOutException()
             return str
         with
-        | :? JsonRpcSharp.ConnectionUnsuccessfulException as ex ->
+        | :? ConnectionUnsuccessfulException as ex ->
             return raise <| FSharpUtil.ReRaise ex
+        | :? JsonRpcSharp.ServerUnresponsiveException as ex ->
+            return raise <| ServerTimedOutException(exceptionMsg, ex)
+        | :? JsonRpcSharp.NoResponseReceivedAfterRequestException as ex ->
+            return raise <| ServerTimedOutException(exceptionMsg, ex)
 
         // FIXME: we should log this one on Sentry as a warning because it's really strange, I bet it's a bug
         // on Mono that could maybe go away with higher versions of it (higher versions of Xamarin-Android), see
@@ -93,31 +79,10 @@ type JsonRpcTcpClient (host: string, port: int) =
         | :? NotSupportedException as nse ->
             return raise <| ProtocolGlitchException(exceptionMsg, nse)
         | ex ->
-            let socketException = FSharpUtil.FindException<SocketException>(ex)
-            if (socketException.IsNone) then
-                ExceptionDispatchInfo.Capture(ex).Throw()
-            if (socketException.Value.ErrorCode = int SocketError.ConnectionRefused) then
-                return raise <| ServerRefusedException(exceptionMsg, ex)
-            if socketException.Value.ErrorCode = int SocketError.ConnectionReset then
-                return raise <| ServerRefusedException(exceptionMsg, ex)
-
-            if (socketException.Value.ErrorCode = int SocketError.TimedOut) then
-                return raise <| ServerTimedOutException(exceptionMsg, ex)
-
-            // probably misleading errorCode (see fixed mono bug: https://github.com/mono/mono/pull/8041 )
-            // TODO: remove this when Mono X.Y (where X.Y=version to introduce this bugfix) is stable
-            //       everywhere (probably 8 years from now?), and see if we catch it again in sentry
-            if (socketException.Value.ErrorCode = int SocketError.AddressFamilyNotSupported) then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
-
-            if (socketException.Value.ErrorCode = int SocketError.HostUnreachable) then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
-            if (socketException.Value.ErrorCode = int SocketError.NetworkUnreachable) then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
-            if (socketException.Value.ErrorCode = int SocketError.AddressNotAvailable) then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
-            if socketException.Value.ErrorCode = int SocketError.NetworkDown then
-                return raise <| ServerUnreachableException(exceptionMsg, ex)
-
-            return raise(UnhandledSocketException(socketException.Value.ErrorCode, ex))
+            let maybeWrappedSocketException = Networking.FindSocketExceptionToRethrow ex exceptionMsg
+            match maybeWrappedSocketException with
+            | None ->
+                return raise <| FSharpUtil.ReRaise ex
+            | Some rewrappedSocketException ->
+                return raise rewrappedSocketException
     }

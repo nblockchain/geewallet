@@ -69,7 +69,7 @@ module Account =
                                       |> Async.RunSynchronously
                               with
                               | ex ->
-                                  if (ex :? JsonRpcSharp.ConnectionUnsuccessfulException ||
+                                  if (ex :? ConnectionUnsuccessfulException ||
                                       ex :? ElectrumServerReturningInternalErrorException ||
                                       ex :? IncompatibleServerException) then
                                       let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
