@@ -31,6 +31,11 @@ type ServerUnreachableException(message:string, innerException: Exception) =
 
 module Networking =
 
+    // Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that doesn't have TLS1.2 support
+    let Tls12Support =
+        let monoVersion = Config.GetMonoVersion()
+        not (monoVersion.IsSome && monoVersion.Value < Version("4.8"))
+
     let FindSocketExceptionToRethrow (ex: Exception) (newExceptionMsg): Option<Exception> =
         let maybeSocketException = FSharpUtil.FindException<SocketException> ex
         match maybeSocketException with
