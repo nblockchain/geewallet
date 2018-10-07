@@ -217,7 +217,7 @@ module Server =
 
     let private FaultTolerantParallelClientSettings (currency: Currency) =
         let numberOfConsistentResponsesRequired =
-            if currency = Currency.ETC && (not Networking.Tls12Support) then
+            if not Networking.Tls12Support then
                 1
             else
                 2
