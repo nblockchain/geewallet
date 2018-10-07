@@ -145,9 +145,6 @@
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0-beta\lib\netstandard2.0\FSharp.Data.dll</HintPath>
     </Reference>
-    <Reference Include="CryptSharp">
-      <HintPath>..\..\packages\CryptSharpOfficial.2.1.0.0\lib\CryptSharp.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
