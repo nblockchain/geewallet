@@ -85,7 +85,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     UpdateGlobalFiatBalanceLabel (Fresh (AtLeastBalance exactAccAmount)) totalFiatAmountLabel
                 | AtLeastBalance atLeastAccAmount ->
                     UpdateGlobalFiatBalanceLabel (Fresh (AtLeastBalance atLeastAccAmount)) totalFiatAmountLabel
-                UpdateGlobalFiatBalanceLabel (NotFresh(NotAvailable)) totalFiatAmountLabel
             | Fresh newAmount ->
                 UpdateGlobalFiatBalance (Some(Fresh (newAmount+accAmount))) tail totalFiatAmountLabel
             | NotFresh(Cached(newCachedAmount,time)) ->
@@ -116,7 +115,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             | head::tail ->
                 match head with
                 | NotFresh NotAvailable ->
-                    UpdateGlobalFiatBalanceLabel (NotFresh(NotAvailable)) totalFiatAmountLabel
+                    match cachedAccAmount with
+                    | ExactBalance exactAccAmount ->
+                        UpdateGlobalFiatBalanceLabel (NotFresh(Cached(AtLeastBalance exactAccAmount,accTime)))
+                                                     totalFiatAmountLabel
+                    | AtLeastBalance atLeastAccAmount ->
+                        UpdateGlobalFiatBalanceLabel (NotFresh(Cached(AtLeastBalance atLeastAccAmount,accTime)))
+                                                     totalFiatAmountLabel
                 | Fresh newAmount ->
                     UpdateGlobalFiatBalance (Some(NotFresh(Cached(newAmount+cachedAccAmount,accTime))))
                                             tail
@@ -197,7 +202,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         mainLayout.Children.Add footerLabel
 
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) totalFiatAmountLabel =
-        UpdateGlobalFiatBalance None (allFiatBalances |> List.ofSeq) totalFiatAmountLabel
+        let fiatBalancesList = allFiatBalances |> List.ofSeq
+        if fiatBalancesList.Any() then
+            UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
 
     member private this.RefreshBalancesAndCheckIfAwake (onlyReadOnlyAccounts: bool): bool =
         let awake = state.Awake
