@@ -38,6 +38,10 @@ type PairingToPage(balancesPage: Page,
         | AddressWithInvalidChecksum _ ->
             List.empty
 
+    [<Obsolete(DummyPageConstructorHelper.Warning)>]
+    new() = PairingToPage(DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
+                          Seq.empty,(fun (_,_) -> Page()))
+
     member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun result ->

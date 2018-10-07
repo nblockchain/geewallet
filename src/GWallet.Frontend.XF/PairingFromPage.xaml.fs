@@ -25,6 +25,10 @@ type PairingFromPage(previousPage: Page,
     do
         this.Init()
 
+    [<Obsolete(DummyPageConstructorHelper.Warning)>]
+    new() = PairingFromPage(DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
+                            String.Empty,String.Empty,None)
+
     member this.Init() =
 
         let clipBoardButton = mainLayout.FindByName<Button> "copyToClipboardButton"

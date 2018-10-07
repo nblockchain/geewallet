@@ -93,6 +93,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 (this:>FrontendHelpers.IAugmentablePayPage).AddTransactionScanner()
             this.AdjustWidgetsStateAccordingToConnectivity()
 
+    [<Obsolete(DummyPageConstructorHelper.Warning)>]
+    new() = SendPage(ReadOnlyAccount(Currency.BTC,String.Empty),
+                     DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),(fun _ -> Page()))
+
     member private this.AdjustWidgetsStateAccordingToConnectivity() =
         use crossConnectivityInstance = CrossConnectivity.Current
         if not crossConnectivityInstance.IsConnected then

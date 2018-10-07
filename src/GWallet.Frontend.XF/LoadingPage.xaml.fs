@@ -1,5 +1,6 @@
 ﻿namespace GWallet.Frontend.XF
 
+open System
 open System.Linq
 
 open Xamarin.Forms
@@ -20,6 +21,9 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
 
     do
         this.Init()
+
+    [<Obsolete(DummyPageConstructorHelper.Warning)>]
+    new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime())
 
     member this.Init (): unit =
 

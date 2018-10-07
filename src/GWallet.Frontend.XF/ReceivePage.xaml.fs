@@ -25,6 +25,10 @@ type ReceivePage(account: IAccount,
     do
         this.Init()
 
+    [<Obsolete(DummyPageConstructorHelper.Warning)>]
+    new() = ReceivePage(ReadOnlyAccount(Currency.BTC,String.Empty),
+                        DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),null,null)
+
     member this.Init() =
         let balanceLabel = mainLayout.FindByName<Label>("balanceLabel")
         let fiatBalanceLabel = mainLayout.FindByName<Label>("fiatBalanceLabel")

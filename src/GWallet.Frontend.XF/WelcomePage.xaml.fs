@@ -91,6 +91,9 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             createButton.Text <- newCreateButtonCaption
         )
 
+    [<Obsolete(DummyPageConstructorHelper.Warning)>]
+    new() = WelcomePage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime())
+
     member this.OnCreateButtonClicked(sender: Object, args: EventArgs) =
         match VerifyPassphraseIsGoodAndSecureEnough() with
         | Some warning ->

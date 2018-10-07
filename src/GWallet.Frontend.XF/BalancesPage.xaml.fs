@@ -155,6 +155,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     do
         this.Init()
 
+    [<Obsolete(DummyPageConstructorHelper.Warning)>]
+    new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,false)
 
     member private this.IsTimerRunning
         with get() = lock lockObject (fun _ -> timerRunning)
