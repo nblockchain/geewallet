@@ -27,11 +27,11 @@
     <Compile Include="..\GWallet.Backend\AccountTypes.fs">
       <Link>AccountTypes.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\Networking.fs">
-      <Link>Networking.fs</Link>
-    </Compile>
     <Compile Include="..\GWallet.Backend\Config.fs">
       <Link>Config.fs</Link>
+    </Compile>
+    <Compile Include="..\GWallet.Backend\Networking.fs">
+      <Link>Networking.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\JsonRpcSharp.fs">
       <Link>JsonRpcSharp.fs</Link>
