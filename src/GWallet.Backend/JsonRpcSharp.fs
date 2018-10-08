@@ -21,8 +21,6 @@ module JsonRpcSharp =
         [<Literal>]
         let minimumBufferSize = 512
 
-        let IfNotNull f x = x |> Option.ofNullable |> Option.iter f
-
         let GetArrayFromReadOnlyMemory memory: ArraySegment<byte> =
             match MemoryMarshal.TryGetArray memory with
             | true, segment -> segment
@@ -49,17 +47,22 @@ module JsonRpcSharp =
             let processLine (line:ReadOnlySequence<byte>) =
                 line |> GetAsciiString |> stringBuilder.AppendLine |> ignore
 
-            let! result = reader.ReadAsync().AsTask() |> Async.AwaitTask
-
             let rec keepAdvancingPosition buffer =
                 // How to call a ref extension method using extension syntax?
-                System.Buffers.BuffersExtensions.PositionOf(ref buffer, byte '\n')
-                |> IfNotNull(fun pos ->
+                let maybePosition = System.Buffers.BuffersExtensions.PositionOf(ref buffer, byte '\n')
+                                    |> Option.ofNullable
+                match maybePosition with
+                | None ->
+                    ()
+                | Some pos ->
                     buffer.Slice(0, pos)
                     |> processLine
-                    buffer.GetPosition(1L, pos)
-                    |> buffer.Slice
-                    |> keepAdvancingPosition)
+                    let nextBuffer = buffer.GetPosition(1L, pos)
+                                     |> buffer.Slice
+                    keepAdvancingPosition nextBuffer
+
+            let! result = (reader.ReadAsync().AsTask() |> Async.AwaitTask)
+
             keepAdvancingPosition result.Buffer
             reader.AdvanceTo(result.Buffer.Start, result.Buffer.End)
             if not result.IsCompleted then
