@@ -77,10 +77,14 @@ module Server =
     //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
     let private etcWeb3CommonWealthParity = SomeWeb3("https://etc-parity.callisto.network")
     let private etcWeb3ChainKorea = SomeWeb3("https://node.classicexplorer.org/")
+    let private etcWeb3GasTracker = SomeWeb3 "https://web3.gastracker.io"
+    let private etcWeb3EtcCooperative = SomeWeb3 "https://ethereumclassic.network"
 
     let GetWeb3Servers (currency: Currency): list<SomeWeb3> =
         if currency = ETC then
             [
+                etcWeb3EtcCooperative;
+                etcWeb3GasTracker;
                 etcWeb3ePoolIo1;
                 etcWeb3ChainKorea;
                 etcWeb3CommonWealthParity;
