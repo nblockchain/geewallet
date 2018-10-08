@@ -65,6 +65,9 @@ module Server =
     let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
     let private ethBlockScale = SomeWeb3("https://api.dev.blockscale.net/dev/parity")
     let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
+    let private ethWeb3MewAws = SomeWeb3 "https://o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth"
+    // not sure why the below one doesn't work, gives some JSON error
+    //let private ethWeb3EtherScan = SomeWeb3 "https://api.etherscan.io/api"
 
     // TODO: add the one from https://etcchain.com/api/ too
     let private etcWeb3ePoolIo1 = SomeWeb3("https://cry.epool.io")
@@ -96,6 +99,7 @@ module Server =
             ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
             [
+                ethWeb3MewAws;
                 ethWeb3InfuraMyCrypto;
                 ethWeb3Mew;
                 ethWeb3Giveth;
