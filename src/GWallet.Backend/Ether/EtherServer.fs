@@ -68,7 +68,8 @@ module Server =
 
     // TODO: add the one from https://etcchain.com/api/ too
     let private etcWeb3ePoolIo1 = SomeWeb3("https://cry.epool.io")
-    let private etcWeb3ePoolIo2 = SomeWeb3("https://mewapi.epool.io")
+    let private etcWeb3ePoolIo2 = SomeWeb3("https://mew.epool.io")
+    let private etcWeb3ePoolIo3 = SomeWeb3("https://mewapi.epool.io")
     let private etcWeb3ZeroXInfraGeth = SomeWeb3("https://etc-geth.0xinfra.com")
     let private etcWeb3ZeroXInfraParity = SomeWeb3("https://etc-parity.0xinfra.com")
     let private etcWeb3CommonWealthGeth = SomeWeb3("https://etcrpc.viperid.online")
@@ -87,6 +88,7 @@ module Server =
                 etcWeb3ZeroXInfraParity;
                 etcWeb3ZeroXInfraGeth;
                 etcWeb3ePoolIo2;
+                etcWeb3ePoolIo3;
             ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
             [
