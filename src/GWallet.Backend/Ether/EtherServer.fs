@@ -76,10 +76,14 @@ module Server =
     let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
     let private ethBlockScale = SomeWeb3("https://api.dev.blockscale.net/dev/parity")
     let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
+    let private ethWeb3MewAws = SomeWeb3 "https://o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth"
+    // not sure why the below one doesn't work, gives some JSON error
+    //let private ethWeb3EtherScan = SomeWeb3 "https://api.etherscan.io/api"
 
     // TODO: add the one from https://etcchain.com/api/ too
     let private etcWeb3ePoolIo1 = SomeWeb3("https://cry.epool.io")
-    let private etcWeb3ePoolIo2 = SomeWeb3("https://mewapi.epool.io")
+    let private etcWeb3ePoolIo2 = SomeWeb3("https://mew.epool.io")
+    let private etcWeb3ePoolIo3 = SomeWeb3("https://mewapi.epool.io")
     let private etcWeb3ZeroXInfraGeth = SomeWeb3("https://etc-geth.0xinfra.com")
     let private etcWeb3ZeroXInfraParity = SomeWeb3("https://etc-parity.0xinfra.com")
     let private etcWeb3CommonWealthGeth = SomeWeb3("https://etcrpc.viperid.online")
@@ -87,10 +91,14 @@ module Server =
     //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
     let private etcWeb3CommonWealthParity = SomeWeb3("https://etc-parity.callisto.network")
     let private etcWeb3ChainKorea = SomeWeb3("https://node.classicexplorer.org/")
+    let private etcWeb3GasTracker = SomeWeb3 "https://web3.gastracker.io"
+    let private etcWeb3EtcCooperative = SomeWeb3 "https://ethereumclassic.network"
 
     let GetWeb3Servers (currency: Currency): List<SomeWeb3> =
         if currency = ETC then
             [
+                etcWeb3EtcCooperative;
+                etcWeb3GasTracker;
                 etcWeb3ePoolIo1;
                 etcWeb3ChainKorea;
                 etcWeb3CommonWealthParity;
@@ -98,9 +106,11 @@ module Server =
                 etcWeb3ZeroXInfraParity;
                 etcWeb3ZeroXInfraGeth;
                 etcWeb3ePoolIo2;
+                etcWeb3ePoolIo3;
             ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
             [
+                ethWeb3MewAws;
                 ethWeb3InfuraMyCrypto;
                 ethWeb3Mew;
                 ethWeb3Giveth;
