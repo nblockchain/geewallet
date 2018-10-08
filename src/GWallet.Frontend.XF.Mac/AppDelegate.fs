@@ -1,4 +1,5 @@
-﻿namespace GWallet.Frontend.XamForms.Mac
+﻿namespace GWallet.Frontend.XF.Mac
+
 open System
 open Foundation
 open AppKit

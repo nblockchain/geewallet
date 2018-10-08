@@ -1,9 +1,9 @@
-﻿namespace GWallet.Frontend.XamForms.Mac
+﻿namespace GWallet.Frontend.XF.Mac
 
 open System.Reflection
 open System.Runtime.CompilerServices
 
-[<assembly: AssemblyTitle("GWallet.Frontend.XamForms.Mac")>]
+[<assembly: AssemblyTitle("GWallet.Frontend.XF.Mac")>]
 [<assembly: AssemblyDescription("")>]
 [<assembly: AssemblyConfiguration("")>]
 [<assembly: AssemblyTrademark("")>]

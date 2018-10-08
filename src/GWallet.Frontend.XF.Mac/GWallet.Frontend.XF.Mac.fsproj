@@ -8,8 +8,8 @@
     <ProjectTypeGuids>{A3F8F2AB-B479-4A4A-A458-A89E7DC349F1};{F2A71F9B-5D33-465A-A702-920D77279786}</ProjectTypeGuids>
     <UseStandardResourceNames>true</UseStandardResourceNames>
     <OutputType>Exe</OutputType>
-    <RootNamespace>GWallet.Frontend.XamForms.Mac</RootNamespace>
-    <AssemblyName>GWallet</AssemblyName>
+    <RootNamespace>GWallet.Frontend.XF.Mac</RootNamespace>
+    <AssemblyName>GWallet.Frontend.XF.Mac</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <TargetFrameworkIdentifier>Xamarin.Mac</TargetFrameworkIdentifier>
     <MonoMacResourcePrefix>Resources</MonoMacResourcePrefix>
