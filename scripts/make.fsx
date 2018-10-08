@@ -177,14 +177,16 @@ match maybeTarget with
 
     let btcServersUrl = "https://raw.githubusercontent.com/spesmilo/electrum/master/lib/servers.json"
     let btcServersFile = Path.Combine(utxoCoinFolder, "btc-servers.json")
-    let updateBtc = Process.Execute (sprintf "curl -o %s %s" btcServersFile btcServersUrl, true, false)
+    let updateBtc = Process.Execute (sprintf "curl --fail -o %s %s" btcServersFile btcServersUrl, true, false)
     if (updateBtc.ExitCode <> 0) then
+        Console.Error.WriteLine "Update failed"
         Environment.Exit 1
 
     let ltcServersUrl = "https://raw.githubusercontent.com/pooler/electrum-ltc/master/lib/servers.json"
     let ltcServersFile = Path.Combine(utxoCoinFolder, "ltc-servers.json")
-    let updateLtc = Process.Execute (sprintf "curl -o %s %s" ltcServersFile ltcServersUrl, true, false)
+    let updateLtc = Process.Execute (sprintf "curl --fail -o %s %s" ltcServersFile ltcServersUrl, true, false)
     if (updateLtc.ExitCode <> 0) then
+        Console.Error.WriteLine "Update failed"
         Environment.Exit 1
 
 | Some(someOtherTarget) ->
