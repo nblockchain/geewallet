@@ -37,6 +37,7 @@ Comparing our product to other wallets in terms of features, we would want to hi
 | Copay/Bitpay   | No             | Yes        | No           | No         | Yes                  |
 | Electrum       | No             | Yes        | Yes          | No         | No                   |
 | Bread          | Yes            | Yes        | Yes          | No         | Yes                  |
+| Samourai       | No             | Yes        | Yes          | No         | No                   |
 | Jaxx           | Yes            | No         | No           | No         | Yes                  |
 | Coinomi        | Yes            | No         | No           | No         | Yes                  |
 | ParitySigner   | No             | Yes        | Yes          | No         | Yes                  |
