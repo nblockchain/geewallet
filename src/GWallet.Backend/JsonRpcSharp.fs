@@ -47,13 +47,13 @@ module JsonRpcSharp =
             let processLine (line:ReadOnlySequence<byte>) =
                 line |> GetAsciiString |> stringBuilder.AppendLine |> ignore
 
-            let rec keepAdvancingPosition buffer =
+            let rec keepAdvancingPosition (buffer: ReadOnlySequence<byte>): ReadOnlySequence<byte> =
                 // How to call a ref extension method using extension syntax?
                 let maybePosition = System.Buffers.BuffersExtensions.PositionOf(ref buffer, byte '\n')
                                     |> Option.ofNullable
                 match maybePosition with
                 | None ->
-                    ()
+                    buffer
                 | Some pos ->
                     buffer.Slice(0, pos)
                     |> processLine
@@ -63,8 +63,8 @@ module JsonRpcSharp =
 
             let! result = (reader.ReadAsync().AsTask() |> Async.AwaitTask)
 
-            keepAdvancingPosition result.Buffer
-            reader.AdvanceTo(result.Buffer.Start, result.Buffer.End)
+            let lastBuffer = keepAdvancingPosition result.Buffer
+            reader.AdvanceTo(lastBuffer.Start, lastBuffer.End)
             if not result.IsCompleted then
                 return! ReadPipeInternal reader stringBuilder
             else
