@@ -21,6 +21,15 @@ module FSharpUtil =
             failwith "Should be unreachable"
             ex
 
+    let rec public FindExceptionThat(ex: Exception) (predicate: Exception -> bool): Option<Exception> =
+        if (ex = null) then
+            None
+        else
+            if predicate ex then
+                Some ex
+            else
+                FindExceptionThat ex.InnerException predicate
+
     let rec public FindException<'T when 'T:> Exception>(ex: Exception): Option<'T> =
         if (ex = null) then
             None
@@ -28,6 +37,7 @@ module FSharpUtil =
             match ex with
             | :? 'T as specificEx -> Some(specificEx)
             | _ -> FindException<'T>(ex.InnerException)
+
 
 // http://stackoverflow.com/a/28466431/6503091
     // will crash if 'T contains members which aren't only tags

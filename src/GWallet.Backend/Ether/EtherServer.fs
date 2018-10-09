@@ -132,82 +132,86 @@ module Server =
                 task.Wait Config.DEFAULT_NETWORK_TIMEOUT
             with
             | ex ->
-                let maybeWebEx = FSharpUtil.FindException<WebException> ex
-                match maybeWebEx with
-                | Some webEx ->
-                    if webEx.Status = WebExceptionStatus.NameResolutionFailure then
-                        raise <| ServerCannotBeResolvedException(exMsg, webEx)
-                    if webEx.Status = WebExceptionStatus.SecureChannelFailure then
-                        raise <| ServerChannelNegotiationException(exMsg, webEx)
-                    if webEx.Status = WebExceptionStatus.ReceiveFailure then
-                        raise <| ServerTimedOutException(exMsg, webEx)
-                    if webEx.Status = WebExceptionStatus.ConnectFailure then
-                        raise <| ServerUnreachableException(exMsg, webEx)
-
-                    if (webEx.Status = WebExceptionStatus.TrustFailure) then
-                        raise <| ServerChannelNegotiationException(exMsg, webEx)
-
-                    // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
-                    if not Networking.Tls12Support then
-                        if (webEx.Status = WebExceptionStatus.SendFailure) then
+                let maybeJava = FSharpUtil.FindExceptionThat ex (fun ex -> ex.GetType().FullName.StartsWith"Java")
+                match maybeJava with
+                | Some java -> raise <| ConnectionUnsuccessfulException(exMsg, java)
+                    | None ->
+                    let maybeWebEx = FSharpUtil.FindException<WebException> ex
+                    match maybeWebEx with
+                    | Some webEx ->
+                        if webEx.Status = WebExceptionStatus.NameResolutionFailure then
+                            raise <| ServerCannotBeResolvedException(exMsg, webEx)
+                        if webEx.Status = WebExceptionStatus.SecureChannelFailure then
+                            raise <| ServerChannelNegotiationException(exMsg, webEx)
+                        if webEx.Status = WebExceptionStatus.ReceiveFailure then
+                            raise <| ServerTimedOutException(exMsg, webEx)
+                        if webEx.Status = WebExceptionStatus.ConnectFailure then
                             raise <| ServerUnreachableException(exMsg, webEx)
 
-                    raise (UnhandledWebException(webEx.Status, webEx))
-                | None ->
-                    let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
-                    match maybeHttpReqEx with
-                    | Some httpReqEx ->
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
-                            raise <| ServerTimedOutException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
-                            raise <| ServerTimedOutException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
-                            raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
-                            raise <| ServerUnreachableException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
-                            raise <| ServerUnavailableException(exMsg, httpReqEx)
+                        if (webEx.Status = WebExceptionStatus.TrustFailure) then
+                            raise <| ServerChannelNegotiationException(exMsg, webEx)
 
-                        // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
-                            raise <| ServerMisconfiguredException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
-                            raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+                        // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
+                        if not Networking.Tls12Support then
+                            if (webEx.Status = WebExceptionStatus.SendFailure) then
+                                raise <| ServerUnreachableException(exMsg, webEx)
 
-                        reraise()
-
+                        raise (UnhandledWebException(webEx.Status, webEx))
                     | None ->
-                        let maybeRpcResponseEx =
-                            FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex
-                        match maybeRpcResponseEx with
-                        | Some rpcResponseEx ->
-                            if (rpcResponseEx.RpcError <> null) then
-                                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode) then
-                                    if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
-                                        raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
-                                                                   (int RpcErrorCode.StatePruningNode), rpcResponseEx)
-                                    else
-                                        raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
-                                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                                raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
-                                                         rpcResponseEx.RpcError.Code
-                                                         rpcResponseEx.RpcError.Message
-                                                         rpcResponseEx.Message,
-                                                 rpcResponseEx))
+                        let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
+                        match maybeHttpReqEx with
+                        | Some httpReqEx ->
+                            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
+                                raise <| ServerTimedOutException(exMsg, httpReqEx)
+                            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
+                                raise <| ServerTimedOutException(exMsg, httpReqEx)
+                            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
+                                raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
+                            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
+                                raise <| ServerUnreachableException(exMsg, httpReqEx)
+                            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
+                                raise <| ServerUnavailableException(exMsg, httpReqEx)
+
+                            // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
+                            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
+                                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+                            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
+                                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+
                             reraise()
+
                         | None ->
-                            let maybeRpcTimeoutException = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcClientTimeoutException> ex
-                            match maybeRpcTimeoutException with
-                            | Some rpcTimeoutEx ->
-                                raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
+                            let maybeRpcResponseEx =
+                                FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex
+                            match maybeRpcResponseEx with
+                            | Some rpcResponseEx ->
+                                if (rpcResponseEx.RpcError <> null) then
+                                    if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode) then
+                                        if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
+                                            raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
+                                                                       (int RpcErrorCode.StatePruningNode), rpcResponseEx)
+                                        else
+                                            raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                                    if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
+                                        raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                                    raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
+                                                             rpcResponseEx.RpcError.Code
+                                                             rpcResponseEx.RpcError.Message
+                                                             rpcResponseEx.Message,
+                                                     rpcResponseEx))
+                                reraise()
                             | None ->
-                                let maybeSocketRewrappedException = Networking.FindSocketExceptionToRethrow ex exMsg
-                                match maybeSocketRewrappedException with
-                                | Some socketRewrappedException ->
-                                    raise socketRewrappedException
+                                let maybeRpcTimeoutException = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcClientTimeoutException> ex
+                                match maybeRpcTimeoutException with
+                                | Some rpcTimeoutEx ->
+                                    raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
                                 | None ->
-                                    reraise()
+                                    let maybeSocketRewrappedException = Networking.FindSocketExceptionToRethrow ex exMsg
+                                    match maybeSocketRewrappedException with
+                                    | Some socketRewrappedException ->
+                                        raise socketRewrappedException
+                                    | None ->
+                                        reraise()
 
         if not finished then
             raise <| ServerTimedOutException(exMsg)
