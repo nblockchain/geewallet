@@ -413,7 +413,7 @@ module Server =
                     // FIXME: this is fragile, ideally should respond with an error code
                     if rpcResponseException.Message.StartsWith(insufficientFundsMsg,
                                                                StringComparison.InvariantCultureIgnoreCase) then
-                        raise InsufficientFunds
-                    return raise (FSharpUtil.ReRaise ex)
-                return raise (FSharpUtil.ReRaise ex)
+                        return raise InsufficientFunds
+                    else
+                        return raise (FSharpUtil.ReRaise ex)
         }
