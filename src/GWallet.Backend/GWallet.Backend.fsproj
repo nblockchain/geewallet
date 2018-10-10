@@ -37,90 +37,9 @@
   <PropertyGroup>
     <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
   </PropertyGroup>
-  <Choose>
-    <When Condition="Exists('$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#')">
-      <PropertyGroup>
-        <FSharpSdkPathPrefix>$(MSBuildExtensionsPath32)\..\Microsoft SDKs\F#</FSharpSdkPathPrefix>
-      </PropertyGroup>
-    </When>
-    <Otherwise>
-      <Choose>
-        <When Condition="Exists('$(MSBuildExtensionsPath32)\..\..\..\..\Microsoft SDKs\F#')">
-          <PropertyGroup>
-            <FSharpSdkPathPrefix>$(MSBuildExtensionsPath32)\..\..\..\..\Microsoft SDKs\F#</FSharpSdkPathPrefix>
-          </PropertyGroup>
-        </When>
-        <Otherwise>
-          <PropertyGroup>
-            <FSharpSdkPathPrefix>
-            </FSharpSdkPathPrefix>
-          </PropertyGroup>
-        </Otherwise>
-      </Choose>
-    </Otherwise>
-  </Choose>
-  <PropertyGroup>
-    <FSharpSdkPathSuffix>Framework\v4.0\Microsoft.FSharp.Targets</FSharpSdkPathSuffix>
+  <PropertyGroup Condition=" '$(FSharpTargetsPath)' == '' AND Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets') ">
+    <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
   </PropertyGroup>
-  <Choose>
-    <When Condition="'$(FSharpSdkPathPrefix)' == ''">
-      <Choose>
-        <When Condition="Exists('..\..\packages\FSharp.Compiler.Tools.10.2.1\tools\Microsoft.FSharp.Targets')">
-          <PropertyGroup>
-            <FSharpTargetsPath>..\..\packages\FSharp.Compiler.Tools.10.2.1\tools\Microsoft.FSharp.Targets</FSharpTargetsPath>
-          </PropertyGroup>
-        </When>
-        <Otherwise>
-          <PropertyGroup>
-            <FSharpTargetsPath>
-            </FSharpTargetsPath>
-          </PropertyGroup>
-        </Otherwise>
-      </Choose>
-    </When>
-    <Otherwise>
-      <Choose>
-        <When Condition="Exists('$(FSharpSdkPathPrefix)\4.1\$(FSharpSdkPathSuffix)')">
-          <PropertyGroup>
-            <FSharpTargetsPath>$(FSharpSdkPathPrefix)\4.1\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
-          </PropertyGroup>
-        </When>
-        <Otherwise>
-          <Choose>
-            <When Condition="Exists('$(FSharpSdkPathPrefix)\4.0\$(FSharpSdkPathSuffix)')">
-              <PropertyGroup>
-                <FSharpTargetsPath>$(FSharpSdkPathPrefix)\4.0\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
-              </PropertyGroup>
-            </When>
-            <Otherwise>
-              <Choose>
-                <When Condition="Exists('$(FSharpSdkPathPrefix)\3.1\$(FSharpSdkPathSuffix)')">
-                  <PropertyGroup>
-                    <FSharpTargetsPath>$(FSharpSdkPathPrefix)\3.1\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
-                  </PropertyGroup>
-                </When>
-                <Otherwise>
-                  <Choose>
-                    <When Condition="Exists('$(FSharpSdkPathPrefix)\3.0\$(FSharpSdkPathSuffix)')">
-                      <PropertyGroup>
-                        <FSharpTargetsPath>$(FSharpSdkPathPrefix)\3.0\$(FSharpSdkPathSuffix)</FSharpTargetsPath>
-                      </PropertyGroup>
-                    </When>
-                    <Otherwise>
-                      <PropertyGroup>
-                        <FSharpTargetsPath>
-                        </FSharpTargetsPath>
-                      </PropertyGroup>
-                    </Otherwise>
-                  </Choose>
-                </Otherwise>
-              </Choose>
-            </Otherwise>
-          </Choose>
-        </Otherwise>
-      </Choose>
-    </Otherwise>
-  </Choose>
   <Import Condition="'$(FSharpTargetsPath)' != ''" Project="$(FSharpTargetsPath)" />
   <Target Name="BeforeBuild">
     <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
