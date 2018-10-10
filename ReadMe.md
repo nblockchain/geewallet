@@ -34,18 +34,18 @@ Comparing our product to other wallets in terms of features, we would want to hi
 
 | Wallet\Feature | Multi-currency | Opensource | Cold Storage | Brain seed | Truly crossplatform* |
 | -------------- | -------------- | ---------- | ------------ | ---------- | -------------------- |
-| Copay/Bitpay   | No             | Yes        | No           | No         | Yes                  |
-| Electrum       | No             | Yes        | Yes          | No         | No                   |
-| Bread          | Yes            | Yes        | Yes          | No         | Yes                  |
-| Samourai       | No             | Yes        | Yes          | No         | No                   |
-| Jaxx           | Yes            | No         | No           | No         | Yes                  |
-| Coinomi        | Yes            | No         | No           | No         | Yes                  |
-| ParitySigner   | No             | Yes        | Yes          | No         | Yes                  |
-| imToken        | Yes            | No         | Yes          | No         | No                   |
-| status.im      | No             | Yes        | No           | No         | Yes                  |
-| Edge           | Yes            | Yes?       | No           | No         | No                   |
-| WarpWallet     | No             | Yes        | No           | Yes        | No                   |
-| geewallet      | Yes            | Yes        | Yes          | Yes        | Yes                  |
+| Copay/Bitpay   | No             | **Yes**    | No           | No         | **Yes**              |
+| Electrum       | No             | **Yes**    | **Yes**      | No         | No                   |
+| Bread          | **Yes**        | **Yes**    | **Yes**      | No         | **Yes**              |
+| Samourai       | No             | **Yes**    | **Yes**      | No         | No                   |
+| Jaxx           | **Yes**        | No         | No           | No         | **Yes**              |
+| Coinomi        | **Yes**        | No         | No           | No         | **Yes**              |
+| ParitySigner   | No             | **Yes**    | **Yes**      | No         | **Yes**              |
+| imToken        | **Yes**        | No         | **Yes**      | No         | No                   |
+| status.im      | No             | **Yes**    | No           | No         | **Yes**              |
+| Edge           | **Yes**        | **Yes**?   | No           | No         | No                   |
+| WarpWallet     | No             | **Yes**    | No           | **Yes**    | No                   |
+| <img src="https://raw.githubusercontent.com/diginex/geewallet/frontend/img/markdown/geewallet.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/diginex/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/diginex/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/diginex/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/diginex/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/diginex/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> |
 
 *=With truly crossplatform we mean Mobile (both Android & iPhone) & Desktop (main OSs: Linux, macOS & Windows)
 
