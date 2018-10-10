@@ -125,11 +125,11 @@ module Server =
         ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
 
     let exMsg = "Could not communicate with EtherServer"
-    let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
-        let task = func arg
-        let finished =
+    let PerformEthereumRemoteCall<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): Async<'R> = async {
+        let task = func arg |> Async.AwaitTask
+        let! maybeResult =
             try
-                task.Wait Config.DEFAULT_NETWORK_TIMEOUT
+                FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT task
             with
             | ex ->
                 let maybeWebEx = FSharpUtil.FindException<WebException> ex
@@ -209,9 +209,12 @@ module Server =
                                 | None ->
                                     reraise()
 
-        if not finished then
-            raise <| ServerTimedOutException(exMsg)
-        task.Result
+        match maybeResult with
+        | None ->
+            return raise <| ServerTimedOutException(exMsg)
+        | Some result ->
+            return result
+    }
 
     let private FaultTolerantParallelClientInnerSettings(numberOfConsistentResponsesRequired: uint16) =
         {
@@ -261,8 +264,9 @@ module Server =
                                 : Async<HexBigInteger> =
         async {
             let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-                WaitOnTask web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
-                               publicAddress
+                PerformEthereumRemoteCall
+                    web3.Eth.Transactions.GetTransactionCount.SendRequestAsync publicAddress
+                        |> Async.RunSynchronously
             return! faultTolerantEtherClient.Query<string,HexBigInteger>
                 (FaultTolerantParallelClientSettings currency)
                 address
@@ -273,7 +277,8 @@ module Server =
                                        : Async<HexBigInteger> =
         async {
             let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-                WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
+                PerformEthereumRemoteCall web3.Eth.GetBalance.SendRequestAsync publicAddress
+                    |> Async.RunSynchronously
             return! faultTolerantEtherClient.Query<string,HexBigInteger>
                 (FaultTolerantParallelClientSettings currency)
                 address
@@ -284,7 +289,8 @@ module Server =
         async {
             let web3Func (web3: Web3) (publicAddress: string): BigInteger =
                 let tokenService = TokenManager.DaiContract web3
-                WaitOnTask tokenService.GetBalanceOfAsync publicAddress
+                PerformEthereumRemoteCall tokenService.GetBalanceOfAsync publicAddress
+                    |> Async.RunSynchronously
             return! faultTolerantEtherClient.Query<string,BigInteger>
                 (FaultTolerantParallelClientSettings currency)
                 address
@@ -315,7 +321,8 @@ module Server =
                                      : Async<HexBigInteger> =
         async {
             let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-                WaitOnTask (GetConfirmedEtherBalanceInternal web3) publicAddress
+                PerformEthereumRemoteCall (GetConfirmedEtherBalanceInternal web3) publicAddress
+                    |> Async.RunSynchronously
             return! faultTolerantEtherClient.Query<string,HexBigInteger>
                         (FaultTolerantParallelClientSettings currency)
                         address
@@ -350,7 +357,8 @@ module Server =
     let GetConfirmedTokenBalance (currency: Currency) (address: string): Async<BigInteger> =
         async {
             let web3Func (web3: Web3) (publicddress: string): BigInteger =
-                WaitOnTask (GetConfirmedTokenBalanceInternal web3) address
+                PerformEthereumRemoteCall (GetConfirmedTokenBalanceInternal web3) address
+                    |> Async.RunSynchronously
             return! faultTolerantEtherClient.Query<string,BigInteger>
                         (FaultTolerantParallelClientSettings currency)
                         address
@@ -366,7 +374,8 @@ module Server =
                 let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                            To = destination,
                                                            Value = amountInWei)
-                WaitOnTask (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
+                PerformEthereumRemoteCall (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
+                    |> Async.RunSynchronously
             return! faultTolerantEtherClient.Query<unit,HexBigInteger>
                         (FaultTolerantParallelClientSettings baseCurrency)
                         ()
@@ -383,7 +392,8 @@ module Server =
         : Async<HexBigInteger> =
         async {
             let web3Func (web3: Web3) (_: unit): HexBigInteger =
-                WaitOnTask web3.Eth.GasPrice.SendRequestAsync ()
+                PerformEthereumRemoteCall web3.Eth.GasPrice.SendRequestAsync ()
+                    |> Async.RunSynchronously
             let minResponsesRequired = uint16 2
             return! faultTolerantEtherClient.Query<unit,HexBigInteger>
                         { FaultTolerantParallelClientSettings currency with
@@ -398,7 +408,8 @@ module Server =
 
         async {
             let web3Func (web3: Web3) (tx: string): string =
-                WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
+                PerformEthereumRemoteCall web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
+                    |> Async.RunSynchronously
             try
                 return! faultTolerantEtherClient.Query<string,string>
                             (FaultTolerantParallelClientSettings currency)
