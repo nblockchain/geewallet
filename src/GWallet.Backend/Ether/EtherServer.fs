@@ -157,6 +157,11 @@ module Server =
                         reraise()
 
                 | Some(webEx) ->
+
+                    // TODO: send a warning in Sentry
+                    if webEx.Status = WebExceptionStatus.UnknownError then
+                        raise <| ServerUnreachableException(exMsg, webEx)
+
                     if (webEx.Status = WebExceptionStatus.NameResolutionFailure) then
                         raise (ServerCannotBeResolvedException(exMsg, webEx))
                     if (webEx.Status = WebExceptionStatus.SecureChannelFailure) then
