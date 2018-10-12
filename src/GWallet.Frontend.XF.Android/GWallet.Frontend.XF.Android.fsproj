@@ -239,7 +239,7 @@
       <HintPath>..\..\packages\FSharp.Core.4.5.2\lib\netstandard1.6\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Android.FSharp.ResourceProvider.Runtime">
-      <HintPath>..\..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.26\lib\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
+      <HintPath>..\..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.28\lib\monoandroid81\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
