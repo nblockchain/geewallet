@@ -30,6 +30,8 @@ In the development side of things, we advocate for simplicity:
 2. We will try to only add new features to the UX/UI that can be supported by all currencies that we support, and we will prioritize new features (Layer2: micropayments) over support for new currencies (no shitcoins thanks).
 3. Thanks to our usage of Xamarin.Forms toolkit, our frontends are based on a single codebase, instead of having to repeat logic for each platform.
 
+## Features
+
 Comparing our product to other wallets in terms of features, we would want to highlight the following:
 
 | Wallet\Feature | Multi-currency | Opensource | Cold Storage | Brain seed | Truly crossplatform* |
