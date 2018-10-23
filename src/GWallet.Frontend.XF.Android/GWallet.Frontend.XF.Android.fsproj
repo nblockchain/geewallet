@@ -139,9 +139,6 @@
     <Reference Include="Plugin.Clipboard">
       <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.2.1\lib\MonoAndroid10\Plugin.Clipboard.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.Data">
-      <HintPath>..\..\packages\FSharp.Data.3.0.0-beta\lib\netstandard2.0\FSharp.Data.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -223,9 +220,6 @@
     <Reference Include="System.Threading.Tasks.Extensions">
       <HintPath>..\..\packages\System.Threading.Tasks.Extensions.4.5.0\lib\netstandard2.0\System.Threading.Tasks.Extensions.dll</HintPath>
     </Reference>
-    <Reference Include="System.IO.Pipelines">
-      <HintPath>..\..\packages\System.IO.Pipelines.4.5.0\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
-    </Reference>
     <Reference Include="System.Buffers">
       <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
     </Reference>
@@ -240,6 +234,12 @@
     </Reference>
     <Reference Include="Xamarin.Android.FSharp.ResourceProvider.Runtime">
       <HintPath>..\..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.28\lib\monoandroid81\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO.Pipelines">
+      <HintPath>..\..\packages\System.IO.Pipelines.4.5.2\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharp.Data">
+      <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\netstandard2.0\FSharp.Data.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

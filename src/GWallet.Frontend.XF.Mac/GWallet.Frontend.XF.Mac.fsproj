@@ -68,9 +68,6 @@
     <Reference Include="Plugin.Clipboard">
       <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.2.1\lib\Xamarin.Mac20\Plugin.Clipboard.dll</HintPath>
     </Reference>
-    <Reference Include="FSharp.Data">
-      <HintPath>..\..\packages\FSharp.Data.2.4.6\lib\portable-net45+netcore45\FSharp.Data.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
@@ -131,9 +128,6 @@
     <Reference Include="System.Threading.Tasks.Extensions">
       <HintPath>..\..\packages\System.Threading.Tasks.Extensions.4.5.0\lib\netstandard2.0\System.Threading.Tasks.Extensions.dll</HintPath>
     </Reference>
-    <Reference Include="System.IO.Pipelines">
-      <HintPath>..\..\packages\System.IO.Pipelines.4.5.0\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
-    </Reference>
     <Reference Include="Xamarin.SimplePing.Mac">
       <HintPath>..\..\packages\Xamarin.SimplePing.1.4.0\lib\XamarinMac20\Xamarin.SimplePing.Mac.dll</HintPath>
     </Reference>
@@ -179,6 +173,12 @@
     </Reference>
     <Reference Include="ZXingNetMobile">
       <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\netstandard1.0\ZXingNetMobile.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharp.Data">
+      <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\netstandard2.0\FSharp.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO.Pipelines">
+      <HintPath>..\..\packages\System.IO.Pipelines.4.5.2\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
