@@ -289,7 +289,9 @@ module Server =
         async {
             let web3Func (web3: Web3) (publicAddress: string): BigInteger =
                 let tokenService = TokenManager.DaiContract web3
-                WaitOnTask tokenService.GetBalanceOfAsync publicAddress
+                let balanceFunc: string->Task<BigInteger>
+                    = tokenService.BalanceOfQueryAsync
+                WaitOnTask balanceFunc publicAddress
             return! faultTolerantEtherClient.Query<string,BigInteger>
                 (FaultTolerantParallelClientSettings currency)
                 address

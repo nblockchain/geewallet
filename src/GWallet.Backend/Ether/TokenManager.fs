@@ -20,15 +20,9 @@ module TokenManager =
                                                             tokenAmountInWei: BigInteger,
                                                             gasLimit: BigInteger)
                                                            : string =
-            let contractBuilder = base.Contract.ContractBuilder
-            let contractAbi = contractBuilder.ContractABI
-            let transferFunc = contractAbi.Functions.FirstOrDefault(fun func -> func.Name = "transfer")
-            if (transferFunc = null) then
-                failwith "Transfer function not found?"
-            let transferFuncBuilder = FunctionBuilder<TransferFunction>(DAI_CONTRACT_ADDRESS, transferFunc)
+            let transferFuncBuilder = this.ContractHandler.GetFunction<TransferFunction>()
 
-            let transferFunctionMsg = TransferFunction(FromAddress = origin,
-                                                       To = destination,
+            let transferFunctionMsg = TransferFunction(To = destination,
                                                        Value = tokenAmountInWei)
             let tokenValue = HexBigInteger tokenAmountInWei
             let transactionInput = transferFuncBuilder.CreateTransactionInput(transferFunctionMsg,
