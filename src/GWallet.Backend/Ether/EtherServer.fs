@@ -172,6 +172,8 @@ module Server =
                             raise <| ServerUnreachableException(exMsg, httpReqEx)
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
                             raise <| ServerUnavailableException(exMsg, httpReqEx)
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
+                            raise <| ServerUnreachableException(exMsg, httpReqEx)
 
                         // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
