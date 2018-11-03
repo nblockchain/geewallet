@@ -151,21 +151,6 @@
     <Reference Include="Plugin.Connectivity">
       <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\MonoAndroid10\Plugin.Connectivity.dll</HintPath>
     </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms.Android">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.Forms.2.4.1\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.Android.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.Forms.2.4.1\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\MonoAndroid71\ZXing.Net.Mobile.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\MonoAndroid71\zxing.portable.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\MonoAndroid71\ZXingNetMobile.dll</HintPath>
-    </Reference>
     <Reference Include="System.Configuration.ConfigurationManager">
       <HintPath>..\..\packages\System.Configuration.ConfigurationManager.4.4.0\lib\netstandard2.0\System.Configuration.ConfigurationManager.dll</HintPath>
     </Reference>
@@ -240,6 +225,21 @@
     </Reference>
     <Reference Include="Nethereum.StandardTokenEIP20">
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.3.0.0-rc3\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXing.Net.Mobile.Core">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181103-165913\lib\MonoAndroid71\ZXing.Net.Mobile.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="zxing.portable">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181103-165913\lib\MonoAndroid71\zxing.portable.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXingNetMobile">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181103-165913\lib\MonoAndroid71\ZXingNetMobile.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXing.Net.Mobile.Forms.Android">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181103-165913\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.Android.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXing.Net.Mobile.Forms">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181103-165913\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

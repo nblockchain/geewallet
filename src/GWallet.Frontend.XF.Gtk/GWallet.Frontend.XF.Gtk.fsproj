@@ -77,18 +77,6 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.Forms.2.4.1\lib\netstandard1.0\ZXing.Net.Mobile.Forms.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\netstandard1.0\ZXing.Net.Mobile.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\netstandard1.0\zxing.portable.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Mobile.2.4.1\lib\netstandard1.0\ZXingNetMobile.dll</HintPath>
-    </Reference>
     <Reference Include="System.Runtime.InteropServices.RuntimeInformation">
       <HintPath>..\..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
     </Reference>
@@ -194,6 +182,18 @@
     </Reference>
     <Reference Include="Nethereum.StandardTokenEIP20">
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.3.0.0-rc3\lib\net451\Nethereum.StandardTokenEIP20.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXing.Net.Mobile.Forms">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181103-165913\lib\netstandard1.0\ZXing.Net.Mobile.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXing.Net.Mobile.Core">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181103-165913\lib\netstandard1.0\ZXing.Net.Mobile.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="zxing.portable">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181103-165913\lib\netstandard1.0\zxing.portable.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXingNetMobile">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181103-165913\lib\netstandard1.0\ZXingNetMobile.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
