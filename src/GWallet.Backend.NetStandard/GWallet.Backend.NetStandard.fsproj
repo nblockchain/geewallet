@@ -120,18 +120,17 @@
     <PackageReference Include="FSharp.Data" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.2" />
-    <PackageReference Include="Nethereum.StandardTokenEIP20" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.Contracts" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.Util" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.Web3" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.ABI" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.Hex" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.JsonRpc.Client" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.Signer" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.RLP" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.KeyStore" Version="3.0.0-CI-20180914-144604" />
-    <PackageReference Include="Nethereum.RPC" Version="3.0.0-CI-20180914-144604" />
+    <PackageReference Include="Nethereum.StandardTokenEIP20" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.Contracts" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.Web3" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.ABI" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.Hex" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.JsonRpc.Client" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.Signer" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.RLP" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.KeyStore" Version="3.0.0-rc3" />
+    <PackageReference Include="Nethereum.RPC" Version="3.0.0-rc3" />
     <PackageReference Include="SharpRaven" Version="2.4.0" />
     <PackageReference Include="System.Buffers" Version="4.5.0" />
     <PackageReference Include="System.IO.Pipelines" Version="4.5.2" />
