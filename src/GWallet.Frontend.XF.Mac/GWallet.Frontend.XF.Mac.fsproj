@@ -169,16 +169,19 @@
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.3.0.0-rc3\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181103-165913\lib\netstandard1.0\ZXing.Net.Mobile.Core.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\Xamarin.Mac\ZXing.Net.Mobile.Core.dll</HintPath>
     </Reference>
     <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181103-165913\lib\netstandard1.0\zxing.portable.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\Xamarin.Mac\zxing.portable.dll</HintPath>
     </Reference>
     <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181103-165913\lib\netstandard1.0\ZXingNetMobile.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\Xamarin.Mac\ZXingNetMobile.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181103-165913\lib\netstandard1.0\ZXing.Net.Mobile.Forms.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181104-152016\lib\Xamarin.Mac\ZXing.Net.Mobile.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXing.Net.Mobile.Forms.macOS">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181104-152016\lib\Xamarin.Mac\ZXing.Net.Mobile.Forms.macOS.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
