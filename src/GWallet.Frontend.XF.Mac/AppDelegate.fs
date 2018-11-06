@@ -25,5 +25,5 @@ type AppDelegate () =
     override this.DidFinishLaunching(notification: NSNotification) =
         Forms.Init()
         this.LoadApplication(new GWallet.Frontend.XF.App())
-        // FIXME: the line below reports an NRE which prevents launch TODO: report
+
         base.DidFinishLaunching(notification)
