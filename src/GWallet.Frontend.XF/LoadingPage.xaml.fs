@@ -45,8 +45,10 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
             let allResolvedNormalAccountBalances = allResolvedBalances.ElementAt(0)
             let allResolvedReadOnlyBalances = allResolvedBalances.ElementAt(1)
 
-            let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances, false)
-            FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
+            Device.BeginInvokeOnMainThread(fun _ ->
+                let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances, false)
+                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
+            )
         }
         Async.StartAsTask populateGrid
             |> FrontendHelpers.DoubleCheckCompletion

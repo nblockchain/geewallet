@@ -115,7 +115,9 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
                     async {
                         do! Account.CreateBaseAccount passphrase.Text dateTime (email.Text.ToLower()) password.Text
-                        FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage state)
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage state)
+                        )
                     } |> FrontendHelpers.DoubleCheckCompletionAsync
 
     member this.OnDobTextChanged(sender: Object, args: EventArgs) =
