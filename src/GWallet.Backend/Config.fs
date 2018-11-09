@@ -46,8 +46,16 @@ module internal Config =
 
     let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = uint16 1
 
+    let private isWindows =
+        Path.DirectorySeparatorChar = '\\'
+
     let internal GetConfigDirForThisProgram() =
-        let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+        let configPath =
+            if not isWindows then
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+            else //UWP
+                Xamarin.Essentials.FileSystem.AppDataDirectory
+
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
         if not configDir.Exists then
             configDir.Create()
