@@ -181,6 +181,14 @@ module Server =
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
                             raise <| ServerMisconfiguredException(exMsg, httpReqEx)
 
+                        // TODO: report this one as a warning to sentry?
+                        if httpReqEx.InnerException <> null &&
+                           httpReqEx.InnerException :? System.Runtime.InteropServices.COMException then
+                            // got this once, with the exception message
+                            // "the text associated with this error code could not be found.
+                            //  The date in the certificate is invalid or has expired"
+                            raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+
                         reraise()
 
                     | None ->
