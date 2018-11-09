@@ -87,4 +87,3 @@ After that you can call `gwallet` directly.
 ## Feedback
 
 If you want to accelerate development/maintenance, please donate at... TBD.
-
