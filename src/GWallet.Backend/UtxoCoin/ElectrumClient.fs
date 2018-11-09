@@ -22,7 +22,7 @@ type ElectrumClient (electrumServer: ElectrumServer) =
         // [2] https://github.com/spesmilo/electrum/blob/master/lib/version.py
         // [3] https://github.com/spesmilo/electrum/commit/118052d81597eff3eb636d242eacdd0437dabdd6
         // [4] https://electrumx.readthedocs.io/en/latest/protocol-changes.html
-        let PROTOCOL_VERSION_SUPPORTED = Version("1.1")
+        let PROTOCOL_VERSION_SUPPORTED = Version("1.2")
 
         let versionSupportedByServer =
             try
