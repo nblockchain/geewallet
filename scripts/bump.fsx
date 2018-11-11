@@ -27,3 +27,14 @@ Process.Execute (sprintf "%s \\\"%s\\\" \\\"%s\\\""
                          (androidVersion.ToString())
                          (newVersion.ToString()),
                  false, true)
+
+Process.Execute (sprintf "git add src/GWallet.Backend.Tests/*.json",
+                 false, true)
+Process.Execute (sprintf "git add src/GWallet.Backend/Properties/CommonAssemblyInfo.fs",
+                 false, true)
+Process.Execute (sprintf "git add src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml",
+                 false, true)
+Process.Execute (sprintf "git commit -m \"Bump version: %s -> %s\"" (fullVersion.ToString()) (newFullVersion.ToString()),
+                 false, true)
+Process.Execute (sprintf "git tag %s" (newFullVersion.ToString()),
+                 false, true)
