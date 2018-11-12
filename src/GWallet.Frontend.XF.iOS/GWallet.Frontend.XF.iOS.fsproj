@@ -277,19 +277,19 @@
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.3.0.0-rc3\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181112-132120\lib\Xamarin.iOS10\ZXing.Net.Mobile.Core.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\Xamarin.iOS10\ZXing.Net.Mobile.Core.dll</HintPath>
     </Reference>
     <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181112-132120\lib\Xamarin.iOS10\zxing.portable.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\Xamarin.iOS10\zxing.portable.dll</HintPath>
     </Reference>
     <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181112-132120\lib\Xamarin.iOS10\ZXingNetMobile.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\Xamarin.iOS10\ZXingNetMobile.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181112-132120\lib\Xamarin.iOS10\ZXing.Net.Mobile.Forms.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181104-152016\lib\Xamarin.iOS10\ZXing.Net.Mobile.Forms.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms.iOS">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181112-132120\lib\Xamarin.iOS10\ZXing.Net.Mobile.Forms.iOS.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181104-152016\lib\Xamarin.iOS10\ZXing.Net.Mobile.Forms.iOS.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
