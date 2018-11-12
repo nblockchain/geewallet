@@ -48,6 +48,6 @@
     <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
     <PackageReference Include="Xam.Plugin.Connectivity" Version="4.0.0.190-beta" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
-    <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="2.99.0-CI-20181104-152016" />
+    <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="2.99.0-CI-20181112-132120" />
   </ItemGroup>
 </Project>
