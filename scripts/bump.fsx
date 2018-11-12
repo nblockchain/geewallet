@@ -38,5 +38,5 @@ Process.Execute (sprintf "git commit -m \"Bump version: %s -> %s\"" (fullVersion
                  false, true)
 Process.Execute (sprintf "git tag %s" (newFullVersion.ToString()),
                  false, true)
-Console.WriteLine sprintf "Version bumped. Remember to push via `git push <remote> <branch> && git push <remote> %s`"
-                          (newFullVersion.ToString())
+Console.WriteLine (sprintf "Version bumped. Remember to push via `git push <remote> <branch> && git push <remote> %s`"
+                           (newFullVersion.ToString()))
