@@ -17,6 +17,9 @@ type Resources = GWallet.Frontend.XF.Android.Resource
 type MainActivity() =
     inherit FormsAppCompatActivity()
 
+    override this.OnRequestPermissionsResult(requestCode: int, permissions: string[], grantResults: Permission[]) =
+        ZXing.Net.Mobile.Android.PermissionsHandler.OnRequestPermissionsResult(requestCode, permissions, grantResults)
+
     override this.OnCreate (bundle: Bundle) =
         FormsAppCompatActivity.TabLayoutResource <- Resources.Layout.Tabbar
         FormsAppCompatActivity.ToolbarResource <- Resources.Layout.Toolbar
