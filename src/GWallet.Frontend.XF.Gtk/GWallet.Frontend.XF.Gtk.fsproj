@@ -84,9 +84,6 @@
       <HintPath>..\..\packages\SharpRaven.2.4.0\lib\net45\SharpRaven.dll</HintPath>
     </Reference>
     <Reference Include="System.Configuration" />
-    <Reference Include="System.Numerics.Vectors">
-      <HintPath>..\..\packages\System.Numerics.Vectors.4.4.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
-    </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
       <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.0\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
@@ -194,6 +191,12 @@
     </Reference>
     <Reference Include="ZXingNetMobile">
       <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\netstandard1.0\ZXingNetMobile.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics.Vectors">
+      <HintPath>..\..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Essentials">
+      <HintPath>..\..\packages\Xamarin.Essentials.0.11.0-preview\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

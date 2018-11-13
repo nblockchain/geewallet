@@ -183,6 +183,9 @@
     <Reference Include="ZXing.Net.Mobile.Forms.macOS">
       <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181104-152016\lib\Xamarin.Mac\ZXing.Net.Mobile.Forms.macOS.dll</HintPath>
     </Reference>
+    <Reference Include="Xamarin.Essentials">
+      <HintPath>..\..\packages\Xamarin.Essentials.0.11.0-preview\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
