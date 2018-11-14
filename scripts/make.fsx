@@ -196,18 +196,12 @@ match maybeTarget with
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
-    let fullPathToMono = Process.CommandCheck "mono"
-    if (fullPathToMono.IsNone) then
-        Console.Error.WriteLine "mono not found? install it first"
-        Environment.Exit 1
-
     let debug = BinaryConfig.Debug
     JustBuild debug
 
     let pathToFrontend = Path.Combine(GetPathToFrontend debug, DEFAULT_FRONTEND + ".exe")
 
-    let proc = System.Diagnostics.Process.Start
-                   (fullPathToMono.Value, pathToFrontend)
+    let proc = System.Diagnostics.Process.Start pathToFrontend
     proc.WaitForExit()
 
 | Some "update-servers" ->
