@@ -89,19 +89,15 @@ let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let version = Misc.GetCurrentVersion(rootDir)
 
 let GetRepoInfo()=
-    let rec GetBranchFromGitBranch(outchunks)=
+    let rec GetBranchFromGitBranch(outchunks: list<string>)=
         match outchunks with
         | [] -> failwith "current branch not found, unexpected output from `git branch`"
         | head::tail ->
-            match head with
-            | StdErr(errChunk) ->
-                failwith ("unexpected stderr output from `git branch`: " + errChunk)
-            | StdOut(outChunk) ->
-                if (outChunk.StartsWith("*")) then
-                    let branchName = outChunk.Substring("* ".Length)
-                    branchName
-                else
-                    GetBranchFromGitBranch(tail)
+            if (head.StartsWith("*")) then
+                let branchName = head.Substring("* ".Length)
+                branchName
+            else
+                GetBranchFromGitBranch(tail)
 
     let gitWhich = Process.Execute("which git", false, true)
     if (gitWhich.ExitCode <> 0) then
@@ -115,7 +111,8 @@ let GetRepoInfo()=
             if (gitBranch.ExitCode <> 0) then
                 failwith "Unexpected git behaviour, as `git log` succeeded but `git branch` didn't"
             else
-                let branch = GetBranchFromGitBranch(gitBranch.Output)
+                let branchesOutput = Process.GetStdOut(gitBranch.Output).ToString().Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries) |> List.ofSeq
+                let branch = GetBranchFromGitBranch(branchesOutput)
                 let gitLastCommit = Process.Execute("git log --no-color --first-parent -n1 --pretty=format:%h", false, true)
                 if (gitLastCommit.ExitCode <> 0) then
                     failwith "Unexpected git behaviour, as `git log` succeeded before but not now"
@@ -125,9 +122,9 @@ let GetRepoInfo()=
                     let lastCommitSingleOutput = gitLastCommit.Output.[0]
                     match lastCommitSingleOutput with
                     | StdErr(errChunk) ->
-                        failwith ("unexpected stderr output from `git log` command: " + errChunk)
+                        failwith ("unexpected stderr output from `git log` command: " + errChunk.ToString())
                     | StdOut(lastCommitHash) ->
-                        sprintf "(%s/%s)" branch lastCommitHash
+                        sprintf "(%s/%s)" branch (lastCommitHash.ToString())
 
 let repoInfo = GetRepoInfo()
 

@@ -9,8 +9,15 @@ open System.Threading
 open System.Reflection
 open System.Diagnostics
 
-type OutChunk = StdOut of string | StdErr of string
+type OutChunk =
+    | StdOut of StringBuilder
+    | StdErr of StringBuilder
 type OutputBuffer = list<OutChunk>
+type Standard =
+    | Output
+    | Error
+    override self.ToString() =
+        sprintf "%A" self
 type ProcessResult = { ExitCode: int; Output: OutputBuffer }
 
 module Misc =
@@ -107,7 +114,7 @@ module Misc =
 
 module Process =
 
-    let rec private GetStdOut (outputBuffer: OutputBuffer) =
+    let rec internal GetStdOut (outputBuffer: OutputBuffer) =
         match outputBuffer with
         | [] -> StringBuilder()
         | head::tail ->
@@ -140,18 +147,17 @@ module Process =
                 Console.Error.Flush()
             PrintToScreen(tail)
 
+    type ProcessCouldNotStart(commandWithArguments, innerException: Exception) =
+        inherit Exception(sprintf
+            "Process could not start! %s" commandWithArguments, innerException)
+
     let Execute (commandWithArguments: string, echo: bool, hidden: bool)
         : ProcessResult =
 
-        // I know, this shit below is mutable, but it's a consequence of dealing with .NET's Process class' events
-        let outputBuffer = new System.Collections.Generic.List<OutChunk>()
+        // I know, this shit below is mutable, but it's a consequence of dealing with .NET's Process class' events?
+        let mutable outputBuffer: list<OutChunk> = []
         let outputBufferLock = new Object()
 
-        use outWaitHandle = new AutoResetEvent(false)
-        use errWaitHandle = new AutoResetEvent(false)
-
-        if (echo) then
-            Console.WriteLine(commandWithArguments)
 
         let firstSpaceAt = commandWithArguments.IndexOf(" ")
         let (command, args) =
@@ -160,6 +166,9 @@ module Process =
             else
                 (commandWithArguments, String.Empty)
 
+        if echo then
+            Console.WriteLine commandWithArguments
+
         let startInfo = new ProcessStartInfo(command, args)
         startInfo.UseShellExecute <- false
         startInfo.RedirectStandardOutput <- true
@@ -167,42 +176,116 @@ module Process =
         use proc = new System.Diagnostics.Process()
         proc.StartInfo <- startInfo
 
-        let outReceived (e: DataReceivedEventArgs): unit =
-            if (e.Data = null) then
-                outWaitHandle.Set() |> ignore
-            else
-                if not (hidden) then
-                    Console.WriteLine(e.Data)
-                    Console.Out.Flush()
-                lock outputBufferLock (fun _ -> outputBuffer.Add(OutChunk.StdOut(e.Data)))
+        let ReadStandard(std: Standard) =
 
-        let errReceived (e: DataReceivedEventArgs): unit =
-            if (e.Data = null) then
-                errWaitHandle.Set() |> ignore
-            else
-                if not (hidden) then
-                    Console.Error.WriteLine(e.Data)
-                    Console.Error.Flush()
-                lock outputBufferLock (fun _ -> outputBuffer.Add(OutChunk.StdErr(e.Data)))
+            let print =
+                match std with
+                | Standard.Output -> Console.Write : char array -> unit
+                | Standard.Error -> Console.Error.Write
 
-        proc.OutputDataReceived.Add outReceived
-        proc.ErrorDataReceived.Add errReceived
+            let flush =
+                match std with
+                | Standard.Output -> Console.Out.Flush
+                | Standard.Error -> Console.Error.Flush
 
-        proc.Start() |> ignore
+            let outputToReadFrom =
+                match std with
+                | Standard.Output -> proc.StandardOutput
+                | Standard.Error -> proc.StandardError
 
-        let exitCode =
-            try
-                proc.BeginOutputReadLine()
-                proc.BeginErrorReadLine()
+            let EndOfStream(readCount: int): bool =
+                if (readCount > 0) then
+                    false
+                else if (readCount < 0) then
+                    true
+                else //if (readCount = 0)
+                    outputToReadFrom.EndOfStream
 
-                proc.WaitForExit()
-                proc.ExitCode
+            let ReadIteration(): bool =
 
-            finally
-                outWaitHandle.WaitOne() |> ignore
-                errWaitHandle.WaitOne() |> ignore
+                // I want to hardcode this to 1 because otherwise the order of the stderr|stdout
+                // chunks in the outputbuffer would innecessarily depend on this bufferSize, setting
+                // it to 1 makes it slow but then the order is only relying (in theory) on how the
+                // streams come and how fast the .NET IO processes them
+                let outChar = [|'x'|] // 'x' is a dummy value that will get replaced
+                let bufferSize = 1
+                let uniqueElementIndexInTheSingleCharBuffer = bufferSize - 1
 
-        { ExitCode = exitCode; Output = List.ofSeq(outputBuffer) }
+                if not (outChar.Length = bufferSize) then
+                    failwith "Buffer Size must equal current buffer size"
+
+                let readTask = outputToReadFrom.ReadAsync(outChar, uniqueElementIndexInTheSingleCharBuffer, bufferSize)
+                readTask.Wait()
+                if not (readTask.IsCompleted) then
+                    failwith "Failed to read"
+
+                let readCount = readTask.Result
+                if (readCount > bufferSize) then
+                    failwith "StreamReader.Read() should not read more than the bufferSize if we passed the bufferSize as a parameter"
+
+                if (readCount = bufferSize) then
+                    if not (hidden) then
+                        print outChar
+                        flush()
+
+                    lock outputBufferLock (fun _ ->
+
+                        let leChar = outChar.[uniqueElementIndexInTheSingleCharBuffer]
+                        match outputBuffer with
+                        | [] ->
+                            let newBuilder = StringBuilder(leChar.ToString())
+                            let newBlock =
+                                match std with
+                                | Standard.Output -> StdOut newBuilder
+                                | Standard.Error -> StdErr newBuilder
+                            outputBuffer <- [ newBlock ]
+                        | head::tail ->
+                            match head with
+                            | StdOut(out) ->
+                                match std with
+                                | Standard.Output ->
+                                    out.Append outChar |> ignore
+                                | Standard.Error ->
+                                    let newErrBuilder = StdErr(StringBuilder(leChar.ToString()))
+                                    outputBuffer <- newErrBuilder::outputBuffer
+                            | StdErr(err) ->
+                                match std with
+                                | Standard.Error ->
+                                    err.Append outChar |> ignore
+                                | Standard.Output ->
+                                    let newOutBuilder = StdOut(StringBuilder(leChar.ToString()))
+                                    outputBuffer <- newOutBuilder::outputBuffer
+                    )
+
+                let continueIterating = not(EndOfStream(readCount))
+                continueIterating
+
+            // this is a way to do a `do...while` loop in F#...
+            while (ReadIteration()) do
+                ignore None
+
+        let outReaderThread = new Thread(new ThreadStart(fun _ ->
+            ReadStandard(Standard.Output)
+        ))
+
+        let errReaderThread = new Thread(new ThreadStart(fun _ ->
+            ReadStandard(Standard.Error)
+        ))
+
+        try
+            proc.Start() |> ignore
+        with
+        | e -> raise(ProcessCouldNotStart(commandWithArguments, e))
+
+        outReaderThread.Start()
+        errReaderThread.Start()
+        proc.WaitForExit()
+        let exitCode = proc.ExitCode
+
+        outReaderThread.Join()
+        errReaderThread.Join()
+
+        { ExitCode = exitCode; Output = outputBuffer }
 
     let CommandCheck (commandName: string): Option<string> =
         let commandWhich = Execute (sprintf "which %s" commandName, false, true)
