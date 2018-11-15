@@ -236,6 +236,22 @@ module Caching =
             | [] -> map
             | (key,value)::tail -> RemoveRangeFromMap (map.Remove key) tail
 
+        let GatherDebuggingInfo (previousBalance) (currency) (address) (newCache) =
+            let json1 = Marshalling.Serialize previousBalance
+            let json2 = Marshalling.Serialize currency
+            let json3 = Marshalling.Serialize address
+            let json4 = Marshalling.Serialize newCache
+            String.Join(Environment.NewLine, json1, json2, json3, json4)
+
+        let ReportProblem (negativeBalance: decimal) (previousBalance) (currency) (address) (newCache) =
+            Infrastructure.ReportError (sprintf "Negative balance '%s'. Details: %s"
+                                                    (negativeBalance.ToString())
+                                                    (GatherDebuggingInfo
+                                                        previousBalance
+                                                        currency
+                                                        address
+                                                        newCache))
+
         member self.SaveSnapshot(newDietCachedData: DietCache) =
             let newCachedData = CachedNetworkData.FromDietCache newDietCachedData
             lock lockObject (fun _ ->
@@ -314,7 +330,15 @@ module Caching =
                     | Cached(balance,time) ->
                         let allTransSum = GetSumOfAllTransactions networkData.OutgoingTransactions currency address
                         let compoundBalance = balance - allTransSum
-                        Cached(compoundBalance,time)
+                        if (compoundBalance < 0.0m) then
+                            ReportProblem compoundBalance
+                                          None
+                                          currency
+                                          address
+                                          networkData
+                            Cached(0.0m,time)
+                        else
+                            Cached(compoundBalance,time)
             )
 
         member self.RetreiveAndUpdateLastCompoundBalance (address: PublicAddress)
@@ -394,9 +418,15 @@ module Caching =
                                             currency
                                             address
                 let compoundBalance = newBalance - allTransSum
-
-
-                compoundBalance,time
+                if (compoundBalance < 0.0m) then
+                    ReportProblem compoundBalance
+                                  previousBalance
+                                  currency
+                                  address
+                                  newCachedValueWithNewBalanceAndMaybeLessTransactions
+                    0.0m,time
+                else
+                    compoundBalance,time
             )
 
         member private self.StoreTransactionRecord (address: PublicAddress)
