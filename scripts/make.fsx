@@ -67,7 +67,7 @@ let PrintNugetVersion () =
     if not (nugetExe.Exists) then
         false
     else
-        let nugetProc = Process.Execute (sprintf "mono %s" nugetExe.FullName, false, true)
+        let nugetProc = Process.Execute (sprintf "mono %s" nugetExe.FullName, Echo.Off)
         let firstChunk = nugetProc.Output.First()
         match firstChunk with
         | StdOut stdOut ->
@@ -89,7 +89,7 @@ let JustBuild binaryConfig =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> sprintf "%s;DefineConstants=%s" configOption constants
         | None   -> configOption
-    let buildProcess = Process.Execute (sprintf "%s %s" buildTool.Value configOptions, true, false)
+    let buildProcess = Process.Execute (sprintf "%s %s" buildTool.Value configOptions, Echo.All)
     if (buildProcess.ExitCode <> 0) then
         Console.Error.WriteLine (sprintf "%s build failed" buildTool.Value)
         PrintNugetVersion() |> ignore
@@ -147,7 +147,7 @@ match maybeTarget with
         Directory.Delete (pathToFolderToBeZipped, true)
 
     let pathToFrontend = GetPathToFrontend release
-    let zipRun = Process.Execute(sprintf "cp -rfvp %s %s" pathToFrontend pathToFolderToBeZipped, true, false)
+    let zipRun = Process.Execute(sprintf "cp -rfvp %s %s" pathToFrontend pathToFolderToBeZipped, Echo.All)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "Precopy for ZIP compression failed"
         Environment.Exit 1
@@ -156,7 +156,7 @@ match maybeTarget with
     Directory.SetCurrentDirectory binDir
     let zipLaunch = sprintf "%s -r %s %s"
                             zipCommand zipName zipNameWithoutExtension
-    let zipRun = Process.Execute(zipLaunch, true, false)
+    let zipRun = Process.Execute(zipLaunch, Echo.All)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "ZIP compression failed"
         Environment.Exit 1
@@ -174,7 +174,7 @@ match maybeTarget with
     if not (File.Exists(testAssemblyPath)) then
         failwithf "File not found: %s" testAssemblyPath
     let nunitRun = Process.Execute(sprintf "%s %s" nunitCommand testAssemblyPath,
-                                   true, false)
+                                   Echo.All)
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
         Environment.Exit 1
@@ -192,7 +192,7 @@ match maybeTarget with
     if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
         Directory.CreateDirectory(finalPrefixPathOfWrapperScript.Directory.FullName) |> ignore
     File.Copy(launcherScriptPath.FullName, finalPrefixPathOfWrapperScript.FullName, true)
-    if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, false, true)).ExitCode <> 0) then
+    if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, Echo.Off)).ExitCode <> 0) then
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
@@ -209,14 +209,14 @@ match maybeTarget with
 
     let btcServersUrl = "https://raw.githubusercontent.com/spesmilo/electrum/master/electrum/servers.json"
     let btcServersFile = Path.Combine(utxoCoinFolder, "btc-servers.json")
-    let updateBtc = Process.Execute (sprintf "curl --fail -o %s %s" btcServersFile btcServersUrl, true, false)
+    let updateBtc = Process.Execute (sprintf "curl --fail -o %s %s" btcServersFile btcServersUrl, Echo.All)
     if (updateBtc.ExitCode <> 0) then
         Console.Error.WriteLine "Update failed"
         Environment.Exit 1
 
     let ltcServersUrl = "https://raw.githubusercontent.com/pooler/electrum-ltc/master/electrum_ltc/servers.json"
     let ltcServersFile = Path.Combine(utxoCoinFolder, "ltc-servers.json")
-    let updateLtc = Process.Execute (sprintf "curl --fail -o %s %s" ltcServersFile ltcServersUrl, true, false)
+    let updateLtc = Process.Execute (sprintf "curl --fail -o %s %s" ltcServersFile ltcServersUrl, Echo.All)
     if (updateLtc.ExitCode <> 0) then
         Console.Error.WriteLine "Update failed"
         Environment.Exit 1

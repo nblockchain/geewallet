@@ -36,7 +36,7 @@ let oldVersionOfMono =
         let pkgConfig = "pkg-config"
         ConfigCommandCheck pkgConfig
         let pkgConfigCmd = sprintf "%s --atleast-version=%s mono" pkgConfig versionOfMonoWhereTheRuntimeBugWasFixed
-        let processResult = Process.Execute(pkgConfigCmd, false, false)
+        let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
         processResult.ExitCode <> 0
 
 let buildTool =
@@ -99,21 +99,21 @@ let GetRepoInfo()=
             else
                 GetBranchFromGitBranch(tail)
 
-    let gitWhich = Process.Execute("which git", false, true)
+    let gitWhich = Process.Execute("which git", Echo.Off)
     if (gitWhich.ExitCode <> 0) then
         String.Empty
     else
-        let gitLog = Process.Execute("git log --oneline", false, true)
+        let gitLog = Process.Execute("git log --oneline", Echo.Off)
         if (gitLog.ExitCode <> 0) then
             String.Empty
         else
-            let gitBranch = Process.Execute("git branch", false, true)
+            let gitBranch = Process.Execute("git branch", Echo.Off)
             if (gitBranch.ExitCode <> 0) then
                 failwith "Unexpected git behaviour, as `git log` succeeded but `git branch` didn't"
             else
                 let branchesOutput = Process.GetStdOut(gitBranch.Output).ToString().Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries) |> List.ofSeq
                 let branch = GetBranchFromGitBranch(branchesOutput)
-                let gitLastCommit = Process.Execute("git log --no-color --first-parent -n1 --pretty=format:%h", false, true)
+                let gitLastCommit = Process.Execute("git log --no-color --first-parent -n1 --pretty=format:%h", Echo.Off)
                 if (gitLastCommit.ExitCode <> 0) then
                     failwith "Unexpected git behaviour, as `git log` succeeded before but not now"
                 else if (gitLastCommit.Output.Length <> 1) then
