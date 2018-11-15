@@ -36,7 +36,7 @@ let oldVersionOfMono =
         let pkgConfig = "pkg-config"
         ConfigCommandCheck pkgConfig
         let pkgConfigCmd = sprintf "%s --atleast-version=%s mono" pkgConfig versionOfMonoWhereTheRuntimeBugWasFixed
-        let processResult = Process.Execute(pkgConfigCmd, false, false)
+        let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
         processResult.ExitCode <> 0
 
 let buildTool =
@@ -89,34 +89,31 @@ let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let version = Misc.GetCurrentVersion(rootDir)
 
 let GetRepoInfo()=
-    let rec GetBranchFromGitBranch(outchunks)=
+    let rec GetBranchFromGitBranch(outchunks: list<string>)=
         match outchunks with
         | [] -> failwith "current branch not found, unexpected output from `git branch`"
         | head::tail ->
-            match head with
-            | StdErr(errChunk) ->
-                failwith ("unexpected stderr output from `git branch`: " + errChunk)
-            | StdOut(outChunk) ->
-                if (outChunk.StartsWith("*")) then
-                    let branchName = outChunk.Substring("* ".Length)
-                    branchName
-                else
-                    GetBranchFromGitBranch(tail)
+            if (head.StartsWith("*")) then
+                let branchName = head.Substring("* ".Length)
+                branchName
+            else
+                GetBranchFromGitBranch(tail)
 
-    let gitWhich = Process.Execute("which git", false, true)
+    let gitWhich = Process.Execute("which git", Echo.Off)
     if (gitWhich.ExitCode <> 0) then
         String.Empty
     else
-        let gitLog = Process.Execute("git log --oneline", false, true)
+        let gitLog = Process.Execute("git log --oneline", Echo.Off)
         if (gitLog.ExitCode <> 0) then
             String.Empty
         else
-            let gitBranch = Process.Execute("git branch", false, true)
+            let gitBranch = Process.Execute("git branch", Echo.Off)
             if (gitBranch.ExitCode <> 0) then
                 failwith "Unexpected git behaviour, as `git log` succeeded but `git branch` didn't"
             else
-                let branch = GetBranchFromGitBranch(gitBranch.Output)
-                let gitLastCommit = Process.Execute("git log --no-color --first-parent -n1 --pretty=format:%h", false, true)
+                let branchesOutput = Process.GetStdOut(gitBranch.Output).ToString().Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries) |> List.ofSeq
+                let branch = GetBranchFromGitBranch(branchesOutput)
+                let gitLastCommit = Process.Execute("git log --no-color --first-parent -n1 --pretty=format:%h", Echo.Off)
                 if (gitLastCommit.ExitCode <> 0) then
                     failwith "Unexpected git behaviour, as `git log` succeeded before but not now"
                 else if (gitLastCommit.Output.Length <> 1) then
@@ -125,9 +122,9 @@ let GetRepoInfo()=
                     let lastCommitSingleOutput = gitLastCommit.Output.[0]
                     match lastCommitSingleOutput with
                     | StdErr(errChunk) ->
-                        failwith ("unexpected stderr output from `git log` command: " + errChunk)
+                        failwith ("unexpected stderr output from `git log` command: " + errChunk.ToString())
                     | StdOut(lastCommitHash) ->
-                        sprintf "(%s/%s)" branch lastCommitHash
+                        sprintf "(%s/%s)" branch (lastCommitHash.ToString())
 
 let repoInfo = GetRepoInfo()
 

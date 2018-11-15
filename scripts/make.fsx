@@ -76,7 +76,7 @@ let PrintNugetVersion () =
     if not (nugetExe.Exists) then
         false
     else
-        let nugetProc = Process.Execute (sprintf "mono %s" nugetExe.FullName, false, true)
+        let nugetProc = Process.Execute (sprintf "mono %s" nugetExe.FullName, Echo.Off)
         let firstChunk = nugetProc.Output.First()
         match firstChunk with
         | StdOut stdOut ->
@@ -99,7 +99,7 @@ let BuildSolution buildTool solutionFileName binaryConfig extraOptions =
                                                 solutionFileName
                                                 configOptions
                                                 extraOptions,
-                                        true, false)
+                                        Echo.All)
     if (buildProcess.ExitCode <> 0) then
         Console.Error.WriteLine (sprintf "%s build failed" buildTool)
         PrintNugetVersion() |> ignore
@@ -117,7 +117,7 @@ let JustBuild binaryConfig: Frontend =
         // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
         if buildTool.Value = "msbuild" && Misc.GuessPlatform () = Misc.Platform.Linux then
 
-            let isGtkPresent = (Process.Execute("pkg-config gtk-sharp-2.0", true, false).ExitCode = 0)
+            let isGtkPresent = (Process.Execute("pkg-config gtk-sharp-2.0", Echo.All).ExitCode = 0)
 
             if isGtkPresent then
 
@@ -125,7 +125,7 @@ let JustBuild binaryConfig: Frontend =
                 // when targetting the LINUX_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
                 let nugetWorkaround =
                     sprintf "mono .nuget/nuget.exe restore src/%s/%s.fsproj -SolutionDirectory ." GTK_FRONTEND GTK_FRONTEND
-                Process.Execute(nugetWorkaround, true, false) |> ignore
+                Process.Execute(nugetWorkaround, Echo.All) |> ignore
 
                 BuildSolution "msbuild" LINUX_SOLUTION_FILE binaryConfig "/t:Restore"
                 // TODO: report as a bug the fact that /t:Restore;Build doesn't work while /t:Restore and later /t:Build does
@@ -197,7 +197,7 @@ match maybeTarget with
         Directory.Delete (pathToFolderToBeZipped, true)
 
     let pathToFrontend,_ = GetPathToFrontend frontend release
-    let zipRun = Process.Execute(sprintf "cp -rfvp %s %s" pathToFrontend.FullName pathToFolderToBeZipped, true, false)
+    let zipRun = Process.Execute(sprintf "cp -rfvp %s %s" pathToFrontend.FullName pathToFolderToBeZipped, Echo.All)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "Precopy for ZIP compression failed"
         Environment.Exit 1
@@ -206,7 +206,7 @@ match maybeTarget with
     Directory.SetCurrentDirectory binDir
     let zipLaunch = sprintf "%s -r %s %s"
                             zipCommand zipName zipNameWithoutExtension
-    let zipRun = Process.Execute(zipLaunch, true, false)
+    let zipRun = Process.Execute(zipLaunch, Echo.All)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "ZIP compression failed"
         Environment.Exit 1
@@ -224,7 +224,7 @@ match maybeTarget with
     if not (File.Exists(testAssemblyPath)) then
         failwithf "File not found: %s" testAssemblyPath
     let nunitRun = Process.Execute(sprintf "%s %s" nunitCommand testAssemblyPath,
-                                   true, false)
+                                   Echo.All)
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
         Environment.Exit 1
@@ -243,22 +243,16 @@ match maybeTarget with
     if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
         Directory.CreateDirectory(finalPrefixPathOfWrapperScript.Directory.FullName) |> ignore
     File.Copy(launcherScriptPath.FullName, finalPrefixPathOfWrapperScript.FullName, true)
-    if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, false, true)).ExitCode <> 0) then
+    if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, Echo.Off)).ExitCode <> 0) then
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
-    let fullPathToMono = Process.CommandCheck "mono"
-    if (fullPathToMono.IsNone) then
-        Console.Error.WriteLine "mono not found? install it first"
-        Environment.Exit 1
-
     let debug = BinaryConfig.Debug
     let frontend = JustBuild debug
 
     let frontendDir,frontendExecutable = GetPathToFrontend frontend debug
 
-    let proc = System.Diagnostics.Process.Start
-                   (fullPathToMono.Value, frontendExecutable.FullName)
+    let proc = System.Diagnostics.Process.Start frontendExecutable.FullName
     proc.WaitForExit()
 
 | Some "update-servers" ->
@@ -266,14 +260,14 @@ match maybeTarget with
 
     let btcServersUrl = "https://raw.githubusercontent.com/spesmilo/electrum/master/electrum/servers.json"
     let btcServersFile = Path.Combine(utxoCoinFolder, "btc-servers.json")
-    let updateBtc = Process.Execute (sprintf "curl --fail -o %s %s" btcServersFile btcServersUrl, true, false)
+    let updateBtc = Process.Execute (sprintf "curl --fail -o %s %s" btcServersFile btcServersUrl, Echo.All)
     if (updateBtc.ExitCode <> 0) then
         Console.Error.WriteLine "Update failed"
         Environment.Exit 1
 
     let ltcServersUrl = "https://raw.githubusercontent.com/pooler/electrum-ltc/master/electrum_ltc/servers.json"
     let ltcServersFile = Path.Combine(utxoCoinFolder, "ltc-servers.json")
-    let updateLtc = Process.Execute (sprintf "curl --fail -o %s %s" ltcServersFile ltcServersUrl, true, false)
+    let updateLtc = Process.Execute (sprintf "curl --fail -o %s %s" ltcServersFile ltcServersUrl, Echo.All)
     if (updateLtc.ExitCode <> 0) then
         Console.Error.WriteLine "Update failed"
         Environment.Exit 1
