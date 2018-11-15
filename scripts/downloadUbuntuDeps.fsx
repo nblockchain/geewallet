@@ -7,7 +7,7 @@ open System.IO
 open FSX.Infrastructure
 
 let outputFolder = "bin"
-let deps = "fsharp"::[]
+let deps = "fsharp"::("libgtk2.0-cil-dev"::[])
 
 let currentDir = Directory.GetCurrentDirectory()
 let binDir = Path.Combine(currentDir, outputFolder)
