@@ -362,7 +362,7 @@ module Caching =
                                     newCachedValueWithNewBalance
                                 | Some addressTransactions ->
                                     let allCombinationsOfTransactions = MapCombinations addressTransactions
-                                    let newAdressTransactionsTransactions =
+                                    let newAddressTransactions =
                                         match List.tryFind (fun combination ->
                                                                let txSumAmount = List.sumBy (fun (key,(txAmount,_)) ->
                                                                                                  txAmount) combination
@@ -376,7 +376,7 @@ module Caching =
                                         newCachedValueWithNewBalance
                                             .OutgoingTransactions.Add(currency,
                                                                       currencyAddresses.Add(address,
-                                                                                            newAdressTransactionsTransactions))
+                                                                                            newAddressTransactions))
                                     {
                                         UsdPrice = newCachedValueWithNewBalance.UsdPrice;
                                         Balances = newCachedValueWithNewBalance.Balances;
