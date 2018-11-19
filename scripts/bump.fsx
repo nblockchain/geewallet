@@ -21,22 +21,22 @@ Process.Execute (sprintf "%s %s %s"
                          replaceScript
                          (fullVersion.ToString())
                          (newFullVersion.ToString()),
-                 false, true)
+                 Echo.Off)
 Process.Execute (sprintf "%s \\\"%s\\\" \\\"%s\\\""
                          replaceScript
                          (androidVersion.ToString())
                          (newVersion.ToString()),
-                 false, true)
+                 Echo.Off)
 
 Process.Execute (sprintf "git add src/GWallet.Backend.Tests/*.json",
-                 false, true)
+                 Echo.Off)
 Process.Execute (sprintf "git add src/GWallet.Backend/Properties/CommonAssemblyInfo.fs",
-                 false, true)
+                 Echo.Off)
 Process.Execute (sprintf "git add src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml",
-                 false, true)
+                 Echo.Off)
 Process.Execute (sprintf "git commit -m \"Bump version: %s -> %s\"" (fullVersion.ToString()) (newFullVersion.ToString()),
-                 false, true)
+                 Echo.Off)
 Process.Execute (sprintf "git tag %s" (newFullVersion.ToString()),
-                 false, true)
+                 Echo.Off)
 Console.WriteLine (sprintf "Version bumped. Remember to push via `git push <remote> <branch> && git push <remote> %s`"
                            (newFullVersion.ToString()))
