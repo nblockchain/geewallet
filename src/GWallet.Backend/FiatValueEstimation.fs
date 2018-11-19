@@ -69,7 +69,7 @@ module FiatValueEstimation =
             | None -> NotFresh NotAvailable
             | Some value -> Fresh value
         | Cached(someValue,someDate) ->
-            if not (someDate + PERIOD_TO_CONSIDER_PRICE_STILL_FRESH > DateTime.Now) then
+            if (someDate + PERIOD_TO_CONSIDER_PRICE_STILL_FRESH) > DateTime.Now then
                 Fresh someValue
             else
                 match RetreiveOnline currency with
