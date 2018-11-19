@@ -238,12 +238,6 @@ module Caching =
             | [] -> map
             | (key,value)::tail -> RemoveRangeFromMap (map.Remove key) tail
 
-
-#if DEBUG
-        member this.ClearAll () =
-            SaveToDisk CachedNetworkData.Empty
-#endif
-
         let GatherDebuggingInfo (previousBalance) (currency) (address) (newCache) =
             let json1 = Marshalling.Serialize previousBalance
             let json2 = Marshalling.Serialize currency
@@ -259,6 +253,11 @@ module Caching =
                                                         currency
                                                         address
                                                         newCache))
+
+#if DEBUG
+        member this.ClearAll () =
+            SaveToDisk CachedNetworkData.Empty
+#endif
 
         member self.SaveSnapshot(newDietCachedData: DietCache) =
             let newCachedData = CachedNetworkData.FromDietCache newDietCachedData

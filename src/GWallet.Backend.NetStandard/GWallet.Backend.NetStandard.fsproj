@@ -45,6 +45,9 @@
     <Compile Include="..\GWallet.Backend\TransferAmount.fs">
       <Link>TransferAmount.fs</Link>
     </Compile>
+    <Compile Include="..\GWallet.Backend\Infrastructure.fs">
+      <Link>Infrastructure.fs</Link>
+    </Compile>
     <Compile Include="..\GWallet.Backend\Caching.fs">
       <Link>Caching.fs</Link>
     </Compile>
@@ -107,9 +110,6 @@
     </Compile>
     <Compile Include="..\GWallet.Backend\FiatValueEstimation.fs">
       <Link>FiatValueEstimation.fs</Link>
-    </Compile>
-    <Compile Include="..\GWallet.Backend\Infrastructure.fs">
-      <Link>Infrastructure.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\Formatting.fs">
       <Link>Formatting.fs</Link>
