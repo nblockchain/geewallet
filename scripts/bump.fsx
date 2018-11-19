@@ -36,7 +36,12 @@ Process.SafeExecute (sprintf "git add src/GWallet.Frontend.XF.Android/Properties
                      Echo.Off) |> ignore
 Process.SafeExecute (sprintf "git commit -m \"Bump version: %s -> %s\"" (fullVersion.ToString()) (newFullVersion.ToString()),
                      Echo.Off) |> ignore
+
+
+Process.Execute (sprintf "git tag --delete %s" (newFullVersion.ToString()),
+                 Echo.Off) |> ignore
 Process.SafeExecute (sprintf "git tag %s" (newFullVersion.ToString()),
                      Echo.Off) |> ignore
+
 Console.WriteLine (sprintf "Version bumped. Remember to push via `git push <remote> <branch> %s`"
                            (newFullVersion.ToString()))
