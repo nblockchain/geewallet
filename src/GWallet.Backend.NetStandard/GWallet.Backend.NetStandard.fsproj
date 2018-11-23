@@ -136,6 +136,7 @@
     <PackageReference Include="System.IO.Pipelines" Version="4.5.2" />
     <PackageReference Include="NBitcoin.Altcoins" Version="1.0.1.13" />
     <PackageReference Include="Xamarin.Essentials" Version="0.11.0-preview" />
+    <PackageReference Include="FSharp.Core" Version="4.5.3" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />
