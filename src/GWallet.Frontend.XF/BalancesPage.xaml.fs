@@ -402,9 +402,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 totalFiatAmountLabel.TextColor <- color
                 normalAccountsAndBalances,color
 
-        for readonlyAccountBalance in labels do
-            readonlyAccountBalance.BalanceSet.CryptoLabel.TextColor <- color
-            readonlyAccountBalance.BalanceSet.FiatLabel.TextColor <- color
+        for accountBalance in labels do
+            accountBalance.BalanceSet.CryptoLabel.TextColor <- color
+            accountBalance.BalanceSet.FiatLabel.TextColor <- color
 
     member private this.Init () =
         let tapGestureRecognizer = TapGestureRecognizer()
