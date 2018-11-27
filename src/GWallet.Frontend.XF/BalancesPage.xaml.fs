@@ -14,6 +14,9 @@ type CycleStart =
     | ImmediateForReadOnlyAccounts
     | Delayed
 
+// this type allows us to represent the idea that if we have, for example, 3 LTC and an unknown number of ETC (might
+// be because all ETC servers are unresponsive), then it means we have AT LEAST 3LTC; as opposed to when we know for
+// sure all balances of all currencies because all servers are responsive
 type TotalBalance =
     | ExactBalance of decimal
     | AtLeastBalance of decimal
