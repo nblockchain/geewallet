@@ -324,6 +324,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             else
                 "totalFiatAmountFrame","totalReadOnlyFiatAmountFrame"
 
+        let switchingToReadOnly = not readOnly
+
         let totalCurrentFiatAmountFrame,totalOtherFiatAmountFrame =
             mainLayout.FindByName<Frame> totalCurrentFiatAmountFrameName,
             mainLayout.FindByName<Frame> totalOtherFiatAmountFrameName
@@ -332,10 +334,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         tapGestureRecognizer.Tapped.Add(fun _ ->
 
             let shouldNotOpenNewPage =
-                if readOnly then
-                    true
-                else
+                if switchingToReadOnly then
                     readOnlyAccountsBalances.Any()
+                else
+                    true
 
             if not CrossConnectivity.IsSupported then
                 failwith "cross connectivity plugin not supported for this platform?"
@@ -344,10 +346,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     totalCurrentFiatAmountFrame.IsVisible <- false
                     totalOtherFiatAmountFrame.IsVisible <- true
                 )
-                if readOnly then
+                this.AssignColorLabels switchingToReadOnly
+                if not switchingToReadOnly then
                     this.PopulateBalances normalAccountsBalances
                 else
-                    this.AssignColorLabels false
                     this.PopulateBalances readOnlyAccountsBalances
             else
                 let coldStoragePage =
