@@ -169,7 +169,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> isIncomingPaymentImminent)
          and set value = lock lockObject (fun _ -> isIncomingPaymentImminent <- value)
 
-    member this.PopulateBalances (balances: seq<BalanceState>) =
+    member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
 
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
         mainLayout.Children.Remove footerLabel |> ignore
@@ -177,6 +177,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let currentCryptoBalances = FindCryptoBalances mainLayout (mainLayout.Children |> List.ofSeq) List.Empty
         for currentCryptoBalance in currentCryptoBalances do
             mainLayout.Children.Remove currentCryptoBalance |> ignore
+
+        let thisAssembly = typeof<GlobalState>.Assembly
+        let thisAssemblyName = thisAssembly.GetName().Name
 
         for balanceState in balances do
 
@@ -193,6 +196,18 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             ) |> ignore
 
             let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal)
+
+            let colour =
+                if readOnly then
+                    "grey"
+                else
+                    "red"
+            let currency = balanceState.BalanceSet.Account.Currency.ToString().ToLower()
+            let fullyQualifiedResourceName = sprintf "%s.img.%s_%s_120x120.png" thisAssemblyName currency colour
+            let imageSource = ImageSource.FromResource(fullyQualifiedResourceName, thisAssembly)
+            let currencyLogoImg = Image(Source = imageSource)
+            stackLayout.Children.Add currencyLogoImg
+
             stackLayout.Children.Add balanceState.BalanceSet.CryptoLabel
             stackLayout.Children.Add balanceState.BalanceSet.FiatLabel
 
@@ -348,9 +363,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 )
                 this.AssignColorLabels switchingToReadOnly
                 if not switchingToReadOnly then
-                    this.PopulateBalances normalAccountsBalances
+                    this.PopulateBalances switchingToReadOnly normalAccountsBalances
                 else
-                    this.PopulateBalances readOnlyAccountsBalances
+                    this.PopulateBalances switchingToReadOnly readOnlyAccountsBalances
             else
                 let coldStoragePage =
                     // FIXME: save IsConnected to cache at app startup, and if it has ever been connected to the
@@ -386,7 +401,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let tapper = this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances false
         this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances true |> ignore
 
-        this.PopulateBalances normalAccountsAndBalances
+        this.PopulateBalances false normalAccountsAndBalances
 
         if startWithReadOnlyAccounts then
             tapper.SendTapped null
