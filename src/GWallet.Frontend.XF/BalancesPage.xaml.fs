@@ -202,8 +202,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     "grey"
                 else
                     "red"
+
+            let iconSize = (60).ToString()
             let currency = balanceState.BalanceSet.Account.Currency.ToString().ToLower()
-            let fullyQualifiedResourceName = sprintf "%s.img.%s_%s_120x120.png" thisAssemblyName currency colour
+            let fullyQualifiedResourceName = sprintf "%s.img.%s_%s_%sx%s.png" thisAssemblyName currency colour
+                                                                              iconSize iconSize
             let imageSource = ImageSource.FromResource(fullyQualifiedResourceName, thisAssembly)
             let currencyLogoImg = Image(Source = imageSource)
             stackLayout.Children.Add currencyLogoImg
