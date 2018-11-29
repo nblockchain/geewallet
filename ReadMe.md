@@ -4,6 +4,8 @@ Welcome!
 
 GWallet is a minimalistic and pragmatist lightweight wallet for people that want to hold the most important cryptocurrencies in the same application without hassle.
 
+[![Licence](https://img.shields.io/github/license/diginex/geewallet.svg)](https://github.com/diginex/geewallet/blob/master/LICENCE.txt)
+
 | Branch    | Description                                                                | CI status                                                                                                                                                                                                         |
 | --------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | oldstable | (v0.1.0.x) ETC & ETH support, console-based frontend, cold-storage support | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/oldstable/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/oldstable)                                    |
