@@ -2,7 +2,7 @@
 
 Welcome!
 
-GWallet is a minimalistic and pragmatist lightweight wallet for people that want to hold the most important cryptocurrencies in the same application without hassle.
+GWallet is a minimalistic and pragmatist crossplatform lightweight opensource brainwallet for people that want to hold the most important cryptocurrencies in the same application with ease and peace of mind.
 
 [![Licence](https://img.shields.io/github/license/diginex/geewallet.svg)](https://github.com/diginex/geewallet/blob/master/LICENCE.txt)
 
@@ -14,7 +14,7 @@ GWallet is a minimalistic and pragmatist lightweight wallet for people that want
 |           |                                                                            | Windows: [![Windows CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/geewallet-master-build-and-test)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=1)  |
 | frontend  | +Xamarin.Forms frontends (now: Android & iOS & Gtk & Mac; soon: UWP)       | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/frontend/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/frontend)                                      |
 
-[![Balances mobile-page screenshot](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-balances.png)](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-balances.png)
+[![Balances mobile-page screenshot](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/mobile-balances.png)](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/mobile-balances.png)
 
 ## Principles
 
