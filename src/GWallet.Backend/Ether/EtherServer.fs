@@ -172,6 +172,8 @@ module Server =
                         raise (ServerTimedOutException(exMsg, webEx))
                     if (webEx.Status = WebExceptionStatus.ConnectFailure) then
                         raise (ServerUnreachableException(exMsg, webEx))
+                    if webEx.Status = WebExceptionStatus.RequestCanceled then
+                        raise <| ServerChannelNegotiationException(exMsg, webEx)
 
                     // TBH not sure if this one below happens only when TLS is not working...*, which means that either
                     // a) we need to remove these 2 lines (to not catch it) and make sure it doesn't happen in the client
