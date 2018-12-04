@@ -69,3 +69,32 @@ type Formatting() =
         let someCryptoDecimalAmount2 = 2.1m
         let formattedAmount2 = Formatting.DecimalAmount CurrencyType.Crypto someCryptoDecimalAmount2
         Assert.That(formattedAmount2, Is.EqualTo "2.1")
+
+    [<Test>]
+    member __.``varying number of decimals in crypto case: 5 decimals if less than 1``() =
+        let someCryptoDecimalAmount1 = 0.123456m
+        let formattedAmount1 = Formatting.DecimalAmount CurrencyType.Crypto someCryptoDecimalAmount1
+        Assert.That(formattedAmount1, Is.EqualTo "0.12346")
+
+    [<Test>]
+    member __.``varying number of decimals in crypto case: 4 decimals if within [1,10) range``() =
+        let someCryptoDecimalAmount1 = 1.123456m
+        let formattedAmount1 = Formatting.DecimalAmount CurrencyType.Crypto someCryptoDecimalAmount1
+        Assert.That(formattedAmount1, Is.EqualTo "1.1235")
+
+    [<Test>]
+    member __.``varying number of decimals in crypto case: 3 decimals if within [10,100) range``() =
+        let someCryptoDecimalAmount1 = 12.123456m
+        let formattedAmount1 = Formatting.DecimalAmount CurrencyType.Crypto someCryptoDecimalAmount1
+        Assert.That(formattedAmount1, Is.EqualTo "12.123")
+
+    [<Test>]
+    member __.``varying number of decimals in crypto case: 2 decimals if >100``() =
+        let someCryptoDecimalAmount1 = 123.123456m
+        let formattedAmount1 = Formatting.DecimalAmount CurrencyType.Crypto someCryptoDecimalAmount1
+        Assert.That(formattedAmount1, Is.EqualTo "123.12")
+
+        let someCryptoDecimalAmount1 = 1234.123456m
+        let formattedAmount1 = Formatting.DecimalAmount CurrencyType.Crypto someCryptoDecimalAmount1
+        Assert.That(formattedAmount1, Is.EqualTo "1,234.12")
+

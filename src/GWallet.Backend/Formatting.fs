@@ -14,8 +14,16 @@ module Formatting =
                 let twoDecimals = 2
                 twoDecimals,sprintf "N%d" twoDecimals
             | CurrencyType.Crypto ->
-                let fiveDecimals = 5
-                fiveDecimals,sprintf "#,0.%s" (String('#', fiveDecimals))
+                let numberOfDecimals =
+                    if amount < 1m then
+                        5
+                    elif amount < 10m then
+                        4
+                    elif amount < 100m then
+                        3
+                    else
+                        2
+                numberOfDecimals,sprintf "#,0.%s" (String('#', numberOfDecimals))
 
         Math.Round(amount, amountOfDecimalsToShow)
             .ToString formattingStrategy
