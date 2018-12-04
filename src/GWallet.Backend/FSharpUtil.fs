@@ -11,18 +11,19 @@ module FSharpUtil =
         try
             let! result = child
             return Some result
-        with :? TimeoutException -> return None
+        with :? TimeoutException ->
+            return None
     }
 
     // FIXME: we should not need this workaround anymore when this gets addressed:
     //        https://github.com/fsharp/fslang-suggestions/issues/660
     let ReRaise (ex: Exception): Exception =
-            (ExceptionDispatchInfo.Capture ex).Throw ()
-            failwith "Should be unreachable"
-            ex
+        (ExceptionDispatchInfo.Capture ex).Throw ()
+        failwith "Should be unreachable"
+        ex
 
     let rec public FindException<'T when 'T:> Exception>(ex: Exception): Option<'T> =
-        if (ex = null) then
+        if null = ex then
             None
         else
             match ex with

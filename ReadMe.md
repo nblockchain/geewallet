@@ -2,7 +2,9 @@
 
 Welcome!
 
-GWallet is a minimalistic and pragmatist lightweight wallet for people that want to hold the most important cryptocurrencies in the same application without hassle.
+GWallet is a minimalistic and pragmatist crossplatform lightweight opensource brainwallet for people that want to hold the most important cryptocurrencies in the same application with ease and peace of mind.
+
+[![Licence](https://img.shields.io/github/license/diginex/geewallet.svg)](https://github.com/diginex/geewallet/blob/master/LICENCE.txt)
 
 | Branch    | Description                                                                | CI status                                                                                                                                                                                                         |
 | --------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -12,7 +14,7 @@ GWallet is a minimalistic and pragmatist lightweight wallet for people that want
 |           |                                                                            | Windows: [![Windows CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/geewallet-master-build-and-test)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=1)  |
 | frontend  | +Xamarin.Forms frontends (now: Android & iOS & Gtk & Mac; soon: UWP)       | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/frontend/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/frontend)                                      |
 
-[![Balances mobile-page screenshot](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-balances.png)](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/ios-balances.png)
+[![Balances mobile-page screenshot](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/mobile-balances.png)](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/mobile-balances.png)
 
 ## Principles
 
@@ -84,7 +86,7 @@ This list is the (intended) order of preference for new features:
 ## Dev roadmap
 
 (Only intelligible if you're a GWallet developer):
-- Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/, or wait for https://github.com/xamarin/Xamarin.Forms/issues/1654).
+- Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/, or wait for https://github.com/Microsoft/visualfsharp/pull/5850).
 - Refactor bitcoin support to use NBitcoin's TransactionBuilder.
 - Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
 
