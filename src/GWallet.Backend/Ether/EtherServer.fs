@@ -148,6 +148,8 @@ module Server =
                         raise <| ServerTimedOutException(exMsg, webEx)
                     if webEx.Status = WebExceptionStatus.ConnectFailure then
                         raise <| ServerUnreachableException(exMsg, webEx)
+                    if webEx.Status = WebExceptionStatus.RequestCanceled then
+                        raise <| ServerChannelNegotiationException(exMsg, webEx)
 
                     if (webEx.Status = WebExceptionStatus.TrustFailure) then
                         raise <| ServerChannelNegotiationException(exMsg, webEx)
