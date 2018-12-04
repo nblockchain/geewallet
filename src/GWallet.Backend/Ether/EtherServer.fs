@@ -155,6 +155,8 @@ module Server =
                             raise (ServerMisconfiguredException(exMsg, httpReqEx))
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
                             raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
+                            raise <| ServerUnavailableException(exMsg, httpReqEx)
 
                         reraise()
 
