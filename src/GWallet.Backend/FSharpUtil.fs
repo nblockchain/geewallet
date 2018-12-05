@@ -6,7 +6,7 @@ open Microsoft.FSharp.Reflection
 
 module FSharpUtil =
 
-    let WithTimeout (timeSpan: TimeSpan) operation = async {
+    let WithTimeout (timeSpan: TimeSpan) (operation: Async<'R>): Async<Option<'R>> = async {
         let! child = Async.StartChild (operation, int timeSpan.TotalMilliseconds)
         try
             let! result = child

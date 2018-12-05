@@ -125,11 +125,21 @@ module Server =
         ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
 
     let exMsg = "Could not communicate with EtherServer"
-    let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
+    let PerformEthereumRemoteCall<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): Async<'R> = async {
         let task = func arg
-        let finished =
+        let operation = task |> Async.AwaitTask
+        let! maybeResult = FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT operation
+        match maybeResult with
+        | None ->
+            return raise <| ServerTimedOutException(exMsg)
+        | Some result ->
+            return result
+    }
+
+    let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): 'R =
+        let result =
             try
-                task.Wait Config.DEFAULT_NETWORK_TIMEOUT
+                PerformEthereumRemoteCall func arg |> Async.RunSynchronously
             with
             | ex ->
                 let maybeWebEx = FSharpUtil.FindException<WebException> ex
@@ -182,6 +192,8 @@ module Server =
                             raise <| ServerMisconfiguredException(exMsg, httpReqEx)
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
                             raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
+                            raise <| ServerUnavailableException(exMsg, httpReqEx)
 
                         // TODO: report this one as a warning to sentry?
                         if httpReqEx.InnerException <> null &&
@@ -225,10 +237,7 @@ module Server =
                                     raise socketRewrappedException
                                 | None ->
                                     reraise()
-
-        if not finished then
-            raise <| ServerTimedOutException(exMsg)
-        task.Result
+        result
 
     let private FaultTolerantParallelClientInnerSettings(numberOfConsistentResponsesRequired: uint16) =
         {
@@ -277,45 +286,50 @@ module Server =
     let GetTransactionCount (currency: Currency) (address: string)
                                 : Async<HexBigInteger> =
         async {
-            let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-                WaitOnTask web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
-                               publicAddress
+            let web3Funcs: List<string->HexBigInteger> =
+                let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
+                    WaitOnTask web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
+                                   publicAddress
+                GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query<string,HexBigInteger>
                 (FaultTolerantParallelClientSettings currency)
                 address
-                (GetWeb3Funcs currency web3Func)
+                web3Funcs
         }
 
     let GetUnconfirmedEtherBalance (currency: Currency) (address: string)
-                                       : Async<HexBigInteger> =
+                                       : Async<BigInteger> =
         async {
-            let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-                WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
-            return! faultTolerantEtherClient.Query<string,HexBigInteger>
+            let web3Funcs: List<string->BigInteger> =
+                let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+                    let hexBalance = WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
+                    hexBalance.Value
+                GetWeb3Funcs currency web3Func
+            return! faultTolerantEtherClient.Query<string,BigInteger>
                 (FaultTolerantParallelClientSettings currency)
                 address
-                (GetWeb3Funcs currency web3Func)
+                web3Funcs
         }
 
     let GetUnconfirmedTokenBalance (currency: Currency) (address: string): Async<BigInteger> =
         async {
-            let web3Func (web3: Web3) (publicAddress: string): BigInteger =
-                let tokenService = TokenManager.DaiContract web3
-                let balanceFunc: string->Task<BigInteger>
-                    = tokenService.BalanceOfQueryAsync
-                WaitOnTask balanceFunc publicAddress
+            let web3Funcs: List<string->BigInteger> =
+                let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+                    let tokenService = TokenManager.DaiContract web3
+                    let balanceFunc: string->Task<BigInteger>
+                        = tokenService.BalanceOfQueryAsync
+                    WaitOnTask balanceFunc publicAddress
+                GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query<string,BigInteger>
                 (FaultTolerantParallelClientSettings currency)
                 address
-                (GetWeb3Funcs currency web3Func)
+                web3Funcs
         }
 
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
-    let private GetConfirmedEtherBalanceInternal (web3: Web3) (publicAddress: string) =
-        Task.Run(fun _ ->
-            let latestBlockTask = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync ()
-            latestBlockTask.Wait()
-            let latestBlock = latestBlockTask.Result
+    let private GetConfirmedEtherBalanceInternal (web3: Web3) (publicAddress: string): Async<HexBigInteger> =
+        async {
+            let! latestBlock = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync () |> Async.AwaitTask
             let blockForConfirmationReference =
                 BlockParameter(HexBigInteger(BigInteger.Subtract(latestBlock.Value,
                                                                  NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)))
@@ -324,33 +338,33 @@ module Server =
                 Console.Error.WriteLine (sprintf "Last block number and last confirmed block number: %s: %s"
                                                  (latestBlock.Value.ToString()) (blockForConfirmationReference.BlockNumber.Value.ToString()))
 *)
-            let balanceTask =
-                web3.Eth.GetBalance.SendRequestAsync(publicAddress,blockForConfirmationReference)
-            balanceTask.Wait()
-            balanceTask.Result
-        )
-
-    let GetConfirmedEtherBalance (currency: Currency) (address: string)
-                                     : Async<HexBigInteger> =
-        async {
-            let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-                WaitOnTask (GetConfirmedEtherBalanceInternal web3) publicAddress
-            return! faultTolerantEtherClient.Query<string,HexBigInteger>
-                        (FaultTolerantParallelClientSettings currency)
-                        address
-                        (GetWeb3Funcs currency web3Func)
+            let! balance =
+                web3.Eth.GetBalance.SendRequestAsync(publicAddress,blockForConfirmationReference) |> Async.AwaitTask
+            return balance
         }
 
-    let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Task<BigInteger> =
+    let GetConfirmedEtherBalance (currency: Currency) (address: string)
+                                     : Async<BigInteger> =
+        async {
+            let web3Funcs: List<string->BigInteger> =
+                let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+                    let taskFunc (publicAddress: string) =
+                        GetConfirmedEtherBalanceInternal web3 publicAddress |> Async.StartAsTask
+                    let balance = WaitOnTask taskFunc publicAddress
+                    balance.Value
+                GetWeb3Funcs currency web3Func
+            return! faultTolerantEtherClient.Query<string,BigInteger>
+                        (FaultTolerantParallelClientSettings currency)
+                        address
+                        web3Funcs
+        }
+
+    let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Async<BigInteger> =
         if (web3 = null) then
             invalidArg "web3" "web3 argument should not be null"
 
-        let balanceFunc(): Task<BigInteger> =
-            let latestBlockTask = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync ()
-            if (latestBlockTask = null) then
-                failwith "latestBlockTask somehow is null"
-            latestBlockTask.Wait()
-            let latestBlock = latestBlockTask.Result
+        async {
+            let! latestBlock = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync () |> Async.AwaitTask
             if (latestBlock = null) then
                 failwith "latestBlock somehow is null"
             let blockForConfirmationReference =
@@ -361,35 +375,43 @@ module Server =
             let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
             if (contractHandler = null) then
                 failwith "contractHandler somehow is null"
-            contractHandler.QueryAsync<BalanceOfFunction,BigInteger>
+            let! balance = contractHandler.QueryAsync<BalanceOfFunction,BigInteger>
                                     (balanceOfFunctionMsg,
-                                     blockForConfirmationReference)
-        Task.Run<BigInteger> balanceFunc
+                                     blockForConfirmationReference) |> Async.AwaitTask
+            return balance
+        }
+
 
     let GetConfirmedTokenBalance (currency: Currency) (address: string): Async<BigInteger> =
         async {
-            let web3Func (web3: Web3) (publicddress: string): BigInteger =
-                WaitOnTask (GetConfirmedTokenBalanceInternal web3) address
+            let web3Funcs: List<string->BigInteger> =
+                let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+                    let taskFunc (publicAddress: string) =
+                        GetConfirmedTokenBalanceInternal web3 address |> Async.StartAsTask
+                    WaitOnTask taskFunc publicAddress
+                GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query<string,BigInteger>
                         (FaultTolerantParallelClientSettings currency)
                         address
-                        (GetWeb3Funcs currency web3Func)
+                        web3Funcs
         }
 
     let EstimateTokenTransferFee (baseCurrency: Currency) (account: IAccount) (amount: decimal) destination
                                      : Async<HexBigInteger> =
         async {
-            let web3Func (web3: Web3) (_: unit): HexBigInteger =
-                let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
-                let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
-                let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
-                                                           To = destination,
-                                                           Value = amountInWei)
-                WaitOnTask (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
+            let web3Funcs: List<unit->HexBigInteger> =
+                let web3Func (web3: Web3) (_: unit): HexBigInteger =
+                    let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
+                    let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
+                    let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
+                                                               To = destination,
+                                                               Value = amountInWei)
+                    WaitOnTask (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
+                GetWeb3Funcs account.Currency web3Func
             return! faultTolerantEtherClient.Query<unit,HexBigInteger>
                         (FaultTolerantParallelClientSettings baseCurrency)
                         ()
-                        (GetWeb3Funcs account.Currency web3Func)
+                        web3Funcs
         }
 
     let private AverageGasPrice (gasPricesFromDifferentServers: List<HexBigInteger>): HexBigInteger =
@@ -401,28 +423,32 @@ module Server =
     let GetGasPrice (currency: Currency)
         : Async<HexBigInteger> =
         async {
-            let web3Func (web3: Web3) (_: unit): HexBigInteger =
-                WaitOnTask web3.Eth.GasPrice.SendRequestAsync ()
+            let web3Funcs: List<unit->HexBigInteger> =
+                let web3Func (web3: Web3) (_: unit): HexBigInteger =
+                    WaitOnTask web3.Eth.GasPrice.SendRequestAsync ()
+                GetWeb3Funcs currency web3Func
             let minResponsesRequired = uint16 2
             return! faultTolerantEtherClient.Query<unit,HexBigInteger>
                         { FaultTolerantParallelClientSettings currency with
                               ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
                         ()
-                        (GetWeb3Funcs currency web3Func)
+                        web3Funcs
         }
 
-    let BroadcastTransaction (currency: Currency) transaction
+    let BroadcastTransaction (currency: Currency) (transaction: string)
         : Async<string> =
         let insufficientFundsMsg = "Insufficient funds"
 
         async {
-            let web3Func (web3: Web3) (tx: string): string =
-                WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
+            let web3Funcs: List<string->string> =
+                let web3Func (web3: Web3) (tx: string): string =
+                    WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
+                GetWeb3Funcs currency web3Func
             try
                 return! faultTolerantEtherClient.Query<string,string>
                             (FaultTolerantParallelClientSettings currency)
                             transaction
-                            (GetWeb3Funcs currency web3Func)
+                            web3Funcs
             with
             | ex ->
                 match FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex with
