@@ -35,26 +35,26 @@ module internal Account =
         publicAddress
 
     let GetConfirmedBalance(account: IAccount): Async<decimal> = async {
-        if (account.Currency.IsEther()) then
-            let! etherBalance = Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress
-            return UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
-        elif (account.Currency.IsEthToken()) then
-            let! tokenBalance = Ether.Server.GetConfirmedTokenBalance account.Currency account.PublicAddress
-            return UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
-        else
-            return failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
-        }
+        let! balance =
+            if (account.Currency.IsEther()) then
+                Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress
+            elif (account.Currency.IsEthToken()) then
+                Ether.Server.GetConfirmedTokenBalance account.Currency account.PublicAddress
+            else
+                failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
+        return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
+    }
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount): Async<decimal> = async {
-        if (account.Currency.IsEther()) then
-            let! etherBalance = Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress
-            return UnitConversion.Convert.FromWei(etherBalance.Value, UnitConversion.EthUnit.Ether)
-        elif (account.Currency.IsEthToken()) then
-            let! tokenBalance = Ether.Server.GetUnconfirmedTokenBalance account.Currency account.PublicAddress
-            return UnitConversion.Convert.FromWei(tokenBalance, UnitConversion.EthUnit.Ether)
-        else
-            return failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
-        }
+        let! balance =
+            if (account.Currency.IsEther()) then
+                Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress
+            elif (account.Currency.IsEthToken()) then
+                Ether.Server.GetUnconfirmedTokenBalance account.Currency account.PublicAddress
+            else
+                failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
+        return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
+    }
 
     let ValidateAddress (currency: Currency) (address: string) =
         let ETHEREUM_ADDRESSES_LENGTH = 42

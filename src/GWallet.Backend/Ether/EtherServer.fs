@@ -281,11 +281,12 @@ module Server =
         }
 
     let GetUnconfirmedEtherBalance (currency: Currency) (address: string)
-                                       : Async<HexBigInteger> =
+                                       : Async<BigInteger> =
         async {
-            let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-                WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
-            return! faultTolerantEtherClient.Query<string,HexBigInteger>
+            let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+                let hexBalance = WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
+                hexBalance.Value
+            return! faultTolerantEtherClient.Query<string,BigInteger>
                 (FaultTolerantParallelClientSettings currency)
                 address
                 (GetWeb3Funcs currency web3Func)
@@ -325,11 +326,12 @@ module Server =
         )
 
     let GetConfirmedEtherBalance (currency: Currency) (address: string)
-                                     : Async<HexBigInteger> =
+                                     : Async<BigInteger> =
         async {
-            let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-                WaitOnTask (GetConfirmedEtherBalanceInternal web3) publicAddress
-            return! faultTolerantEtherClient.Query<string,HexBigInteger>
+            let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+                let hexBalance = WaitOnTask (GetConfirmedEtherBalanceInternal web3) publicAddress
+                hexBalance.Value
+            return! faultTolerantEtherClient.Query<string,BigInteger>
                         (FaultTolerantParallelClientSettings currency)
                         address
                         (GetWeb3Funcs currency web3Func)
