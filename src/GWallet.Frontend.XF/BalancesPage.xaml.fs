@@ -196,7 +196,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
             let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal)
 
-            (* publishing a release without images to test performance
             let colour =
                 if readOnly then
                     "grey"
@@ -205,7 +204,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
             let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
             stackLayout.Children.Add currencyLogoImg
-            *)
 
             stackLayout.Children.Add balanceState.BalanceSet.CryptoLabel
             stackLayout.Children.Add balanceState.BalanceSet.FiatLabel
