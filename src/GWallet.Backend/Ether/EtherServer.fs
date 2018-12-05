@@ -125,7 +125,7 @@ module Server =
         ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
 
     let exMsg = "Could not communicate with EtherServer"
-    let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T) =
+    let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): 'R =
         let task = func arg
         let finished =
             try
@@ -305,7 +305,7 @@ module Server =
         }
 
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
-    let private GetConfirmedEtherBalanceInternal (web3: Web3) (publicAddress: string) =
+    let private GetConfirmedEtherBalanceInternal (web3: Web3) (publicAddress: string): Task<HexBigInteger> =
         Task.Run(fun _ ->
             let latestBlockTask = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync ()
             latestBlockTask.Wait()
@@ -405,7 +405,7 @@ module Server =
                         (GetWeb3Funcs currency web3Func)
         }
 
-    let BroadcastTransaction (currency: Currency) transaction
+    let BroadcastTransaction (currency: Currency) (transaction: string)
         : Async<string> =
         let insufficientFundsMsg = "Insufficient funds"
 
