@@ -240,13 +240,13 @@
     <Reference Include="Xamarin.Android.Support.v7.MediaRouter">
       <HintPath>..\..\packages\Xamarin.Android.Support.v7.MediaRouter.27.0.2.1\lib\MonoAndroid81\Xamarin.Android.Support.v7.MediaRouter.dll</HintPath>
     </Reference>
-    <Reference Include="Xamarin.Essentials">
-      <HintPath>..\..\packages\Xamarin.Essentials.0.11.0-preview\lib\monoandroid81\Xamarin.Essentials.dll</HintPath>
-    </Reference>
     <Reference Include="Java.Interop" />
     <Reference Include="System.Numerics.Vectors" />
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.5.3\lib\netstandard1.6\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Essentials">
+      <HintPath>..\..\packages\Xamarin.Essentials.1.0.0\lib\monoandroid81\Xamarin.Essentials.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

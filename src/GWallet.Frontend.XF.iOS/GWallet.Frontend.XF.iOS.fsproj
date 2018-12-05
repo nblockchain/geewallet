@@ -292,7 +292,7 @@
       <HintPath>..\..\packages\FSharp.Core.4.5.3\lib\netstandard1.6\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Essentials">
-      <HintPath>..\..\packages\Xamarin.Essentials.0.11.0-preview\lib\xamarinios10\Xamarin.Essentials.dll</HintPath>
+      <HintPath>..\..\packages\Xamarin.Essentials.1.0.0\lib\xamarinios10\Xamarin.Essentials.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />

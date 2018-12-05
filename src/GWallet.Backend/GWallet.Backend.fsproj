@@ -237,7 +237,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Xamarin.Essentials">
-      <HintPath>..\..\packages\Xamarin.Essentials.0.11.0-preview\lib\netstandard1.0\Xamarin.Essentials.dll</HintPath>
+      <HintPath>..\..\packages\Xamarin.Essentials.1.0.0\lib\netstandard1.0\Xamarin.Essentials.dll</HintPath>
     </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

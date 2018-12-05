@@ -180,11 +180,11 @@
     <Reference Include="ZXing.Net.Mobile.Forms.macOS">
       <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181104-152016\lib\Xamarin.Mac\ZXing.Net.Mobile.Forms.macOS.dll</HintPath>
     </Reference>
-    <Reference Include="Xamarin.Essentials">
-      <HintPath>..\..\packages\Xamarin.Essentials.0.11.0-preview\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
-    </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.5.3\lib\netstandard1.6\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Xamarin.Essentials">
+      <HintPath>..\..\packages\Xamarin.Essentials.1.0.0\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
