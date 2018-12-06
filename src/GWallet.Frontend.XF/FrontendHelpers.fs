@@ -23,6 +23,8 @@ type BalanceState = {
 
 module FrontendHelpers =
 
+    let private enableGtkWorkarounds = true
+
     type IGlobalAppState =
         abstract member Awake: bool with get
 
@@ -220,14 +222,7 @@ module FrontendHelpers =
             )
         ) |> DoubleCheckCompletionNonGeneric
 
-    let private CreateWidgetsForAccount (): Label*Label =
-        let accountBalanceLabel = Label(Text = "...",
-                                        VerticalOptions = LayoutOptions.Center,
-                                        HorizontalOptions = LayoutOptions.Start)
-        let fiatBalanceLabel = Label(Text = "...",
-                                     VerticalOptions = LayoutOptions.Center,
-                                     HorizontalOptions = LayoutOptions.EndAndExpand)
-
+    let private ApplyGtkWorkarounds (accountBalanceLabel: Label) (fiatBalanceLabel: Label) =
         // workaround to small default fonts in GTK (compared to other toolkits) so FIXME: file bug about this
         let magicGtkNumber = MagicGtkNumber
         accountBalanceLabel.FontSize <- magicGtkNumber
@@ -240,6 +235,17 @@ module FrontendHelpers =
             // workaround about Labels not putting a decent default left margin in GTK so FIXME: file bug about this
             accountBalanceLabel.TranslationX <- magicGtkNumber
             fiatBalanceLabel.TranslationX <- magicGtkNumber
+
+    let private CreateWidgetsForAccount (): Label*Label =
+        let accountBalanceLabel = Label(Text = "...",
+                                        VerticalOptions = LayoutOptions.Center,
+                                        HorizontalOptions = LayoutOptions.Start)
+        let fiatBalanceLabel = Label(Text = "...",
+                                     VerticalOptions = LayoutOptions.Center,
+                                     HorizontalOptions = LayoutOptions.EndAndExpand)
+
+        if enableGtkWorkarounds then
+            ApplyGtkWorkarounds accountBalanceLabel fiatBalanceLabel
 
         accountBalanceLabel,fiatBalanceLabel
 
