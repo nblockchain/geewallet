@@ -14,9 +14,12 @@
 
        <Frame x:Name="totalFiatAmountFrame" HasShadow="false"
               BorderColor="Transparent"
+               VerticalOptions="CenterAndExpand"
+               HorizontalOptions="Center"
               Margin="0,0,0,0">
             <StackLayout x:Name="totalFiatAmountLayout"
                          Orientation="Horizontal"
+                         VerticalOptions="CenterAndExpand"
                          HorizontalOptions="Center"
                          Margin="0,0,0,0">
                 <Label Text="..." x:Name="totalFiatAmountLabel"
