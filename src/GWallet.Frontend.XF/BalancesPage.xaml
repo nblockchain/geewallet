@@ -13,7 +13,6 @@
                FontAttributes="Bold" FontSize="Large" />
 
        <Frame x:Name="totalFiatAmountFrame" HasShadow="false"
-              BackgroundColor="Transparent"
               BorderColor="Transparent"
               Margin="0,0,0,0">
             <StackLayout x:Name="totalFiatAmountLayout"
