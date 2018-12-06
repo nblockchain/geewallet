@@ -66,12 +66,12 @@ module FrontendHelpers =
             NotFresh(NotAvailable),ExchangeRateUnreachableMsg
         | Fresh(usdValue) ->
             let fiatBalance = usdValue * balance
-            Fresh(fiatBalance),sprintf " ~ %s %s"
+            Fresh(fiatBalance),sprintf "~ %s %s"
                                    (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
                                    defaultFiatCurrency
         | NotFresh(Cached(usdValue,time)) ->
             let fiatBalance = usdValue * balance
-            NotFresh(Cached(fiatBalance,time)),sprintf " ~ %s %s%s"
+            NotFresh(Cached(fiatBalance,time)),sprintf "~ %s %s%s"
                                                     (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
                                                     defaultFiatCurrency
                                                     (MaybeReturnOutdatedMarkForOldDate time)
