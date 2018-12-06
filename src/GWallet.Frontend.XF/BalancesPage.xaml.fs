@@ -30,7 +30,6 @@ type TotalBalance =
 type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                   normalAccountsAndBalances: seq<BalanceState>,
                   readOnlyAccountsAndBalances: seq<BalanceState>,
-                  currencyImages: Map<Currency*bool,Image>,
                   startWithReadOnlyAccounts: bool)
                       as this =
     inherit ContentPage()
@@ -160,8 +159,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         this.Init()
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
-    new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,
-                         Map.empty,false)
+    new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,false)
 
     member private this.IsTimerRunning
         with get() = lock lockObject (fun _ -> timerRunning)
@@ -171,7 +169,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> isIncomingPaymentImminent)
          and set value = lock lockObject (fun _ -> isIncomingPaymentImminent <- value)
 
-    member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
+    member this.PopulateBalances (balances: seq<BalanceState>) =
 
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
         mainLayout.Children.Remove footerLabel |> ignore
@@ -195,16 +193,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             ) |> ignore
 
             let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal)
-
-            let colour =
-                if readOnly then
-                    "grey"
-                else
-                    "red"
-
-            let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
-            stackLayout.Children.Add currencyLogoImg
-
             stackLayout.Children.Add balanceState.BalanceSet.CryptoLabel
             stackLayout.Children.Add balanceState.BalanceSet.FiatLabel
 
@@ -360,9 +348,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 )
                 this.AssignColorLabels switchingToReadOnly
                 if not switchingToReadOnly then
-                    this.PopulateBalances switchingToReadOnly normalAccountsBalances
+                    this.PopulateBalances normalAccountsBalances
                 else
-                    this.PopulateBalances switchingToReadOnly readOnlyAccountsBalances
+                    this.PopulateBalances readOnlyAccountsBalances
             else
                 let coldStoragePage =
                     // FIXME: save IsConnected to cache at app startup, and if it has ever been connected to the
@@ -370,8 +358,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     use crossConnectivityInstance = CrossConnectivity.Current
                     if crossConnectivityInstance.IsConnected then
                         let newBalancesPageFunc = (fun (normalAccountsAndBalances,readOnlyAccountsAndBalances) ->
-                            BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
-                                         currencyImages, true) :> Page
+                            BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances, true) :> Page
                         )
                         let page = PairingToPage(this, normalAccountsAndBalances, newBalancesPageFunc) :> Page
                         NavigationPage.SetHasNavigationBar(page, false)
@@ -399,7 +386,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let tapper = this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances false
         this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances true |> ignore
 
-        this.PopulateBalances false normalAccountsAndBalances
+        this.PopulateBalances normalAccountsAndBalances
 
         if startWithReadOnlyAccounts then
             tapper.SendTapped null

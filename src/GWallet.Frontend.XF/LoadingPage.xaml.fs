@@ -19,37 +19,6 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
     let readOnlyAccounts = allAccounts.OfType<ReadOnlyAccount>() |> List.ofSeq
                            |> List.map (fun account -> account :> IAccount)
 
-    let thisAssembly = typeof<GlobalState>.Assembly
-    let thisAssemblyName = thisAssembly.GetName().Name
-    let CreateImage (currency: Currency) (readOnly: bool) =
-        let iconSize = (60).ToString()
-        let colour =
-            if readOnly then
-                "grey"
-            else
-                "red"
-        let currencyLowerCase = currency.ToString().ToLower()
-        let fullyQualifiedResourceName = sprintf "%s.img.%s_%s_%sx%s.png"
-                                                 thisAssemblyName currencyLowerCase colour iconSize iconSize
-        let imageSource = ImageSource.FromResource(fullyQualifiedResourceName, thisAssembly)
-        let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
-        currencyLogoImg
-    let GetAllCurrencyCases(): seq<Currency*bool> =
-        seq {
-            for currency in Currency.GetAll() do
-                yield currency,true
-                yield currency,false
-        }
-    let GetAllImages(): seq<(Currency*bool)*Image> =
-        seq {
-            for currency,readOnly in GetAllCurrencyCases() do
-                yield (currency,readOnly),(CreateImage currency readOnly)
-        }
-    let PreLoadCurrencyImages(): Async<Map<Currency*bool,Image>> =
-        async {
-            return (GetAllImages() |> Map.ofSeq)
-        }
-
     do
         this.Init()
 
@@ -71,21 +40,13 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
         let readOnlyAccountBalancesJob = FrontendHelpers.UpdateCachedBalancesAsync readOnlyAccountsBalances
 
         let populateGrid = async {
-            let! allBalancesJob =
-                Async.Parallel(allNormalAccountBalancesJob::(readOnlyAccountBalancesJob::List.Empty))
-                    |> Async.StartChild
-            let! preloadCurrencyImagesJob = PreLoadCurrencyImages()
-                                            |> Async.StartChild
-
+            let allBalancesJob = Async.Parallel(allNormalAccountBalancesJob::(readOnlyAccountBalancesJob::List.Empty))
             let! allResolvedBalances = allBalancesJob
             let allResolvedNormalAccountBalances = allResolvedBalances.ElementAt(0)
             let allResolvedReadOnlyBalances = allResolvedBalances.ElementAt(1)
 
-            let! currencyImages = preloadCurrencyImagesJob
-
             Device.BeginInvokeOnMainThread(fun _ ->
-                let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
-                                                currencyImages, false)
+                let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances, false)
                 FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
             )
         }
