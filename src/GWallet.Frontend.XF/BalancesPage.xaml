@@ -36,9 +36,12 @@
                IsVisible="false"
                BackgroundColor="Transparent"
                BorderColor="Transparent"
+               VerticalOptions="CenterAndExpand"
+               HorizontalOptions="Center"
                Margin="0,0,0,0">
             <StackLayout x:Name="totalReadOnlyFiatAmountLayout"
                          Orientation="Horizontal"
+                         VerticalOptions="CenterAndExpand"
                          HorizontalOptions="Center"
                          Margin="0,0,0,0">
                 <Label Text="..." x:Name="totalReadOnlyFiatAmountLabel"
