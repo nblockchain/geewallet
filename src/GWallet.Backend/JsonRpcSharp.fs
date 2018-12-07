@@ -36,10 +36,13 @@ module JsonRpcSharp =
         }
 
         let GetAsciiString (buffer: ReadOnlySequence<byte>) =
+            // FIXME: in newer versions of F#, this mutable wrapper is not needed (remove when we depend on it)
+            let mutable mutableBuffer = buffer
+
             // A likely better way of converting this buffer/sequence to a string can be found her:
             // https://blogs.msdn.microsoft.com/dotnet/2018/07/09/system-io-pipelines-high-performance-io-in-net/
             // But I cannot find the namespace of the presumably extension method "Create()" on System.String:
-            let bufferArray = System.Buffers.BuffersExtensions.ToArray (& buffer)
+            let bufferArray = System.Buffers.BuffersExtensions.ToArray (& mutableBuffer)
             System.Text.Encoding.ASCII.GetString bufferArray
 
         let rec ReadPipeInternal (reader: PipeReader) (stringBuilder: StringBuilder) = async {
@@ -47,8 +50,11 @@ module JsonRpcSharp =
                 line |> GetAsciiString |> stringBuilder.AppendLine |> ignore
 
             let rec keepAdvancingPosition (buffer: ReadOnlySequence<byte>): ReadOnlySequence<byte> =
+                // FIXME: in newer versions of F#, this mutable wrapper is not needed (remove when we depend on it)
+                let mutable mutableBuffer = buffer
+
                 // How to call a ref extension method using extension syntax?
-                let maybePosition = System.Buffers.BuffersExtensions.PositionOf(& buffer, byte '\n')
+                let maybePosition = System.Buffers.BuffersExtensions.PositionOf(& mutableBuffer, byte '\n')
                                     |> Option.ofNullable
                 match maybePosition with
                 | None ->
