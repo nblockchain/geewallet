@@ -109,7 +109,7 @@ type FaultTolerance() =
         Assert.That(dataRetrieved, Is.EqualTo(None))
 
     [<Test>]
-    member __.``exception typed passed in is ignored``() =
+    member __.``exception type passed in is ignored``() =
         let someResult = 1
         let someStringArg = "foo"
         let func1 (arg: string) =
@@ -125,7 +125,7 @@ type FaultTolerance() =
         Assert.That(result, Is.EqualTo(someResult))
 
     [<Test>]
-    member __.``exception not passed in is not ignored``() =
+    member __.``exception type not passed in is not ignored``() =
         let someResult = 1
         let someStringArg = "foo"
         let func1 (arg: string) =
