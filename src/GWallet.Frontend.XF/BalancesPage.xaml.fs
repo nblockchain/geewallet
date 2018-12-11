@@ -411,6 +411,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     member private this.Init () =
         FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalFiatAmountFrame
         FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalReadOnlyFiatAmountFrame
+        FrontendHelpers.ApplyGtkWorkarounds totalFiatAmountLabel false
+        FrontendHelpers.ApplyGtkWorkarounds totalReadOnlyFiatAmountLabel false
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Subscribe(fun _ ->

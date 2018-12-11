@@ -231,11 +231,12 @@ module FrontendHelpers =
             frame.BackgroundColor <- Color.FromHex ubuntu1804DefaultColor
             frame.BorderColor <- Color.FromHex ubuntu1804DefaultColor
 
-    let private ApplyGtkWorkarounds (balanceLabel: Label) =
+    let internal ApplyGtkWorkarounds (balanceLabel: Label) (adjustSize: bool) =
         // workaround to small default fonts in GTK (compared to other toolkits) so FIXME: file bug about this
-        balanceLabel.FontSize <- MagicGtkNumber
+        if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) && adjustSize then
+            balanceLabel.FontSize <- MagicGtkNumber
 
-        if (Device.RuntimePlatform = Device.GTK) then
+        if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then
             // workaround about Labels not putting a decent default left&top margin in GTK so FIXME: file bug about this
             balanceLabel.TranslationY <- MagicGtkNumber
             balanceLabel.TranslationX <- MagicGtkNumber
@@ -248,9 +249,8 @@ module FrontendHelpers =
                                      VerticalOptions = LayoutOptions.Center,
                                      HorizontalOptions = LayoutOptions.EndAndExpand)
 
-        if enableGtkWorkarounds then
-            ApplyGtkWorkarounds accountBalanceLabel
-            ApplyGtkWorkarounds fiatBalanceLabel
+        ApplyGtkWorkarounds accountBalanceLabel true
+        ApplyGtkWorkarounds fiatBalanceLabel true
 
         accountBalanceLabel,fiatBalanceLabel
 
