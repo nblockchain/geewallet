@@ -135,6 +135,18 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
                                                      ex.Message)
                     let newFailures = (head,ex)::failuresSoFar
                     return! ConcatenateNonParallelFuncs args newFailures tail
+                | ex ->
+                    let maybeSpecificEx = FSharpUtil.FindException<'E> ex
+                    match maybeSpecificEx with
+                    | Some specificInnerEx ->
+                        if (Config.DebugLog) then
+                            Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
+                                                         (ex.GetType().FullName)
+                                                         ex.Message)
+                        let newFailures = (head,specificInnerEx)::failuresSoFar
+                        return! ConcatenateNonParallelFuncs args newFailures tail
+                    | None ->
+                        return raise (FSharpUtil.ReRaise ex)
             }
 
     let rec QueryInternal (settings: FaultTolerantParallelClientSettings<'R>)

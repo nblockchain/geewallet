@@ -40,8 +40,13 @@ module Server =
     type ServerChannelNegotiationException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
-    type ServerMisconfiguredException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
+    type ServerMisconfiguredException =
+       inherit ConnectionUnsuccessfulException
+
+       new (message:string, innerException: Exception) =
+           { inherit ConnectionUnsuccessfulException (message, innerException) }
+       new (message:string) =
+           { inherit ConnectionUnsuccessfulException (message) }
 
     type UnhandledWebException(status: WebExceptionStatus, innerException: Exception) =
        inherit Exception (sprintf "GWallet not prepared for this WebException with Status[%d]" (int status),
@@ -327,12 +332,28 @@ module Server =
         }
 
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
-    let private GetConfirmedEtherBalanceInternal (web3: Web3) (publicAddress: string): Async<HexBigInteger> =
+    let private GetBlockToCheckForConfirmedBalance(web3: Web3): Async<BlockParameter> =
         async {
             let! latestBlock = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync () |> Async.AwaitTask
-            let blockForConfirmationReference =
-                BlockParameter(HexBigInteger(BigInteger.Subtract(latestBlock.Value,
-                                                                 NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)))
+            if (latestBlock = null) then
+                failwith "latestBlock somehow is null"
+
+            let blockToCheck = BigInteger.Subtract(latestBlock.Value,
+                                                   NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)
+
+            if blockToCheck.Sign < 0 then
+                let errMsg = sprintf
+                                 "Looks like we received a wrong latestBlock(%s) because the substract was negative(%s)"
+                                     (latestBlock.Value.ToString())
+                                     (blockToCheck.ToString())
+                raise <| ServerMisconfiguredException errMsg
+
+            return BlockParameter(HexBigInteger(blockToCheck))
+        }
+
+    let private GetConfirmedEtherBalanceInternal (web3: Web3) (publicAddress: string): Async<HexBigInteger> =
+        async {
+            let! blockForConfirmationReference = GetBlockToCheckForConfirmedBalance web3
 (*
             if (Config.DebugLog) then
                 Console.Error.WriteLine (sprintf "Last block number and last confirmed block number: %s: %s"
@@ -364,12 +385,7 @@ module Server =
             invalidArg "web3" "web3 argument should not be null"
 
         async {
-            let! latestBlock = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync () |> Async.AwaitTask
-            if (latestBlock = null) then
-                failwith "latestBlock somehow is null"
-            let blockForConfirmationReference =
-                BlockParameter(HexBigInteger(BigInteger.Subtract(latestBlock.Value,
-                                                                 NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)))
+            let! blockForConfirmationReference = GetBlockToCheckForConfirmedBalance web3
             let balanceOfFunctionMsg = BalanceOfFunction(Owner = publicAddress)
 
             let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)

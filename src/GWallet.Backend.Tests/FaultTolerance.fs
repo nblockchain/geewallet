@@ -7,10 +7,11 @@ open NUnit.Framework
 
 open GWallet.Backend
 
-
 exception SomeSpecificException
 exception SomeException
 exception SomeOtherException
+type SomeInnerException() =
+   inherit Exception()
 
 [<TestFixture>]
 type FaultTolerance() =
@@ -109,7 +110,7 @@ type FaultTolerance() =
         Assert.That(dataRetrieved, Is.EqualTo(None))
 
     [<Test>]
-    member __.``exception typed passed in is ignored``() =
+    member __.``exception type passed in is ignored``() =
         let someResult = 1
         let someStringArg = "foo"
         let func1 (arg: string) =
@@ -125,7 +126,7 @@ type FaultTolerance() =
         Assert.That(result, Is.EqualTo(someResult))
 
     [<Test>]
-    member __.``exception not passed in is not ignored``() =
+    member __.``exception type not passed in is not ignored``() =
         let someResult = 1
         let someStringArg = "foo"
         let func1 (arg: string) =
@@ -141,6 +142,22 @@ type FaultTolerance() =
                     |> ignore )
 
         Assert.That((FSharpUtil.FindException<SomeOtherException> ex).IsSome, Is.True)
+
+    [<Test>]
+    member __.``exception type passed in is ignored also if it's found in an innerException'``() =
+        let someResult = 1
+        let someStringArg = "foo"
+        let func1 (arg: string) =
+            raise (new Exception("bar",new SomeInnerException()))
+        let func2 (arg: string) =
+            someResult
+
+        let result =
+            (FaultTolerantParallelClient<SomeInnerException>())
+                .Query<string,int>
+                    (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
+                    |> Async.RunSynchronously
+        Assert.That(result, Is.EqualTo(someResult))
 
     [<Test>]
     member __.``exception passed in must not be SystemException, otherwise it throws``() =
