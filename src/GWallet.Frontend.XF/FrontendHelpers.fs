@@ -224,9 +224,12 @@ module FrontendHelpers =
 
     let internal ApplyGtkWorkaroundForFrameTransparentBackgroundColor (frame: Frame) =
         if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then
-            // this is Ubuntu18.04's default theme colour, we should rather just fix the upstream bug:
+            let ubuntu1804DefaultColor = "F2F1F0"
+
+            // this is just most popular distro's default colour, we should rather just fix the upstream bug:
             // https://github.com/xamarin/Xamarin.Forms/issues/4700
-            frame.BackgroundColor <- Color.FromHex "F2F1F0"
+            frame.BackgroundColor <- Color.FromHex ubuntu1804DefaultColor
+            frame.BorderColor <- Color.FromHex ubuntu1804DefaultColor
 
     let private ApplyGtkWorkarounds (balanceLabel: Label) =
         // workaround to small default fonts in GTK (compared to other toolkits) so FIXME: file bug about this
