@@ -236,9 +236,8 @@ module FrontendHelpers =
         balanceLabel.FontSize <- MagicGtkNumber
 
         if (Device.RuntimePlatform = Device.GTK) then
-            // workaround about Labels not respecting VerticalOptions.Center in GTK so FIXME: file bug about this
+            // workaround about Labels not putting a decent default left&top margin in GTK so FIXME: file bug about this
             balanceLabel.TranslationY <- MagicGtkNumber
-            // workaround about Labels not putting a decent default left margin in GTK so FIXME: file bug about this
             balanceLabel.TranslationX <- MagicGtkNumber
 
     let private CreateWidgetsForAccount (): Label*Label =
