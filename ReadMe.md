@@ -87,4 +87,13 @@ After that you can call `gwallet` directly.
 
 ## Feedback
 
-If you want to accelerate development/maintenance, please donate at... TBD.
+If you want to accelerate development/maintenance, create an issue and pledge funds with [gitcoin](http://gitcoin.co).
+Alternatively, if you want to hire expertise around blockchain development or adapt this project
+to your needs, see the next section.
+
+
+## About Diginex
+
+![Diginex Logo](https://www.diginex.com/wp-content/uploads/2018/09/diginex_chain_logo_-01-copy.png)
+
+Diginex develops and implements blockchain technologies to transform businesses and enrich society. At the core of Diginex is our people. We are a blend of financial service professionals, passionate blockchain technologists and experienced project managers. We work with corporates, institutions & governments to create solutions that build trust and increase efficiency.
