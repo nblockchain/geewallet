@@ -13,6 +13,7 @@
                FontAttributes="Bold" FontSize="Large" />
 
        <Frame x:Name="totalFiatAmountFrame" HasShadow="false"
+               BackgroundColor="Transparent"
               BorderColor="Transparent"
                VerticalOptions="CenterAndExpand"
                HorizontalOptions="Center"

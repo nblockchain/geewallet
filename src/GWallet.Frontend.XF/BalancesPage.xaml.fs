@@ -39,6 +39,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
     let totalReadOnlyFiatAmountLabel = mainLayout.FindByName<Label> "totalReadOnlyFiatAmountLabel"
+    let totalFiatAmountFrame = mainLayout.FindByName<Frame> "totalFiatAmountFrame"
+    let totalReadOnlyFiatAmountFrame = mainLayout.FindByName<Frame> "totalReadOnlyFiatAmountFrame"
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenPaymentIsImminent = TimeSpan.FromMinutes 1.0
@@ -407,6 +409,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             accountBalance.BalanceSet.FiatLabel.TextColor <- color
 
     member private this.Init () =
+        FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalFiatAmountFrame
+        FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalReadOnlyFiatAmountFrame
+
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Subscribe(fun _ ->
             Device.OpenUri (Uri "https://www.diginex.com")
