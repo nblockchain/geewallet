@@ -37,24 +37,22 @@ In the development side of things, we advocate for simplicity:
 This list is the (intended) order of preference for new features:
 
 - Xamarin.Forms frontends (in progress, see the 'frontend' branch)...
-- ETH/ETC state channel support.
-- Raiden support.
-- Bitcoin/Litecoin payment channels support.
-- Lightning support (upgrading to NBitcoin 4.0.0.12 to be protected from malleability).
-- Payment channels support.
-- Mac/Windows CI support via Travis & AppVeyor respectively.
-- Flatpak & snap packaging.
+- Support for payment-channels & state-channels (in BTC/LTC via lightning, and in ETH/ETC/DAI via Raiden)
+- macOS CI support via AzureDevOps pipelines.
+- snap packaging.
 - Paranoid-build mode (using git submodules instead of nuget deps), depending on this RFE (https://github.com/dotnet/sdk/issues/1151) or using any workaround mentioned there.
-- Fee selection for custom priority.
-- Multi-sig support.
-- Use bits instead of BTC as default unit.
+- flatpak packaging.
+- Use of 'bits' instead of BTC as default unit.
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
-- MimbleWimble support?
+- MimbleWimble(Grin) support.
 - Threshold signatures.
 - ETH gas station (to pay for token transactions with token value instead of ETH).
+- Fee selection for custom priority.
+- Multi-sig support.
 - Decentralized naming resolution? (BNS/ENS/OpenCAP/...)
 - Decentralized currency exchange? or crosschain atomic swaps?
 - Tumblebit support?
+
 
 ## Dev roadmap
 
