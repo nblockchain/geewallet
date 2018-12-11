@@ -23,7 +23,7 @@ type BalanceState = {
 
 module FrontendHelpers =
 
-    let private enableGtkWorkarounds = false
+    let private enableGtkWorkarounds = true
 
     type IGlobalAppState =
         abstract member Awake: bool with get
