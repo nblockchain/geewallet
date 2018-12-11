@@ -128,13 +128,6 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
                     let tailAsync = ConcatenateNonParallelFuncs args failuresSoFar tail
                     return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
                 with
-                | :? 'E as ex ->
-                    if (Config.DebugLog) then
-                        Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
-                                                     (ex.GetType().FullName)
-                                                     ex.Message)
-                    let newFailures = (head,ex)::failuresSoFar
-                    return! ConcatenateNonParallelFuncs args newFailures tail
                 | ex ->
                     let maybeSpecificEx = FSharpUtil.FindException<'E> ex
                     match maybeSpecificEx with
