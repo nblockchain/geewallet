@@ -1,4 +1,4 @@
-# GWallet
+# <img src="https://github.com/diginex/geewallet/raw/master/logo.png" width="50" /> GWallet
 
 Welcome!
 
