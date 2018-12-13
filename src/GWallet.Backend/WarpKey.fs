@@ -43,7 +43,7 @@ module WarpKey =
         saltByteList.AddRange (Encoding.UTF8.GetBytes(salt))
         saltByteList.Add (byte 2)
 
-        let hashAlgo = new HMACSHA256(passphraseByteList.ToArray())
+        use hashAlgo = new HMACSHA256(passphraseByteList.ToArray())
 
         // TODO: remove nowarn when we switch to .NET BCL's impl instead of NBitcoin.Crypto
         NBitcoin.Crypto.Pbkdf2.ComputeDerivedKey(hashAlgo, saltByteList.ToArray(), 65536, 32)
