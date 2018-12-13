@@ -148,7 +148,7 @@ type FaultTolerance() =
         let someResult = 1
         let someStringArg = "foo"
         let func1 (arg: string) =
-            raise (new Exception("bar",new SomeInnerException()))
+            raise <| Exception("bar", SomeInnerException())
         let func2 (arg: string) =
             someResult
 

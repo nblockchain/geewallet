@@ -460,7 +460,7 @@ module Account =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
-            raise(new Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName))
+            raise <| Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName)
 
     let public ImportSignedTransactionFromJson (json: string): SignedTransaction<IBlockchainFeeInfo> =
         let transType = Marshalling.ExtractType json
@@ -475,7 +475,7 @@ module Account =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
-            raise(new Exception(sprintf "Unknown signedTransaction subtype: %s" unexpectedType.FullName))
+            raise <| Exception(sprintf "Unknown signedTransaction subtype: %s" unexpectedType.FullName)
 
     let LoadSignedTransactionFromFile (filePath: string) =
         let signedTransInJson = File.ReadAllText(filePath)

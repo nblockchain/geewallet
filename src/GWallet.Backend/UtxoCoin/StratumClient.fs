@@ -119,8 +119,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
                 JsonConvert.DeserializeObject<ErrorResult>(resultTrimmed,
                                                            Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
             with
-            | ex -> raise(new Exception(sprintf "Failed deserializing JSON response (to check for error) '%s' to type '%s'"
-                                                resultTrimmed typedefof<'T>.FullName, ex))
+            | ex -> raise <| Exception(sprintf "Failed deserializing JSON response (to check for error) '%s' to type '%s'"
+                                               resultTrimmed typedefof<'T>.FullName, ex)
 
         if (not (Object.ReferenceEquals(maybeError, null))) && (not (Object.ReferenceEquals(maybeError.Error, null))) then
             raise(ElectrumServerReturningErrorInJsonResponseException(maybeError.Error.Message, maybeError.Error.Code))
@@ -130,8 +130,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
                 JsonConvert.DeserializeObject<'T>(resultTrimmed,
                                                   Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
             with
-            | ex -> raise(new Exception(sprintf "Failed deserializing JSON response '%s' to type '%s'"
-                                                resultTrimmed typedefof<'T>.FullName, ex))
+            | ex -> raise <| Exception(sprintf "Failed deserializing JSON response '%s' to type '%s'"
+                                                resultTrimmed typedefof<'T>.FullName, ex)
 
         if Object.ReferenceEquals(deserializedValue, null) then
             failwithf "Failed deserializing JSON response '%s' to type '%s' (result was null)"
