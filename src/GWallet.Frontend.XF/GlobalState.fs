@@ -6,8 +6,8 @@ open Xamarin.Forms
 
 type GlobalState() =
 
-    let resumed = new Event<unit>()
-    let goneToSleep = new Event<unit>()
+    let resumed = Event<unit>()
+    let goneToSleep = Event<unit>()
 
     let lockObject = Object()
     let mutable awake = true
