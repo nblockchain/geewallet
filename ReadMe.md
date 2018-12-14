@@ -44,6 +44,7 @@ This list is the (intended) order of preference for new features:
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
 - MimbleWimble(Grin) support.
 - Threshold signatures.
+- Use deniable encryption to allow for a duress password/passphrase/pin.
 - ETH gas station (to pay for token transactions with token value instead of ETH).
 - Fee selection for custom priority.
 - Multi-sig support.
