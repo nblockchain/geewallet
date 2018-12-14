@@ -304,7 +304,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 if (inputAddress.Length > lengthLimitViolated) then
                     (sprintf "Address should have a length not higher than %d characters, please try again."
                         lengthLimitViolated)
-                else if (inputAddress.Length < lengthLimitViolated) then
+                elif (inputAddress.Length < lengthLimitViolated) then
                     (sprintf "Address should have a length not lower than %d characters, please try again."
                         lengthLimitViolated)
                 else
