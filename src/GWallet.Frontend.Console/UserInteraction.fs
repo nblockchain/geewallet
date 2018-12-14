@@ -341,7 +341,7 @@ module UserInteraction =
         let yesNoAnswer = Console.ReadLine().ToLowerInvariant()
         if (yesNoAnswer = "y") then
             true
-        else if (yesNoAnswer = "n") then
+        elif (yesNoAnswer = "n") then
             false
         else
             AskYesNo question
@@ -364,7 +364,7 @@ module UserInteraction =
                     Presentation.Error
                         (sprintf "Address should have a length not higher than %d characters, please try again."
                             lengthLimitViolated)
-                else if (publicAddress.Length < lengthLimitViolated) then
+                elif (publicAddress.Length < lengthLimitViolated) then
                     Presentation.Error
                         (sprintf "Address should have a length not lower than %d characters, please try again."
                             lengthLimitViolated)
