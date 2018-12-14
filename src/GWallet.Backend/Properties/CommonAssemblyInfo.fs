@@ -19,8 +19,8 @@ open System.Reflection
 // [<assembly: AssemblyVersion("1.0.*")>]
 
 
-[<assembly: AssemblyVersion("0.4.0.80")>]
-[<assembly: AssemblyFileVersion("0.4.0.80")>]
+[<assembly: AssemblyVersion("0.4.0.81")>]
+[<assembly: AssemblyFileVersion("0.4.0.81")>]
 
 do
     ()
