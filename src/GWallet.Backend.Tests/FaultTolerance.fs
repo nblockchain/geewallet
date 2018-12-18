@@ -161,12 +161,6 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``exception passed in must not be SystemException, otherwise it throws``() =
-        let someStringArg = "foo"
-        let func1 (arg: string) =
-            "someResult1"
-        let func2 (arg: string) =
-            "someResult2"
-
         Assert.Throws<ArgumentException>(fun _ ->
             (FaultTolerantParallelClient<Exception>())
                 |> ignore ) |> ignore

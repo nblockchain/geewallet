@@ -147,17 +147,6 @@ type Parallelization() =
     [<Test>]
     member __.``using an average func encourages you (via throwing an exception) to use parallelism``() =
 
-        let someStringArg = "foo"
-        let someReturnValue = 0
-        let func1 (arg: string) =
-            someReturnValue
-        let func2 (arg: string) =
-            someReturnValue
-        let func3 (arg: string) =
-            someReturnValue
-
-        let funcs = [ func1; func2; func3; ]
-
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             NumberOfMaximumParallelJobs = uint16 1
                             ConsistencyConfig =
