@@ -259,21 +259,44 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
     }
 
     let OrderServers (servers: List<Server<'T,'R>>): List<Server<'T,'R>> =
-        let dummyInfinite = TimeSpan.MaxValue
-        let dummyAlmostInfinite = TimeSpan.MaxValue - TimeSpan.FromMilliseconds 1.0
-        List.sortBy
-                    (fun (server: Server<'T,'R>) ->
-                        match server.HistoryInfo with
+        let workingServers = List.filter (fun (server: Server<'T,'R>) ->
+                                             match server.HistoryInfo with
+                                             | None ->
+                                                 false
+                                             | Some historyInfo ->
+                                                 match historyInfo.Fault with
+                                                 | None ->
+                                                     true
+                                                 | Some _ ->
+                                                     false
+                                         ) servers
+        let sortedWorkingServers =
+            List.sortBy
+                (fun (server: Server<'T,'R>) ->
+                    match server.HistoryInfo with
+                    | None ->
+                        failwith "previous filter didn't work? should get working servers only, not lacking history"
+                    | Some historyInfo ->
+                        match historyInfo.Fault with
                         | None ->
-                            dummyAlmostInfinite
-                        | Some historyInfo ->
-                            match historyInfo.Fault with
-                            | None ->
-                                historyInfo.TimeSpan
-                            | Some _ ->
-                                dummyInfinite
-                    )
-                    servers
+                            historyInfo.TimeSpan
+                        | Some _ ->
+                            failwith "previous filter didn't work? should get working servers only, not faulty"
+                )
+                workingServers
+        let serversWithNoHistoryServers = List.filter (fun (server: Server<'T,'R>) -> server.HistoryInfo.IsNone) servers
+        let faultyServers = List.filter (fun (server: Server<'T,'R>) ->
+                                            match server.HistoryInfo with
+                                            | None ->
+                                                false
+                                            | Some historyInfo ->
+                                                match historyInfo.Fault with
+                                                | None ->
+                                                    false
+                                                | Some _ ->
+                                                    true
+                                        ) servers
+        List.append sortedWorkingServers (List.append serversWithNoHistoryServers faultyServers)
 
     member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
                                                 (args: 'T)
