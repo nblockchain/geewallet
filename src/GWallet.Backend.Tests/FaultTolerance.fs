@@ -436,6 +436,31 @@ type FaultTolerance() =
 
         Assert.That(result, Is.EqualTo ((1+5+6)/3))
 
+    [<Test>]
+    member __.``chooses server with no faults first``() =
+        let someStringArg = "foo"
+        let someResult1 = 1
+        let someResult2 = 2
+        let fault = Some (Exception("some err"))
+        let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
+                        Retreival = (fun arg -> someResult1) }
+        let server2 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 })
+                        Retreival = (fun arg -> someResult2) }
+        let dataRetreived = FaultTolerantParallelClient<DummyIrrelevantToThisTestException>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server1; server2 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult2)
+
+        // same but different order
+        let dataRetreived = FaultTolerantParallelClient<DummyIrrelevantToThisTestException>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server2; server1 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult2)
+
     member private __.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         defaultSettingsForNoConsistencyNoParallelismAndNoRetries()
 
