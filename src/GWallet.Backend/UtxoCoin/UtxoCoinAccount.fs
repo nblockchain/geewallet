@@ -58,8 +58,9 @@ module internal Account =
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
     //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
-    let private GetRandomizedFuncs<'T,'R> currency (electrumClientFunc: ElectrumServer->'T->Async<'R>): List<'T->'R> =
-        let randomizedServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
+    let private GetRandomizedFuncs<'T,'R> currency (electrumClientFunc: ElectrumServer->'T->Async<'R>)
+                                          : List<Server<'T,'R>> =
+        let randomizedElectrumServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedFuncs =
             List.map (fun (electrumServer: ElectrumServer) ->
                           (fun (arg: 'T) ->
@@ -85,8 +86,11 @@ module internal Account =
                                       reraise()
                            )
                      )
-                     randomizedServers
-        randomizedFuncs
+                     randomizedElectrumServers
+        let randomizedServers =
+            List.map (fun (func: 'T->'R) -> { HistoryInfo = None; Retreival = func } )
+                     randomizedFuncs
+        randomizedServers
 
     let private GetBalance(account: IAccount) =
         let balance =

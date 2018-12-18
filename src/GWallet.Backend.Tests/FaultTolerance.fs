@@ -7,6 +7,7 @@ open NUnit.Framework
 
 open GWallet.Backend
 
+exception DummyIrrelevantToThisTestException
 exception SomeSpecificException
 exception SomeException
 exception SomeOtherException
@@ -31,12 +32,16 @@ type FaultTolerance() =
     let defaultFaultTolerantParallelClient =
         FaultTolerantParallelClient<SomeSpecificException>()
 
+    let serverWithNoHistoryInfoBecauseIrrelevantToThisTest func =
+        { HistoryInfo = None; Retreival = func; }
+
     [<Test>]
     member __.``can retrieve basic T for single func``() =
         let someStringArg = "foo"
         let someResult = 1
-        let func (arg: string) =
+        let aFunc (arg: string) =
             someResult
+        let func = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc
         let dataRetreived =
             defaultFaultTolerantParallelClient.Query<string,int>
                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func ]
@@ -48,10 +53,12 @@ type FaultTolerance() =
     member __.``can retrieve basic T for 2 funcs``() =
         let someStringArg = "foo"
         let someResult = 1
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             someResult
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             someResult
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2
         let dataRetreived = defaultFaultTolerantParallelClient.Query<string,int>
                                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ func1; func2 ]
@@ -72,10 +79,12 @@ type FaultTolerance() =
     member __.``can retrieve one if 1 of the funcs throws``() =
         let someStringArg = "foo"
         let someResult = 1
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             raise SomeSpecificException
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             someResult
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2
         let dataRetreived =
             defaultFaultTolerantParallelClient.Query<string,int>
                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
@@ -86,10 +95,13 @@ type FaultTolerance() =
     [<Test>]
     member __.``ServerUnavailabilityException exception contains innerException``() =
         let someStringArg = "foo"
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             raise SomeException
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             raise SomeException
+
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2
 
         let dataRetrieved =
             try
@@ -113,10 +125,12 @@ type FaultTolerance() =
     member __.``exception type passed in is ignored``() =
         let someResult = 1
         let someStringArg = "foo"
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             raise SomeException
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             someResult
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2
 
         let result =
             (FaultTolerantParallelClient<SomeException>())
@@ -129,10 +143,12 @@ type FaultTolerance() =
     member __.``exception type not passed in is not ignored``() =
         let someResult = 1
         let someStringArg = "foo"
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             raise SomeOtherException
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             someResult
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2
 
         let ex = Assert.Throws<AggregateException>(fun _ ->
             (FaultTolerantParallelClient<SomeException>())
@@ -147,10 +163,13 @@ type FaultTolerance() =
     member __.``exception type passed in is ignored also if it's found in an innerException'``() =
         let someResult = 1
         let someStringArg = "foo"
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             raise <| Exception("bar", SomeInnerException())
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             someResult
+
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2
 
         let result =
             (FaultTolerantParallelClient<SomeInnerException>())
@@ -173,12 +192,17 @@ type FaultTolerance() =
         let someConsistentResult = 1
         let someInconsistentResult = 2
 
-        let funcInconsistent (arg: string) =
+        let anInconsistentFunc (arg: string) =
             someInconsistentResult
-        let funcConsistentA (arg: string) =
+        let aConsistentFuncA (arg: string) =
             someConsistentResult
-        let funcConsistentB (arg: string) =
+        let aConsistentFuncB (arg: string) =
             someConsistentResult
+
+        let funcInconsistent,funcConsistentA,funcConsistentB =
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest anInconsistentFunc,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest aConsistentFuncA,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest aConsistentFuncB
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             ConsistencyConfig =
@@ -189,7 +213,7 @@ type FaultTolerance() =
         let dataRetreived =
             consistencyGuardClient
                 .Query<string,int> settings someStringArg
-                                   [ funcInconsistent; funcConsistentA; funcConsistentB; ]
+                                   [ funcInconsistent; funcConsistentA; funcConsistentA; ]
                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
@@ -214,10 +238,11 @@ type FaultTolerance() =
     member __.``consistency precondition > 0``() =
         let invalidSettings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries()
                                     with ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 0); }
-
+        let dummyArg = ()
+        let dummyServers = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest (fun _ -> ()) ]
         Assert.Throws<ArgumentException>(fun _ ->
             FaultTolerantParallelClient<SomeSpecificException>().Query
-                invalidSettings () [ fun _ -> () ] |> Async.RunSynchronously
+                invalidSettings dummyArg dummyServers |> Async.RunSynchronously
                     |> ignore ) |> ignore
 
     [<Test>]
@@ -230,10 +255,13 @@ type FaultTolerance() =
         let someStringArg = "foo"
         let someResult = 1
 
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             someResult
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             someResult
+
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2
 
         let client = FaultTolerantParallelClient<SomeSpecificException>()
 
@@ -256,14 +284,19 @@ type FaultTolerance() =
         let someOtherResultA = 2
         let someOtherResultB = 3
 
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             someOtherResultA
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             mostConsistentResult
-        let func3 (arg: string) =
+        let aFunc3 (arg: string) =
             someOtherResultB
-        let func4 (arg: string) =
+        let aFunc4 (arg: string) =
             mostConsistentResult
+
+        let func1,func2,func3,func4 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2,
+                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc3,
+                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc4
 
         let client = FaultTolerantParallelClient<SomeSpecificException>()
 
@@ -280,17 +313,20 @@ type FaultTolerance() =
     member __.``retries at least once if all fail``() =
         let someStringArg = "foo"
         let mutable count1 = 0
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             count1 <- count1 + 1
             if (count1 = 1) then
                 raise SomeException
             0
         let mutable count2 = 0
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             count2 <- count2 + 1
             if (count2 = 1) then
                 raise SomeException
             0
+
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             NumberOfRetries = uint16 1;
@@ -312,13 +348,13 @@ type FaultTolerance() =
         let someOtherResultB = 3
 
 
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             someOtherResultA
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             mostConsistentResult
 
         let mutable countA = 0
-        let func3whichGetsConsistentAtSecondTry (arg: string) =
+        let aFunc3whichGetsConsistentAtSecondTry (arg: string) =
             countA <- countA + 1
             if (countA = 1) then
                 someOtherResultB
@@ -326,13 +362,13 @@ type FaultTolerance() =
                 mostConsistentResult
 
         let mutable countB = 0
-        let func3whichGetsConsistentAtThirdTry (arg: string) =
+        let aFunc3whichGetsConsistentAtThirdTry (arg: string) =
             countB <- countB + 1
             if (countB < 3) then
                 someOtherResultB
             else
                 mostConsistentResult
-        let func4 (arg: string) =
+        let aFunc4 (arg: string) =
             mostConsistentResult
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
@@ -343,6 +379,12 @@ type FaultTolerance() =
 
         let client = FaultTolerantParallelClient<SomeSpecificException>()
 
+        let func1,func2,func3whichGetsConsistentAtSecondTry,func3whichGetsConsistentAtThirdTry,func4 =
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc3whichGetsConsistentAtSecondTry,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc3whichGetsConsistentAtThirdTry,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc4
 
         client.Query<string,int>
             settings
@@ -372,7 +414,9 @@ type FaultTolerance() =
         let func3 (arg: string) =
             6
 
-        let funcs = [ func1; func2; func3; ]
+        let funcs = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest func1
+                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest func2
+                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest func3 ]
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             NumberOfMaximumParallelJobs = uint16 funcs.Length

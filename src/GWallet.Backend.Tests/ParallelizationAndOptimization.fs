@@ -12,7 +12,10 @@ open GWallet.Backend
 exception SomeExceptionDuringParallelWork
 
 [<TestFixture>]
-type Parallelization() =
+type ParallelizationAndOptimization() =
+
+    let serverWithNoHistoryInfoBecauseIrrelevantToThisTest func =
+        { HistoryInfo = None; Retreival = func; }
 
     [<Test>]
     member __.``calls both funcs (because it launches them in parallel)``() =
@@ -26,13 +29,16 @@ type Parallelization() =
 
         let someStringArg = "foo"
         let mutable func1Called = false
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             func1Called <- true
             0
         let mutable func2Called = false
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             func2Called <- true
             0
+
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2
 
         let client = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>()
         client.Query<string,int> settings someStringArg [ func1; func2 ]
@@ -63,15 +69,19 @@ type Parallelization() =
                              NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             raise SomeExceptionDuringParallelWork
             0
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             Thread.Sleep someLongTime
             0
         let func3Result = 1
-        let func3 (arg: string) =
+        let aFunc3 (arg: string) =
             func3Result
+
+        let func1,func2,func3 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc3
 
         let someStringArg = "foo"
 
@@ -95,13 +105,17 @@ type Parallelization() =
                              NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
-        let func1 (arg: string) =
+        let aFunc1 (arg: string) =
             0
-        let func2 (arg: string) =
+        let aFunc2 (arg: string) =
             Thread.Sleep someLongTime
             0
-        let func3 (arg: string) =
+        let aFunc3 (arg: string) =
             0
+
+        let func1,func2,func3 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc1,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc2,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest aFunc3
 
         let someStringArg = "foo"
 
@@ -180,7 +194,9 @@ type Parallelization() =
             longFuncFinishedExecution <- true
             0
 
-        let allFuncs = [ func1; func2; longFuncThatShouldBeCancelled ]
+        let allFuncs = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest func1
+                         serverWithNoHistoryInfoBecauseIrrelevantToThisTest func2
+                         serverWithNoHistoryInfoBecauseIrrelevantToThisTest longFuncThatShouldBeCancelled ]
         let number_of_parallel_jobs_allowed = uint16 allFuncs.Length
         let NUMBER_OF_CONSISTENT_RESULTS = uint16 2
 
@@ -198,4 +214,28 @@ type Parallelization() =
         Thread.Sleep(someLongTime + someLongTime)
 
         Assert.That(longFuncFinishedExecution, Is.EqualTo false)
+
+    [<Test>]
+    member __.``chooses fastest option first``() =
+        let someStringArg = "foo"
+        let someResult1 = 1
+        let someResult2 = 2
+        let server1,server2 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
+                                Retreival = (fun arg -> someResult1) },
+                              { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
+                                Retreival = (fun arg -> someResult2) }
+        let dataRetreived = FaultTolerantParallelClient<DummyIrrelevantToThisTestException>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server1; server2 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult2)
+
+        // same but different order
+        let dataRetreived = FaultTolerantParallelClient<DummyIrrelevantToThisTestException>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server2; server1 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult2)
 

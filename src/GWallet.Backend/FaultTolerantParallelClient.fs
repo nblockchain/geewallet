@@ -22,8 +22,16 @@ type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                   maxNumberOfConsistentResultsObtained
                                   numberOfConsistentResultsRequired)
 
+type HistoryInfo =
+    { TimeSpan: TimeSpan
+      Fault: Option<Exception> }
+
+type Server<'T,'R> =
+    { HistoryInfo: Option<HistoryInfo>
+      Retreival: 'T -> 'R }
+
 type internal ResultsSoFar<'R> = List<'R>
-type internal ExceptionsSoFar<'T,'R,'E when 'E :> Exception> = List<('T->'R)*'E>
+type internal ExceptionsSoFar<'T,'R,'E when 'E :> Exception> = List<Server<'T,'R>*'E>
 type internal FinalResult<'T,'R,'E when 'E :> Exception> =
     | ConsistentResult of 'R
     | AverageResult of 'R
@@ -114,9 +122,11 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
         let tasks = LaunchAsyncJobs jobs
         WhenSomeInternal consistencySettings tasks resultsSoFar failedFuncsSoFar
 
-    let rec ConcatenateNonParallelFuncs (args: 'T) (failuresSoFar: ExceptionsSoFar<'T,'R,'E>) (funcs: List<'T->'R>)
+    let rec ConcatenateNonParallelFuncs (args: 'T)
+                                        (failuresSoFar: ExceptionsSoFar<'T,'R,'E>)
+                                        (servers: List<Server<'T,'R>>)
                                         : Async<NonParallelResults<'T,'R,'E>> =
-        match funcs with
+        match servers with
         | [] ->
             async {
                 return failuresSoFar,NoneAvailable
@@ -124,7 +134,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
         | head::tail ->
             async {
                 try
-                    let result = head args
+                    let result = head.Retreival args
                     let tailAsync = ConcatenateNonParallelFuncs args failuresSoFar tail
                     return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
                 with
@@ -144,7 +154,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
 
     let rec QueryInternal (settings: FaultTolerantParallelClientSettings<'R>)
                           (args: 'T)
-                          (funcs: List<'T->'R>)
+                          (funcs: List<Server<'T,'R>>)
                           (resultsSoFar: List<'R>)
                           (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
                           (retries: uint16)
@@ -197,7 +207,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
         | ConsistentResult consistentResult ->
             return consistentResult
         | InconsistentOrNotEnoughResults(allResultsSoFar,failedFuncsWithTheirExceptions) ->
-            let failedFuncs: List<'T->'R> = failedFuncsWithTheirExceptions |> List.map fst
+            let failedFuncs: List<Server<'T,'R>> = failedFuncsWithTheirExceptions |> List.map fst
             if (allResultsSoFar.Length = 0) then
                 if (retries = settings.NumberOfRetries) then
                     let firstEx = failedFuncsWithTheirExceptions.First() |> snd
@@ -248,10 +258,20 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
 
     }
 
+    let OrderServers (servers: List<Server<'T,'R>>): List<Server<'T,'R>> =
+        List.sortBy (fun (server: Server<'T,'R>) ->
+                        match server.HistoryInfo with
+                        | None ->
+                            TimeSpan.MaxValue
+                        | Some historyInfo ->
+                            historyInfo.TimeSpan
+                    )
+                    servers
+
     member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
                                                 (args: 'T)
-                                                (funcs: List<'T->'R>): Async<'R> =
+                                                (servers: List<Server<'T,'R>>): Async<'R> =
         if settings.NumberOfMaximumParallelJobs < uint16 1 then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 
-        QueryInternal settings args funcs List.Empty List.Empty (uint16 0) (uint16 0)
+        QueryInternal settings args (OrderServers servers) List.Empty List.Empty (uint16 0) (uint16 0)
