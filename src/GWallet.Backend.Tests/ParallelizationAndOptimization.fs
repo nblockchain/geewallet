@@ -216,7 +216,7 @@ type ParallelizationAndOptimization() =
         Assert.That(longFuncFinishedExecution, Is.EqualTo false)
 
     [<Test>]
-    member __.``chooses fastest option first``() =
+    member __.``ordering: chooses fastest option first``() =
         let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2

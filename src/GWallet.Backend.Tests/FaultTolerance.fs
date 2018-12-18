@@ -437,7 +437,7 @@ type FaultTolerance() =
         Assert.That(result, Is.EqualTo ((1+5+6)/3))
 
     [<Test>]
-    member __.``chooses server with no faults first``() =
+    member __.``ordering: chooses server with no faults first``() =
         let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
@@ -462,7 +462,31 @@ type FaultTolerance() =
         Assert.That(dataRetreived, Is.EqualTo someResult2)
 
     [<Test>]
-    member __.``chooses server with no history before servers with faults in their history``() =
+    member __.``ordering: chooses server with no faults over servers with no history``() =
+        let someStringArg = "foo"
+        let someResult1 = 1
+        let someResult2 = 2
+        let server1 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 })
+                        Retreival = (fun arg -> someResult1) }
+        let server2 = { HistoryInfo = None
+                        Retreival = (fun arg -> someResult2) }
+        let dataRetreived = FaultTolerantParallelClient<DummyIrrelevantToThisTestException>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server1; server2 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult1)
+
+        // same but different order
+        let dataRetreived = FaultTolerantParallelClient<DummyIrrelevantToThisTestException>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server2; server1 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult1)
+
+    [<Test>]
+    member __.``ordering: chooses server with no history before servers with faults in their history``() =
         let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2

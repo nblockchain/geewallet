@@ -260,16 +260,18 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
 
     let OrderServers (servers: List<Server<'T,'R>>): List<Server<'T,'R>> =
         let dummyInfinite = TimeSpan.MaxValue
-        List.sortBy (fun (server: Server<'T,'R>) ->
+        let dummyAlmostInfinite = TimeSpan.MaxValue - TimeSpan.FromMilliseconds 1.0
+        List.sortBy
+                    (fun (server: Server<'T,'R>) ->
                         match server.HistoryInfo with
                         | None ->
-                            None
+                            dummyAlmostInfinite
                         | Some historyInfo ->
                             match historyInfo.Fault with
                             | None ->
-                                Some historyInfo.TimeSpan
+                                historyInfo.TimeSpan
                             | Some _ ->
-                                Some dummyInfinite
+                                dummyInfinite
                     )
                     servers
 
