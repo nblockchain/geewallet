@@ -263,13 +263,13 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
         List.sortBy (fun (server: Server<'T,'R>) ->
                         match server.HistoryInfo with
                         | None ->
-                            dummyInfinite
+                            None
                         | Some historyInfo ->
                             match historyInfo.Fault with
                             | None ->
-                                historyInfo.TimeSpan
+                                Some historyInfo.TimeSpan
                             | Some _ ->
-                                dummyInfinite
+                                Some dummyInfinite
                     )
                     servers
 
