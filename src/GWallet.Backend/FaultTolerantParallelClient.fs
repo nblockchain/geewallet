@@ -296,7 +296,9 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
                                                 | Some _ ->
                                                     true
                                         ) servers
-        List.append sortedWorkingServers (List.append serversWithNoHistoryServers faultyServers)
+        FSharpUtil.ListIntersect sortedWorkingServers
+                                 (List.append serversWithNoHistoryServers faultyServers)
+                                 (uint16 3)
 
     member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
                                                 (args: 'T)

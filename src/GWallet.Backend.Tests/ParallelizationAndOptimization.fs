@@ -239,3 +239,53 @@ type ParallelizationAndOptimization() =
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
 
+    [<Test>]
+    member __.``ListIntersect metatest`` () =
+        let res = FSharpUtil.ListIntersect [ 10; 20; 30; ] [ 1; 2; ] (uint16 2)
+        Assert.That(res.Length, Is.EqualTo 5)
+        Assert.That(res.[0], Is.EqualTo 10)
+        Assert.That(res.[1], Is.EqualTo 1)
+        Assert.That(res.[2], Is.EqualTo 20)
+        Assert.That(res.[3], Is.EqualTo 2)
+        Assert.That(res.[4], Is.EqualTo 30)
+
+        let res = FSharpUtil.ListIntersect [ 10; 20; 30; 40; 50; ] [ 1; 2; ] (uint16 3)
+        Assert.That(res.Length, Is.EqualTo 7)
+        Assert.That(res.[0], Is.EqualTo 10)
+        Assert.That(res.[1], Is.EqualTo 20)
+        Assert.That(res.[2], Is.EqualTo 1)
+        Assert.That(res.[3], Is.EqualTo 30)
+        Assert.That(res.[4], Is.EqualTo 40)
+        Assert.That(res.[5], Is.EqualTo 2)
+        Assert.That(res.[6], Is.EqualTo 50)
+
+    [<Test>]
+    member __.``ordering: leaves one third of servers queried for ones lacking history``() =
+        let someStringArg = "foo"
+        let someResult1 = 1
+        let someResult2 = 2
+        let someResult3 = 3
+        let someResult4 = 4
+        let server1,server2,server3 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
+                                        Retreival = (fun arg -> raise SomeExceptionDuringParallelWork) },
+                                      { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
+                                        Retreival = (fun arg -> raise SomeExceptionDuringParallelWork) },
+                                      { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 };
+                                        Retreival = (fun arg -> someResult3) }
+        let server4 = { HistoryInfo = None
+                        Retreival = (fun arg -> someResult4) }
+        let dataRetreived = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server1; server2; server3; server4 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult4)
+
+        // same but different order
+        let dataRetreived = FaultTolerantParallelClient<SomeExceptionDuringParallelWork>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server4; server3; server2; server1 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult4)
+

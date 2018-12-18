@@ -510,6 +510,36 @@ type FaultTolerance() =
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
 
+    [<Test>]
+    member __.``ordering: leaves one third of servers queried for faulty ones``() =
+        let someStringArg = "foo"
+        let someResult1 = 1
+        let someResult2 = 2
+        let someResult3 = 3
+        let someResult4 = 4
+        let server1,server2,server3 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
+                                        Retreival = (fun arg -> raise SomeSpecificException) },
+                                      { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
+                                        Retreival = (fun arg -> raise SomeSpecificException) },
+                                      { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 };
+                                        Retreival = (fun arg -> someResult3) }
+        let server4 = { HistoryInfo = Some { Fault = Some(Exception "some err"); TimeSpan = TimeSpan.FromSeconds 1.0 }
+                        Retreival = (fun arg -> someResult4) }
+        let dataRetreived = FaultTolerantParallelClient<SomeSpecificException>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server1; server2; server3; server4 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult4)
+
+        // same but different order
+        let dataRetreived = FaultTolerantParallelClient<SomeSpecificException>().Query<string,int>
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server4; server3; server2; server1 ]
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult4)
+
     member private __.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         defaultSettingsForNoConsistencyNoParallelismAndNoRetries()
 

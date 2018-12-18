@@ -6,6 +6,20 @@ open Microsoft.FSharp.Reflection
 
 module FSharpUtil =
 
+    let rec private ListIntersectInternal list1 list2 offset acc currentIndex =
+        match list1,list2 with
+        | [],[] -> List.rev acc
+        | [],_ -> List.append (List.rev acc) list2
+        | _,[] -> List.append (List.rev acc) list1
+        | head1::tail1,head2::tail2 ->
+            if currentIndex % (int offset) = 0 then
+                ListIntersectInternal list1 tail2 offset (head2::acc) (currentIndex + 1)
+            else
+                ListIntersectInternal tail1 list2 offset (head1::acc) (currentIndex + 1)
+
+    let ListIntersect<'T> (list1: List<'T>) (list2: List<'T>) (offset: uint16): List<'T> =
+        ListIntersectInternal list1 list2 offset [] 1
+
     let WithTimeout (timeSpan: TimeSpan) (operation: Async<'R>): Async<Option<'R>> = async {
         let! child = Async.StartChild (operation, int timeSpan.TotalMilliseconds)
         try
