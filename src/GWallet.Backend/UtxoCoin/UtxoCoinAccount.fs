@@ -58,43 +58,51 @@ module internal Account =
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
     //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
-    let private GetRandomizedFuncs<'T,'R> currency (electrumClientFunc: ElectrumServer->'T->Async<'R>)
-                                          : List<Server<'T,'R>> =
+    let private GetRandomizedFuncs<'T,'R> (currency: Currency)
+                                          (electrumClientFunc: ElectrumServer->'T->Async<'R>)
+                                              : List<Server<string,'T,'R>> =
+
+        let ElectrumServerToRetreivalFunc (electrumServer: ElectrumServer)
+                                          (electrumClientFunc: ElectrumServer->'T->Async<'R>)
+                                          (arg: 'T)
+                                              : 'R =
+            try
+                electrumClientFunc electrumServer arg
+                    |> Async.RunSynchronously
+            with
+            | ex ->
+                if (ex :? ConnectionUnsuccessfulException ||
+                    ex :? ElectrumServerReturningInternalErrorException ||
+                    ex :? IncompatibleServerException) then
+                    let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                    raise (ElectrumServerDiscarded(msg, ex))
+                match ex with
+                | :? ElectrumServerReturningErrorException as esEx ->
+                    failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
+                                      electrumServer.Fqdn
+                                      esEx.Message
+                                      esEx.ErrorCode
+                                      esEx.OriginalRequest
+                                      esEx.OriginalResponse)
+                | _ ->
+                    reraise()
+
+        let ElectrumServerToGenericServer (electrumClientFunc: ElectrumServer->'T->Async<'R>)
+                                          (electrumServer: ElectrumServer)
+                                              : Server<string,'T,'R> =
+            { Identifier = electrumServer.Fqdn
+              HistoryInfo = None
+              Retreival = ElectrumServerToRetreivalFunc electrumServer electrumClientFunc }
+
         let randomizedElectrumServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
-        let randomizedFuncs =
-            List.map (fun (electrumServer: ElectrumServer) ->
-                          (fun (arg: 'T) ->
-                              try
-                                  electrumClientFunc electrumServer arg
-                                      |> Async.RunSynchronously
-                              with
-                              | ex ->
-                                  if (ex :? ConnectionUnsuccessfulException ||
-                                      ex :? ElectrumServerReturningInternalErrorException ||
-                                      ex :? IncompatibleServerException) then
-                                      let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
-                                      raise (ElectrumServerDiscarded(msg, ex))
-                                  match ex with
-                                  | :? ElectrumServerReturningErrorException as esEx ->
-                                      failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
-                                                        electrumServer.Fqdn
-                                                        esEx.Message
-                                                        esEx.ErrorCode
-                                                        esEx.OriginalRequest
-                                                        esEx.OriginalResponse)
-                                  | _ ->
-                                      reraise()
-                           )
-                     )
-                     randomizedElectrumServers
         let randomizedServers =
-            List.map (fun (func: 'T->'R) -> { HistoryInfo = None; Retreival = func } )
-                     randomizedFuncs
+            List.map (ElectrumServerToGenericServer electrumClientFunc)
+                     randomizedElectrumServers
         randomizedServers
 
     let private GetBalance(account: IAccount) =
         let balance =
-            faultTolerantElectrumClient.Query<string,BlockchainAddressGetBalanceInnerResult>
+            faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientSettings())
                 account.PublicAddress
                 (GetRandomizedFuncs account.Currency ElectrumClient.GetBalance)
@@ -223,7 +231,7 @@ module internal Account =
         let baseAccount = (account:>IAccount)
 
         let! utxos =
-            faultTolerantElectrumClient.Query<string,array<BlockchainAddressListUnspentInnerResult>>
+            faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientSettings())
                 baseAccount.PublicAddress
                 (GetRandomizedFuncs baseAccount.Currency ElectrumClient.GetUnspentTransactionOutputs)
@@ -248,7 +256,7 @@ module internal Account =
                 for utxo in utxosToUse do
                     yield async {
                         let! transRaw =
-                            faultTolerantElectrumClient.Query<string,string>
+                            faultTolerantElectrumClient.Query
                                 (FaultTolerantParallelClientSettings())
                                 utxo.TransactionId
                                 (GetRandomizedFuncs baseAccount.Currency ElectrumClient.GetBlockchainTransaction)
@@ -296,7 +304,7 @@ module internal Account =
 
         let minResponsesRequired = uint16 3
         let! btcPerKiloByteForFastTrans =
-            faultTolerantElectrumClient.Query<int,decimal>
+            faultTolerantElectrumClient.Query
                 { FaultTolerantParallelClientSettings() with
                       ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, averageFee) }
                 //querying for 1 will always return -1 surprisingly...
@@ -398,7 +406,7 @@ module internal Account =
 
     let private BroadcastRawTransaction currency (rawTx: string) =
         let newTxId =
-            faultTolerantElectrumClient.Query<string,string>
+            faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientSettings())
                 rawTx
                 (GetRandomizedFuncs currency ElectrumClient.BroadcastTransaction)

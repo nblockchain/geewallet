@@ -26,22 +26,31 @@ type HistoryInfo =
     { TimeSpan: TimeSpan
       Fault: Option<Exception> }
 
-type Server<'T,'R> =
-    { HistoryInfo: Option<HistoryInfo>
+[<CustomEquality; NoComparison>]
+type Server<'K,'T,'R when 'K: equality> =
+    { Identifier: 'K
+      HistoryInfo: Option<HistoryInfo>
       Retreival: 'T -> 'R }
+    override x.Equals yObj =
+        match yObj with
+        | :? Server<'K,'T,'R> as y ->
+            x.Identifier.Equals y.Identifier
+        | _ -> false
+    override this.GetHashCode () =
+        this.Identifier.GetHashCode()
 
 type internal ResultsSoFar<'R> = List<'R>
-type internal ExceptionsSoFar<'T,'R,'E when 'E :> Exception> = List<Server<'T,'R>*'E>
-type internal FinalResult<'T,'R,'E when 'E :> Exception> =
+type internal ExceptionsSoFar<'K,'T,'R,'E when 'K: equality and 'E :> Exception> = List<Server<'K,'T,'R>*'E>
+type internal FinalResult<'K,'T,'R,'E when 'K: equality and 'E :> Exception> =
     | ConsistentResult of 'R
     | AverageResult of 'R
-    | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'T,'R,'E>
+    | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'K,'T,'R,'E>
 
-type internal NonParallelResultWithAdditionalWork<'T,'R,'E when 'E :> Exception> =
-    | SuccessfulFirstResult of ('R * Async<NonParallelResults<'T,'R,'E>>)
+type internal NonParallelResultWithAdditionalWork<'K,'T,'R,'E when 'K: equality and 'E :> Exception> =
+    | SuccessfulFirstResult of ('R * Async<NonParallelResults<'K,'T,'R,'E>>)
     | NoneAvailable
-and internal NonParallelResults<'T,'R,'E when 'E :> Exception> =
-    ExceptionsSoFar<'T,'R,'E> * NonParallelResultWithAdditionalWork<'T,'R,'E>
+and internal NonParallelResults<'K,'T,'R,'E when 'K: equality and 'E :> Exception> =
+    ExceptionsSoFar<'K,'T,'R,'E> * NonParallelResultWithAdditionalWork<'K,'T,'R,'E>
 
 type ConsistencySettings<'R> =
     | NumberOfConsistentResponsesRequired of uint16
@@ -63,14 +72,14 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
     let MeasureConsistency (results: List<'R>) =
         results |> Seq.countBy id |> Seq.sortByDescending (fun (_,count: int) -> count) |> List.ofSeq
 
-    let LaunchAsyncJobs(jobs:List<Async<NonParallelResults<'T,'R,'E>>>): List<Task<NonParallelResults<'T,'R,'E>>> =
+    let LaunchAsyncJobs(jobs:List<Async<NonParallelResults<'K,'T,'R,'E>>>): List<Task<NonParallelResults<'K,'T,'R,'E>>> =
         jobs |> List.map Async.StartAsTask
 
     let rec WhenSomeInternal (consistencySettings: ConsistencySettings<'R>)
-                             (tasks: List<Task<NonParallelResults<'T,'R,'E>>>)
+                             (tasks: List<Task<NonParallelResults<'K,'T,'R,'E>>>)
                              (resultsSoFar: List<'R>)
-                             (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
-                             : Async<FinalResult<'T,'R,'E>> = async {
+                             (failedFuncsSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
+                             : Async<FinalResult<'K,'T,'R,'E>> = async {
         match tasks with
         | [] ->
             return InconsistentOrNotEnoughResults(resultsSoFar,failedFuncsSoFar)
@@ -80,7 +89,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
             let! fastestTask = Async.AwaitTask taskToWaitForFirstFinishedTask
             let failuresOfTask,resultOfTask = fastestTask.Result
 
-            let restOfTasks: List<Task<NonParallelResults<'T,'R,'E>>> =
+            let restOfTasks: List<Task<NonParallelResults<'K,'T,'R,'E>>> =
                 theTasks.Where(fun task -> not (Object.ReferenceEquals(task, fastestTask))) |> List.ofSeq
 
             let (newResults,newRestOfTasks) =
@@ -115,17 +124,17 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
     // it (and I couldn't just consume it and call it a day, I had to modify it to be "WhenSome" instead of "WhenAny",
     // as in when N>1), so I decided to write my own, using Tasks to make sure I would not spawn duplicate jobs
     let WhenSome (consistencySettings: ConsistencySettings<'R>)
-                 (jobs: List<Async<NonParallelResults<'T,'R,'E>>>)
+                 (jobs: List<Async<NonParallelResults<'K,'T,'R,'E>>>)
                  (resultsSoFar: List<'R>)
-                 (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
-                 : Async<FinalResult<'T,'R,'E>> =
+                 (failedFuncsSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
+                 : Async<FinalResult<'K,'T,'R,'E>> =
         let tasks = LaunchAsyncJobs jobs
         WhenSomeInternal consistencySettings tasks resultsSoFar failedFuncsSoFar
 
     let rec ConcatenateNonParallelFuncs (args: 'T)
-                                        (failuresSoFar: ExceptionsSoFar<'T,'R,'E>)
-                                        (servers: List<Server<'T,'R>>)
-                                        : Async<NonParallelResults<'T,'R,'E>> =
+                                        (failuresSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
+                                        (servers: List<Server<'K,'T,'R>>)
+                                        : Async<NonParallelResults<'K,'T,'R,'E>> =
         match servers with
         | [] ->
             async {
@@ -154,9 +163,9 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
 
     let rec QueryInternal (settings: FaultTolerantParallelClientSettings<'R>)
                           (args: 'T)
-                          (funcs: List<Server<'T,'R>>)
+                          (funcs: List<Server<'K,'T,'R>>)
                           (resultsSoFar: List<'R>)
-                          (failedFuncsSoFar: ExceptionsSoFar<'T,'R,'E>)
+                          (failedFuncsSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
                           (retries: uint16)
                           (retriesForInconsistency: uint16)
                               : Async<'R> = async {
@@ -207,7 +216,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
         | ConsistentResult consistentResult ->
             return consistentResult
         | InconsistentOrNotEnoughResults(allResultsSoFar,failedFuncsWithTheirExceptions) ->
-            let failedFuncs: List<Server<'T,'R>> = failedFuncsWithTheirExceptions |> List.map fst
+            let failedFuncs = failedFuncsWithTheirExceptions |> List.map fst
             if (allResultsSoFar.Length = 0) then
                 if (retries = settings.NumberOfRetries) then
                     let firstEx = failedFuncsWithTheirExceptions.First() |> snd
@@ -258,8 +267,8 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
 
     }
 
-    let OrderServers (servers: List<Server<'T,'R>>): List<Server<'T,'R>> =
-        let workingServers = List.filter (fun (server: Server<'T,'R>) ->
+    let OrderServers (servers: List<Server<'K,'T,'R>>): List<Server<'K,'T,'R>> =
+        let workingServers = List.filter (fun server ->
                                              match server.HistoryInfo with
                                              | None ->
                                                  false
@@ -272,7 +281,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
                                          ) servers
         let sortedWorkingServers =
             List.sortBy
-                (fun (server: Server<'T,'R>) ->
+                (fun server ->
                     match server.HistoryInfo with
                     | None ->
                         failwith "previous filter didn't work? should get working servers only, not lacking history"
@@ -284,8 +293,8 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
                             failwith "previous filter didn't work? should get working servers only, not faulty"
                 )
                 workingServers
-        let serversWithNoHistoryServers = List.filter (fun (server: Server<'T,'R>) -> server.HistoryInfo.IsNone) servers
-        let faultyServers = List.filter (fun (server: Server<'T,'R>) ->
+        let serversWithNoHistoryServers = List.filter (fun server -> server.HistoryInfo.IsNone) servers
+        let faultyServers = List.filter (fun server ->
                                             match server.HistoryInfo with
                                             | None ->
                                                 false
@@ -296,13 +305,16 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
                                                 | Some _ ->
                                                     true
                                         ) servers
-        FSharpUtil.ListIntersect sortedWorkingServers
+        let intersectionOffset = (uint16 3)
+        let result = FSharpUtil.ListIntersect sortedWorkingServers
                                  (List.append serversWithNoHistoryServers faultyServers)
-                                 (uint16 3)
+                                 intersectionOffset
+        let randomizationOffset = intersectionOffset + (uint16 1)
+        Shuffler.RandomizeEveryNthElement result randomizationOffset
 
-    member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
+    member self.Query<'K,'T,'R when 'K: equality and 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
                                                 (args: 'T)
-                                                (servers: List<Server<'T,'R>>): Async<'R> =
+                                                (servers: List<Server<'K,'T,'R>>): Async<'R> =
         if settings.NumberOfMaximumParallelJobs < uint16 1 then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 
