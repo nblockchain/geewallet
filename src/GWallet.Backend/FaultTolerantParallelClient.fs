@@ -2,6 +2,7 @@
 
 open System
 open System.Linq
+open System.Diagnostics
 open System.Threading.Tasks
 
 type ServerUnavailabilityException (message:string, lastException: Exception) =
@@ -21,23 +22,6 @@ type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                   totalNumberOfSuccesfulResultsObtained
                                   maxNumberOfConsistentResultsObtained
                                   numberOfConsistentResultsRequired)
-
-type HistoryInfo =
-    { TimeSpan: TimeSpan
-      Fault: Option<Exception> }
-
-[<CustomEquality; NoComparison>]
-type Server<'K,'T,'R when 'K: equality> =
-    { Identifier: 'K
-      HistoryInfo: Option<HistoryInfo>
-      Retreival: 'T -> 'R }
-    override x.Equals yObj =
-        match yObj with
-        | :? Server<'K,'T,'R> as y ->
-            x.Identifier.Equals y.Identifier
-        | _ -> false
-    override this.GetHashCode () =
-        this.Identifier.GetHashCode()
 
 type internal ResultsSoFar<'R> = List<'R>
 type internal ExceptionsSoFar<'K,'T,'R,'E when 'K: equality and 'E :> Exception> = List<Server<'K,'T,'R>*'E>
@@ -64,7 +48,7 @@ type FaultTolerantParallelClientSettings<'R> =
         NumberOfRetriesForInconsistency: uint16;
     }
 
-type FaultTolerantParallelClient<'E when 'E :> Exception>() =
+type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(updateServer: 'K*HistoryInfo -> unit) =
     do
         if typeof<'E> = typeof<Exception> then
             raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
@@ -142,8 +126,12 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
             }
         | head::tail ->
             async {
+                let stopwatch = Stopwatch()
+                stopwatch.Start()
                 try
                     let result = head.Retreival args
+                    stopwatch.Stop()
+                    updateServer (head.Identifier, { Fault = None; TimeSpan = stopwatch.Elapsed })
                     let tailAsync = ConcatenateNonParallelFuncs args failuresSoFar tail
                     return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
                 with
@@ -312,7 +300,7 @@ type FaultTolerantParallelClient<'E when 'E :> Exception>() =
         let randomizationOffset = intersectionOffset + (uint16 1)
         Shuffler.RandomizeEveryNthElement result randomizationOffset
 
-    member self.Query<'K,'T,'R when 'K: equality and 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
+    member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
                                                 (args: 'T)
                                                 (servers: List<Server<'K,'T,'R>>): Async<'R> =
         if settings.NumberOfMaximumParallelJobs < uint16 1 then

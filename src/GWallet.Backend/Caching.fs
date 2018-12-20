@@ -12,6 +12,7 @@ type MaybeCached<'T> =
 
 type PublicAddress = string
 type private DietCurrency = string
+type private ServerIdentifier = string
 
 type DietCache =
     {
@@ -25,6 +26,7 @@ type CachedNetworkData =
         UsdPrice: Map<Currency,CachedValue<decimal>>;
         Balances: Map<Currency,Map<PublicAddress,CachedValue<decimal>>>;
         OutgoingTransactions: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>;
+        ServerRanking: Map<ServerIdentifier,HistoryInfo*DateTime>
     }
     static member FromDietCache (dietCache: DietCache): CachedNetworkData =
         let now = DateTime.Now
@@ -40,7 +42,8 @@ type CachedNetworkData =
                         | Some balance ->
                             yield (Currency.Parse currencyStr),Map.empty.Add(address,(balance,now))
             } |> Map.ofSeq
-        { UsdPrice = fiatPrices; Balances = balances; OutgoingTransactions = Map.empty }
+        { UsdPrice = fiatPrices; Balances = balances
+          OutgoingTransactions = Map.empty; ServerRanking = Map.empty }
 
     member this.ToDietCache(readOnlyAccounts: seq<ReadOnlyAccount>) =
         let rec extractAddressesFromAccounts (acc: Map<PublicAddress,List<DietCurrency>>) (accounts: List<IAccount>)
@@ -107,8 +110,9 @@ module Caching =
         | None ->
             None
         | Some networkData ->
-            // this weird thing could happen because the previous version of GWallet didn't have an OutgoingTrans element
-            if (Object.ReferenceEquals(networkData.OutgoingTransactions, null)) then
+            // this weird thing could happen because the previous version of GWallet didn't have a new element
+            if Object.ReferenceEquals(networkData.OutgoingTransactions, null) ||
+               Object.ReferenceEquals(networkData.ServerRanking, null) then
                 Console.Error.WriteLine droppedCachedMsgWarning
                 None
             else
@@ -266,6 +270,7 @@ module Caching =
                             UsdPrice = mergedUsdPrices;
                             Balances = mergedBalances;
                             OutgoingTransactions = Map.empty;
+                            ServerRanking = networkData.ServerRanking
                         }
 
                 sessionCachedNetworkData <- Some(newSessionCachedNetworkData)
@@ -300,12 +305,14 @@ module Caching =
                             UsdPrice = Map.empty.Add(currency, (lastFiatUsdPrice, time));
                             Balances = Map.empty;
                             OutgoingTransactions = Map.empty;
+                            ServerRanking = Map.empty
                         }
                     | Some previousCachedData ->
                         {
                             UsdPrice = previousCachedData.UsdPrice.Add(currency, (lastFiatUsdPrice, time));
                             Balances = previousCachedData.Balances;
                             OutgoingTransactions = previousCachedData.OutgoingTransactions;
+                            ServerRanking = previousCachedData.ServerRanking
                         }
                 sessionCachedNetworkData <- Some newCachedValue
 
@@ -354,6 +361,7 @@ module Caching =
                             UsdPrice = Map.empty;
                             Balances = Map.empty.Add(currency, Map.empty.Add(address, (newBalance, time)));
                             OutgoingTransactions = Map.empty;
+                            ServerRanking = Map.empty
                         },None
                     | Some previousCachedData ->
                         let newCurrencyBalances,previousBalance =
@@ -369,6 +377,7 @@ module Caching =
                                                                        newCurrencyBalances.Add(address,
                                                                                               (newBalance, time)));
                             OutgoingTransactions = previousCachedData.OutgoingTransactions;
+                            ServerRanking = previousCachedData.ServerRanking
                         },previousBalance
 
                 let newCachedValueWithNewBalanceAndMaybeLessTransactions =
@@ -405,6 +414,7 @@ module Caching =
                                         UsdPrice = newCachedValueWithNewBalance.UsdPrice;
                                         Balances = newCachedValueWithNewBalance.Balances;
                                         OutgoingTransactions = newOutgoingTransactions;
+                                        ServerRanking = newCachedValueWithNewBalance.ServerRanking
                                     }
                         else
                             newCachedValueWithNewBalance
@@ -440,6 +450,7 @@ module Caching =
                     match sessionCachedNetworkData with
                     | None ->
                         {
+                            ServerRanking = Map.empty
                             UsdPrice = Map.empty;
                             Balances = Map.empty;
                             OutgoingTransactions = Map.empty.Add(currency,
@@ -462,6 +473,7 @@ module Caching =
                                 addressTransactions.Add(txId, (amount, time))
 
                         {
+                            ServerRanking = previousCachedData.ServerRanking;
                             UsdPrice = previousCachedData.UsdPrice;
                             Balances = previousCachedData.Balances;
                             OutgoingTransactions =
@@ -487,5 +499,29 @@ module Caching =
             else
                 self.StoreTransactionRecord address transactionCurrency txId transactionAmount
                 self.StoreTransactionRecord address feeCurrency txId feeAmount
+
+        member self.SaveServerLastStat (server, historyInfo): unit =
+            lock lockObject (fun _ ->
+                let newCachedValue =
+                    match sessionCachedNetworkData with
+                    | None ->
+                        {
+                            ServerRanking = Map.empty.Add(server, (historyInfo, DateTime.Now))
+                            UsdPrice = Map.empty;
+                            Balances = Map.empty;
+                            OutgoingTransactions = Map.empty
+                        }
+                    | Some previousCachedData ->
+                        {
+                            ServerRanking = previousCachedData.ServerRanking.Add(server, (historyInfo, DateTime.Now))
+                            UsdPrice = previousCachedData.UsdPrice
+                            Balances = previousCachedData.Balances
+                            OutgoingTransactions = previousCachedData.OutgoingTransactions
+                        }
+
+                sessionCachedNetworkData <- Some newCachedValue
+
+                SaveToDisk newCachedValue
+            )
 
     let Instance = MainCache (None, TimeSpan.FromDays 1.0)

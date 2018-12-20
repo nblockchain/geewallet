@@ -34,7 +34,7 @@ module internal Account =
         }
 
     let private faultTolerantElectrumClient =
-        FaultTolerantParallelClient<ElectrumServerDiscarded>()
+        FaultTolerantParallelClient<string,ElectrumServerDiscarded> Caching.Instance.SaveServerLastStat
 
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
