@@ -136,6 +136,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                     return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
                 with
                 | ex ->
+                    stopwatch.Stop()
                     let maybeSpecificEx = FSharpUtil.FindException<'E> ex
                     match maybeSpecificEx with
                     | Some specificInnerEx ->
@@ -143,6 +144,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                             Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
                                                          (ex.GetType().FullName)
                                                          ex.Message)
+                        let genericEx = specificInnerEx :> Exception
+                        updateServer (head.Identifier, { Fault = Some genericEx; TimeSpan = stopwatch.Elapsed })
                         let newFailures = (head,specificInnerEx)::failuresSoFar
                         return! ConcatenateNonParallelFuncs args newFailures tail
                     | None ->

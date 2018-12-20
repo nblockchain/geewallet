@@ -623,6 +623,46 @@ type FaultTolerance() =
 
         Assert.That(someFlag, Is.EqualTo true)
 
+    [<Test>]
+    member __.``can save server last fault``() =
+        let someStringArg = "foo"
+
+        let aFailingFunc (arg: string) =
+            raise SomeSpecificException
+        let failingServerName = "aFailingFunc"
+        let server1 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest failingServerName aFailingFunc
+
+        let someResult = 1
+        let aFunc (arg: string) =
+            someResult
+        let server2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc" aFunc
+
+        let mutable someNonFailingCounter = 0
+        let mutable someTotalCounter = 0
+        let mutable someTimeStamp = None
+        let lockObj = Object()
+        let saveServerLastStat (serverId: string, historyInfo): unit =
+            lock lockObj (fun _ ->
+                match historyInfo.Fault with
+                | None ->
+                    Assert.That(serverId, Is.Not.EqualTo failingServerName)
+                    someNonFailingCounter <- someNonFailingCounter + 1
+                | Some ex ->
+                    Assert.That(serverId, Is.EqualTo failingServerName)
+                    Assert.That(ex, Is.InstanceOf typeof<SomeSpecificException>)
+                Assert.That(historyInfo.TimeSpan, Is.GreaterThan TimeSpan.Zero)
+                someTotalCounter <- someTotalCounter + 1
+            )
+
+        let dataRetreived =
+            (FaultTolerantParallelClient<string, SomeSpecificException>
+                                    saveServerLastStat).Query
+                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ server1; server2 ]
+                |> Async.RunSynchronously
+
+        Assert.That(someTotalCounter, Is.EqualTo 2)
+        Assert.That(someNonFailingCounter, Is.EqualTo 1)
+
     member private __.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         defaultSettingsForNoConsistencyNoParallelismAndNoRetries()
 
