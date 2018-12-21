@@ -232,7 +232,13 @@ module UserInteraction =
     let private GetAccountBalances (accounts: seq<IAccount>): Async<array<IAccount*MaybeCached<decimal>>> =
         let getAccountBalance(account: IAccount): Async<IAccount*MaybeCached<decimal>> =
             async {
-                let! balance = Account.GetShowableBalance account
+                // The console frontend cannot really take much advantage of the Fast|Analysis distinction here (as
+                // opposed to the other frontends) because it doesn't have automatic balance refresh (it's this
+                // operation the one that should only use Analysis mode). If we used Mode.Fast here, then the console
+                // frontend would never re-discover slow/failing servers or even ones with no history
+                let mode = Mode.Analysis
+
+                let! balance = Account.GetShowableBalance account mode
                 return (account,balance)
             }
         let accountAndBalancesToBeQueried = accounts |> Seq.map getAccountBalance
@@ -479,7 +485,7 @@ module UserInteraction =
                 Presentation.Error "Amount surpasses current balance, try again."
                 AskParticularAmountOption currentBalance amountOption
 
-        let showableBalance = Account.GetShowableBalance account |> Async.RunSynchronously
+        let showableBalance = Account.GetShowableBalance account Mode.Fast |> Async.RunSynchronously
         match showableBalance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Balance not available if offline."

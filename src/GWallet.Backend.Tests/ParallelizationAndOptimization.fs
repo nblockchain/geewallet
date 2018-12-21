@@ -18,6 +18,9 @@ type ParallelizationAndOptimization() =
         { Identifier = serverId; HistoryInfo = None; Retreival = func; }
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ -> ())
 
+    // yes, the default one is the fast one because it's the one with no filters, just sorting
+    let default_mode_as_it_is_irrelevant_for_this_test = Mode.Fast
+
     [<Test>]
     member __.``calls both funcs (because it launches them in parallel)``() =
         let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = uint16 2
@@ -43,7 +46,7 @@ type ParallelizationAndOptimization() =
 
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-        client.Query settings someStringArg [ func1; func2 ]
+        client.Query settings someStringArg [ func1; func2 ] default_mode_as_it_is_irrelevant_for_this_test
             |> Async.RunSynchronously |> ignore
 
         Assert.That(func1Called, Is.True)
@@ -53,7 +56,7 @@ type ParallelizationAndOptimization() =
         func2Called <- false
 
         //same as before, but with different order now
-        client.Query settings someStringArg [ func2; func1 ]
+        client.Query settings someStringArg [ func2; func1 ] default_mode_as_it_is_irrelevant_for_this_test
             |> Async.RunSynchronously |> ignore
 
         Assert.That(func1Called, Is.True)
@@ -90,7 +93,10 @@ type ParallelizationAndOptimization() =
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-        let result = client.Query settings someStringArg [ func1; func2; func3 ]
+        let result = client.Query settings
+                                  someStringArg
+                                  [ func1; func2; func3 ]
+                                  default_mode_as_it_is_irrelevant_for_this_test
                          |> Async.RunSynchronously
 
         stopWatch.Stop()
@@ -125,7 +131,10 @@ type ParallelizationAndOptimization() =
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-        let result = client.Query settings someStringArg [ func1; func2; func3 ]
+        let result = client.Query settings
+                                  someStringArg
+                                  [ func1; func2; func3 ]
+                                  default_mode_as_it_is_irrelevant_for_this_test
                          |> Async.RunSynchronously
 
         stopWatch.Stop()
@@ -136,7 +145,10 @@ type ParallelizationAndOptimization() =
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-        let result = client.Query settings someStringArg [ func1; func3; func2; ]
+        let result = client.Query settings
+                                  someStringArg
+                                  [ func1; func3; func2; ]
+                                  default_mode_as_it_is_irrelevant_for_this_test
                          |> Async.RunSynchronously
 
         stopWatch.Stop()
@@ -147,7 +159,10 @@ type ParallelizationAndOptimization() =
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-        let result = client.Query settings someStringArg [ func3; func2; func1; ]
+        let result = client.Query settings
+                                  someStringArg
+                                  [ func3; func2; func1; ]
+                                  default_mode_as_it_is_irrelevant_for_this_test
                          |> Async.RunSynchronously
 
         stopWatch.Stop()
@@ -158,7 +173,10 @@ type ParallelizationAndOptimization() =
         let stopWatch = Stopwatch.StartNew()
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-        let result = client.Query settings someStringArg [ func3; func1; func2; ]
+        let result = client.Query settings
+                                  someStringArg
+                                  [ func3; func1; func2; ]
+                                  default_mode_as_it_is_irrelevant_for_this_test
                          |> Async.RunSynchronously
 
         stopWatch.Stop()
@@ -182,8 +200,11 @@ type ParallelizationAndOptimization() =
         // because 2>1
         Assert.Throws<ArgumentException>(
             fun _ -> client.Query
-                            settings
-                            "_" List.Empty |> Async.RunSynchronously |> ignore
+                                settings
+                                "_"
+                                List.Empty
+                                default_mode_as_it_is_irrelevant_for_this_test
+                                    |> Async.RunSynchronously |> ignore
         ) |> ignore
 
     [<Test>]
@@ -214,7 +235,7 @@ type ParallelizationAndOptimization() =
 
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-        let result = client.Query settings () allFuncs
+        let result = client.Query settings () allFuncs default_mode_as_it_is_irrelevant_for_this_test
                          |> Async.RunSynchronously
 
         Assert.That(result, Is.EqualTo 0)
@@ -237,6 +258,7 @@ type ParallelizationAndOptimization() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server1; server2 ]
+                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -246,6 +268,7 @@ type ParallelizationAndOptimization() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server2; server1 ]
+                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -271,34 +294,33 @@ type ParallelizationAndOptimization() =
         Assert.That(res.[6], Is.EqualTo 50)
 
     [<Test>]
-    member __.``ordering: leaves one third of servers queried for ones lacking history``() =
+    member __.``ordering: servers lacking history come always first in analysis(non-fast) mode``() =
         let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
         let someResult3 = 3
-        let someResult4 = 4
-        let server1,server2,server3 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
-                                        Identifier = "server1"; Retreival = (fun arg -> raise SomeExceptionDuringParallelWork) },
-                                      { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
-                                        Identifier = "server2"; Retreival = (fun arg -> raise SomeExceptionDuringParallelWork) },
-                                      { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 };
-                                        Identifier = "server3"; Retreival = (fun arg -> someResult3) }
-        let server4 = { HistoryInfo = None
-                        Identifier = "server4"; Retreival = (fun arg -> someResult4) }
+        let server1,server2 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
+                                Identifier = "server1"; Retreival = (fun arg -> raise SomeExceptionDuringParallelWork) },
+                              { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
+                                Identifier = "server2"; Retreival = (fun arg -> someResult2) }
+        let server3 = { HistoryInfo = None
+                        Identifier = "server3"; Retreival = (fun arg -> someResult3) }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server1; server2; server3; server4 ]
+                                someStringArg [ server1; server2; server3 ]
+                                Mode.Analysis
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
-        Assert.That(dataRetreived, Is.EqualTo someResult4)
+        Assert.That(dataRetreived, Is.EqualTo someResult3)
 
         // same but different order
         let dataRetreived = (FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server4; server3; server2; server1 ]
+                                someStringArg [ server3; server2; server1 ]
+                                Mode.Analysis
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
-        Assert.That(dataRetreived, Is.EqualTo someResult4)
+        Assert.That(dataRetreived, Is.EqualTo someResult3)
 

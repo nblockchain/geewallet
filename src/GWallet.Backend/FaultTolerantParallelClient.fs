@@ -48,6 +48,10 @@ type FaultTolerantParallelClientSettings<'R> =
         NumberOfRetriesForInconsistency: uint16;
     }
 
+type Mode =
+    | Fast
+    | Analysis
+
 type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(updateServer: 'K*HistoryInfo -> unit) =
     do
         if typeof<'E> = typeof<Exception> then
@@ -258,7 +262,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
 
     }
 
-    let OrderServers (servers: List<Server<'K,'T,'R>>): List<Server<'K,'T,'R>> =
+    let OrderServers (servers: List<Server<'K,'T,'R>>) (mode: Mode): List<Server<'K,'T,'R>> =
         let workingServers = List.filter (fun server ->
                                              match server.HistoryInfo with
                                              | None ->
@@ -284,7 +288,10 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                             failwith "previous filter didn't work? should get working servers only, not faulty"
                 )
                 workingServers
+
         let serversWithNoHistoryServers = List.filter (fun server -> server.HistoryInfo.IsNone) servers
+
+        // FIXME: sort faulty servers as well (it's better to query the ones that fail fast than the slow-failers)
         let faultyServers = List.filter (fun server ->
                                             match server.HistoryInfo with
                                             | None ->
@@ -297,18 +304,23 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                                     true
                                         ) servers
 
-        // FIXME: the client should run in 2 modes: Fast | Analysis (fast wouldn't do any intersection or randomization)
-        let intersectionOffset = (uint16 3)
-        let result = FSharpUtil.ListIntersect sortedWorkingServers
-                                 (List.append serversWithNoHistoryServers faultyServers)
-                                 intersectionOffset
-        let randomizationOffset = intersectionOffset + (uint16 1)
-        Shuffler.RandomizeEveryNthElement result randomizationOffset
+        if mode = Mode.Fast then
+            List.append sortedWorkingServers (List.append serversWithNoHistoryServers faultyServers)
+        else
+            let intersectionOffset = (uint16 3)
+            let result = FSharpUtil.ListIntersect
+                                     (List.append serversWithNoHistoryServers sortedWorkingServers)
+                                     faultyServers
+                                     intersectionOffset
+            let randomizationOffset = intersectionOffset + (uint16 1)
+            Shuffler.RandomizeEveryNthElement result randomizationOffset
 
     member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
                                                 (args: 'T)
-                                                (servers: List<Server<'K,'T,'R>>): Async<'R> =
+                                                (servers: List<Server<'K,'T,'R>>)
+                                                (mode: Mode)
+                                                    : Async<'R> =
         if settings.NumberOfMaximumParallelJobs < uint16 1 then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 
-        QueryInternal settings args (OrderServers servers) List.Empty List.Empty (uint16 0) (uint16 0)
+        QueryInternal settings args (OrderServers servers mode) List.Empty List.Empty (uint16 0) (uint16 0)

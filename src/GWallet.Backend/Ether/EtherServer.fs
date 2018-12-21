@@ -305,9 +305,10 @@ module Server =
                 (FaultTolerantParallelClientSettings currency)
                 address
                 web3Funcs
+                Mode.Fast
         }
 
-    let GetUnconfirmedEtherBalance (currency: Currency) (address: string)
+    let GetUnconfirmedEtherBalance (currency: Currency) (address: string) (mode: Mode)
                                        : Async<BigInteger> =
         async {
             let web3Funcs =
@@ -319,9 +320,11 @@ module Server =
                 (FaultTolerantParallelClientSettings currency)
                 address
                 web3Funcs
+                mode
         }
 
-    let GetUnconfirmedTokenBalance (currency: Currency) (address: string): Async<BigInteger> =
+    let GetUnconfirmedTokenBalance (currency: Currency) (address: string) (mode: Mode)
+                                       : Async<BigInteger> =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3) (publicAddress: string): BigInteger =
@@ -334,6 +337,7 @@ module Server =
                 (FaultTolerantParallelClientSettings currency)
                 address
                 web3Funcs
+                mode
         }
 
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
@@ -369,7 +373,7 @@ module Server =
             return balance
         }
 
-    let GetConfirmedEtherBalance (currency: Currency) (address: string)
+    let GetConfirmedEtherBalance (currency: Currency) (address: string) (mode: Mode)
                                      : Async<BigInteger> =
         async {
             let web3Funcs =
@@ -383,6 +387,7 @@ module Server =
                         (FaultTolerantParallelClientSettings currency)
                         address
                         web3Funcs
+                        mode
         }
 
     let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Async<BigInteger> =
@@ -403,7 +408,7 @@ module Server =
         }
 
 
-    let GetConfirmedTokenBalance (currency: Currency) (address: string): Async<BigInteger> =
+    let GetConfirmedTokenBalance (currency: Currency) (address: string) (mode: Mode): Async<BigInteger> =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3) (publicAddress: string): BigInteger =
@@ -415,6 +420,7 @@ module Server =
                         (FaultTolerantParallelClientSettings currency)
                         address
                         web3Funcs
+                        mode
         }
 
     let EstimateTokenTransferFee (baseCurrency: Currency) (account: IAccount) (amount: decimal) destination
@@ -433,6 +439,7 @@ module Server =
                         (FaultTolerantParallelClientSettings baseCurrency)
                         ()
                         web3Funcs
+                        Mode.Fast
         }
 
     let private AverageGasPrice (gasPricesFromDifferentServers: List<HexBigInteger>): HexBigInteger =
@@ -454,6 +461,7 @@ module Server =
                               ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
                         ()
                         web3Funcs
+                        Mode.Fast
         }
 
     let BroadcastTransaction (currency: Currency) (transaction: string)
@@ -470,6 +478,7 @@ module Server =
                             (FaultTolerantParallelClientSettings currency)
                             transaction
                             web3Funcs
+                            Mode.Fast
             with
             | ex ->
                 match FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex with

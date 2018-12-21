@@ -100,24 +100,25 @@ module internal Account =
                      randomizedElectrumServers
         randomizedServers
 
-    let private GetBalance(account: IAccount) =
+    let private GetBalance(account: IAccount) (mode: Mode) =
         let balance =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientSettings())
                 account.PublicAddress
                 (GetRandomizedFuncs account.Currency ElectrumClient.GetBalance)
+                mode
         balance
 
-    let GetConfirmedBalance(account: IAccount): Async<decimal> =
+    let GetConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> =
         async {
-            let! balance = GetBalance account
+            let! balance = GetBalance account mode
             let confirmedBalance = balance.Confirmed |> UnitConversion.FromSatoshiToBtc
             return confirmedBalance
         }
 
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): Async<decimal> =
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> =
         async {
-            let! balance = GetBalance account
+            let! balance = GetBalance account mode
             let confirmedBalance = balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBtc
             return confirmedBalance
         }
@@ -235,6 +236,7 @@ module internal Account =
                 (FaultTolerantParallelClientSettings())
                 baseAccount.PublicAddress
                 (GetRandomizedFuncs baseAccount.Currency ElectrumClient.GetUnspentTransactionOutputs)
+                Mode.Fast
 
         if not (utxos.Any()) then
             failwith "No UTXOs found!"
@@ -260,6 +262,7 @@ module internal Account =
                                 (FaultTolerantParallelClientSettings())
                                 utxo.TransactionId
                                 (GetRandomizedFuncs baseAccount.Currency ElectrumClient.GetBlockchainTransaction)
+                                Mode.Fast
                         let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
                         let txOut = transaction.Outputs.[utxo.OutputIndex]
                         // should suggest a ToHex() method to NBitcoin's TxOut type?
@@ -310,6 +313,7 @@ module internal Account =
                 //querying for 1 will always return -1 surprisingly...
                 2
                 (GetRandomizedFuncs baseAccount.Currency ElectrumClient.EstimateFee)
+                Mode.Fast
 
         let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, account.Currency)
         let minerFeeInSatoshis = minerFee.CalculateAbsoluteValueInSatoshis()
@@ -410,6 +414,7 @@ module internal Account =
                 (FaultTolerantParallelClientSettings())
                 rawTx
                 (GetRandomizedFuncs currency ElectrumClient.BroadcastTransaction)
+                Mode.Fast
         newTxId
 
     let BroadcastTransaction currency (transaction: SignedTransaction<_>) =

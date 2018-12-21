@@ -6,26 +6,27 @@ open System.IO
 
 module Account =
 
-    let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool): Async<decimal> =
+    let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool) (mode: Mode): Async<decimal> =
         async {
             if account.Currency.IsEtherBased() then
                 if (onlyConfirmed) then
-                    return! Ether.Account.GetConfirmedBalance account
+                    return! Ether.Account.GetConfirmedBalance account mode
                 else
-                    return! Ether.Account.GetUnconfirmedPlusConfirmedBalance account
+                    return! Ether.Account.GetUnconfirmedPlusConfirmedBalance account mode
             elif (account.Currency.IsUtxo()) then
                 if (onlyConfirmed) then
-                    return! UtxoCoin.Account.GetConfirmedBalance account
+                    return! UtxoCoin.Account.GetConfirmedBalance account mode
                 else
-                    return! UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance account
+                    return! UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance account mode
             else
                 return failwith (sprintf "Unknown currency %A" account.Currency)
         }
 
-    let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool): Async<Option<decimal>> =
+    let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool) (mode: Mode)
+                                         : Async<Option<decimal>> =
         async {
             try
-                let! balance = GetBalanceInternal account onlyConfirmed
+                let! balance = GetBalanceInternal account onlyConfirmed mode
                 return Some balance
             with
             | ex ->
@@ -41,9 +42,10 @@ module Account =
     let GetConfirmedBalance(account: IAccount) =
         GetBalanceFromServer account true
 
-    let private GetShowableBalanceInternal(account: IAccount): Async<Option<decimal>> = async {
-        let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account
-        let! confirmed = GetConfirmedBalance account
+    let private GetShowableBalanceInternal(account: IAccount) (mode: Mode): Async<Option<decimal>> = async {
+        // FIXME: when in Mode.Fast, check also if it's the first run ever, to just query confirmed balance
+        let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account mode
+        let! confirmed = GetConfirmedBalance account mode
         match unconfirmed,confirmed with
         | Some unconfirmedAmount,Some confirmedAmount ->
             if (unconfirmedAmount < confirmedAmount) then
@@ -53,9 +55,9 @@ module Account =
         | _ -> return confirmed
     }
 
-    let GetShowableBalance(account: IAccount): Async<MaybeCached<decimal>> =
+    let GetShowableBalance(account: IAccount) (mode: Mode): Async<MaybeCached<decimal>> =
         async {
-            let! maybeBalance = GetShowableBalanceInternal account
+            let! maybeBalance = GetShowableBalanceInternal account mode
             match maybeBalance with
             | None ->
                 return NotFresh(Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency)
@@ -103,7 +105,7 @@ module Account =
 
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
                     let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
-                    let maybeBalance = GetUnconfirmedPlusConfirmedBalance(account)
+                    let maybeBalance = GetUnconfirmedPlusConfirmedBalance account Mode.Fast
                     yield async {
                         let! unconfirmedBalance = maybeBalance
                         let positiveBalance =
