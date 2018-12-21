@@ -43,16 +43,18 @@ module Account =
         GetBalanceFromServer account true
 
     let private GetShowableBalanceInternal(account: IAccount) (mode: Mode): Async<Option<decimal>> = async {
-        // FIXME: when in Mode.Fast, check also if it's the first run ever, to just query confirmed balance
-        let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account mode
         let! confirmed = GetConfirmedBalance account mode
-        match unconfirmed,confirmed with
-        | Some unconfirmedAmount,Some confirmedAmount ->
-            if (unconfirmedAmount < confirmedAmount) then
-                return unconfirmed
-            else
-                return confirmed
-        | _ -> return confirmed
+        if mode = Mode.Fast && Caching.Instance.FirstRun then
+            return confirmed
+        else
+            let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account mode
+            match unconfirmed,confirmed with
+            | Some unconfirmedAmount,Some confirmedAmount ->
+                if (unconfirmedAmount < confirmedAmount) then
+                    return unconfirmed
+                else
+                    return confirmed
+            | _ -> return confirmed
     }
 
     let GetShowableBalance(account: IAccount) (mode: Mode): Async<MaybeCached<decimal>> =

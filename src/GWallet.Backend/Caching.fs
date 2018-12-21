@@ -107,20 +107,20 @@ module Caching =
             Console.Error.WriteLine("Warning: cleaning incompatible cache data found")
             None
 
-    let private LoadFromDisk (file: FileInfo): Option<CachedNetworkData> =
+    let private LoadFromDisk (file: FileInfo): bool*CachedNetworkData =
         let maybeNetworkData = LoadFromDiskInternal file
         match maybeNetworkData with
         | None ->
-            None
+            true,CachedNetworkData.Empty
         | Some networkData ->
             // this weird thing could happen because the previous version of GWallet didn't have a new element
             // FIXME: we should save each Map<> into its own file
             if Object.ReferenceEquals(networkData.OutgoingTransactions, null) ||
                Object.ReferenceEquals(networkData.ServerRanking, null) then
                 Console.Error.WriteLine droppedCachedMsgWarning
-                None
+                true,CachedNetworkData.Empty
             else
-                maybeNetworkData
+                false,networkData
 
     let rec private MergeRatesInternal (oldMap: Map<'K, CachedValue<'V>>)
                                        (newMap: Map<'K, CachedValue<'V>>)
@@ -212,7 +212,8 @@ module Caching =
             | Some file -> file
             | None -> defaultCacheFile
 
-        let mutable sessionCachedNetworkData: Option<CachedNetworkData> = LoadFromDisk cacheFile
+        let firstRun,initialSessionCachedNetworkData = LoadFromDisk cacheFile
+        let mutable sessionCachedNetworkData = initialSessionCachedNetworkData
         let lockObject = Object()
 
         let SaveToDisk (newCachedData: CachedNetworkData) =
@@ -264,37 +265,30 @@ module Caching =
             let newCachedData = CachedNetworkData.FromDietCache newDietCachedData
             lock lockObject (fun _ ->
                 let newSessionCachedNetworkData =
-                    match sessionCachedNetworkData with
-                    | None ->
-                        newCachedData
-                    | Some networkData ->
-                        let mergedBalances = MergeBalances networkData.Balances newCachedData.Balances
-                        let mergedUsdPrices = MergeRates networkData.UsdPrice newCachedData.UsdPrice
-                        {
-                            networkData with
-                                UsdPrice = mergedUsdPrices
-                                Balances = mergedBalances
-                        }
+                    let mergedBalances = MergeBalances sessionCachedNetworkData.Balances newCachedData.Balances
+                    let mergedUsdPrices = MergeRates sessionCachedNetworkData.UsdPrice newCachedData.UsdPrice
+                    {
+                        sessionCachedNetworkData with
+                            UsdPrice = mergedUsdPrices
+                            Balances = mergedBalances
+                    }
 
-                sessionCachedNetworkData <- Some(newSessionCachedNetworkData)
+                sessionCachedNetworkData <- newSessionCachedNetworkData
                 SaveToDisk newSessionCachedNetworkData
             )
 
         member self.GetLastCachedData (): CachedNetworkData =
             lock lockObject (fun _ ->
-                sessionCachedNetworkData.Value
+                sessionCachedNetworkData
             )
 
         member self.RetreiveLastKnownUsdPrice (currency): NotFresh<decimal> =
             lock lockObject (fun _ ->
-                match sessionCachedNetworkData with
-                | None -> NotAvailable
-                | Some(networkData) ->
-                    try
-                        Cached(networkData.UsdPrice.Item currency)
-                    with
-                    // FIXME: rather use tryFind func instead of using a try-with block
-                    | :? System.Collections.Generic.KeyNotFoundException -> NotAvailable
+                try
+                    Cached(sessionCachedNetworkData.UsdPrice.Item currency)
+                with
+                // FIXME: rather use tryFind func instead of using a try-with block
+                | :? System.Collections.Generic.KeyNotFoundException -> NotAvailable
             )
 
         member self.StoreLastFiatUsdPrice (currency, lastFiatUsdPrice: decimal): unit =
@@ -302,44 +296,37 @@ module Caching =
                 let time = DateTime.Now
 
                 let newCachedValue =
-                    match sessionCachedNetworkData with
-                    | None ->
-                        { CachedNetworkData.Empty
-                            with UsdPrice = Map.empty.Add(currency, (lastFiatUsdPrice, time)) }
-                    | Some previousCachedData ->
-                        { previousCachedData
-                            with UsdPrice = previousCachedData.UsdPrice.Add(currency, (lastFiatUsdPrice, time)) }
-                sessionCachedNetworkData <- Some newCachedValue
+                    { sessionCachedNetworkData
+                        with UsdPrice = sessionCachedNetworkData.UsdPrice.Add(currency, (lastFiatUsdPrice, time)) }
+                sessionCachedNetworkData <- newCachedValue
 
                 SaveToDisk newCachedValue
             )
 
         member self.RetreiveLastCompoundBalance (address: PublicAddress) (currency: Currency): NotFresh<decimal> =
             lock lockObject (fun _ ->
-                match sessionCachedNetworkData with
-                | None -> NotAvailable
-                | Some networkData ->
-                    let balance =
-                        try
-                            Cached((networkData.Balances.Item currency).Item address)
-                        with
-                        // FIXME: rather use tryFind func instead of using a try-with block
-                        | :? System.Collections.Generic.KeyNotFoundException -> NotAvailable
-                    match balance with
-                    | NotAvailable ->
-                        NotAvailable
-                    | Cached(balance,time) ->
-                        let allTransSum = GetSumOfAllTransactions networkData.OutgoingTransactions currency address
-                        let compoundBalance = balance - allTransSum
-                        if (compoundBalance < 0.0m) then
-                            ReportProblem compoundBalance
-                                          None
-                                          currency
-                                          address
-                                          networkData
-                            Cached(0.0m,time)
-                        else
-                            Cached(compoundBalance,time)
+                let balance =
+                    try
+                        Cached((sessionCachedNetworkData.Balances.Item currency).Item address)
+                    with
+                    // FIXME: rather use tryFind func instead of using a try-with block
+                    | :? System.Collections.Generic.KeyNotFoundException -> NotAvailable
+                match balance with
+                | NotAvailable ->
+                    NotAvailable
+                | Cached(balance,time) ->
+                    let allTransSum =
+                        GetSumOfAllTransactions sessionCachedNetworkData.OutgoingTransactions currency address
+                    let compoundBalance = balance - allTransSum
+                    if (compoundBalance < 0.0m) then
+                        ReportProblem compoundBalance
+                                      None
+                                      currency
+                                      address
+                                      sessionCachedNetworkData
+                        Cached(0.0m,time)
+                    else
+                        Cached(compoundBalance,time)
             )
 
         member self.RetreiveAndUpdateLastCompoundBalance (address: PublicAddress)
@@ -349,24 +336,19 @@ module Caching =
             let time = DateTime.Now
             lock lockObject (fun _ ->
                 let newCachedValueWithNewBalance,previousBalance =
-                    match sessionCachedNetworkData with
-                    | None ->
-                        { CachedNetworkData.Empty
-                            with Balances = Map.empty.Add(currency, Map.empty.Add(address, (newBalance, time))) }, None
-                    | Some previousCachedData ->
-                        let newCurrencyBalances,previousBalance =
-                            match previousCachedData.Balances.TryFind currency with
-                            | None ->
-                                Map.empty,None
-                            | Some currencyBalances ->
-                                let maybePreviousBalance = currencyBalances.TryFind address
-                                currencyBalances,maybePreviousBalance
-                        {
-                            previousCachedData with
-                                Balances = previousCachedData.Balances.Add(currency,
-                                                                           newCurrencyBalances.Add(address,
-                                                                                                  (newBalance, time)))
-                        },previousBalance
+                    let newCurrencyBalances,previousBalance =
+                        match sessionCachedNetworkData.Balances.TryFind currency with
+                        | None ->
+                            Map.empty,None
+                        | Some currencyBalances ->
+                            let maybePreviousBalance = currencyBalances.TryFind address
+                            currencyBalances,maybePreviousBalance
+                    {
+                        sessionCachedNetworkData with
+                            Balances = sessionCachedNetworkData.Balances.Add(currency,
+                                                                             newCurrencyBalances.Add(address,
+                                                                                                     (newBalance, time)))
+                    },previousBalance
 
                 let newCachedValueWithNewBalanceAndMaybeLessTransactions =
                     match previousBalance with
@@ -405,7 +387,7 @@ module Caching =
                         else
                             newCachedValueWithNewBalance
 
-                sessionCachedNetworkData <- Some newCachedValueWithNewBalanceAndMaybeLessTransactions
+                sessionCachedNetworkData <- newCachedValueWithNewBalanceAndMaybeLessTransactions
 
                 SaveToDisk newCachedValueWithNewBalanceAndMaybeLessTransactions
 
@@ -432,37 +414,26 @@ module Caching =
                                                        : unit =
             let time = DateTime.Now
             lock lockObject (fun _ ->
-                let newCachedValue =
-                    match sessionCachedNetworkData with
+                let newCurrencyAddresses =
+                    match sessionCachedNetworkData.OutgoingTransactions.TryFind currency with
                     | None ->
-                        {
-                            CachedNetworkData.Empty with
-                                OutgoingTransactions = Map.empty.Add(currency,
-                                                                     Map.empty.Add(address,
-                                                                                   Map.empty.Add(txId,
-                                                                                                 (amount, time))))
-                        }
-                    | Some previousCachedData ->
-                        let newCurrencyAddresses =
-                            match previousCachedData.OutgoingTransactions.TryFind currency with
-                            | None ->
-                                Map.empty
-                            | Some currencyAddresses ->
-                                currencyAddresses
-                        let newAddressTransactions =
-                            match newCurrencyAddresses.TryFind address with
-                            | None ->
-                                Map.empty.Add(txId, (amount, time))
-                            | Some addressTransactions ->
-                                addressTransactions.Add(txId, (amount, time))
+                        Map.empty
+                    | Some currencyAddresses ->
+                        currencyAddresses
+                let newAddressTransactions =
+                    match newCurrencyAddresses.TryFind address with
+                    | None ->
+                        Map.empty.Add(txId, (amount, time))
+                    | Some addressTransactions ->
+                        addressTransactions.Add(txId, (amount, time))
 
-                        let newOutgoingTxs =
-                            previousCachedData.OutgoingTransactions.Add(currency,
-                                                                        newCurrencyAddresses.Add(address,
-                                                                                                 newAddressTransactions))
-                        { previousCachedData with OutgoingTransactions = newOutgoingTxs }
+                let newOutgoingTxs =
+                    sessionCachedNetworkData.OutgoingTransactions.Add(currency,
+                                                                      newCurrencyAddresses.Add(address,
+                                                                                               newAddressTransactions))
+                let newCachedValue = { sessionCachedNetworkData with OutgoingTransactions = newOutgoingTxs }
 
-                sessionCachedNetworkData <- Some newCachedValue
+                sessionCachedNetworkData <- newCachedValue
 
                 SaveToDisk newCachedValue
             )
@@ -483,33 +454,27 @@ module Caching =
         member self.SaveServerLastStat (server, historyInfo): unit =
             lock lockObject (fun _ ->
                 let newCachedValue =
-                    match sessionCachedNetworkData with
-                    | None ->
-                        {
-                            CachedNetworkData.Empty with
-                                ServerRanking = Map.empty.Add(server, (historyInfo, DateTime.Now))
-                        }
-                    | Some previousCachedData ->
-                        {
-                            previousCachedData with
-                                ServerRanking = previousCachedData.ServerRanking.Add(server, (historyInfo, DateTime.Now))
-                        }
+                    {
+                        sessionCachedNetworkData with
+                            ServerRanking = sessionCachedNetworkData.ServerRanking.Add(server,
+                                                                                       (historyInfo, DateTime.Now))
+                    }
 
-                sessionCachedNetworkData <- Some newCachedValue
+                sessionCachedNetworkData <- newCachedValue
 
                 SaveToDisk newCachedValue
             )
 
         member self.RetreiveLastServerHistory (serverId: string): Option<HistoryInfo> =
             lock lockObject (fun _ ->
-                match sessionCachedNetworkData with
-                | None -> None
-                | Some networkData ->
-                    match networkData.ServerRanking.TryFind serverId with
-                    | None ->
-                        Console.Error.WriteLine (sprintf "WARNING: no history stats about %s" serverId)
-                        None
-                    | Some (historyInfo,_) -> Some historyInfo
+                match sessionCachedNetworkData.ServerRanking.TryFind serverId with
+                | None ->
+                    Console.Error.WriteLine (sprintf "WARNING: no history stats about %s" serverId)
+                    None
+                | Some (historyInfo,_) -> Some historyInfo
             )
+
+        member this.FirstRun
+            with get() = firstRun
 
     let Instance = MainCache (None, TimeSpan.FromDays 1.0)
