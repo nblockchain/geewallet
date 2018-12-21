@@ -34,23 +34,23 @@ module internal Account =
                 "0x" + rawPublicAddress
         publicAddress
 
-    let GetConfirmedBalance(account: IAccount): Async<decimal> = async {
+    let GetConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> = async {
         let! balance =
             if (account.Currency.IsEther()) then
-                Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress
+                Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress mode
             elif (account.Currency.IsEthToken()) then
-                Ether.Server.GetConfirmedTokenBalance account.Currency account.PublicAddress
+                Ether.Server.GetConfirmedTokenBalance account.Currency account.PublicAddress mode
             else
                 failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
     }
 
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount): Async<decimal> = async {
+    let GetUnconfirmedPlusConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> = async {
         let! balance =
             if (account.Currency.IsEther()) then
-                Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress
+                Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress mode
             elif (account.Currency.IsEthToken()) then
-                Ether.Server.GetUnconfirmedTokenBalance account.Currency account.PublicAddress
+                Ether.Server.GetUnconfirmedTokenBalance account.Currency account.PublicAddress mode
             else
                 failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)

@@ -93,16 +93,16 @@ module Marshalling =
                     if (version <> currentVersion) then
                         let msg = sprintf "Incompatible marshalling version found (%s vs. current %s) while trying to deserialize JSON"
                                           version currentVersion
-                        raise (new VersionMismatchDuringDeserializationException(msg, ex))
-                raise (new DeserializationException(sprintf "Exception when trying to deserialize '%s'" json, ex))
+                        raise <| VersionMismatchDuringDeserializationException(msg, ex)
+                raise <| DeserializationException(sprintf "Exception when trying to deserialize '%s'" json, ex)
 
 
         if Object.ReferenceEquals(deserialized, null) then
-            raise (new DeserializationException(sprintf "JsonConvert.DeserializeObject returned null when trying to deserialize '%s'"
-                                                        json))
+            raise <| DeserializationException(sprintf "JsonConvert.DeserializeObject returned null when trying to deserialize '%s'"
+                                                      json)
         if Object.ReferenceEquals(deserialized.Value, null) then
-            raise (new DeserializationException(sprintf "JsonConvert.DeserializeObject could not deserialize the Value member of '%s'"
-                                                        json))
+            raise <| DeserializationException(sprintf "JsonConvert.DeserializeObject could not deserialize the Value member of '%s'"
+                                                      json)
         deserialized.Value
 
     let private SerializeInternal<'S>(value: 'S): string =

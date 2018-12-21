@@ -233,7 +233,13 @@ module UserInteraction =
     let private GetAccountBalances (accounts: seq<IAccount>): Async<array<IAccount*MaybeCached<decimal>>> =
         let getAccountBalance(account: IAccount): Async<IAccount*MaybeCached<decimal>> =
             async {
-                let! balance,_ = Account.GetShowableBalanceAndImminentPayment account
+                // The console frontend cannot really take much advantage of the Fast|Analysis distinction here (as
+                // opposed to the other frontends) because it doesn't have automatic balance refresh (it's this
+                // operation the one that should only use Analysis mode). If we used Mode.Fast here, then the console
+                // frontend would never re-discover slow/failing servers or even ones with no history
+                let mode = Mode.Analysis
+
+                let! balance,_ = Account.GetShowableBalanceAndImminentPayment account mode
                 return (account,balance)
             }
         let accountAndBalancesToBeQueried = accounts |> Seq.map getAccountBalance
@@ -342,7 +348,7 @@ module UserInteraction =
         let yesNoAnswer = Console.ReadLine().ToLowerInvariant()
         if (yesNoAnswer = "y") then
             true
-        else if (yesNoAnswer = "n") then
+        elif (yesNoAnswer = "n") then
             false
         else
             AskYesNo question
@@ -365,7 +371,7 @@ module UserInteraction =
                     Presentation.Error
                         (sprintf "Address should have a length not higher than %d characters, please try again."
                             lengthLimitViolated)
-                else if (publicAddress.Length < lengthLimitViolated) then
+                elif (publicAddress.Length < lengthLimitViolated) then
                     Presentation.Error
                         (sprintf "Address should have a length not lower than %d characters, please try again."
                             lengthLimitViolated)
@@ -480,7 +486,7 @@ module UserInteraction =
                 Presentation.Error "Amount surpasses current balance, try again."
                 AskParticularAmountOption currentBalance amountOption
 
-        let showableBalance,_ = Account.GetShowableBalanceAndImminentPayment account |> Async.RunSynchronously
+        let showableBalance,_ = Account.GetShowableBalanceAndImminentPayment account Mode.Fast |> Async.RunSynchronously
         match showableBalance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Balance not available if offline."

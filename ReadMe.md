@@ -1,4 +1,4 @@
-# GWallet
+# <img src="https://github.com/diginex/geewallet/raw/master/logo.png" width="50" /> GWallet
 
 Welcome!
 
@@ -6,13 +6,11 @@ GWallet is a minimalistic and pragmatist crossplatform lightweight opensource br
 
 [![Licence](https://img.shields.io/github/license/diginex/geewallet.svg)](https://github.com/diginex/geewallet/blob/master/LICENCE.txt)
 
-| Branch    | Description                                                                | CI status                                                                                                                                                                                                         |
-| --------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| oldstable | (v0.1.0.x) ETC & ETH support, console-based frontend, cold-storage support | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/oldstable/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/oldstable)                                    |
-| stable    | (v0.2.0.x) +BTC&LTC support (including SegWit & RBF support) + DAI (ERC20) | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/stable/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/stable)                                          |
-| master    | main branch where ongoing development takes place (unstable)               | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/master/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/master)                                          |
-|           |                                                                            | Windows: [![Windows CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/geewallet-master-build-and-test)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=1)  |
-| frontend  | +Xamarin.Forms frontends (now: Android & iOS & Gtk & Mac; soon: UWP)       | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/frontend/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/frontend)                                      |
+| Branch            | Description                                                            | CI status                                                                                                                                                                    |
+| ----------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| stable (v0.2.x)   | Console frontend, currencies: ETC&ETH+DAI(ERC20), BTC&LTC (SegWit+RBF) | [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/stable/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/stable)(Linux)     |
+| master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/master/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/master)(Linux) [![Windows CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/geewallet-master-build-and-test)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=1)(Windows) |
+| frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/frontend/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/frontend)(Linux) |
 
 [![Balances mobile-page screenshot](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/mobile-balances.png)](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/mobile-balances.png)
 
@@ -64,24 +62,24 @@ As you can see, geewallet is a good mixup of good features, which others never m
 This list is the (intended) order of preference for new features:
 
 - Xamarin.Forms frontends (in progress, see the 'frontend' branch)...
-- ETH/ETC state channel support.
-- Raiden support.
-- Bitcoin/Litecoin payment channels support.
-- Lightning support (upgrading to NBitcoin 4.0.0.12 to be protected from malleability).
-- Payment channels support.
-- Mac/Windows CI support via Travis & AppVeyor respectively.
-- Flatpak & snap packaging.
+- Support for payment-channels & state-channels (in BTC/LTC via lightning, and in ETH/ETC/DAI via Raiden)
+- macOS CI support via AzureDevOps pipelines.
+- snap packaging.
 - Paranoid-build mode (using git submodules instead of nuget deps), depending on this RFE (https://github.com/dotnet/sdk/issues/1151) or using any workaround mentioned there.
+- flatpak packaging.
+- Use of 'bits' instead of BTC as default unit.
+(See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
+- MimbleWimble(Grin) support.
+- Threshold signatures.
+- Use deniable encryption to allow for a duress password/passphrase/pin.
+- ETH gas station (to pay for token transactions with token value instead of ETH).
 - Fee selection for custom priority.
 - Multi-sig support.
-- Use bits instead of BTC as default unit.
-(See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
-- MimbleWimble support?
-- Threshold signatures.
-- ETH gas station (to pay for token transactions with token value instead of ETH).
+- Crosschain atomic swaps (via [comit network](https://github.com/comit-network/comit-rs)? more info [here](https://blog.coblox.tech/2018/06/23/connect-all-the-blockchains.html) and [here](https://blog.coblox.tech/2018/12/12/erc20-lightning-and-COMIT.html)).
 - Decentralized naming resolution? (BNS/ENS/OpenCAP/...)
-- Decentralized currency exchange? or crosschain atomic swaps?
+- Decentralized currency exchange?
 - Tumblebit support?
+
 
 ## Dev roadmap
 
@@ -114,4 +112,13 @@ After that you can call `gwallet` directly.
 
 ## Feedback
 
-If you want to accelerate development/maintenance, please donate at... TBD.
+If you want to accelerate development/maintenance, create an issue and pledge funds with [gitcoin](http://gitcoin.co).
+Alternatively, if you want to hire expertise around blockchain development or adapt this project
+to your needs, see the next section.
+
+
+## About Diginex
+
+![Diginex Logo](https://www.diginex.com/wp-content/uploads/2018/09/diginex_chain_logo_-01-copy.png)
+
+Diginex develops and implements blockchain technologies to transform businesses and enrich society. At the core of Diginex is our people. We are a blend of financial service professionals, passionate blockchain technologists and experienced project managers. We work with corporates, institutions & governments to create solutions that build trust and increase efficiency.

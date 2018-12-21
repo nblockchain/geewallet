@@ -6,26 +6,27 @@ open System.IO
 
 module Account =
 
-    let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool): Async<decimal> =
+    let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool) (mode: Mode): Async<decimal> =
         async {
             if account.Currency.IsEtherBased() then
                 if (onlyConfirmed) then
-                    return! Ether.Account.GetConfirmedBalance account
+                    return! Ether.Account.GetConfirmedBalance account mode
                 else
-                    return! Ether.Account.GetUnconfirmedPlusConfirmedBalance account
+                    return! Ether.Account.GetUnconfirmedPlusConfirmedBalance account mode
             elif (account.Currency.IsUtxo()) then
                 if (onlyConfirmed) then
-                    return! UtxoCoin.Account.GetConfirmedBalance account
+                    return! UtxoCoin.Account.GetConfirmedBalance account mode
                 else
-                    return! UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance account
+                    return! UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance account mode
             else
                 return failwith (sprintf "Unknown currency %A" account.Currency)
         }
 
-    let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool): Async<Option<decimal>> =
+    let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool) (mode: Mode)
+                                         : Async<Option<decimal>> =
         async {
             try
-                let! balance = GetBalanceInternal account onlyConfirmed
+                let! balance = GetBalanceInternal account onlyConfirmed mode
                 return Some balance
             with
             | ex ->
@@ -41,24 +42,31 @@ module Account =
     let GetConfirmedBalance(account: IAccount) =
         GetBalanceFromServer account true
 
-    let private GetShowableBalanceAndImminentPaymentInternal(account: IAccount): Async<Option<decimal*bool>> = async {
-        let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account
-        let! confirmed = GetConfirmedBalance account
-        match unconfirmed,confirmed with
-        | Some unconfirmedAmount,Some confirmedAmount ->
-            if (unconfirmedAmount > confirmedAmount) then
-                return Some (confirmedAmount, true)
-            else
-                return Some (unconfirmedAmount, false)
-        | _ ->
+    let private GetShowableBalanceAndImminentPaymentInternal (account: IAccount) (mode: Mode)
+                                                                 : Async<Option<decimal*bool>> = async {
+
+        let! confirmed = GetConfirmedBalance account mode
+        if mode = Mode.Fast && Caching.Instance.FirstRun then
             match confirmed with
             | None -> return None
             | Some confirmedAmount -> return Some(confirmedAmount, false)
+        else
+            let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account mode
+            match unconfirmed,confirmed with
+            | Some unconfirmedAmount,Some confirmedAmount ->
+                if (unconfirmedAmount > confirmedAmount) then
+                    return Some (confirmedAmount, true)
+                else
+                    return Some (unconfirmedAmount, false)
+            | _ ->
+                match confirmed with
+                | None -> return None
+                | Some confirmedAmount -> return Some(confirmedAmount, false)
     }
 
-    let GetShowableBalanceAndImminentPayment (account: IAccount): Async<MaybeCached<decimal>*bool> =
+    let GetShowableBalanceAndImminentPayment (account: IAccount) (mode: Mode): Async<MaybeCached<decimal>*bool> =
         async {
-            let! maybeBalanceAndImminentPayment = GetShowableBalanceAndImminentPaymentInternal account
+            let! maybeBalanceAndImminentPayment = GetShowableBalanceAndImminentPaymentInternal account mode
             match maybeBalanceAndImminentPayment with
             | None ->
                 let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
@@ -124,7 +132,7 @@ module Account =
 
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
                     let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
-                    let maybeBalance = GetUnconfirmedPlusConfirmedBalance(account)
+                    let maybeBalance = GetUnconfirmedPlusConfirmedBalance account Mode.Fast
                     yield async {
                         let! unconfirmedBalance = maybeBalance
                         let positiveBalance =
@@ -526,7 +534,7 @@ module Account =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
-            raise(new Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName))
+            raise <| Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName)
 
     let public ImportSignedTransactionFromJson (jsonOrCompressedJson: string): SignedTransaction<IBlockchainFeeInfo> =
 
@@ -549,7 +557,7 @@ module Account =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
-            raise(new Exception(sprintf "Unknown signedTransaction subtype: %s" unexpectedType.FullName))
+            raise <| Exception(sprintf "Unknown signedTransaction subtype: %s" unexpectedType.FullName)
 
     let public ImportTransactionFromJson (jsonOrCompressedJson: string): ImportedTransaction<IBlockchainFeeInfo> =
 
