@@ -48,6 +48,9 @@
     <Compile Include="..\GWallet.Backend\Infrastructure.fs">
       <Link>Infrastructure.fs</Link>
     </Compile>
+    <Compile Include="..\GWallet.Backend\Server.fs">
+      <Link>Server.fs</Link>
+    </Compile>
     <Compile Include="..\GWallet.Backend\Caching.fs">
       <Link>Caching.fs</Link>
     </Compile>
