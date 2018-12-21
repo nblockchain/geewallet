@@ -144,8 +144,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                             Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
                                                          (ex.GetType().FullName)
                                                          ex.Message)
-                        let genericEx = specificInnerEx :> Exception
-                        updateServer (head.Identifier, { Fault = Some genericEx; TimeSpan = stopwatch.Elapsed })
+                        let exInfo = { Type = specificInnerEx.GetType(); Message = specificInnerEx.Message }
+                        updateServer (head.Identifier, { Fault = Some exInfo; TimeSpan = stopwatch.Elapsed })
                         let newFailures = (head,specificInnerEx)::failuresSoFar
                         return! ConcatenateNonParallelFuncs args newFailures tail
                     | None ->
@@ -296,6 +296,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                                 | Some _ ->
                                                     true
                                         ) servers
+
+        // FIXME: the client should run in 2 modes: Fast | Analysis (fast wouldn't do any intersection or randomization)
         let intersectionOffset = (uint16 3)
         let result = FSharpUtil.ListIntersect sortedWorkingServers
                                  (List.append serversWithNoHistoryServers faultyServers)

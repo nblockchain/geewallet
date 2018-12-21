@@ -2,9 +2,13 @@
 
 open System
 
+type ExceptionInfo =
+    { Type: Type
+      Message: string }
+
 type HistoryInfo =
     { TimeSpan: TimeSpan
-      Fault: Option<Exception> }
+      Fault: Option<ExceptionInfo> }
 
 [<CustomEquality; NoComparison>]
 type Server<'K,'T,'R when 'K: equality> =
