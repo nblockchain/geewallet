@@ -500,4 +500,16 @@ module Caching =
                 SaveToDisk newCachedValue
             )
 
+        member self.RetreiveLastServerHistory (serverId: string): Option<HistoryInfo> =
+            lock lockObject (fun _ ->
+                match sessionCachedNetworkData with
+                | None -> None
+                | Some networkData ->
+                    match networkData.ServerRanking.TryFind serverId with
+                    | None ->
+                        Console.Error.WriteLine (sprintf "WARNING: no history stats about %s" serverId)
+                        None
+                    | Some (historyInfo,_) -> Some historyInfo
+            )
+
     let Instance = MainCache (None, TimeSpan.FromDays 1.0)

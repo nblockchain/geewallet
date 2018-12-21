@@ -284,7 +284,7 @@ module Server =
                                       (web3Server: SomeWeb3)
                                               : Server<string,'T,'R> =
             { Identifier = web3Server.Url
-              HistoryInfo = None
+              HistoryInfo = Caching.Instance.RetreiveLastServerHistory web3Server.Url
               Retreival = Web3ServerToRetreivalFunc web3Server web3ClientFunc }
 
         let web3servers = GetWeb3Servers currency

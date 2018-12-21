@@ -91,7 +91,7 @@ module internal Account =
                                           (electrumServer: ElectrumServer)
                                               : Server<string,'T,'R> =
             { Identifier = electrumServer.Fqdn
-              HistoryInfo = None
+              HistoryInfo = Caching.Instance.RetreiveLastServerHistory electrumServer.Fqdn
               Retreival = ElectrumServerToRetreivalFunc electrumServer electrumClientFunc }
 
         let randomizedElectrumServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
