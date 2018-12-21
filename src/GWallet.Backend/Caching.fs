@@ -269,7 +269,7 @@ module Caching =
                         {
                             UsdPrice = mergedUsdPrices;
                             Balances = mergedBalances;
-                            OutgoingTransactions = Map.empty;
+                            OutgoingTransactions = networkData.OutgoingTransactions;
                             ServerRanking = networkData.ServerRanking
                         }
 
