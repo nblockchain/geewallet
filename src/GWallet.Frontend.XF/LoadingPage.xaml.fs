@@ -63,7 +63,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
             seq {
                 for balanceSet in normalAccountsWithLabels do
                     let balanceJob =
-                        FrontendHelpers.UpdateBalanceAsync balanceSet
+                        FrontendHelpers.UpdateBalanceAsync balanceSet Mode.Fast
                     yield balanceJob
             } |> Async.Parallel
 

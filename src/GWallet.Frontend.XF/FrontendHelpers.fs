@@ -102,10 +102,10 @@ module FrontendHelpers =
         )
         fiatAmount
 
-    let UpdateBalanceAsync (balanceSet: BalanceSet)
+    let UpdateBalanceAsync (balanceSet: BalanceSet) (mode: Mode)
                                : Async<BalanceState> =
         async {
-            let! balance,imminentPayment = Account.GetShowableBalanceAndImminentPayment balanceSet.Account
+            let! balance,imminentPayment = Account.GetShowableBalanceAndImminentPayment balanceSet.Account mode
             let fiatAmount =
                 UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
             return {

@@ -49,7 +49,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let GetBalanceUpdateJobs accountsAndBalances =
         seq {
             for balanceState in accountsAndBalances do
-                yield FrontendHelpers.UpdateBalanceAsync balanceState.BalanceSet
+                yield FrontendHelpers.UpdateBalanceAsync balanceState.BalanceSet Mode.Analysis
         }
     let normalBalancesJob = Async.Parallel (GetBalanceUpdateJobs normalAccountsAndBalances)
     let readOnlyBalancesJob = Async.Parallel (GetBalanceUpdateJobs readOnlyAccountsAndBalances)

@@ -103,7 +103,7 @@ type PairingToPage(balancesPage: Page,
             let checkReadOnlyBalancesInParallel =
                 seq {
                     for readOnlyAccountBalanceSet in readOnlyAccountsWithLabels do
-                        yield FrontendHelpers.UpdateBalanceAsync readOnlyAccountBalanceSet
+                        yield FrontendHelpers.UpdateBalanceAsync readOnlyAccountBalanceSet Mode.Fast
                 } |> Async.Parallel
             let normalAccountsBalancesJob =
                 FrontendHelpers.UpdateCachedBalancesAsync (normalAccountsAndBalances.Select(fun balanceState ->
