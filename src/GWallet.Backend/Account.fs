@@ -43,34 +43,37 @@ module Account =
         GetBalanceFromServer account true
 
     let private GetShowableBalanceAndImminentPaymentInternal (account: IAccount) (mode: Mode)
-                                                                 : Async<Option<decimal*bool>> = async {
+                                                                 : Async<Option<decimal*Option<bool>>> = async {
 
         let! confirmed = GetConfirmedBalance account mode
         if mode = Mode.Fast && Caching.Instance.FirstRun then
             match confirmed with
             | None -> return None
-            | Some confirmedAmount -> return Some(confirmedAmount, false)
+            | Some confirmedAmount -> return Some(confirmedAmount,
+                                                  // this None below means "we don't know"
+                                                  None)
         else
             let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account mode
             match unconfirmed,confirmed with
             | Some unconfirmedAmount,Some confirmedAmount ->
                 if (unconfirmedAmount > confirmedAmount) then
-                    return Some (confirmedAmount, true)
+                    return Some (confirmedAmount, Some true)
                 else
-                    return Some (unconfirmedAmount, false)
+                    return Some (unconfirmedAmount, Some false)
             | _ ->
                 match confirmed with
                 | None -> return None
-                | Some confirmedAmount -> return Some(confirmedAmount, false)
+                | Some confirmedAmount -> return Some(confirmedAmount, Some false)
     }
 
-    let GetShowableBalanceAndImminentPayment (account: IAccount) (mode: Mode): Async<MaybeCached<decimal>*bool> =
+    let GetShowableBalanceAndImminentPayment (account: IAccount) (mode: Mode)
+                                                 : Async<MaybeCached<decimal>*Option<bool>> =
         async {
             let! maybeBalanceAndImminentPayment = GetShowableBalanceAndImminentPaymentInternal account mode
             match maybeBalanceAndImminentPayment with
             | None ->
                 let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
-                return (NotFresh cachedBalance, false)
+                return (NotFresh cachedBalance, None)
             | Some (balance,imminentPayment) ->
                 let compoundBalance,_ =
                     Caching.Instance.RetreiveAndUpdateLastCompoundBalance account.PublicAddress

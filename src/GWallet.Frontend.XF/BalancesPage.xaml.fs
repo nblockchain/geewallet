@@ -44,7 +44,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let totalReadOnlyFiatAmountFrame = mainLayout.FindByName<Frame> "totalReadOnlyFiatAmountFrame"
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
-    let standardTimeToRefreshBalancesWhenPaymentIsImminent = TimeSpan.FromMinutes 1.0
+    let standardTimeToRefreshBalancesWhenThereIsImminentPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
 
     let GetBalanceUpdateJobs accountsAndBalances =
         seq {
@@ -155,7 +155,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 FindCryptoBalances layout tail resultsSoFar
 
     let mutable timerRunning = false
-    let mutable isIncomingPaymentImminent = false
+
+    // default value of the below field is 'false', just in case there's an incoming payment which we don't want to miss
+    let mutable noImminentIncomingPayment = false
+
     let lockObject = Object()
 
     do
@@ -169,9 +172,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> timerRunning)
          and set value = lock lockObject (fun _ -> timerRunning <- value)
 
-    member private this.IsIncomingPaymentImminent
-        with get() = lock lockObject (fun _ -> isIncomingPaymentImminent)
-         and set value = lock lockObject (fun _ -> isIncomingPaymentImminent <- value)
+    member private this.NoImminentIncomingPayment
+        with get() = lock lockObject (fun _ -> noImminentIncomingPayment)
+         and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
 
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
 
@@ -237,7 +240,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         Device.BeginInvokeOnMainThread(fun _ ->
                             this.UpdateGlobalFiatBalanceSum normalFiatBalances totalFiatAmountLabel
                         )
-                        return resolvedNormalBalances.Any(fun balanceState -> balanceState.ImminentPayment) |> Some
+                        return resolvedNormalBalances.Any(fun balanceState ->
+
+                            // this means: maybe there's an imminent payment?
+                            balanceState.ImminentPayment.IsNone ||
+
+                                (balanceState.ImminentPayment.Value = true)
+                        ) |> Some
                     else
                         return None
                 }
@@ -250,7 +259,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         Device.BeginInvokeOnMainThread(fun _ ->
                             this.UpdateGlobalFiatBalanceSum readOnlyFiatBalances totalReadOnlyFiatAmountLabel
                         )
-                        return resolvedReadOnlyBalances.Any(fun balanceState -> balanceState.ImminentPayment) |> Some
+                        return resolvedReadOnlyBalances.Any(fun balanceState ->
+
+                            // this means: maybe there's an imminent payment?
+                            balanceState.ImminentPayment.IsNone ||
+
+                                (balanceState.ImminentPayment.Value = true)
+                        ) |> Some
                     else
                         return None
                 }
@@ -264,18 +279,14 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 async {
                     let! balanceUpdates = allBalanceUpdates
                     if balanceUpdates.Any(fun maybeImminentPayment ->
-                        match maybeImminentPayment with
-                        | Some imminentPayment -> imminentPayment
-                        | _ -> false
+                        maybeImminentPayment.IsSome && (maybeImminentPayment.Value = true)
                     ) then
-                        this.IsIncomingPaymentImminent <- true
+                        this.NoImminentIncomingPayment <- false
                     elif (not onlyReadOnlyAccounts) &&
                           balanceUpdates.All(fun maybeImminentPayment ->
-                        match maybeImminentPayment with
-                        | Some imminentPayment -> (not imminentPayment)
-                        | _ -> false
+                        maybeImminentPayment.IsNone || (maybeImminentPayment.Value = false)
                     ) then
-                        this.IsIncomingPaymentImminent <- false
+                        this.NoImminentIncomingPayment <- true
                 }
 
             balanceAndImminentPaymentUpdate
@@ -285,8 +296,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         awake
 
     member private this.TimerIntervalMatchesImminentPaymentCondition (interval: TimeSpan): bool =
-        let result = (this.IsIncomingPaymentImminent && interval = standardTimeToRefreshBalancesWhenPaymentIsImminent)
-                     || (not (this.IsIncomingPaymentImminent) && interval = standardTimeToRefreshBalances)
+        let result = (this.NoImminentIncomingPayment &&
+                      interval = standardTimeToRefreshBalances) ||
+                     ((not this.NoImminentIncomingPayment) &&
+                       interval = standardTimeToRefreshBalancesWhenThereIsImminentPaymentOrNotEnoughInfoToKnow)
         result
 
     member private this.StartTimer(): unit =
@@ -294,10 +307,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
             let refreshTime =
                 // sync the below with TimerIntervalMatchesImminentPaymentCondition() func
-                if this.IsIncomingPaymentImminent then
-                    standardTimeToRefreshBalancesWhenPaymentIsImminent
-                else
+                if this.NoImminentIncomingPayment then
                     standardTimeToRefreshBalances
+                else
+                    standardTimeToRefreshBalancesWhenThereIsImminentPaymentOrNotEnoughInfoToKnow
 
             Device.StartTimer(refreshTime, fun _ ->
 

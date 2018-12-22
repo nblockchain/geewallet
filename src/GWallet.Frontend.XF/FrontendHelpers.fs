@@ -18,7 +18,7 @@ type BalanceSet = {
 type BalanceState = {
     BalanceSet: BalanceSet;
     FiatAmount: MaybeCached<decimal>;
-    ImminentPayment: bool;
+    ImminentPayment: Option<bool>;
 }
 
 module FrontendHelpers =
@@ -131,13 +131,10 @@ module FrontendHelpers =
                                       balanceSet.Account.Currency
                                       balanceSet.CryptoLabel
                                       balanceSet.FiatLabel
-                    // dummy because retreiving balances from cache cannot tell us if it's imminent or not, but we need
-                    // to return this dummy false value to make signatures match with the non-cache funcs
-                    let dummyFalseImminentPayment = false
                     let newElem = {
                         BalanceSet = balanceSet;
                         FiatAmount = fiatAmount;
-                        ImminentPayment = dummyFalseImminentPayment;
+                        ImminentPayment = None;
                     }
                     updateBalanceAccumulator tail (newElem::acc)
                 | _ ->
