@@ -102,26 +102,10 @@ module FrontendHelpers =
         )
         fiatAmount
 
-    let UpdateBalanceAsync (balanceSet: BalanceSet) (mode: Mode)
+    let rec UpdateBalanceAsync (balanceSet: BalanceSet) (tryCachedFirst: bool) (mode: Mode)
                                : Async<BalanceState> =
         async {
-            let! balance,imminentPayment = Account.GetShowableBalanceAndImminentPayment balanceSet.Account mode
-            let fiatAmount =
-                UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
-            return {
-                BalanceSet = balanceSet;
-                FiatAmount = fiatAmount;
-                ImminentPayment = imminentPayment;
-            }
-        }
-
-    let UpdateCachedBalancesAsync (accountsWithLabels: seq<BalanceSet>)
-                                      : Async<array<BalanceState>> =
-        let rec updateBalanceAccumulator (accountsWithLabels: List<BalanceSet>)
-                                         (acc: List<BalanceState>) =
-            match accountsWithLabels with
-            | [] -> acc
-            | balanceSet::tail ->
+            if tryCachedFirst then
                 let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance balanceSet.Account.PublicAddress
                                                                                  balanceSet.Account.Currency
                 match cachedBalance with
@@ -131,18 +115,31 @@ module FrontendHelpers =
                                       balanceSet.Account.Currency
                                       balanceSet.CryptoLabel
                                       balanceSet.FiatLabel
-                    let newElem = {
-                        BalanceSet = balanceSet;
-                        FiatAmount = fiatAmount;
-                        ImminentPayment = None;
+                    return {
+                        BalanceSet = balanceSet
+                        FiatAmount = fiatAmount
+                        ImminentPayment = None
                     }
-                    updateBalanceAccumulator tail (newElem::acc)
                 | _ ->
-                    failwith "Retreiving cached balance of a readonlyAccount(cold storage) returned N/A; but addition of this account should have stored it properly..."
-
-        async {
-            return (updateBalanceAccumulator (accountsWithLabels |> List.ofSeq) List.Empty) |> List.rev |> Array.ofList
+                    // FIXME: probably we can only load confirmed balances in this case (no need to check unconfirmed)
+                    return! UpdateBalanceAsync balanceSet false mode
+            else
+                let! balance,imminentPayment = Account.GetShowableBalanceAndImminentPayment balanceSet.Account mode
+                let fiatAmount =
+                    UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
+                return {
+                    BalanceSet = balanceSet
+                    FiatAmount = fiatAmount
+                    ImminentPayment = imminentPayment
+                }
         }
+
+    let UpdateBalancesAsync accountBalances (tryCacheFirst: bool) =
+        seq {
+            for balanceSet in accountBalances do
+                let balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst Mode.Fast
+                yield balanceJob
+        } |> Async.Parallel
 
     // FIXME: share code between Frontend.Console and Frontend.XF
     // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh

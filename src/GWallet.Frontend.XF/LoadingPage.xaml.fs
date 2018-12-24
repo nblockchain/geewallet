@@ -58,17 +58,11 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
 
     member this.Init (): unit =
 
-        let normalAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts normalAccounts
-        let allNormalAccountBalancesJob =
-            seq {
-                for balanceSet in normalAccountsWithLabels do
-                    let balanceJob =
-                        FrontendHelpers.UpdateBalanceAsync balanceSet Mode.Fast
-                    yield balanceJob
-            } |> Async.Parallel
+        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts
+        let allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances false
 
         let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
-        let readOnlyAccountBalancesJob = FrontendHelpers.UpdateCachedBalancesAsync readOnlyAccountsBalances
+        let readOnlyAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true
 
         let populateGrid = async {
             let! allBalancesJob =
