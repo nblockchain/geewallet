@@ -38,6 +38,8 @@ This list is the (intended) order of preference for new features:
 - Support for payment-channels & state-channels (in BTC/LTC via lightning, and in ETH/ETC/DAI via Raiden)
 - macOS CI support via AzureDevOps pipelines.
 - snap packaging.
+- NFC support.
+- Tizen frontend (no QR scanning due to missing camera in most Tizen watches, but could use NFC).
 - Paranoid-build mode (using git submodules instead of nuget deps), depending on this RFE (https://github.com/dotnet/sdk/issues/1151) or using any workaround mentioned there.
 - flatpak packaging.
 - Use of 'bits' instead of BTC as default unit.
