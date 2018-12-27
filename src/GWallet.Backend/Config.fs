@@ -104,7 +104,7 @@ module internal Config =
                 yield FileInfo(filePath)
         }
 
-    let private GetFile (account: IAccount) =
+    let private GetFile (account: IAccount): FileInfo =
         let configDir, fileName =
             match account with
             | :? NormalAccount as normalAccount ->
@@ -119,7 +119,7 @@ module internal Config =
                 configDir, fileName
             | _ -> failwith (sprintf "Account type not valid for archiving: %s. Please report this issue."
                        (account.GetType().FullName))
-        Path.Combine(configDir.FullName, fileName)
+        Path.Combine(configDir.FullName, fileName) |> FileInfo
 
     let AddNormalAccount conceptAccount =
         let configDir = GetConfigDirForNormalAccountsOfThisCurrency conceptAccount.Currency
@@ -130,23 +130,23 @@ module internal Config =
 
     let RemoveNormal (account: NormalAccount) =
         let configFile = GetFile account
-        if not (File.Exists configFile) then
-            failwith (sprintf "File %s doesn't exist. Please report this issue." configFile)
+        if not configFile.Exists then
+            failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
         else
-            File.Delete(configFile)
+            configFile.Delete()
 
     let AddReadonly (account: ReadOnlyAccount) =
         let configFile = GetFile account
-        if (File.Exists configFile) then
+        if configFile.Exists then
             raise AccountAlreadyAdded
-        File.WriteAllText(configFile, String.Empty)
+        File.WriteAllText(configFile.FullName, String.Empty)
 
     let RemoveReadonly (account: ReadOnlyAccount) =
         let configFile = GetFile account
-        if not (File.Exists configFile) then
-            failwith (sprintf "File %s doesn't exist. Please report this issue." configFile)
+        if not configFile.Exists then
+            failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
         else
-            File.Delete(configFile)
+            configFile.Delete()
 
     let AddArchivedAccount currency fileName unencryptedPrivateKey =
         let configDir = GetConfigDirForArchivedAccountsOfThisCurrency currency
