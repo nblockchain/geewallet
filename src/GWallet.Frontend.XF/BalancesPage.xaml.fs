@@ -178,12 +178,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
 
-        let footerLabel = mainLayout.FindByName<Label> "footerLabel"
-        mainLayout.Children.Remove footerLabel |> ignore
+        let contentLayout = base.FindByName<StackLayout> "contentLayout"
 
-        let currentCryptoBalances = FindCryptoBalances mainLayout (mainLayout.Children |> List.ofSeq) List.Empty
+        let currentCryptoBalances = FindCryptoBalances contentLayout (contentLayout.Children |> List.ofSeq) List.Empty
         for currentCryptoBalance in currentCryptoBalances do
-            mainLayout.Children.Remove currentCryptoBalance |> ignore
+            contentLayout.Children.Remove currentCryptoBalance |> ignore
 
         for balanceState in balances do
 
@@ -219,9 +218,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                               BorderColor = Color.SeaShell)
             frame.GestureRecognizers.Add tapGestureRecognizer
 
-            mainLayout.Children.Add frame
-
-        mainLayout.Children.Add footerLabel
+            contentLayout.Children.Add frame
 
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) totalFiatAmountLabel =
         let fiatBalancesList = allFiatBalances |> List.ofSeq

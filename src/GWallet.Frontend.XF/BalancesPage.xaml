@@ -56,6 +56,10 @@
             </StackLayout>
         </Frame>
 
+        <ScrollView HorizontalOptions="FillAndExpand">
+            <StackLayout x:Name="contentLayout" />
+        </ScrollView>
+
         <Label Text="www.diginex.com" x:Name="footerLabel"
                VerticalOptions="End"
                HorizontalOptions="Center"
