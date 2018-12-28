@@ -82,7 +82,7 @@ module UserInteraction =
         if (file.Exists) then
             file
         else
-            Console.Error.WriteLine "File not found, try again."
+            Presentation.Error "File not found, try again."
             AskFileNameToLoad askText
 
     let rec internal AskOption(numAccounts: int): Options =
