@@ -6,7 +6,7 @@ type ConceptAccount =
     {
         Currency: Currency;
         FileNameAndContent: string*string;
-        ExtractPublicKeyFromConfigFileFunc: FileInfo->string;
+        ExtractPublicAddressFromConfigFileFunc: FileInfo->string;
     }
 
 type IAccount =

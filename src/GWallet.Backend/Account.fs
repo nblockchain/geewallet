@@ -359,12 +359,12 @@ module Account =
     let CreateConceptAccount (currency: Currency) (password: string) (seed: array<byte>)
                             : Async<ConceptAccount> =
         async {
-            let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
+            let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPublicAddressFunc =
                 CreateConceptAccountInternal currency password seed
             return {
                        Currency = currency;
                        FileNameAndContent = fileName,encryptedPrivateKey;
-                       ExtractPublicKeyFromConfigFileFunc = fromEncPrivKeyToPubKeyFunc;
+                       ExtractPublicAddressFromConfigFileFunc = fromEncPrivKeyToPublicAddressFunc;
                    }
         }
 
@@ -379,14 +379,14 @@ module Account =
                                   : seq<Currency>*Async<List<ConceptAccount>> =
         let etherCurrencies = Currency.GetAll().Where(fun currency -> currency.IsEtherBased())
         let etherAccounts = async {
-            let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPubKeyFunc =
+            let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPublicAddressFunc =
                 CreateConceptEtherAccountInternal password seed
             return seq {
                 for etherCurrency in etherCurrencies do
                     yield {
                               Currency = etherCurrency;
                               FileNameAndContent = fileName,encryptedPrivateKey;
-                              ExtractPublicKeyFromConfigFileFunc = fromEncPrivKeyToPubKeyFunc;
+                              ExtractPublicAddressFromConfigFileFunc = fromEncPrivKeyToPublicAddressFunc
                           }
             } |> List.ofSeq
         }
@@ -395,9 +395,8 @@ module Account =
     let CreateNormalAccount (conceptAccount: ConceptAccount): NormalAccount =
         let fileName,fileContents = conceptAccount.FileNameAndContent
         let newAccountFile = Config.AddNormalAccount conceptAccount
-        NormalAccount(conceptAccount.Currency, newAccountFile, conceptAccount.ExtractPublicKeyFromConfigFileFunc)
+        NormalAccount(conceptAccount.Currency, newAccountFile, conceptAccount.ExtractPublicAddressFromConfigFileFunc)
 
-    let private LENGTH_OF_PRIVATE_KEYS = 32
     let CreateBaseAccount (passphrase: string)
                           (dobPartOfSalt: DateTime) (emailPartOfSalt: string)
                           (encryptionPassword: string): Async<unit> =

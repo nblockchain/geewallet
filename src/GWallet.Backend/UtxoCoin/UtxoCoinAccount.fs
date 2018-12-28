@@ -464,19 +464,15 @@ module internal Account =
                               currency txMetadata destination.PublicAddress amount privateKey
         BroadcastRawTransaction currency (signedTrans.ToHex())
 
-    let private LENGTH_OF_PRIVATE_KEYS = 32
-    let private CreateInternal currency (password: string) (seed: array<byte>) =
-        let privkey = Key(seed)
-        let network = GetNetwork currency
-        let secret = privkey.GetBitcoinSecret network
-        let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
-        let encryptedPrivateKey = encryptedSecret.ToWif()
-        let publicKey = secret.PubKey.ToString()
-        publicKey,encryptedPrivateKey
-
-    let Create currency (password: string) (seed: array<byte>) =
+    let Create currency (password: string) (seed: array<byte>): Async<string*string> =
         async {
-            return CreateInternal currency password seed
+            let privKey = Key seed
+            let network = GetNetwork currency
+            let secret = privKey.GetBitcoinSecret network
+            let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
+            let encryptedPrivateKey = encryptedSecret.ToWif()
+            let publicKey = secret.PubKey.ToString()
+            return publicKey,encryptedPrivateKey
         }
 
     let ValidateAddress (currency: Currency) (address: string) =
