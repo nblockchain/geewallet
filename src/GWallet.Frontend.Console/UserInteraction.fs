@@ -67,9 +67,11 @@ module UserInteraction =
     let internal OptionAvailable (option: Options) (numAccounts: int) =
         let noAccounts = numAccounts = 0
         match option with
-        | Options.SendPayment -> not noAccounts
-        | Options.SignOffPayment -> not noAccounts
-        | Options.ArchiveAccount -> not noAccounts
+        | Options.SendPayment
+        | Options.SignOffPayment
+        | Options.ArchiveAccount
+            ->
+                not noAccounts
         | Options.CreateAccounts -> noAccounts
         | _ -> true
 
