@@ -122,34 +122,35 @@ module internal Config =
                        (account.GetType().FullName))
         Path.Combine(configDir.FullName, fileName) |> FileInfo
 
-    let AddNormalAccount conceptAccount =
+    let AddNormalAccount conceptAccount: FileInfo =
         let configDir = GetConfigDirForNormalAccountsOfThisCurrency conceptAccount.Currency
         let fileName,jsonStoreContent = conceptAccount.FileNameAndContent
         let newAccountFile = Path.Combine(configDir.FullName, fileName)
         File.WriteAllText(newAccountFile, jsonStoreContent)
         FileInfo(newAccountFile)
 
-    let RemoveNormal (account: NormalAccount) =
+    let RemoveNormal (account: NormalAccount): unit =
         let configFile = GetFile account
         if not configFile.Exists then
             failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
         else
             configFile.Delete()
 
-    let AddReadonly (account: ReadOnlyAccount) =
+    let AddReadonly (account: ReadOnlyAccount): FileInfo =
         let configFile = GetFile account
         if configFile.Exists then
             raise AccountAlreadyAdded
         File.WriteAllText(configFile.FullName, String.Empty)
+        configFile
 
-    let RemoveReadonly (account: ReadOnlyAccount) =
+    let RemoveReadonly (account: ReadOnlyAccount): unit =
         let configFile = GetFile account
         if not configFile.Exists then
             failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
         else
             configFile.Delete()
 
-    let AddArchivedAccount currency fileName unencryptedPrivateKey =
+    let AddArchivedAccount currency fileName unencryptedPrivateKey: FileInfo =
         let configDir = GetConfigDirForArchivedAccountsOfThisCurrency currency
         let newAccountFile = Path.Combine(configDir.FullName, fileName)
 

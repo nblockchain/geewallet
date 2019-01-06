@@ -157,6 +157,7 @@ let rec AddReadOnlyAccount() =
         let publicAddress = UserInteraction.AskPublicAddress currency "Public address: "
         try
             Account.AddPublicWatcher currency publicAddress
+                |> ignore
         with
         | :? AccountAlreadyAdded ->
             Console.Error.WriteLine("Account had already been added")
