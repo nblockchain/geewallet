@@ -16,6 +16,9 @@ type IAccount =
 type NormalAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
     member val AccountFile = accountFile with get
 
+    member internal self.GetEncryptedPrivateKey() =
+        File.ReadAllText accountFile.FullName
+
     interface IAccount with
         member val Currency = currency with get
         member val PublicAddress =

@@ -142,7 +142,7 @@ module internal Account =
             trans.RawTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
-        let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
+        let encryptedPrivateKey = account.GetEncryptedPrivateKey()
         let privKeyInBytes =
             try
                 KeyStoreService.DecryptKeyStoreFromJson(password, encryptedPrivateKey)

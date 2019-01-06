@@ -383,7 +383,7 @@ module internal Account =
         finalTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
-        let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
+        let encryptedPrivateKey = account.GetEncryptedPrivateKey()
         let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, GetNetwork (account:>IAccount).Currency)
         try
             encryptedSecret.GetKey(password)
