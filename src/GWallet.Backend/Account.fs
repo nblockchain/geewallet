@@ -97,7 +97,7 @@ module Account =
             let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
-                let fromUnencryptedPrivateKeyToPublicAddress =
+                let fromUnencryptedPrivateKeyToPublicAddressFunc =
                     if currency.IsUtxo() then
                         UtxoCoin.Account.GetPublicAddressFromUnencryptedPrivateKey currency
                     elif currency.IsEtherBased() then
@@ -105,8 +105,12 @@ module Account =
                     else
                         failwith (sprintf "Unknown currency %A" currency)
 
+                let fromConfigAccountFileToPublicAddressFunc (accountConfigFile: FileInfo) =
+                    let privateKeyFromConfigFile = File.ReadAllText accountConfigFile.FullName
+                    fromUnencryptedPrivateKeyToPublicAddressFunc privateKeyFromConfigFile
+
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
-                    let account = ArchivedAccount(currency, accountFile, fromUnencryptedPrivateKeyToPublicAddress)
+                    let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
                     let maybeBalance = GetUnconfirmedPlusConfirmedBalance account Mode.Fast
                     yield async {
                         let! unconfirmedBalance = maybeBalance
@@ -213,6 +217,7 @@ module Account =
                 Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
             else
                 failwith (sprintf "Unknown currency %A" currency)
+
         let fromConfigFileToPublicAddressFunc (accountConfigFile: FileInfo) =
             let privateKeyFromConfigFile = File.ReadAllText accountConfigFile.FullName
             fromUnencryptedPrivateKeyToPublicAddressFunc privateKeyFromConfigFile
@@ -224,7 +229,7 @@ module Account =
             ExtractPublicAddressFromConfigFileFunc = fromConfigFileToPublicAddressFunc
         }
         let newAccountFile = Config.AddArchivedAccount conceptAccount
-        ArchivedAccount(currency, newAccountFile, fromUnencryptedPrivateKeyToPublicAddressFunc)
+        ArchivedAccount(currency, newAccountFile, fromConfigFileToPublicAddressFunc)
 
     let Archive (account: NormalAccount)
                 (password: string)
