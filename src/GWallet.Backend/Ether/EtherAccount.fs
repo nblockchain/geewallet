@@ -78,7 +78,7 @@ module internal Account =
                           (result.ToString()))
         let int64result:Int64 = BigInteger.op_Explicit value
         return int64result
-        }
+    }
 
     let private GetGasPrice currency: Async<int64> = async {
         let! gasPrice = Ether.Server.GetGasPrice currency
@@ -87,7 +87,7 @@ module internal Account =
                           (gasPrice.Value.ToString()))
         let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
         return gasPrice64
-        }
+    }
 
     let private GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION:int64 = 21000L
 
@@ -122,7 +122,7 @@ module internal Account =
         let ethMinerFee = MinerFee(gasCost64, gasPrice64, DateTime.Now, baseCurrency)
         let! txCount = GetTransactionCount account.Currency account.PublicAddress
         return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
-        }
+    }
 
     let EstimateFee (account: IAccount) (amount: TransferAmount) destination: Async<TransactionMetadata> = async {
         if account.Currency.IsEther() then
@@ -131,7 +131,7 @@ module internal Account =
             return! EstimateTokenTransferFee account amount.ValueToSend destination
         else
             return failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
-        }
+    }
 
     let private BroadcastRawTransaction (currency: Currency) trans =
         Ether.Server.BroadcastTransaction currency ("0x" + trans)
