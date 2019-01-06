@@ -97,7 +97,7 @@ module Account =
             let allCurrencies = Currency.GetAll()
 
             for currency in allCurrencies do
-                let fromAccountFileToPublicAddress =
+                let fromUnencryptedPrivateKeyToPublicAddress =
                     if currency.IsUtxo() then
                         UtxoCoin.Account.GetPublicAddressFromUnencryptedPrivateKey currency
                     elif currency.IsEtherBased() then
@@ -106,7 +106,7 @@ module Account =
                         failwith (sprintf "Unknown currency %A" currency)
 
                 for accountFile in Config.GetAllArchivedAccounts(currency) do
-                    let account = ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
+                    let account = ArchivedAccount(currency, accountFile, fromUnencryptedPrivateKeyToPublicAddress)
                     let maybeBalance = GetUnconfirmedPlusConfirmedBalance account Mode.Fast
                     yield async {
                         let! unconfirmedBalance = maybeBalance
