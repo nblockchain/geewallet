@@ -108,7 +108,8 @@ module internal Config =
         let configDir, fileName =
             match account with
             | :? NormalAccount as normalAccount ->
-                normalAccount.AccountFile.Directory, normalAccount.AccountFile.Name
+                let configDir = GetConfigDirForNormalAccountsOfThisCurrency account.Currency
+                configDir, normalAccount.AccountFile.Name
             | :? ReadOnlyAccount as readOnlyAccount ->
                 let configDir = GetConfigDirForReadonlyAccountsOfThisCurrency(account.Currency)
                 let fileName = account.PublicAddress
