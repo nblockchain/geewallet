@@ -24,7 +24,7 @@ module internal Account =
     let GetPublicAddressFromUnencryptedPrivateKey (privateKey: string) =
         EthECKey(privateKey).GetPublicAddress()
 
-    let GetPublicAddressFromAccountFile (accountFile: FileInfo) =
+    let GetPublicAddressFromNormalAccountFile (accountFile: FileInfo): string =
         let encryptedPrivateKey = File.ReadAllText(accountFile.FullName)
         let rawPublicAddress = KeyStoreService.GetAddressFromKeyStore encryptedPrivateKey
         let publicAddress =

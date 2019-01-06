@@ -83,9 +83,9 @@ module Account =
 
                 let fromAccountFileToPublicAddress =
                     if currency.IsUtxo() then
-                        UtxoCoin.Account.GetPublicAddressFromAccountFile currency
+                        UtxoCoin.Account.GetPublicAddressFromNormalAccountFile currency
                     elif currency.IsEtherBased() then
-                        Ether.Account.GetPublicAddressFromAccountFile
+                        Ether.Account.GetPublicAddressFromNormalAccountFile
                     else
                         failwith (sprintf "Unknown currency %A" currency)
                 for accountFile in Config.GetAllNormalAccounts(currency) do
@@ -354,7 +354,7 @@ module Account =
                                                  : Async<(string*string)*(FileInfo->string)> =
         async {
             let! fileName,encryptedPrivateKeyInJson = Ether.Account.Create password seed
-            return (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromAccountFile
+            return (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromNormalAccountFile
         }
 
     let private CreateConceptAccountInternal (currency: Currency) (password: string) (seed: array<byte>)
@@ -362,7 +362,7 @@ module Account =
         async {
             if currency.IsUtxo() then
                 let! publicKey,encryptedPrivateKey = UtxoCoin.Account.Create currency password seed
-                return (publicKey,encryptedPrivateKey), UtxoCoin.Account.GetPublicAddressFromAccountFile currency
+                return (publicKey,encryptedPrivateKey), UtxoCoin.Account.GetPublicAddressFromNormalAccountFile currency
             elif currency.IsEtherBased() then
                 return! CreateConceptEtherAccountInternal password seed
             else

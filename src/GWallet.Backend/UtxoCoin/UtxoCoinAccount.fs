@@ -47,7 +47,7 @@ module internal Account =
     let private GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
 
-    let GetPublicAddressFromAccountFile currency (accountFile: FileInfo) =
+    let GetPublicAddressFromNormalAccountFile (currency: Currency) (accountFile: FileInfo): string =
         let pubKey = PubKey(accountFile.Name)
         GetPublicAddressFromPublicKey currency pubKey
 
