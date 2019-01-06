@@ -9,12 +9,12 @@ type TransferAmount(valueToSend: decimal, balanceAtTheMomentOfSending: decimal, 
         if balanceAtTheMomentOfSending < valueToSend then
             invalidArg "balanceAtTheMomentOfSending" "balance has to be equal or higher than valueToSend"
 
-    member this.ValueToSend
+    member __.ValueToSend
         with get() = Math.Round(valueToSend, currency.DecimalPlaces())
 
-    member this.BalanceAtTheMomentOfSending
+    member __.BalanceAtTheMomentOfSending
         with get() = balanceAtTheMomentOfSending
 
-    member this.Currency
+    member __.Currency
         with get() = currency
 

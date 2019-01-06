@@ -16,7 +16,7 @@ type MinerFee(estimatedTransactionSizeInBytes: int,
 
     member val Currency = currency with get
 
-    member this.CalculateAbsoluteValueInSatoshis() =
+    member __.CalculateAbsoluteValueInSatoshis() =
         let satPerByteForFastTrans = amountPerKiloByteForFastTransaction * 100000000m / 1024m
         let totalFeeForThisTransInSatoshis = satPerByteForFastTrans * decimal estimatedTransactionSizeInBytes
         Convert.ToInt64 totalFeeForThisTransInSatoshis

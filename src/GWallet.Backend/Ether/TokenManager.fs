@@ -15,12 +15,12 @@ module TokenManager =
     type DaiContract(web3) =
         inherit StandardTokenService(web3, DAI_CONTRACT_ADDRESS)
 
-        member this.ComposeInputDataForTransferTransaction (origin: string,
+        member self.ComposeInputDataForTransferTransaction (origin: string,
                                                             destination: string,
                                                             tokenAmountInWei: BigInteger,
                                                             gasLimit: BigInteger)
                                                            : string =
-            let transferFuncBuilder = this.ContractHandler.GetFunction<TransferFunction>()
+            let transferFuncBuilder = self.ContractHandler.GetFunction<TransferFunction>()
 
             let transferFunctionMsg = TransferFunction(To = destination,
                                                        Value = tokenAmountInWei)

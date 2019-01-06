@@ -46,9 +46,9 @@ type Currency =
 // between StringTypeConverter and Currency
 and private StringTypeConverter() =
     inherit TypeConverter()
-    override this.CanConvertFrom(context, sourceType) =
+    override __.CanConvertFrom(context, sourceType) =
         sourceType = typeof<string> || base.CanConvertFrom(context, sourceType)
-    override this.ConvertFrom(context, culture, value) =
+    override __.ConvertFrom(context, culture, value) =
         match value with
         | :? string as stringValue ->
             Seq.find (fun cur -> cur.ToString() = stringValue) (Currency.GetAll()) :> obj

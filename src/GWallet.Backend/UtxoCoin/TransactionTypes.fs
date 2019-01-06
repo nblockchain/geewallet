@@ -30,9 +30,9 @@ type TransactionMetadata =
         TransactionDraft: TransactionDraft;
     }
     interface IBlockchainFeeInfo with
-        member this.FeeEstimationTime with get() = this.Fee.EstimationTime
-        member this.FeeValue
+        member self.FeeEstimationTime with get() = self.Fee.EstimationTime
+        member self.FeeValue
             with get() =
-                this.Fee.CalculateAbsoluteValueInSatoshis() |> UnitConversion.FromSatoshiToBtc
-        member this.Currency with get() = this.Fee.Currency
+                self.Fee.CalculateAbsoluteValueInSatoshis() |> UnitConversion.FromSatoshiToBtc
+        member self.Currency with get() = self.Fee.Currency
 

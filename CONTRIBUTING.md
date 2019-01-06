@@ -10,8 +10,7 @@ Below you can find a guide for our F# coding style:
 members, but camelCase for parameters, private fields, and local functions
 (in unit tests we have the exception of allowing under_score_naming for
 fields in cases where it improves readability).
-* When writing non-static type members we prefer to use the word `self` or
-`this`.
+* When writing non-static type members we prefer to use the word `self`.
 * We follow the same convention of C# to prefix interfaces with the letter 'I'.
 * Given that we use the C#ish style of PascalCase for type names (instead of
 camelCase), then it only makes sense to try to use the type names which start
