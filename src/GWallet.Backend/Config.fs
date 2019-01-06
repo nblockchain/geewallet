@@ -122,7 +122,7 @@ module internal Config =
                        (account.GetType().FullName))
         Path.Combine(configDir.FullName, fileName) |> FileInfo
 
-    let AddNormalAccount conceptAccount: FileInfo =
+    let AddNormalAccount (conceptAccount: ConceptAccount): FileInfo =
         let configDir = GetConfigDirForNormalAccountsOfThisCurrency conceptAccount.Currency
         let fileName,jsonStoreContent = conceptAccount.FileNameAndContent
         let newAccountFile = Path.Combine(configDir.FullName, fileName)
@@ -150,8 +150,9 @@ module internal Config =
         else
             configFile.Delete()
 
-    let AddArchivedAccount currency fileName unencryptedPrivateKey: FileInfo =
-        let configDir = GetConfigDirForArchivedAccountsOfThisCurrency currency
+    let AddArchivedAccount (conceptAccount: ConceptAccount): FileInfo =
+        let configDir = GetConfigDirForArchivedAccountsOfThisCurrency conceptAccount.Currency
+        let fileName,unencryptedPrivateKey = conceptAccount.FileNameAndContent
         let newAccountFile = Path.Combine(configDir.FullName, fileName)
 
         // there's no ETH unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition

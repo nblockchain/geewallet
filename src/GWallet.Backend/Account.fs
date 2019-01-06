@@ -213,8 +213,17 @@ module Account =
                 Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
             else
                 failwith (sprintf "Unknown currency %A" currency)
+        let fromConfigFileToPublicAddressFunc (accountConfigFile: FileInfo) =
+            let privateKeyFromConfigFile = File.ReadAllText accountConfigFile.FullName
+            fromUnencryptedPrivateKeyToPublicAddressFunc privateKeyFromConfigFile
+
         let fileName = fromUnencryptedPrivateKeyToPublicAddressFunc unencryptedPrivateKey
-        let newAccountFile = Config.AddArchivedAccount currency fileName unencryptedPrivateKey
+        let conceptAccount = {
+            Currency = currency
+            FileNameAndContent = fileName,unencryptedPrivateKey
+            ExtractPublicAddressFromConfigFileFunc = fromConfigFileToPublicAddressFunc
+        }
+        let newAccountFile = Config.AddArchivedAccount conceptAccount
         ArchivedAccount(currency, newAccountFile, fromUnencryptedPrivateKeyToPublicAddressFunc)
 
     let Archive (account: NormalAccount)
