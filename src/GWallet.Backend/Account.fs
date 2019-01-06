@@ -78,8 +78,9 @@ module Account =
             for currency in allCurrencies do
 
                 for accountFile in Config.GetAllReadOnlyAccounts(currency) do
-                    let fileName = Path.GetFileName(accountFile.FullName)
-                    yield ReadOnlyAccount(currency, fileName) :> IAccount
+                    let fromAccountFileToPublicAddress (accountFile: FileInfo) =
+                        Path.GetFileName(accountFile.FullName)
+                    yield ReadOnlyAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
 
                 let fromAccountFileToPublicAddress =
                     if currency.IsUtxo() then
@@ -219,6 +220,8 @@ module Account =
                 failwith (sprintf "Unknown currency %A" currency)
 
         let fromConfigFileToPublicAddressFunc (accountConfigFile: FileInfo) =
+            // there's no ETH unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
+            // ... so we simply write the private key in string format
             let privateKeyFromConfigFile = File.ReadAllText accountConfigFile.FullName
             fromUnencryptedPrivateKeyToPublicAddressFunc privateKeyFromConfigFile
 
@@ -342,13 +345,17 @@ module Account =
 
         File.WriteAllText(filePath, json)
 
-    let AddPublicWatcher currency (publicAddress: string) =
+    let CreateReadOnlyAccount currency (publicAddress: string) =
         ValidateAddress currency publicAddress
-        let readOnlyAccount = ReadOnlyAccount(currency, publicAddress)
-        Config.AddReadonly readOnlyAccount
+        let conceptAccountForReadOnlyAccount = {
+            Currency = currency
+            FileNameAndContent = publicAddress,String.Empty
+            ExtractPublicAddressFromConfigFileFunc = (fun file -> Path.GetFileName(file.FullName))
+        }
+        Config.AddReadOnlyAccount conceptAccountForReadOnlyAccount
 
-    let RemovePublicWatcher (account: ReadOnlyAccount) =
-        Config.RemoveReadonly account
+    let Remove (account: ReadOnlyAccount) =
+        Config.RemoveReadOnly account
 
     let private CreateConceptEtherAccountInternal (password: string) (seed: array<byte>)
                                                  : Async<(string*string)*(FileInfo->string)> =

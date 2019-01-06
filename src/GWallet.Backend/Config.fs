@@ -66,7 +66,7 @@ module internal Config =
             configDir.Create()
         configDir
 
-    let private GetConfigDirForReadonlyAccountsOfThisCurrency(currency: Currency) =
+    let private GetConfigDirForReadOnlyAccountsOfThisCurrency(currency: Currency) =
         let configDir = DirectoryInfo(Path.Combine(GetConfigDirForAccounts().FullName,
                                                    "readonly", currency.ToString()))
         if not configDir.Exists then
@@ -89,10 +89,10 @@ module internal Config =
         }
 
     let GetAllReadOnlyAccounts(currency: Currency): seq<FileInfo> =
-        let configDirForReadonlyAccounts = GetConfigDirForReadonlyAccountsOfThisCurrency(currency)
+        let configDirForReadOnlyAccounts = GetConfigDirForReadOnlyAccountsOfThisCurrency currency
 
         seq {
-            for filePath in Directory.GetFiles(configDirForReadonlyAccounts.FullName) do
+            for filePath in Directory.GetFiles configDirForReadOnlyAccounts.FullName do
                 yield FileInfo(filePath)
         }
 
@@ -111,7 +111,7 @@ module internal Config =
                 let configDir = GetConfigDirForNormalAccountsOfThisCurrency account.Currency
                 configDir, normalAccount.AccountFile.Name
             | :? ReadOnlyAccount as readOnlyAccount ->
-                let configDir = GetConfigDirForReadonlyAccountsOfThisCurrency(account.Currency)
+                let configDir = GetConfigDirForReadOnlyAccountsOfThisCurrency account.Currency
                 let fileName = account.PublicAddress
                 configDir, fileName
             | :? ArchivedAccount as archivedAccount ->
@@ -124,10 +124,10 @@ module internal Config =
 
     let AddNormalAccount (conceptAccount: ConceptAccount): FileInfo =
         let configDir = GetConfigDirForNormalAccountsOfThisCurrency conceptAccount.Currency
-        let fileName,jsonStoreContent = conceptAccount.FileNameAndContent
-        let newAccountFile = Path.Combine(configDir.FullName, fileName)
-        File.WriteAllText(newAccountFile, jsonStoreContent)
-        FileInfo(newAccountFile)
+        let fileName,fileContent = conceptAccount.FileNameAndContent
+        let newAccountFile = Path.Combine(configDir.FullName, fileName) |> FileInfo
+        File.WriteAllText(newAccountFile.FullName, fileContent)
+        newAccountFile
 
     let RemoveNormal (account: NormalAccount): unit =
         let configFile = GetFile account
@@ -136,14 +136,16 @@ module internal Config =
         else
             configFile.Delete()
 
-    let AddReadonly (account: ReadOnlyAccount): FileInfo =
-        let configFile = GetFile account
-        if configFile.Exists then
+    let AddReadOnlyAccount (conceptAccount: ConceptAccount): FileInfo =
+        let configDir = GetConfigDirForReadOnlyAccountsOfThisCurrency conceptAccount.Currency
+        let fileName,fileContent = conceptAccount.FileNameAndContent
+        let newAccountFile = Path.Combine(configDir.FullName, fileName) |> FileInfo
+        if newAccountFile.Exists then
             raise AccountAlreadyAdded
-        File.WriteAllText(configFile.FullName, String.Empty)
-        configFile
+        File.WriteAllText(newAccountFile.FullName, fileContent)
+        newAccountFile
 
-    let RemoveReadonly (account: ReadOnlyAccount): unit =
+    let RemoveReadOnly (account: ReadOnlyAccount): unit =
         let configFile = GetFile account
         if not configFile.Exists then
             failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
@@ -152,11 +154,7 @@ module internal Config =
 
     let AddArchivedAccount (conceptAccount: ConceptAccount): FileInfo =
         let configDir = GetConfigDirForArchivedAccountsOfThisCurrency conceptAccount.Currency
-        let fileName,unencryptedPrivateKey = conceptAccount.FileNameAndContent
-        let newAccountFile = Path.Combine(configDir.FullName, fileName)
-
-        // there's no ETH unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
-        // ... so we simply write the private key in string format
-        File.WriteAllText(newAccountFile, unencryptedPrivateKey)
-
-        FileInfo(newAccountFile)
+        let fileName,fileContent = conceptAccount.FileNameAndContent
+        let newAccountFile = Path.Combine(configDir.FullName, fileName) |> FileInfo
+        File.WriteAllText(newAccountFile.FullName, fileContent)
+        newAccountFile

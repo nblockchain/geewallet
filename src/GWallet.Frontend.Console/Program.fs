@@ -156,7 +156,7 @@ let rec AddReadOnlyAccount() =
     | Some(currency) ->
         let publicAddress = UserInteraction.AskPublicAddress currency "Public address: "
         try
-            Account.AddPublicWatcher currency publicAddress
+            Account.CreateReadOnlyAccount currency publicAddress
                 |> ignore
         with
         | :? AccountAlreadyAdded ->
@@ -170,7 +170,7 @@ let ArchiveAccount() =
         if not (UserInteraction.AskYesNo "Do you accept?") then
             ()
         else
-            Account.RemovePublicWatcher readOnlyAccount
+            Account.Remove readOnlyAccount
             Console.WriteLine "Read-only account removed."
             UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->

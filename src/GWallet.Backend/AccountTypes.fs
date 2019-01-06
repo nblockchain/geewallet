@@ -24,10 +24,12 @@ type NormalAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToP
         member val PublicAddress =
             fromAccountFileToPublicAddress accountFile with get
 
-type ReadOnlyAccount(currency: Currency, publicAddress: string) =
+type ReadOnlyAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
     interface IAccount with
         member val Currency = currency with get
-        member val PublicAddress = publicAddress with get
+        member self.PublicAddress
+            with get() =
+                fromAccountFileToPublicAddress accountFile
 
 type ArchivedAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
     member internal __.GetUnencryptedPrivateKey() =
