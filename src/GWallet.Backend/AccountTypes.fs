@@ -13,30 +13,25 @@ type IAccount =
     abstract member Currency: Currency with get
     abstract member PublicAddress: string with get
 
-type NormalAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
+type BaseAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
     member val AccountFile = accountFile with get
-
-    member internal self.GetEncryptedPrivateKey() =
-        fromAccountFileToPublicAddress accountFile
 
     interface IAccount with
         member val Currency = currency with get
         member val PublicAddress =
             fromAccountFileToPublicAddress accountFile with get
 
-type ReadOnlyAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
-    interface IAccount with
-        member val Currency = currency with get
-        member self.PublicAddress
-            with get() =
-                fromAccountFileToPublicAddress accountFile
+type NormalAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
+    inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
-type ArchivedAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
-    member internal __.GetUnencryptedPrivateKey() =
+    member internal self.GetEncryptedPrivateKey() =
         fromAccountFileToPublicAddress accountFile
 
-    interface IAccount with
-        member val Currency = currency with get
-        member self.PublicAddress
-            with get() =
-                fromAccountFileToPublicAddress accountFile
+type ReadOnlyAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
+    inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
+
+type ArchivedAccount(currency: Currency, accountFile: FileInfo, fromAccountFileToPublicAddress: FileInfo -> string) =
+    inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
+
+    member internal __.GetUnencryptedPrivateKey() =
+        fromAccountFileToPublicAddress accountFile
