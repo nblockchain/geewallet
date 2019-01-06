@@ -459,7 +459,7 @@ module internal Account =
         let currency = (account:>IAccount).Currency
         let network = GetNetwork currency
         let amount = TransferAmount(balance, balance, currency)
-        let privateKey = Key.Parse(account.PrivateKey, network)
+        let privateKey = Key.Parse(account.GetUnencryptedPrivateKey(), network)
         let signedTrans = SignTransactionWithPrivateKey
                               currency txMetadata destination.PublicAddress amount privateKey
         BroadcastRawTransaction currency (signedTrans.ToHex())

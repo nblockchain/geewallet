@@ -263,7 +263,7 @@ module internal Account =
                            (txMetadata: TransactionMetadata) =
         let accountFrom = (account:>IAccount)
         let amount = TransferAmount(balance, balance, accountFrom.Currency)
-        let ecPrivKey = EthECKey(account.PrivateKey)
+        let ecPrivKey = EthECKey(account.GetUnencryptedPrivateKey())
         let signedTrans = SignTransactionWithPrivateKey
                               account txMetadata destination.PublicAddress amount ecPrivKey
         BroadcastRawTransaction accountFrom.Currency signedTrans

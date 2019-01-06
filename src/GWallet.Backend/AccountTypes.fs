@@ -30,9 +30,11 @@ type ReadOnlyAccount(currency: Currency, publicAddress: string) =
         member val PublicAddress = publicAddress with get
 
 type ArchivedAccount(currency: Currency, accountFile: FileInfo, fromUnencryptedPrivateKeyToPublicAddress: string -> string) =
-
-    member val internal PrivateKey = File.ReadAllText(accountFile.FullName) with get
+    member internal __.GetUnencryptedPrivateKey() =
+        File.ReadAllText accountFile.FullName
 
     interface IAccount with
         member val Currency = currency with get
-        member self.PublicAddress with get() = fromUnencryptedPrivateKeyToPublicAddress self.PrivateKey
+        member self.PublicAddress
+            with get() =
+                fromUnencryptedPrivateKeyToPublicAddress (self.GetUnencryptedPrivateKey())
