@@ -77,7 +77,7 @@ module Account =
 
             for currency in allCurrencies do
 
-                for accountFile in Config.GetAllReadOnlyAccounts(currency) do
+                for accountFile in Config.GetAllAccounts currency AccountKind.ReadOnly do
                     let fromAccountFileToPublicAddress (accountFile: FileInfo) =
                         Path.GetFileName(accountFile.FullName)
                     yield ReadOnlyAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
@@ -89,7 +89,7 @@ module Account =
                         Ether.Account.GetPublicAddressFromNormalAccountFile
                     else
                         failwith (sprintf "Unknown currency %A" currency)
-                for accountFile in Config.GetAllNormalAccounts(currency) do
+                for accountFile in Config.GetAllAccounts currency AccountKind.Normal do
                     yield NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
         }
 
@@ -110,7 +110,7 @@ module Account =
                     let privateKeyFromConfigFile = File.ReadAllText accountConfigFile.FullName
                     fromUnencryptedPrivateKeyToPublicAddressFunc privateKeyFromConfigFile
 
-                for accountFile in Config.GetAllArchivedAccounts(currency) do
+                for accountFile in Config.GetAllAccounts currency AccountKind.Archived do
                     let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
                     let maybeBalance = GetUnconfirmedPlusConfirmedBalance account Mode.Fast
                     yield async {
@@ -231,7 +231,7 @@ module Account =
             FileNameAndContent = fileName,unencryptedPrivateKey
             ExtractPublicAddressFromConfigFileFunc = fromConfigFileToPublicAddressFunc
         }
-        let newAccountFile = Config.AddArchivedAccount conceptAccount
+        let newAccountFile = Config.AddAccount conceptAccount AccountKind.Archived
         ArchivedAccount(currency, newAccountFile, fromConfigFileToPublicAddressFunc)
 
     let Archive (account: NormalAccount)
@@ -248,7 +248,7 @@ module Account =
             else
                 failwith (sprintf "Unknown currency %A" currency)
         CreateArchivedAccount currency privateKeyAsString |> ignore
-        Config.RemoveNormal account
+        Config.RemoveNormalAccount account
 
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
@@ -352,10 +352,10 @@ module Account =
             FileNameAndContent = publicAddress,String.Empty
             ExtractPublicAddressFromConfigFileFunc = (fun file -> Path.GetFileName(file.FullName))
         }
-        Config.AddReadOnlyAccount conceptAccountForReadOnlyAccount
+        Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
 
     let Remove (account: ReadOnlyAccount) =
-        Config.RemoveReadOnly account
+        Config.RemoveReadOnlyAccount account
 
     let private CreateConceptEtherAccountInternal (password: string) (seed: array<byte>)
                                                  : Async<(string*string)*(FileInfo->string)> =
@@ -415,7 +415,7 @@ module Account =
 
     let CreateNormalAccount (conceptAccount: ConceptAccount): NormalAccount =
         let fileName,fileContents = conceptAccount.FileNameAndContent
-        let newAccountFile = Config.AddNormalAccount conceptAccount
+        let newAccountFile = Config.AddAccount conceptAccount AccountKind.Normal
         NormalAccount(conceptAccount.Currency, newAccountFile, conceptAccount.ExtractPublicAddressFromConfigFileFunc)
 
     let CreateBaseAccount (passphrase: string)

@@ -9,6 +9,11 @@ type ConceptAccount =
         ExtractPublicAddressFromConfigFileFunc: FileInfo->string;
     }
 
+type AccountKind =
+    | Normal
+    | ReadOnly
+    | Archived
+
 type IAccount =
     abstract member Currency: Currency with get
     abstract member PublicAddress: string with get
