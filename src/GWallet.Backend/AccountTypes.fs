@@ -40,7 +40,7 @@ type NormalAccount(currency: Currency, accountFile: FileRepresentation,
     inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
     member internal self.GetEncryptedPrivateKey() =
-        fromAccountFileToPublicAddress accountFile
+        accountFile.Content()
 
     override this.Kind = AccountKind.Normal
 
@@ -55,6 +55,6 @@ type ArchivedAccount(currency: Currency, accountFile: FileRepresentation,
     inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
     member internal __.GetUnencryptedPrivateKey() =
-        fromAccountFileToPublicAddress accountFile
+        accountFile.Content()
 
     override this.Kind = AccountKind.Archived
