@@ -77,7 +77,7 @@ module Account =
 
             for currency in allCurrencies do
 
-                for accountFile in Config.GetAllAccountFiles currency AccountKind.ReadOnly do
+                for accountFile in Config.GetAccountFiles currency AccountKind.ReadOnly do
                     yield ReadOnlyAccount(currency, accountFile, fun accountFile -> accountFile.Name) :> IAccount
 
                 let fromAccountFileToPublicAddress =
@@ -87,7 +87,7 @@ module Account =
                         Ether.Account.GetPublicAddressFromNormalAccountFile
                     else
                         failwith (sprintf "Unknown currency %A" currency)
-                for accountFile in Config.GetAllAccountFiles currency AccountKind.Normal do
+                for accountFile in Config.GetAccountFiles currency AccountKind.Normal do
                     yield NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
         }
 
@@ -108,7 +108,7 @@ module Account =
                     let privateKeyFromConfigFile = accountConfigFile.Content()
                     fromUnencryptedPrivateKeyToPublicAddressFunc privateKeyFromConfigFile
 
-                for accountFile in Config.GetAllAccountFiles currency AccountKind.Archived do
+                for accountFile in Config.GetAccountFiles currency AccountKind.Archived do
                     let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
                     let maybeBalance = GetUnconfirmedPlusConfirmedBalance account Mode.Fast
                     yield async {
@@ -415,7 +415,7 @@ module Account =
         let newAccountFile = Config.AddAccount conceptAccount AccountKind.Normal
         NormalAccount(conceptAccount.Currency, newAccountFile, conceptAccount.ExtractPublicAddressFromConfigFileFunc)
 
-    let CreateBaseAccount (passphrase: string)
+    let CreateAllAccounts (passphrase: string)
                           (dobPartOfSalt: DateTime) (emailPartOfSalt: string)
                           (encryptionPassword: string): Async<unit> =
 

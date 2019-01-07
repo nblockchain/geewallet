@@ -207,7 +207,7 @@ let rec PerformOptions(numAccounts: int) =
     | Options.CreateAccounts ->
         let passphrase,dob,email = UserInteraction.AskBrainSeed()
         let password = UserInteraction.AskPassword true
-        Async.RunSynchronously (Account.CreateBaseAccount passphrase dob email password)
+        Async.RunSynchronously (Account.CreateAllAccounts passphrase dob email password)
         Console.WriteLine("Accounts created")
         UserInteraction.PressAnyKeyToContinue()
     | Options.Refresh -> ()
