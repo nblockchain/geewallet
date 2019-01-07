@@ -102,16 +102,16 @@ module internal Config =
             Content = fun _ -> File.ReadAllText newAccountFile.FullName
         }
 
-    let RemoveNormalAccount (account: NormalAccount): unit =
+    // we don't expose this as public because we don't want to allow removing archived accounts
+    let private RemoveAccount (account: BaseAccount): unit =
         let configFile = GetFile (account:>IAccount).Currency account
         if not configFile.Exists then
             failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
         else
             configFile.Delete()
 
+    let RemoveNormalAccount (account: NormalAccount): unit =
+        RemoveAccount account
+
     let RemoveReadOnlyAccount (account: ReadOnlyAccount): unit =
-        let configFile = GetFile (account:>IAccount).Currency account
-        if not configFile.Exists then
-            failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
-        else
-            configFile.Delete()
+        RemoveAccount account
