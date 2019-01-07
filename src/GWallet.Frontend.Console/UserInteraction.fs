@@ -134,10 +134,10 @@ module UserInteraction =
     let rec AskBrainSeed(): string*DateTime*string =
         Console.WriteLine()
 
-        Console.Write("Write a passphrase for your new wallet: ")
+        Console.Write("Write a seed passphrase (for disaster recovery) for your new wallet: ")
         let passphrase = ConsoleReadPasswordLine()
 
-        Console.Write("Repeat the passphrase: ")
+        Console.Write("Repeat the seed passphrase: ")
         let passphrase2 = ConsoleReadPasswordLine()
         if (passphrase <> passphrase2) then
             Presentation.Error "Passphrases are not the same, please try again."
@@ -151,7 +151,7 @@ module UserInteraction =
     let rec AskPassword(repeat: bool): string =
         Console.WriteLine()
 
-        Console.Write("Write the password to unlock your account: ")
+        Console.Write("Write the password to unlock your account (when making payments) in this device: ")
         let password = ConsoleReadPasswordLine()
         if not repeat then
             password
