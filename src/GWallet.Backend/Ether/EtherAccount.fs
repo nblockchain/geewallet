@@ -5,7 +5,6 @@
 
 open System
 open System.Numerics
-open System.IO
 
 open Nethereum.Signer
 open Nethereum.KeyStore
@@ -24,8 +23,8 @@ module internal Account =
     let GetPublicAddressFromUnencryptedPrivateKey (privateKey: string) =
         EthECKey(privateKey).GetPublicAddress()
 
-    let GetPublicAddressFromNormalAccountFile (accountFile: FileInfo): string =
-        let encryptedPrivateKey = File.ReadAllText(accountFile.FullName)
+    let GetPublicAddressFromNormalAccountFile (accountFile: FileRepresentation): string =
+        let encryptedPrivateKey = accountFile.Content()
         let rawPublicAddress = KeyStoreService.GetAddressFromKeyStore encryptedPrivateKey
         let publicAddress =
             if (rawPublicAddress.StartsWith("0x")) then
@@ -283,7 +282,7 @@ module internal Account =
 
         BroadcastRawTransaction currency trans
 
-    let private CreateInternal (password: string) (seed: array<byte>) =
+    let private CreateInternal (password: string) (seed: array<byte>): FileRepresentation =
         let privateKey = EthECKey(seed, true)
         let privateKeyBytes = privateKey.GetPrivateKeyAsBytes()
         let publicAddress = privateKey.GetPublicAddress()
@@ -295,9 +294,13 @@ module internal Account =
                                                                     privateKeyBytes,
                                                                     publicAddress)
         let fileNameForAccount = KeyStoreService.GenerateUTCFileName(publicAddress)
-        fileNameForAccount,accountSerializedJson
 
-    let Create (password: string) (seed: array<byte>) =
+        {
+            Name = fileNameForAccount
+            Content = fun _ -> accountSerializedJson
+        }
+
+    let Create (password: string) (seed: array<byte>): Async<FileRepresentation> =
         async {
             return CreateInternal password seed
         }

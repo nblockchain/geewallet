@@ -77,10 +77,13 @@ module internal Config =
             configDir.Create()
         configDir
 
-    let GetAllAccounts (currency: Currency) (accountKind: AccountKind): seq<FileInfo> =
+    let GetAllAccountFiles (currency: Currency) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {
             for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
-                yield FileInfo(filePath)
+                yield {
+                    Name = Path.GetFileName filePath
+                    Content = (fun _ -> File.ReadAllText filePath)
+                }
         }
 
     let private GetFile (account: IAccount): FileInfo =
@@ -101,14 +104,17 @@ module internal Config =
                        (account.GetType().FullName))
         Path.Combine(configDir.FullName, fileName) |> FileInfo
 
-    let AddAccount (conceptAccount: ConceptAccount) (accountKind: AccountKind): FileInfo =
+    let AddAccount (conceptAccount: ConceptAccount) (accountKind: AccountKind): FileRepresentation =
         let configDir = GetConfigDir conceptAccount.Currency accountKind
-        let fileName,fileContent = conceptAccount.FileNameAndContent
-        let newAccountFile = Path.Combine(configDir.FullName, fileName) |> FileInfo
+        let newAccountFile = Path.Combine(configDir.FullName, conceptAccount.FileRepresentation.Name) |> FileInfo
         if newAccountFile.Exists then
             raise AccountAlreadyAdded
-        File.WriteAllText(newAccountFile.FullName, fileContent)
-        newAccountFile
+        File.WriteAllText(newAccountFile.FullName, conceptAccount.FileRepresentation.Content())
+
+        {
+            Name = Path.GetFileName newAccountFile.FullName
+            Content = fun _ -> File.ReadAllText newAccountFile.FullName
+        }
 
     let RemoveNormalAccount (account: NormalAccount): unit =
         let configFile = GetFile account

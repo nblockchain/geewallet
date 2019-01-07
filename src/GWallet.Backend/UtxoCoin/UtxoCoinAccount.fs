@@ -4,7 +4,6 @@
 // https://github.com/Microsoft/visualfsharp/issues/3231
 
 open System
-open System.IO
 open System.Security
 open System.Linq
 
@@ -47,7 +46,7 @@ module internal Account =
     let private GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
 
-    let GetPublicAddressFromNormalAccountFile (currency: Currency) (accountFile: FileInfo): string =
+    let GetPublicAddressFromNormalAccountFile (currency: Currency) (accountFile: FileRepresentation): string =
         let pubKey = PubKey(accountFile.Name)
         GetPublicAddressFromPublicKey currency pubKey
 
@@ -464,7 +463,7 @@ module internal Account =
                               currency txMetadata destination.PublicAddress amount privateKey
         BroadcastRawTransaction currency (signedTrans.ToHex())
 
-    let Create currency (password: string) (seed: array<byte>): Async<string*string> =
+    let Create currency (password: string) (seed: array<byte>): Async<FileRepresentation> =
         async {
             let privKey = Key seed
             let network = GetNetwork currency
@@ -472,7 +471,10 @@ module internal Account =
             let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
             let encryptedPrivateKey = encryptedSecret.ToWif()
             let publicKey = secret.PubKey.ToString()
-            return publicKey,encryptedPrivateKey
+            return {
+                Name = publicKey
+                Content = fun _ -> encryptedPrivateKey
+            }
         }
 
     let ValidateAddress (currency: Currency) (address: string) =

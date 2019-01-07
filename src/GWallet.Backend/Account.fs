@@ -77,10 +77,8 @@ module Account =
 
             for currency in allCurrencies do
 
-                for accountFile in Config.GetAllAccounts currency AccountKind.ReadOnly do
-                    let fromAccountFileToPublicAddress (accountFile: FileInfo) =
-                        Path.GetFileName(accountFile.FullName)
-                    yield ReadOnlyAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
+                for accountFile in Config.GetAllAccountFiles currency AccountKind.ReadOnly do
+                    yield ReadOnlyAccount(currency, accountFile, fun accountFile -> accountFile.Name) :> IAccount
 
                 let fromAccountFileToPublicAddress =
                     if currency.IsUtxo() then
@@ -89,7 +87,7 @@ module Account =
                         Ether.Account.GetPublicAddressFromNormalAccountFile
                     else
                         failwith (sprintf "Unknown currency %A" currency)
-                for accountFile in Config.GetAllAccounts currency AccountKind.Normal do
+                for accountFile in Config.GetAllAccountFiles currency AccountKind.Normal do
                     yield NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
         }
 
@@ -106,11 +104,11 @@ module Account =
                     else
                         failwith (sprintf "Unknown currency %A" currency)
 
-                let fromConfigAccountFileToPublicAddressFunc (accountConfigFile: FileInfo) =
-                    let privateKeyFromConfigFile = File.ReadAllText accountConfigFile.FullName
+                let fromConfigAccountFileToPublicAddressFunc (accountConfigFile: FileRepresentation) =
+                    let privateKeyFromConfigFile = accountConfigFile.Content()
                     fromUnencryptedPrivateKeyToPublicAddressFunc privateKeyFromConfigFile
 
-                for accountFile in Config.GetAllAccounts currency AccountKind.Archived do
+                for accountFile in Config.GetAllAccountFiles currency AccountKind.Archived do
                     let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
                     let maybeBalance = GetUnconfirmedPlusConfirmedBalance account Mode.Fast
                     yield async {
@@ -219,16 +217,16 @@ module Account =
             else
                 failwith (sprintf "Unknown currency %A" currency)
 
-        let fromConfigFileToPublicAddressFunc (accountConfigFile: FileInfo) =
+        let fromConfigFileToPublicAddressFunc (accountConfigFile: FileRepresentation) =
             // there's no ETH unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
             // ... so we simply write the private key in string format
-            let privateKeyFromConfigFile = File.ReadAllText accountConfigFile.FullName
+            let privateKeyFromConfigFile = accountConfigFile.Content()
             fromUnencryptedPrivateKeyToPublicAddressFunc privateKeyFromConfigFile
 
         let fileName = fromUnencryptedPrivateKeyToPublicAddressFunc unencryptedPrivateKey
         let conceptAccount = {
             Currency = currency
-            FileNameAndContent = fileName,unencryptedPrivateKey
+            FileRepresentation = { Name = fileName; Content = fun _ -> unencryptedPrivateKey }
             ExtractPublicAddressFromConfigFileFunc = fromConfigFileToPublicAddressFunc
         }
         let newAccountFile = Config.AddAccount conceptAccount AccountKind.Archived
@@ -349,8 +347,8 @@ module Account =
         ValidateAddress currency publicAddress
         let conceptAccountForReadOnlyAccount = {
             Currency = currency
-            FileNameAndContent = publicAddress,String.Empty
-            ExtractPublicAddressFromConfigFileFunc = (fun file -> Path.GetFileName(file.FullName))
+            FileRepresentation = { Name = publicAddress; Content = fun _ -> String.Empty }
+            ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
         }
         Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
 
@@ -358,18 +356,18 @@ module Account =
         Config.RemoveReadOnlyAccount account
 
     let private CreateConceptEtherAccountInternal (password: string) (seed: array<byte>)
-                                                 : Async<(string*string)*(FileInfo->string)> =
+                                                 : Async<FileRepresentation*(FileRepresentation->string)> =
         async {
-            let! fileName,encryptedPrivateKeyInJson = Ether.Account.Create password seed
-            return (fileName,encryptedPrivateKeyInJson), Ether.Account.GetPublicAddressFromNormalAccountFile
+            let! virtualFile = Ether.Account.Create password seed
+            return virtualFile, Ether.Account.GetPublicAddressFromNormalAccountFile
         }
 
     let private CreateConceptAccountInternal (currency: Currency) (password: string) (seed: array<byte>)
-                                            : Async<(string*string)*(FileInfo->string)> =
+                                            : Async<FileRepresentation*(FileRepresentation->string)> =
         async {
             if currency.IsUtxo() then
-                let! publicKey,encryptedPrivateKey = UtxoCoin.Account.Create currency password seed
-                return (publicKey,encryptedPrivateKey), UtxoCoin.Account.GetPublicAddressFromNormalAccountFile currency
+                let! virtualFile = UtxoCoin.Account.Create currency password seed
+                return virtualFile, UtxoCoin.Account.GetPublicAddressFromNormalAccountFile currency
             elif currency.IsEtherBased() then
                 return! CreateConceptEtherAccountInternal password seed
             else
@@ -380,11 +378,11 @@ module Account =
     let CreateConceptAccount (currency: Currency) (password: string) (seed: array<byte>)
                             : Async<ConceptAccount> =
         async {
-            let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPublicAddressFunc =
+            let! virtualFile, fromEncPrivKeyToPublicAddressFunc =
                 CreateConceptAccountInternal currency password seed
             return {
                        Currency = currency;
-                       FileNameAndContent = fileName,encryptedPrivateKey;
+                       FileRepresentation = virtualFile
                        ExtractPublicAddressFromConfigFileFunc = fromEncPrivKeyToPublicAddressFunc;
                    }
         }
@@ -400,13 +398,13 @@ module Account =
                                   : seq<Currency>*Async<List<ConceptAccount>> =
         let etherCurrencies = Currency.GetAll().Where(fun currency -> currency.IsEtherBased())
         let etherAccounts = async {
-            let! (fileName, encryptedPrivateKey), fromEncPrivKeyToPublicAddressFunc =
+            let! virtualFile, fromEncPrivKeyToPublicAddressFunc =
                 CreateConceptEtherAccountInternal password seed
             return seq {
                 for etherCurrency in etherCurrencies do
                     yield {
                               Currency = etherCurrency;
-                              FileNameAndContent = fileName,encryptedPrivateKey;
+                              FileRepresentation = virtualFile
                               ExtractPublicAddressFromConfigFileFunc = fromEncPrivKeyToPublicAddressFunc
                           }
             } |> List.ofSeq
@@ -414,7 +412,6 @@ module Account =
         etherCurrencies,etherAccounts
 
     let CreateNormalAccount (conceptAccount: ConceptAccount): NormalAccount =
-        let fileName,fileContents = conceptAccount.FileNameAndContent
         let newAccountFile = Config.AddAccount conceptAccount AccountKind.Normal
         NormalAccount(conceptAccount.Currency, newAccountFile, conceptAccount.ExtractPublicAddressFromConfigFileFunc)
 
