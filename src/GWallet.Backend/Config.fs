@@ -86,20 +86,8 @@ module internal Config =
                 }
         }
 
-    let private GetFile (account: IAccount): FileInfo =
-        let configDir, fileName =
-            match account with
-            | :? NormalAccount as normalAccount ->
-                let configDir = GetConfigDir account.Currency AccountKind.Normal
-                configDir, normalAccount.AccountFile.Name
-            | :? ReadOnlyAccount as readOnlyAccount ->
-                let configDir = GetConfigDir account.Currency AccountKind.ReadOnly
-                configDir, readOnlyAccount.AccountFile.Name
-            | :? ArchivedAccount as archivedAccount ->
-                let configDir = GetConfigDir account.Currency AccountKind.Archived
-                configDir, archivedAccount.AccountFile.Name
-            | _ -> failwith (sprintf "Account type not valid for archiving: %s. Please report this issue."
-                       (account.GetType().FullName))
+    let private GetFile (currency: Currency) (account: BaseAccount): FileInfo =
+        let configDir, fileName = GetConfigDir currency account.Kind, account.AccountFile.Name
         Path.Combine(configDir.FullName, fileName) |> FileInfo
 
     let AddAccount (conceptAccount: ConceptAccount) (accountKind: AccountKind): FileRepresentation =
@@ -115,14 +103,14 @@ module internal Config =
         }
 
     let RemoveNormalAccount (account: NormalAccount): unit =
-        let configFile = GetFile account
+        let configFile = GetFile (account:>IAccount).Currency account
         if not configFile.Exists then
             failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
         else
             configFile.Delete()
 
     let RemoveReadOnlyAccount (account: ReadOnlyAccount): unit =
-        let configFile = GetFile account
+        let configFile = GetFile (account:>IAccount).Currency account
         if not configFile.Exists then
             failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
         else
