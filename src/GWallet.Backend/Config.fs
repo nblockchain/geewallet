@@ -94,12 +94,10 @@ module internal Config =
                 configDir, normalAccount.AccountFile.Name
             | :? ReadOnlyAccount as readOnlyAccount ->
                 let configDir = GetConfigDir account.Currency AccountKind.ReadOnly
-                let fileName = account.PublicAddress
-                configDir, fileName
+                configDir, readOnlyAccount.AccountFile.Name
             | :? ArchivedAccount as archivedAccount ->
                 let configDir = GetConfigDir account.Currency AccountKind.Archived
-                let fileName = account.PublicAddress
-                configDir, fileName
+                configDir, archivedAccount.AccountFile.Name
             | _ -> failwith (sprintf "Account type not valid for archiving: %s. Please report this issue."
                        (account.GetType().FullName))
         Path.Combine(configDir.FullName, fileName) |> FileInfo
