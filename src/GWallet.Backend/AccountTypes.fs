@@ -1,5 +1,11 @@
 namespace GWallet.Backend
 
+type WatchWalletInfo =
+    {
+        UtxoCoinPublicKey: string
+        EtherPublicAddress: string
+    }
+
 type FileRepresentation =
     {
         Name: string;

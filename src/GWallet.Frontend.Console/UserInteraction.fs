@@ -16,6 +16,7 @@ type internal Options =
     | SignOffPayment     = 5
     | BroadcastPayment   = 6
     | ArchiveAccount     = 7
+    | PairToWatchWallet  = 8
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -70,6 +71,7 @@ module UserInteraction =
         | Options.SendPayment
         | Options.SignOffPayment
         | Options.ArchiveAccount
+        | Options.PairToWatchWallet
             ->
                 not noAccounts
         | Options.CreateAccounts -> noAccounts
@@ -163,31 +165,6 @@ module UserInteraction =
                 AskPassword(repeat)
             else
                 password
-
-    let rec AskCurrency (allowAll: bool): Option<Currency> =
-        Console.WriteLine()
-
-        let allCurrencies = Currency.GetAll()
-
-        if (allowAll) then
-            Console.WriteLine("0: [All] (default)")
-        for i = 1 to (allCurrencies.Count()) do
-            Console.WriteLine(sprintf "%d: %s" (i) (allCurrencies.ElementAt(i - 1).ToString()))
-
-        Console.Write("Select currency: ")
-        let optIntroduced = System.Console.ReadLine()
-        if optIntroduced = String.Empty then
-            None
-        else
-            match Int32.TryParse(optIntroduced) with
-            | false, _ -> AskCurrency allowAll
-            | true, optionParsed ->
-                if (optionParsed = 0) then
-                    None
-                elif (optionParsed < 1 || optionParsed > allCurrencies.Count()) then
-                    AskCurrency allowAll
-                else
-                    Some(allCurrencies.ElementAt(optionParsed - 1))
 
     let private BalanceInUsdString balance maybeUsdValue =
         match maybeUsdValue with

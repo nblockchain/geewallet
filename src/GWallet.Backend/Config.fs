@@ -77,13 +77,14 @@ module internal Config =
             configDir.Create()
         configDir
 
-    let GetAccountFiles (currency: Currency) (accountKind: AccountKind): seq<FileRepresentation> =
+    let GetAccountFiles (currencies: seq<Currency>) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {
-            for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
-                yield {
-                    Name = Path.GetFileName filePath
-                    Content = (fun _ -> File.ReadAllText filePath)
-                }
+            for currency in currencies do
+                for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
+                    yield {
+                        Name = Path.GetFileName filePath
+                        Content = (fun _ -> File.ReadAllText filePath)
+                    }
         }
 
     let private GetFile (currency: Currency) (account: BaseAccount): FileInfo =

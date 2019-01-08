@@ -58,8 +58,10 @@
     <Compile Include="Shuffling.fs" />
     <Compile Include="StratumParsing.fs" />
     <Content Include="packages.config" />
+    <EmbeddedResource Include="data\signedAndFormattedBtcTransaction.json" />
     <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
+    <EmbeddedResource Include="data\unsignedAndFormattedBtcTransaction.json" />
     <Compile Include="ElectrumIntegrationTests.fs" />
     <Compile Include="WarpWallet.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />

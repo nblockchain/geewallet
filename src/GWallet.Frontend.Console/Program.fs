@@ -150,17 +150,10 @@ let rec TryArchiveAccount account =
         TryArchiveAccount account
 
 let rec AddReadOnlyAccount() =
-    let currencyChosen = UserInteraction.AskCurrency false
-    match currencyChosen with
-    | None -> failwith "Currency should not return None if allowAll=false"
-    | Some(currency) ->
-        let publicAddress = UserInteraction.AskPublicAddress currency "Public address: "
-        try
-            Account.CreateReadOnlyAccount currency publicAddress
-                |> ignore
-        with
-        | :? AccountAlreadyAdded ->
-            Console.Error.WriteLine("Account had already been added")
+    Console.Write "JSON fragment from wallet to pair with: "
+    let watchWalletInfoJson = Console.ReadLine().Trim()
+    let watchWalletInfo = Marshalling.Deserialize watchWalletInfoJson
+    Account.CreateReadOnlyAccounts watchWalletInfo
 
 let ArchiveAccount() =
     let account = UserInteraction.AskAccount()
@@ -201,6 +194,21 @@ let ArchiveAccount() =
         failwith (sprintf "Account type not valid for archiving: %s. Please report this issue."
                       (account.GetType().FullName))
 
+let PairToWatchWallet() =
+    match Account.GetNormalAccountsPairingInfoForWatchWallet() with
+    | None ->
+        Presentation.Error
+            "There needs to be both Ether-based accounts and Utxo-based accounts to be able to use this feature."
+    | Some walletInfo ->
+        Console.WriteLine ""
+        Console.WriteLine "Copy/paste this JSON fragment in your watching wallet:"
+        Console.WriteLine ""
+        let json = Marshalling.Serialize walletInfo
+        Console.WriteLine json
+        Console.WriteLine ""
+
+    UserInteraction.PressAnyKeyToContinue()
+
 let rec PerformOptions(numAccounts: int) =
     match UserInteraction.AskOption(numAccounts) with
     | Options.Exit -> exit 0
@@ -221,6 +229,8 @@ let rec PerformOptions(numAccounts: int) =
         BroadcastPayment()
     | Options.ArchiveAccount ->
         ArchiveAccount()
+    | Options.PairToWatchWallet ->
+        PairToWatchWallet()
     | _ -> failwith "Unreachable"
 
 let rec GetAccountOfSameCurrency currency =
