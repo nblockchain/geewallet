@@ -469,7 +469,8 @@ module Caching =
             lock lockObject (fun _ ->
                 match sessionCachedNetworkData.ServerRanking.TryFind serverId with
                 | None ->
-                    Console.Error.WriteLine (sprintf "WARNING: no history stats about %s" serverId)
+                    if Config.DebugLog then
+                        Console.Error.WriteLine (sprintf "WARNING: no history stats about %s" serverId)
                     None
                 | Some (historyInfo,_) -> Some historyInfo
             )
