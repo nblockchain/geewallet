@@ -40,6 +40,8 @@ Comparing our product to other wallets in terms of features, we would want to hi
 | Electrum       | No             | **Yes**    | **Yes**      | No         | No                   |
 | Bread          | **Yes**        | **Yes**    | **Yes**      | No         | **Yes**              |
 | Samourai       | No             | **Yes**    | **Yes**      | No         | No                   |
+| Wasabi         | No             | **Yes**    | No           | No         | No                   |
+| Mycelium       | No             | **Yes**    | **Yes**      | No         | No                   |
 | Jaxx           | **Yes**        | No         | No           | No         | **Yes**              |
 | Coinomi        | **Yes**        | No         | No           | No         | **Yes**              |
 | ParitySigner   | No             | **Yes**    | **Yes**      | No         | **Yes**              |
