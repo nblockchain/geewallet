@@ -3,6 +3,7 @@
 open System
 open System.Linq
 open System.Globalization
+open Plugin.Connectivity
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -45,6 +46,17 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                                                                c = '?' ||
                                                                c = '!' ||
                                                                c = ''')
+        let IsColdStorageMode() =
+            use conn = CrossConnectivity.Current
+            not conn.IsConnected
+
+        let AllWordsInPassphraseExistInDictionaries(passphrase: string): bool =
+            let words = passphrase.Split([|","; "."; " "; "-"; "_"|], StringSplitOptions.None)
+            let result: bool = words
+                               |> Seq.forall(fun word -> not ((NBitcoin.Wordlist.AutoDetectLanguage word)
+                                                                 .Equals NBitcoin.Language.Unknown)
+                                            )
+            result
 
         if (passphrase.Text <> passphraseConfirmation.Text) then
             Some "Seed passphrases don't match, please try again"
@@ -57,11 +69,8 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             Some "Mix lowercase and uppercase characters in your seed phrase please"
         elif (containsASpaceAtLeast && (not containsADigitAtLeast) && (not containsPunctuation)) then
             Some "For security reasons, please include numbers or punctuation in your passphrase (to increase entropy)"
-
-        // TODO: in case of cold storage mode (detection of offline network), we should be even more strict and maybe
-        // avoid passphrases that only contain words that belong to dictionaries (via using API being introduced in this
-        // pull request: https://github.com/MetacoSA/NBitcoin/pull/498 )
-
+        elif IsColdStorageMode() && AllWordsInPassphraseExistInDictionaries passphrase.Text then
+            Some "For security reasons, please include at least one word that does not exist in any dictionary (to increase entropy)"
         else
             None
 
