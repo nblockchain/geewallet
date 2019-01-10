@@ -286,8 +286,6 @@ module internal Account =
                                                                      destination
                                                                      amount
 
-        let numberOfInputs = transactionDraftInputs.Length
-
         let averageFee (feesFromDifferentServers: List<decimal>): decimal =
             let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
             avg
