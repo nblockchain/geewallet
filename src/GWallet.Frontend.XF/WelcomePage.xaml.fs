@@ -53,6 +53,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         let AllWordsInPassphraseExistInDictionaries(passphrase: string): bool =
             let words = passphrase.Split([|","; "."; " "; "-"; "_"|], StringSplitOptions.None)
             let result: bool = words
+                               |> Seq.map (fun word -> word.ToLower())
                                |> Seq.forall(fun word -> not ((NBitcoin.Wordlist.AutoDetectLanguage word)
                                                                  .Equals NBitcoin.Language.Unknown)
                                             )
