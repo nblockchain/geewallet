@@ -147,14 +147,14 @@ module internal Account =
     let GetConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> =
         async {
             let! balance = GetBalance account mode
-            let confirmedBalance = balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+            let confirmedBalance = (Money.Satoshis balance.Confirmed).ToUnit MoneyUnit.BTC
             return confirmedBalance
         }
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> =
         async {
             let! balance = GetBalance account mode
-            let confirmedBalance = balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+            let confirmedBalance = Money.Satoshis(balance.Unconfirmed + balance.Confirmed).ToUnit MoneyUnit.BTC
             return confirmedBalance
         }
 
@@ -191,8 +191,8 @@ module internal Account =
 
         let currency = account.Currency
         let destAddress = BitcoinAddress.Create(destination, GetNetwork currency)
-        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
-        transactionBuilder.Send(destAddress, Money(amountInSatoshis)) |> ignore
+        let moneyAmount = Money(amount.ValueToSend, MoneyUnit.BTC)
+        transactionBuilder.Send(destAddress, moneyAmount) |> ignore
         let originAddress = (account :> IAccount).PublicAddress
         let changeAddress = BitcoinAddress.Create(originAddress, GetNetwork currency)
         if amount.BalanceAtTheMomentOfSending <> amount.ValueToSend then
@@ -249,7 +249,7 @@ module internal Account =
         // first ones are the smallest ones
         let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
 
-        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
+        let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
         let utxosToUse,totalValueOfInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis List.Empty
 
@@ -325,7 +325,7 @@ module internal Account =
                                               (privateKey: Key) =
 
         let btcMinerFee = txMetadata.Fee
-        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
+        let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
 
         let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs destination amount
 

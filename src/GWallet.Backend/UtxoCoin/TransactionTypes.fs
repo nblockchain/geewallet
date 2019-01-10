@@ -2,6 +2,8 @@
 
 open GWallet.Backend
 
+open NBitcoin
+
 type TransactionInputOutpointInfo =
     {
         TransactionHash: string;
@@ -19,6 +21,6 @@ type TransactionMetadata =
         member self.FeeEstimationTime with get() = self.Fee.EstimationTime
         member self.FeeValue
             with get() =
-                self.Fee.EstimatedFeeInSatoshis |> UnitConversion.FromSatoshiToBtc
+                (Money.Satoshis self.Fee.EstimatedFeeInSatoshis).ToUnit MoneyUnit.BTC
         member self.Currency with get() = self.Fee.Currency
 
