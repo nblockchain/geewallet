@@ -2,15 +2,9 @@
 
 open GWallet.Backend
 
-type OutputInfo =
-    {
-        ValueInSatoshis: int64;
+open NBitcoin
 
-        // FIXME: this info is already in the UnsignedTransactionProposal type, we can remove it from here:
-        DestinationAddress: string;
-    }
-
-type TransactionOutpointInfo =
+type TransactionInputOutpointInfo =
     {
         TransactionHash: string;
         OutputIndex: int;
@@ -18,21 +12,15 @@ type TransactionOutpointInfo =
         DestinationInHex: string;
     }
 
-type TransactionDraft =
-    {
-        Inputs: List<TransactionOutpointInfo>;
-        Outputs: List<OutputInfo>;
-    }
-
 type TransactionMetadata =
     {
         Fee: MinerFee;
-        TransactionDraft: TransactionDraft;
+        Inputs: List<TransactionInputOutpointInfo>;
     }
     interface IBlockchainFeeInfo with
-        member this.FeeEstimationTime with get() = this.Fee.EstimationTime
-        member this.FeeValue
+        member self.FeeEstimationTime with get() = self.Fee.EstimationTime
+        member self.FeeValue
             with get() =
-                this.Fee.CalculateAbsoluteValueInSatoshis() |> UnitConversion.FromSatoshiToBtc
-        member this.Currency with get() = this.Fee.Currency
+                (Money.Satoshis self.Fee.EstimatedFeeInSatoshis).ToUnit MoneyUnit.BTC
+        member self.Currency with get() = self.Fee.Currency
 

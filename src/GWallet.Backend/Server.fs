@@ -15,10 +15,10 @@ type Server<'K,'T,'R when 'K: equality> =
     { Identifier: 'K
       HistoryInfo: Option<HistoryInfo>
       Retreival: 'T -> 'R }
-    override x.Equals yObj =
+    override self.Equals yObj =
         match yObj with
         | :? Server<'K,'T,'R> as y ->
-            x.Identifier.Equals y.Identifier
+            self.Identifier.Equals y.Identifier
         | _ -> false
-    override this.GetHashCode () =
-        this.Identifier.GetHashCode()
+    override self.GetHashCode () =
+        self.Identifier.GetHashCode()

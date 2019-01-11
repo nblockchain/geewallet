@@ -5,7 +5,6 @@
 
 open System
 open System.Numerics
-open System.IO
 
 open Nethereum.Signer
 open Nethereum.KeyStore
@@ -24,8 +23,8 @@ module internal Account =
     let GetPublicAddressFromUnencryptedPrivateKey (privateKey: string) =
         EthECKey(privateKey).GetPublicAddress()
 
-    let GetPublicAddressFromAccountFile (accountFile: FileInfo) =
-        let encryptedPrivateKey = File.ReadAllText(accountFile.FullName)
+    let GetPublicAddressFromNormalAccountFile (accountFile: FileRepresentation): string =
+        let encryptedPrivateKey = accountFile.Content()
         let rawPublicAddress = KeyStoreService.GetAddressFromKeyStore encryptedPrivateKey
         let publicAddress =
             if (rawPublicAddress.StartsWith("0x")) then
@@ -78,7 +77,7 @@ module internal Account =
                           (result.ToString()))
         let int64result:Int64 = BigInteger.op_Explicit value
         return int64result
-        }
+    }
 
     let private GetGasPrice currency: Async<int64> = async {
         let! gasPrice = Ether.Server.GetGasPrice currency
@@ -87,7 +86,7 @@ module internal Account =
                           (gasPrice.Value.ToString()))
         let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
         return gasPrice64
-        }
+    }
 
     let private GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION:int64 = 21000L
 
@@ -122,7 +121,7 @@ module internal Account =
         let ethMinerFee = MinerFee(gasCost64, gasPrice64, DateTime.Now, baseCurrency)
         let! txCount = GetTransactionCount account.Currency account.PublicAddress
         return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
-        }
+    }
 
     let EstimateFee (account: IAccount) (amount: TransferAmount) destination: Async<TransactionMetadata> = async {
         if account.Currency.IsEther() then
@@ -131,7 +130,7 @@ module internal Account =
             return! EstimateTokenTransferFee account amount.ValueToSend destination
         else
             return failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
-        }
+    }
 
     let private BroadcastRawTransaction (currency: Currency) trans =
         Ether.Server.BroadcastTransaction currency ("0x" + trans)
@@ -142,7 +141,7 @@ module internal Account =
             trans.RawTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
-        let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
+        let encryptedPrivateKey = account.GetEncryptedPrivateKey()
         let privKeyInBytes =
             try
                 KeyStoreService.DecryptKeyStoreFromJson(password, encryptedPrivateKey)
@@ -263,7 +262,7 @@ module internal Account =
                            (txMetadata: TransactionMetadata) =
         let accountFrom = (account:>IAccount)
         let amount = TransferAmount(balance, balance, accountFrom.Currency)
-        let ecPrivKey = EthECKey(account.PrivateKey)
+        let ecPrivKey = EthECKey(account.GetUnencryptedPrivateKey())
         let signedTrans = SignTransactionWithPrivateKey
                               account txMetadata destination.PublicAddress amount ecPrivKey
         BroadcastRawTransaction accountFrom.Currency signedTrans
@@ -283,7 +282,7 @@ module internal Account =
 
         BroadcastRawTransaction currency trans
 
-    let private CreateInternal (password: string) (seed: array<byte>) =
+    let private CreateInternal (password: string) (seed: array<byte>): FileRepresentation =
         let privateKey = EthECKey(seed, true)
         let privateKeyBytes = privateKey.GetPrivateKeyAsBytes()
         let publicAddress = privateKey.GetPublicAddress()
@@ -295,9 +294,13 @@ module internal Account =
                                                                     privateKeyBytes,
                                                                     publicAddress)
         let fileNameForAccount = KeyStoreService.GenerateUTCFileName(publicAddress)
-        fileNameForAccount,accountSerializedJson
 
-    let Create (password: string) (seed: array<byte>) =
+        {
+            Name = fileNameForAccount
+            Content = fun _ -> accountSerializedJson
+        }
+
+    let Create (password: string) (seed: array<byte>): Async<FileRepresentation> =
         async {
             return CreateInternal password seed
         }

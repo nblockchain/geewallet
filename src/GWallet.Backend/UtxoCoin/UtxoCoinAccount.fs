@@ -4,7 +4,6 @@
 // https://github.com/Microsoft/visualfsharp/issues/3231
 
 open System
-open System.IO
 open System.Security
 open System.Linq
 
@@ -21,7 +20,37 @@ type internal TransactionOutpoint =
     member self.ToCoin (): Coin =
         Coin(self.Transaction, uint32 self.OutputIndex)
 
-module Account =
+type IUtxoAccount =
+    inherit IAccount
+
+    abstract member PublicKey: PubKey with get
+
+
+type NormalUtxoAccount(currency: Currency, accountFile: FileRepresentation,
+                       fromAccountFileToPublicAddress: FileRepresentation -> string,
+                       fromAccountFileToPublicKey: FileRepresentation -> PubKey) =
+    inherit GWallet.Backend.NormalAccount(currency, accountFile, fromAccountFileToPublicAddress)
+
+    interface IUtxoAccount with
+        member val PublicKey = fromAccountFileToPublicKey accountFile with get
+
+type ReadOnlyUtxoAccount(currency: Currency, accountFile: FileRepresentation,
+                         fromAccountFileToPublicAddress: FileRepresentation -> string,
+                         fromAccountFileToPublicKey: FileRepresentation -> PubKey) =
+    inherit GWallet.Backend.ReadOnlyAccount(currency, accountFile, fromAccountFileToPublicAddress)
+
+    interface IUtxoAccount with
+        member val PublicKey = fromAccountFileToPublicKey accountFile with get
+
+type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
+                         fromAccountFileToPublicAddress: FileRepresentation -> string,
+                         fromAccountFileToPublicKey: FileRepresentation -> PubKey) =
+    inherit GWallet.Backend.ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
+
+    interface IUtxoAccount with
+        member val PublicKey = fromAccountFileToPublicKey accountFile with get
+
+module internal Account =
 
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
@@ -45,12 +74,18 @@ module Account =
         | LTC -> Config.LitecoinNet
         | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
 
-    let private GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
+    let internal GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
 
-    let GetPublicAddressFromAccountFile currency (accountFile: FileInfo) =
+    let GetPublicAddressFromNormalAccountFile (currency: Currency) (accountFile: FileRepresentation): string =
         let pubKey = PubKey(accountFile.Name)
         GetPublicAddressFromPublicKey currency pubKey
+
+    let GetPublicKeyFromNormalAccountFile (accountFile: FileRepresentation): PubKey =
+        PubKey accountFile.Name
+
+    let GetPublicKeyFromReadOnlyAccountFile (accountFile: FileRepresentation): PubKey =
+        accountFile.Content() |> PubKey
 
     let GetPublicAddressFromUnencryptedPrivateKey (currency: Currency) (privateKey: string) =
         let privateKey = Key.Parse(privateKey, GetNetwork currency)
@@ -113,54 +148,59 @@ module Account =
     let GetConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> =
         async {
             let! balance = GetBalance account mode
-            let confirmedBalance = balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+            let confirmedBalance = (Money.Satoshis balance.Confirmed).ToUnit MoneyUnit.BTC
             return confirmedBalance
         }
 
     let GetUnconfirmedPlusConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> =
         async {
             let! balance = GetBalance account mode
-            let confirmedBalance = balance.Unconfirmed + balance.Confirmed |> UnitConversion.FromSatoshiToBtc
+            let confirmedBalance = Money.Satoshis(balance.Unconfirmed + balance.Confirmed).ToUnit MoneyUnit.BTC
             return confirmedBalance
         }
 
-    let private CreateTransactionAndCoinsToBeSigned currency (transactionDraft: TransactionDraft): Transaction*List<Coin> =
-        let transaction = (GetNetwork currency).Consensus.ConsensusFactory.CreateTransaction()
+    let private CreateTransactionAndCoinsToBeSigned (account: IUtxoAccount)
+                                                    (transactionInputs: List<TransactionInputOutpointInfo>)
+                                                        : TransactionBuilder =
         let coins =
             seq {
-                for input in transactionDraft.Inputs do
+                for input in transactionInputs do
                     let nbitcoinInput = TxIn()
                     let txHash = uint256(input.TransactionHash)
                     nbitcoinInput.PrevOut.Hash <- txHash
                     nbitcoinInput.PrevOut.N <- uint32 input.OutputIndex
-                    let inputAdded = transaction.AddInput nbitcoinInput
-
-                    // mark RBF=enabled by default
-                    inputAdded.Sequence <- Sequence(0)
-                    if not inputAdded.Sequence.IsRBF then
-                        failwith "input should have been marked as RBF by default"
 
                     let scriptPubKeyInBytes = NBitcoin.DataEncoders.Encoders.Hex.DecodeData input.DestinationInHex
                     let scriptPubKey = Script(scriptPubKeyInBytes)
 
-                    yield Coin(txHash,
-                               nbitcoinInput.PrevOut.N,
-                               Money(input.ValueInSatoshis),
-                               scriptPubKey)
+                    let coin = Coin(txHash,
+
+                                    //can replace with uint32 input.OutputIndex?
+                                    nbitcoinInput.PrevOut.N,
+
+                                    Money(input.ValueInSatoshis),
+                                    scriptPubKey)
+
+                    let scriptCoin = coin.ToScriptCoin(account.PublicKey.WitHash.ScriptPubKey)
+                    yield scriptCoin :> ICoin
             } |> List.ofSeq
 
-        for output in transactionDraft.Outputs do
-            let destAddress = BitcoinAddress.Create(output.DestinationAddress, GetNetwork currency)
-            let txOut = TxOut(Money(output.ValueInSatoshis), destAddress)
-            transaction.Outputs.Add(txOut)
+        let transactionBuilder = TransactionBuilder()
+        transactionBuilder.AddCoins coins |> ignore
 
-        if not transaction.RBF then
-            failwith "transaction should have been marked as RBF by default"
-        if transaction.LockTime.IsTimeLock then
-            failwith "transaction shouldn't be marked as time lock"
-        if transaction.LockTime.Height <> 0 then
-            failwith "transaction height shouldn't be different than 0"
-        transaction,coins
+        let currency = account.Currency
+        let originAddress = (account :> IAccount).PublicAddress
+        let changeAddress = BitcoinAddress.Create(originAddress, GetNetwork currency)
+
+        //FIXME: this should only be done if amount.BalanceAtTheMomentOfSending <> amount.ValueToSend, however NBitcoin
+        // doesn't seem to be prepared for this because it throws `System.InvalidOperationException: A change address
+        // should be specified (Uncolored)`
+        transactionBuilder.SetChange changeAddress |> ignore
+
+        // to enable RBF, see https://bitcoin.stackexchange.com/a/61038/2751
+        transactionBuilder.SetLockTime (LockTime 0) |> ignore
+
+        transactionBuilder
 
     type internal UnspentTransactionOutputInfo =
         {
@@ -169,48 +209,8 @@ module Account =
             Value: Int64;
         }
 
-    let private SubstractMinerFeeToTransactionDraft (transactionDraftWithoutMinerFee: TransactionDraft)
-                                                    (amountToBeSentInSatoshisNotConsideringChange)
-                                                    (minerFeeInSatoshis)
-            : TransactionDraft =
-
-        let newOutputs = seq {
-
-            // maybe if we change this argument to be a discriminated union we would not need this <1 and >2 bullshit?
-            if transactionDraftWithoutMinerFee.Outputs.Length < 1 then
-                failwith "transactionDraftWithoutMinerFee should have output(s)"
-            elif transactionDraftWithoutMinerFee.Outputs.Length > 2 then
-                failwithf "transactionDraftWithoutMinerFee should have 1 or 2 outputs, not more (now %d)"
-                          transactionDraftWithoutMinerFee.Outputs.Length
-            else
-                let firstOutput = transactionDraftWithoutMinerFee.Outputs.First()
-                if (amountToBeSentInSatoshisNotConsideringChange <> firstOutput.ValueInSatoshis) then
-                    failwith "Assertion failed: amount and transactionDraft's amount (first output) don't match"
-
-                let lastOutput = transactionDraftWithoutMinerFee.Outputs.Last()
-                let valueInSatoshisMinusMinerFee = lastOutput.ValueInSatoshis - minerFeeInSatoshis
-                if not (valueInSatoshisMinusMinerFee > 0L) then
-                    let minerFeeInMainCurrency = minerFeeInSatoshis |> UnitConversion.FromSatoshiToBtc
-                    raise (InsufficientBalanceForFee minerFeeInMainCurrency)
-
-                let newOutput =
-                    { lastOutput with ValueInSatoshis = valueInSatoshisMinusMinerFee; }
-                if transactionDraftWithoutMinerFee.Outputs.Length = 2 then
-                    yield firstOutput
-                yield newOutput
-        }
-
-        { transactionDraftWithoutMinerFee with Outputs = newOutputs |> List.ofSeq }
-
-    // this is a rough guess between 3 tests with 1, 2 and 3 inputs:
-    // 1input  -> 215(total): 83+(X*1)
-    // 2inputs -> 386(total): 124+(X*2)
-    // 3inputs -> 559(total): 165+(X*3)  ... therefore X = 131?
-    // FIXME: anyway I should use NBitcoin's estimation facilicities
-    //        (i.e. by using TransactionBuilder, however, not before this bug gets fixed upstream: https://github.com/MetacoSA/NBitcoin/issues/396 )
-    let private BYTES_PER_INPUT_ESTIMATION_CONSTANT = 131
-
-    let EstimateFee account (amount: TransferAmount) (destination: string): Async<TransactionMetadata> = async {
+    let EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
+                        : Async<TransactionMetadata> = async {
         let rec addInputsUntilAmount (utxos: List<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount
@@ -230,13 +230,11 @@ module Account =
                 else
                     newAcc,newSoFar
 
-        let baseAccount = (account:>IAccount)
-
         let! utxos =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientSettings())
-                baseAccount.PublicAddress
-                (GetRandomizedFuncs baseAccount.Currency ElectrumClient.GetUnspentTransactionOutputs)
+                account.PublicAddress
+                (GetRandomizedFuncs account.Currency ElectrumClient.GetUnspentTransactionOutputs)
                 Mode.Fast
 
         if not (utxos.Any()) then
@@ -250,7 +248,7 @@ module Account =
         // first ones are the smallest ones
         let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
 
-        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
+        let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
         let utxosToUse,totalValueOfInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis List.Empty
 
@@ -262,7 +260,7 @@ module Account =
                             faultTolerantElectrumClient.Query
                                 (FaultTolerantParallelClientSettings())
                                 utxo.TransactionId
-                                (GetRandomizedFuncs baseAccount.Currency ElectrumClient.GetBlockchainTransaction)
+                                (GetRandomizedFuncs account.Currency ElectrumClient.GetBlockchainTransaction)
                                 Mode.Fast
                         let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
                         let txOut = transaction.Outputs.[utxo.OutputIndex]
@@ -280,27 +278,7 @@ module Account =
             }
         let! inputs = Async.Parallel asyncInputs
 
-        let outputs =
-            seq {
-                yield { ValueInSatoshis = amountInSatoshis; DestinationAddress = destination }
-                if (amountInSatoshis <> totalValueOfInputs) then
-                    if (amount.ValueToSend = amount.BalanceAtTheMomentOfSending) then
-                        failwithf "Assertion failed: amountInSatoshis(%d)<>totalValueOfInputs(%d) but ValueToSend=BalanceAtTheMomentOfSending?"
-                                  amountInSatoshis totalValueOfInputs
-                    let changeAmount = totalValueOfInputs - amountInSatoshis
-                    yield { ValueInSatoshis = changeAmount; DestinationAddress = baseAccount.PublicAddress }
-            } |> List.ofSeq
-
-        let transactionDraftWithoutMinerFee = { Inputs = inputs |> List.ofArray; Outputs = outputs }
-        let unsignedTransaction,_ =
-            CreateTransactionAndCoinsToBeSigned baseAccount.Currency transactionDraftWithoutMinerFee
-
-        let transactionSizeInBytes = unsignedTransaction.ToBytes().Length
-        //Console.WriteLine("transactionSize in bytes before signing: " + transactionSizeInBytes.ToString())
-        let numberOfInputs = transactionDraftWithoutMinerFee.Inputs.Length
-        let estimatedFinalTransSize =
-            transactionSizeInBytes + (BYTES_PER_INPUT_ESTIMATION_CONSTANT * unsignedTransaction.Inputs.Count)
-            + (numberOfInputs - 1)
+        let transactionDraftInputs = inputs |> List.ofArray
 
         let averageFee (feesFromDifferentServers: List<decimal>): decimal =
             let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
@@ -313,78 +291,95 @@ module Account =
                       ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, averageFee) }
                 //querying for 1 will always return -1 surprisingly...
                 2
-                (GetRandomizedFuncs baseAccount.Currency ElectrumClient.EstimateFee)
+                (GetRandomizedFuncs account.Currency ElectrumClient.EstimateFee)
                 Mode.Fast
 
-        let minerFee = MinerFee(estimatedFinalTransSize, btcPerKiloByteForFastTrans, DateTime.Now, account.Currency)
-        let minerFeeInSatoshis = minerFee.CalculateAbsoluteValueInSatoshis()
+        let feeRate =
+            try
+                Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC) |> FeeRate
+            with
+            | ex ->
+                // we need more info in case this bug shows again: https://gitlab.com/DiginexGlobal/geewallet/issues/43
+                raise <| Exception(sprintf "Could not create fee rate from %s btc per KB"
+                                           (btcPerKiloByteForFastTrans.ToString()), ex)
 
-        let transactionWithMinerFeeSubstracted =
-            SubstractMinerFeeToTransactionDraft transactionDraftWithoutMinerFee amountInSatoshis minerFeeInSatoshis
+        let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
+                                                                     transactionDraftInputs
 
-        return { TransactionDraft = transactionWithMinerFeeSubstracted; Fee = minerFee }
+        let destAddress = BitcoinAddress.Create(destination, GetNetwork account.Currency)
+        let moneyAmount = Money(amount.ValueToSend, MoneyUnit.BTC)
+        if amount.ValueToSend <> amount.BalanceAtTheMomentOfSending then
+            transactionBuilder.Send(destAddress, moneyAmount) |> ignore
+        else
+            let rec keepTryingToSetFee (finalTransactionBuilder: TransactionBuilder) feesAccumulator =
+                let transactionBuilderClone = CreateTransactionAndCoinsToBeSigned account
+                                                                                  transactionDraftInputs
+                let moneyWithoutFees = Money(amount.ValueToSend - feesAccumulator, MoneyUnit.BTC)
+                transactionBuilderClone.Send(destAddress, moneyWithoutFees) |> ignore
+
+                // HACK: this is a dirty workaround to this bug: https://gitlab.com/DiginexGlobal/geewallet/issues/45
+                let maybeFeesToSubstract =
+                    try
+                        let _ = transactionBuilderClone.EstimateFees feeRate
+                        None
+                    with
+                    | :? NotEnoughFundsException as ex ->
+                        Decimal.Parse(ex.Message.Split(' ').Last()) |> Some
+
+                match maybeFeesToSubstract with
+                | None ->
+                    finalTransactionBuilder.Send(destAddress, moneyWithoutFees) |> ignore
+                | Some feesToSubstract ->
+                    if Config.DebugLog then
+                        Console.Error.WriteLine("WARNING: detected missing fee amount " + (feesToSubstract.ToString()))
+                    keepTryingToSetFee finalTransactionBuilder (feesAccumulator+feesToSubstract)
+                    ()
+
+            keepTryingToSetFee transactionBuilder 0.0m
+
+        let estimatedMinerFee = transactionBuilder.EstimateFees feeRate
+
+        let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
+        let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.Now, account.Currency)
+
+        return { Inputs = transactionDraftInputs; Fee = minerFee }
     }
 
-    let private SignTransactionWithPrivateKey (currency: Currency)
+    let private SignTransactionWithPrivateKey (account: IUtxoAccount)
                                               (txMetadata: TransactionMetadata)
                                               (destination: string)
                                               (amount: TransferAmount)
                                               (privateKey: Key) =
 
-        let transactionWithMinerFeeSubstracted = txMetadata.TransactionDraft
         let btcMinerFee = txMetadata.Fee
-        let amountInSatoshis = UnitConversion.FromBtcToSatoshis amount.ValueToSend
+        let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
 
-        if (transactionWithMinerFeeSubstracted.Outputs.Length < 1 ||
-            transactionWithMinerFeeSubstracted.Outputs.Length > 2) then
-            failwith (sprintf "draftTransaction should have 1 or 2 outputs, not more, not less (now %d)"
-                              transactionWithMinerFeeSubstracted.Outputs.Length)
-        if (transactionWithMinerFeeSubstracted.Outputs.[0].DestinationAddress <> destination) then
-            failwith "Destination address and the first output's destination address should match"
+        let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs
 
-        // it means we're sending all balance!
-        if (amount.ValueToSend = amount.BalanceAtTheMomentOfSending) then
-            if (transactionWithMinerFeeSubstracted.Outputs.Length <> 1) then
-                failwith (sprintf "Assertion outputsCount==1 failed (it was %d)"
-                                  transactionWithMinerFeeSubstracted.Outputs.Length)
-        // it means there's change involved (send change back to change-address)
-        else
-            if (transactionWithMinerFeeSubstracted.Outputs.Length <> 2) then
-                failwith (
-                    sprintf "Assertion failed: outputsCount should be 2 but it was %d (ValueToSend: %M; BalanceAtTheMomentOfSending: %M)"
-                        transactionWithMinerFeeSubstracted.Outputs.Length
-                        amount.ValueToSend
-                        amount.BalanceAtTheMomentOfSending
-                )
+        finalTransactionBuilder.AddKeys privateKey |> ignore
+        let money =
+            if amount.ValueToSend = amount.BalanceAtTheMomentOfSending then
+                let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).ToUnit MoneyUnit.Satoshi
+                Money.Satoshis (amountInSatoshis - decimal btcMinerFee.EstimatedFeeInSatoshis)
+            else
+                Money(amount.ValueToSend, MoneyUnit.BTC)
 
+        let destAddress = BitcoinAddress.Create(destination, GetNetwork account.Currency)
+        finalTransactionBuilder.Send(destAddress, money) |> ignore
 
-        let finalTransaction,coins = CreateTransactionAndCoinsToBeSigned currency transactionWithMinerFeeSubstracted
+        finalTransactionBuilder.SendFees (Money.Satoshis(btcMinerFee.EstimatedFeeInSatoshis)) |> ignore
 
-        let coinsToSign =
-            coins.Select(fun c -> c :> ICoin)
-            |> Seq.toArray
-
-        let transCheckResultBeforeSigning = finalTransaction.Check()
-        if (transCheckResultBeforeSigning <> TransactionCheckResult.Success) then
-            failwith (sprintf "Transaction check failed before signing with %A" transCheckResultBeforeSigning)
-        finalTransaction.Sign(privateKey, coinsToSign)
+        let finalTransaction = finalTransactionBuilder.BuildTransaction true
         let transCheckResultAfterSigning = finalTransaction.Check()
         if (transCheckResultAfterSigning <> TransactionCheckResult.Success) then
             failwith (sprintf "Transaction check failed after signing with %A" transCheckResultAfterSigning)
 
-        let maxDeviationAllowedForEstimationToNotBeConsideredAnError = 2
-        let transSizeAfterSigning = finalTransaction.ToBytes().Length
-        //Console.WriteLine (sprintf "Transaction size after signing: %d bytes" transSizeAfterSigning)
-        let differenceBetweenRealSizeAndEstimated = transSizeAfterSigning - btcMinerFee.EstimatedTransactionSizeInBytes
-        if (Math.Abs(differenceBetweenRealSizeAndEstimated) > maxDeviationAllowedForEstimationToNotBeConsideredAnError) then
-            failwith (sprintf "Transaction size estimation failed, got %d but calculated %d bytes (a difference of %d, with %d inputs)"
-                              transSizeAfterSigning btcMinerFee.EstimatedTransactionSizeInBytes
-                              (transSizeAfterSigning - btcMinerFee.EstimatedTransactionSizeInBytes)
-                              finalTransaction.Inputs.Count)
+        if not (finalTransactionBuilder.Verify finalTransaction) then
+            failwith "Something went wrong when verifying transaction"
         finalTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
-        let encryptedPrivateKey = File.ReadAllText(account.AccountFile.FullName)
+        let encryptedPrivateKey = account.GetEncryptedPrivateKey()
         let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, GetNetwork (account:>IAccount).Currency)
         try
             encryptedSecret.GetKey(password)
@@ -392,7 +387,7 @@ module Account =
         | :? SecurityException ->
             raise (InvalidPassword)
 
-    let SignTransaction (account: NormalAccount)
+    let SignTransaction (account: NormalUtxoAccount)
                         (txMetadata: TransactionMetadata)
                         (destination: string)
                         (amount: TransferAmount)
@@ -401,7 +396,7 @@ module Account =
         let privateKey = GetPrivateKey account password
 
         let signedTransaction = SignTransactionWithPrivateKey
-                                    (account:>IAccount).Currency
+                                    account
                                     txMetadata
                                     destination
                                     amount
@@ -423,7 +418,7 @@ module Account =
         // and show the info from the RawTx, using NBitcoin to extract it
         BroadcastRawTransaction currency transaction.RawTransaction
 
-    let SendPayment (account: NormalAccount)
+    let SendPayment (account: NormalUtxoAccount)
                     (txMetadata: TransactionMetadata)
                     (destination: string)
                     (amount: TransferAmount)
@@ -453,31 +448,30 @@ module Account =
             }
         ExportUnsignedTransactionToJson unsignedTransaction
 
-    let SweepArchivedFunds (account: ArchivedAccount)
+    let SweepArchivedFunds (account: ArchivedUtxoAccount)
                            (balance: decimal)
                            (destination: IAccount)
                            (txMetadata: TransactionMetadata) =
         let currency = (account:>IAccount).Currency
         let network = GetNetwork currency
         let amount = TransferAmount(balance, balance, currency)
-        let privateKey = Key.Parse(account.PrivateKey, network)
+        let privateKey = Key.Parse(account.GetUnencryptedPrivateKey(), network)
         let signedTrans = SignTransactionWithPrivateKey
-                              currency txMetadata destination.PublicAddress amount privateKey
+                              account txMetadata destination.PublicAddress amount privateKey
         BroadcastRawTransaction currency (signedTrans.ToHex())
 
-    let private LENGTH_OF_PRIVATE_KEYS = 32
-    let private CreateInternal currency (password: string) (seed: array<byte>) =
-        let privkey = Key(seed)
-        let network = GetNetwork currency
-        let secret = privkey.GetBitcoinSecret network
-        let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
-        let encryptedPrivateKey = encryptedSecret.ToWif()
-        let publicKey = secret.PubKey.ToString()
-        publicKey,encryptedPrivateKey
-
-    let Create currency (password: string) (seed: array<byte>) =
+    let Create currency (password: string) (seed: array<byte>): Async<FileRepresentation> =
         async {
-            return CreateInternal currency password seed
+            let privKey = Key seed
+            let network = GetNetwork currency
+            let secret = privKey.GetBitcoinSecret network
+            let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
+            let encryptedPrivateKey = encryptedSecret.ToWif()
+            let publicKey = secret.PubKey.ToString()
+            return {
+                Name = publicKey
+                Content = fun _ -> encryptedPrivateKey
+            }
         }
 
     let ParseAddressOrUrl (addressOrUrl: string) =

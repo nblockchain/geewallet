@@ -48,7 +48,7 @@ type CachedNetworkData =
         { UsdPrice = fiatPrices; Balances = balances
           OutgoingTransactions = Map.empty; ServerRanking = Map.empty }
 
-    member this.ToDietCache(readOnlyAccounts: seq<ReadOnlyAccount>) =
+    member self.ToDietCache(readOnlyAccounts: seq<ReadOnlyAccount>) =
         let rec extractAddressesFromAccounts (acc: Map<PublicAddress,List<DietCurrency>>) (accounts: List<IAccount>)
             : Map<PublicAddress,List<DietCurrency>> =
                 match accounts with
@@ -61,13 +61,13 @@ type CachedNetworkData =
                     let newAcc = acc.Add(head.PublicAddress, head.Currency.ToString()::existingCurrenciesForHeadAddress)
                     extractAddressesFromAccounts newAcc tail
         let fiatPrices =
-            [ for (KeyValue(currency, (price,_))) in this.UsdPrice -> currency.ToString(),price ]
+            [ for (KeyValue(currency, (price,_))) in self.UsdPrice -> currency.ToString(),price ]
                 |> Map.ofSeq
         let addresses = extractAddressesFromAccounts
                             Map.empty (List.ofSeq readOnlyAccounts |> List.map (fun acc -> acc:>IAccount))
         let balances =
             seq {
-                for (KeyValue(currency, currencyBalances)) in this.Balances do
+                for (KeyValue(currency, currencyBalances)) in self.Balances do
                     for (KeyValue(address, (balance,_))) in currencyBalances do
                         if readOnlyAccounts.Any(fun account -> (account:>IAccount).PublicAddress = address) then
                             yield (currency.ToString(),balance)
@@ -474,12 +474,13 @@ module Caching =
             lock lockObject (fun _ ->
                 match sessionCachedNetworkData.ServerRanking.TryFind serverId with
                 | None ->
-                    Console.Error.WriteLine (sprintf "WARNING: no history stats about %s" serverId)
+                    if Config.DebugLog then
+                        Console.Error.WriteLine (sprintf "WARNING: no history stats about %s" serverId)
                     None
                 | Some (historyInfo,_) -> Some historyInfo
             )
 
-        member this.FirstRun
+        member __.FirstRun
             with get() = firstRun
 
     let Instance = MainCache (None, TimeSpan.FromDays 1.0)

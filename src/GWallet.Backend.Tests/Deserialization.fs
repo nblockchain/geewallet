@@ -54,16 +54,13 @@ type Deserialization() =
                     Is.EqualTo("16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR"))
 
         let btcTxMetadata = deserializedUnsignedTrans.Metadata :?> UtxoCoin.TransactionMetadata
-        Assert.That(btcTxMetadata.Fee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
-        Assert.That(btcTxMetadata.Fee.AmountPerKiloByteForFastTransaction, Is.EqualTo(0.1m))
-        Assert.That(btcTxMetadata.Fee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
-        Assert.That(btcTxMetadata.TransactionDraft.Inputs.Length, Is.EqualTo(1))
-        Assert.That(btcTxMetadata.TransactionDraft.Outputs.Length, Is.EqualTo(1))
+        Assert.That(btcTxMetadata.Fee.EstimatedFeeInSatoshis, Is.EqualTo 10)
+        Assert.That(btcTxMetadata.Inputs.Length, Is.EqualTo 1)
         Assert.That(deserializedUnsignedTrans.Metadata.FeeEstimationTime,
-                    Is.EqualTo(MarshallingData.SomeDate))
+                    Is.EqualTo(DateTime.Parse("2018-06-14T16:50:09.133411")))
 
-        Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo(0))
-        Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(0))
+        Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo 5)
+        Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo 5)
 
     [<Test>]
     member __.``unsigned ether transaction import``() =
@@ -105,7 +102,7 @@ type Deserialization() =
         Assert.That(deserializedSignedTrans, Is.Not.Null)
 
         Assert.That(deserializedSignedTrans.RawTransaction,
-            Is.EqualTo("ropkrpork4p4rkpo4kprok4rp"))
+            Is.EqualTo "0200000000010111b6e0460bb810b05744f8d38262f95fbab02b168b070598a6f31fad438fced4000000001716001427c106013c0042da165c082b3870c31fb3ab4683feffffff0200ca9a3b0000000017a914d8b6fcc85a383261df05423ddf068a8987bf0287873067a3fa0100000017a914d5df0b9ca6c0e1ba60a9ff29359d2600d9c6659d870247304402203b85cb05b43cc68df72e2e54c6cb508aa324a5de0c53f1bbfe997cbd7509774d022041e1b1823bdaddcd6581d7cde6e6a4c4dbef483e42e59e04dbacbaf537c3e3e8012103fbbdb3b3fc3abbbd983b20a557445fb041d6f21cc5977d2121971cb1ce5298978c000000")
 
         Assert.That(deserializedSignedTrans.TransactionInfo, Is.Not.Null)
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal, Is.Not.Null)
@@ -124,17 +121,15 @@ type Deserialization() =
                     Is.EqualTo("16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR"))
 
         let btcTxMetadata = deserializedSignedTrans.TransactionInfo.Metadata :?> UtxoCoin.TransactionMetadata
-        Assert.That(btcTxMetadata.Fee.EstimatedTransactionSizeInBytes, Is.EqualTo(10))
-        Assert.That(btcTxMetadata.Fee.AmountPerKiloByteForFastTransaction, Is.EqualTo(0.1m))
-        Assert.That(btcTxMetadata.TransactionDraft.Inputs.Length, Is.EqualTo(1))
-        Assert.That(btcTxMetadata.TransactionDraft.Outputs.Length, Is.EqualTo(1))
+        Assert.That(btcTxMetadata.Fee.EstimatedFeeInSatoshis, Is.EqualTo 10)
+        Assert.That(btcTxMetadata.Inputs.Length, Is.EqualTo 1)
         Assert.That(deserializedSignedTrans.TransactionInfo.Metadata.FeeEstimationTime,
-                    Is.EqualTo(MarshallingData.SomeDate))
+                    Is.EqualTo(DateTime.Parse "2018-06-14T16:50:09.133411"))
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.Balances.Count,
-                    Is.EqualTo(0))
+                    Is.EqualTo 5)
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.UsdPrice.Count,
-                    Is.EqualTo(0))
+                    Is.EqualTo 5)
 
     [<Test>]
     member __.``signed ether transaction import``() =

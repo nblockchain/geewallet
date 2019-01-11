@@ -291,7 +291,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
 
         let serversWithNoHistoryServers = List.filter (fun server -> server.HistoryInfo.IsNone) servers
 
-        // FIXME: sort faulty servers as well (it's better to query the ones that fail fast than the slow-failers)
         let faultyServers = List.filter (fun server ->
                                             match server.HistoryInfo with
                                             | None ->
@@ -303,14 +302,28 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                                 | Some _ ->
                                                     true
                                         ) servers
+        let sortedFaultyServers =
+            List.sortBy
+                (fun server ->
+                    match server.HistoryInfo with
+                    | None ->
+                        failwith "previous filter didn't work? should get working servers only, not lacking history"
+                    | Some historyInfo ->
+                        match historyInfo.Fault with
+                        | None ->
+                            failwith "previous filter didn't work? should get faulty servers only, not working ones"
+                        | Some _ ->
+                            historyInfo.TimeSpan
+                )
+                faultyServers
 
         if mode = Mode.Fast then
-            List.append sortedWorkingServers (List.append serversWithNoHistoryServers faultyServers)
+            List.append sortedWorkingServers (List.append serversWithNoHistoryServers sortedFaultyServers)
         else
             let intersectionOffset = (uint16 3)
             let result = FSharpUtil.ListIntersect
                                      (List.append serversWithNoHistoryServers sortedWorkingServers)
-                                     faultyServers
+                                     sortedFaultyServers
                                      intersectionOffset
             let randomizationOffset = intersectionOffset + (uint16 1)
             Shuffler.RandomizeEveryNthElement result randomizationOffset

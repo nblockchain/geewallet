@@ -16,6 +16,7 @@ type internal Options =
     | SignOffPayment     = 5
     | BroadcastPayment   = 6
     | ArchiveAccount     = 7
+    | PairToWatchWallet  = 8
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -67,9 +68,12 @@ module UserInteraction =
     let internal OptionAvailable (option: Options) (numAccounts: int) =
         let noAccounts = numAccounts = 0
         match option with
-        | Options.SendPayment -> not noAccounts
-        | Options.SignOffPayment -> not noAccounts
-        | Options.ArchiveAccount -> not noAccounts
+        | Options.SendPayment
+        | Options.SignOffPayment
+        | Options.ArchiveAccount
+        | Options.PairToWatchWallet
+            ->
+                not noAccounts
         | Options.CreateAccounts -> noAccounts
         | _ -> true
 
@@ -82,7 +86,7 @@ module UserInteraction =
         if (file.Exists) then
             file
         else
-            Console.Error.WriteLine "File not found, try again."
+            Presentation.Error "File not found, try again."
             AskFileNameToLoad askText
 
     let rec internal AskOption(numAccounts: int): Options =
@@ -132,10 +136,10 @@ module UserInteraction =
     let rec AskBrainSeed(): string*DateTime*string =
         Console.WriteLine()
 
-        Console.Write("Write a passphrase for your new wallet: ")
+        Console.Write("Write a seed passphrase (for disaster recovery) for your new wallet: ")
         let passphrase = ConsoleReadPasswordLine()
 
-        Console.Write("Repeat the passphrase: ")
+        Console.Write("Repeat the seed passphrase: ")
         let passphrase2 = ConsoleReadPasswordLine()
         if (passphrase <> passphrase2) then
             Presentation.Error "Passphrases are not the same, please try again."
@@ -149,7 +153,7 @@ module UserInteraction =
     let rec AskPassword(repeat: bool): string =
         Console.WriteLine()
 
-        Console.Write("Write the password to unlock your account: ")
+        Console.Write("Write the password to unlock your account (when making payments) in this device: ")
         let password = ConsoleReadPasswordLine()
         if not repeat then
             password
@@ -161,31 +165,6 @@ module UserInteraction =
                 AskPassword(repeat)
             else
                 password
-
-    let rec AskCurrency (allowAll: bool): Option<Currency> =
-        Console.WriteLine()
-
-        let allCurrencies = Currency.GetAll()
-
-        if (allowAll) then
-            Console.WriteLine("0: [All] (default)")
-        for i = 1 to (allCurrencies.Count()) do
-            Console.WriteLine(sprintf "%d: %s" (i) (allCurrencies.ElementAt(i - 1).ToString()))
-
-        Console.Write("Select currency: ")
-        let optIntroduced = System.Console.ReadLine()
-        if optIntroduced = String.Empty then
-            None
-        else
-            match Int32.TryParse(optIntroduced) with
-            | false, _ -> AskCurrency allowAll
-            | true, optionParsed ->
-                if (optionParsed = 0) then
-                    None
-                elif (optionParsed < 1 || optionParsed > allCurrencies.Count()) then
-                    AskCurrency allowAll
-                else
-                    Some(allCurrencies.ElementAt(optionParsed - 1))
 
     // FIXME: share code between Frontend.Console and Frontend.XF
     let private BalanceInUsdString balance maybeUsdValue =

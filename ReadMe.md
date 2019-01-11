@@ -67,8 +67,11 @@ This list is the (intended) order of preference for new features:
 - Support for payment-channels & state-channels (in BTC/LTC via lightning, and in ETH/ETC/DAI via Raiden)
 - macOS CI support via AzureDevOps pipelines.
 - snap packaging.
+- NFC support.
+- Tizen frontend (no QR scanning due to missing camera in most Tizen watches, but could use NFC).
 - Paranoid-build mode (using git submodules instead of nuget deps), depending on this RFE (https://github.com/dotnet/sdk/issues/1151) or using any workaround mentioned there.
 - flatpak packaging.
+- In mobile, allow usage when camera permissions have not been granted, by letting the user redirect him to his camera app and take a picture (see https://youtu.be/k1Ssz1dvcpk?t=63).
 - Use of 'bits' instead of BTC as default unit.
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
 - MimbleWimble(Grin) support.
@@ -87,7 +90,6 @@ This list is the (intended) order of preference for new features:
 
 (Only intelligible if you're a GWallet developer):
 - Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/, or wait for https://github.com/Microsoft/visualfsharp/pull/5850).
-- Refactor bitcoin support to use NBitcoin's TransactionBuilder.
 - Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
 
 ## Anti-roadmap
@@ -115,12 +117,3 @@ After that you can call `gwallet` directly.
 ## Feedback
 
 If you want to accelerate development/maintenance, create an issue and pledge funds with [gitcoin](http://gitcoin.co).
-Alternatively, if you want to hire expertise around blockchain development or adapt this project
-to your needs, see the next section.
-
-
-## About Diginex
-
-![Diginex Logo](https://www.diginex.com/wp-content/uploads/2018/09/diginex_chain_logo_-01-copy.png)
-
-Diginex develops and implements blockchain technologies to transform businesses and enrich society. At the core of Diginex is our people. We are a blend of financial service professionals, passionate blockchain technologists and experienced project managers. We work with corporates, institutions & governments to create solutions that build trust and increase efficiency.

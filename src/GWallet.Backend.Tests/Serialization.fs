@@ -39,7 +39,7 @@ type Serialization() =
                                MarshallingData.UnsignedBtcTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json,
+        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
                     Is.EqualTo(MarshallingData.UnsignedBtcTransactionExampleInJson))
 
     [<Test>]
@@ -56,7 +56,8 @@ type Serialization() =
         let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedBtcTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json, Is.EqualTo (MarshallingData.SignedBtcTransactionExampleInJson))
+        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
+                    Is.EqualTo MarshallingData.SignedBtcTransactionExampleInJson)
 
     [<Test>]
     member __.``signed ether transaction export``() =

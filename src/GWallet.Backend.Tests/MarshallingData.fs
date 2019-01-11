@@ -80,84 +80,11 @@ module MarshallingData =
             DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5";
         }
 
-    let private someBtcTransactionDraft =
-        {
-            Inputs = [ { TransactionHash = "xyzt...";
-                         OutputIndex = 1;
-                         ValueInSatoshis = int64 1000;
-                         DestinationInHex = "0123456789ABCD" } ];
-            Outputs = [ { ValueInSatoshis = int64 10000; DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5" } ];
-        }
-    let private someBtcMinerFee = UtxoCoin.MinerFee(10, 0.1m, SomeDate, Currency.BTC)
-    let private someBtcTxMetadata =
-        {
-            TransactionDraft = someBtcTransactionDraft;
-            Fee = someBtcMinerFee;
-        }
-    let UnsignedBtcTransactionExample =
-        {
-            Proposal = someUnsignedBtcTransactionProposal;
-            Cache = EmptyCachingDataExample;
-            Metadata = someBtcTxMetadata;
-        }
-
-    let UnsignedBtcTransactionExampleInJson =
-        (sprintf "{\"Version\":\"%s\"," version) +
-        (sprintf "\"TypeName\":\"%s\",\"Value\":" (UnsignedBtcTransactionExample.GetType().FullName)) +
-        "{\"Proposal\":" +
-        "{" +
-        "\"OriginAddress\":\"16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"BTC\"}}," +
-        "\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}," +
-        "\"Metadata\":{\"Fee\":" +
-        "{\"EstimatedTransactionSizeInBytes\":10," +
-        "\"AmountPerKiloByteForFastTransaction\":0.1," +
-        "\"EstimationTime\":" + JsonConvert.SerializeObject (SomeDate) + ","+
-        "\"Currency\":{\"Case\":\"BTC\"}}," +
-        "\"TransactionDraft\":{\"Inputs\":" +
-        "[{\"TransactionHash\":\"xyzt...\",\"OutputIndex\":1,\"ValueInSatoshis\":1000" +
-        ",\"DestinationInHex\":\"0123456789ABCD\"}]," +
-        "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}}"
-
-    let SignedBtcTransactionExample =
-        {
-            TransactionInfo = UnsignedBtcTransactionExample;
-            RawTransaction = "ropkrpork4p4rkpo4kprok4rp";
-        }
-
-    let SignedBtcTransactionExampleInJson =
-        (sprintf "{\"Version\":\"%s\"," version) +
-        (sprintf "\"TypeName\":\"%s\",\"Value\":" (SignedBtcTransactionExample.GetType().FullName)) +
-        "{\"TransactionInfo\":{\"Proposal\":" +
-        "{" +
-        "\"OriginAddress\":\"16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"BTC\"}}," +
-        "\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}," +
-        "\"Metadata\":{\"Fee\":{" +
-        "\"EstimatedTransactionSizeInBytes\":10," +
-        "\"AmountPerKiloByteForFastTransaction\":0.1," +
-        "\"EstimationTime\":" + JsonConvert.SerializeObject (SomeDate) + "," +
-        "\"Currency\":{\"Case\":\"BTC\"}}," +
-
-        "\"TransactionDraft\":{\"Inputs\":" +
-        "[{\"TransactionHash\":\"xyzt...\",\"OutputIndex\":1,\"ValueInSatoshis\":1000," +
-        "\"DestinationInHex\":\"0123456789ABCD\"}]," +
-        "\"Outputs\":[{\"ValueInSatoshis\":10000,\"DestinationAddress\":\"13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5\"}]}}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}," +
-        "\"RawTransaction\":\"ropkrpork4p4rkpo4kprok4rp\"}}"
-
-    let private someEtherTxMetadata =
-        {
-            Fee = someEtherMinerFee;
-            TransactionCount = int64 69;
-        }
-    let UnsignedEtherTransactionExample =
-        {
-            Proposal = someUnsignedEtherTransactionProposal;
-            Cache = EmptyCachingDataExample;
-            Metadata = someEtherTxMetadata;
-        }
+    let private someBtcTransactionInputs =
+        [ { TransactionHash = "4d129e98d87fab00a99ebc88688752b588ec7d38c2ba5dc86d3563a6bc4c691f"
+            OutputIndex = 1
+            ValueInSatoshis = int64 1000
+            DestinationInHex = "a9145131075257d8b8de8298e7c52891eb4b87823b9387" } ]
 
     let private realUsdPriceDataSample =
         [ (Currency.BTC.ToString(), 9156.19m);
@@ -183,6 +110,43 @@ module MarshallingData =
 
     let private realCachingDataExample =
         { UsdPrice = realUsdPriceDataSample; Addresses = realAddressesSample; Balances = realBalancesDataSample; }
+
+    let private someBtcMinerFee = UtxoCoin.MinerFee(10L, DateTime.Parse "2018-06-14T16:50:09.133411Z", Currency.BTC)
+    let private someBtcTxMetadata =
+        {
+            Fee = someBtcMinerFee;
+            Inputs = someBtcTransactionInputs
+        }
+    let UnsignedBtcTransactionExample =
+        {
+            Proposal = someUnsignedBtcTransactionProposal;
+            Cache = realCachingDataExample;
+            Metadata = someBtcTxMetadata;
+        }
+
+    let UnsignedBtcTransactionExampleInJson =
+        ReadEmbeddedResource "unsignedAndFormattedBtcTransaction.json"
+
+    let SignedBtcTransactionExample =
+        {
+            TransactionInfo = UnsignedBtcTransactionExample;
+            RawTransaction = "0200000000010111b6e0460bb810b05744f8d38262f95fbab02b168b070598a6f31fad438fced4000000001716001427c106013c0042da165c082b3870c31fb3ab4683feffffff0200ca9a3b0000000017a914d8b6fcc85a383261df05423ddf068a8987bf0287873067a3fa0100000017a914d5df0b9ca6c0e1ba60a9ff29359d2600d9c6659d870247304402203b85cb05b43cc68df72e2e54c6cb508aa324a5de0c53f1bbfe997cbd7509774d022041e1b1823bdaddcd6581d7cde6e6a4c4dbef483e42e59e04dbacbaf537c3e3e8012103fbbdb3b3fc3abbbd983b20a557445fb041d6f21cc5977d2121971cb1ce5298978c000000";
+        }
+
+    let SignedBtcTransactionExampleInJson =
+        ReadEmbeddedResource "signedAndFormattedBtcTransaction.json"
+
+    let private someEtherTxMetadata =
+        {
+            Fee = someEtherMinerFee;
+            TransactionCount = int64 69;
+        }
+    let UnsignedEtherTransactionExample =
+        {
+            Proposal = someUnsignedEtherTransactionProposal;
+            Cache = EmptyCachingDataExample;
+            Metadata = someEtherTxMetadata;
+        }
 
     let private someEtherMinerFeeForDaiTransfer = Ether.MinerFee(37298L,
                                                                  3343750000L,

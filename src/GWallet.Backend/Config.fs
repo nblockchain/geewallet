@@ -68,104 +68,63 @@ module internal Config =
             configDir.Create()
         configDir
 
-    let private GetConfigDirForNormalAccountsOfThisCurrency(currency: Currency) =
-        let configDir = DirectoryInfo(Path.Combine(GetConfigDirForAccounts().FullName, currency.ToString()))
+    let private GetConfigDir (currency: Currency) (accountKind: AccountKind) =
+        let accountConfigDir = GetConfigDirForAccounts().FullName
+
+        let baseConfigDir =
+            match accountKind with
+            | AccountKind.Normal ->
+                accountConfigDir
+            | AccountKind.ReadOnly ->
+                Path.Combine(accountConfigDir, "readonly")
+            | AccountKind.Archived ->
+                Path.Combine(accountConfigDir, "archived")
+
+        let configDir = Path.Combine(baseConfigDir, currency.ToString()) |> DirectoryInfo
         if not configDir.Exists then
             configDir.Create()
         configDir
 
-    let private GetConfigDirForReadonlyAccountsOfThisCurrency(currency: Currency) =
-        let configDir = DirectoryInfo(Path.Combine(GetConfigDirForAccounts().FullName,
-                                                   "readonly", currency.ToString()))
-        if not configDir.Exists then
-            configDir.Create()
-        configDir
-
-    let private GetConfigDirForArchivedAccountsOfThisCurrency(currency: Currency) =
-        let configDir = DirectoryInfo(Path.Combine(GetConfigDirForAccounts().FullName,
-                                                   "archived", currency.ToString()))
-        if not configDir.Exists then
-            configDir.Create()
-        configDir
-
-    let GetAllNormalAccounts(currency: Currency): seq<FileInfo> =
-        let configDirForNormalAccounts = GetConfigDirForNormalAccountsOfThisCurrency(currency)
-
+    let GetAccountFiles (currencies: seq<Currency>) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {
-            for filePath in Directory.GetFiles(configDirForNormalAccounts.FullName) do
-                yield FileInfo(filePath)
+            for currency in currencies do
+                for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
+                    yield {
+                        Name = Path.GetFileName filePath
+                        Content = (fun _ -> File.ReadAllText filePath)
+                    }
         }
 
-    let GetAllReadOnlyAccounts(currency: Currency): seq<FileInfo> =
-        let configDirForReadonlyAccounts = GetConfigDirForReadonlyAccountsOfThisCurrency(currency)
+    let private GetFile (currency: Currency) (account: BaseAccount): FileInfo =
+        let configDir, fileName = GetConfigDir currency account.Kind, account.AccountFile.Name
+        Path.Combine(configDir.FullName, fileName) |> FileInfo
 
-        seq {
-            for filePath in Directory.GetFiles(configDirForReadonlyAccounts.FullName) do
-                yield FileInfo(filePath)
-        }
+    let AddAccount (conceptAccount: ConceptAccount) (accountKind: AccountKind): FileRepresentation =
+        let configDir = GetConfigDir conceptAccount.Currency accountKind
+        let newAccountFile = Path.Combine(configDir.FullName, conceptAccount.FileRepresentation.Name) |> FileInfo
+        if newAccountFile.Exists then
+            raise AccountAlreadyAdded
+        File.WriteAllText(newAccountFile.FullName, conceptAccount.FileRepresentation.Content())
 
-    let GetAllArchivedAccounts(currency: Currency): seq<FileInfo> =
-        let configDirForArchivedAccounts = GetConfigDirForArchivedAccountsOfThisCurrency(currency)
-
-        seq {
-            for filePath in Directory.GetFiles(configDirForArchivedAccounts.FullName) do
-                yield FileInfo(filePath)
+        {
+            Name = Path.GetFileName newAccountFile.FullName
+            Content = fun _ -> File.ReadAllText newAccountFile.FullName
         }
 
     let internal Wipe(currency: Currency): unit =
         let configDirForAccounts = GetConfigDirForAccounts()
         Directory.Delete(configDirForAccounts.FullName, true) |> ignore
 
-    let private GetFile (account: IAccount) =
-        let configDir, fileName =
-            match account with
-            | :? NormalAccount as normalAccount ->
-                normalAccount.AccountFile.Directory, normalAccount.AccountFile.Name
-            | :? ReadOnlyAccount as readOnlyAccount ->
-                let configDir = GetConfigDirForReadonlyAccountsOfThisCurrency(account.Currency)
-                let fileName = account.PublicAddress
-                configDir, fileName
-            | :? ArchivedAccount as archivedAccount ->
-                let configDir = GetConfigDirForArchivedAccountsOfThisCurrency(account.Currency)
-                let fileName = account.PublicAddress
-                configDir, fileName
-            | _ -> failwith (sprintf "Account type not valid for archiving: %s. Please report this issue."
-                       (account.GetType().FullName))
-        Path.Combine(configDir.FullName, fileName)
-
-    let AddNormalAccount conceptAccount =
-        let configDir = GetConfigDirForNormalAccountsOfThisCurrency conceptAccount.Currency
-        let fileName,jsonStoreContent = conceptAccount.FileNameAndContent
-        let newAccountFile = Path.Combine(configDir.FullName, fileName)
-        File.WriteAllText(newAccountFile, jsonStoreContent)
-        FileInfo(newAccountFile)
-
-    let RemoveNormal (account: NormalAccount) =
-        let configFile = GetFile account
-        if not (File.Exists configFile) then
-            failwith (sprintf "File %s doesn't exist. Please report this issue." configFile)
+    // we don't expose this as public because we don't want to allow removing archived accounts
+    let private RemoveAccount (account: BaseAccount): unit =
+        let configFile = GetFile (account:>IAccount).Currency account
+        if not configFile.Exists then
+            failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
         else
-            File.Delete(configFile)
+            configFile.Delete()
 
-    let AddReadonly (account: ReadOnlyAccount) =
-        let configFile = GetFile account
-        if (File.Exists configFile) then
-            raise AccountAlreadyAdded
-        File.WriteAllText(configFile, String.Empty)
+    let RemoveNormalAccount (account: NormalAccount): unit =
+        RemoveAccount account
 
-    let RemoveReadonly (account: ReadOnlyAccount) =
-        let configFile = GetFile account
-        if not (File.Exists configFile) then
-            failwith (sprintf "File %s doesn't exist. Please report this issue." configFile)
-        else
-            File.Delete(configFile)
-
-    let AddArchivedAccount currency fileName unencryptedPrivateKey =
-        let configDir = GetConfigDirForArchivedAccountsOfThisCurrency currency
-        let newAccountFile = Path.Combine(configDir.FullName, fileName)
-
-        // there's no ETH unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
-        // ... so we simply write the private key in string format
-        File.WriteAllText(newAccountFile, unencryptedPrivateKey)
-
-        FileInfo(newAccountFile)
+    let RemoveReadOnlyAccount (account: ReadOnlyAccount): unit =
+        RemoveAccount account

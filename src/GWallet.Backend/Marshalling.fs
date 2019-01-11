@@ -37,10 +37,10 @@ type SerializableValue<'T>(value: 'T) =
 
 type DeserializableValueInfo(version: string, typeName: string) =
 
-    member this.Version
+    member __.Version
         with get() = version 
 
-    member this.TypeName
+    member __.TypeName
         with get() = typeName 
 
 type DeserializableValue<'T>(version, typeName, value: 'T) =
@@ -55,7 +55,7 @@ type private PascalCase2LowercasePlusUnderscoreContractResolver() =
     // https://stackoverflow.com/a/20952003/544947
     let pascalToUnderScoreRegex = Regex("((?<=.)[A-Z][a-zA-Z]*)|((?<=[a-zA-Z])\d+)", RegexOptions.Multiline)
     let pascalToUnderScoreReplacementExpression = "_$1$2"
-    override this.ResolvePropertyName (propertyName: string) =
+    override __.ResolvePropertyName (propertyName: string) =
         pascalToUnderScoreRegex.Replace(propertyName, pascalToUnderScoreReplacementExpression).ToLower()
 
 module Marshalling =

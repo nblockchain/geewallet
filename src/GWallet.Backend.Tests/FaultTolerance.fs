@@ -505,6 +505,35 @@ type FaultTolerance() =
         Assert.That(dataRetreived, Is.EqualTo someResult2)
 
     [<Test>]
+    member __.``ordering: chooses fastest fail-server option first``() =
+        let someStringArg = "foo"
+        let someResult1 = 1
+        let someResult2 = 2
+        let fault = Some { Type = typeof<Exception>; Message = "some err" }
+        let server1,server2 = { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 2.0 };
+                                Identifier = "server1"; Retreival = (fun arg -> someResult1) },
+                              { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 };
+                                Identifier = "server2"; Retreival = (fun arg -> someResult2) }
+        let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
+                                dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server1; server2 ]
+                                default_mode_as_it_is_irrelevant_for_this_test
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult2)
+
+        // same but different order
+        let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
+                                dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
+                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                someStringArg [ server2; server1 ]
+                                default_mode_as_it_is_irrelevant_for_this_test
+                                |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<int>())
+        Assert.That(dataRetreived, Is.EqualTo someResult2)
+
+    [<Test>]
     member __.``ordering: chooses server with no faults over servers with no history``() =
         let someStringArg = "foo"
         let someResult1 = 1
