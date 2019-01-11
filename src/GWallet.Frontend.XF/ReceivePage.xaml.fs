@@ -26,7 +26,7 @@ type ReceivePage(account: IAccount,
         this.Init()
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
-    new() = ReceivePage(ReadOnlyAccount(Currency.BTC,String.Empty),
+    new() = ReceivePage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
                         DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),null,null)
 
     member this.Init() =

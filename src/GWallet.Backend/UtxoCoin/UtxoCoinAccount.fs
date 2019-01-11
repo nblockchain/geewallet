@@ -50,7 +50,7 @@ type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     interface IUtxoAccount with
         member val PublicKey = fromAccountFileToPublicKey accountFile with get
 
-module internal Account =
+module Account =
 
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)

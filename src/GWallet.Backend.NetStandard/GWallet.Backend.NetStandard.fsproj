@@ -69,9 +69,6 @@
     <Compile Include="..\GWallet.Backend\UtxoCoin\ElectrumClient.fs">
       <Link>UtxoCoin\ElectrumClient.fs</Link>
     </Compile>
-    <Compile Include="..\GWallet.Backend\UtxoCoin\UnitConversion.fs">
-      <Link>UtxoCoin\UnitConversion.fs</Link>
-    </Compile>
     <Compile Include="..\GWallet.Backend\UtxoCoin\UtxoCoinMinerFee.fs">
       <Link>UtxoCoin\UtxoCoinMinerFee.fs</Link>
     </Compile>

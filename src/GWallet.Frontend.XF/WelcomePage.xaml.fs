@@ -128,7 +128,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                     ToggleInputWidgetsEnabledOrDisabled false
 
                     async {
-                        do! Account.CreateBaseAccount passphrase.Text dateTime (email.Text.ToLower()) password.Text
+                        do! Account.CreateAllAccounts passphrase.Text dateTime (email.Text.ToLower()) password.Text
                         Device.BeginInvokeOnMainThread(fun _ ->
                             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage state)
                         )

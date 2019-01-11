@@ -94,7 +94,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             this.AdjustWidgetsStateAccordingToConnectivity()
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
-    new() = SendPage(ReadOnlyAccount(Currency.BTC,String.Empty),
+    new() = SendPage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
                      DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),(fun _ -> Page()))
 
     member private this.AdjustWidgetsStateAccordingToConnectivity() =

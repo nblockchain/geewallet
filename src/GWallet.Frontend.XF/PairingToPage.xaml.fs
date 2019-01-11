@@ -72,66 +72,53 @@ type PairingToPage(balancesPage: Page,
         )
 
     member this.OnPairButtonClicked(sender: Object, args: EventArgs): unit =
-        let addresses = coldAddressesEntry.Text.Split(',')
+        let watchWalletInfoJson = coldAddressesEntry.Text
+        let watchWalletInfo = Marshalling.Deserialize watchWalletInfoJson
 
-        //FIXME: we should give specific info (to the user) about why an address is not valid
-        let addressesToCurrencies = Seq.map (fun addr -> addr,(GuessCurrenciesOfAddress addr)) addresses
-        if addressesToCurrencies.Any(fun (_,currencies) -> currencies = List.empty) then
-            let msg = "Some address doesn't seem to be valid, please try again."
-            this.DisplayAlert("Alert", msg, "OK") |> ignore
-        elif (normalAccountsAndBalances.Any(fun balanceState ->
-                                                 addresses.Any(
-                                                     fun addr ->
-                                                         balanceState.BalanceSet.Account.PublicAddress = addr))) then
-            let msg = "Some address matches to an account that is already being held in this wallet."
-            this.DisplayAlert("Alert", msg, "OK") |> ignore
-        else
+        Device.BeginInvokeOnMainThread(fun _ ->
+            pairButton.IsEnabled <- false
+            pairButton.Text <- "Pairing..."
+            coldAddressesEntry.IsEnabled <- false
+            cancelButton.IsEnabled <- false
+            scanQrCodeButton.IsEnabled <- false
+        )
+        Account.CreateReadOnlyAccounts watchWalletInfo
+
+        let readOnlyAccounts = Account.GetAllActiveAccounts().OfType<ReadOnlyAccount>() |> List.ofSeq
+                               |> List.map (fun account -> account :> IAccount)
+        let readOnlyAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
+        let checkReadOnlyBalancesInParallel =
+            seq {
+                for readOnlyAccountBalanceSet in readOnlyAccountsWithLabels do
+                    yield FrontendHelpers.UpdateBalanceAsync readOnlyAccountBalanceSet false Mode.Fast
+            } |> Async.Parallel
+        let normalAccountsBalancesJob =
+            FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balanceState ->
+                                                                                      balanceState.BalanceSet)) true
+
+        let updateBalancesInParallelAndSwitchBackToBalPage = async {
+            let allBalancesJob =
+                Async.Parallel(normalAccountsBalancesJob::(checkReadOnlyBalancesInParallel::List.Empty))
+            let! allResolvedBalances = allBalancesJob
+            let allResolvedNormalAccountBalances = allResolvedBalances.ElementAt(0)
+            let allResolvedReadOnlyBalances = allResolvedBalances.ElementAt(1)
+
             Device.BeginInvokeOnMainThread(fun _ ->
-                pairButton.IsEnabled <- false
-                pairButton.Text <- "Pairing..."
-                coldAddressesEntry.IsEnabled <- false
-                cancelButton.IsEnabled <- false
-                scanQrCodeButton.IsEnabled <- false
+                let newBalancesPage = newBalancesPageFunc(allResolvedNormalAccountBalances,
+                                                          allResolvedReadOnlyBalances)
+                let navNewBalancesPage = NavigationPage(newBalancesPage)
+                NavigationPage.SetHasNavigationBar(newBalancesPage, false)
+                NavigationPage.SetHasNavigationBar(navNewBalancesPage, false)
+
+                // FIXME: BalancePage should probably be IDisposable and remove timers when disposing
+                balancesPage.Navigation.RemovePage balancesPage
+
+                this.Navigation.InsertPageBefore(navNewBalancesPage, this)
+
+                this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
             )
-            for addr,currencies in addressesToCurrencies do
-                for currency in currencies do
-                    Account.AddPublicWatcher currency addr
-
-            let readOnlyAccounts = Account.GetAllActiveAccounts().OfType<ReadOnlyAccount>() |> List.ofSeq
-                                   |> List.map (fun account -> account :> IAccount)
-            let readOnlyAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
-            let checkReadOnlyBalancesInParallel =
-                seq {
-                    for readOnlyAccountBalanceSet in readOnlyAccountsWithLabels do
-                        yield FrontendHelpers.UpdateBalanceAsync readOnlyAccountBalanceSet false Mode.Fast
-                } |> Async.Parallel
-            let normalAccountsBalancesJob =
-                FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balanceState ->
-                                                                                          balanceState.BalanceSet)) true
-
-            let updateBalancesInParallelAndSwitchBackToBalPage = async {
-                let allBalancesJob =
-                    Async.Parallel(normalAccountsBalancesJob::(checkReadOnlyBalancesInParallel::List.Empty))
-                let! allResolvedBalances = allBalancesJob
-                let allResolvedNormalAccountBalances = allResolvedBalances.ElementAt(0)
-                let allResolvedReadOnlyBalances = allResolvedBalances.ElementAt(1)
-
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    let newBalancesPage = newBalancesPageFunc(allResolvedNormalAccountBalances,
-                                                              allResolvedReadOnlyBalances)
-                    let navNewBalancesPage = NavigationPage(newBalancesPage)
-                    NavigationPage.SetHasNavigationBar(newBalancesPage, false)
-                    NavigationPage.SetHasNavigationBar(navNewBalancesPage, false)
-
-                    // FIXME: BalancePage should probably be IDisposable and remove timers when disposing
-                    balancesPage.Navigation.RemovePage balancesPage
-
-                    this.Navigation.InsertPageBefore(navNewBalancesPage, this)
-
-                    this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
-                )
-            }
-            Async.StartAsTask updateBalancesInParallelAndSwitchBackToBalPage
-                |> FrontendHelpers.DoubleCheckCompletion
+        }
+        Async.StartAsTask updateBalancesInParallelAndSwitchBackToBalPage
+            |> FrontendHelpers.DoubleCheckCompletion
 
 
