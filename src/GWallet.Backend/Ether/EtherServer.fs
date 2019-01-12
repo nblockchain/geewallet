@@ -236,25 +236,26 @@ module Server =
                                     reraise()
         result
 
-    let private FaultTolerantParallelClientInnerSettings(numberOfConsistentResponsesRequired: uint16) =
+    let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint16)
+                                                         (numberOfMaximumParallelJobs: uint16) =
         {
-            // FIXME: we need different instances with different parameters for each kind of request (e.g.:
-            //          a) broadcast transaction -> no need for consistency
-            //             (just one server that doesn't throw exceptions, e.g. see the -32010 RPC error codes...)
-            //          b) rest: can have a sane consistency number param such as 2, like below
-            NumberOfMaximumParallelJobs = uint16 3;
+            NumberOfMaximumParallelJobs = numberOfMaximumParallelJobs;
             ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
         }
 
-    let private FaultTolerantParallelClientSettings (currency: Currency) =
+    let private FaultTolerantParallelClientDefaultSettings (currency: Currency) =
         let numberOfConsistentResponsesRequired =
             if not Networking.Tls12Support then
                 1
             else
                 2
-        FaultTolerantParallelClientInnerSettings(uint16 numberOfConsistentResponsesRequired)
+        FaultTolerantParallelClientInnerSettings (uint16 numberOfConsistentResponsesRequired)
+                                                 (uint16 3)
+
+    let private FaultTolerantParallelClientSettingsForBroadcast () =
+        FaultTolerantParallelClientInnerSettings (uint16 1) (uint16 5)
 
     let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
@@ -302,7 +303,7 @@ module Server =
                                    publicAddress
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientSettings currency)
+                (FaultTolerantParallelClientDefaultSettings currency)
                 address
                 web3Funcs
                 Mode.Fast
@@ -317,7 +318,7 @@ module Server =
                     hexBalance.Value
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientSettings currency)
+                (FaultTolerantParallelClientDefaultSettings currency)
                 address
                 web3Funcs
                 mode
@@ -334,7 +335,7 @@ module Server =
                     WaitOnTask balanceFunc publicAddress
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientSettings currency)
+                (FaultTolerantParallelClientDefaultSettings currency)
                 address
                 web3Funcs
                 mode
@@ -384,7 +385,7 @@ module Server =
                     balance.Value
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientSettings currency)
+                        (FaultTolerantParallelClientDefaultSettings currency)
                         address
                         web3Funcs
                         mode
@@ -417,7 +418,7 @@ module Server =
                     WaitOnTask taskFunc publicAddress
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientSettings currency)
+                        (FaultTolerantParallelClientDefaultSettings currency)
                         address
                         web3Funcs
                         mode
@@ -436,7 +437,7 @@ module Server =
                     WaitOnTask (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
                 GetWeb3Funcs account.Currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientSettings baseCurrency)
+                        (FaultTolerantParallelClientDefaultSettings baseCurrency)
                         ()
                         web3Funcs
                         Mode.Fast
@@ -457,7 +458,7 @@ module Server =
                 GetWeb3Funcs currency web3Func
             let minResponsesRequired = uint16 2
             return! faultTolerantEtherClient.Query
-                        { FaultTolerantParallelClientSettings currency with
+                        { FaultTolerantParallelClientDefaultSettings currency with
                               ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
                         ()
                         web3Funcs
@@ -475,7 +476,7 @@ module Server =
                 GetWeb3Funcs currency web3Func
             try
                 return! faultTolerantEtherClient.Query
-                            (FaultTolerantParallelClientSettings currency)
+                            (FaultTolerantParallelClientSettingsForBroadcast ())
                             transaction
                             web3Funcs
                             Mode.Fast
