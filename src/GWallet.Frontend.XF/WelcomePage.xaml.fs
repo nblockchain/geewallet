@@ -51,7 +51,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             not conn.IsConnected
 
         let AllWordsInPassphraseExistInDictionaries(passphrase: string): bool =
-            let words = passphrase.Split([|","; "."; " "; "-"; "_"|], StringSplitOptions.None)
+            let words = passphrase.Split([|","; "."; " "; "-"; "_"|], StringSplitOptions.RemoveEmptyEntries)
             let result: bool = words
 
                                |> Seq.map (fun word -> word.ToLower())
