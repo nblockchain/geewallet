@@ -13,7 +13,7 @@ let newVersion = int androidVersion + 1
 let newFullVersion = Version(sprintf "%s.%s.%s.%s"
                                  (fullVersion.Major.ToString())
                                  (fullVersion.Minor.ToString())
-                                 (fullVersion.MajorRevision.ToString())
+                                 (fullVersion.Build.ToString())
                                  (newVersion.ToString()))
 
 let replaceScript = Path.Combine(__SOURCE_DIRECTORY__, "replace.fsx")
