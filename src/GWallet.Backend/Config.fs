@@ -13,6 +13,8 @@ module internal Config =
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
     let EthNet = Nethereum.Signer.Chain.MainNet
 
+    let internal NewUtxoTcpClientDisabled = true
+
     let internal DebugLog =
 #if DEBUG
         true
