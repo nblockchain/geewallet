@@ -104,9 +104,11 @@ type ElectrumIntegrationTests() =
         Assert.That(reachableServersCount, Is.GreaterThan(1))
 
     [<Test>]
+    [<Ignore("FIXME: test with an address for which we have the public key...")>]
     member __.``can connect to some electrum BTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
 
     [<Test>]
+    [<Ignore("FIXME: test with an address for which we have the public key...")>]
     member __.``can connect to some electrum LTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC

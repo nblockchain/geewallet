@@ -8,18 +8,24 @@ module Account =
 
     let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool) (mode: Mode): Async<decimal> =
         async {
-            if account.Currency.IsEtherBased() then
-                if (onlyConfirmed) then
+            match account with
+            | :? UtxoCoin.IUtxoAccount as utxoAccount ->
+                if not (account.Currency.IsUtxo()) then
+                    failwithf "Currency %A not Utxo-type but account is? report this bug (balance)" account.Currency
+
+                if onlyConfirmed then
+                    return! UtxoCoin.Account.GetConfirmedBalance utxoAccount mode
+                else
+                    return! UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance utxoAccount mode
+            | _ ->
+                if not (account.Currency.IsEtherBased()) then
+                    failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (balance)"
+                        account.Currency
+
+                if onlyConfirmed then
                     return! Ether.Account.GetConfirmedBalance account mode
                 else
                     return! Ether.Account.GetUnconfirmedPlusConfirmedBalance account mode
-            elif (account.Currency.IsUtxo()) then
-                if (onlyConfirmed) then
-                    return! UtxoCoin.Account.GetConfirmedBalance account mode
-                else
-                    return! UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance account mode
-            else
-                return failwith (sprintf "Unknown currency %A" account.Currency)
         }
 
     let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool) (mode: Mode)
@@ -225,12 +231,12 @@ module Account =
             match account with
             | :? UtxoCoin.IUtxoAccount as utxoAccount ->
                 if not (account.Currency.IsUtxo()) then
-                    failwithf "Currency %A not Utxo-type but account is? report this bug" account.Currency
+                    failwithf "Currency %A not Utxo-type but account is? report this bug (estimatefee)" account.Currency
                 let! fee = UtxoCoin.Account.EstimateFee utxoAccount amount destination
                 return fee :> IBlockchainFeeInfo
             | _ ->
                 if not (account.Currency.IsEtherBased()) then
-                    failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug"
+                    failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (estimatefee)"
                         account.Currency
                 let! fee = Ether.Account.EstimateFee account amount destination
                 return fee :> IBlockchainFeeInfo
@@ -364,16 +370,16 @@ module Account =
                 match txMetadata with
                 | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
                     if not (currency.IsUtxo()) then
-                        failwithf "Currency %A not Utxo-type but tx metadata is? report this bug" currency
+                        failwithf "Currency %A not Utxo-type but tx metadata is? report this bug (sendpayment)" currency
                     match account with
                     | :? UtxoCoin.NormalUtxoAccount as utxoAccount ->
                         UtxoCoin.Account.SendPayment utxoAccount btcTxMetadata destination amount password
                     | _ ->
-                        failwith "Account not Utxo-type but tx metadata is? report this bug"
+                        failwith "Account not Utxo-type but tx metadata is? report this bug (sendpayment)"
 
                 | :? Ether.TransactionMetadata as etherTxMetadata ->
                     if not (currency.IsEtherBased()) then
-                        failwith "Account not Utxo-type but tx metadata is? report this bug"
+                        failwith "Account not ether-type but tx metadata is? report this bug (sendpayment)"
                     Ether.Account.SendPayment account etherTxMetadata destination amount password
                 | _ ->
                     failwithf "Unknown tx metadata type"
