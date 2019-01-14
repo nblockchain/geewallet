@@ -20,28 +20,28 @@ type ServerVersionResult =
         Result: array<string>;
     }
 
-type BlockchainAddressGetBalanceInnerResult =
+type BlockchainScripthahsGetBalanceInnerResult =
     {
         Confirmed: Int64;
         Unconfirmed: Int64;
     }
-type BlockchainAddressGetBalanceResult =
+type BlockchainScripthashGetBalanceResult =
     {
         Id: int;
-        Result: BlockchainAddressGetBalanceInnerResult;
+        Result: BlockchainScripthahsGetBalanceInnerResult;
     }
 
-type BlockchainAddressListUnspentInnerResult =
+type BlockchainScripthashListUnspentInnerResult =
     {
         TxHash: string;
         TxPos: int;
         Value: Int64;
         Height: Int64;
     }
-type BlockchainAddressListUnspentResult =
+type BlockchainScripthashListUnspentResult =
     {
         Id: int;
-        Result: array<BlockchainAddressListUnspentInnerResult>;
+        Result: array<BlockchainScripthashListUnspentInnerResult>;
     }
 
 type BlockchainTransactionGetResult =
@@ -139,15 +139,15 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         deserializedValue
 
-    member self.BlockchainAddressGetBalance address: Async<BlockchainAddressGetBalanceResult> =
+    member self.BlockchainScripthashGetBalance address: Async<BlockchainScripthashGetBalanceResult> =
         let obj = {
             Id = 0;
-            Method = "blockchain.address.get_balance";
+            Method = "blockchain.scripthash.get_balance";
             Params = [address]
         }
         let json = Serialize obj
 
-        self.Request<BlockchainAddressGetBalanceResult> json
+        self.Request<BlockchainScripthashGetBalanceResult> json
 
     static member private CreateVersion(versionStr: string): Version =
         let correctedVersion =
@@ -180,14 +180,14 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         return StratumClient.CreateVersion(serverProtocolVersion)
     }
 
-    member self.BlockchainAddressListUnspent address: Async<BlockchainAddressListUnspentResult> =
+    member self.BlockchainScripthashListUnspent address: Async<BlockchainScripthashListUnspentResult> =
         let obj = {
             Id = 0;
-            Method = "blockchain.address.listunspent";
+            Method = "blockchain.scripthash.listunspent";
             Params = [address]
         }
         let json = Serialize obj
-        let resObj = self.Request<BlockchainAddressListUnspentResult> json
+        let resObj = self.Request<BlockchainScripthashListUnspentResult> json
         resObj
 
     member self.BlockchainTransactionGet txHash: Async<BlockchainTransactionGetResult> =

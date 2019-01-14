@@ -81,6 +81,15 @@ module internal Account =
         | LTC -> Config.LitecoinNet
         | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
 
+    // technique taken from https://electrumx.readthedocs.io/en/latest/protocol-basics.html#script-hashes
+    let private GetElectrumScriptHashFromPublicKey currency (publicKey: PubKey) =
+        // TODO: measure how long does it take to get the script hash and if it's too long, store it instead of PubKey?
+        //       or cache it at app start
+        let script = (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ScriptPubKey
+        let sha = NBitcoin.Crypto.Hashes.SHA256(script.ToBytes())
+        let reversedSha = sha.Reverse().ToArray()
+        NBitcoin.DataEncoders.Encoders.Hex.EncodeData reversedSha
+
     let internal GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
 
@@ -143,23 +152,25 @@ module internal Account =
                      randomizedElectrumServers
         randomizedServers
 
-    let private GetBalance(account: IAccount) (mode: Mode) =
+    let private GetBalance(account: IUtxoAccount) (mode: Mode) =
+        let scriptHashHex = GetElectrumScriptHashFromPublicKey account.Currency account.PublicKey
+
         let balance =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientDefaultSettings())
-                account.PublicAddress
+                scriptHashHex
                 (GetRandomizedFuncs account.Currency ElectrumClient.GetBalance)
                 mode
         balance
 
-    let GetConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> =
+    let GetConfirmedBalance(account: IUtxoAccount) (mode: Mode): Async<decimal> =
         async {
             let! balance = GetBalance account mode
             let confirmedBalance = (Money.Satoshis balance.Confirmed).ToUnit MoneyUnit.BTC
             return confirmedBalance
         }
 
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> =
+    let GetUnconfirmedPlusConfirmedBalance(account: IUtxoAccount) (mode: Mode): Async<decimal> =
         async {
             let! balance = GetBalance account mode
             let confirmedBalance = Money.Satoshis(balance.Unconfirmed + balance.Confirmed).ToUnit MoneyUnit.BTC
@@ -240,7 +251,7 @@ module internal Account =
         let! utxos =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientDefaultSettings())
-                account.PublicAddress
+                (GetElectrumScriptHashFromPublicKey account.Currency account.PublicKey)
                 (GetRandomizedFuncs account.Currency ElectrumClient.GetUnspentTransactionOutputs)
                 Mode.Fast
 

@@ -16,13 +16,13 @@ module ElectrumClient =
         let CLIENT_NAME_SENT_TO_STRATUM_SERVER_WHEN_HELLO = "geewallet"
 
         // last version of the protocol [1] as of electrum's source code [2] at the time of
-        // writing this... actually this changes rarely, last change was for 2.4 version [3]
-        // (changes documented here[4])
+        // writing this... actually this changes relatively rarely (one of the last changes
+        // was for 2.4 version [3] (changes documented here[4])
         // [1] https://electrumx.readthedocs.io/en/latest/protocol.html
         // [2] https://github.com/spesmilo/electrum/blob/master/lib/version.py
         // [3] https://github.com/spesmilo/electrum/commit/118052d81597eff3eb636d242eacdd0437dabdd6
         // [4] https://electrumx.readthedocs.io/en/latest/protocol-changes.html
-        let PROTOCOL_VERSION_SUPPORTED = Version("1.2")
+        let PROTOCOL_VERSION_SUPPORTED = Version "1.4"
 
         async {
             let! versionSupportedByServer =
@@ -45,7 +45,7 @@ module ElectrumClient =
             return stratumClient
         }
 
-    let GetBalance (electrumServer: ElectrumServer) address = async {
+    let GetBalance (electrumServer: ElectrumServer) scriptHash = async {
         // FIXME: we should rather implement this method in terms of:
         //        - querying all unspent transaction outputs (X) -> block heights included
         //        - querying transaction history (Y) -> block heights included
@@ -61,13 +61,13 @@ module ElectrumClient =
         //    [ see https://www.youtube.com/watch?v=hjYCXOyDy7Y&feature=youtu.be&t=1171 for more information ]
         // * -> although that would be fixing only half of the problem, we also need proof of completeness
         let! stratumClient = Init electrumServer
-        let! balanceResult = stratumClient.BlockchainAddressGetBalance address
+        let! balanceResult = stratumClient.BlockchainScripthashGetBalance scriptHash
         return balanceResult.Result
     }
 
-    let GetUnspentTransactionOutputs (electrumServer: ElectrumServer) address = async {
+    let GetUnspentTransactionOutputs (electrumServer: ElectrumServer) scriptHash = async {
         let! stratumClient = Init electrumServer
-        let! unspentListResult = stratumClient.BlockchainAddressListUnspent address
+        let! unspentListResult = stratumClient.BlockchainScripthashListUnspent scriptHash
         return unspentListResult.Result
     }
 
