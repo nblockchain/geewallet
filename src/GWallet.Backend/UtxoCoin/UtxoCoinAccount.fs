@@ -49,7 +49,7 @@ type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     interface IUtxoAccount with
         member val PublicKey = fromAccountFileToPublicKey accountFile with get
 
-module internal Account =
+module Account =
 
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
@@ -81,14 +81,16 @@ module internal Account =
         | LTC -> Config.LitecoinNet
         | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
 
+    let GetElectrumScriptHashFromAddress (address: BitcoinAddress) =
+        let sha = NBitcoin.Crypto.Hashes.SHA256(address.ScriptPubKey.ToBytes())
+        let reversedSha = sha.Reverse().ToArray()
+        NBitcoin.DataEncoders.Encoders.Hex.EncodeData reversedSha
+
     // technique taken from https://electrumx.readthedocs.io/en/latest/protocol-basics.html#script-hashes
     let private GetElectrumScriptHashFromPublicKey currency (publicKey: PubKey) =
         // TODO: measure how long does it take to get the script hash and if it's too long, store it instead of PubKey?
         //       or cache it at app start
-        let script = (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ScriptPubKey
-        let sha = NBitcoin.Crypto.Hashes.SHA256(script.ToBytes())
-        let reversedSha = sha.Reverse().ToArray()
-        NBitcoin.DataEncoders.Encoders.Hex.EncodeData reversedSha
+        (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress() |> GetElectrumScriptHashFromAddress
 
     let internal GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()

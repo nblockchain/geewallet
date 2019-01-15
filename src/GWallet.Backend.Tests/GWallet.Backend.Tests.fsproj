@@ -121,6 +121,9 @@
     <Reference Include="Nethereum.Signer">
       <HintPath>..\..\packages\Nethereum.Signer.3.0.0\lib\net451\Nethereum.Signer.dll</HintPath>
     </Reference>
+    <Reference Include="NBitcoin.Altcoins">
+      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.13\lib\net452\NBitcoin.Altcoins.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
