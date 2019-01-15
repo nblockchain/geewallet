@@ -329,10 +329,10 @@ module internal Account =
         if amount.ValueToSend <> amount.BalanceAtTheMomentOfSending then
             transactionBuilder.Send(destAddress, moneyAmount) |> ignore
         else
-            let rec keepTryingToSetFee (finalTransactionBuilder: TransactionBuilder) feesAccumulator =
+            let rec keepTryingToSetFee (finalTransactionBuilder: TransactionBuilder) (feesAccumulator: IMoney) =
                 let transactionBuilderClone = CreateTransactionAndCoinsToBeSigned account
                                                                                   transactionDraftInputs
-                let moneyWithoutFees = Money(amount.ValueToSend - feesAccumulator, MoneyUnit.BTC)
+                let moneyWithoutFees = (Money(amount.ValueToSend, MoneyUnit.BTC) :> IMoney).Sub feesAccumulator
                 transactionBuilderClone.Send(destAddress, moneyWithoutFees) |> ignore
 
                 // HACK: this is a dirty workaround to this bug: https://gitlab.com/DiginexGlobal/geewallet/issues/45
@@ -342,7 +342,7 @@ module internal Account =
                         None
                     with
                     | :? NotEnoughFundsException as ex ->
-                        Decimal.Parse(ex.Message.Split(' ').Last()) |> Some
+                        Some ex.Missing
 
                 match maybeFeesToSubstract with
                 | None ->
@@ -350,10 +350,10 @@ module internal Account =
                 | Some feesToSubstract ->
                     if Config.DebugLog then
                         Console.Error.WriteLine("WARNING: detected missing fee amount " + (feesToSubstract.ToString()))
-                    keepTryingToSetFee finalTransactionBuilder (feesAccumulator+feesToSubstract)
+                    keepTryingToSetFee finalTransactionBuilder (feesToSubstract.Add feesAccumulator)
                     ()
 
-            keepTryingToSetFee transactionBuilder 0.0m
+            keepTryingToSetFee transactionBuilder (Money.Zero :> IMoney)
 
         let estimatedMinerFee = transactionBuilder.EstimateFees feeRate
 
