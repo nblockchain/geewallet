@@ -185,18 +185,14 @@ module Account =
         let coins =
             seq {
                 for input in transactionInputs do
-                    let nbitcoinInput = TxIn()
                     let txHash = uint256(input.TransactionHash)
-                    nbitcoinInput.PrevOut.Hash <- txHash
-                    nbitcoinInput.PrevOut.N <- uint32 input.OutputIndex
 
                     let scriptPubKeyInBytes = NBitcoin.DataEncoders.Encoders.Hex.DecodeData input.DestinationInHex
                     let scriptPubKey = Script(scriptPubKeyInBytes)
 
                     let coin = Coin(txHash,
 
-                                    //can replace with uint32 input.OutputIndex?
-                                    nbitcoinInput.PrevOut.N,
+                                    uint32 input.OutputIndex,
 
                                     Money(input.ValueInSatoshis),
                                     scriptPubKey)
