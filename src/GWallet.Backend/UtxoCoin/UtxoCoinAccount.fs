@@ -491,15 +491,18 @@ module Account =
         }
 
     let ValidateAddress (currency: Currency) (address: string) =
-        let UTXOCOIN_MIN_ADDRESSES_LENGTH = 27
-        let UTXOCOIN_MAX_ADDRESSES_LENGTH = 34
+        let BITCOIN_ADDRESS_BECH32_PREFIX = "bc1"
 
         let utxoCoinValidAddressPrefixes =
             match currency with
             | BTC ->
                 let BITCOIN_ADDRESS_PUBKEYHASH_PREFIX = "1"
                 let BITCOIN_ADDRESS_SCRIPTHASH_PREFIX = "3"
-                [ BITCOIN_ADDRESS_PUBKEYHASH_PREFIX; BITCOIN_ADDRESS_SCRIPTHASH_PREFIX ]
+                [
+                    BITCOIN_ADDRESS_PUBKEYHASH_PREFIX
+                    BITCOIN_ADDRESS_SCRIPTHASH_PREFIX
+                    BITCOIN_ADDRESS_BECH32_PREFIX
+                ]
             | LTC ->
                 let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
                 let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
@@ -509,10 +512,20 @@ module Account =
         if not (utxoCoinValidAddressPrefixes.Any(fun prefix -> address.StartsWith prefix)) then
             raise (AddressMissingProperPrefix(utxoCoinValidAddressPrefixes))
 
-        if (address.Length > UTXOCOIN_MAX_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(UTXOCOIN_MAX_ADDRESSES_LENGTH))
-        if (address.Length < UTXOCOIN_MIN_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(UTXOCOIN_MIN_ADDRESSES_LENGTH))
+        let minLength,lenghtInBetweenAllowed,maxLength =
+            if currency = Currency.BTC && (address.StartsWith BITCOIN_ADDRESS_BECH32_PREFIX) then
+                // taken from https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+                // (FIXME: this is only valid for the first version of segwit, fix it!)
+                42,false,62
+            else
+                27,true,34
+        let limits = [ minLength; maxLength ]
+        if address.Length > maxLength then
+            raise <| AddressWithInvalidLength limits
+        if address.Length < minLength then
+            raise <| AddressWithInvalidLength limits
+        if not lenghtInBetweenAllowed && (address.Length <> minLength && address.Length <> maxLength) then
+            raise <| AddressWithInvalidLength limits
 
         let network = GetNetwork currency
         try
