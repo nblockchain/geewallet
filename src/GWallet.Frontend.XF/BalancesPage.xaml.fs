@@ -281,8 +281,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         this.NoImminentIncomingPayment <- false
                     elif (not onlyReadOnlyAccounts) &&
                           balanceUpdates.All(fun maybeImminentPayment ->
-                        maybeImminentPayment.IsNone ||
-                            Option.exists not maybeImminentPayment
+                        Option.exists not maybeImminentPayment
                     ) then
                         this.NoImminentIncomingPayment <- true
                 }
