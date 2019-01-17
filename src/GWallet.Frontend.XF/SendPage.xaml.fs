@@ -286,9 +286,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         )
                     ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
-    
+
     member private this.ValidateAddress currency destinationAddress =
-        let inputAddress = destinationAddress
         try
             Account.ValidateAddress currency destinationAddress
             Some(destinationAddress)
@@ -299,17 +298,31 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                     possiblePrefixesStr)
             this.DisplayAlert("Alert", msg, "OK") |> ignore
             None
-        | AddressWithInvalidLength(lengthLimitViolated) ->
+        | AddressWithInvalidLength lengthLimitInfo ->
             let msg =
-                if (inputAddress.Length > lengthLimitViolated) then
-                    (sprintf "Address should have a length not higher than %d characters, please try again."
-                        lengthLimitViolated)
-                elif (inputAddress.Length < lengthLimitViolated) then
-                    (sprintf "Address should have a length not lower than %d characters, please try again."
-                        lengthLimitViolated)
-                else
-                    failwith (sprintf "Address introduced '%s' gave a length error with a limit that matches its length: %d=%d"
-                                 inputAddress lengthLimitViolated inputAddress.Length)
+                match lengthLimitInfo.Count() with
+                | 1 ->
+                    let lengthLimitViolated = lengthLimitInfo.ElementAt 0
+                    if destinationAddress.Length <> lengthLimitViolated then
+                        sprintf "Address should have a length of %d characters, please try again." lengthLimitViolated
+                    else
+                        failwithf "Address introduced '%s' gave a length error with a limit that matches its length: %d=%d. Report this bug."
+                                  destinationAddress lengthLimitViolated destinationAddress.Length
+                | 2 ->
+                    let minLength,maxLength = lengthLimitInfo.ElementAt 0,lengthLimitInfo.ElementAt 1
+                    if destinationAddress.Length < minLength then
+                        sprintf "Address should have a length not lower than %d characters, please try again."
+                                minLength
+                    elif destinationAddress.Length > maxLength then
+                        sprintf "Address should have a length not higher than %d characters, please try again."
+                                maxLength
+                    else
+                        sprintf "Address should have a length of either %d or %d characters, please try again."
+                                minLength maxLength
+                | _ ->
+                    failwithf "AddressWithInvalidLength returned an invalid parameter length (%d). Report this bug."
+                               (lengthLimitInfo.Count())
+
             this.DisplayAlert("Alert", msg, "OK") |> ignore
             None
         | AddressWithInvalidChecksum(maybeAddressWithValidChecksum) ->
