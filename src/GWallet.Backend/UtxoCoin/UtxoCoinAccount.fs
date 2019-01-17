@@ -82,14 +82,16 @@ module Account =
         | LTC -> Config.LitecoinNet
         | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
 
+    let GetElectrumScriptHashFromAddress (address: BitcoinAddress) =
+        let sha = NBitcoin.Crypto.Hashes.SHA256(address.ScriptPubKey.ToBytes())
+        let reversedSha = sha.Reverse().ToArray()
+        NBitcoin.DataEncoders.Encoders.Hex.EncodeData reversedSha
+
     // technique taken from https://electrumx.readthedocs.io/en/latest/protocol-basics.html#script-hashes
     let private GetElectrumScriptHashFromPublicKey currency (publicKey: PubKey) =
         // TODO: measure how long does it take to get the script hash and if it's too long, store it instead of PubKey?
         //       or cache it at app start
-        let script = (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ScriptPubKey
-        let sha = NBitcoin.Crypto.Hashes.SHA256(script.ToBytes())
-        let reversedSha = sha.Reverse().ToArray()
-        NBitcoin.DataEncoders.Encoders.Hex.EncodeData reversedSha
+        (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress() |> GetElectrumScriptHashFromAddress
 
     let internal GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
@@ -184,18 +186,14 @@ module Account =
         let coins =
             seq {
                 for input in transactionInputs do
-                    let nbitcoinInput = TxIn()
                     let txHash = uint256(input.TransactionHash)
-                    nbitcoinInput.PrevOut.Hash <- txHash
-                    nbitcoinInput.PrevOut.N <- uint32 input.OutputIndex
 
                     let scriptPubKeyInBytes = NBitcoin.DataEncoders.Encoders.Hex.DecodeData input.DestinationInHex
                     let scriptPubKey = Script(scriptPubKeyInBytes)
 
                     let coin = Coin(txHash,
 
-                                    //can replace with uint32 input.OutputIndex?
-                                    nbitcoinInput.PrevOut.N,
+                                    uint32 input.OutputIndex,
 
                                     Money(input.ValueInSatoshis),
                                     scriptPubKey)
@@ -330,10 +328,10 @@ module Account =
         if amount.ValueToSend <> amount.BalanceAtTheMomentOfSending then
             transactionBuilder.Send(destAddress, moneyAmount) |> ignore
         else
-            let rec keepTryingToSetFee (finalTransactionBuilder: TransactionBuilder) feesAccumulator =
+            let rec keepTryingToSetFee (finalTransactionBuilder: TransactionBuilder) (feesAccumulator: IMoney) =
                 let transactionBuilderClone = CreateTransactionAndCoinsToBeSigned account
                                                                                   transactionDraftInputs
-                let moneyWithoutFees = Money(amount.ValueToSend - feesAccumulator, MoneyUnit.BTC)
+                let moneyWithoutFees = (Money(amount.ValueToSend, MoneyUnit.BTC) :> IMoney).Sub feesAccumulator
                 transactionBuilderClone.Send(destAddress, moneyWithoutFees) |> ignore
 
                 // HACK: this is a dirty workaround to this bug: https://gitlab.com/DiginexGlobal/geewallet/issues/45
@@ -343,7 +341,7 @@ module Account =
                         None
                     with
                     | :? NotEnoughFundsException as ex ->
-                        Decimal.Parse(ex.Message.Split(' ').Last()) |> Some
+                        Some ex.Missing
 
                 match maybeFeesToSubstract with
                 | None ->
@@ -351,10 +349,10 @@ module Account =
                 | Some feesToSubstract ->
                     if Config.DebugLog then
                         Console.Error.WriteLine("WARNING: detected missing fee amount " + (feesToSubstract.ToString()))
-                    keepTryingToSetFee finalTransactionBuilder (feesAccumulator+feesToSubstract)
+                    keepTryingToSetFee finalTransactionBuilder (feesToSubstract.Add feesAccumulator)
                     ()
 
-            keepTryingToSetFee transactionBuilder 0.0m
+            keepTryingToSetFee transactionBuilder (Money.Zero :> IMoney)
 
         let estimatedMinerFee = transactionBuilder.EstimateFees feeRate
 
@@ -513,15 +511,18 @@ module Account =
                 address,None
 
     let ValidateAddress (currency: Currency) (address: string) =
-        let UTXOCOIN_MIN_ADDRESSES_LENGTH = 27
-        let UTXOCOIN_MAX_ADDRESSES_LENGTH = 34
+        let BITCOIN_ADDRESS_BECH32_PREFIX = "bc1"
 
         let utxoCoinValidAddressPrefixes =
             match currency with
             | BTC ->
                 let BITCOIN_ADDRESS_PUBKEYHASH_PREFIX = "1"
                 let BITCOIN_ADDRESS_SCRIPTHASH_PREFIX = "3"
-                [ BITCOIN_ADDRESS_PUBKEYHASH_PREFIX; BITCOIN_ADDRESS_SCRIPTHASH_PREFIX ]
+                [
+                    BITCOIN_ADDRESS_PUBKEYHASH_PREFIX
+                    BITCOIN_ADDRESS_SCRIPTHASH_PREFIX
+                    BITCOIN_ADDRESS_BECH32_PREFIX
+                ]
             | LTC ->
                 let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
                 let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
@@ -531,10 +532,20 @@ module Account =
         if not (utxoCoinValidAddressPrefixes.Any(fun prefix -> address.StartsWith prefix)) then
             raise (AddressMissingProperPrefix(utxoCoinValidAddressPrefixes))
 
-        if (address.Length > UTXOCOIN_MAX_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(UTXOCOIN_MAX_ADDRESSES_LENGTH))
-        if (address.Length < UTXOCOIN_MIN_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(UTXOCOIN_MIN_ADDRESSES_LENGTH))
+        let minLength,lenghtInBetweenAllowed,maxLength =
+            if currency = Currency.BTC && (address.StartsWith BITCOIN_ADDRESS_BECH32_PREFIX) then
+                // taken from https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
+                // (FIXME: this is only valid for the first version of segwit, fix it!)
+                42,false,62
+            else
+                27,true,34
+        let limits = [ minLength; maxLength ]
+        if address.Length > maxLength then
+            raise <| AddressWithInvalidLength limits
+        if address.Length < minLength then
+            raise <| AddressWithInvalidLength limits
+        if not lenghtInBetweenAllowed && (address.Length <> minLength && address.Length <> maxLength) then
+            raise <| AddressWithInvalidLength limits
 
         let network = GetNetwork currency
         try

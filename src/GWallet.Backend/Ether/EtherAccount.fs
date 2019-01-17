@@ -63,7 +63,7 @@ module internal Account =
             raise (AddressMissingProperPrefix([ETHEREUM_ADDRESS_PREFIX]))
 
         if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
-            raise (AddressWithInvalidLength(ETHEREUM_ADDRESSES_LENGTH))
+            raise <| AddressWithInvalidLength [ ETHEREUM_ADDRESSES_LENGTH ]
 
         if (not (addressUtil.IsChecksumAddress(address))) then
             let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)

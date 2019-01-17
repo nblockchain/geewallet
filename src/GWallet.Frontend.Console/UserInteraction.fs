@@ -345,18 +345,36 @@ module UserInteraction =
                 Presentation.Error (sprintf "Address starts with the wrong prefix. Valid prefixes: %s"
                                         possiblePrefixesStr)
                 AskPublicAddress currency askText
-            | AddressWithInvalidLength(lengthLimitViolated) ->
-                if (publicAddress.Length > lengthLimitViolated) then
-                    Presentation.Error
-                        (sprintf "Address should have a length not higher than %d characters, please try again."
-                            lengthLimitViolated)
-                elif (publicAddress.Length < lengthLimitViolated) then
-                    Presentation.Error
-                        (sprintf "Address should have a length not lower than %d characters, please try again."
-                            lengthLimitViolated)
-                else
-                    failwith (sprintf "Address introduced '%s' gave a length error with a limit that matches its length: %d=%d"
-                                 publicAddress lengthLimitViolated publicAddress.Length)
+
+            | AddressWithInvalidLength lengthInfo ->
+                match lengthInfo.Count() with
+                | 1 ->
+                    let lengthLimitViolated = lengthInfo.ElementAt 0
+                    if publicAddress.Length <> lengthLimitViolated then
+                        Presentation.Error
+                            (sprintf "Address should have a length of %d characters, please try again."
+                                lengthLimitViolated)
+                    else
+                        failwithf "Address introduced '%s' gave a length error with a limit that matches its length: %d=%d. Report this bug."
+                                  publicAddress lengthLimitViolated publicAddress.Length
+                | 2 ->
+                    let minLength,maxLength = lengthInfo.ElementAt 0,lengthInfo.ElementAt 1
+                    if publicAddress.Length < minLength then
+                        Presentation.Error
+                            (sprintf "Address should have a length not lower than %d characters, please try again."
+                                minLength)
+                    elif publicAddress.Length > maxLength then
+                        Presentation.Error
+                            (sprintf "Address should have a length not higher than %d characters, please try again."
+                                maxLength)
+                    else
+                        Presentation.Error
+                            (sprintf "Address should have a length of either %d or %d characters, please try again."
+                                minLength maxLength)
+                | _ ->
+                    failwithf "AddressWithInvalidLength returned an invalid parameter length (%d). Report this bug."
+                              (lengthInfo.Count())
+
                 AskPublicAddress currency askText
             | AddressWithInvalidChecksum maybeAddressWithValidChecksum ->
                 Console.Error.WriteLine "WARNING: the address provided didn't pass the checksum, are you sure you copied it properly?"

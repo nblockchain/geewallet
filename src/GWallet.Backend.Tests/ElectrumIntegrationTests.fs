@@ -5,6 +5,8 @@ open System.Linq
 
 open NUnit.Framework
 
+open NBitcoin
+
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 
@@ -40,10 +42,12 @@ type ElectrumIntegrationTests() =
     // probably a satoshi address because it was used in blockheight 2 and is unspent yet
     let SATOSHI_ADDRESS =
         // funny that it almost begins with "1HoDL"
-        "1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1"
+        BitcoinAddress.Create("1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1", NBitcoin.Network.Main)
+
 
     // https://medium.com/@SatoshiLite/satoshilite-1e2dad89a017
-    let LTC_GENESIS_BLOCK_ADDRESS = "Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2"
+    let LTC_GENESIS_BLOCK_ADDRESS =
+        BitcoinAddress.Create("Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2", NBitcoin.Altcoins.Litecoin.Instance.Mainnet)
 
     let CheckServerIsReachable (electrumServer: ElectrumServer)
                                (currency: Currency)
@@ -55,6 +59,8 @@ type ElectrumIntegrationTests() =
             | Currency.BTC -> SATOSHI_ADDRESS
             | Currency.LTC -> LTC_GENESIS_BLOCK_ADDRESS
             | _ -> failwith "Tests not ready for this currency"
+
+        let scriptHash = UtxoCoin.Account.GetElectrumScriptHashFromAddress address
 
         let innerCheck server =
             // this try-with block is similar to the one in UtxoCoinAccount, where it rethrows as
@@ -76,10 +82,12 @@ type ElectrumIntegrationTests() =
                 // to make sure this exception type is an abstract class
                 Assert.That(ex.GetType(), Is.Not.EqualTo(typeof<ConnectionUnsuccessfulException>))
 
-                Console.WriteLine (sprintf "%A server %s is unreachable" currency server.Fqdn)
+                let exDescription = sprintf "%s: %s" (ex.GetType().Name) ex.Message
+
+                Console.Error.WriteLine (sprintf "%s -> %A server %s is unreachable" exDescription currency server.Fqdn)
                 None
             | :? ElectrumServerReturningInternalErrorException as ex ->
-                Console.WriteLine (sprintf "%A server %s is unhealthy" currency server.Fqdn)
+                Console.Error.WriteLine (sprintf "%A server %s is unhealthy" currency server.Fqdn)
                 None
 
         match maybeFilter with
@@ -104,11 +112,11 @@ type ElectrumIntegrationTests() =
         Assert.That(reachableServersCount, Is.GreaterThan(1))
 
     [<Test>]
-    [<Ignore("FIXME: test with an address for which we have the public key...")>]
+    [<Ignore("FIXME: investigate")>]
     member __.``can connect to some electrum BTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
 
     [<Test>]
-    [<Ignore("FIXME: test with an address for which we have the public key...")>]
+    [<Ignore("FIXME: investigate")>]
     member __.``can connect to some electrum LTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC

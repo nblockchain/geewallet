@@ -53,7 +53,7 @@ type JsonRpcTcpClient (host: string, port: int) =
         if Config.NewUtxoTcpClientDisabled ||
 
             //we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that has a runtime bug
-            (monoVersion.IsSome && monoVersion.Value < Version("5.4")) then
+            (Option.exists (fun monoVersion -> monoVersion < Version("5.4")) monoVersion) then
 
             let tcpClient = JsonRpcSharp.LegacyTcpClient(ResolveHost, port)
             tcpClient.Request

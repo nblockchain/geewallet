@@ -31,7 +31,9 @@ rules of the language).
 should we need to use F# partial application.
 * We avoid to write the keyword `new` for instances of non-IDisposable types.
 * When dealing with `Option<Foo>` elements, we consider it's much safer to use
-`match` patterns instead of using the properties `IsSome`, `IsNone` or `Value`.
+`match` patterns (or the functions `Option.iter` and `Option.exists`) instead
+of using the less safe approaches  `x.IsSome && x.Value = ...` or
+`x.IsNone || x.Value = ...`, which might break easily when refactoring them.
 * In case of doubt, we prefer to expliticly add the accessibility keywords
 (`private`, `public`, `internal`...), should the F# language allow it.
 * With `if` blocks we prefer to put the `then` keyword in the same line as the
