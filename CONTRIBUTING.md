@@ -88,6 +88,10 @@ structure of the code. For example, a module whose full name is Foo.Bar.Baz
 should either live in a project called "Foo.Bar" (and be named "Baz" under
 the namespace "Foo.Bar"), or: in a project called "Foo", but in a subdirectory
 called "Bar" (and be named "Baz" under the namespace "Foo.Bar").
+* Don't use Task.ContinueWith() call because it forces you to use callbacks
+(less readable) and might be dangerous (it might cause TaskCanceledExceptions
+masking a different problem); instead, create an async{} block and use
+`do! Async.AwaitTask yourTask` or `let! foo = Async.AwaitTask yourTask` in it.
 * If you want to contribute a change to this project, you should create a
 MergeRequest in gitlab (not a PullRequest in github). The repo in gitlab is in:
 https://gitlab.com/knocte/gwallet
