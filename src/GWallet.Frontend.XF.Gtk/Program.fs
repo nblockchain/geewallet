@@ -12,6 +12,7 @@ module Main =
     let main argv =
         Gtk.Application.Init()
         Forms.Init()
+        ZXing.Net.Mobile.Forms.GTK.Platform.Init()
         let app = GWallet.Frontend.XF.App()
         use window = new FormsWindow()
         window.LoadApplication(app)

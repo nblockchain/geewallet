@@ -177,18 +177,6 @@
     <Reference Include="Nethereum.StandardTokenEIP20">
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.3.0.0\lib\net451\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20181104-152016\lib\netstandard1.0\ZXing.Net.Mobile.Forms.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\netstandard1.0\ZXing.Net.Mobile.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\netstandard1.0\zxing.portable.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20181104-152016\lib\netstandard1.0\ZXingNetMobile.dll</HintPath>
-    </Reference>
     <Reference Include="System.Numerics.Vectors">
       <HintPath>..\..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
     </Reference>
@@ -197,6 +185,21 @@
     </Reference>
     <Reference Include="Xamarin.Essentials">
       <HintPath>..\..\packages\Xamarin.Essentials.1.0.0\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXing.Net.Mobile.Core">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190119-130502\lib\net45\ZXing.Net.Mobile.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="zxing.portable">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190119-130502\lib\net45\zxing.portable.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXingNetMobile">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190119-130502\lib\net45\ZXingNetMobile.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXing.Net.Mobile.Forms">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190119-130502\lib\net45\ZXing.Net.Mobile.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="ZXing.Net.Mobile.Forms.GTK">
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190119-130502\lib\net45\ZXing.Net.Mobile.Forms.GTK.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
