@@ -391,14 +391,15 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         NavigationPage.SetHasNavigationBar(navPage, false)
                         navPage :> Page
                     else
-                        let normalAccountsAddresses = Account.GetAllActiveAccounts().OfType<NormalAccount>()
-                                                        .Select(fun acc -> (acc:>IAccount).PublicAddress) |> Set.ofSeq
-                        let addressesSeparatedByCommas = String.Join(",", normalAccountsAddresses)
-
-                        let page = PairingFromPage(this, "Copy addresses to clipboard", addressesSeparatedByCommas, None)
-                        NavigationPage.SetHasNavigationBar(page, false)
-                        let navPage = NavigationPage page
-                        navPage :> Page
+                        match Account.GetNormalAccountsPairingInfoForWatchWallet() with
+                        | None ->
+                            failwith "Should have ether and utxo accounts if running from the XF Frontend"
+                        | Some walletInfo ->
+                            let walletInfoJson = Marshalling.Serialize walletInfo
+                            let page = PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
+                            NavigationPage.SetHasNavigationBar(page, false)
+                            let navPage = NavigationPage page
+                            navPage :> Page
 
                 this.Navigation.PushAsync coldStoragePage
                      |> FrontendHelpers.DoubleCheckCompletionNonGeneric
