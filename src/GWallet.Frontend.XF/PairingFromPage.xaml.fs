@@ -66,18 +66,15 @@ type PairingFromPage(previousPage: Page,
         CrossClipboard.Current.SetText qrCodeContents
         ()
 
-    member private __.AddTransactionScanner (sendPage: FrontendHelpers.IAugmentablePayPage) =
-        async {
-            let! _ = Async.AwaitTask <| previousPage.Navigation.PopAsync()
-            sendPage.AddTransactionScanner()
-        }
-
     member this.OnNextStepClicked(sender: Object, args: EventArgs) =
         match nextButtonCaptionAndSendPage with
         | None ->
             failwith "if next step clicked, last param in ctor should have been Some"
         | Some (_, sendPage) ->
             Device.BeginInvokeOnMainThread(fun _ ->
-                this.AddTransactionScanner sendPage |> Async.RunSynchronously
+                let popTask = previousPage.Navigation.PopAsync()
+                popTask.ContinueWith(fun (t: Task<Page>) ->
+                    sendPage.AddTransactionScanner()
+                ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         ()

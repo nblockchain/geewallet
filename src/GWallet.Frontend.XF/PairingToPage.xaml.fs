@@ -42,21 +42,18 @@ type PairingToPage(balancesPage: Page,
     new() = PairingToPage(DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
                           Seq.empty,(fun (_,_) -> Page()))
 
-    member private this.AssignScannedQrCodeProperties scannedResultText =
-         async {
-             let! _ = Async.AwaitTask <| this.Navigation.PopModalAsync()
-             Device.BeginInvokeOnMainThread(fun _ ->
-                 coldAddressesEntry.Text <- scannedResultText
-             )
-         }
-
     member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun result ->
             scanPage.IsScanning <- false
 
             Device.BeginInvokeOnMainThread(fun _ ->
-                this.AssignScannedQrCodeProperties result.Text |> Async.RunSynchronously
+                let task = this.Navigation.PopModalAsync()
+                task.ContinueWith(fun (t: Task<Page>) ->
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        coldAddressesEntry.Text <- result.Text
+                    )
+                ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
         Device.BeginInvokeOnMainThread(fun _ ->
