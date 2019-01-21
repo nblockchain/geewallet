@@ -81,16 +81,15 @@ module Account =
         | LTC -> Config.LitecoinNet
         | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
 
-    let GetElectrumScriptHashFromAddress (address: BitcoinAddress) =
+    // technique taken from https://electrumx.readthedocs.io/en/latest/protocol-basics.html#script-hashes
+    let private GetElectrumScriptHashFromAddress (address: BitcoinAddress): string =
         let sha = NBitcoin.Crypto.Hashes.SHA256(address.ScriptPubKey.ToBytes())
         let reversedSha = sha.Reverse().ToArray()
         NBitcoin.DataEncoders.Encoders.Hex.EncodeData reversedSha
 
-    // technique taken from https://electrumx.readthedocs.io/en/latest/protocol-basics.html#script-hashes
-    let private GetElectrumScriptHashFromPublicKey currency (publicKey: PubKey) =
-        // TODO: measure how long does it take to get the script hash and if it's too long, store it instead of PubKey?
-        //       or cache it at app start
-        (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress() |> GetElectrumScriptHashFromAddress
+    let public GetElectrumScriptHashFromPublicAddress currency (publicAddress: string) =
+        // TODO: measure how long does it take to get the script hash and if it's too long, cache it at app startup?
+        BitcoinAddress.Create(publicAddress, GetNetwork currency) |> GetElectrumScriptHashFromAddress
 
     let internal GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
@@ -155,7 +154,7 @@ module Account =
         randomizedServers
 
     let private GetBalance(account: IUtxoAccount) (mode: Mode) =
-        let scriptHashHex = GetElectrumScriptHashFromPublicKey account.Currency account.PublicKey
+        let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
         let balance =
             faultTolerantElectrumClient.Query
@@ -249,7 +248,7 @@ module Account =
         let! utxos =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientDefaultSettings())
-                (GetElectrumScriptHashFromPublicKey account.Currency account.PublicKey)
+                (GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress)
                 (GetRandomizedFuncs account.Currency ElectrumClient.GetUnspentTransactionOutputs)
                 Mode.Fast
 

@@ -40,27 +40,25 @@ type ElectrumServerUnitTests() =
 type ElectrumIntegrationTests() =
 
     // probably a satoshi address because it was used in blockheight 2 and is unspent yet
-    let SATOSHI_ADDRESS =
+    let SCRIPTHASH_OF_SATOSHI_ADDRESS =
         // funny that it almost begins with "1HoDL"
-        BitcoinAddress.Create("1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1", NBitcoin.Network.Main)
+        UtxoCoin.Account.GetElectrumScriptHashFromPublicAddress Currency.BTC "1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1"
 
 
     // https://medium.com/@SatoshiLite/satoshilite-1e2dad89a017
-    let LTC_GENESIS_BLOCK_ADDRESS =
-        BitcoinAddress.Create("Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2", NBitcoin.Altcoins.Litecoin.Instance.Mainnet)
+    let SCRIPTHASH_OF_LTC_GENESIS_BLOCK_ADDRESS =
+        UtxoCoin.Account.GetElectrumScriptHashFromPublicAddress Currency.LTC "Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2"
 
     let CheckServerIsReachable (electrumServer: ElectrumServer)
                                (currency: Currency)
                                (maybeFilter: Option<ElectrumServer -> bool>)
                                : Async<Option<ElectrumServer>> = async {
 
-        let address =
+        let scriptHash =
             match currency with
-            | Currency.BTC -> SATOSHI_ADDRESS
-            | Currency.LTC -> LTC_GENESIS_BLOCK_ADDRESS
+            | Currency.BTC -> SCRIPTHASH_OF_SATOSHI_ADDRESS
+            | Currency.LTC -> SCRIPTHASH_OF_LTC_GENESIS_BLOCK_ADDRESS
             | _ -> failwith "Tests not ready for this currency"
-
-        let scriptHash = UtxoCoin.Account.GetElectrumScriptHashFromAddress address
 
         let innerCheck server =
             // this try-with block is similar to the one in UtxoCoinAccount, where it rethrows as
@@ -68,7 +66,7 @@ type ElectrumIntegrationTests() =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                let balance = ElectrumClient.GetBalance electrumServer address
+                let balance = ElectrumClient.GetBalance electrumServer scriptHash
                                   |> Async.RunSynchronously
 
                 // if these ancient addresses get withdrawals it would be interesting in the crypto space...
@@ -124,9 +122,15 @@ type ElectrumIntegrationTests() =
                          (uint16 2)
 
     [<Test>]
+(*
+    [<Ignore "see https://gitlab.com/DiginexGlobal/geewallet/issues/49">]
+ *)
     member __.``can connect to some electrum BTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
 
     [<Test>]
+(*
+    [<Ignore "see https://gitlab.com/DiginexGlobal/geewallet/issues/49">]
+ *)
     member __.``can connect to some electrum LTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC

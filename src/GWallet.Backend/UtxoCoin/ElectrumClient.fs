@@ -45,7 +45,7 @@ module ElectrumClient =
             return stratumClient
         }
 
-    let GetBalance (electrumServer: ElectrumServer) scriptHash = async {
+    let GetBalance (electrumServer: ElectrumServer) (scriptHash: string) = async {
         // FIXME: we should rather implement this method in terms of:
         //        - querying all unspent transaction outputs (X) -> block heights included
         //        - querying transaction history (Y) -> block heights included
