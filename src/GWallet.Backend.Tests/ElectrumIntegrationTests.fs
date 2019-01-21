@@ -146,6 +146,7 @@ type ElectrumIntegrationTests() =
                                        ElectrumClient.GetBalance BalanceAssertion
 
     [<Test>]
+    [<Ignore "see https://gitlab.com/DiginexGlobal/geewallet/issues/54">]
     member __.``can get list UTXOs of an address from some electrum BTC servers``() =
         Config.NewUtxoTcpClientDisabled <- false
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
