@@ -101,22 +101,32 @@ type ElectrumIntegrationTests() =
 
         }
 
+    let rec AtLeastNJobsWork(jobs: List<Async<Option<ElectrumServer>>>) (minimumCountNeeded: uint16): unit =
+        match jobs with
+        | [] ->
+            Assert.Fail ("Not enough servers were reached")
+        | head::tail ->
+            match head |> Async.RunSynchronously with
+            | None ->
+                AtLeastNJobsWork tail minimumCountNeeded
+            | Some _ ->
+                let newCount = (minimumCountNeeded-(uint16 1))
+                if newCount <> (uint16 0) then
+                    AtLeastNJobsWork tail newCount
+
     let CheckElectrumServersConnection electrumServers currency =
-        let reachServerTasks = seq {
+        let reachServerJobs = seq {
             for electrumServer in electrumServers do
                 yield CheckServerIsReachable electrumServer currency None
         }
-        let reachableServers = Async.Parallel reachServerTasks |> Async.RunSynchronously |> List.ofArray
-        let reachableServersCount = reachableServers.Count(fun server -> server.IsSome)
-        Console.WriteLine (sprintf "%d %A servers were reachable" reachableServersCount currency)
-        Assert.That(reachableServersCount, Is.GreaterThan(1))
+        AtLeastNJobsWork (reachServerJobs |> List.ofSeq)
+                         // more than one
+                         (uint16 2)
 
     [<Test>]
-    [<Ignore("FIXME: investigate")>]
     member __.``can connect to some electrum BTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
 
     [<Test>]
-    [<Ignore("FIXME: investigate")>]
     member __.``can connect to some electrum LTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC
