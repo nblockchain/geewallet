@@ -51,6 +51,8 @@ type ElectrumIntegrationTests() =
 
     let CheckServerIsReachable (electrumServer: ElectrumServer)
                                (currency: Currency)
+                               (query: ElectrumServer->string->Async<'T>)
+                               (assertion: 'T->unit)
                                (maybeFilter: Option<ElectrumServer -> bool>)
                                : Async<Option<ElectrumServer>> = async {
 
@@ -66,12 +68,10 @@ type ElectrumIntegrationTests() =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                let balance = ElectrumClient.GetBalance electrumServer scriptHash
+                let result = query electrumServer scriptHash
                                   |> Async.RunSynchronously
 
-                // if these ancient addresses get withdrawals it would be interesting in the crypto space...
-                // so let's make the test check a balance like this which is unlikely to change
-                Assert.That(balance.Confirmed, Is.Not.LessThan(998292))
+                assertion result
 
                 Console.WriteLine (sprintf "%A server %s is reachable" currency server.Fqdn)
                 Some electrumServer
@@ -99,6 +99,11 @@ type ElectrumIntegrationTests() =
 
         }
 
+    let BalanceAssertion (balance: BlockchainScripthahsGetBalanceInnerResult) =
+        // if these ancient addresses get withdrawals it would be interesting in the crypto space...
+        // so let's make the test check a balance like this which is unlikely to change
+        Assert.That(balance.Confirmed, Is.Not.LessThan 998292)
+
     let rec AtLeastNJobsWork(jobs: List<Async<Option<ElectrumServer>>>) (minimumCountNeeded: uint16): unit =
         match jobs with
         | [] ->
@@ -112,25 +117,36 @@ type ElectrumIntegrationTests() =
                 if newCount <> (uint16 0) then
                     AtLeastNJobsWork tail newCount
 
-    let CheckElectrumServersConnection electrumServers currency =
+    let CheckElectrumServersConnection electrumServers
+                                       currency
+                                       (query: ElectrumServer->string->Async<'T>)
+                                       (assertion: 'T->unit)
+                                           =
         let reachServerJobs = seq {
             for electrumServer in electrumServers do
-                yield CheckServerIsReachable electrumServer currency None
+                yield CheckServerIsReachable electrumServer currency query assertion None
         }
         AtLeastNJobsWork (reachServerJobs |> List.ofSeq)
                          // more than one
                          (uint16 2)
 
-    [<Test>]
-(*
-    [<Ignore "see https://gitlab.com/DiginexGlobal/geewallet/issues/49">]
- *)
-    member __.``can connect to some electrum BTC servers``() =
-        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
+    let UtxosAssertion (utxos: array<BlockchainScripthashListUnspentInnerResult>) =
+        // if these ancient addresses get withdrawals it would be interesting in the crypto space...
+        // so let's make the test check a balance like this which is unlikely to change
+        Assert.That(utxos.Length, Is.GreaterThan 1)
 
     [<Test>]
-(*
-    [<Ignore "see https://gitlab.com/DiginexGlobal/geewallet/issues/49">]
- *)
-    member __.``can connect to some electrum LTC servers``() =
+    member __.``can connect (just check balance) to some electrum BTC servers``() =
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
+                                       ElectrumClient.GetBalance BalanceAssertion
+
+    [<Test>]
+    member __.``can connect (just check balance) to some electrum LTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC
+                                       ElectrumClient.GetBalance BalanceAssertion
+
+    [<Test>]
+    member __.``can get list UTXOs of an address from some electrum BTC servers``() =
+        Config.NewUtxoTcpClientDisabled <- false
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
+                                       ElectrumClient.GetUnspentTransactionOutputs UtxosAssertion
