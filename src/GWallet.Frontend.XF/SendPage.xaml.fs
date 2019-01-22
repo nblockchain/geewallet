@@ -112,10 +112,16 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun (result:ZXing.Result) ->
+
+(* disabled the hack below to have a version where we can debug it
+
+
             // HACK: Sometimes with larger QR codes, the scan is wrong and returns a random number not larger than ~8
             //       characters. As a transaction is much larger (~800-1,200 chars) then we use this hack to not gather
             //       these bullshit results and make the user keep trying.
             if (result.Text.Length > 20) then
+
+ *)
                 scanPage.IsScanning <- false
                 Device.BeginInvokeOnMainThread(fun _ ->
                     let task = this.Navigation.PopModalAsync()
