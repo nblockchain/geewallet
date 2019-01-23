@@ -261,7 +261,7 @@ module FrontendHelpers =
 
     let BarCodeScanningOptions = MobileBarcodeScanningOptions(
                                      TryHarder = Nullable<bool> true,
-                                     // TODO: propose PR to ZXing.Net/ZXing.Net.Mobile to change this to IEnumerable<T>:
+                                     // TODO: stop using Sys.Coll.Gen when this PR is accepted: https://github.com/Redth/ZXing.Net.Mobile/pull/800
                                      PossibleFormats = System.Collections.Generic.List<BarcodeFormat>(
                                          [ BarcodeFormat.QR_CODE ]
                                      ),
