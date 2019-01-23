@@ -49,11 +49,8 @@ type PairingToPage(balancesPage: Page,
 
             Device.BeginInvokeOnMainThread(fun _ ->
                 let task = this.Navigation.PopModalAsync()
-                task.ContinueWith(fun (t: Task<Page>) ->
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        coldAddressesEntry.Text <- result.Text
-                    )
-                ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                coldAddressesEntry.Text <- result.Text
+                task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
         Device.BeginInvokeOnMainThread(fun _ ->

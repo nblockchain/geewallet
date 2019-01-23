@@ -115,12 +115,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             scanPage.IsScanning <- false
             Device.BeginInvokeOnMainThread(fun _ ->
                 let task = this.Navigation.PopModalAsync()
-                task.ContinueWith(fun (t: Task<Page>) ->
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        transactionEntry.Text <- result.Text
-                    )
-
-                ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                transactionEntry.Text <- result.Text
+                task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
         Device.BeginInvokeOnMainThread(fun _ ->
@@ -137,33 +133,30 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
             Device.BeginInvokeOnMainThread(fun _ ->
                 let task = this.Navigation.PopModalAsync()
-                task.ContinueWith(fun (t: Task<Page>) ->
-                    let address,maybeAmount =
-                        match account.Currency with
-                        | Currency.BTC -> UtxoCoin.Account.ParseAddressOrUrl result.Text
-                        | _ -> result.Text,None
 
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        destinationAddressEntry.Text <- address
-                    )
-                    match maybeAmount with
-                    | None -> ()
-                    | Some amount ->
-                        let amountLabel = mainLayout.FindByName<Entry>("amountToSend")
-                        Device.BeginInvokeOnMainThread(fun _ ->
-                            let cryptoCurrencyInPicker =
-                                currencySelectorPicker.Items.FirstOrDefault(
-                                    fun item -> item.ToString() = account.Currency.ToString()
-                                )
-                            if (cryptoCurrencyInPicker = null) then
-                                failwithf "Could not find currency %A in picker?" account.Currency
-                            currencySelectorPicker.SelectedItem <- cryptoCurrencyInPicker
-                            let aPreviousAmountWasSet = not (String.IsNullOrWhiteSpace amountLabel.Text)
-                            amountLabel.Text <- amount.ToString()
-                            if aPreviousAmountWasSet then
-                                this.DisplayAlert("Alert", "Note: new amount has been set", "OK") |> ignore
+                let address,maybeAmount =
+                    match account.Currency with
+                    | Currency.BTC -> UtxoCoin.Account.ParseAddressOrUrl result.Text
+                    | _ -> result.Text,None
+
+                destinationAddressEntry.Text <- address
+                match maybeAmount with
+                | None -> ()
+                | Some amount ->
+                    let amountLabel = mainLayout.FindByName<Entry>("amountToSend")
+                    let cryptoCurrencyInPicker =
+                        currencySelectorPicker.Items.FirstOrDefault(
+                            fun item -> item.ToString() = account.Currency.ToString()
                         )
-                ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    if (cryptoCurrencyInPicker = null) then
+                        failwithf "Could not find currency %A in picker?" account.Currency
+                    currencySelectorPicker.SelectedItem <- cryptoCurrencyInPicker
+                    let aPreviousAmountWasSet = not (String.IsNullOrWhiteSpace amountLabel.Text)
+                    amountLabel.Text <- amount.ToString()
+                    if aPreviousAmountWasSet then
+                        this.DisplayAlert("Alert", "Note: new amount has been set", "OK")
+                            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
         this.Navigation.PushModalAsync scanPage
