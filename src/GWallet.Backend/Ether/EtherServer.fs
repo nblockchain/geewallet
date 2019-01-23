@@ -72,6 +72,7 @@ module Server =
         | AmbiguousOrGenericError = -32010
 
         | UnknownBlockNumber = -32602
+        | GatewayTimeout = -32050
 
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
@@ -215,6 +216,8 @@ module Server =
                                     else
                                         raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                                 if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
+                                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                                if rpcResponseEx.RpcError.Code = int RpcErrorCode.GatewayTimeout then
                                     raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                                 raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
                                                          rpcResponseEx.RpcError.Code
