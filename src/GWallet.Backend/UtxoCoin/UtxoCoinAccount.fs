@@ -56,16 +56,16 @@ module Account =
 
     let private FaultTolerantParallelClientDefaultSettings() =
         {
-            NumberOfMaximumParallelJobs = uint16 5;
-            ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 2);
+            NumberOfMaximumParallelJobs = 5u;
+            ConsistencyConfig = NumberOfConsistentResponsesRequired 2u;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
         }
 
     let private FaultTolerantParallelClientSettingsForBroadcast() =
         {
-            NumberOfMaximumParallelJobs = uint16 8;
-            ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 1);
+            NumberOfMaximumParallelJobs = 8u;
+            ConsistencyConfig = NumberOfConsistentResponsesRequired 1u;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
         }
@@ -299,7 +299,7 @@ module Account =
             let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
             avg
 
-        let minResponsesRequired = uint16 3
+        let minResponsesRequired = 3u
         let! btcPerKiloByteForFastTrans =
             faultTolerantElectrumClient.Query
                 { FaultTolerantParallelClientDefaultSettings() with

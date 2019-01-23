@@ -104,7 +104,7 @@ type ElectrumIntegrationTests() =
         // so let's make the test check a balance like this which is unlikely to change
         Assert.That(balance.Confirmed, Is.Not.LessThan 998292)
 
-    let rec AtLeastNJobsWork(jobs: List<Async<Option<ElectrumServer>>>) (minimumCountNeeded: uint16): unit =
+    let rec AtLeastNJobsWork(jobs: List<Async<Option<ElectrumServer>>>) (minimumCountNeeded: uint32): unit =
         match jobs with
         | [] ->
             Assert.Fail ("Not enough servers were reached")
@@ -113,8 +113,8 @@ type ElectrumIntegrationTests() =
             | None ->
                 AtLeastNJobsWork tail minimumCountNeeded
             | Some _ ->
-                let newCount = (minimumCountNeeded-(uint16 1))
-                if newCount <> (uint16 0) then
+                let newCount = (minimumCountNeeded - 1u)
+                if newCount <> 0u then
                     AtLeastNJobsWork tail newCount
 
     let CheckElectrumServersConnection electrumServers
@@ -128,7 +128,7 @@ type ElectrumIntegrationTests() =
         }
         AtLeastNJobsWork (reachServerJobs |> List.ofSeq)
                          // more than one
-                         (uint16 2)
+                         2u
 
     let UtxosAssertion (utxos: array<BlockchainScripthashListUnspentInnerResult>) =
         // if these ancient addresses get withdrawals it would be interesting in the crypto space...

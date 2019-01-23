@@ -37,7 +37,7 @@ type Shuffling() =
     member __.``replaces every n-th element with one chosen random element from the rest of the list``() =
         let someList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; ]
 
-        let shuffledList = Shuffler.RandomizeEveryNthElement someList (uint16 3)
+        let shuffledList = Shuffler.RandomizeEveryNthElement someList 3u
 
         Assert.That(shuffledList, Is.Not.EqualTo someList)
         Assert.That(shuffledList.[0], Is.EqualTo 1)

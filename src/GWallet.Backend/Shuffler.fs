@@ -12,13 +12,13 @@ module Shuffler =
     let private ListRemove<'T when 'T: equality> (list: List<'T>) (elementToRemove: 'T)  =
         List.filter (fun element -> element <> elementToRemove) list
 
-    let RandomizeEveryNthElement<'T when 'T: equality> (list: List<'T>) (offset: uint16) =
-        let rec RandomizeInternal (list: List<'T>) (offset: uint16) acc (currentIndex: uint16) =
+    let RandomizeEveryNthElement<'T when 'T: equality> (list: List<'T>) (offset: uint32) =
+        let rec RandomizeInternal (list: List<'T>) (offset: uint32) acc (currentIndex: uint32) =
             match list with
             | [] -> List.rev acc
             | head::tail ->
-                let nextIndex = (currentIndex + (uint16 1))
-                if currentIndex % offset <> uint16 0 || tail = [] then
+                let nextIndex = (currentIndex + 1u)
+                if currentIndex % offset <> 0u || tail = [] then
                     RandomizeInternal tail offset (head::acc) nextIndex
                 else
                     let randomizedRest = Unsort tail |> List.ofSeq
@@ -28,4 +28,4 @@ module Shuffler =
                         let newRest = head::(ListRemove tail randomizedHead)
                         RandomizeInternal newRest offset (randomizedHead::acc) nextIndex
 
-        RandomizeInternal list offset [] (uint16 1)
+        RandomizeInternal list offset [] 1u

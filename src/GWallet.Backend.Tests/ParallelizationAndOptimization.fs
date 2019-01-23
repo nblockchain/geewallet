@@ -23,7 +23,7 @@ type ParallelizationAndOptimization() =
 
     [<Test>]
     member __.``calls both funcs (because it launches them in parallel)``() =
-        let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = uint16 2
+        let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 2u
         // because this test doesn't deal with inconsistencies
         let NUMBER_OF_CONSISTENT_RESULTS = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
 
@@ -66,9 +66,9 @@ type ParallelizationAndOptimization() =
     member __.``a long func doesn't block the others``() =
         let someLongTime = TimeSpan.FromSeconds 10.0
 
-        let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = uint16 2
+        let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 2u
         // because this test doesn't deal with inconsistencies
-        let NUMBER_OF_CONSISTENT_RESULTS = uint16 1
+        let NUMBER_OF_CONSISTENT_RESULTS = 1u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
@@ -107,8 +107,8 @@ type ParallelizationAndOptimization() =
     member __.``a long func doesn't block gathering more succesful results for consistency``() =
         let someLongTime = TimeSpan.FromSeconds 10.0
 
-        let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = uint16 2
-        let NUMBER_OF_CONSISTENT_RESULTS = uint16 2
+        let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 2u
+        let NUMBER_OF_CONSISTENT_RESULTS = 2u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
@@ -187,9 +187,9 @@ type ParallelizationAndOptimization() =
     member __.``using an average func encourages you (via throwing an exception) to use parallelism``() =
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                            NumberOfMaximumParallelJobs = uint16 1
+                            NumberOfMaximumParallelJobs = 1u
                             ConsistencyConfig =
-                                AverageBetweenResponses (uint16 2,
+                                AverageBetweenResponses (2u,
                                                          (fun _ ->
                                                              failwith "unreachable"
                                                          )); }
@@ -226,8 +226,8 @@ type ParallelizationAndOptimization() =
         let allFuncs = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "func1" func1
                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "func1" func2
                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "longFunc" longFuncThatShouldBeCancelled ]
-        let number_of_parallel_jobs_allowed = uint16 allFuncs.Length
-        let NUMBER_OF_CONSISTENT_RESULTS = uint16 2
+        let number_of_parallel_jobs_allowed = uint32 allFuncs.Length
+        let NUMBER_OF_CONSISTENT_RESULTS = 2u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfMaximumParallelJobs = number_of_parallel_jobs_allowed;
@@ -275,7 +275,7 @@ type ParallelizationAndOptimization() =
 
     [<Test>]
     member __.``ListIntersect metatest`` () =
-        let res = FSharpUtil.ListIntersect [ 10; 20; 30; ] [ 1; 2; ] (uint16 2)
+        let res = FSharpUtil.ListIntersect [ 10; 20; 30; ] [ 1; 2; ] 2u
         Assert.That(res.Length, Is.EqualTo 5)
         Assert.That(res.[0], Is.EqualTo 10)
         Assert.That(res.[1], Is.EqualTo 1)
@@ -283,7 +283,7 @@ type ParallelizationAndOptimization() =
         Assert.That(res.[3], Is.EqualTo 2)
         Assert.That(res.[4], Is.EqualTo 30)
 
-        let res = FSharpUtil.ListIntersect [ 10; 20; 30; 40; 50; ] [ 1; 2; ] (uint16 3)
+        let res = FSharpUtil.ListIntersect [ 10; 20; 30; 40; 50; ] [ 1; 2; ] 3u
         Assert.That(res.Length, Is.EqualTo 7)
         Assert.That(res.[0], Is.EqualTo 10)
         Assert.That(res.[1], Is.EqualTo 20)

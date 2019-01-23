@@ -47,7 +47,7 @@ module Config =
     // TODO: move to FaultTolerantParallelClient
     let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 60.0
 
-    let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = uint16 1
+    let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = 1u
 
     let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)

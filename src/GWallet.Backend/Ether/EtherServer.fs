@@ -239,8 +239,8 @@ module Server =
                                     reraise()
         result
 
-    let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint16)
-                                                         (numberOfMaximumParallelJobs: uint16) =
+    let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
+                                                         (numberOfMaximumParallelJobs: uint32) =
         {
             NumberOfMaximumParallelJobs = numberOfMaximumParallelJobs;
             ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired;
@@ -251,14 +251,14 @@ module Server =
     let private FaultTolerantParallelClientDefaultSettings (currency: Currency) =
         let numberOfConsistentResponsesRequired =
             if not Networking.Tls12Support then
-                1
+                1u
             else
-                2
-        FaultTolerantParallelClientInnerSettings (uint16 numberOfConsistentResponsesRequired)
-                                                 (uint16 3)
+                2u
+        FaultTolerantParallelClientInnerSettings numberOfConsistentResponsesRequired
+                                                 3u
 
     let private FaultTolerantParallelClientSettingsForBroadcast () =
-        FaultTolerantParallelClientInnerSettings (uint16 1) (uint16 5)
+        FaultTolerantParallelClientInnerSettings 1u 5u
 
     let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
@@ -459,7 +459,7 @@ module Server =
                 let web3Func (web3: Web3) (_: unit): HexBigInteger =
                     WaitOnTask web3.Eth.GasPrice.SendRequestAsync ()
                 GetWeb3Funcs currency web3Func
-            let minResponsesRequired = uint16 2
+            let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
                         { FaultTolerantParallelClientDefaultSettings currency with
                               ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }

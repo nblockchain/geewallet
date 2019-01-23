@@ -17,7 +17,7 @@ module FSharpUtil =
             else
                 ListIntersectInternal tail1 list2 offset (head1::acc) (currentIndex + 1)
 
-    let ListIntersect<'T> (list1: List<'T>) (list2: List<'T>) (offset: uint16): List<'T> =
+    let ListIntersect<'T> (list1: List<'T>) (list2: List<'T>) (offset: uint32): List<'T> =
         ListIntersectInternal list1 list2 offset [] 1
 
     let WithTimeout (timeSpan: TimeSpan) (operation: Async<'R>): Async<Option<'R>> = async {
