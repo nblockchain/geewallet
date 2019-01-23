@@ -137,17 +137,33 @@ type ElectrumIntegrationTests() =
 
     [<Test>]
     member __.``can connect (just check balance) to some electrum BTC servers``() =
+        Config.NewUtxoTcpClientDisabled <- true // <- test Legacy client first
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
+                                       ElectrumClient.GetBalance BalanceAssertion
+
+        Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
                                        ElectrumClient.GetBalance BalanceAssertion
 
     [<Test>]
     member __.``can connect (just check balance) to some electrum LTC servers``() =
+        Config.NewUtxoTcpClientDisabled <- true // <- test Legacy client first
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC
+                                       ElectrumClient.GetBalance BalanceAssertion
+
+        Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC
                                        ElectrumClient.GetBalance BalanceAssertion
 
     [<Test>]
+(*
     [<Ignore "see https://gitlab.com/DiginexGlobal/geewallet/issues/54">]
+ *)
     member __.``can get list UTXOs of an address from some electrum BTC servers``() =
-        Config.NewUtxoTcpClientDisabled <- false
+        Config.NewUtxoTcpClientDisabled <- true // <- test Legacy client first
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
+                                       ElectrumClient.GetUnspentTransactionOutputs UtxosAssertion
+
+        Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
                                        ElectrumClient.GetUnspentTransactionOutputs UtxosAssertion
