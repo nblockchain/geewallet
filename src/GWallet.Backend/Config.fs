@@ -4,7 +4,8 @@ open System
 open System.IO
 open System.Reflection
 
-module internal Config =
+// TODO: make internal when tests don't depend on this anymore
+module Config =
 
     // we might want to test with TestNet at some point, so this below is the key:
     // (but we would need to get a seed list of testnet electrum servers, and testnet(/ropsten/rinkeby?), first...)
@@ -13,7 +14,7 @@ module internal Config =
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
     let EthNet = Nethereum.Signer.Chain.MainNet
 
-    let internal NewUtxoTcpClientDisabled = true
+    let mutable NewUtxoTcpClientDisabled = true
 
     let internal DebugLog =
 #if DEBUG
@@ -46,7 +47,7 @@ module internal Config =
     // TODO: move to FaultTolerantParallelClient
     let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 60.0
 
-    let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = uint16 1
+    let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = 1u
 
     let private isWindows =
         Path.DirectorySeparatorChar = '\\'

@@ -16,7 +16,7 @@ type private NotEnoughAvailableException (message:string, lastException: Excepti
 
 type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                    maxNumberOfConsistentResultsObtained: int,
-                                   numberOfConsistentResultsRequired: uint16) =
+                                   numberOfConsistentResultsRequired: uint32) =
   inherit Exception ("Results obtained were not enough to be considered consistent" +
                       sprintf " (received: %d, consistent: %d, required: %d)"
                                   totalNumberOfSuccesfulResultsObtained
@@ -37,15 +37,15 @@ and internal NonParallelResults<'K,'T,'R,'E when 'K: equality and 'E :> Exceptio
     ExceptionsSoFar<'K,'T,'R,'E> * NonParallelResultWithAdditionalWork<'K,'T,'R,'E>
 
 type ConsistencySettings<'R> =
-    | NumberOfConsistentResponsesRequired of uint16
-    | AverageBetweenResponses of (uint16 * (List<'R> -> 'R))
+    | NumberOfConsistentResponsesRequired of uint32
+    | AverageBetweenResponses of (uint32 * (List<'R> -> 'R))
 
 type FaultTolerantParallelClientSettings<'R> =
     {
-        NumberOfMaximumParallelJobs: uint16;
+        NumberOfMaximumParallelJobs: uint32;
         ConsistencyConfig: ConsistencySettings<'R>;
-        NumberOfRetries: uint16;
-        NumberOfRetriesForInconsistency: uint16;
+        NumberOfRetries: uint32;
+        NumberOfRetriesForInconsistency: uint32;
     }
 
 type Mode =
@@ -161,18 +161,18 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                           (funcs: List<Server<'K,'T,'R>>)
                           (resultsSoFar: List<'R>)
                           (failedFuncsSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
-                          (retries: uint16)
-                          (retriesForInconsistency: uint16)
+                          (retries: uint32)
+                          (retriesForInconsistency: uint32)
                               : Async<'R> = async {
         if not (funcs.Any()) then
             return raise(ArgumentException("number of funcs must be higher than zero",
                                            "funcs"))
-        let howManyFuncs = uint16 funcs.Length
+        let howManyFuncs = uint32 funcs.Length
         let numberOfMaximumParallelJobs = int settings.NumberOfMaximumParallelJobs
 
         match settings.ConsistencyConfig with
         | NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired ->
-            if numberOfConsistentResponsesRequired < uint16 1 then
+            if numberOfConsistentResponsesRequired < 1u then
                 raise (ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired"))
             if (howManyFuncs < numberOfConsistentResponsesRequired) then
                 return raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
@@ -222,7 +222,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                           failedFuncs
                                           allResultsSoFar
                                           List.Empty
-                                          (uint16 (retries + uint16 1))
+                                          (retries + 1u)
                                           retriesForInconsistency
             else
                 let totalNumberOfSuccesfulResultsObtained = allResultsSoFar.Length
@@ -246,7 +246,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                                   List.Empty
                                                   List.Empty
                                                   retries
-                                                  (uint16 (retriesForInconsistency + uint16 1))
+                                                  (retriesForInconsistency + 1u)
                 | AverageBetweenResponses(minimumNumberOfResponses,averageFunc) ->
                     if (retries = settings.NumberOfRetries) then
                         let firstEx = failedFuncsWithTheirExceptions.First() |> snd
@@ -257,7 +257,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                               failedFuncs
                                               allResultsSoFar
                                               failedFuncsWithTheirExceptions
-                                              (uint16 (retries + uint16 1))
+                                              (retries + 1u)
                                               retriesForInconsistency
 
     }
@@ -320,12 +320,12 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         if mode = Mode.Fast then
             List.append sortedWorkingServers (List.append serversWithNoHistoryServers sortedFaultyServers)
         else
-            let intersectionOffset = (uint16 3)
+            let intersectionOffset = 3u
             let result = FSharpUtil.ListIntersect
                                      (List.append serversWithNoHistoryServers sortedWorkingServers)
                                      sortedFaultyServers
                                      intersectionOffset
-            let randomizationOffset = intersectionOffset + (uint16 1)
+            let randomizationOffset = intersectionOffset + 1u
             Shuffler.RandomizeEveryNthElement result randomizationOffset
 
     member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
@@ -333,7 +333,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                                 (servers: List<Server<'K,'T,'R>>)
                                                 (mode: Mode)
                                                     : Async<'R> =
-        if settings.NumberOfMaximumParallelJobs < uint16 1 then
+        if settings.NumberOfMaximumParallelJobs < 1u then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 
-        QueryInternal settings args (OrderServers servers mode) List.Empty List.Empty (uint16 0) (uint16 0)
+        QueryInternal settings args (OrderServers servers mode) List.Empty List.Empty 0u 0u

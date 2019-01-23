@@ -18,7 +18,7 @@ GWallet is a minimalistic and pragmatist crossplatform lightweight opensource br
 
 This is a wallet that prioritizes convenience & security over privacy. Examples:
 
-1. Convenience: it is a lightweight/thin wallet (you don't need to download whole blockchains to use it, unlike with BitcoinCore's wallet).
+1. Convenience: it is a lightweight/thin wallet (you don't need to download whole blockchains to use it, unlike with fullnode wallets).
 2. Convenience over privacy (I): it's a wallet that can handle multiple cryptocurrencies, so its UX needs to be as generic as possible to accomodate them, therefore only contains minimal currency-specific features. For example, given that the concept of "change-addresses" doesn't exist in the Ethereum world (a concept initially thought to help privacy in the bitcoin world, but which doesn't achieve much of it in the end), then it is not used even when sending bitcoin, to avoid cluttering the UI/UX with currency-specific features/complexities. We will still be investigating the support of more robust privacy features such as the ones provided by TumbleBit or ConfidentialTransactions.
 3. Convenience over privacy (II): servers from other wallets' infrastructure is reused (e.g. Electrum's Stratum protocol), however TLS communication is still unsupported (this only hinders privacy but doesn't pose any security risk).
 4. Security (I): it's a desktop/mobile wallet, not an online/web wallet like others (e.g. web wallets are easy targets: https://twitter.com/myetherwallet/status/988830652526092288 ).

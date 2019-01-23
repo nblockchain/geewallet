@@ -40,27 +40,27 @@ type ElectrumServerUnitTests() =
 type ElectrumIntegrationTests() =
 
     // probably a satoshi address because it was used in blockheight 2 and is unspent yet
-    let SATOSHI_ADDRESS =
+    let SCRIPTHASH_OF_SATOSHI_ADDRESS =
         // funny that it almost begins with "1HoDL"
-        BitcoinAddress.Create("1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1", NBitcoin.Network.Main)
+        UtxoCoin.Account.GetElectrumScriptHashFromPublicAddress Currency.BTC "1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1"
 
 
     // https://medium.com/@SatoshiLite/satoshilite-1e2dad89a017
-    let LTC_GENESIS_BLOCK_ADDRESS =
-        BitcoinAddress.Create("Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2", NBitcoin.Altcoins.Litecoin.Instance.Mainnet)
+    let SCRIPTHASH_OF_LTC_GENESIS_BLOCK_ADDRESS =
+        UtxoCoin.Account.GetElectrumScriptHashFromPublicAddress Currency.LTC "Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2"
 
     let CheckServerIsReachable (electrumServer: ElectrumServer)
                                (currency: Currency)
+                               (query: ElectrumServer->string->Async<'T>)
+                               (assertion: 'T->unit)
                                (maybeFilter: Option<ElectrumServer -> bool>)
                                : Async<Option<ElectrumServer>> = async {
 
-        let address =
+        let scriptHash =
             match currency with
-            | Currency.BTC -> SATOSHI_ADDRESS
-            | Currency.LTC -> LTC_GENESIS_BLOCK_ADDRESS
+            | Currency.BTC -> SCRIPTHASH_OF_SATOSHI_ADDRESS
+            | Currency.LTC -> SCRIPTHASH_OF_LTC_GENESIS_BLOCK_ADDRESS
             | _ -> failwith "Tests not ready for this currency"
-
-        let scriptHash = UtxoCoin.Account.GetElectrumScriptHashFromAddress address
 
         let innerCheck server =
             // this try-with block is similar to the one in UtxoCoinAccount, where it rethrows as
@@ -68,12 +68,10 @@ type ElectrumIntegrationTests() =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                let balance = ElectrumClient.GetBalance electrumServer address
+                let result = query electrumServer scriptHash
                                   |> Async.RunSynchronously
 
-                // if these ancient addresses get withdrawals it would be interesting in the crypto space...
-                // so let's make the test check a balance like this which is unlikely to change
-                Assert.That(balance.Confirmed, Is.Not.LessThan(998292))
+                assertion result
 
                 Console.WriteLine (sprintf "%A server %s is reachable" currency server.Fqdn)
                 Some electrumServer
@@ -101,22 +99,71 @@ type ElectrumIntegrationTests() =
 
         }
 
-    let CheckElectrumServersConnection electrumServers currency =
-        let reachServerTasks = seq {
+    let BalanceAssertion (balance: BlockchainScripthahsGetBalanceInnerResult) =
+        // if these ancient addresses get withdrawals it would be interesting in the crypto space...
+        // so let's make the test check a balance like this which is unlikely to change
+        Assert.That(balance.Confirmed, Is.Not.LessThan 998292)
+
+    let rec AtLeastNJobsWork(jobs: List<Async<Option<ElectrumServer>>>) (minimumCountNeeded: uint32): unit =
+        match jobs with
+        | [] ->
+            Assert.Fail ("Not enough servers were reached")
+        | head::tail ->
+            match head |> Async.RunSynchronously with
+            | None ->
+                AtLeastNJobsWork tail minimumCountNeeded
+            | Some _ ->
+                let newCount = (minimumCountNeeded - 1u)
+                if newCount <> 0u then
+                    AtLeastNJobsWork tail newCount
+
+    let CheckElectrumServersConnection electrumServers
+                                       currency
+                                       (query: ElectrumServer->string->Async<'T>)
+                                       (assertion: 'T->unit)
+                                           =
+        let reachServerJobs = seq {
             for electrumServer in electrumServers do
-                yield CheckServerIsReachable electrumServer currency None
+                yield CheckServerIsReachable electrumServer currency query assertion None
         }
-        let reachableServers = Async.Parallel reachServerTasks |> Async.RunSynchronously |> List.ofArray
-        let reachableServersCount = reachableServers.Count(fun server -> server.IsSome)
-        Console.WriteLine (sprintf "%d %A servers were reachable" reachableServersCount currency)
-        Assert.That(reachableServersCount, Is.GreaterThan(1))
+        AtLeastNJobsWork (reachServerJobs |> List.ofSeq)
+                         // more than one
+                         2u
+
+    let UtxosAssertion (utxos: array<BlockchainScripthashListUnspentInnerResult>) =
+        // if these ancient addresses get withdrawals it would be interesting in the crypto space...
+        // so let's make the test check a balance like this which is unlikely to change
+        Assert.That(utxos.Length, Is.GreaterThan 1)
 
     [<Test>]
-    [<Ignore("FIXME: investigate")>]
-    member __.``can connect to some electrum BTC servers``() =
+    member __.``can connect (just check balance) to some electrum BTC servers``() =
+        Config.NewUtxoTcpClientDisabled <- true // <- test Legacy client first
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
+                                       ElectrumClient.GetBalance BalanceAssertion
+
+        Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
+                                       ElectrumClient.GetBalance BalanceAssertion
 
     [<Test>]
-    [<Ignore("FIXME: investigate")>]
-    member __.``can connect to some electrum LTC servers``() =
+    member __.``can connect (just check balance) to some electrum LTC servers``() =
+        Config.NewUtxoTcpClientDisabled <- true // <- test Legacy client first
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC
+                                       ElectrumClient.GetBalance BalanceAssertion
+
+        Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC
+                                       ElectrumClient.GetBalance BalanceAssertion
+
+    [<Test>]
+    member __.``can get list UTXOs of an address from some electrum BTC servers``() =
+        Config.NewUtxoTcpClientDisabled <- true // <- test Legacy client first
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
+                                       ElectrumClient.GetUnspentTransactionOutputs UtxosAssertion
+
+(*  disabled this part of the tests because it fails, see the bug: https://gitlab.com/DiginexGlobal/geewallet/issues/54
+
+        Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
+        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
+                                       ElectrumClient.GetUnspentTransactionOutputs UtxosAssertion
+ *)

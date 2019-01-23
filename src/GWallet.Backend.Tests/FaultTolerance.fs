@@ -17,17 +17,17 @@ type SomeInnerException() =
 [<TestFixture>]
 type FaultTolerance() =
 
-    let one_consistent_result_because_this_test_doesnt_test_consistency = 1
-    let not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1
-    let test_does_not_involve_retries = uint16 0
+    let one_consistent_result_because_this_test_doesnt_test_consistency = 1u
+    let not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1u
+    let test_does_not_involve_retries = 0u
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ -> ())
 
     let defaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         {
-            NumberOfMaximumParallelJobs = uint16 1;
-            ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 1);
-            NumberOfRetries = uint16 0;
-            NumberOfRetriesForInconsistency = uint16 0;
+            NumberOfMaximumParallelJobs = not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization
+            ConsistencyConfig = NumberOfConsistentResponsesRequired one_consistent_result_because_this_test_doesnt_test_consistency
+            NumberOfRetries = test_does_not_involve_retries
+            NumberOfRetriesForInconsistency = test_does_not_involve_retries
         }
 
     let defaultFaultTolerantParallelClient =
@@ -206,7 +206,7 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``makes sure data is consistent across N funcs``() =
-        let numberOfConsistentResponsesToBeConsideredSafe = uint16 2
+        let numberOfConsistentResponsesToBeConsideredSafe = 2u
 
         let someStringArg = "foo"
         let someConsistentResult = 1
@@ -261,7 +261,7 @@ type FaultTolerance() =
     [<Test>]
     member __.``consistency precondition > 0``() =
         let invalidSettings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries()
-                                    with ConsistencyConfig = NumberOfConsistentResponsesRequired (uint16 0); }
+                                    with ConsistencyConfig = NumberOfConsistentResponsesRequired 0u; }
         let dummyArg = ()
         let dummyServers = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "dummyServerName" (fun _ -> ()) ]
         Assert.Throws<ArgumentException>(fun _ ->
@@ -273,7 +273,7 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``consistency precondition > funcs``() =
-        let numberOfConsistentResponsesToBeConsideredSafe = uint16 3
+        let numberOfConsistentResponsesToBeConsideredSafe = 3u
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             ConsistencyConfig =
                                 NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
@@ -303,7 +303,7 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``if consistency is not found, throws inconsistency exception``() =
-        let numberOfConsistentResponsesToBeConsideredSafe = uint16 3
+        let numberOfConsistentResponsesToBeConsideredSafe = 3u
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
 
@@ -359,8 +359,8 @@ type FaultTolerance() =
                           serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                            NumberOfRetries = uint16 1;
-                            NumberOfRetriesForInconsistency = uint16 0; }
+                            NumberOfRetries = 1u
+                            NumberOfRetriesForInconsistency = 0u }
 
         let client = FaultTolerantParallelClient<string, SomeException>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
@@ -374,7 +374,7 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``it retries before throwing inconsistency exception``() =
-        let numberOfConsistentResponsesToBeConsideredSafe = uint16 3
+        let numberOfConsistentResponsesToBeConsideredSafe = 3u
 
         let someStringArg = "foo"
         let mostConsistentResult = 1
@@ -408,8 +408,8 @@ type FaultTolerance() =
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             ConsistencyConfig =
                                 NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe;
-                            NumberOfRetries = uint16 0;
-                            NumberOfRetriesForInconsistency = uint16 1; }
+                            NumberOfRetries = 0u;
+                            NumberOfRetriesForInconsistency = 1u }
 
         let client = FaultTolerantParallelClient<string, SomeSpecificException>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
@@ -456,9 +456,9 @@ type FaultTolerance() =
                       serverWithNoHistoryInfoBecauseIrrelevantToThisTest "func3" func3 ]
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                            NumberOfMaximumParallelJobs = uint16 funcs.Length
+                            NumberOfMaximumParallelJobs = uint32 funcs.Length
                             ConsistencyConfig =
-                                AverageBetweenResponses (uint16 funcs.Length,
+                                AverageBetweenResponses (uint32 funcs.Length,
                                                          (fun (list:List<int>) ->
                                                              list.Sum() / list.Length
                                                          )); }
