@@ -268,5 +268,4 @@ module FrontendHelpers =
                                      ),
                                      UseNativeScanning = true
                                  )
-    let BigQrCodeWarning = "NOTE: the QR codes of transactions are larger than the ones for addresses, so try to focus the camera well and make the QR code fit the whole view (even if it gets out of the limits of the grayed area) to try to get a successful scan."
 
