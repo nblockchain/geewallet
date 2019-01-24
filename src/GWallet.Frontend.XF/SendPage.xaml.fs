@@ -213,6 +213,18 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         Formatting.DecimalAmount CurrencyType.Crypto (decimalAmountTyped / rate)
                 currentAmountTypedEntry.Text <- convertedAmount
 
+    member private this.ShowWarningAndEnableFormWidgetsAgain (msg: string) =
+        let showAndEnableJob = async {
+            let mainThreadSynchContext = SynchronizationContext.Current
+            let displayTask = this.DisplayAlert("Alert", msg, "OK")
+            do! Async.AwaitTask displayTask
+            do! Async.SwitchToContext mainThreadSynchContext
+            this.ToggleInputWidgetsEnabledOrDisabled true
+        }
+        Device.BeginInvokeOnMainThread(fun _ ->
+            showAndEnableJob |> Async.StartImmediate
+        )
+
     member private this.SendTransaction (account: NormalAccount) (transactionInfo: TransactionInfo) (password: string) =
         let maybeTxId =
             try
@@ -225,15 +237,15 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             with
             | :? DestinationEqualToOrigin ->
                 let errMsg = "Transaction's origin cannot be the same as the destination."
-                this.ShowWarningAndEnableForumWidgetsAgain errMsg
+                this.ShowWarningAndEnableFormWidgetsAgain errMsg
                 None
             | :? InsufficientFunds ->
                 let errMsg = "Insufficient funds."
-                this.ShowWarningAndEnableForumWidgetsAgain errMsg
+                this.ShowWarningAndEnableFormWidgetsAgain errMsg
                 None
             | :? InvalidPassword ->
                 let errMsg = "Invalid password, try again."
-                this.ShowWarningAndEnableForumWidgetsAgain errMsg
+                this.ShowWarningAndEnableFormWidgetsAgain errMsg
                 None
         
         match maybeTxId with
@@ -532,7 +544,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             with
             | :? InvalidPassword ->
                 let errMsg = "Invalid password, try again."
-                this.ShowWarningAndEnableForumWidgetsAgain errMsg
+                this.ShowWarningAndEnableFormWidgetsAgain errMsg
                 None
         match maybeRawTransaction with
         | None -> ()
@@ -601,18 +613,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         else
             this.ToggleInputWidgetsEnabledOrDisabled true
 
-    member private this.ShowWarningAndEnableForumWidgetsAgain (msg: string) =
-        let showAndEnableJob = async {
-            let mainThreadSynchContext = SynchronizationContext.Current
-            let displayTask = this.DisplayAlert("Alert", msg, "OK")
-            do! Async.AwaitTask displayTask
-            do! Async.SwitchToContext mainThreadSynchContext
-            this.ToggleInputWidgetsEnabledOrDisabled true
-        }
-        Device.BeginInvokeOnMainThread(fun _ ->
-            showAndEnableJob |> Async.StartImmediate
-        )
-
     member private this.ShowFeeAndSend (maybeTxMetadataWithFeeEstimation: Option<IBlockchainFeeInfo>,
                                         transferAmount: TransferAmount,
                                         destinationAddress: string) =
@@ -625,7 +625,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             match usdRateForCurrency with
             | NotFresh NotAvailable ->
                 let msg = "Internet connection not available at the moment, try again later"
-                this.ShowWarningAndEnableForumWidgetsAgain msg
+                this.ShowWarningAndEnableFormWidgetsAgain msg
             | Fresh someUsdValue | NotFresh (Cached(someUsdValue,_)) ->
 
                 let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
@@ -756,7 +756,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                 let alertLowBalanceMsg =
                                     // TODO: support cold storage mode here
                                     "Remaining balance would be too low for the estimated fee, try sending lower amount"
-                                this.ShowWarningAndEnableForumWidgetsAgain alertLowBalanceMsg
+                                this.ShowWarningAndEnableFormWidgetsAgain alertLowBalanceMsg
                                 return None
                         }
 
