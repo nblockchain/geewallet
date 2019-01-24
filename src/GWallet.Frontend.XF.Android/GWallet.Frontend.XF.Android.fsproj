@@ -166,19 +166,19 @@
       <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.3.0.0\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190122-053840\lib\MonoAndroid71\ZXing.Net.Mobile.Core.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXing.Net.Mobile.Core.dll</HintPath>
     </Reference>
     <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190122-053840\lib\MonoAndroid71\zxing.portable.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\MonoAndroid71\zxing.portable.dll</HintPath>
     </Reference>
     <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190122-053840\lib\MonoAndroid71\ZXingNetMobile.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXingNetMobile.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms.Android">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190122-053840\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.Android.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.Android.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190122-053840\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Android.Support.Annotations">
       <HintPath>..\..\packages\Xamarin.Android.Support.Annotations.27.0.2.1\lib\MonoAndroid81\Xamarin.Android.Support.Annotations.dll</HintPath>
