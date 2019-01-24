@@ -489,6 +489,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         let currencySelectorPicker = mainLayout.FindByName<Picker> "currencySelector"
         let amountToSendEntry = mainLayout.FindByName<Entry> "amountToSend"
         let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
+        let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
 
         let newSendOrSignButtonCaption =
             if sendOrSignButton.Text = sendCaption || sendOrSignButton.Text = sendWipCaption then
@@ -517,6 +518,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             currencySelectorPicker.IsEnabled <- enabled
             amountToSendEntry.IsEnabled <- enabled
             passwordEntry.IsEnabled <- enabled
+            transactionEntry.IsEnabled <- enabled
             sendOrSignButton.Text <- newSendOrSignButtonCaption
         )
 
