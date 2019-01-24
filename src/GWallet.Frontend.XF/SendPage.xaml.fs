@@ -2,6 +2,7 @@
 
 open System
 open System.Linq
+open System.Threading
 open System.Threading.Tasks
 
 open Plugin.Connectivity
@@ -224,47 +225,43 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             with
             | :? DestinationEqualToOrigin ->
                 let errMsg = "Transaction's origin cannot be the same as the destination."
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ToggleInputWidgetsEnabledOrDisabled true
-                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                )
+                this.ShowWarningAndEnableForumWidgetsAgain errMsg
                 None
             | :? InsufficientFunds ->
                 let errMsg = "Insufficient funds."
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ToggleInputWidgetsEnabledOrDisabled true
-                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                )
+                this.ShowWarningAndEnableForumWidgetsAgain errMsg
                 None
             | :? InvalidPassword ->
                 let errMsg = "Invalid password, try again."
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ToggleInputWidgetsEnabledOrDisabled true
-                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                )
+                this.ShowWarningAndEnableForumWidgetsAgain errMsg
                 None
         
         match maybeTxId with
         | None -> ()
         | Some txIdUrlInBlockExplorer ->
             // TODO: allow linking to tx in a button or something?
-            Device.BeginInvokeOnMainThread(fun _ ->
-                this.DisplayAlert("Success", "Transaction sent.", "OK")
-                    .ContinueWith(fun _ ->
-                        Device.BeginInvokeOnMainThread(fun _ ->
-                            let newReceivePage = newReceivePageFunc()
-                            let navNewReceivePage = NavigationPage(newReceivePage)
-                            NavigationPage.SetHasNavigationBar(newReceivePage, false)
-                            NavigationPage.SetHasNavigationBar(navNewReceivePage, false)
-                            receivePage.Navigation.RemovePage receivePage
-                            this.Navigation.InsertPageBefore(navNewReceivePage, this)
 
-                            this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
-                        )
-                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            let showSuccessDialogAndGoBack = async {
+                let mainThreadSynchContext = SynchronizationContext.Current
+                do! Async.AwaitTask (this.DisplayAlert("Success", "Transaction sent.", "OK"))
+                do! Async.SwitchToContext mainThreadSynchContext
+            }
+            let showSuccessAndGoBack = async {
+                let mainThreadSynchContext = SynchronizationContext.Current
+                let displayTask = this.DisplayAlert("Success", "Transaction sent.", "OK")
+                let newReceivePage = newReceivePageFunc()
+                let navNewReceivePage = NavigationPage(newReceivePage)
+                do! Async.AwaitTask displayTask
+                do! Async.SwitchToContext mainThreadSynchContext
+                NavigationPage.SetHasNavigationBar(newReceivePage, false)
+                NavigationPage.SetHasNavigationBar(navNewReceivePage, false)
+                receivePage.Navigation.RemovePage receivePage
+                this.Navigation.InsertPageBefore(navNewReceivePage, this)
+                let! _ = Async.AwaitTask (this.Navigation.PopAsync())
+                return ()
+            }
+            Device.BeginInvokeOnMainThread(fun _ ->
+                showSuccessAndGoBack |> Async.StartImmediate
             )
 
     member private this.ValidateAddress currency destinationAddress =
@@ -535,11 +532,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             with
             | :? InvalidPassword ->
                 let errMsg = "Invalid password, try again."
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    this.DisplayAlert("Alert", errMsg, "OK").ContinueWith(fun _ ->
-                        this.ToggleInputWidgetsEnabledOrDisabled true
-                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                )
+                this.ShowWarningAndEnableForumWidgetsAgain errMsg
                 None
         match maybeRawTransaction with
         | None -> ()
@@ -556,8 +549,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
 
-    member private this.AnswerToFee (account: IAccount) (txInfo: TransactionInfo) (answer: Task<bool>):unit =
-        if (answer.Result) then
+    member private this.AnswerToFee (account: IAccount) (txInfo: TransactionInfo) (positiveFeeAnswer: bool): unit =
+        if positiveFeeAnswer then
             match account with
             | :? NormalAccount as normalAccount ->
                 let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
@@ -583,33 +576,42 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
                 let coldMsg =
                     "Account belongs to cold storage, so you'll need to scan this as a transaction proposal in the next page."
+                let showWarningAndGoForward = async {
+                    let mainThreadSynchContext = SynchronizationContext.Current
+                    let displayTask = this.DisplayAlert("Alert", coldMsg, "OK")
+                    let pairTransactionProposalPage =
+                        PairingFromPage(this,
+                                        "Copy proposal to the clipboard",
+                                        compressedTxProposal,
+                                        Some ("Next step", this:>FrontendHelpers.IAugmentablePayPage))
+                    let navPairPage = NavigationPage pairTransactionProposalPage
+                    do! Async.AwaitTask displayTask
+                    do! Async.SwitchToContext mainThreadSynchContext
+                    NavigationPage.SetHasNavigationBar(pairTransactionProposalPage, false)
+                    NavigationPage.SetHasNavigationBar(navPairPage, false)
+                    let! _ = Async.AwaitTask (this.Navigation.PushAsync navPairPage)
+                    return ()
+                }
                 Device.BeginInvokeOnMainThread(fun _ ->
-                    let alertColdStorageTask =
-                        this.DisplayAlert("Alert",
-                                          coldMsg,
-                                          "OK")
-                    alertColdStorageTask.ContinueWith(
-                        fun _ ->
-                            let pairTransactionProposalPage =
-                                PairingFromPage(this,
-                                                "Copy proposal to the clipboard",
-                                                compressedTxProposal,
-                                                Some ("Next step", this:>FrontendHelpers.IAugmentablePayPage))
-                            NavigationPage.SetHasNavigationBar(pairTransactionProposalPage, false)
-                            let navPairPage = NavigationPage pairTransactionProposalPage
-                            NavigationPage.SetHasNavigationBar(navPairPage, false)
-                            Device.BeginInvokeOnMainThread(fun _ ->
-                                this.Navigation.PushAsync navPairPage
-                                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                            )
-
-                    ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    showWarningAndGoForward |> Async.StartImmediate
                 )
 
             | _ ->
                 failwith "Unexpected SendPage instance running on weird account type"
         else
             this.ToggleInputWidgetsEnabledOrDisabled true
+
+    member private this.ShowWarningAndEnableForumWidgetsAgain (msg: string) =
+        let showAndEnableJob = async {
+            let mainThreadSynchContext = SynchronizationContext.Current
+            let displayTask = this.DisplayAlert("Alert", msg, "OK")
+            do! Async.AwaitTask displayTask
+            do! Async.SwitchToContext mainThreadSynchContext
+            this.ToggleInputWidgetsEnabledOrDisabled true
+        }
+        Device.BeginInvokeOnMainThread(fun _ ->
+            showAndEnableJob |> Async.StartImmediate
+        )
 
     member private this.ShowFeeAndSend (maybeTxMetadataWithFeeEstimation: Option<IBlockchainFeeInfo>,
                                         transferAmount: TransferAmount,
@@ -622,14 +624,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             let usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
             match usdRateForCurrency with
             | NotFresh NotAvailable ->
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    let alertInternetConnTask =
-                        this.DisplayAlert("Alert",
-                                          "Internet connection not available at the moment, try again later",
-                                          "OK")
-                    alertInternetConnTask.ContinueWith(fun _ -> this.ToggleInputWidgetsEnabledOrDisabled true)
-                        |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                )
+                let msg = "Internet connection not available at the moment, try again later"
+                this.ShowWarningAndEnableForumWidgetsAgain msg
             | Fresh someUsdValue | NotFresh (Cached(someUsdValue,_)) ->
 
                 let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
@@ -641,16 +637,42 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                       (Formatting.DecimalAmount CurrencyType.Crypto feeInCrypto)
                                       (txMetadataWithFeeEstimation.Currency.ToString())
                                       feeInFiatValueStr
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    let askFeeTask = this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel")
+                let showFee = async {
+                    let! answerToFee = Async.AwaitTask (this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel"))
 
                     let txInfo = { Metadata = txMetadataWithFeeEstimation;
                                    Amount = transferAmount;
                                    Destination = destinationAddress; }
 
-                    askFeeTask.ContinueWith(this.AnswerToFee account txInfo) |> FrontendHelpers.DoubleCheckCompletion
+                    this.AnswerToFee account txInfo answerToFee
+                }
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    Async.StartImmediate showFee
                 )
 
+    member private this.BroadcastTransaction (signedTransaction): unit =
+        let afterBroadcastJob = async {
+            let mainThreadSynchContext = SynchronizationContext.Current
+            let displayTask = this.DisplayAlert("Success", "Transaction sent.", "OK")
+            let newReceivePage = newReceivePageFunc()
+            let navNewReceivePage = NavigationPage newReceivePage
+            do! Async.AwaitTask displayTask
+            do! Async.SwitchToContext mainThreadSynchContext
+            NavigationPage.SetHasNavigationBar(newReceivePage, false)
+            NavigationPage.SetHasNavigationBar(navNewReceivePage, false)
+            receivePage.Navigation.RemovePage receivePage
+            this.Navigation.InsertPageBefore(navNewReceivePage, this)
+            let! _ = Async.AwaitTask (this.Navigation.PopAsync())
+            return ()
+        }
+        let broadcastJob = async {
+            let! _ = Account.BroadcastTransaction signedTransaction
+            Device.BeginInvokeOnMainThread(fun _ ->
+                Async.StartImmediate afterBroadcastJob
+            )
+        }
+        Async.StartAsTask broadcastJob
+            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     member this.OnSendOrSignButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
@@ -721,24 +743,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         match maybeSignedTransaction with
                         | None -> failwith "if broadcast button was enabled, signed transaction should have been deserialized already"
                         | Some signedTransaction ->
-                            let broadcastTask = Async.StartAsTask (Account.BroadcastTransaction signedTransaction)
-                            broadcastTask.ContinueWith(fun (t: Task<Uri>) ->
-                                Device.BeginInvokeOnMainThread(fun _ ->
-                                    this.DisplayAlert("Success", "Transaction sent.", "OK")
-                                        .ContinueWith(fun _ ->
-                                            Device.BeginInvokeOnMainThread(fun _ ->
-                                                let newReceivePage = newReceivePageFunc()
-                                                let navNewReceivePage = NavigationPage(newReceivePage)
-                                                NavigationPage.SetHasNavigationBar(newReceivePage, false)
-                                                NavigationPage.SetHasNavigationBar(navNewReceivePage, false)
-                                                receivePage.Navigation.RemovePage receivePage
-                                                this.Navigation.InsertPageBefore(navNewReceivePage, this)
-
-                                                this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
-                                            )
-                                        ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                                )
-                            ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                            this.BroadcastTransaction signedTransaction
 
                     | NotAvailableBecauseOfHotMode ->
                         let maybeTxMetadataWithFeeEstimationAsync = async {
@@ -748,28 +753,22 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                 return Some txMetadataWithFeeEstimation
                             with
                             | :? InsufficientBalanceForFee ->
-                                Device.BeginInvokeOnMainThread(fun _ ->
-                                    let alertLowBalanceForFeeTask =
-                                        this.DisplayAlert("Alert",
-                                                          // TODO: support cold storage mode here
-                                                          "Remaining balance would be too low for the estimated fee, try sending lower amount",
-                                                          "OK")
-                                    alertLowBalanceForFeeTask.ContinueWith(
-                                        fun _ -> this.ToggleInputWidgetsEnabledOrDisabled true
-                                    )
-                                        |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                                )
+                                let alertLowBalanceMsg =
+                                    // TODO: support cold storage mode here
+                                    "Remaining balance would be too low for the estimated fee, try sending lower amount"
+                                this.ShowWarningAndEnableForumWidgetsAgain alertLowBalanceMsg
                                 return None
                         }
 
-                        let maybeTxMetadataWithFeeEstimationTask = maybeTxMetadataWithFeeEstimationAsync |> Async.StartAsTask
-
-                        maybeTxMetadataWithFeeEstimationTask.ContinueWith(fun (txMetadataWithFeeEstimationTask: Task<Option<IBlockchainFeeInfo>>) ->
-                            this.ShowFeeAndSend(txMetadataWithFeeEstimationTask.Result,
+                        let showFeeAndSendJob = async {
+                            let! maybeTxMetadataWithFeeEstimation = maybeTxMetadataWithFeeEstimationAsync
+                            this.ShowFeeAndSend(maybeTxMetadataWithFeeEstimation,
                                                 transferAmount,
                                                 validatedDestinationAddress)
-                        ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-
+                        }
+                        showFeeAndSendJob
+                            |> Async.StartAsTask
+                            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     ()
 
     interface FrontendHelpers.IAugmentablePayPage with

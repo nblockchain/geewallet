@@ -73,8 +73,7 @@ type PairingFromPage(previousPage: Page,
         | Some (_, sendPage) ->
             Device.BeginInvokeOnMainThread(fun _ ->
                 let popTask = previousPage.Navigation.PopAsync()
-                popTask.ContinueWith(fun (t: Task<Page>) ->
-                    sendPage.AddTransactionScanner()
-                ) |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                sendPage.AddTransactionScanner()
+                popTask |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         ()
