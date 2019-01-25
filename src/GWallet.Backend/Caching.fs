@@ -442,13 +442,13 @@ module Caching =
                                              (transactionCurrency: Currency)
                                              (feeCurrency: Currency)
                                              (txId: string)
-                                             (transactionAmount: decimal)
+                                             (amount: decimal)
                                              (feeAmount: decimal)
                                                  : unit =
             if (transactionCurrency = feeCurrency) then
-                self.StoreTransactionRecord address transactionCurrency txId (transactionAmount + feeAmount)
+                self.StoreTransactionRecord address transactionCurrency txId amount
             else
-                self.StoreTransactionRecord address transactionCurrency txId transactionAmount
+                self.StoreTransactionRecord address transactionCurrency txId amount
                 self.StoreTransactionRecord address feeCurrency txId feeAmount
 
         member self.SaveServerLastStat (server, historyInfo): unit =
