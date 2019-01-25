@@ -54,7 +54,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     let transactionLayout = mainLayout.FindByName<StackLayout> "transactionLayout"
     let transactionLabel = mainLayout.FindByName<Label> "transactionLabel"
     let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
-    let amountToSend = mainLayout.FindByName<Entry> "amountToSend"
+    let amountToSendEntry = mainLayout.FindByName<Entry> "amountToSend"
     let destinationAddressEntry = mainLayout.FindByName<Entry> "destinationAddressEntry"
     let allBalanceButton = mainLayout.FindByName<Button> "allBalance"
     let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
@@ -103,7 +103,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         if not crossConnectivityInstance.IsConnected then
             Device.BeginInvokeOnMainThread(fun _ ->
                 currencySelectorPicker.IsEnabled <- false
-                amountToSend.IsEnabled <- false
+                amountToSendEntry.IsEnabled <- false
                 destinationAddressEntry.IsEnabled <- false
             )
 
@@ -387,7 +387,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     Device.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Default
                         destinationAddressEntry.Text <- unsignedTransaction.Proposal.DestinationAddress
-                        amountToSend.Text <- unsignedTransaction.Proposal.Amount.ValueToSend.ToString()
+                        amountToSendEntry.Text <- unsignedTransaction.Proposal.Amount.ValueToSend.ToString()
                         passwordEntry.Focus() |> ignore
                     )
             | Some (Signed signedTransaction) ->
