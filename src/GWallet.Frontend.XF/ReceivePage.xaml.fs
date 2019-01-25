@@ -22,6 +22,11 @@ type ReceivePage(account: IAccount,
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let paymentButton = mainLayout.FindByName<Button> "paymentButton"
+
+    let paymentCaption = "Send Payment"
+    let paymentCaptionInColdStorage = "Signoff Payment Offline"
+
     do
         this.Init()
 
@@ -70,17 +75,16 @@ type ReceivePage(account: IAccount,
         if not CrossConnectivity.IsSupported then
             failwith "cross connectivity plugin not supported for this platform?"
 
-        let paymentButton = mainLayout.FindByName<Button> "paymentButton"
         use crossConnectivityInstance = CrossConnectivity.Current
         if crossConnectivityInstance.IsConnected then
-            paymentButton.Text <- "Send Payment"
+            paymentButton.Text <- paymentCaption
             match accountBalance with
             | Cached(amount,_) ->
                 if (amount > 0m) then
                     paymentButton.IsEnabled <- true
             | _ -> ()
         else
-            paymentButton.Text <- "Signoff Payment Offline"
+            paymentButton.Text <- paymentCaptionInColdStorage
             paymentButton.IsEnabled <- true
             transactionHistoryButton.IsEnabled <- false
 
@@ -101,6 +105,14 @@ type ReceivePage(account: IAccount,
             ReceivePage(account, balancesPage, cryptoBalanceLabelInBalancesPage, fiatBalanceLabelInBalancesPage) :> Page
         )
         let sendPage = SendPage(account, this, newReceivePageFunc)
+
+        if paymentButton.Text = paymentCaptionInColdStorage then
+            (sendPage :> FrontendHelpers.IAugmentablePayPage).AddTransactionScanner()
+        elif paymentButton.Text = paymentCaption then
+            ()
+        else
+            failwith "Initialization of ReceivePage() didn't happen?"
+
         NavigationPage.SetHasNavigationBar(sendPage, false)
         let navSendPage = NavigationPage sendPage
         NavigationPage.SetHasNavigationBar(navSendPage, false)
