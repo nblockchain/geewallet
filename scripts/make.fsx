@@ -12,6 +12,7 @@ type Frontend =
     override self.ToString() =
         sprintf "%A" self
 
+let UNIX_NAME = "gwallet"
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
@@ -57,10 +58,10 @@ let GetOrExplain key map =
     | None   -> failwithf "No entry exists in build.config with a key '%s'." key
 
 let prefix = buildConfigContents |> GetOrExplain "Prefix"
-let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", "gwallet"))
+let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
 let binInstallPath = DirectoryInfo (Path.Combine (prefix, "bin"))
 
-let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", "gwallet"))
+let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", UNIX_NAME))
 let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__, "..",
                                                    "src", CONSOLE_FRONTEND, "bin", "Release"))
 
@@ -106,7 +107,7 @@ let BuildSolution buildTool solutionFileName binaryConfig extraOptions =
         Environment.Exit 1
 
 let JustBuild binaryConfig: Frontend =
-    Console.WriteLine "Compiling gwallet..."
+    Console.WriteLine "Compiling..."
     let buildTool = Map.tryFind "BuildTool" buildConfigContents
     if buildTool.IsNone then
         failwith "A BuildTool should have been chosen by the configure script, please report this bug"
@@ -160,7 +161,7 @@ let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): Directo
 let maybeTarget = GatherTarget (Util.FsxArguments(), None)
 match maybeTarget with
 | None ->
-    Console.WriteLine "Building gwallet in DEBUG mode..."
+    Console.WriteLine "Building in DEBUG mode..."
     JustBuild BinaryConfig.Debug
         |> ignore
 
@@ -186,7 +187,7 @@ match maybeTarget with
     let binDir = "bin"
     Directory.CreateDirectory(binDir) |> ignore
 
-    let zipNameWithoutExtension = sprintf "gwallet-%s.v.%s" (frontend.ToString().ToLower()) version
+    let zipNameWithoutExtension = sprintf "%s-%s.v.%s" UNIX_NAME (frontend.ToString().ToLower()) version
     let zipName = sprintf "%s.zip" zipNameWithoutExtension
     let pathToZip = Path.Combine(binDir, zipName)
     if (File.Exists (pathToZip)) then
@@ -230,11 +231,11 @@ match maybeTarget with
         Environment.Exit 1
 
 | Some("install") ->
-    Console.WriteLine "Building gwallet in RELEASE mode..."
+    Console.WriteLine "Building in RELEASE mode..."
     JustBuild BinaryConfig.Release
         |> ignore
 
-    Console.WriteLine "Installing gwallet..."
+    Console.WriteLine "Installing..."
     Console.WriteLine ()
     Directory.CreateDirectory(libInstallPath.FullName) |> ignore
     Misc.CopyDirectoryRecursively (mainBinariesPath, libInstallPath)
