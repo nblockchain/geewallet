@@ -782,6 +782,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     transactionScanQrCodeButton.IsVisible <- true
                 destinationScanQrCodeButton.IsVisible <- false
                 allBalanceButton.IsVisible <- false
+                destinationAddressEntry.IsEnabled <- false
+                amountToSendEntry.IsEnabled <- false
 
                 if sendOrSignButton.Text = sendWipCaption then
                     transactionLabel.Text <- "Signed transaction:"
