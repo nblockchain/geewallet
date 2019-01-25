@@ -9,12 +9,23 @@ let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let fullVersion = Misc.GetCurrentVersion(rootDir)
 let androidVersion = fullVersion.MinorRevision
 
-let newVersion = int androidVersion + 1
-let newFullVersion = Version(sprintf "%s.%s.%s.%s"
-                                 (fullVersion.Major.ToString())
-                                 (fullVersion.Minor.ToString())
-                                 (fullVersion.Build.ToString())
-                                 (newVersion.ToString()))
+let newFullVersion,newVersion =
+    if Util.FsxArguments().Length > 0 then
+        if Util.FsxArguments().Length > 1 then
+            Console.Error.WriteLine "Only one argument supported, not more"
+            Environment.Exit 1
+            failwith "Unreachable"
+        else
+            let full = Version(Util.FsxArguments().Head)
+            full,full.MinorRevision
+    else
+        let newVersion = androidVersion + 1s
+        let full = Version(sprintf "%i.%i.%i.%i"
+                                   fullVersion.Major
+                                   fullVersion.Minor
+                                   fullVersion.Build
+                                   newVersion)
+        full,newVersion
 
 let replaceScript = Path.Combine(__SOURCE_DIRECTORY__, "replace.fsx")
 Process.SafeExecute (sprintf "%s %s %s"
