@@ -23,6 +23,9 @@ type BalanceState = {
 
 module FrontendHelpers =
 
+    // TODO: get rid of this below when we have proper cancellation support
+    let internal BruteForceCancellationEnabled = true
+
     let private enableGtkWorkarounds = true
 
     type IGlobalAppState =
@@ -160,21 +163,33 @@ module FrontendHelpers =
 
         Formatting.DecimalAmount currencyType truncated
 
+    let private MaybeCrash (ex: Exception) =
+        if null = ex then
+            ()
+        else
+            let shouldCrash =
+                if not BruteForceCancellationEnabled then
+                    true
+                else
+                    match ex with
+                    | :? TaskCanceledException as taskEx ->
+                        false
+                    | _ ->
+                        true
+            if shouldCrash then
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    raise ex
+                )
+
     // when running Task<unit> or Task<T> where we want to ignore the T, we should still make sure there is no exception,
     // & if there is, bring it to the main thread to fail fast, report to Sentry, etc, otherwise it gets ignored
     let DoubleCheckCompletion<'T> (task: Task<'T>) =
         task.ContinueWith(fun (t: Task<'T>) ->
-            if (t.Exception <> null) then
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    raise(task.Exception)
-                )
+            MaybeCrash t.Exception
         ) |> ignore
     let DoubleCheckCompletionNonGeneric (task: Task) =
         task.ContinueWith(fun (t: Task) ->
-            if (t.Exception <> null) then
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    raise(task.Exception)
-                )
+            MaybeCrash t.Exception
         ) |> ignore
 
     let DoubleCheckCompletionAsync<'T> (work: Async<'T>): unit =

@@ -464,5 +464,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
         state.Resumed.Add (fun _ -> this.StartBalanceRefreshCycle CycleStart.ImmediateForAll)
 
-        state.GoneToSleep.Add (fun _ -> Async.CancelDefaultToken())
+        state.GoneToSleep.Add (fun _ ->
+            if FrontendHelpers.BruteForceCancellationEnabled then
+                Async.CancelDefaultToken()
+        )
 
