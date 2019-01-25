@@ -367,7 +367,7 @@ module Caching =
                                     let allCombinationsOfTransactions = MapCombinations addressTransactions
                                     let newAddressTransactions =
                                         match List.tryFind (fun combination ->
-                                                               let txSumAmount = List.sumBy (fun (key,(txAmount,_)) ->
+                                                               let txSumAmount = List.sumBy (fun (txId,(txAmount,_)) ->
                                                                                                  txAmount) combination
                                                                previousCachedBalance - txSumAmount = newBalance
                                                            ) allCombinationsOfTransactions with
