@@ -19,7 +19,7 @@ module JsonRpcSharp =
     type TcpClient (resolveHostAsync: unit->Async<IPAddress>, port) =
 
         [<Literal>]
-        let minimumBufferSize = 512
+        let minimumBufferSize = 2048
 
         let GetArrayFromReadOnlyMemory memory: ArraySegment<byte> =
             match MemoryMarshal.TryGetArray memory with
@@ -32,7 +32,7 @@ module JsonRpcSharp =
 
         let ReceiveAsync (socket: Socket) memory socketFlags = async {
             let arraySegment = GetArray memory
-            return! SocketTaskExtensions.ReceiveAsync(socket, arraySegment, socketFlags) |> Async.AwaitTask
+            return! socket.ReceiveAsync(arraySegment, socketFlags) |> Async.AwaitTask
         }
 
         let GetAsciiString (buffer: ReadOnlySequence<byte>) =
@@ -73,23 +73,39 @@ module JsonRpcSharp =
             if not result.IsCompleted then
                 return! ReadPipeInternal reader stringBuilder
             else
+                reader.Complete()
                 return stringBuilder.ToString()
         }
 
-        let ReadPipe pipeReader =
-            ReadPipeInternal pipeReader (StringBuilder())
+        let ReadPipe pipeReader = async {
+            let! s = Async.Catch (ReadPipeInternal pipeReader (StringBuilder()))
+            return s
+        }
 
         let FillPipeAsync (socket: Socket) (writer: PipeWriter) = async {
-            // If incomplete messages become an issue here, consider reinstating the while/loop
-            // logic from the original C# source.  For now, assuming that every response is complete
-            // is working better than trying to handle potential incomplete responses.
-            let memory: Memory<byte> = writer.GetMemory minimumBufferSize
-            let! bytesReceived = ReceiveAsync socket memory SocketFlags.None
-            if bytesReceived > 0 then
-                writer.Advance bytesReceived
-            else
-                raise NoResponseReceivedAfterRequestException
+            let rec FillPipeAsyncHelper() = async {
+                let! bytesReceived = ReceiveAsync socket (writer.GetMemory minimumBufferSize) SocketFlags.None 
+                if bytesReceived > 0 then
+                    writer.Advance bytesReceived
+                    let! result = (writer.FlushAsync().AsTask() |> Async.AwaitTask)
+                    // here we should to check if socket is open and data is avaliable there
+                    // but socket.Available can throw exceptions, so use try-catch block
+                    let socketStatus = 
+                        try 
+                            socket.Available
+                        with
+                            | _ -> 0
+                    if socketStatus > 0 && not result.IsCompleted then
+                        return! FillPipeAsyncHelper()
+                    else
+                        return ""
+                else
+                    raise NoResponseReceivedAfterRequestException
+                    return ""
+            }
+            let! a = Async.Catch (FillPipeAsyncHelper())
             writer.Complete()
+            return a
         }
 
         let Connect () = async {
@@ -114,11 +130,26 @@ module JsonRpcSharp =
                 |> Encoding.UTF8.GetBytes
                 |> ArraySegment<byte>
 
-            let! bytesReceived = socket.SendAsync(buffer, SocketFlags.None) |> Async.AwaitTask
+            let! bytesSent = socket.SendAsync(buffer, SocketFlags.None) |> Async.AwaitTask
             let pipe = Pipe()
-            do! FillPipeAsync socket pipe.Writer
-            let! str = ReadPipe pipe.Reader
-            return str
+            let w = FillPipeAsync socket pipe.Writer
+            let r = ReadPipe pipe.Reader
+            // wait for both tasks finished
+            let taskList = [w;r] 
+                           |> Async.Parallel
+                           |> Async.RunSynchronously
+            let writerResult =  taskList
+                                |> Seq.head
+            let readerResult =  taskList
+                                |> Seq.last
+            return match writerResult with
+                   | Choice1Of2 _ -> match readerResult with
+                                     // reading result
+                                     | Choice1Of2 str -> str
+                                     // possible reader pipe exception
+                                     | Choice2Of2 exn -> raise exn
+                   // possible socket reading exception
+                   | Choice2Of2 exn -> raise exn
         }
 
     type LegacyTcpClient  (resolveHostAsync: unit->Async<IPAddress>, port) =
