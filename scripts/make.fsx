@@ -107,7 +107,7 @@ let BuildSolution buildTool solutionFileName binaryConfig extraOptions =
         Environment.Exit 1
 
 let JustBuild binaryConfig: Frontend =
-    Console.WriteLine "Compiling..."
+    printfn "Building in %s mode..." (binaryConfig.ToString().ToUpper())
     let buildTool = Map.tryFind "BuildTool" buildConfigContents
     if buildTool.IsNone then
         failwith "A BuildTool should have been chosen by the configure script, please report this bug"
@@ -161,7 +161,6 @@ let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): Directo
 let maybeTarget = GatherTarget (Util.FsxArguments(), None)
 match maybeTarget with
 | None ->
-    Console.WriteLine "Building in DEBUG mode..."
     JustBuild BinaryConfig.Debug
         |> ignore
 
@@ -231,7 +230,6 @@ match maybeTarget with
         Environment.Exit 1
 
 | Some("install") ->
-    Console.WriteLine "Building in RELEASE mode..."
     JustBuild BinaryConfig.Release
         |> ignore
 
