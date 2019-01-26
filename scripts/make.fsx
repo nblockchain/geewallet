@@ -63,8 +63,8 @@ let GetOrExplain key map =
     | None   -> failwithf "No entry exists in build.config with a key '%s'." key
 
 let prefix = buildConfigContents |> GetOrExplain "Prefix"
-let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
-let binInstallPath = DirectoryInfo (Path.Combine (prefix, "bin"))
+let libInstallDir = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
+let binInstallDir = DirectoryInfo (Path.Combine (prefix, "bin"))
 
 let wrapperScript = """#!/bin/sh
 set -e
@@ -139,13 +139,13 @@ let JustBuild binaryConfig: Frontend*FileInfo =
             Frontend.Console
 
     let scriptName = sprintf "%s-%s" UNIX_NAME (frontend.ToString().ToLower())
-    let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", scriptName))
-    Directory.CreateDirectory(launcherScriptPath.Directory.FullName) |> ignore
+    let launcherScriptFile = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", scriptName))
+    Directory.CreateDirectory(launcherScriptFile.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
-        wrapperScript.Replace("$TARGET_DIR", libInstallPath.FullName)
+        wrapperScript.Replace("$TARGET_DIR", libInstallDir.FullName)
                      .Replace("$GWALLET_PROJECT", frontend.GetProjectName())
-    File.WriteAllText (launcherScriptPath.FullName, wrapperScriptWithPaths)
-    frontend,launcherScriptPath
+    File.WriteAllText (launcherScriptFile.FullName, wrapperScriptWithPaths)
+    frontend,launcherScriptFile
 
 let MakeCheckCommand (commandName: string) =
     if (Process.CommandCheck commandName).IsNone then
@@ -232,19 +232,19 @@ match maybeTarget with
 | Some("install") ->
     let frontend,launcherScript = JustBuild BinaryConfig.Release
 
-    let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__, "..",
+    let mainBinariesDir = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__, "..",
                                                        "src", frontend.GetProjectName(), "bin", "Release"))
 
     Console.WriteLine "Installing..."
     Console.WriteLine ()
-    Directory.CreateDirectory(libInstallPath.FullName) |> ignore
-    Misc.CopyDirectoryRecursively (mainBinariesPath, libInstallPath)
+    Directory.CreateDirectory(libInstallDir.FullName) |> ignore
+    Misc.CopyDirectoryRecursively (mainBinariesDir, libInstallDir)
 
-    let finalPrefixPathOfWrapperScript = FileInfo (Path.Combine(binInstallPath.FullName, launcherScript.Name))
-    if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
-        Directory.CreateDirectory(finalPrefixPathOfWrapperScript.Directory.FullName) |> ignore
-    File.Copy(launcherScript.FullName, finalPrefixPathOfWrapperScript.FullName, true)
-    if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, Echo.Off)).ExitCode <> 0) then
+    let finalLauncherScriptInPrefix = FileInfo (Path.Combine(binInstallDir.FullName, launcherScript.Name))
+    if not (Directory.Exists(finalLauncherScriptInPrefix.Directory.FullName)) then
+        Directory.CreateDirectory(finalLauncherScriptInPrefix.Directory.FullName) |> ignore
+    File.Copy(launcherScript.FullName, finalLauncherScriptInPrefix.FullName, true)
+    if ((Process.Execute(sprintf "chmod ugo+x %s" finalLauncherScriptInPrefix.FullName, Echo.Off)).ExitCode <> 0) then
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
@@ -257,18 +257,18 @@ match maybeTarget with
     proc.WaitForExit()
 
 | Some "update-servers" ->
-    let utxoCoinFolder = Path.Combine("src", "GWallet.Backend", "UtxoCoin")
+    let utxoCoinRelativePath = Path.Combine("src", "GWallet.Backend", "UtxoCoin")
 
     let btcServersUrl = "https://raw.githubusercontent.com/spesmilo/electrum/master/electrum/servers.json"
-    let btcServersFile = Path.Combine(utxoCoinFolder, "btc-servers.json")
-    let updateBtc = Process.Execute (sprintf "curl --fail -o %s %s" btcServersFile btcServersUrl, Echo.All)
+    let btcServersFileRelativePath = Path.Combine(utxoCoinRelativePath, "btc-servers.json")
+    let updateBtc = Process.Execute (sprintf "curl --fail -o %s %s" btcServersFileRelativePath btcServersUrl, Echo.All)
     if (updateBtc.ExitCode <> 0) then
         Console.Error.WriteLine "Update failed"
         Environment.Exit 1
 
     let ltcServersUrl = "https://raw.githubusercontent.com/pooler/electrum-ltc/master/electrum_ltc/servers.json"
-    let ltcServersFile = Path.Combine(utxoCoinFolder, "ltc-servers.json")
-    let updateLtc = Process.Execute (sprintf "curl --fail -o %s %s" ltcServersFile ltcServersUrl, Echo.All)
+    let ltcServersFileRelativePath = Path.Combine(utxoCoinRelativePath, "ltc-servers.json")
+    let updateLtc = Process.Execute (sprintf "curl --fail -o %s %s" ltcServersFileRelativePath ltcServersUrl, Echo.All)
     if (updateLtc.ExitCode <> 0) then
         Console.Error.WriteLine "Update failed"
         Environment.Exit 1
