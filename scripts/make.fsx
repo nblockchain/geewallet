@@ -6,17 +6,22 @@ open System.Linq
 #load "Infra.fs"
 open FSX.Infrastructure
 
-type Frontend =
-    | Console
-    | Gtk
-    override self.ToString() =
-        sprintf "%A" self
 
 let UNIX_NAME = "gwallet"
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
 let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
+
+type Frontend =
+    | Console
+    | Gtk
+    member self.GetProjectName() =
+        match self with
+        | Console -> CONSOLE_FRONTEND
+        | Gtk -> GTK_FRONTEND
+    override self.ToString() =
+        sprintf "%A" self
 
 type BinaryConfig =
     | Debug
@@ -61,10 +66,6 @@ let prefix = buildConfigContents |> GetOrExplain "Prefix"
 let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
 let binInstallPath = DirectoryInfo (Path.Combine (prefix, "bin"))
 
-let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", UNIX_NAME))
-let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__, "..",
-                                                   "src", CONSOLE_FRONTEND, "bin", "Release"))
-
 let wrapperScript = """#!/bin/sh
 set -e
 exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
@@ -106,7 +107,7 @@ let BuildSolution buildTool solutionFileName binaryConfig extraOptions =
         PrintNugetVersion() |> ignore
         Environment.Exit 1
 
-let JustBuild binaryConfig: Frontend =
+let JustBuild binaryConfig: Frontend*FileInfo =
     printfn "Building in %s mode..." (binaryConfig.ToString().ToUpper())
     let buildTool = Map.tryFind "BuildTool" buildConfigContents
     if buildTool.IsNone then
@@ -137,12 +138,14 @@ let JustBuild binaryConfig: Frontend =
         else
             Frontend.Console
 
+    let scriptName = sprintf "%s-%s" UNIX_NAME (frontend.ToString().ToLower())
+    let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", scriptName))
     Directory.CreateDirectory(launcherScriptPath.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
         wrapperScript.Replace("$TARGET_DIR", libInstallPath.FullName)
-                     .Replace("$GWALLET_PROJECT", CONSOLE_FRONTEND)
+                     .Replace("$GWALLET_PROJECT", frontend.GetProjectName())
     File.WriteAllText (launcherScriptPath.FullName, wrapperScriptWithPaths)
-    frontend
+    frontend,launcherScriptPath
 
 let MakeCheckCommand (commandName: string) =
     if (Process.CommandCheck commandName).IsNone then
@@ -150,10 +153,7 @@ let MakeCheckCommand (commandName: string) =
         Environment.Exit 1
 
 let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): DirectoryInfo*FileInfo =
-    let frontendProjName =
-        match frontend with
-        | Frontend.Console -> CONSOLE_FRONTEND
-        | Frontend.Gtk -> GTK_FRONTEND
+    let frontendProjName = frontend.GetProjectName()
     let dir = Path.Combine ("src", frontendProjName, "bin", binaryConfig.ToString()) |> DirectoryInfo
     let mainExecFile = Path.Combine(dir.FullName, frontendProjName + ".exe") |> FileInfo
     dir,mainExecFile
@@ -182,11 +182,11 @@ match maybeTarget with
     let version = Misc.GetCurrentVersion(rootDir).ToString()
 
     let release = BinaryConfig.Release
-    let frontend = JustBuild release
+    let frontend,script = JustBuild release
     let binDir = "bin"
     Directory.CreateDirectory(binDir) |> ignore
 
-    let zipNameWithoutExtension = sprintf "%s-%s.v.%s" UNIX_NAME (frontend.ToString().ToLower()) version
+    let zipNameWithoutExtension = sprintf "%s-v%s" script.Name version
     let zipName = sprintf "%s.zip" zipNameWithoutExtension
     let pathToZip = Path.Combine(binDir, zipName)
     if (File.Exists (pathToZip)) then
@@ -230,24 +230,26 @@ match maybeTarget with
         Environment.Exit 1
 
 | Some("install") ->
-    JustBuild BinaryConfig.Release
-        |> ignore
+    let frontend,launcherScript = JustBuild BinaryConfig.Release
+
+    let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__, "..",
+                                                       "src", frontend.GetProjectName(), "bin", "Release"))
 
     Console.WriteLine "Installing..."
     Console.WriteLine ()
     Directory.CreateDirectory(libInstallPath.FullName) |> ignore
     Misc.CopyDirectoryRecursively (mainBinariesPath, libInstallPath)
 
-    let finalPrefixPathOfWrapperScript = FileInfo (Path.Combine(binInstallPath.FullName, launcherScriptPath.Name))
+    let finalPrefixPathOfWrapperScript = FileInfo (Path.Combine(binInstallPath.FullName, launcherScript.Name))
     if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
         Directory.CreateDirectory(finalPrefixPathOfWrapperScript.Directory.FullName) |> ignore
-    File.Copy(launcherScriptPath.FullName, finalPrefixPathOfWrapperScript.FullName, true)
+    File.Copy(launcherScript.FullName, finalPrefixPathOfWrapperScript.FullName, true)
     if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, Echo.Off)).ExitCode <> 0) then
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
     let debug = BinaryConfig.Debug
-    let frontend = JustBuild debug
+    let frontend,_ = JustBuild debug
 
     let frontendDir,frontendExecutable = GetPathToFrontend frontend debug
 
