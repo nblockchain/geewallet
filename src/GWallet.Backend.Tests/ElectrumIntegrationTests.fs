@@ -161,9 +161,7 @@ type ElectrumIntegrationTests() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
                                        ElectrumClient.GetUnspentTransactionOutputs UtxosAssertion
 
-(*  disabled this part of the tests because it fails, see the bug: https://gitlab.com/DiginexGlobal/geewallet/issues/54
-
         Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
                                        ElectrumClient.GetUnspentTransactionOutputs UtxosAssertion
- *)
+

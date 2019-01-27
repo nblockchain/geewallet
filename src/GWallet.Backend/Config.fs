@@ -2,7 +2,10 @@
 
 open System
 open System.IO
+open System.Linq
 open System.Reflection
+
+open Xamarin.Essentials
 
 // TODO: make internal when tests don't depend on this anymore
 module Config =
@@ -14,7 +17,8 @@ module Config =
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
     let EthNet = Nethereum.Signer.Chain.MainNet
 
-    let mutable NewUtxoTcpClientDisabled = true
+    // TODO: make this non-mutable, and make the tests instantiate Legacy or nonLegacyTcpClient themselves instead
+    let mutable NewUtxoTcpClientDisabled = false
 
     let internal DebugLog =
 #if DEBUG
@@ -22,6 +26,22 @@ module Config =
 #else
         false
 #endif
+
+    let IsMacPlatform() =
+        let macDirs = [ "/Applications"; "/System"; "/Users"; "/Volumes" ]
+        match Environment.OSVersion.Platform with
+        | PlatformID.MacOSX ->
+            true
+        | PlatformID.Unix ->
+            if macDirs.All(fun dir -> Directory.Exists dir) then
+                if not (DeviceInfo.Platform.Equals DevicePlatform.iOS) then
+                    true
+                else
+                    false
+            else
+                false
+        | _ ->
+            false
 
     let GetMonoVersion(): Option<Version> =
         let maybeMonoRuntime = Type.GetType "Mono.Runtime" |> Option.ofObj
