@@ -88,14 +88,8 @@ module JsonRpcSharp =
                 if bytesReceived > 0 then
                     writer.Advance bytesReceived
                     let! result = (writer.FlushAsync().AsTask() |> Async.AwaitTask)
-                    // here we should to check if socket is open and data is avaliable there
-                    // but socket.Available can throw exceptions, so use try-catch block
-                    let socketStatus = 
-                        try 
-                            socket.Available
-                        with
-                            | _ -> 0
-                    if socketStatus > 0 && not result.IsCompleted then
+                    let socketStatus = socket.Available
+                    if  socketStatus > 0 && not result.IsCompleted then
                         return! FillPipeAsyncHelper()
                     else
                         return ""
@@ -135,9 +129,8 @@ module JsonRpcSharp =
             let w = FillPipeAsync socket pipe.Writer
             let r = ReadPipe pipe.Reader
             // wait for both tasks finished
-            let taskList = [w;r] 
-                           |> Async.Parallel
-                           |> Async.RunSynchronously
+            let writerAndReaderJobs = Async.Parallel ([w;r])
+            let! taskList = writerAndReaderJobs
             let writerResult =  taskList
                                 |> Seq.head
             let readerResult =  taskList
