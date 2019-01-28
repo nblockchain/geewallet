@@ -78,8 +78,8 @@ module JsonRpcSharp =
         }
 
         let ReadFromPipe pipeReader = async {
-            let! s = Async.Catch (ReadPipeInternal pipeReader (StringBuilder()))
-            return s
+            let! result = Async.Catch (ReadPipeInternal pipeReader (StringBuilder()))
+            return result
         }
 
         let WriteIntoPipeAsync (socket: Socket) (writer: PipeWriter) = async {
@@ -88,17 +88,17 @@ module JsonRpcSharp =
                 if bytesReceived > 0 then
                     writer.Advance bytesReceived
                     let! result = (writer.FlushAsync().AsTask() |> Async.AwaitTask)
-                    let socketStatus = socket.Available
-                    if  socketStatus > 0 && not result.IsCompleted then
+                    let dataAvailableInSocket = socket.Available
+                    if  dataAvailableInSocket > 0 && not result.IsCompleted then
                         return! WritePipeInternal()
                     else
-                        return ""
+                        return String.Empty
                 else
                     return raise NoResponseReceivedAfterRequestException
             }
-            let! a = Async.Catch (WritePipeInternal())
+            let! result = Async.Catch (WritePipeInternal())
             writer.Complete()
-            return a
+            return result
         }
 
         let Connect () = async {
@@ -125,25 +125,28 @@ module JsonRpcSharp =
 
             let! bytesSent = socket.SendAsync(buffer, SocketFlags.None) |> Async.AwaitTask
             let pipe = Pipe()
-            let w = WriteIntoPipeAsync socket pipe.Writer
-            let r = ReadFromPipe pipe.Reader
-            // wait for both tasks finished
-            let writerAndReaderJobs = Async.Parallel ([w;r])
-            let! taskList = writerAndReaderJobs
-            let writerResult =  taskList
+
+            let writerJob = WriteIntoPipeAsync socket pipe.Writer
+            let readerJob = ReadFromPipe pipe.Reader
+            let bothJobs = Async.Parallel [writerJob;readerJob]
+
+            let! writerAndReaderResults = bothJobs
+            let writerResult =  writerAndReaderResults
                                 |> Seq.head
-            let readerResult =  taskList
+            let readerResult =  writerAndReaderResults
                                 |> Seq.last
+
             return match writerResult with
                    | Choice1Of2 _ ->
                        match readerResult with
                        // reading result
                        | Choice1Of2 str -> str
                        // possible reader pipe exception
-                       | Choice2Of2 exn -> raise exn
+                       | Choice2Of2 ex -> raise ex
                    // possible socket reading exception
-                   | Choice2Of2 exn -> raise exn
+                   | Choice2Of2 ex -> raise ex
         }
+
 
     type LegacyTcpClient  (resolveHostAsync: unit->Async<IPAddress>, port) =
         let rec WrapResult (acc: List<byte>): string =
