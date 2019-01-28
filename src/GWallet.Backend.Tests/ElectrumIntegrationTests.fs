@@ -136,34 +136,37 @@ type ElectrumIntegrationTests() =
         Assert.That(utxos.Length, Is.GreaterThan 1)
 
     [<Test>]
-    member __.``can connect (just check balance) to some electrum BTC servers``() =
-        Config.NewUtxoTcpClientDisabled <- true // <- test Legacy client first
-        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
-                                       ElectrumClient.GetBalance BalanceAssertion
+    member __.``configuration is correct for this client``() =
+        let shouldUseLegacyClient =
+            if Config.IsMacPlatform() then
+                true
+            elif Environment.OSVersion.Platform = PlatformID.Unix then
+                match Config.GetMonoVersion() with
+                | None ->
+                    Assert.Fail "unix platform can only be mono, as we must not be running this test in mobile..."
+                    failwith "unreachable"
+                | Some monoVersion ->
+                    if monoVersion < Version("5.18.0.240") then
+                        true
+                    else
+                        false
+            else
+                false
 
-        Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
+        Assert.That(Config.NewUtxoTcpClientDisabled, Is.EqualTo shouldUseLegacyClient)
+
+    [<Test>]
+    member __.``can connect (just check balance) to some electrum BTC servers``() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
                                        ElectrumClient.GetBalance BalanceAssertion
 
     [<Test>]
     member __.``can connect (just check balance) to some electrum LTC servers``() =
-        Config.NewUtxoTcpClientDisabled <- true // <- test Legacy client first
-        CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC
-                                       ElectrumClient.GetBalance BalanceAssertion
-
-        Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList Currency.LTC
                                        ElectrumClient.GetBalance BalanceAssertion
 
     [<Test>]
     member __.``can get list UTXOs of an address from some electrum BTC servers``() =
-        Config.NewUtxoTcpClientDisabled <- true // <- test Legacy client first
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
                                        ElectrumClient.GetUnspentTransactionOutputs UtxosAssertion
 
-(*  disabled this part of the tests because it fails, see the bug: https://gitlab.com/DiginexGlobal/geewallet/issues/54
-
-        Config.NewUtxoTcpClientDisabled <- false // in case the non-Legacy client can run in this platform
-        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList Currency.BTC
-                                       ElectrumClient.GetUnspentTransactionOutputs UtxosAssertion
- *)

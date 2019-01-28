@@ -149,7 +149,7 @@ let rec TryArchiveAccount account =
         Presentation.Error "Invalid password, try again."
         TryArchiveAccount account
 
-let rec AddReadOnlyAccount() =
+let rec AddReadOnlyAccounts() =
     Console.Write "JSON fragment from wallet to pair with: "
     let watchWalletInfoJson = Console.ReadLine().Trim()
     let watchWalletInfo = Marshalling.Deserialize watchWalletInfoJson
@@ -221,8 +221,8 @@ let rec PerformOptions(numAccounts: int) =
     | Options.Refresh -> ()
     | Options.SendPayment ->
         SendPayment()
-    | Options.AddReadonlyAccount ->
-        AddReadOnlyAccount()
+    | Options.AddReadonlyAccounts ->
+        AddReadOnlyAccounts()
     | Options.SignOffPayment ->
         SignOffPayment()
     | Options.BroadcastPayment ->

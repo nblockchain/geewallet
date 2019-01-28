@@ -14,6 +14,7 @@ stockmono_build:
   script:
     # https://askubuntu.com/a/1013396
     - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
+    - mono --version
 
     - time (./configure.sh && make && make install)
     # so that we log the version of nuget for when it works
@@ -47,6 +48,7 @@ newmono_build:
     - echo "deb https://download.mono-project.com/repo/ubuntu stable-bionic main" | tee /etc/apt/sources.list.d/mono-official-stable.list
     - apt update
     - apt install -y mono-devel fsharp
+    - mono --version
 
     # NOTE: this is needed as a workaround to this bug: https://github.com/mono/mono/issues/10570
     # TODO: check for .NET SDK in the configure.fsx file as well

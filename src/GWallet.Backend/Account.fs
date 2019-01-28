@@ -242,6 +242,21 @@ module Account =
                 return fee :> IBlockchainFeeInfo
         }
 
+    let private SaveOutgoingTransactionInCache transactionProposal (fee: IBlockchainFeeInfo) txId =
+        let amountTransferredPlusFeeIfCurrencyFeeMatches =
+            if transactionProposal.Amount.BalanceAtTheMomentOfSending = transactionProposal.Amount.ValueToSend
+                || transactionProposal.Amount.Currency <> fee.Currency then
+                transactionProposal.Amount.ValueToSend
+            else
+                transactionProposal.Amount.ValueToSend + fee.FeeValue
+        Caching.Instance.StoreOutgoingTransaction
+            transactionProposal.OriginAddress
+            transactionProposal.Amount.Currency
+            fee.Currency
+            txId
+            amountTransferredPlusFeeIfCurrencyFeeMatches
+            fee.FeeValue
+
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
     // broadcast it even if you sent it
@@ -257,14 +272,7 @@ module Account =
                 else
                     failwith (sprintf "Unknown currency %A" currency)
 
-            let feeCurrency = trans.TransactionInfo.Metadata.Currency
-            Caching.Instance.StoreOutgoingTransaction
-                trans.TransactionInfo.Proposal.OriginAddress
-                currency
-                feeCurrency
-                txId
-                trans.TransactionInfo.Proposal.Amount.ValueToSend
-                trans.TransactionInfo.Metadata.FeeValue
+            SaveOutgoingTransactionInCache trans.TransactionInfo.Proposal trans.TransactionInfo.Metadata txId
 
             return BlockExplorer.GetTransaction currency txId
         }
@@ -384,14 +392,14 @@ module Account =
                 | _ ->
                     failwithf "Unknown tx metadata type"
 
-            let feeCurrency = txMetadata.Currency
-            Caching.Instance.StoreOutgoingTransaction
-                baseAccount.PublicAddress
-                currency
-                feeCurrency
-                txId
-                amount.ValueToSend
-                txMetadata.FeeValue
+            let transactionProposal =
+                {
+                    OriginAddress = baseAccount.PublicAddress
+                    Amount = amount
+                    DestinationAddress = destination
+                }
+
+            SaveOutgoingTransactionInCache transactionProposal txMetadata txId
 
             return BlockExplorer.GetTransaction currency txId
         }
