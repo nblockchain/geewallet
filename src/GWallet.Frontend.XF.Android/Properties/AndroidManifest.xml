@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="0.4.1.95" package="com.diginex.geewallet" android:versionCode="95">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="0.4.1.96" package="com.diginex.geewallet" android:versionCode="96">
 	<uses-sdk android:minSdkVersion="15" android:targetSdkVersion="26" />
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.CAMERA" />
