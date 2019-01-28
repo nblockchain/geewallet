@@ -135,11 +135,12 @@ module JsonRpcSharp =
             let readerResult =  taskList
                                 |> Seq.last
             return match writerResult with
-                   | Choice1Of2 _ -> match readerResult with
-                                     // reading result
-                                     | Choice1Of2 str -> str
-                                     // possible reader pipe exception
-                                     | Choice2Of2 exn -> raise exn
+                   | Choice1Of2 _ ->
+                       match readerResult with
+                       // reading result
+                       | Choice1Of2 str -> str
+                       // possible reader pipe exception
+                       | Choice2Of2 exn -> raise exn
                    // possible socket reading exception
                    | Choice2Of2 exn -> raise exn
         }
