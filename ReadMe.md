@@ -62,6 +62,14 @@ This list is the (intended) order of preference for new features:
 (Only intelligible if you're a contributor):
 - Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/, or wait for https://github.com/Microsoft/visualfsharp/pull/5850).
 - Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
+- Speed improvements:
+  * If using Mode.Fast, use more parallel jobs when instantiating the FaultParallelTolerant settings.
+  * Frontend.XF: split WelcomePage in two & start creating the private key after clicking [Next], while user is writing the payment password.
+  * If using Mode.Fast, don't query confirmed&unconfirmed balances, just query confirmed balance and return `decimal*Async<bool>` (first decimal: confirmed balance, second bool: imminentPayment).
+  * Frontend.XF: start querying servers in WelcomePage, with dummy addresses, just to gather server stats.
+  * First startup: bundle stats for all servers (gathered by the maintainer as a user).
+  * Frontend.XF: show balances as soon as the first confirmed balance is retreived, and put an in-progress animated gif in the currency rows that are still being queried (this way you will easily tell as well which currencies have low server availability, which might push the user to turn some of them off in the settings).
+  * Update bundled XML (at startup and from time to time, every week?) of server stats, retreiving it from github or gitlab.
 
 ## Anti-roadmap
 
