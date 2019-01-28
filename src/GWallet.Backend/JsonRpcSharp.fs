@@ -94,8 +94,7 @@ module JsonRpcSharp =
                     else
                         return ""
                 else
-                    raise NoResponseReceivedAfterRequestException
-                    return ""
+                    return raise NoResponseReceivedAfterRequestException
             }
             let! a = Async.Catch (FillPipeAsyncHelper())
             writer.Complete()
