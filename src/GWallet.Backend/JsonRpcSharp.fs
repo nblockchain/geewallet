@@ -77,26 +77,26 @@ module JsonRpcSharp =
                 return stringBuilder.ToString()
         }
 
-        let ReadPipe pipeReader = async {
+        let ReadFromPipe pipeReader = async {
             let! s = Async.Catch (ReadPipeInternal pipeReader (StringBuilder()))
             return s
         }
 
-        let FillPipeAsync (socket: Socket) (writer: PipeWriter) = async {
-            let rec FillPipeAsyncHelper() = async {
+        let WriteIntoPipeAsync (socket: Socket) (writer: PipeWriter) = async {
+            let rec WritePipeInternal() = async {
                 let! bytesReceived = ReceiveAsync socket (writer.GetMemory minimumBufferSize) SocketFlags.None 
                 if bytesReceived > 0 then
                     writer.Advance bytesReceived
                     let! result = (writer.FlushAsync().AsTask() |> Async.AwaitTask)
                     let socketStatus = socket.Available
                     if  socketStatus > 0 && not result.IsCompleted then
-                        return! FillPipeAsyncHelper()
+                        return! WritePipeInternal()
                     else
                         return ""
                 else
                     return raise NoResponseReceivedAfterRequestException
             }
-            let! a = Async.Catch (FillPipeAsyncHelper())
+            let! a = Async.Catch (WritePipeInternal())
             writer.Complete()
             return a
         }
@@ -125,8 +125,8 @@ module JsonRpcSharp =
 
             let! bytesSent = socket.SendAsync(buffer, SocketFlags.None) |> Async.AwaitTask
             let pipe = Pipe()
-            let w = FillPipeAsync socket pipe.Writer
-            let r = ReadPipe pipe.Reader
+            let w = WriteIntoPipeAsync socket pipe.Writer
+            let r = ReadFromPipe pipe.Reader
             // wait for both tasks finished
             let writerAndReaderJobs = Async.Parallel ([w;r])
             let! taskList = writerAndReaderJobs
