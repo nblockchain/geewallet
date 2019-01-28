@@ -17,8 +17,7 @@ module Config =
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
     let EthNet = Nethereum.Signer.Chain.MainNet
 
-    // TODO: make this non-mutable, and make the tests instantiate Legacy or nonLegacyTcpClient themselves instead
-    let mutable NewUtxoTcpClientDisabled = false
+
 
     let internal DebugLog =
 #if DEBUG
@@ -63,6 +62,17 @@ module Config =
                 let fullVersion = displayName.Invoke(null, null) :?> string
                 let simpleVersion = fullVersion.Substring(0, fullVersion.IndexOf(' ')) |> Version
                 simpleVersion |> Some
+
+    // TODO: make the tests instantiate Legacy or nonLegacyTcpClient themselves and test both from them
+    let NewUtxoTcpClientDisabled =
+
+        //in macOS, even if using Mono >5.18.0.240, we still get the same issue of receiving an empty string from the
+        //"blockchain.scripthash.listunspent" stratum API, like: https://gitlab.com/DiginexGlobal/geewallet/issues/54
+        IsMacPlatform() ||
+
+        //we need this check because older versions of Mono (such as 5.16, or Ubuntu 18.04 LTS's version: 4.6.2)
+        //don't work with the new TCP client, only the legacy one works
+        (Option.exists (fun monoVersion -> monoVersion < Version("5.18.0.240")) (GetMonoVersion()))
 
     // TODO: move to FaultTolerantParallelClient
     let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 60.0

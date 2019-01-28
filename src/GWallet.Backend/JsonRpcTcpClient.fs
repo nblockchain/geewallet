@@ -48,18 +48,7 @@ type JsonRpcTcpClient (host: string, port: int) =
     }
 
     let rpcTcpClientInnerRequest =
-        let monoVersion = Config.GetMonoVersion()
-
-        if Config.NewUtxoTcpClientDisabled ||
-
-           //in macOS, even if using Mono >5.18.0.240, we still get the same issue of receiving an empty string from the
-           //"blockchain.scripthash.listunspent" stratum API, like: https://gitlab.com/DiginexGlobal/geewallet/issues/54
-           Config.IsMacPlatform() ||
-
-            //we need this check because older versions of Mono (such as 5.16, or Ubuntu 18.04 LTS's version: 4.6.2)
-            //don't work with the new TCP client, only the legacy one works
-            (Option.exists (fun monoVersion -> monoVersion < Version("5.18.0.240")) monoVersion) then
-
+        if Config.NewUtxoTcpClientDisabled then
             let tcpClient = JsonRpcSharp.LegacyTcpClient(ResolveHost, port)
             tcpClient.Request
         else
