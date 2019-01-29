@@ -17,7 +17,8 @@ module Config =
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
     let EthNet = Nethereum.Signer.Chain.MainNet
 
-
+    // https://github.com/Nethereum/Nethereum/issues/509
+    let EthTokenEstimationCouldBeBuggyAsInNotAccurate = true
 
     let internal DebugLog =
 #if DEBUG

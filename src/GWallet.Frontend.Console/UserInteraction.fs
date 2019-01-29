@@ -508,7 +508,7 @@ module UserInteraction =
         try
             let txMetadataWithFeeEstimation =
                 Account.EstimateFee account amount destination |> Async.RunSynchronously
-            Presentation.ShowFee txMetadataWithFeeEstimation
+            Presentation.ShowFee amount.Currency txMetadataWithFeeEstimation
             let accept = AskYesNo "Do you accept?"
             if accept then
                 Some(txMetadataWithFeeEstimation)

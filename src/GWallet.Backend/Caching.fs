@@ -445,10 +445,9 @@ module Caching =
                                              (amount: decimal)
                                              (feeAmount: decimal)
                                                  : unit =
-            if (transactionCurrency = feeCurrency) then
-                self.StoreTransactionRecord address transactionCurrency txId amount
-            else
-                self.StoreTransactionRecord address transactionCurrency txId amount
+
+            self.StoreTransactionRecord address transactionCurrency txId amount
+            if transactionCurrency <> feeCurrency && (not Config.EthTokenEstimationCouldBeBuggyAsInNotAccurate) then
                 self.StoreTransactionRecord address feeCurrency txId feeAmount
 
         member self.SaveServerLastStat (server, historyInfo): unit =
