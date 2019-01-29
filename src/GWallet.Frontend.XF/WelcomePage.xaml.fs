@@ -22,15 +22,10 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     let email = mainLayout.FindByName<Entry>("emailEntry")
     let dob = mainLayout.FindByName<Entry>("dobEntry")
 
-    let password = mainLayout.FindByName<Entry>("passwordEntry")
-    let passwordConfirmation = mainLayout.FindByName<Entry>("passwordEntryConfirmation")
-
     let MaybeEnableCreateButton() =
         let createButton = mainLayout.FindByName<Button>("createButton")
         if (passphrase.Text <> null && passphrase.Text.Length > 0 &&
             passphraseConfirmation.Text <> null && passphraseConfirmation.Text.Length > 0 &&
-            password.Text <> null && password.Text.Length > 0 &&
-            passwordConfirmation.Text <> null && passwordConfirmation.Text.Length > 0 &&
             email.Text <> null && email.Text.Length > 0 &&
             dob.Text <> null && dob.Text.Length > 0) then
             createButton.IsEnabled <- true
@@ -84,8 +79,6 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         let entry2 = mainLayout.FindByName<Entry> "passphraseEntryConfirmation"
         let entry3 = mainLayout.FindByName<Entry> "dobEntry"
         let entry4 = mainLayout.FindByName<Entry> "emailEntry"
-        let entry5 = mainLayout.FindByName<Entry> "passwordEntry"
-        let entry6 = mainLayout.FindByName<Entry> "passwordEntryConfirmation"
         let createButton = mainLayout.FindByName<Button>("createButton")
 
         let newCreateButtonCaption =
@@ -99,8 +92,6 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             entry2.IsEnabled <- enabled
             entry3.IsEnabled <- enabled
             entry4.IsEnabled <- enabled
-            entry5.IsEnabled <- enabled
-            entry6.IsEnabled <- enabled
             createButton.IsEnabled <- enabled
             createButton.Text <- newCreateButtonCaption
         )
@@ -114,10 +105,6 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             this.DisplayAlert("Alert", warning, "OK") |> ignore
 
         | None ->
-
-            if (password.Text <> passwordConfirmation.Text) then
-                this.DisplayAlert("Alert", "Payment passwords don't match, please try again", "OK") |> ignore
-            else
                 let dateFormat = "dd/MM/yyyy"
                 match DateTime.TryParseExact(dob.Text, dateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None) with
                 | false,_ ->
@@ -128,9 +115,13 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                     ToggleInputWidgetsEnabledOrDisabled false
 
                     async {
-                        do! Account.CreateAllAccounts passphrase.Text dateTime (email.Text.ToLower()) password.Text
+                        let masterPrivKeyTask =
+                            Account.GenerateMasterPrivateKey passphrase.Text dateTime (email.Text.ToLower())
+                                |> Async.StartAsTask
+
                         Device.BeginInvokeOnMainThread(fun _ ->
-                            FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage state)
+                            FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this
+                                                                                (WelcomePage2 (state, masterPrivKeyTask))
                         )
                     } |> FrontendHelpers.DoubleCheckCompletionAsync
 
@@ -138,9 +129,6 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         MaybeEnableCreateButton()
 
     member this.OnEmailTextChanged(sender: Object, args: EventArgs) =
-        MaybeEnableCreateButton()
-
-    member this.OnPasswordTextChanged(sender: Object, args: EventArgs) =
         MaybeEnableCreateButton()
 
     member this.OnPassphraseTextChanged(sender: Object, args: EventArgs) =

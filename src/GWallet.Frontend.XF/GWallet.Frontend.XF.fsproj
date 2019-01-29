@@ -96,6 +96,9 @@
     <Compile Include="LoadingPage.xaml.fs">
       <DependentUpon>LoadingPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="WelcomePage2.xaml.fs">
+      <DependentUpon>WelcomePage2.xaml</DependentUpon>
+    </Compile>
     <Compile Include="WelcomePage.xaml.fs">
       <DependentUpon>WelcomePage.xaml</DependentUpon>
     </Compile>

@@ -24,13 +24,6 @@
                Placeholder="E-mail address"
                TextChanged="OnEmailTextChanged" />
 
-        <Entry x:Name="passwordEntry" IsPassword="true"
-               Placeholder="Input your payment password"
-               TextChanged="OnPasswordTextChanged" />
-        <Entry x:Name="passwordEntryConfirmation" IsPassword="true"
-               Placeholder="Repeat your payment password"
-               TextChanged="OnPasswordTextChanged" />
-
         <Button x:Name="createButton"
                 Text="Create my accounts" IsEnabled="false"
                 HorizontalOptions="Center"
