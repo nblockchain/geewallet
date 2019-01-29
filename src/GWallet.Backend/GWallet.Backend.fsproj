@@ -179,7 +179,7 @@
       <HintPath>..\..\packages\System.Net.Http.4.3.3\lib\net46\System.Net.Http.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin.Altcoins">
-      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.13\lib\net452\NBitcoin.Altcoins.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.35\lib\net452\NBitcoin.Altcoins.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
       <HintPath>..\..\packages\NBitcoin.4.1.1.80\lib\net452\NBitcoin.dll</HintPath>

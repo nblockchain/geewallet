@@ -119,7 +119,7 @@
       <HintPath>..\..\packages\Nethereum.Signer.3.0.0\lib\net451\Nethereum.Signer.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin.Altcoins">
-      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.13\lib\net452\NBitcoin.Altcoins.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.35\lib\net452\NBitcoin.Altcoins.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
       <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
