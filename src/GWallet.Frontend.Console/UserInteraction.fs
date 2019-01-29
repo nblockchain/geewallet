@@ -433,7 +433,8 @@ module UserInteraction =
         let etherAmount = usdAmount / usdValue
         Console.WriteLine(sprintf "At an exchange rate of %s, %A amount would be:%s%s"
                               exchangeMsg currency
-                              Environment.NewLine (etherAmount.ToString()))
+                              Environment.NewLine
+                              (Formatting.DecimalAmount CurrencyType.Crypto etherAmount))
         if AskYesNo "Do you accept?" then
             Some(usdAmount)
         else
