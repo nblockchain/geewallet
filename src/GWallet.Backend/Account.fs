@@ -72,20 +72,20 @@ module Account =
                 | Some confirmedAmount -> return Some(confirmedAmount, Some false)
     }
 
-    let GetShowableBalanceAndImminentPayment (account: IAccount) (mode: Mode)
+    let GetShowableBalanceAndImminentIncomingPayment (account: IAccount) (mode: Mode)
                                                  : Async<MaybeCached<decimal>*Option<bool>> =
         async {
-            let! maybeBalanceAndImminentPayment = GetShowableBalanceAndImminentPaymentInternal account mode
-            match maybeBalanceAndImminentPayment with
+            let! maybeBalanceAndImminentIncomingPayment = GetShowableBalanceAndImminentPaymentInternal account mode
+            match maybeBalanceAndImminentIncomingPayment with
             | None ->
                 let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
                 return (NotFresh cachedBalance, None)
-            | Some (balance,imminentPayment) ->
+            | Some (balance,imminentIncomingPayment) ->
                 let compoundBalance,_ =
                     Caching.Instance.RetreiveAndUpdateLastCompoundBalance account.PublicAddress
                                                                           account.Currency
                                                                           balance
-                return (Fresh compoundBalance, imminentPayment)
+                return (Fresh compoundBalance, imminentIncomingPayment)
         }
 
     let mutable wiped = false

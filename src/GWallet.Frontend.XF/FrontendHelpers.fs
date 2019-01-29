@@ -18,7 +18,7 @@ type BalanceSet = {
 type BalanceState = {
     BalanceSet: BalanceSet;
     FiatAmount: MaybeCached<decimal>;
-    ImminentPayment: Option<bool>;
+    ImminentIncomingPayment: Option<bool>;
 }
 
 module FrontendHelpers =
@@ -121,19 +121,19 @@ module FrontendHelpers =
                     return {
                         BalanceSet = balanceSet
                         FiatAmount = fiatAmount
-                        ImminentPayment = None
+                        ImminentIncomingPayment = None
                     }
                 | _ ->
                     // FIXME: probably we can only load confirmed balances in this case (no need to check unconfirmed)
                     return! UpdateBalanceAsync balanceSet false mode
             else
-                let! balance,imminentPayment = Account.GetShowableBalanceAndImminentPayment balanceSet.Account mode
+                let! balance,imminentIncomingPayment = Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode
                 let fiatAmount =
                     UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
                 return {
                     BalanceSet = balanceSet
                     FiatAmount = fiatAmount
-                    ImminentPayment = imminentPayment
+                    ImminentIncomingPayment = imminentIncomingPayment
                 }
         }
 
