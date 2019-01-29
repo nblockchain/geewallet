@@ -11,7 +11,8 @@ members, but camelCase for parameters, private fields, and local functions
 (in unit tests we have the exception of allowing under_score_naming for
 fields in cases where it improves readability).
 * When writing non-static type members we prefer to use the word `self`.
-* We follow the same convention of C# to prefix interfaces with the letter 'I'.
+* We follow the same convention of C# to prefix interfaces with the uppercase
+letter 'I'.
 * Given that we use the C#ish style of PascalCase for type names (instead of
 camelCase), then it only makes sense to try to use the type names which start
 with uppercase, instead of the camelCased F# types (e.g. use `Option` and `List`
@@ -104,16 +105,21 @@ instead of just leaving them as part of the MergeRequest description.
 ```
 Area/Sub-area: short title of what is changed (50 chars max)
 
-Explanation of **why** this is changed. Don't hesitate to be very verbose here,
-adding any references you may need, in this way[1], or even @nicknames of people
-that helped. Manually crop your lines to not be longer than 80 chararacters.
+Explanation of **why** (and maybe **how** as well, in case there's a part of
+the change that is not self-explanatory). Don't hesitate to be very verbose
+here, adding any references you may need, in this way[1], or even @nicknames of
+people that helped. Manually crop your lines to not be longer than 80 chars.
+
+Fixes https://gitlab.com/DiginexGlobal/geewallet/issues/45
 
 [1] http://foo.bar/baz
 ```
-**Area** usually refers to the project name, but not including the GWallet
-prefix (for example changing the GWallet.Backend project would mean you only use
-"Backend" as area). The **Sub-area** may refer to a folder or module inside the
-area, but it's not a strict mapping.
+
+As you can see, the example above would be for a commit message that fixes
+the issue #45. **Area** usually refers to the project name, but without the need
+to include the `GWallet` prefix (for example changing the `GWallet.Backend`
+project would mean you only use `Backend` as area). The **Sub-area** may refer
+to a folder or module inside the area, but it's not a strict mapping.
 
 Do not use long lines (manually crop them with EOLs because git doesn't do this
 automatically).

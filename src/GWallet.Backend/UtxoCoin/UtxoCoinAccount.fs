@@ -181,6 +181,8 @@ module Account =
 
     let private CreateTransactionAndCoinsToBeSigned (account: IUtxoAccount)
                                                     (transactionInputs: List<TransactionInputOutpointInfo>)
+                                                    (destination: string)
+                                                    (amount: TransferAmount)
                                                         : TransactionBuilder =
         let coins =
             seq {
@@ -201,17 +203,20 @@ module Account =
                     yield scriptCoin :> ICoin
             } |> List.ofSeq
 
-        let transactionBuilder = TransactionBuilder()
+        let transactionBuilder = (GetNetwork account.Currency).CreateTransactionBuilder()
         transactionBuilder.AddCoins coins |> ignore
 
         let currency = account.Currency
-        let originAddress = (account :> IAccount).PublicAddress
-        let changeAddress = BitcoinAddress.Create(originAddress, GetNetwork currency)
+        let destAddress = BitcoinAddress.Create(destination, GetNetwork currency)
 
-        //FIXME: this should only be done if amount.BalanceAtTheMomentOfSending <> amount.ValueToSend, however NBitcoin
-        // doesn't seem to be prepared for this because it throws `System.InvalidOperationException: A change address
-        // should be specified (Uncolored)`
-        transactionBuilder.SetChange changeAddress |> ignore
+        if amount.BalanceAtTheMomentOfSending <> amount.ValueToSend then
+            let moneyAmount = Money(amount.ValueToSend, MoneyUnit.BTC)
+            transactionBuilder.Send(destAddress, moneyAmount) |> ignore
+            let originAddress = (account :> IAccount).PublicAddress
+            let changeAddress = BitcoinAddress.Create(originAddress, GetNetwork currency)
+            transactionBuilder.SetChange changeAddress |> ignore
+        else
+            transactionBuilder.SendAll destAddress |> ignore
 
         // to enable RBF, see https://bitcoin.stackexchange.com/a/61038/2751
         transactionBuilder.SetLockTime (LockTime 0) |> ignore
@@ -321,38 +326,8 @@ module Account =
 
         let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
                                                                      transactionDraftInputs
-
-        let destAddress = BitcoinAddress.Create(destination, GetNetwork account.Currency)
-        let moneyAmount = Money(amount.ValueToSend, MoneyUnit.BTC)
-        if amount.ValueToSend <> amount.BalanceAtTheMomentOfSending then
-            transactionBuilder.Send(destAddress, moneyAmount) |> ignore
-        else
-            let rec keepTryingToSetFee (finalTransactionBuilder: TransactionBuilder) (feesAccumulator: IMoney) =
-                let transactionBuilderClone = CreateTransactionAndCoinsToBeSigned account
-                                                                                  transactionDraftInputs
-                let moneyWithoutFees = (Money(amount.ValueToSend, MoneyUnit.BTC) :> IMoney).Sub feesAccumulator
-                transactionBuilderClone.Send(destAddress, moneyWithoutFees) |> ignore
-
-                // HACK: this is a dirty workaround to this bug: https://gitlab.com/DiginexGlobal/geewallet/issues/45
-                let maybeFeesToSubstract =
-                    try
-                        let _ = transactionBuilderClone.EstimateFees feeRate
-                        None
-                    with
-                    | :? NotEnoughFundsException as ex ->
-                        Some ex.Missing
-
-                match maybeFeesToSubstract with
-                | None ->
-                    finalTransactionBuilder.Send(destAddress, moneyWithoutFees) |> ignore
-                | Some feesToSubstract ->
-                    if Config.DebugLog then
-                        Console.Error.WriteLine("WARNING: detected missing fee amount " + (feesToSubstract.ToString()))
-                    keepTryingToSetFee finalTransactionBuilder (feesToSubstract.Add feesAccumulator)
-                    ()
-
-            keepTryingToSetFee transactionBuilder (Money.Zero :> IMoney)
-
+                                                                     destination
+                                                                     amount
         let estimatedMinerFee = transactionBuilder.EstimateFees feeRate
 
         let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
@@ -370,19 +345,9 @@ module Account =
         let btcMinerFee = txMetadata.Fee
         let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
 
-        let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs
+        let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs destination amount
 
         finalTransactionBuilder.AddKeys privateKey |> ignore
-        let money =
-            if amount.ValueToSend = amount.BalanceAtTheMomentOfSending then
-                let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).ToUnit MoneyUnit.Satoshi
-                Money.Satoshis (amountInSatoshis - decimal btcMinerFee.EstimatedFeeInSatoshis)
-            else
-                Money(amount.ValueToSend, MoneyUnit.BTC)
-
-        let destAddress = BitcoinAddress.Create(destination, GetNetwork account.Currency)
-        finalTransactionBuilder.Send(destAddress, money) |> ignore
-
         finalTransactionBuilder.SendFees (Money.Satoshis(btcMinerFee.EstimatedFeeInSatoshis)) |> ignore
 
         let finalTransaction = finalTransactionBuilder.BuildTransaction true

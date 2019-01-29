@@ -5,7 +5,6 @@ open System.Text.RegularExpressions
 
 open GWallet.Backend
 
-
 module Presentation =
 
     let Error(message: string): unit =
@@ -22,7 +21,7 @@ module Presentation =
 
     let internal ExchangeRateUnreachableMsg = " (USD exchange rate unreachable... offline?)"
 
-    let ShowFee (estimatedFee: IBlockchainFeeInfo) =
+    let ShowFee (transactionCurrency: Currency) (estimatedFee: IBlockchainFeeInfo) =
         let currency = estimatedFee.Currency
         let estimatedFeeInUsd =
             match FiatValueEstimation.UsdValue(currency) with
@@ -34,7 +33,15 @@ module Presentation =
                     (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Fiat)
                     (time |> ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
-        Console.WriteLine(sprintf "Estimated fee for this transaction would be:%s %s %A %s"
+        let feeMsg =
+            if transactionCurrency = Currency.DAI &&
+               Config.EthTokenEstimationCouldBeBuggyAsInNotAccurate then
+                "Estimated fee for this transaction would be, approximately"
+            else
+                "Estimated fee for this transaction would be"
+
+        Console.WriteLine(sprintf "%s:%s %s %A %s"
+                              feeMsg
                               Environment.NewLine
                               (estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Crypto)
                               currency
@@ -68,4 +75,4 @@ module Presentation =
                                    trans.Proposal.Amount.Currency
                                    fiatAmount)
         Console.WriteLine()
-        ShowFee trans.Metadata
+        ShowFee trans.Proposal.Amount.Currency trans.Metadata
