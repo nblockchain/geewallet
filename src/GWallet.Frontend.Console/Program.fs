@@ -214,8 +214,11 @@ let rec PerformOptions(numAccounts: int) =
     | Options.Exit -> exit 0
     | Options.CreateAccounts ->
         let passphrase,dob,email = UserInteraction.AskBrainSeed()
+        let masterPrivateKeyTask =
+            Account.GenerateMasterPrivateKey passphrase dob email
+                |> Async.StartAsTask
         let password = UserInteraction.AskPassword true
-        Async.RunSynchronously (Account.CreateAllAccounts passphrase dob email password)
+        Async.RunSynchronously (Account.CreateAllAccounts masterPrivateKeyTask password)
         Console.WriteLine("Accounts created")
         UserInteraction.PressAnyKeyToContinue()
     | Options.Refresh -> ()

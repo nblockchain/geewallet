@@ -3,6 +3,7 @@
 open System
 open System.Linq
 open System.IO
+open System.Threading.Tasks
 
 module Account =
 
@@ -491,13 +492,18 @@ module Account =
         let newAccountFile = Config.AddAccount conceptAccount AccountKind.Normal
         NormalAccount(conceptAccount.Currency, newAccountFile, conceptAccount.ExtractPublicAddressFromConfigFileFunc)
 
-    let CreateAllAccounts (passphrase: string)
-                          (dobPartOfSalt: DateTime) (emailPartOfSalt: string)
-                          (encryptionPassword: string): Async<unit> =
+    let GenerateMasterPrivateKey (passphrase: string)
+                                 (dobPartOfSalt: DateTime) (emailPartOfSalt: string)
+                                     : Async<array<byte>> =
+        async {
+            let salt = sprintf "%s+%s" (dobPartOfSalt.Date.ToString("yyyyMMdd")) (emailPartOfSalt.ToLower())
+            let privateKeyBytes = WarpKey.CreatePrivateKey passphrase salt
+            return privateKeyBytes
+        }
 
-        let salt = sprintf "%s+%s" (dobPartOfSalt.Date.ToString("yyyyMMdd")) (emailPartOfSalt.ToLower())
-        let privateKeyBytes = WarpKey.CreatePrivateKey passphrase salt
+    let CreateAllAccounts (masterPrivateKeyTask: Task<array<byte>>) (encryptionPassword: string): Async<unit> = async {
 
+        let! privateKeyBytes = Async.AwaitTask masterPrivateKeyTask
         let ethCurrencies,etherAccounts = CreateEtherNormalAccounts encryptionPassword privateKeyBytes
         let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (ethCurrencies.Contains currency))
 
@@ -512,12 +518,11 @@ module Account =
 
         let createAllAccountsJob = Async.Parallel allAccounts
 
-        async {
-            let! allCreatedConceptAccounts = createAllAccountsJob
-            for accountGroup in allCreatedConceptAccounts do
-                for conceptAccount in accountGroup do
-                    CreateNormalAccount conceptAccount |> ignore
-        }
+        let! allCreatedConceptAccounts = createAllAccountsJob
+        for accountGroup in allCreatedConceptAccounts do
+            for conceptAccount in accountGroup do
+                CreateNormalAccount conceptAccount |> ignore
+    }
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans

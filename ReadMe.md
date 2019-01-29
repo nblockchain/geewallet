@@ -64,7 +64,7 @@ This list is the (intended) order of preference for new features:
 - Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
 - Speed improvements:
   * If using Mode.Fast, use more parallel jobs when instantiating the FaultParallelTolerant settings.
-  * Frontend.XF: split WelcomePage in two & start creating the private key after clicking [Next], while user is writing the payment password.
+  * Frontend.XF: after clicking Next in the WelcomePage, not only start creating the private key, also query balances if privKey creation finishes before the user writes the payment password.
   * If using Mode.Fast, check if there's a cached balance first. If there isn't, or the time it was cached was long ago, query the confirmed balance only (like in firstStartup, we may be already doing this in case there's no cached balance) returning `decimal*Async<bool>` (the latter to give info, later, about if there's an imminentIncomingPayment), but if it was checked very recently, just query the unconfirmed one (in this case, compare the unconfirmed balance received with the cached one: if lower, show it; if higher, show the cached one and assume imminentIncomingPayment, i.e. refresh interval being shorter).
   * Frontend.XF: start querying servers in WelcomePage, with dummy addresses, just to gather server stats.
   * First startup: bundle stats for all servers (gathered by the maintainer as a user).
