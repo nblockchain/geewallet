@@ -54,20 +54,24 @@ module Account =
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
 
-    let private FaultTolerantParallelClientDefaultSettings() =
+    let private MaxNumberOfParallelJobsForMode mode =
+        match mode with
+        | Mode.Fast -> 8u
+        | Mode.Analysis -> 5u
+
+    let private FaultTolerantParallelClientDefaultSettings(mode: Mode) =
         {
-            NumberOfMaximumParallelJobs = 5u;
+            NumberOfMaximumParallelJobs = MaxNumberOfParallelJobsForMode mode
             ConsistencyConfig = NumberOfConsistentResponsesRequired 2u;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            Mode = mode
         }
 
     let private FaultTolerantParallelClientSettingsForBroadcast() =
         {
-            NumberOfMaximumParallelJobs = 8u;
-            ConsistencyConfig = NumberOfConsistentResponsesRequired 1u;
-            NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
-            NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            FaultTolerantParallelClientDefaultSettings Mode.Fast with
+                ConsistencyConfig = NumberOfConsistentResponsesRequired 1u;
         }
 
     let private faultTolerantElectrumClient =
@@ -158,10 +162,9 @@ module Account =
 
         let balance =
             faultTolerantElectrumClient.Query
-                (FaultTolerantParallelClientDefaultSettings())
+                (FaultTolerantParallelClientDefaultSettings mode)
                 scriptHashHex
                 (GetRandomizedFuncs account.Currency ElectrumClient.GetBalance)
-                mode
         balance
 
     let GetConfirmedBalance(account: IUtxoAccount) (mode: Mode): Async<decimal> =
@@ -252,10 +255,9 @@ module Account =
 
         let! utxos =
             faultTolerantElectrumClient.Query
-                (FaultTolerantParallelClientDefaultSettings())
+                (FaultTolerantParallelClientDefaultSettings Mode.Fast)
                 (GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress)
                 (GetRandomizedFuncs account.Currency ElectrumClient.GetUnspentTransactionOutputs)
-                Mode.Fast
 
         if not (utxos.Any()) then
             failwith "No UTXOs found!"
@@ -278,10 +280,9 @@ module Account =
                     yield async {
                         let! transRaw =
                             faultTolerantElectrumClient.Query
-                                (FaultTolerantParallelClientDefaultSettings())
+                                (FaultTolerantParallelClientDefaultSettings Mode.Fast)
                                 utxo.TransactionId
                                 (GetRandomizedFuncs account.Currency ElectrumClient.GetBlockchainTransaction)
-                                Mode.Fast
                         let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
                         let txOut = transaction.Outputs.[utxo.OutputIndex]
                         // should suggest a ToHex() method to NBitcoin's TxOut type?
@@ -307,12 +308,11 @@ module Account =
         let minResponsesRequired = 3u
         let! btcPerKiloByteForFastTrans =
             faultTolerantElectrumClient.Query
-                { FaultTolerantParallelClientDefaultSettings() with
+                { FaultTolerantParallelClientDefaultSettings Mode.Fast with
                       ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, averageFee) }
                 //querying for 1 will always return -1 surprisingly...
                 2
                 (GetRandomizedFuncs account.Currency ElectrumClient.EstimateFee)
-                Mode.Fast
 
         let feeRate =
             try
@@ -387,10 +387,9 @@ module Account =
     let private BroadcastRawTransaction currency (rawTx: string) =
         let newTxId =
             faultTolerantElectrumClient.Query
-                (FaultTolerantParallelClientSettingsForBroadcast())
+                (FaultTolerantParallelClientSettingsForBroadcast ())
                 rawTx
                 (GetRandomizedFuncs currency ElectrumClient.BroadcastTransaction)
-                Mode.Fast
         newTxId
 
     let BroadcastTransaction currency (transaction: SignedTransaction<_>) =

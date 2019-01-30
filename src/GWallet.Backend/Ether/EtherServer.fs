@@ -241,26 +241,32 @@ module Server =
                                     reraise()
         result
 
+    let private MaxNumberOfParallelJobsForMode mode =
+        match mode with
+        | Mode.Fast -> 5u
+        | Mode.Analysis -> 3u
+
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
-                                                         (numberOfMaximumParallelJobs: uint32) =
+                                                         (mode: Mode) =
         {
-            NumberOfMaximumParallelJobs = numberOfMaximumParallelJobs;
+            NumberOfMaximumParallelJobs = MaxNumberOfParallelJobsForMode mode
             ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            Mode = mode
         }
 
-    let private FaultTolerantParallelClientDefaultSettings (currency: Currency) =
+    let private FaultTolerantParallelClientDefaultSettings (currency: Currency) (mode: Mode) =
         let numberOfConsistentResponsesRequired =
             if not Networking.Tls12Support then
                 1u
             else
                 2u
         FaultTolerantParallelClientInnerSettings numberOfConsistentResponsesRequired
-                                                 3u
+                                                 mode
 
     let private FaultTolerantParallelClientSettingsForBroadcast () =
-        FaultTolerantParallelClientInnerSettings 1u 5u
+        FaultTolerantParallelClientInnerSettings 1u Mode.Fast
 
     let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
@@ -308,10 +314,9 @@ module Server =
                                    publicAddress
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency)
+                (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
                 address
                 web3Funcs
-                Mode.Fast
         }
 
     let GetUnconfirmedEtherBalance (currency: Currency) (address: string) (mode: Mode)
@@ -323,10 +328,9 @@ module Server =
                     hexBalance.Value
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency)
+                (FaultTolerantParallelClientDefaultSettings currency mode)
                 address
                 web3Funcs
-                mode
         }
 
     let GetUnconfirmedTokenBalance (currency: Currency) (address: string) (mode: Mode)
@@ -340,10 +344,9 @@ module Server =
                     WaitOnTask balanceFunc publicAddress
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency)
+                (FaultTolerantParallelClientDefaultSettings currency mode)
                 address
                 web3Funcs
-                mode
         }
 
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
@@ -390,10 +393,9 @@ module Server =
                     balance.Value
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientDefaultSettings currency)
+                        (FaultTolerantParallelClientDefaultSettings currency mode)
                         address
                         web3Funcs
-                        mode
         }
 
     let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Async<BigInteger> =
@@ -423,10 +425,9 @@ module Server =
                     WaitOnTask taskFunc publicAddress
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientDefaultSettings currency)
+                        (FaultTolerantParallelClientDefaultSettings currency mode)
                         address
                         web3Funcs
-                        mode
         }
 
     let EstimateTokenTransferFee (baseCurrency: Currency) (account: IAccount) (amount: decimal) destination
@@ -442,10 +443,9 @@ module Server =
                     WaitOnTask (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
                 GetWeb3Funcs account.Currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientDefaultSettings baseCurrency)
+                        (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
                         ()
                         web3Funcs
-                        Mode.Fast
         }
 
     let private AverageGasPrice (gasPricesFromDifferentServers: List<HexBigInteger>): HexBigInteger =
@@ -463,11 +463,11 @@ module Server =
                 GetWeb3Funcs currency web3Func
             let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
-                        { FaultTolerantParallelClientDefaultSettings currency with
+                        { FaultTolerantParallelClientDefaultSettings currency Mode.Fast with
                               ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
                         ()
                         web3Funcs
-                        Mode.Fast
+
         }
 
     let BroadcastTransaction (currency: Currency) (transaction: string)
@@ -484,7 +484,6 @@ module Server =
                             (FaultTolerantParallelClientSettingsForBroadcast ())
                             transaction
                             web3Funcs
-                            Mode.Fast
             with
             | ex ->
                 match FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex with

@@ -40,17 +40,19 @@ type ConsistencySettings<'R> =
     | NumberOfConsistentResponsesRequired of uint32
     | AverageBetweenResponses of (uint32 * (List<'R> -> 'R))
 
+type Mode =
+    | Fast
+    | Analysis
+
 type FaultTolerantParallelClientSettings<'R> =
     {
         NumberOfMaximumParallelJobs: uint32;
         ConsistencyConfig: ConsistencySettings<'R>;
         NumberOfRetries: uint32;
         NumberOfRetriesForInconsistency: uint32;
+        Mode: Mode
     }
 
-type Mode =
-    | Fast
-    | Analysis
 
 type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(updateServer: 'K*HistoryInfo -> unit) =
     do
@@ -331,9 +333,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
     member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
                                                 (args: 'T)
                                                 (servers: List<Server<'K,'T,'R>>)
-                                                (mode: Mode)
                                                     : Async<'R> =
         if settings.NumberOfMaximumParallelJobs < 1u then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 
-        QueryInternal settings args (OrderServers servers mode) List.Empty List.Empty 0u 0u
+        QueryInternal settings args (OrderServers servers settings.Mode) List.Empty List.Empty 0u 0u
