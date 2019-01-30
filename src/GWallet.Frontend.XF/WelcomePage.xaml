@@ -24,9 +24,9 @@
                Placeholder="E-mail address"
                TextChanged="OnEmailTextChanged" />
 
-        <Button x:Name="createButton"
-                Text="Create my accounts" IsEnabled="false"
+        <Button x:Name="nextButton"
+                Text="Next" IsEnabled="false"
                 HorizontalOptions="Center"
-                Clicked="OnCreateButtonClicked" />
+                Clicked="OnNextButtonClicked" />
     </StackLayout>
 </ContentPage>
