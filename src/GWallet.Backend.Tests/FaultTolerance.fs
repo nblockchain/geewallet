@@ -22,20 +22,21 @@ type FaultTolerance() =
     let test_does_not_involve_retries = 0u
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ -> ())
 
+    // yes, the default one is the fast one because it's the one with no filters, just sorting
+    let default_mode_as_it_is_irrelevant_for_this_test = Mode.Fast
+
     let defaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         {
             NumberOfMaximumParallelJobs = not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization
             ConsistencyConfig = NumberOfConsistentResponsesRequired one_consistent_result_because_this_test_doesnt_test_consistency
             NumberOfRetries = test_does_not_involve_retries
             NumberOfRetriesForInconsistency = test_does_not_involve_retries
+            Mode = default_mode_as_it_is_irrelevant_for_this_test
         }
 
     let defaultFaultTolerantParallelClient =
         FaultTolerantParallelClient<string,SomeSpecificException>
             dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-
-    // yes, the default one is the fast one because it's the one with no filters, just sorting
-    let default_mode_as_it_is_irrelevant_for_this_test = Mode.Fast
 
     let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId func =
         { Identifier = serverId; HistoryInfo = None; Retreival = func; }
@@ -50,7 +51,6 @@ type FaultTolerance() =
         let dataRetreived =
             defaultFaultTolerantParallelClient.Query
                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func ]
-                default_mode_as_it_is_irrelevant_for_this_test
                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
@@ -68,7 +68,6 @@ type FaultTolerance() =
         let dataRetreived = defaultFaultTolerantParallelClient.Query
                                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ func1; func2 ]
-                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
@@ -81,7 +80,6 @@ type FaultTolerance() =
                             (defaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                             "_"
                             List.Empty
-                            default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously |> ignore
         ) |> ignore
 
@@ -98,7 +96,6 @@ type FaultTolerance() =
         let dataRetreived =
             defaultFaultTolerantParallelClient.Query
                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
-                default_mode_as_it_is_irrelevant_for_this_test
                     |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
@@ -121,7 +118,6 @@ type FaultTolerance() =
                         dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                         .Query
                             (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
-                            default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
                 Some(result)
             with
@@ -150,7 +146,6 @@ type FaultTolerance() =
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                 .Query
                     (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
-                    default_mode_as_it_is_irrelevant_for_this_test
                         |> Async.RunSynchronously
         Assert.That(result, Is.EqualTo(someResult))
 
@@ -170,7 +165,6 @@ type FaultTolerance() =
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                 .Query
                     (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
-                    default_mode_as_it_is_irrelevant_for_this_test
                         |> Async.RunSynchronously
                             |> ignore )
 
@@ -193,7 +187,6 @@ type FaultTolerance() =
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                 .Query
                     (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
-                    default_mode_as_it_is_irrelevant_for_this_test
                         |> Async.RunSynchronously
         Assert.That(result, Is.EqualTo(someResult))
 
@@ -235,7 +228,6 @@ type FaultTolerance() =
             consistencyGuardClient
                 .Query settings someStringArg
                                    [ funcInconsistent; funcConsistentA; funcConsistentA; ]
-                default_mode_as_it_is_irrelevant_for_this_test
                     |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
@@ -244,7 +236,6 @@ type FaultTolerance() =
             consistencyGuardClient
                 .Query settings someStringArg
                        [ funcConsistentA; funcInconsistent; funcConsistentB; ]
-                       default_mode_as_it_is_irrelevant_for_this_test
                     |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
@@ -253,7 +244,6 @@ type FaultTolerance() =
             consistencyGuardClient
                 .Query settings someStringArg
                        [ funcConsistentA; funcConsistentB; funcInconsistent; ]
-                       default_mode_as_it_is_irrelevant_for_this_test
                            |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))
@@ -267,7 +257,7 @@ type FaultTolerance() =
         Assert.Throws<ArgumentException>(fun _ ->
             (FaultTolerantParallelClient<string, SomeSpecificException>
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
-                    .Query invalidSettings dummyArg dummyServers default_mode_as_it_is_irrelevant_for_this_test
+                    .Query invalidSettings dummyArg dummyServers
                         |> Async.RunSynchronously
                             |> ignore ) |> ignore
 
@@ -297,7 +287,6 @@ type FaultTolerance() =
                 settings
                 someStringArg
                 [ func1; func2 ]
-                default_mode_as_it_is_irrelevant_for_this_test
                     |> Async.RunSynchronously
                         |> ignore ) |> ignore
 
@@ -334,7 +323,6 @@ type FaultTolerance() =
                                       settings
                                       someStringArg
                                       [ func1; func2; func3; func4 ]
-                                      default_mode_as_it_is_irrelevant_for_this_test
                                           |> Async.RunSynchronously
                                           |> ignore )
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
@@ -367,7 +355,6 @@ type FaultTolerance() =
         client.Query settings
                      someStringArg
                      [ func1; func2 ]
-                     default_mode_as_it_is_irrelevant_for_this_test
             |> Async.RunSynchronously
             // enough to know that it doesn't throw
             |> ignore
@@ -425,7 +412,6 @@ type FaultTolerance() =
             settings
             someStringArg
             [ func1; func2; func3whichGetsConsistentAtSecondTry; func4 ]
-            default_mode_as_it_is_irrelevant_for_this_test
                 |> Async.RunSynchronously
                 |> ignore
 
@@ -434,7 +420,6 @@ type FaultTolerance() =
                                       settings
                                       someStringArg
                                       [ func1; func2; func3whichGetsConsistentAtThirdTry; func4 ]
-                                      default_mode_as_it_is_irrelevant_for_this_test
                                           |> Async.RunSynchronously
                                           |> ignore )
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
@@ -470,7 +455,6 @@ type FaultTolerance() =
                          settings
                          someStringArg
                          funcs
-                         default_mode_as_it_is_irrelevant_for_this_test
                              |> Async.RunSynchronously
 
         Assert.That(result, Is.EqualTo ((1+5+6)/3))
@@ -489,7 +473,6 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server1; server2 ]
-                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -499,7 +482,6 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server2; server1 ]
-                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -518,7 +500,6 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server1; server2 ]
-                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -528,7 +509,6 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server2; server1 ]
-                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -546,7 +526,6 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server1; server2 ]
-                                default_mode_as_it_is_irrelevant_for_this_test
                                     |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult1)
@@ -556,7 +535,6 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server2; server1 ]
-                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult1)
@@ -575,7 +553,6 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server1; server2 ]
-                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -585,7 +562,6 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
                                 someStringArg [ server2; server1 ]
-                                default_mode_as_it_is_irrelevant_for_this_test
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -605,9 +581,9 @@ type FaultTolerance() =
                         Identifier = "server3"; Retreival = (fun arg -> someResult3) }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
-                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
+                                      with Mode = Mode.Analysis }
                                 someStringArg [ server1; server2; server3 ]
-                                Mode.Analysis
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -615,9 +591,9 @@ type FaultTolerance() =
         // same but different order
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
-                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
+                                      with Mode = Mode.Analysis }
                                 someStringArg [ server3; server2; server1 ]
-                                Mode.Analysis
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -640,9 +616,9 @@ type FaultTolerance() =
                         Identifier = "server4"; Retreival = (fun arg -> someResult4) }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
-                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
+                                      with Mode = Mode.Analysis }
                                 someStringArg [ server1; server2; server3; server4 ]
-                                Mode.Analysis
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult4)
@@ -650,9 +626,9 @@ type FaultTolerance() =
         // same but different order
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
-                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
+                                      with Mode = Mode.Analysis }
                                 someStringArg [ server4; server3; server2; server1 ]
-                                Mode.Analysis
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult4)
@@ -678,9 +654,9 @@ type FaultTolerance() =
               Identifier = "server5"; Retreival = (fun arg -> someResult5) }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
-                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
+                                      with Mode = Mode.Analysis }
                                 someStringArg [ server1; server2; server3; server4; server5 ]
-                                Mode.Analysis
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult5)
@@ -688,9 +664,9 @@ type FaultTolerance() =
         // same but different order
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
-                                (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
+                                { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
+                                      with Mode = Mode.Analysis }
                                 someStringArg [ server5; server4; server3; server2; server1 ]
-                                Mode.Analysis
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult5)
@@ -716,7 +692,6 @@ type FaultTolerance() =
             (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                     saveServerLastStat).Query
                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func ]
-                default_mode_as_it_is_irrelevant_for_this_test
                 |> Async.RunSynchronously
 
         Assert.That(someFlag, Is.EqualTo true)
@@ -756,7 +731,6 @@ type FaultTolerance() =
             (FaultTolerantParallelClient<string, SomeSpecificException>
                                     saveServerLastStat).Query
                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ server1; server2 ]
-                default_mode_as_it_is_irrelevant_for_this_test
                 |> Async.RunSynchronously
 
         Assert.That(someTotalCounter, Is.EqualTo 2)
