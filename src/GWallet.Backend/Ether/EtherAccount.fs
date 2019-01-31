@@ -14,10 +14,6 @@ open Nethereum.KeyStore.Crypto
 
 open GWallet.Backend
 
-type BalanceType =
-    | Unconfirmed
-    | Confirmed
-
 module internal Account =
 
     let private addressUtil = AddressUtil()
@@ -38,32 +34,16 @@ module internal Account =
                 "0x" + rawPublicAddress
         publicAddress
 
-    let private GetConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> = async {
+    let private GetBalance(account: IAccount) (mode: Mode) (balType: BalanceType) = async {
         let! balance =
             if (account.Currency.IsEther()) then
-                Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress mode
+                Server.GetEtherBalance account.Currency account.PublicAddress balType mode
             elif (account.Currency.IsEthToken()) then
-                Ether.Server.GetConfirmedTokenBalance account.Currency account.PublicAddress mode
+                Server.GetTokenBalance account.Currency account.PublicAddress balType mode
             else
                 failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
     }
-
-    let private GetUnconfirmedPlusConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> = async {
-        let! balance =
-            if (account.Currency.IsEther()) then
-                Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress mode
-            elif (account.Currency.IsEthToken()) then
-                Ether.Server.GetUnconfirmedTokenBalance account.Currency account.PublicAddress mode
-            else
-                failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
-        return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
-    }
-
-    let private GetBalance(account: IAccount) (mode: Mode) (balType: BalanceType) =
-        match balType with
-        | BalanceType.Confirmed -> GetConfirmedBalance account mode
-        | BalanceType.Unconfirmed -> GetUnconfirmedPlusConfirmedBalance account mode
 
     let private GetBalanceFromServer (account: IAccount) (balType: BalanceType) (mode: Mode)
                                          : Async<Option<decimal>> =

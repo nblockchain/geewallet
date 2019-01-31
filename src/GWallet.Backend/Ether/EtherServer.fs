@@ -15,6 +15,10 @@ open Nethereum.StandardTokenEIP20.ContractDefinition
 
 open GWallet.Backend
 
+type BalanceType =
+    | Unconfirmed
+    | Confirmed
+
 module Server =
 
     type SomeWeb3(url: string) =
@@ -319,36 +323,6 @@ module Server =
                 web3Funcs
         }
 
-    let GetUnconfirmedEtherBalance (currency: Currency) (address: string) (mode: Mode)
-                                       : Async<BigInteger> =
-        async {
-            let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): BigInteger =
-                    let hexBalance = WaitOnTask web3.Eth.GetBalance.SendRequestAsync publicAddress
-                    hexBalance.Value
-                GetWeb3Funcs currency web3Func
-            return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency mode)
-                address
-                web3Funcs
-        }
-
-    let GetUnconfirmedTokenBalance (currency: Currency) (address: string) (mode: Mode)
-                                       : Async<BigInteger> =
-        async {
-            let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): BigInteger =
-                    let tokenService = TokenManager.DaiContract web3
-                    let balanceFunc: string->Task<BigInteger>
-                        = tokenService.BalanceOfQueryAsync
-                    WaitOnTask balanceFunc publicAddress
-                GetWeb3Funcs currency web3Func
-            return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency mode)
-                address
-                web3Funcs
-        }
-
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
     let private GetBlockToCheckForConfirmedBalance(web3: Web3): Async<BlockParameter> =
         async {
@@ -382,13 +356,17 @@ module Server =
             return balance
         }
 
-    let GetConfirmedEtherBalance (currency: Currency) (address: string) (mode: Mode)
+    let GetEtherBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode)
                                      : Async<BigInteger> =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3) (publicAddress: string): BigInteger =
                     let taskFunc (publicAddress: string) =
-                        GetConfirmedEtherBalanceInternal web3 publicAddress |> Async.StartAsTask
+                        match balType with
+                        | BalanceType.Confirmed ->
+                            GetConfirmedEtherBalanceInternal web3 publicAddress |> Async.StartAsTask
+                        | BalanceType.Unconfirmed ->
+                            web3.Eth.GetBalance.SendRequestAsync publicAddress
                     let balance = WaitOnTask taskFunc publicAddress
                     balance.Value
                 GetWeb3Funcs currency web3Func
@@ -416,12 +394,21 @@ module Server =
         }
 
 
-    let GetConfirmedTokenBalance (currency: Currency) (address: string) (mode: Mode): Async<BigInteger> =
+    let GetTokenBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode): Async<BigInteger> =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+
                     let taskFunc (publicAddress: string) =
-                        GetConfirmedTokenBalanceInternal web3 address |> Async.StartAsTask
+                        match balType with
+                        | BalanceType.Confirmed ->
+                            GetConfirmedTokenBalanceInternal web3 address |> Async.StartAsTask
+                        | BalanceType.Unconfirmed ->
+                            let tokenService = TokenManager.DaiContract web3
+                            let balanceFunc: string->Task<BigInteger>
+                                = tokenService.BalanceOfQueryAsync
+                            balanceFunc publicAddress
+
                     WaitOnTask taskFunc publicAddress
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
