@@ -19,8 +19,15 @@ type CompoundBalanceCaching() =
     let someSameFeeCurrency = someCurrency
 
     let SpawnNewCacheInstanceToTest(expirationSpan: TimeSpan) =
-        let tempFile = Path.GetTempFileName() |> FileInfo
-        Caching.MainCache(Some tempFile, expirationSpan),tempFile
+        let tempFile1 = Path.GetTempFileName() |> FileInfo
+        let tempFile2 = Path.GetTempFileName() |> FileInfo
+        Assert.That(tempFile1.FullName, Is.Not.EqualTo tempFile2.FullName)
+        let tempFiles =
+            {
+                CachedNetworkData = tempFile1
+                ServerStats = tempFile2
+            }
+        Caching.MainCache(Some tempFiles, expirationSpan),tempFiles
 
     [<Test>]
     member __.``combinations metatest``() =
@@ -30,7 +37,7 @@ type CompoundBalanceCaching() =
 
     [<Test>]
     member __.``non-compound balance``() =
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
@@ -38,11 +45,12 @@ type CompoundBalanceCaching() =
             let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
     member __.``single-compound balance``() =
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
@@ -62,11 +70,12 @@ type CompoundBalanceCaching() =
             | Cached(cachedBalance2,_) ->
                 Assert.That(cachedBalance2, Is.EqualTo (someBalance - someTransactionValue))
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
     member __.``single-compound balance with dupe tx``() =
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
@@ -93,11 +102,12 @@ type CompoundBalanceCaching() =
             | Cached(cachedBalance2,_) ->
                 Assert.That(cachedBalance2, Is.EqualTo (someBalance - someTransactionValue))
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
     member __.``double-compound balance``() =
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
@@ -125,11 +135,12 @@ type CompoundBalanceCaching() =
             | Cached(cachedBalance2,_) ->
                 Assert.That(cachedBalance2, Is.EqualTo (someBalance - firstTransactionAmount - secondTransactionAmount))
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
     member __.``confirmed first transaction``() =
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
@@ -158,11 +169,12 @@ type CompoundBalanceCaching() =
                                                                               newBalanceAfterFirstTransactionIsConfirmed
             Assert.That(cachedBalance2, Is.EqualTo (someBalance - firstTransactionAmount - secondTransactionAmount))
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
     member __.``confirmed second transaction``() =
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
@@ -192,11 +204,12 @@ type CompoundBalanceCaching() =
                                                                               newBalanceAfterSndTransactionIsConfirmed
             Assert.That(cachedBalance2, Is.EqualTo (someBalance - firstTransactionAmount - secondTransactionAmount))
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
     member __.``confirmed two transactions``() =
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
@@ -225,12 +238,13 @@ type CompoundBalanceCaching() =
                                                                               newBalanceAfterBothTxsAreConfirmed
             Assert.That(cachedBalance2, Is.EqualTo (someBalance - firstTransactionAmount - secondTransactionAmount))
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
     member __.``single-compound balance with expired transaction (retrieve and update)``() =
         let expirationTime = TimeSpan.FromMilliseconds 100.0
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest expirationTime
 
         try
@@ -248,12 +262,13 @@ type CompoundBalanceCaching() =
             let cachedBalance2,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance2, Is.EqualTo someBalance)
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
     member __.``single-compound balance with expired transaction (just retreive)``() =
         let expirationTime = TimeSpan.FromMilliseconds 100.0
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest expirationTime
 
         try
@@ -273,11 +288,12 @@ type CompoundBalanceCaching() =
             | Cached(cachedBalance2,_) ->
                 Assert.That(cachedBalance2, Is.EqualTo someBalance)
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
     member __.``substracting both currency X(e.g. DAI) and the currency Y(e.g.ETH) where fees are spent``() =
-        let cache,cacheFile =
+        let cache,cacheFiles =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
@@ -311,4 +327,5 @@ type CompoundBalanceCaching() =
                 if not Config.EthTokenEstimationCouldBeBuggyAsInNotAccurate then
                     Assert.That(cachedEthBalance2, Is.EqualTo (someEthBalance - someFeeAmount))
         finally
-            File.Delete cacheFile.FullName
+            File.Delete cacheFiles.CachedNetworkData.FullName
+            File.Delete cacheFiles.ServerStats.FullName

@@ -21,15 +21,20 @@ type DietCache =
         Balances: Map<DietCurrency,decimal>;
     }
 
+type ServerRanking = Map<ServerIdentifier,HistoryInfo*DateTime>
+
 type CachedNetworkData =
     {
         UsdPrice: Map<Currency,CachedValue<decimal>>;
         Balances: Map<Currency,Map<PublicAddress,CachedValue<decimal>>>;
         OutgoingTransactions: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>;
-        ServerRanking: Map<ServerIdentifier,HistoryInfo*DateTime>
     }
     static member Empty =
-        { UsdPrice = Map.empty; Balances = Map.empty; OutgoingTransactions = Map.empty; ServerRanking = Map.empty }
+        {
+            UsdPrice = Map.empty
+            Balances = Map.empty
+            OutgoingTransactions = Map.empty
+        }
 
     static member FromDietCache (dietCache: DietCache): CachedNetworkData =
         let now = DateTime.Now
@@ -46,7 +51,7 @@ type CachedNetworkData =
                             yield (Currency.Parse currencyStr),Map.empty.Add(address,(balance,now))
             } |> Map.ofSeq
         { UsdPrice = fiatPrices; Balances = balances
-          OutgoingTransactions = Map.empty; ServerRanking = Map.empty }
+          OutgoingTransactions = Map.empty; }
 
     member self.ToDietCache(readOnlyAccounts: seq<ReadOnlyAccount>) =
         let rec extractAddressesFromAccounts (acc: Map<PublicAddress,List<DietCurrency>>) (accounts: List<IAccount>)
@@ -74,6 +79,12 @@ type CachedNetworkData =
             } |> Map.ofSeq
         { UsdPrice = fiatPrices; Addresses = addresses; Balances = balances; }
 
+type CacheFiles =
+    {
+        CachedNetworkData: FileInfo
+        ServerStats: FileInfo
+    }
+
 module Caching =
 
     let private GetCacheDir() =
@@ -83,13 +94,17 @@ module Caching =
             configDir.Create()
         configDir
 
-    let private defaultCacheFile = FileInfo(Path.Combine(GetCacheDir().FullName, "last.json"))
+    let private defaultCacheFiles =
+        {
+            CachedNetworkData = FileInfo(Path.Combine(GetCacheDir().FullName, "networkdata.json"))
+            ServerStats = FileInfo(Path.Combine(GetCacheDir().FullName, "stats.json"))
+        }
 
-    let public ImportFromJson (cacheData: string): CachedNetworkData =
+    let public ImportFromJson<'T> (cacheData: string): 'T =
         Marshalling.Deserialize cacheData
 
     let droppedCachedMsgWarning = "Warning: cleaning incompatible cache data found from different GWallet version"
-    let private LoadFromDiskInternal (file: FileInfo): Option<CachedNetworkData> =
+    let private LoadFromDiskInternal<'T> (file: FileInfo): Option<'T> =
         try
             let json = File.ReadAllText file.FullName
             if String.IsNullOrWhiteSpace json then
@@ -107,20 +122,27 @@ module Caching =
             Console.Error.WriteLine("Warning: cleaning incompatible cache data found")
             None
 
-    let private LoadFromDisk (file: FileInfo): bool*CachedNetworkData =
-        let maybeNetworkData = LoadFromDiskInternal file
-        match maybeNetworkData with
-        | None ->
-            true,CachedNetworkData.Empty
-        | Some networkData ->
-            // this weird thing could happen because the previous version of GWallet didn't have a new element
-            // FIXME: we should save each Map<> into its own file
-            if Object.ReferenceEquals(networkData.OutgoingTransactions, null) ||
-               Object.ReferenceEquals(networkData.ServerRanking, null) then
-                Console.Error.WriteLine droppedCachedMsgWarning
+    let private LoadFromDisk (files: CacheFiles): bool*CachedNetworkData*ServerRanking =
+        let maybeNetworkData = LoadFromDiskInternal<CachedNetworkData> files.CachedNetworkData
+        let maybeFirstRun,resultingNetworkData =
+            match maybeNetworkData with
+            | None ->
                 true,CachedNetworkData.Empty
-            else
-                false,networkData
+            | Some networkData ->
+                // this weird thing could happen because the previous version of GWallet didn't have a new element
+                // FIXME: we should save each Map<> into its own file
+                if Object.ReferenceEquals(networkData.OutgoingTransactions, null) then
+                    Console.Error.WriteLine droppedCachedMsgWarning
+                    true,CachedNetworkData.Empty
+                else
+                    false,networkData
+
+        let maybeServerStats = LoadFromDiskInternal<ServerRanking> files.ServerStats
+        match maybeServerStats with
+        | None ->
+            maybeFirstRun,resultingNetworkData,Map.empty
+        | Some serverStats ->
+            false,resultingNetworkData,serverStats
 
     let rec private MergeRatesInternal (oldMap: Map<'K, CachedValue<'V>>)
                                        (newMap: Map<'K, CachedValue<'V>>)
@@ -206,19 +228,27 @@ module Caching =
     let MapCombinations<'K,'V when 'K: comparison> (map: Map<'K,'V>): List<List<'K*'V>> =
         Map.toList map |> ListCombinations
 
-    type MainCache(maybeCacheFile: Option<FileInfo>, unconfTxExpirationSpan: TimeSpan) =
-        let cacheFile =
-            match maybeCacheFile with
-            | Some file -> file
-            | None -> defaultCacheFile
+    type MainCache(maybeCacheFiles: Option<CacheFiles>, unconfTxExpirationSpan: TimeSpan) =
+        let cacheFiles =
+            match maybeCacheFiles with
+            | Some files -> files
+            | None -> defaultCacheFiles
 
-        let firstRun,initialSessionCachedNetworkData = LoadFromDisk cacheFile
+        let firstRun,initialSessionCachedNetworkData,initialServerStats = LoadFromDisk cacheFiles
         let mutable sessionCachedNetworkData = initialSessionCachedNetworkData
-        let lockObject = Object()
+        let mutable sessionServerRanking = initialServerStats
 
-        let SaveToDisk (newCachedData: CachedNetworkData) =
-            let json = Marshalling.Serialize newCachedData
-            File.WriteAllText (cacheFile.FullName, json)
+        let SaveNetworkDataToDisk (newCachedData: CachedNetworkData) =
+            let networkDataInJson = Marshalling.Serialize newCachedData
+
+            // it is assumed that SaveToDisk is being run under a lock() block
+            File.WriteAllText (cacheFiles.CachedNetworkData.FullName, networkDataInJson)
+
+        let SaveServerRankingsToDisk (serverStats: ServerRanking) =
+            let serverStatsInJson = Marshalling.Serialize serverStats
+
+            // it is assumed that SaveToDisk is being run under a lock() block
+            File.WriteAllText (cacheFiles.ServerStats.FullName, serverStatsInJson)
 
         let GetSumOfAllTransactions (trans: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>)
                                     currency address: decimal =
@@ -263,7 +293,7 @@ module Caching =
 
         member self.SaveSnapshot(newDietCachedData: DietCache) =
             let newCachedData = CachedNetworkData.FromDietCache newDietCachedData
-            lock lockObject (fun _ ->
+            lock cacheFiles.CachedNetworkData (fun _ ->
                 let newSessionCachedNetworkData =
                     let mergedBalances = MergeBalances sessionCachedNetworkData.Balances newCachedData.Balances
                     let mergedUsdPrices = MergeRates sessionCachedNetworkData.UsdPrice newCachedData.UsdPrice
@@ -274,16 +304,16 @@ module Caching =
                     }
 
                 sessionCachedNetworkData <- newSessionCachedNetworkData
-                SaveToDisk newSessionCachedNetworkData
+                SaveNetworkDataToDisk newSessionCachedNetworkData
             )
 
         member self.GetLastCachedData (): CachedNetworkData =
-            lock lockObject (fun _ ->
+            lock cacheFiles.CachedNetworkData (fun _ ->
                 sessionCachedNetworkData
             )
 
         member self.RetreiveLastKnownUsdPrice (currency): NotFresh<decimal> =
-            lock lockObject (fun _ ->
+            lock cacheFiles.CachedNetworkData (fun _ ->
                 try
                     Cached(sessionCachedNetworkData.UsdPrice.Item currency)
                 with
@@ -292,7 +322,7 @@ module Caching =
             )
 
         member self.StoreLastFiatUsdPrice (currency, lastFiatUsdPrice: decimal): unit =
-            lock lockObject (fun _ ->
+            lock cacheFiles.CachedNetworkData (fun _ ->
                 let time = DateTime.Now
 
                 let newCachedValue =
@@ -300,11 +330,11 @@ module Caching =
                         with UsdPrice = sessionCachedNetworkData.UsdPrice.Add(currency, (lastFiatUsdPrice, time)) }
                 sessionCachedNetworkData <- newCachedValue
 
-                SaveToDisk newCachedValue
+                SaveNetworkDataToDisk newCachedValue
             )
 
         member self.RetreiveLastCompoundBalance (address: PublicAddress) (currency: Currency): NotFresh<decimal> =
-            lock lockObject (fun _ ->
+            lock cacheFiles.CachedNetworkData (fun _ ->
                 let balance =
                     try
                         Cached((sessionCachedNetworkData.Balances.Item currency).Item address)
@@ -334,7 +364,7 @@ module Caching =
                                                          (newBalance: decimal)
                                                              : CachedValue<decimal> =
             let time = DateTime.Now
-            lock lockObject (fun _ ->
+            lock cacheFiles.CachedNetworkData (fun _ ->
                 let newCachedValueWithNewBalance,previousBalance =
                     let newCurrencyBalances,previousBalance =
                         match sessionCachedNetworkData.Balances.TryFind currency with
@@ -389,7 +419,7 @@ module Caching =
 
                 sessionCachedNetworkData <- newCachedValueWithNewBalanceAndMaybeLessTransactions
 
-                SaveToDisk newCachedValueWithNewBalanceAndMaybeLessTransactions
+                SaveNetworkDataToDisk newCachedValueWithNewBalanceAndMaybeLessTransactions
 
                 let allTransSum =
                     GetSumOfAllTransactions newCachedValueWithNewBalanceAndMaybeLessTransactions.OutgoingTransactions
@@ -413,7 +443,7 @@ module Caching =
                                                    (amount: decimal)
                                                        : unit =
             let time = DateTime.Now
-            lock lockObject (fun _ ->
+            lock cacheFiles.CachedNetworkData (fun _ ->
                 let newCurrencyAddresses =
                     match sessionCachedNetworkData.OutgoingTransactions.TryFind currency with
                     | None ->
@@ -435,7 +465,7 @@ module Caching =
 
                 sessionCachedNetworkData <- newCachedValue
 
-                SaveToDisk newCachedValue
+                SaveNetworkDataToDisk newCachedValue
             )
 
         member self.StoreOutgoingTransaction (address: PublicAddress)
@@ -451,22 +481,18 @@ module Caching =
                 self.StoreTransactionRecord address feeCurrency txId feeAmount
 
         member self.SaveServerLastStat (server, historyInfo): unit =
-            lock lockObject (fun _ ->
+            lock cacheFiles.ServerStats (fun _ ->
                 let newCachedValue =
-                    {
-                        sessionCachedNetworkData with
-                            ServerRanking = sessionCachedNetworkData.ServerRanking.Add(server,
-                                                                                       (historyInfo, DateTime.Now))
-                    }
+                        sessionServerRanking.Add(server, (historyInfo, DateTime.Now))
 
-                sessionCachedNetworkData <- newCachedValue
+                sessionServerRanking <- newCachedValue
 
-                SaveToDisk newCachedValue
+                SaveServerRankingsToDisk newCachedValue
             )
 
         member self.RetreiveLastServerHistory (serverId: string): Option<HistoryInfo> =
-            lock lockObject (fun _ ->
-                match sessionCachedNetworkData.ServerRanking.TryFind serverId with
+            lock cacheFiles.ServerStats (fun _ ->
+                match sessionServerRanking.TryFind serverId with
                 | None ->
                     if Config.DebugLog then
                         Console.Error.WriteLine (sprintf "WARNING: no history stats about %s" serverId)
