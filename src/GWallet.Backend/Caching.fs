@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Linq
+open System.Net.Http
 
 type CachedValue<'T> = ('T*DateTime)
 type NotFresh<'T> =
@@ -499,6 +500,47 @@ module Caching =
                     None
                 | Some (historyInfo,_) -> Some historyInfo
             )
+
+        member self.BootstrapServerStatsFromTrustedSource(): Async<unit> =
+            let downloadFile url: Async<Option<string>> =
+                let tryDownloadFile url: Async<string> =
+                    async {
+                        use httpClient = new HttpClient()
+                        let uri = Uri url
+                        let! response = Async.AwaitTask (httpClient.GetAsync uri)
+                        let! content = Async.AwaitTask <| response.Content.ReadAsStringAsync()
+                        return content
+                    }
+                async {
+                    try
+                        let! content = tryDownloadFile url
+                        return Some content
+                    with
+                    // should we specify HttpRequestException?
+                    | _ ->
+                        return None
+                }
+            let diginexGithub = "https://raw.githubusercontent.com/diginex/geewallet/master/src/GWallet.Backend/lastServerStats.json"
+            let knocteGithub = "https://raw.githubusercontent.com/knocte/gwallet/master/src/GWallet.Backend/lastServerStats.json"
+            let diginexGitLab = "https://gitlab.com/DiginexGlobal/geewallet/raw/master/src/GWallet.Backend/lastServerStats.json"
+            let knocteGitLab = "https://gitlab.com/knocte/gwallet/raw/master/src/GWallet.Backend/lastServerStats.json"
+
+            let allUrls = [ diginexGithub; knocteGithub; diginexGitLab; knocteGitLab ]
+            let allJobs =
+                allUrls |> Seq.map downloadFile
+
+            async {
+                let! maybeLastServerStatsInJson = FSharpUtil.AsyncExtensions.Choice allJobs
+                match maybeLastServerStatsInJson with
+                | None ->
+                    Console.Error.WriteLine "WARNING: Couldn't reach a trusted server to retreive server stats to bootstrap cache, running in offline mode?"
+                | Some lastServerStatsInJson ->
+                    let lastServerStats = ImportFromJson<ServerRanking> lastServerStatsInJson
+                    lock cacheFiles.ServerStats (fun _ ->
+                        sessionServerRanking <- lastServerStats
+                        SaveServerRankingsToDisk lastServerStats
+                    )
+            }
 
         member __.FirstRun
             with get() = firstRun
