@@ -49,20 +49,50 @@ module Account =
     let GetConfirmedBalance(account: IAccount) =
         GetBalanceFromServer account true
 
-    let private GetShowableBalanceInternal(account: IAccount) (mode: Mode): Async<Option<decimal>> = async {
-        let! confirmed = GetConfirmedBalance account mode
-        if mode = Mode.Fast && Caching.Instance.FirstRun then
-            return confirmed
-        else
-            let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account mode
-            match unconfirmed,confirmed with
-            | Some unconfirmedAmount,Some confirmedAmount ->
-                if (unconfirmedAmount < confirmedAmount) then
-                    return unconfirmed
-                else
+    let private GetShowableBalanceInternal(account: IAccount) (mode: Mode): Async<Option<decimal>> =
+        let getBalanceWithoutCaching(maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>)
+                : Async<Option<decimal>> =
+            async {
+                let! confirmed = GetConfirmedBalance account mode
+                if mode = Mode.Fast then
                     return confirmed
-            | _ -> return confirmed
-    }
+                else
+                    let! unconfirmed =
+                        match maybeUnconfirmedBalanceTaskAlreadyStarted with
+                        | None ->
+                            GetUnconfirmedPlusConfirmedBalance account mode
+                        | Some unconfirmedBalanceTask ->
+                            Async.AwaitTask unconfirmedBalanceTask
+
+                    match unconfirmed,confirmed with
+                    | Some unconfirmedAmount,Some confirmedAmount ->
+                        if (unconfirmedAmount < confirmedAmount) then
+                            return unconfirmed
+                        else
+                            return confirmed
+                    | _ -> return confirmed
+            }
+
+        async {
+            if Caching.Instance.FirstRun then
+                return! getBalanceWithoutCaching None
+            else
+                let unconfirmedTask = GetUnconfirmedPlusConfirmedBalance account mode |> Async.StartAsTask
+                let maybeCachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+                match maybeCachedBalance with
+                | NotAvailable ->
+                    return! getBalanceWithoutCaching(Some unconfirmedTask)
+                | Cached(cachedBalance,_) ->
+                    let! unconfirmed = Async.AwaitTask unconfirmedTask
+                    match unconfirmed with
+                    | Some unconfirmedAmount ->
+                        if unconfirmedAmount <= cachedBalance then
+                            return unconfirmed
+                        else
+                            return! getBalanceWithoutCaching(Some unconfirmedTask)
+                    | None ->
+                        return! getBalanceWithoutCaching(Some unconfirmedTask)
+        }
 
     let GetShowableBalance(account: IAccount) (mode: Mode): Async<MaybeCached<decimal>> =
         async {
