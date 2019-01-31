@@ -157,7 +157,7 @@ module Account =
                      randomizedElectrumServers
         randomizedServers
 
-    let private GetBalance(account: IUtxoAccount) (mode: Mode) =
+    let private GetBalances(account: IUtxoAccount) (mode: Mode) =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
         let balance =
@@ -167,18 +167,35 @@ module Account =
                 (GetRandomizedFuncs account.Currency ElectrumClient.GetBalance)
         balance
 
-    let GetConfirmedBalance(account: IUtxoAccount) (mode: Mode): Async<decimal> =
+    let private GetBalancesFromServer (account: IUtxoAccount) (mode: Mode)
+                                         : Async<Option<BlockchainScripthahsGetBalanceInnerResult>> =
         async {
-            let! balance = GetBalance account mode
-            let confirmedBalance = (Money.Satoshis balance.Confirmed).ToUnit MoneyUnit.BTC
-            return confirmedBalance
+            try
+                let! balances = GetBalances account mode
+                return Some balances
+            with
+            | ex ->
+                if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
+                    return None
+                else
+                    return raise (FSharpUtil.ReRaise ex)
         }
 
-    let GetUnconfirmedPlusConfirmedBalance(account: IUtxoAccount) (mode: Mode): Async<decimal> =
+    let internal GetShowableBalance(account: IUtxoAccount) (mode: Mode): Async<Option<decimal>> =
         async {
-            let! balance = GetBalance account mode
-            let confirmedBalance = Money.Satoshis(balance.Unconfirmed + balance.Confirmed).ToUnit MoneyUnit.BTC
-            return confirmedBalance
+            let! maybeBalances = GetBalancesFromServer account mode
+            match maybeBalances with
+            | Some balances ->
+                let unconfirmedPlusConfirmed = balances.Unconfirmed + balances.Confirmed
+                let amountToShowInSatoshis =
+                    if unconfirmedPlusConfirmed < balances.Confirmed then
+                        unconfirmedPlusConfirmed
+                    else
+                        balances.Confirmed
+                let amountInBtc = (Money.Satoshis amountToShowInSatoshis).ToUnit MoneyUnit.BTC
+                return Some amountInBtc
+            | None ->
+                return None
         }
 
     let private CreateTransactionAndCoinsToBeSigned (account: IUtxoAccount)

@@ -5,6 +5,7 @@
 
 open System
 open System.Numerics
+open System.Threading.Tasks
 
 open Nethereum.Signer
 open Nethereum.KeyStore
@@ -12,6 +13,10 @@ open Nethereum.Util
 open Nethereum.KeyStore.Crypto
 
 open GWallet.Backend
+
+type BalanceType =
+    | Unconfirmed
+    | Confirmed
 
 module internal Account =
 
@@ -33,7 +38,7 @@ module internal Account =
                 "0x" + rawPublicAddress
         publicAddress
 
-    let GetConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> = async {
+    let private GetConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> = async {
         let! balance =
             if (account.Currency.IsEther()) then
                 Ether.Server.GetConfirmedEtherBalance account.Currency account.PublicAddress mode
@@ -44,7 +49,7 @@ module internal Account =
         return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
     }
 
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> = async {
+    let private GetUnconfirmedPlusConfirmedBalance(account: IAccount) (mode: Mode): Async<decimal> = async {
         let! balance =
             if (account.Currency.IsEther()) then
                 Ether.Server.GetUnconfirmedEtherBalance account.Currency account.PublicAddress mode
@@ -54,6 +59,70 @@ module internal Account =
                 failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
     }
+
+    let private GetBalance(account: IAccount) (mode: Mode) (balType: BalanceType) =
+        match balType with
+        | BalanceType.Confirmed -> GetConfirmedBalance account mode
+        | BalanceType.Unconfirmed -> GetUnconfirmedPlusConfirmedBalance account mode
+
+    let private GetBalanceFromServer (account: IAccount) (balType: BalanceType) (mode: Mode)
+                                         : Async<Option<decimal>> =
+        async {
+            try
+                let! balance = GetBalance account mode balType
+                return Some balance
+            with
+            | ex ->
+                if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
+                    return None
+                else
+                    return raise (FSharpUtil.ReRaise ex)
+        }
+
+    let internal GetShowableBalance(account: IAccount) (mode: Mode): Async<Option<decimal>> =
+        let getBalanceWithoutCaching(maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>)
+                : Async<Option<decimal>> =
+            async {
+                let! confirmed = GetBalanceFromServer account BalanceType.Confirmed mode
+                if mode = Mode.Fast then
+                    return confirmed
+                else
+                    let! unconfirmed =
+                        match maybeUnconfirmedBalanceTaskAlreadyStarted with
+                        | None ->
+                            GetBalanceFromServer account BalanceType.Confirmed mode
+                        | Some unconfirmedBalanceTask ->
+                            Async.AwaitTask unconfirmedBalanceTask
+
+                    match unconfirmed,confirmed with
+                    | Some unconfirmedAmount,Some confirmedAmount ->
+                        if (unconfirmedAmount < confirmedAmount) then
+                            return unconfirmed
+                        else
+                            return confirmed
+                    | _ -> return confirmed
+            }
+
+        async {
+            if Caching.Instance.FirstRun then
+                return! getBalanceWithoutCaching None
+            else
+                let unconfirmedTask = GetBalanceFromServer account BalanceType.Confirmed mode |> Async.StartAsTask
+                let maybeCachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+                match maybeCachedBalance with
+                | NotAvailable ->
+                    return! getBalanceWithoutCaching(Some unconfirmedTask)
+                | Cached(cachedBalance,_) ->
+                    let! unconfirmed = Async.AwaitTask unconfirmedTask
+                    match unconfirmed with
+                    | Some unconfirmedAmount ->
+                        if unconfirmedAmount <= cachedBalance then
+                            return unconfirmed
+                        else
+                            return! getBalanceWithoutCaching(Some unconfirmedTask)
+                    | None ->
+                        return! getBalanceWithoutCaching(Some unconfirmedTask)
+        }
 
     let ValidateAddress (currency: Currency) (address: string) =
         let ETHEREUM_ADDRESSES_LENGTH = 42

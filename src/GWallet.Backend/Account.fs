@@ -7,92 +7,18 @@ open System.Threading.Tasks
 
 module Account =
 
-    let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool) (mode: Mode): Async<decimal> =
-        async {
-            match account with
-            | :? UtxoCoin.IUtxoAccount as utxoAccount ->
-                if not (account.Currency.IsUtxo()) then
-                    failwithf "Currency %A not Utxo-type but account is? report this bug (balance)" account.Currency
-
-                if onlyConfirmed then
-                    return! UtxoCoin.Account.GetConfirmedBalance utxoAccount mode
-                else
-                    return! UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance utxoAccount mode
-            | _ ->
-                if not (account.Currency.IsEtherBased()) then
-                    failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (balance)"
-                        account.Currency
-
-                if onlyConfirmed then
-                    return! Ether.Account.GetConfirmedBalance account mode
-                else
-                    return! Ether.Account.GetUnconfirmedPlusConfirmedBalance account mode
-        }
-
-    let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool) (mode: Mode)
-                                         : Async<Option<decimal>> =
-        async {
-            try
-                let! balance = GetBalanceInternal account onlyConfirmed mode
-                return Some balance
-            with
-            | ex ->
-                if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
-                    return None
-                else
-                    return raise (FSharpUtil.ReRaise ex)
-        }
-
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount) =
-        GetBalanceFromServer account false
-
-    let GetConfirmedBalance(account: IAccount) =
-        GetBalanceFromServer account true
-
     let private GetShowableBalanceInternal(account: IAccount) (mode: Mode): Async<Option<decimal>> =
-        let getBalanceWithoutCaching(maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>)
-                : Async<Option<decimal>> =
-            async {
-                let! confirmed = GetConfirmedBalance account mode
-                if mode = Mode.Fast then
-                    return confirmed
-                else
-                    let! unconfirmed =
-                        match maybeUnconfirmedBalanceTaskAlreadyStarted with
-                        | None ->
-                            GetUnconfirmedPlusConfirmedBalance account mode
-                        | Some unconfirmedBalanceTask ->
-                            Async.AwaitTask unconfirmedBalanceTask
+        match account with
+        | :? UtxoCoin.IUtxoAccount as utxoAccount ->
+            if not (account.Currency.IsUtxo()) then
+                failwithf "Currency %A not Utxo-type but account is? report this bug (balance)" account.Currency
 
-                    match unconfirmed,confirmed with
-                    | Some unconfirmedAmount,Some confirmedAmount ->
-                        if (unconfirmedAmount < confirmedAmount) then
-                            return unconfirmed
-                        else
-                            return confirmed
-                    | _ -> return confirmed
-            }
-
-        async {
-            if Caching.Instance.FirstRun then
-                return! getBalanceWithoutCaching None
-            else
-                let unconfirmedTask = GetUnconfirmedPlusConfirmedBalance account mode |> Async.StartAsTask
-                let maybeCachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
-                match maybeCachedBalance with
-                | NotAvailable ->
-                    return! getBalanceWithoutCaching(Some unconfirmedTask)
-                | Cached(cachedBalance,_) ->
-                    let! unconfirmed = Async.AwaitTask unconfirmedTask
-                    match unconfirmed with
-                    | Some unconfirmedAmount ->
-                        if unconfirmedAmount <= cachedBalance then
-                            return unconfirmed
-                        else
-                            return! getBalanceWithoutCaching(Some unconfirmedTask)
-                    | None ->
-                        return! getBalanceWithoutCaching(Some unconfirmedTask)
-        }
+            UtxoCoin.Account.GetShowableBalance utxoAccount mode
+        | _ ->
+            if not (account.Currency.IsEtherBased()) then
+                failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (balance)"
+                    account.Currency
+            Ether.Account.GetShowableBalance account mode
 
     let GetShowableBalance(account: IAccount) (mode: Mode): Async<MaybeCached<decimal>> =
         async {
@@ -180,11 +106,11 @@ module Account =
 
                 for accountFile in Config.GetAccountFiles [currency] AccountKind.Archived do
                     let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
-                    let maybeBalance = GetUnconfirmedPlusConfirmedBalance account Mode.Fast
+                    let maybeBalanceJob = GetShowableBalanceInternal account Mode.Fast
                     yield async {
-                        let! unconfirmedBalance = maybeBalance
+                        let! maybeBalance = maybeBalanceJob
                         let positiveBalance =
-                            match unconfirmedBalance with
+                            match maybeBalance with
                             | Some balance ->
                                 if (balance > 0m) then
                                     Some(balance)
