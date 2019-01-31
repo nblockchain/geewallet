@@ -7,74 +7,22 @@ open System.Threading.Tasks
 
 module Account =
 
-    let private GetBalanceInternal(account: IAccount) (onlyConfirmed: bool) (mode: Mode): Async<decimal> =
-        async {
-            match account with
-            | :? UtxoCoin.IUtxoAccount as utxoAccount ->
-                if not (account.Currency.IsUtxo()) then
-                    failwithf "Currency %A not Utxo-type but account is? report this bug (balance)" account.Currency
+    let private GetShowableBalanceAndImminentPaymentInternal(account: IAccount) (mode: Mode)
+                                                                : Async<Option<decimal*Option<bool>>> =
+        match account with
+        | :? UtxoCoin.IUtxoAccount as utxoAccount ->
+            if not (account.Currency.IsUtxo()) then
+                failwithf "Currency %A not Utxo-type but account is? report this bug (balance)" account.Currency
 
-                if onlyConfirmed then
-                    return! UtxoCoin.Account.GetConfirmedBalance utxoAccount mode
-                else
-                    return! UtxoCoin.Account.GetUnconfirmedPlusConfirmedBalance utxoAccount mode
-            | _ ->
-                if not (account.Currency.IsEtherBased()) then
-                    failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (balance)"
-                        account.Currency
-
-                if onlyConfirmed then
-                    return! Ether.Account.GetConfirmedBalance account mode
-                else
-                    return! Ether.Account.GetUnconfirmedPlusConfirmedBalance account mode
-        }
-
-    let private GetBalanceFromServer (account: IAccount) (onlyConfirmed: bool) (mode: Mode)
-                                         : Async<Option<decimal>> =
-        async {
-            try
-                let! balance = GetBalanceInternal account onlyConfirmed mode
-                return Some balance
-            with
-            | ex ->
-                if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
-                    return None
-                else
-                    return raise (FSharpUtil.ReRaise ex)
-        }
-
-    let GetUnconfirmedPlusConfirmedBalance(account: IAccount) =
-        GetBalanceFromServer account false
-
-    let GetConfirmedBalance(account: IAccount) =
-        GetBalanceFromServer account true
-
-    let private GetShowableBalanceAndImminentPaymentInternal (account: IAccount) (mode: Mode)
-                                                                 : Async<Option<decimal*Option<bool>>> = async {
-
-        let! confirmed = GetConfirmedBalance account mode
-        if mode = Mode.Fast && Caching.Instance.FirstRun then
-            match confirmed with
-            | None -> return None
-            | Some confirmedAmount -> return Some(confirmedAmount,
-                                                  // this None below means "we don't know"
-                                                  None)
-        else
-            let! unconfirmed = GetUnconfirmedPlusConfirmedBalance account mode
-            match unconfirmed,confirmed with
-            | Some unconfirmedAmount,Some confirmedAmount ->
-                if (unconfirmedAmount > confirmedAmount) then
-                    return Some (confirmedAmount, Some true)
-                else
-                    return Some (unconfirmedAmount, Some false)
-            | _ ->
-                match confirmed with
-                | None -> return None
-                | Some confirmedAmount -> return Some(confirmedAmount, Some false)
-    }
+            UtxoCoin.Account.GetShowableBalanceAndImminentIncomingPayment utxoAccount mode
+        | _ ->
+            if not (account.Currency.IsEtherBased()) then
+                failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (balance)"
+                    account.Currency
+            Ether.Account.GetShowableBalanceAndImminentIncomingPayment account mode
 
     let GetShowableBalanceAndImminentIncomingPayment (account: IAccount) (mode: Mode)
-                                                 : Async<MaybeCached<decimal>*Option<bool>> =
+                                                         : Async<MaybeCached<decimal>*Option<bool>> =
         async {
             let! maybeBalanceAndImminentIncomingPayment = GetShowableBalanceAndImminentPaymentInternal account mode
             match maybeBalanceAndImminentIncomingPayment with
@@ -177,12 +125,12 @@ module Account =
 
                 for accountFile in Config.GetAccountFiles [currency] AccountKind.Archived do
                     let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
-                    let maybeBalance = GetUnconfirmedPlusConfirmedBalance account Mode.Fast
+                    let maybeBalanceJob = GetShowableBalanceAndImminentPaymentInternal account Mode.Fast
                     yield async {
-                        let! unconfirmedBalance = maybeBalance
+                        let! maybeBalance = maybeBalanceJob
                         let positiveBalance =
-                            match unconfirmedBalance with
-                            | Some balance ->
+                            match maybeBalance with
+                            | Some (balance,_) ->
                                 if (balance > 0m) then
                                     Some(balance)
                                 else
