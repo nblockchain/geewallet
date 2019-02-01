@@ -76,14 +76,12 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
     member this.Init (): unit =
 
         if showLogo then
-            Device.BeginInvokeOnMainThread(fun _ ->
-                mainLayout.Children.Add logoImg
+            mainLayout.Children.Add logoImg
 
-                Device.StartTimer(TimeSpan.FromSeconds 8.0, fun _ ->
-                    ShowLoadingText()
+            Device.StartTimer(TimeSpan.FromSeconds 8.0, fun _ ->
+                ShowLoadingText()
 
-                    false
-                )
+                false
             )
         else
             ShowLoadingText()
