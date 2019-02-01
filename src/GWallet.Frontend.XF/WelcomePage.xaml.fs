@@ -95,6 +95,10 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             nextButton.Text <- newCreateButtonCaption
         )
 
+    do
+        Caching.Instance.BootstrapServerStatsFromTrustedSource()
+            |> FrontendHelpers.DoubleCheckCompletionAsync
+
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = WelcomePage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime())
 
