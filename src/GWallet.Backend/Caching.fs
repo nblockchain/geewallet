@@ -526,10 +526,26 @@ module Caching =
                     | _ ->
                         return None
                 }
-            let diginexGithub = "https://raw.githubusercontent.com/diginex/geewallet/master/src/GWallet.Backend/lastServerStats.json"
-            let knocteGithub = "https://raw.githubusercontent.com/knocte/gwallet/master/src/GWallet.Backend/lastServerStats.json"
-            let diginexGitLab = "https://gitlab.com/DiginexGlobal/geewallet/raw/master/src/GWallet.Backend/lastServerStats.json"
-            let knocteGitLab = "https://gitlab.com/knocte/gwallet/raw/master/src/GWallet.Backend/lastServerStats.json"
+
+            let targetBranch = "master"
+            let username1,username2,username3 = "diginex","knocte","DiginexGlobal"
+            let projName1,projName2 = "geewallet","gwallet"
+            let githubBaseUrl,gitlabBaseUrl = "https://raw.githubusercontent.com/","https://gitlab.com/"
+            let pathToFile = "src/GWallet.Backend/lastServerStats.json"
+
+            let diginexGithub =
+                sprintf "%s/%s/%s/%s/%s"
+                        githubBaseUrl username1 projName1 targetBranch pathToFile
+            let knocteGithub =
+                sprintf "%s/%s/%s/%s/%s"
+                        githubBaseUrl username2 projName2 targetBranch pathToFile
+
+            let diginexGitLab =
+                sprintf "%s/%s/%s/raw/%s/%s"
+                        gitlabBaseUrl username3 projName1 targetBranch pathToFile
+            let knocteGitLab =
+                sprintf "%s/%s/%s/raw/%s/%s"
+                        gitlabBaseUrl username2 projName2 targetBranch pathToFile
 
             let allUrls = [ diginexGithub; knocteGithub; diginexGitLab; knocteGitLab ]
             let allJobs =

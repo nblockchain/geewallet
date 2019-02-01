@@ -6,7 +6,7 @@ open Microsoft.FSharp.Reflection
 
 module FSharpUtil =
 
-    type private ResultWrapper<'T>(value : 'T) =
+    type internal ResultWrapper<'T>(value : 'T) =
 
         // hack?
         inherit Exception()
@@ -14,20 +14,20 @@ module FSharpUtil =
         member self.Value = value
 
     // taken from http://fssnip.net/dN ( https://stackoverflow.com/a/20521059/544947 )
-    type AsyncExtensions =
+    module AsyncExtensions =
 
         // efficient raise
-        static member private RaiseResult (e: ResultWrapper<'T>) =
+        let private RaiseResult (e: ResultWrapper<'T>) =
             Async.FromContinuations(fun (_, econt, _) -> econt e)
 
-        static member Choice<'T>(jobs: seq<Async<Option<'T>>>) : Async<'T option> =
+        let Choice<'T>(jobs: seq<Async<Option<'T>>>) : Async<'T option> =
             let wrap job =
                 async {
                     let! res = job
                     match res with
                     | None -> return None
                     | Some r ->
-                        return! AsyncExtensions.RaiseResult <| ResultWrapper r
+                        return! RaiseResult <| ResultWrapper r
                 }
 
             async {
