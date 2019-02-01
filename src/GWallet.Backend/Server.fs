@@ -3,7 +3,7 @@
 open System
 
 type ExceptionInfo =
-    { Type: Type
+    { TypeFullName: string
       Message: string }
 
 type HistoryInfo =
