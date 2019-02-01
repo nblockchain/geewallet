@@ -508,8 +508,13 @@ module Caching =
                         use httpClient = new HttpClient()
                         let uri = Uri url
                         let! response = Async.AwaitTask (httpClient.GetAsync uri)
+                        let isSuccess = response.IsSuccessStatusCode
                         let! content = Async.AwaitTask <| response.Content.ReadAsStringAsync()
-                        return content
+                        if isSuccess then
+                            return content
+                        else
+                            Console.Error.WriteLine ("WARNING: error trying to retreive server stats: " + content)
+                            return failwith content
                     }
                 async {
                     try
