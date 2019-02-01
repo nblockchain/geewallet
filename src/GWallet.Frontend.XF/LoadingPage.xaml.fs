@@ -8,10 +8,14 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
-type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
+type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
+
+    let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let titleLabel = mainLayout.FindByName<Label> "titleLabel"
+    let loadingLabel = mainLayout.FindByName<Label> "loadingLabel"
 
     let allAccounts = Account.GetAllActiveAccounts()
     let normalAccounts = allAccounts.OfType<NormalAccount>() |> List.ofSeq
@@ -50,13 +54,39 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState) as this =
             return (GetAllImages() |> Map.ofSeq)
         }
 
+    let fullyQualifiedResourceNameForLogo = sprintf "%s.img.logo_%ix%i.png"
+                                                    thisAssemblyName 512 512
+    let logoImageSource = ImageSource.FromResource(fullyQualifiedResourceNameForLogo, thisAssembly)
+    let logoImg = Image(Source = logoImageSource, IsVisible = true)
+    let ShowLoadingText() =
+        Device.BeginInvokeOnMainThread(fun _ ->
+            mainLayout.VerticalOptions <- LayoutOptions.Center
+            mainLayout.Padding <- Thickness(20.,0.,20.,50.)
+            logoImg.IsVisible <- false
+            titleLabel.IsVisible <- true
+            loadingLabel.IsVisible <- true
+        )
+
     do
         this.Init()
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
-    new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime())
+    new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
 
     member this.Init (): unit =
+
+        if showLogo then
+            Device.BeginInvokeOnMainThread(fun _ ->
+                mainLayout.Children.Add logoImg
+
+                Device.StartTimer(TimeSpan.FromSeconds 8.0, fun _ ->
+                    ShowLoadingText()
+
+                    false
+                )
+            )
+        else
+            ShowLoadingText()
 
         let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts
         let allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances false

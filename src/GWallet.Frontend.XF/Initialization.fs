@@ -21,7 +21,7 @@ module Initialization =
             if not (accounts.Any()) then
                 (WelcomePage GlobalState) :> Page
             else
-                (LoadingPage GlobalState) :> Page
+                (LoadingPage (GlobalState, true)) :> Page
 
         let navPage = NavigationPage landingPage
         NavigationPage.SetHasNavigationBar(landingPage, false)

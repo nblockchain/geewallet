@@ -4,14 +4,16 @@
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
              x:Class="GWallet.Frontend.XF.LoadingPage">
     <StackLayout x:Name="mainLayout"
-                 Padding="20,100,20,50"
-                 VerticalOptions="Center">
+                 Padding="20,150,20,50"
+                 VerticalOptions="Start">
         <Label Text="geewallet" x:Name="titleLabel"
                VerticalOptions="Start"
                HorizontalOptions="Center"
+               IsVisible="false"
                FontAttributes="Bold" FontSize="Large" />
         <Label Text="Loading..." x:Name="loadingLabel"
                VerticalOptions="Center" HorizontalOptions="Center"
+               IsVisible="false"
                Margin="40,40,40,40" />
     </StackLayout>
 </ContentPage>
