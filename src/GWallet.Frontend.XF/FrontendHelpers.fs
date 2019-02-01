@@ -183,6 +183,7 @@ module FrontendHelpers =
 
     // when running Task<unit> or Task<T> where we want to ignore the T, we should still make sure there is no exception,
     // & if there is, bring it to the main thread to fail fast, report to Sentry, etc, otherwise it gets ignored
+    // FIXME: should maybe use TaskContinuationOptions.OnlyOnFaulted (see https://stackoverflow.com/a/27259929)
     let DoubleCheckCompletion<'T> (task: Task<'T>) =
         task.ContinueWith(fun (t: Task<'T>) ->
             MaybeCrash t.Exception
@@ -199,9 +200,7 @@ module FrontendHelpers =
                 ()
             with
             | ex ->
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    raise(ex)
-                )
+                MaybeCrash ex
             return ()
         } |> Async.Start
 
