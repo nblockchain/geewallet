@@ -213,8 +213,10 @@ let rec PerformOptions(numAccounts: int) =
     match UserInteraction.AskOption(numAccounts) with
     | Options.Exit -> exit 0
     | Options.CreateAccounts ->
-        Caching.Instance.BootstrapServerStatsFromTrustedSource() |> Async.StartAsTask |> ignore
+        let bootstrapTask = Caching.Instance.BootstrapServerStatsFromTrustedSource() |> Async.StartAsTask
         let passphrase,dob,email = UserInteraction.AskBrainSeed()
+        if null <> bootstrapTask.Exception then
+            raise bootstrapTask.Exception
         let masterPrivateKeyTask =
             Account.GenerateMasterPrivateKey passphrase dob email
                 |> Async.StartAsTask
