@@ -464,7 +464,7 @@ type FaultTolerance() =
         let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
-        let fault = Some { Type = typeof<Exception>; Message = "some err" }
+        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
                         Identifier = "server1"; Retreival = (fun arg -> someResult1) }
         let server2 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 })
@@ -491,7 +491,7 @@ type FaultTolerance() =
         let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
-        let fault = Some { Type = typeof<Exception>; Message = "some err" }
+        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1,server2 = { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 2.0 };
                                 Identifier = "server1"; Retreival = (fun arg -> someResult1) },
                               { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 };
@@ -544,7 +544,7 @@ type FaultTolerance() =
         let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
-        let fault = Some { Type = typeof<Exception>; Message = "some err" }
+        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
                         Identifier = "server1"; Retreival = (fun arg -> someResult1) }
         let server2 = { HistoryInfo = None
@@ -572,7 +572,7 @@ type FaultTolerance() =
         let someResult1 = 1
         let someResult2 = 2
         let someResult3 = 3
-        let fault = Some { Type = typeof<Exception>; Message = "some err" }
+        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
                         Identifier = "server1"; Retreival = (fun arg -> someResult1) }
         let server2 = { HistoryInfo = None
@@ -611,7 +611,7 @@ type FaultTolerance() =
                                         Identifier = "server2"; Retreival = (fun arg -> raise SomeSpecificException) },
                                       { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 };
                                         Identifier = "server3"; Retreival = (fun arg -> someResult3) }
-        let fault = Some { Type = typeof<Exception>; Message = "some err" }
+        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server4 = { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 }
                         Identifier = "server4"; Retreival = (fun arg -> someResult4) }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
@@ -722,7 +722,7 @@ type FaultTolerance() =
                     someNonFailingCounter <- someNonFailingCounter + 1
                 | Some fault ->
                     Assert.That(serverId, Is.EqualTo failingServerName)
-                    Assert.That(fault.Type, Is.EqualTo typeof<SomeSpecificException>)
+                    Assert.That(fault.TypeFullName, Is.EqualTo typeof<SomeSpecificException>.FullName)
                 Assert.That(historyInfo.TimeSpan, Is.GreaterThan TimeSpan.Zero)
                 someTotalCounter <- someTotalCounter + 1
             )

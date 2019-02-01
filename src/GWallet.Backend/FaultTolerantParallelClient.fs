@@ -150,7 +150,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                             Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
                                                          (ex.GetType().FullName)
                                                          ex.Message)
-                        let exInfo = { Type = specificInnerEx.GetType(); Message = specificInnerEx.Message }
+                        let exInfo =
+                            {
+                                TypeFullName = specificInnerEx.GetType().FullName
+                                Message = specificInnerEx.Message
+                            }
                         updateServer (head.Identifier, { Fault = Some exInfo; TimeSpan = stopwatch.Elapsed })
                         let newFailures = (head,specificInnerEx)::failuresSoFar
                         return! ConcatenateNonParallelFuncs args newFailures tail
