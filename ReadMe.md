@@ -69,6 +69,7 @@ This list is the (intended) order of preference for new features:
   * Frontend.XF: start querying servers in WelcomePage, with dummy addresses, just to gather server stats.
   * First startup: bundle stats for all servers (gathered by the maintainer as a user).
   * Frontend.XF: show balances as soon as the first confirmed balance is retreived, and put an in-progress animated gif in the currency rows that are still being queried (this way you will easily tell as well which currencies have low server availability, which might push the user to turn some of them off in the settings).
+  * Backend.Config.DEFAULT_NETWORK_TIMEOUT: see comment above this setting, to couple it with FaultTolerantParalellClient
 
 ## Anti-roadmap
 

@@ -75,8 +75,9 @@ module Config =
         //don't work with the new TCP client, only the legacy one works
         (Option.exists (fun monoVersion -> monoVersion < Version("5.18.0.240")) (GetMonoVersion()))
 
-    // TODO: move to FaultTolerantParallelClient
-    let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 60.0
+    // FIXME: make FaultTolerantParallelClient accept funcs that receive this as an arg, maybe 2x-ing it when a full
+    //        round of failures has happened, as in, all servers failed
+    let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 3.0
 
     let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = 1u
 
