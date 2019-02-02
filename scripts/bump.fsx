@@ -33,7 +33,8 @@ Process.SafeExecute (sprintf "%s %s %s"
                          (fullVersion.ToString())
                          (newFullVersion.ToString()),
                      Echo.Off) |> ignore
-Process.SafeExecute (sprintf "%s \\\"%s\\\" \\\"%s\\\""
+// to replace Android's versionCode attrib in AndroidManifest.xml
+Process.SafeExecute (sprintf "%s versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
                          replaceScript
                          (androidVersion.ToString())
                          (newVersion.ToString()),
