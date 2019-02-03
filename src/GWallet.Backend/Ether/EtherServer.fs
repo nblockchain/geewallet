@@ -48,6 +48,9 @@ module Server =
        new (message:string) =
            { inherit ConnectionUnsuccessfulException (message) }
 
+    type ServerRestrictiveException(message:string, innerException: Exception) =
+       inherit ConnectionUnsuccessfulException (message, innerException)
+
     type UnhandledWebException(status: WebExceptionStatus, innerException: Exception) =
        inherit Exception (sprintf "GWallet not prepared for this WebException with Status[%d]" (int status),
                           innerException)
@@ -58,6 +61,9 @@ module Server =
         | WebServerDown = 521
         | OriginUnreachable = 523
         | OriginSslHandshakeError = 525
+
+    type HttpStatusCodeNotPresentInTheBcl =
+        | TooManyRequests = 429
 
     type RpcErrorCode =
         // "This request is not supported because your node is running with state pruning. Run with --pruning=archive."
@@ -73,7 +79,6 @@ module Server =
 
         | UnknownBlockNumber = -32602
         | GatewayTimeout = -32050
-
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
@@ -202,7 +207,9 @@ module Server =
                             raise <| ServerMisconfiguredException(exMsg, httpReqEx)
                         if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
                             raise <| ServerUnavailableException(exMsg, httpReqEx)
-
+                        if HttpRequestExceptionMatchesErrorCode
+                            httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
+                                raise <| ServerRestrictiveException(exMsg, httpReqEx)
                         reraise()
 
                     | None ->
