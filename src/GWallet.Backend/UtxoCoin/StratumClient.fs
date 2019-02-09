@@ -110,6 +110,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             if (ex.ErrorCode = -32603) then
                 return raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
             return raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
+        | ex ->
+            let errMsg = sprintf "Exception while deserializing the response to the request '%s'" jsonRequest
+            return raise <| Exception(errMsg, ex)
     }
 
     static member public Deserialize<'T> (result: string): 'T =
