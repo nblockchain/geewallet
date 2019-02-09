@@ -96,9 +96,6 @@
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
       <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
-    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_256x256.png">
-      <Visible>false</Visible>
-    </ImageAsset>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json">
       <Visible>false</Visible>
     </ImageAsset>
@@ -126,21 +123,19 @@
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_167x167.png">
       <Visible>false</Visible>
     </ImageAsset>
-    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_1024x1024.png">
-      <Visible>false</Visible>
-    </ImageAsset>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_48x48.png">
       <Visible>false</Visible>
     </ImageAsset>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_88x88.png">
       <Visible>false</Visible>
     </ImageAsset>
-    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo.png">
-      <Visible>false</Visible>
-    </ImageAsset>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_32x32.png">
       <Visible>false</Visible>
     </ImageAsset>
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_172x172.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_512x512.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_256x256.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo.png" />
     <ImageAsset Include="Assets.xcassets\Contents.json">
       <Visible>false</Visible>
     </ImageAsset>

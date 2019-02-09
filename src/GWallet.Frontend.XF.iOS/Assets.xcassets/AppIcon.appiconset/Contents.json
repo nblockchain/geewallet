@@ -99,10 +99,21 @@
       "idiom": "ipad"
     },
     {
-      "filename": "logo_1024x1024.png",
+      "filename": "logo.png",
       "size": "1024x1024",
       "scale": "1x",
       "idiom": "ios-marketing"
+    },
+    {
+      "filename": "logo_120x120.png",
+      "size": "60x60",
+      "scale": "2x",
+      "idiom": "car"
+    },
+    {
+      "size": "60x60",
+      "scale": "3x",
+      "idiom": "car"
     },
     {
       "role": "notificationCenter",
@@ -142,16 +153,23 @@
       "idiom": "watch"
     },
     {
-      "role": "longLook",
+      "role": "appLauncher",
       "filename": "logo_88x88.png",
       "size": "44x44",
-      "subtype": "42mm",
+      "subtype": "40mm",
+      "scale": "2x",
+      "idiom": "watch"
+    },
+    {
+      "role": "appLauncher",
+      "size": "50x50",
+      "subtype": "44mm",
       "scale": "2x",
       "idiom": "watch"
     },
     {
       "role": "quickLook",
-      "filename": "logo.png",
+      "filename": "logo_172x172.png",
       "size": "86x86",
       "subtype": "38mm",
       "scale": "2x",
@@ -165,6 +183,19 @@
       "idiom": "watch"
     },
     {
+      "role": "quickLook",
+      "size": "108x108",
+      "subtype": "44mm",
+      "scale": "2x",
+      "idiom": "watch"
+    },
+    {
+      "filename": "logo.png",
+      "size": "1024x1024",
+      "scale": "1x",
+      "idiom": "watch-marketing"
+    },
+    {
       "size": "16x16",
       "scale": "1x",
       "idiom": "mac"
@@ -204,17 +235,19 @@
       "idiom": "mac"
     },
     {
+      "filename": "logo_512x512.png",
       "size": "256x256",
       "scale": "2x",
       "idiom": "mac"
     },
     {
+      "filename": "logo_512x512.png",
       "size": "512x512",
       "scale": "1x",
       "idiom": "mac"
     },
     {
-      "filename": "logo_1024x1024.png",
+      "filename": "logo.png",
       "size": "512x512",
       "scale": "2x",
       "idiom": "mac"
