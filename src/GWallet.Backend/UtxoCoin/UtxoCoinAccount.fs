@@ -473,6 +473,9 @@ module Account =
         }
 
     let ParseAddressOrUrl (addressOrUrl: string) =
+        if String.IsNullOrEmpty addressOrUrl then
+            invalidArg "addressOrUrl" "address or URL should not be null or empty"
+
         if (addressOrUrl.StartsWith "litecoin:") then
             // FIXME: BitcoinUriBuilder class of NBitcoin doesn't support "litecoin:" scheme yet..., fix bug upstream
             failwith "URI scheme 'litecoin:' not supported yet"
@@ -481,9 +484,12 @@ module Account =
             addressOrUrl,None
         else
             let uriBuilder = BitcoinUrlBuilder addressOrUrl
-            if (uriBuilder.UnknowParameters.Count > 0) then
+            if null <> uriBuilder.UnknowParameters && uriBuilder.UnknowParameters.Any() then
                 failwithf "Unknown parameters found in URI %s: %s"
                           addressOrUrl (String.Join(",", uriBuilder.UnknowParameters.Keys))
+
+            if null = uriBuilder.Address then
+                failwithf "Address started with 'bitcoin:' but an address could not be extracted: %s" addressOrUrl
 
             let address = uriBuilder.Address.ToString()
             if (uriBuilder.Amount <> null) then
