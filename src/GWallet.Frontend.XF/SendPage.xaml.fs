@@ -130,7 +130,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun result ->
-            if null <> result || String.IsNullOrEmpty result.Text then
+            if null = result || String.IsNullOrEmpty result.Text then
                 failwith "result of scanning was null(?)"
 
             scanPage.IsScanning <- false
