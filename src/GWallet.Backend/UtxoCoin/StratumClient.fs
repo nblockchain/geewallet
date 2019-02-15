@@ -103,6 +103,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R> = async {
         let! rawResponse = jsonRpcClient.Request jsonRequest
+        if String.IsNullOrEmpty rawResponse then
+            return failwithf "The JSON response to the request '%s' was null or empty" jsonRequest
         try
             return StratumClient.Deserialize<'R> rawResponse
         with
@@ -110,9 +112,6 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             if (ex.ErrorCode = -32603) then
                 return raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
             return raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
-        | ex ->
-            let errMsg = sprintf "Exception while deserializing the response to the request '%s'" jsonRequest
-            return raise <| Exception(errMsg, ex)
     }
 
     static member public Deserialize<'T> (result: string): 'T =
