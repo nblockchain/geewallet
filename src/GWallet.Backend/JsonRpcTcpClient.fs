@@ -53,7 +53,7 @@ type JsonRpcTcpClient (host: string, port: int) =
             tcpClient.Request
         else
             let tcpClient = JsonRpcSharp.TcpClient(ResolveHost, port)
-            tcpClient.Request
+            fun jsonRequest -> tcpClient.Request jsonRequest None
 
     member self.Request (request: string): Async<string> = async {
         try

@@ -45,7 +45,9 @@ module JsonRpcSharp =
             let bufferArray = System.Buffers.BuffersExtensions.ToArray (& mutableBuffer)
             System.Text.Encoding.ASCII.GetString bufferArray
 
-        let rec ReadPipeInternal (reader: PipeReader) (stringBuilder: StringBuilder) = async {
+        let rec ReadPipeInternal (reader: PipeReader)
+                                 (stringBuilder: StringBuilder)
+                                 (cancellationTokenOption: Option<CancellationToken>) = async {
             let processLine (line:ReadOnlySequence<byte>) =
                 line |> GetAsciiString |> stringBuilder.AppendLine |> ignore
 
@@ -66,19 +68,22 @@ module JsonRpcSharp =
                                      |> buffer.Slice
                     keepAdvancingPosition nextBuffer
 
-            let! result = (reader.ReadAsync().AsTask() |> Async.AwaitTask)
+            let! result =
+                match cancellationTokenOption with
+                | None    -> async { return! reader.ReadAsync().AsTask()    |> Async.AwaitTask }
+                | Some ct -> async { return! (reader.ReadAsync ct).AsTask() |> Async.AwaitTask }
 
             let lastBuffer = keepAdvancingPosition result.Buffer
             reader.AdvanceTo(lastBuffer.Start, lastBuffer.End)
             if not result.IsCompleted then
-                return! ReadPipeInternal reader stringBuilder
+                return! ReadPipeInternal reader stringBuilder cancellationTokenOption
             else
                 reader.Complete()
                 return stringBuilder.ToString()
         }
 
-        let ReadFromPipe pipeReader = async {
-            let! result = Async.Catch (ReadPipeInternal pipeReader (StringBuilder()))
+        let ReadFromPipe pipeReader (cancellationTokenOption: Option<CancellationToken>) = async {
+            let! result = Async.Catch (ReadPipeInternal pipeReader (StringBuilder()) cancellationTokenOption)
             return result
         }
 
@@ -116,7 +121,7 @@ module JsonRpcSharp =
 
         new(host: IPAddress, port: int) = new TcpClient((fun _ -> async { return host }), port)
 
-        member __.Request (request: string): Async<string> = async {
+        member __.Request (request: string) (cancellationTokenOption:Option<CancellationToken>): Async<string> = async {
             use! socket = Connect()
             let buffer =
                 request + "\n"
@@ -125,9 +130,8 @@ module JsonRpcSharp =
 
             let! _ = socket.SendAsync(buffer, SocketFlags.None) |> Async.AwaitTask
             let pipe = Pipe()
-
             let writerJob = WriteIntoPipe socket pipe.Writer
-            let readerJob = ReadFromPipe pipe.Reader
+            let readerJob = ReadFromPipe pipe.Reader cancellationTokenOption
             let bothJobs = Async.Parallel [writerJob;readerJob]
 
             let! writerAndReaderResults = bothJobs
