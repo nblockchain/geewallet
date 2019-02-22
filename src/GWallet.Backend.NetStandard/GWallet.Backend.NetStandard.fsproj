@@ -120,23 +120,13 @@
     <PackageReference Include="FSharp.Data" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.2" />
-    <PackageReference Include="Nethereum.StandardTokenEIP20" Version="3.0.0" />
-    <PackageReference Include="Nethereum.Contracts" Version="3.0.0" />
-    <PackageReference Include="Nethereum.Web3" Version="3.0.0" />
-    <PackageReference Include="Nethereum.ABI" Version="3.0.0" />
-    <PackageReference Include="Nethereum.Hex" Version="3.0.0" />
-    <PackageReference Include="Nethereum.JsonRpc.Client" Version="3.0.0" />
-    <PackageReference Include="Nethereum.Signer" Version="3.0.0" />
-    <PackageReference Include="Nethereum.JsonRpc.RpcClient" Version="3.0.0" />
-    <PackageReference Include="Nethereum.RLP" Version="3.0.0" />
-    <PackageReference Include="Nethereum.KeyStore" Version="3.0.0" />
-    <PackageReference Include="Nethereum.RPC" Version="3.0.0" />
     <PackageReference Include="SharpRaven" Version="2.4.0" />
     <PackageReference Include="System.Buffers" Version="4.5.0" />
-    <PackageReference Include="System.IO.Pipelines" Version="4.5.2" />
+    <PackageReference Include="System.IO.Pipelines" Version="4.5.3" />
     <PackageReference Include="NBitcoin.Altcoins" Version="1.0.1.35" />
     <PackageReference Include="Xamarin.Essentials" Version="1.0.0" />
     <PackageReference Include="FSharp.Core" Version="4.5.3" />
+    <PackageReference Include="Nethereum" Version="0.0.2.33" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />

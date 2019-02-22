@@ -227,46 +227,7 @@
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\netstandard2.0\FSharp.Data.dll</HintPath>
     </Reference>
     <Reference Include="System.IO.Pipelines">
-      <HintPath>..\..\packages\System.IO.Pipelines.4.5.2\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.Hex.3.0.0\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.JsonRpc.Client">
-      <HintPath>..\..\packages\Nethereum.JsonRpc.Client.3.0.0\lib\netstandard2.0\Nethereum.JsonRpc.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.JsonRpc.RpcClient">
-      <HintPath>..\..\packages\Nethereum.JsonRpc.RpcClient.3.0.0\lib\netstandard2.0\Nethereum.JsonRpc.RpcClient.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.KeyStore.3.0.0\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.RLP.3.0.0\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.Util.3.0.0\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.ABI.3.0.0\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.RPC.3.0.0\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.Contracts.3.0.0\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.Signer.3.0.0\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Accounts">
-      <HintPath>..\..\packages\Nethereum.Accounts.3.0.0\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.Web3.3.0.0\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.StandardTokenEIP20">
-      <HintPath>..\..\packages\Nethereum.StandardTokenEIP20.3.0.0\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
+      <HintPath>..\..\packages\System.IO.Pipelines.4.5.3\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Core">
       <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\Xamarin.iOS10\ZXing.Net.Mobile.Core.dll</HintPath>
@@ -291,6 +252,54 @@
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
       <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="JsonRpcSharp.Client">
+      <HintPath>..\..\packages\JsonRpcSharp.0.9.54720\lib\netstandard2.0\JsonRpcSharp.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="JsonRpcSharp.IpcClient">
+      <HintPath>..\..\packages\JsonRpcSharp.0.9.54720\lib\netstandard2.0\JsonRpcSharp.IpcClient.dll</HintPath>
+    </Reference>
+    <Reference Include="JsonRpcSharp.RpcClient">
+      <HintPath>..\..\packages\JsonRpcSharp.0.9.54720\lib\netstandard2.0\JsonRpcSharp.RpcClient.dll</HintPath>
+    </Reference>
+    <Reference Include="JsonRpcSharp.TcpClient">
+      <HintPath>..\..\packages\JsonRpcSharp.0.9.54720\lib\netstandard2.0\JsonRpcSharp.TcpClient.dll</HintPath>
+    </Reference>
+    <Reference Include="JsonRpcSharp.WebSocketClient">
+      <HintPath>..\..\packages\JsonRpcSharp.0.9.54720\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.ABI">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Accounts">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Contracts">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Hex">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.KeyStore">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RLP">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RPC">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Signer">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.StandardTokenEIP20">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Util">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Web3">
+      <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
