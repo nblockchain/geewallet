@@ -227,7 +227,7 @@ module Server =
 
                     | None ->
                         let maybeRpcResponseEx =
-                            FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex
+                            FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex
                         match maybeRpcResponseEx with
                         | Some rpcResponseEx ->
                             if (rpcResponseEx.RpcError <> null) then
@@ -248,7 +248,7 @@ module Server =
                                                  rpcResponseEx))
                             reraise()
                         | None ->
-                            let maybeRpcTimeoutException = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcClientTimeoutException> ex
+                            let maybeRpcTimeoutException = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientTimeoutException> ex
                             match maybeRpcTimeoutException with
                             | Some rpcTimeoutEx ->
                                 raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
@@ -292,7 +292,7 @@ module Server =
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
     let private faultTolerantEtherClient =
-        JsonRpc.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
+        JsonRpcSharp.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
         FaultTolerantParallelClient<string,ConnectionUnsuccessfulException> Caching.Instance.SaveServerLastStat
 
     // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
@@ -489,7 +489,7 @@ module Server =
                             web3Funcs
             with
             | ex ->
-                match FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex with
+                match FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex with
                 | None ->
                     return raise (FSharpUtil.ReRaise ex)
                 | Some rpcResponseException ->
