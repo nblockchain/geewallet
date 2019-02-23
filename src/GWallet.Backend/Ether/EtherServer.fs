@@ -244,7 +244,7 @@ module Server =
                             | Some rpcTimeoutEx ->
                                 raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
                             | None ->
-                                let maybeSocketRewrappedException = Networking.FindSocketExceptionToRethrow ex exMsg
+                                let maybeSocketRewrappedException = Networking.FindExceptionToRethrow ex exMsg
                                 match maybeSocketRewrappedException with
                                 | Some socketRewrappedException ->
                                     raise socketRewrappedException

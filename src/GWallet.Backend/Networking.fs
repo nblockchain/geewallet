@@ -17,6 +17,9 @@ type ConnectionUnsuccessfulException =
     new(message: string) = { inherit Exception(message) }
     new() = { inherit Exception() }
 
+type BuggyExceptionFromOldMonoVersion (message: string, innerException: Exception) =
+    inherit ConnectionUnsuccessfulException (message, innerException)
+
 type ServerRefusedException(message:string, innerException: Exception) =
    inherit ConnectionUnsuccessfulException (message, innerException)
 
@@ -36,10 +39,32 @@ module Networking =
         let monoVersion = Config.GetMonoVersion()
         not (Option.exists (fun monoVersion -> monoVersion < Version("4.8")) monoVersion)
 
-    let FindSocketExceptionToRethrow (ex: Exception) (newExceptionMsg): Option<Exception> =
+    let FindBuggyException (ex: Exception) (newExceptionMsg): Option<Exception> =
+        let isOldMonoWithBuggyAsync =
+            let monoVersion = Config.GetMonoVersion()
+            Option.exists (fun monoVersion -> monoVersion < Version("5.0")) monoVersion
+        let rec findBuggyExceptionMessage (ex: Exception): Option<Exception> =
+            if null = ex then
+                None
+            // see https://github.com/Microsoft/visualfsharp/issues/2720
+            elif ex.GetType() = typeof<Exception> && ex.Message = "Unexpected no result" then
+                Some ex
+            else
+                findBuggyExceptionMessage ex.InnerException
+
+        if not isOldMonoWithBuggyAsync then
+            None
+        else
+            match findBuggyExceptionMessage ex with
+            | None -> None
+            | Some buggyEx ->
+                BuggyExceptionFromOldMonoVersion(newExceptionMsg, buggyEx) :> Exception |> Some
+
+    let FindExceptionToRethrow (ex: Exception) (newExceptionMsg): Option<Exception> =
         let maybeSocketException = FSharpUtil.FindException<SocketException> ex
         match maybeSocketException with
-        | None -> None
+        | None ->
+            FindBuggyException ex newExceptionMsg
         | Some socketException ->
             if socketException.ErrorCode = int SocketError.ConnectionRefused then
                 ServerRefusedException(newExceptionMsg, ex) :> Exception |> Some
