@@ -23,19 +23,14 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
     let readOnlyAccounts = allAccounts.OfType<ReadOnlyAccount>() |> List.ofSeq
                            |> List.map (fun account -> account :> IAccount)
 
-    let thisAssembly = typeof<GlobalState>.Assembly
-    let thisAssemblyName = thisAssembly.GetName().Name
     let CreateImage (currency: Currency) (readOnly: bool) =
-        let iconSize = (60).ToString()
         let colour =
             if readOnly then
                 "grey"
             else
                 "red"
         let currencyLowerCase = currency.ToString().ToLower()
-        let fullyQualifiedResourceName = sprintf "%s.img.%s_%s_%sx%s.png"
-                                                 thisAssemblyName currencyLowerCase colour iconSize iconSize
-        let imageSource = ImageSource.FromResource(fullyQualifiedResourceName, thisAssembly)
+        let imageSource = FrontendHelpers.GetSizedColoredImageSource currencyLowerCase colour 60
         let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
         currencyLogoImg
     let GetAllCurrencyCases(): seq<Currency*bool> =
@@ -54,9 +49,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
             return (GetAllImages() |> Map.ofSeq)
         }
 
-    let fullyQualifiedResourceNameForLogo = sprintf "%s.img.logo_%ix%i.png"
-                                                    thisAssemblyName 512 512
-    let logoImageSource = ImageSource.FromResource(fullyQualifiedResourceNameForLogo, thisAssembly)
+    let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
     let logoImg = Image(Source = logoImageSource, IsVisible = true)
     let ShowLoadingText() =
         Device.BeginInvokeOnMainThread(fun _ ->

@@ -282,3 +282,18 @@ module FrontendHelpers =
                                      UseNativeScanning = true
                                  )
 
+    let GetImageSource name =
+        let thisAssembly = typeof<BalanceState>.Assembly
+        let thisAssemblyName = thisAssembly.GetName().Name
+        let fullyQualifiedResourceNameForLogo = sprintf "%s.img.%s.png"
+                                                        thisAssemblyName name
+        ImageSource.FromResource(fullyQualifiedResourceNameForLogo, thisAssembly)
+
+    let GetSizedImageSource name size =
+        let sizedName = sprintf "%s_%ix%i" name size size
+        GetImageSource sizedName
+
+    let GetSizedColoredImageSource name color size =
+        let sizedColoredName = sprintf "%s_%s" name color
+        GetSizedImageSource sizedColoredName size
+
