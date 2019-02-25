@@ -170,12 +170,10 @@ module FrontendHelpers =
             let shouldCrash =
                 if not BruteForceCancellationEnabled then
                     true
+                elif (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                    false
                 else
-                    match ex with
-                    | :? TaskCanceledException as taskEx ->
-                        false
-                    | _ ->
-                        true
+                    true
             if shouldCrash then
                 Device.BeginInvokeOnMainThread(fun _ ->
                     raise ex
