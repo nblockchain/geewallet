@@ -12,7 +12,7 @@ GWallet is a minimalistic and pragmatist crossplatform lightweight opensource br
 | master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/master/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/master)(Linux) [![Windows CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/geewallet-master-build-and-test)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=1)(Windows) |
 | frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/frontend/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/frontend)(Linux) |
 
-[![Balances mobile-page screenshot](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/mobile-balances.png)](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/mobile-balances.png)
+[![Balances mobile-page screenshot](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/maciosandroid-balances.png)](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/maciosandroid-balances.png)
 
 ## Principles
 
