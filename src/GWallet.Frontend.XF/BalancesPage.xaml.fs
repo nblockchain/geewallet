@@ -6,6 +6,7 @@ open System.Linq
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Plugin.Connectivity
+open GWallet.Frontend.XF.Controls
 
 open GWallet.Backend
 
@@ -42,6 +43,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let totalReadOnlyFiatAmountLabel = mainLayout.FindByName<Label> "totalReadOnlyFiatAmountLabel"
     let totalFiatAmountFrame = mainLayout.FindByName<Frame> "totalFiatAmountFrame"
     let totalReadOnlyFiatAmountFrame = mainLayout.FindByName<Frame> "totalReadOnlyFiatAmountFrame"
+    let contentLayout = base.FindByName<StackLayout> "contentLayout"
+    let chartView = base.FindByName<DonutChartView> "chartView"
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
@@ -154,6 +157,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             | _ ->
                 FindCryptoBalances layout tail resultsSoFar
 
+    let GetAmountOrDefault maybeAmount =
+        match maybeAmount with
+        | NotFresh NotAvailable ->
+            0m
+        | Fresh amount | NotFresh (Cached (amount,_)) ->
+            amount
+
     let mutable timerRunning = false
 
     // default value of the below field is 'false', just in case there's an incoming payment which we don't want to miss
@@ -177,15 +187,27 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
          and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
 
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
-
-        let contentLayout = base.FindByName<StackLayout> "contentLayout"
-
         let currentCryptoBalances = FindCryptoBalances contentLayout (contentLayout.Children |> List.ofSeq) List.Empty
         for currentCryptoBalance in currentCryptoBalances do
             contentLayout.Children.Remove currentCryptoBalance |> ignore
 
-        for balanceState in balances do
+        let fullAmount = balances.Sum(fun b -> GetAmountOrDefault b.FiatAmount)
+        let balancesCount = float(balances.Count())
 
+        let chartSourceList = 
+            balances |> Seq.map (fun balanceState ->
+                 let percentage = 
+                     if fullAmount = 0m then
+                         0m
+                     else
+                         GetAmountOrDefault balanceState.FiatAmount / fullAmount
+                 { 
+                     Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency
+                     Percentage = float(percentage)
+                 }
+            )
+                                
+        for balanceState in balances do
             let tapGestureRecognizer = TapGestureRecognizer()
             tapGestureRecognizer.Tapped.Subscribe(fun _ ->
                 let receivePage =
@@ -219,6 +241,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             frame.GestureRecognizers.Add tapGestureRecognizer
 
             contentLayout.Children.Add frame
+
+        chartView.SegmentsSource <- chartSourceList
 
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) totalFiatAmountLabel =
         let fiatBalancesList = allFiatBalances |> List.ofSeq

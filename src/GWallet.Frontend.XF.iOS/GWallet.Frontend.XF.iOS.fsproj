@@ -301,6 +301,12 @@
     <Reference Include="Nethereum.Web3">
       <HintPath>..\..\packages\Nethereum.0.0.2.33\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
     </Reference>
+    <Reference Include="SkiaSharp">
+      <HintPath>..\..\packages\SkiaSharp.1.68.0\lib\Xamarin.iOS\SkiaSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="SkiaSharp.Extended.Svg">
+      <HintPath>..\..\packages\SkiaSharp.Svg.1.60.0\lib\netstandard2.0\SkiaSharp.Extended.Svg.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
 </Project>

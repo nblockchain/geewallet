@@ -229,6 +229,14 @@ module FrontendHelpers =
             )
         ) |> DoubleCheckCompletionNonGeneric
 
+    let internal GetCryptoColor(currency: Currency) =
+        match currency with
+        | Currency.BTC -> Color.Orange
+        | Currency.DAI -> Color.Yellow
+        | Currency.ETC -> Color.Green
+        | Currency.ETH -> Color.DarkGray
+        | Currency.LTC -> Color.Blue
+
     let internal ApplyGtkWorkaroundForFrameTransparentBackgroundColor (frame: Frame) =
         if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then
             let ubuntu1804DefaultColor = "F2F1F0"
