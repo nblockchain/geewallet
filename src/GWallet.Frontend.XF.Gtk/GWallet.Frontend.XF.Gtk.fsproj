@@ -258,14 +258,16 @@
   </ItemGroup>
   <Import Project="$(FSharpTargetsPath)" />
 
-  <!-- workaround for https://github.com/dotnet/corefx/issues/19914 / https://bugzilla.xamarin.com/show_bug.cgi?id=60315 -->
   <Target Name="AfterBuild">
+
+    <!-- workaround for https://github.com/dotnet/corefx/issues/19914 / https://bugzilla.xamarin.com/show_bug.cgi?id=60315 -->
     <Delete Files="bin\$(Configuration)\System.Net.Http.dll" />
 
     <!-- workaround for https://github.com/mono/SkiaSharp/issues/794 -->
     <Copy
       SourceFiles="..\..\packages\SkiaSharp.NativeAssets.Linux.1.68.0\runtimes\linux-x64\native\libSkiaSharp.so"
       DestinationFiles="bin\$(Configuration)\libSkiaSharp.so" />
+
   </Target>
   <Import Project="..\..\packages\Xamarin.Forms.3.0.0.446417\build\netstandard2.0\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.3.0.0.446417\build\netstandard2.0\Xamarin.Forms.targets')" />
   <Import Project="..\..\packages\SkiaSharp.1.68.0\build\net45\SkiaSharp.targets" Condition="Exists('..\..\packages\SkiaSharp.1.68.0\build\net45\SkiaSharp.targets')" />
