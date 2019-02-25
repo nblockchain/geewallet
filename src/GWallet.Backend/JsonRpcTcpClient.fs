@@ -77,7 +77,7 @@ type JsonRpcTcpClient (host: string, port: int) =
         | :? NotSupportedException as nse ->
             return raise <| ProtocolGlitchException(exceptionMsg, nse)
         | ex ->
-            let maybeWrappedSocketException = Networking.FindSocketExceptionToRethrow ex exceptionMsg
+            let maybeWrappedSocketException = Networking.FindExceptionToRethrow ex exceptionMsg
             match maybeWrappedSocketException with
             | None ->
                 return raise <| FSharpUtil.ReRaise ex
