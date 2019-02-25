@@ -2,59 +2,70 @@
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
+             xmlns:controls="clr-namespace:GWallet.Frontend.XF.Controls"
              x:Class="GWallet.Frontend.XF.BalancesPage">
     <StackLayout x:Name="mainLayout"
                  Padding="0,0,0,0"
                  VerticalOptions="FillAndExpand">
-        <Label Text="geewallet" x:Name="titleLabel"
-               VerticalOptions="Start"
-               HorizontalOptions="Center"
-               Margin="0,30,0,0"
-               FontAttributes="Bold" FontSize="Large" />
 
-        <!-- we add {V|H}Options=Center* not only to the Label, as a workaround to
-             https://github.com/xamarin/Xamarin.Forms/issues/4655 -->
-       <Frame x:Name="totalFiatAmountFrame" HasShadow="false"
-               BackgroundColor="Transparent"
-              BorderColor="Transparent"
-               VerticalOptions="CenterAndExpand"
-               HorizontalOptions="Center"
-              Margin="0,0,0,0">
-            <StackLayout x:Name="totalFiatAmountLayout"
-                         Orientation="Horizontal"
-                         VerticalOptions="CenterAndExpand"
-                         HorizontalOptions="Center"
-                         Margin="0,0,0,0">
-                <Label Text="..." x:Name="totalFiatAmountLabel"
-                       VerticalOptions="CenterAndExpand"
-                       HorizontalOptions="Center"
-                       Margin="0,0,0,0"
-                       FontSize="22" />
-            </StackLayout>
-        </Frame>
+        <StackLayout Orientation="Horizontal"
+                     Padding="15, 10"
+                     Spacing="30"
+                     VerticalOptions="FillAndExpand"
+                     HorizontalOptions="FillAndExpand">
+   
+            <controls:DonutChartView x:Name="chartView"
+                                     Aspect="AspectFit"
+                                     HorizontalOptions="FillAndExpand"
+                                     VerticalOptions="FillAndExpand"/>
+            
+            <!-- we add {V|H}Options=Center* not only to the Label, as a workaround to
+            https://github.com/xamarin/Xamarin.Forms/issues/4655 -->
+            <Frame x:Name="totalFiatAmountFrame" 
+                   HasShadow="false"
+                   BackgroundColor="Transparent"
+                   BorderColor="Transparent"
+                   VerticalOptions="CenterAndExpand"
+                   HorizontalOptions="End"
+                   Padding="0"
+                   Margin="0,0,0,0">
+                <StackLayout x:Name="totalFiatAmountLayout"
+                             Orientation="Horizontal"
+                             VerticalOptions="CenterAndExpand"
+                             HorizontalOptions="Center"
+                             Margin="0,0,0,0">
+                    <Label Text="..." x:Name="totalFiatAmountLabel"
+                           VerticalOptions="CenterAndExpand"
+                           HorizontalOptions="Center"
+                           Margin="0,0,0,0"
+                           FontSize="22" />
+                </StackLayout>
+            </Frame>
 
-        <!-- keep this frame&stacklayout&label below almost same as previous! -->
-        <Frame x:Name="totalReadOnlyFiatAmountFrame"
-               HasShadow="false"
-               IsVisible="false"
-               BackgroundColor="Transparent"
-               BorderColor="Transparent"
-               VerticalOptions="CenterAndExpand"
-               HorizontalOptions="Center"
-               Margin="0,0,0,0">
-            <StackLayout x:Name="totalReadOnlyFiatAmountLayout"
-                         Orientation="Horizontal"
-                         VerticalOptions="CenterAndExpand"
-                         HorizontalOptions="Center"
-                         Margin="0,0,0,0">
-                <Label Text="..." x:Name="totalReadOnlyFiatAmountLabel"
-                       VerticalOptions="CenterAndExpand"
-                       HorizontalOptions="Center"
-                       Margin="0,0,0,0"
-                       FontSize="22"
-                       TextColor="DarkBlue" />
-            </StackLayout>
-        </Frame>
+            <!-- keep this frame&stacklayout&label below almost same as previous! -->
+            <Frame x:Name="totalReadOnlyFiatAmountFrame"
+                   HasShadow="false"
+                   IsVisible="false"
+                   BackgroundColor="Transparent"
+                   BorderColor="Transparent"
+                   VerticalOptions="CenterAndExpand"
+                   HorizontalOptions="End"
+                   Padding="0"
+                   Margin="0,0,0,0">
+                <StackLayout x:Name="totalReadOnlyFiatAmountLayout"
+                             Orientation="Horizontal"
+                             VerticalOptions="CenterAndExpand"
+                             HorizontalOptions="Center"
+                             Margin="0,0,0,0">
+                    <Label Text="..." x:Name="totalReadOnlyFiatAmountLabel"
+                           VerticalOptions="CenterAndExpand"
+                           HorizontalOptions="Center"
+                           Margin="0,0,0,0"
+                           FontSize="22"
+                           TextColor="DarkBlue" />
+                </StackLayout>
+            </Frame>
+        </StackLayout>
 
         <ScrollView HorizontalOptions="FillAndExpand">
             <StackLayout x:Name="contentLayout" />
