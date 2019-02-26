@@ -23,7 +23,7 @@ This is a wallet that prioritizes convenience & security over privacy. Examples:
 3. Convenience over privacy (II): servers from other wallets' infrastructure is reused (e.g. Electrum's Stratum protocol), however TLS communication is still unsupported (this only hinders privacy but doesn't pose any security risk).
 4. Security (I): it's a desktop/mobile wallet, not an online/web wallet like others (e.g. web wallets are easy targets: https://twitter.com/myetherwallet/status/988830652526092288 ).
 5. Security (II): it has cold-storage support (you can run it in off-line mode and import/export transactions in JSON files), but not hardware wallet support. Remember, cold storage is not the same as 'hardware wallet'. This is a software wallet, but which works in air-gapped devices (computers/smartphones) thanks to its cold-storage support, which means that it's safer than hardware wallets (after all, bugs and security issues are constantly being found on hardware wallets, e.g.: https://saleemrashid.com/2018/03/20/breaking-ledger-security-model/).
-6. Convenience (II): there are no pre-generated seeds, geewallet is a brainwallet that uses your passphrase as a seed phrase, so that you don't need to keep backups anymore (and if you have any doubt about the security of this, understand that a hacker will always want to try to solve the WarpWallet challenge rather than target you directly).
+6. Convenience (II): there are no pre-generated seeds, this is a brainwallet that uses your passphrase as a seed phrase, so that you don't need to keep backups anymore (and if you have any doubt about the security of this, understand that a hacker will always want to try to solve the WarpWallet challenge rather than target you directly).
 
 In the development side of things, we advocate for simplicity:
 1. We will always be standing in the shoulders of giants, which means that we should not reinvent the wheel, thus we have a complete commitment to opensource as way of evolving the product and achieving the maximum level of security/auditability; unlike other multi-currency wallets (cough... Jaxx ...cough).
@@ -50,7 +50,7 @@ This list is the (intended) order of preference for new features:
 - Use deniable encryption to allow for a duress password/passphrase/pin.
 - ETH gas station (to pay for token transactions with token value instead of ETH).
 - Fee selection for custom priority.
-- Multi-sig support.
+- Multi-sig support?
 - Crosschain atomic swaps (via [comit network](https://github.com/comit-network/comit-rs)? more info [here](https://blog.coblox.tech/2018/06/23/connect-all-the-blockchains.html) and [here](https://blog.coblox.tech/2018/12/12/erc20-lightning-and-COMIT.html)).
 - Decentralized naming resolution? (BNS/ENS/OpenCAP/...)
 - Decentralized currency exchange?
@@ -69,7 +69,7 @@ This list is the (intended) order of preference for new features:
   * Frontend.XF: start querying servers in WelcomePage, with dummy addresses, just to gather server stats.
   * First startup: bundle stats for all servers (gathered by the maintainer as a user).
   * Frontend.XF: show balances as soon as the first confirmed balance is retreived, and put an in-progress animated gif in the currency rows that are still being queried (this way you will easily tell as well which currencies have low server availability, which might push the user to turn some of them off in the settings).
-  * Backend.Config.DEFAULT_NETWORK_TIMEOUT: see comment above this setting, to couple it with FaultTolerantParalellClient
+  * Backend.Config.DEFAULT_NETWORK_TIMEOUT: see comment above this setting, to couple it with FaultTolerantParalellClient (or create two timeout settings, see 091b151ff4a37ca74a312609f173d5fe589ac623 ).
 
 ## Anti-roadmap
 
