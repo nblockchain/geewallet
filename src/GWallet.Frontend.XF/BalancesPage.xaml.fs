@@ -229,10 +229,21 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     "red"
 
             let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
-            stackLayout.Children.Add currencyLogoImg
+            let cryptoLabel = balanceState.BalanceSet.CryptoLabel
+            let fiatLabel = balanceState.BalanceSet.FiatLabel
 
-            stackLayout.Children.Add balanceState.BalanceSet.CryptoLabel
-            stackLayout.Children.Add balanceState.BalanceSet.FiatLabel
+            stackLayout.Children.Add currencyLogoImg
+            stackLayout.Children.Add cryptoLabel
+            stackLayout.Children.Add fiatLabel
+
+            //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
+            if Device.RuntimePlatform = Device.macOS then
+                let bindImageSize(bindableProperty) =
+                    let binding = Binding(Path = "Height", Source = cryptoLabel)
+                    currencyLogoImg.SetBinding(bindableProperty, binding)
+
+                bindImageSize VisualElement.WidthRequestProperty
+                bindImageSize VisualElement.HeightRequestProperty
 
             let frame = Frame(HasShadow = false,
                               ClassId = cryptoBalanceClassId,
