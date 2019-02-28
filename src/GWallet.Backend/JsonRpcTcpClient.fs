@@ -56,6 +56,8 @@ type JsonRpcTcpClient (host: string, port: int) =
             let tcpClient = JsonRpcSharp.TcpClient.TcpClient(ResolveHost, port)
             fun jsonRequest -> tcpClient.Request jsonRequest CancellationToken.None
 
+    member __.Host with get() = host
+
     member self.Request (request: string): Async<string> = async {
         try
             let! stringOption = rpcTcpClientInnerRequest request |> FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT
