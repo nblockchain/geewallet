@@ -103,6 +103,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R> = async {
         let! rawResponse = jsonRpcClient.Request jsonRequest
+        if String.IsNullOrEmpty rawResponse then
+            return failwithf "The JSON response to the request '%s' was null or empty" jsonRequest
         try
             return StratumClient.Deserialize<'R> rawResponse
         with
