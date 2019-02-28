@@ -140,7 +140,7 @@ module Server =
         ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
 
     let exMsg = "Could not communicate with EtherServer"
-    let PerformEthereumRemoteCall<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): Async<'R> = async {
+    let PerformEtherRemoteCallWithTimeout<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): Async<'R> = async {
         let task = func arg
         let operation = task |> Async.AwaitTask
         let! maybeResult = FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT operation
@@ -151,106 +151,112 @@ module Server =
             return result
     }
 
-    let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): 'R =
-        let result =
-            try
-                PerformEthereumRemoteCall func arg |> Async.RunSynchronously
-            with
-            | ex ->
-                let maybeWebEx = FSharpUtil.FindException<WebException> ex
-                match maybeWebEx with
-                | Some webEx ->
+    let private ReworkException (ex: Exception): unit =
+        let maybeWebEx = FSharpUtil.FindException<WebException> ex
+        match maybeWebEx with
+        | Some webEx ->
 
-                    // TODO: send a warning in Sentry
-                    if webEx.Status = WebExceptionStatus.UnknownError then
-                        raise <| ServerUnreachableException(exMsg, webEx)
+            // TODO: send a warning in Sentry
+            if webEx.Status = WebExceptionStatus.UnknownError then
+                raise <| ServerUnreachableException(exMsg, webEx)
 
-                    if webEx.Status = WebExceptionStatus.NameResolutionFailure then
-                        raise <| ServerCannotBeResolvedException(exMsg, webEx)
-                    if webEx.Status = WebExceptionStatus.SecureChannelFailure then
-                        raise <| ServerChannelNegotiationException(exMsg, webEx)
-                    if webEx.Status = WebExceptionStatus.ReceiveFailure then
-                        raise <| ServerTimedOutException(exMsg, webEx)
-                    if webEx.Status = WebExceptionStatus.ConnectFailure then
-                        raise <| ServerUnreachableException(exMsg, webEx)
-                    if webEx.Status = WebExceptionStatus.RequestCanceled then
-                        raise <| ServerChannelNegotiationException(exMsg, webEx)
+            if webEx.Status = WebExceptionStatus.NameResolutionFailure then
+                raise <| ServerCannotBeResolvedException(exMsg, webEx)
+            if webEx.Status = WebExceptionStatus.SecureChannelFailure then
+                raise <| ServerChannelNegotiationException(exMsg, webEx)
+            if webEx.Status = WebExceptionStatus.ReceiveFailure then
+                raise <| ServerTimedOutException(exMsg, webEx)
+            if webEx.Status = WebExceptionStatus.ConnectFailure then
+                raise <| ServerUnreachableException(exMsg, webEx)
+            if webEx.Status = WebExceptionStatus.RequestCanceled then
+                raise <| ServerChannelNegotiationException(exMsg, webEx)
 
-                    if (webEx.Status = WebExceptionStatus.TrustFailure) then
-                        raise <| ServerChannelNegotiationException(exMsg, webEx)
+            if (webEx.Status = WebExceptionStatus.TrustFailure) then
+                raise <| ServerChannelNegotiationException(exMsg, webEx)
 
-                    // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
-                    if not Networking.Tls12Support then
-                        if (webEx.Status = WebExceptionStatus.SendFailure) then
-                            raise <| ServerUnreachableException(exMsg, webEx)
+            // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
+            if not Networking.Tls12Support then
+                if webEx.Status = WebExceptionStatus.SendFailure then
+                    raise <| ServerUnreachableException(exMsg, webEx)
 
-                    raise (UnhandledWebException(webEx.Status, webEx))
+            raise <| UnhandledWebException(webEx.Status, webEx)
+        | None ->
+            let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
+            match maybeHttpReqEx with
+            | Some httpReqEx ->
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
+                    raise <| ServerTimedOutException(exMsg, httpReqEx)
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
+                    raise <| ServerTimedOutException(exMsg, httpReqEx)
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
+                    raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
+                    raise <| ServerUnreachableException(exMsg, httpReqEx)
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
+                    raise <| ServerUnreachableException(exMsg, httpReqEx)
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
+                    raise <| ServerUnavailableException(exMsg, httpReqEx)
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
+                    raise <| ServerUnreachableException(exMsg, httpReqEx)
+
+                // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
+                    raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
+                    raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
+                    raise <| ServerUnavailableException(exMsg, httpReqEx)
+                if HttpRequestExceptionMatchesErrorCode
+                    httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
+                        raise <| ServerRestrictiveException(exMsg, httpReqEx)
+                ()
+
+            | None ->
+                let maybeRpcResponseEx =
+                    FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex
+                match maybeRpcResponseEx with
+                | Some rpcResponseEx ->
+                    if rpcResponseEx.RpcError <> null then
+                        if rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode then
+                            if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
+                                raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
+                                                           (int RpcErrorCode.StatePruningNode), rpcResponseEx)
+                            else
+                                raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                        if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
+                            raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                        if rpcResponseEx.RpcError.Code = int RpcErrorCode.GatewayTimeout then
+                            raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                        raise <| Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
+                                                 rpcResponseEx.RpcError.Code
+                                                 rpcResponseEx.RpcError.Message
+                                                 rpcResponseEx.Message,
+                                           rpcResponseEx)
+                    ()
                 | None ->
-                    let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
-                    match maybeHttpReqEx with
-                    | Some httpReqEx ->
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
-                            raise <| ServerTimedOutException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
-                            raise <| ServerTimedOutException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
-                            raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
-                            raise <| ServerUnreachableException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
-                            raise <| ServerUnreachableException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
-                            raise <| ServerUnavailableException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
-                            raise <| ServerUnreachableException(exMsg, httpReqEx)
-
-                        // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
-                            raise <| ServerMisconfiguredException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
-                            raise <| ServerMisconfiguredException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
-                            raise <| ServerUnavailableException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode
-                            httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
-                                raise <| ServerRestrictiveException(exMsg, httpReqEx)
-                        reraise()
-
+                    let maybeRpcTimeoutException =
+                        FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientTimeoutException> ex
+                    match maybeRpcTimeoutException with
+                    | Some rpcTimeoutEx ->
+                        raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
                     | None ->
-                        let maybeRpcResponseEx =
-                            FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex
-                        match maybeRpcResponseEx with
-                        | Some rpcResponseEx ->
-                            if (rpcResponseEx.RpcError <> null) then
-                                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode) then
-                                    if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
-                                        raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
-                                                                   (int RpcErrorCode.StatePruningNode), rpcResponseEx)
-                                    else
-                                        raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
-                                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                                if rpcResponseEx.RpcError.Code = int RpcErrorCode.GatewayTimeout then
-                                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                                raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
-                                                         rpcResponseEx.RpcError.Code
-                                                         rpcResponseEx.RpcError.Message
-                                                         rpcResponseEx.Message,
-                                                 rpcResponseEx))
-                            reraise()
+                        let maybeSocketRewrappedException = Networking.FindExceptionToRethrow ex exMsg
+                        match maybeSocketRewrappedException with
+                        | Some socketRewrappedException ->
+                            raise socketRewrappedException
                         | None ->
-                            let maybeRpcTimeoutException = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientTimeoutException> ex
-                            match maybeRpcTimeoutException with
-                            | Some rpcTimeoutEx ->
-                                raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
-                            | None ->
-                                let maybeSocketRewrappedException = Networking.FindExceptionToRethrow ex exMsg
-                                match maybeSocketRewrappedException with
-                                | Some socketRewrappedException ->
-                                    raise socketRewrappedException
-                                | None ->
-                                    reraise()
-        result
+                            ()
+
+    let HandlePossibleEtherFailures<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): Async<'R> = async {
+        try
+            let! result = PerformEtherRemoteCallWithTimeout func arg
+            return result
+        with
+        | ex ->
+            ReworkException ex
+
+            return raise <| FSharpUtil.ReRaise ex
+    }
 
     let private MaxNumberOfParallelJobsForMode mode =
         match mode with
@@ -288,27 +294,30 @@ module Server =
 
     // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
     let private GetWeb3Funcs<'T,'R> (currency: Currency)
-                                    (web3Func: SomeWeb3->'T->'R)
+                                    (web3Func: SomeWeb3->'T->Async<'R>)
                                         : List<Server<string,'T,'R>> =
 
         let Web3ServerToRetreivalFunc (web3Server: SomeWeb3)
-                                          (web3ClientFunc: SomeWeb3->'T->'R)
+                                          (web3ClientFunc: SomeWeb3->'T->Async<'R>)
                                           (arg: 'T)
-                                              : 'R =
+                                              : Async<'R> = async {
             try
-                web3Func web3Server arg
+                return! web3Func web3Server arg
             with
-            | :? ConnectionUnsuccessfulException ->
-                reraise()
+            | :? ConnectionUnsuccessfulException as ex ->
+                return raise <| FSharpUtil.ReRaise ex
             | ex ->
-                raise (Exception(sprintf "Some problem when connecting to %s" web3Server.Url, ex))
+                return raise <| Exception(sprintf "Some problem when connecting to %s" web3Server.Url, ex)
+        }
 
-        let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->'T->'R)
+        let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->'T->Async<'R>)
                                       (web3Server: SomeWeb3)
                                               : Server<string,'T,'R> =
+
+            let retrievalFunc = Web3ServerToRetreivalFunc web3Server web3ClientFunc
             { Identifier = web3Server.Url
               HistoryInfo = Caching.Instance.RetreiveLastServerHistory web3Server.Url
-              Retreival = Web3ServerToRetreivalFunc web3Server web3ClientFunc }
+              Retreival = retrievalFunc }
 
         let web3servers = GetWeb3Servers currency
         let serverFuncs =
@@ -320,8 +329,8 @@ module Server =
                                 : Async<HexBigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): HexBigInteger =
-                    WaitOnTask web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
+                let web3Func (web3: Web3) (publicAddress: string): Async<HexBigInteger> =
+                    HandlePossibleEtherFailures web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
                                    publicAddress
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
@@ -367,15 +376,16 @@ module Server =
                                      : Async<BigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+                let web3Func (web3: Web3) (publicAddress: string): Async<BigInteger> = async {
                     let taskFunc (publicAddress: string) =
                         match balType with
                         | BalanceType.Confirmed ->
                             GetConfirmedEtherBalanceInternal web3 publicAddress |> Async.StartAsTask
                         | BalanceType.Unconfirmed ->
                             web3.Eth.GetBalance.SendRequestAsync publicAddress
-                    let balance = WaitOnTask taskFunc publicAddress
-                    balance.Value
+                    let! balance = HandlePossibleEtherFailures taskFunc publicAddress
+                    return balance.Value
+                }
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
@@ -404,7 +414,7 @@ module Server =
     let GetTokenBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode): Async<BigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): BigInteger =
+                let web3Func (web3: Web3) (publicAddress: string): Async<BigInteger> =
 
                     let taskFunc (publicAddress: string) =
                         match balType with
@@ -416,7 +426,7 @@ module Server =
                                 = tokenService.BalanceOfQueryAsync
                             balanceFunc publicAddress
 
-                    WaitOnTask taskFunc publicAddress
+                    HandlePossibleEtherFailures taskFunc publicAddress
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
@@ -428,13 +438,13 @@ module Server =
                                      : Async<HexBigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (_: unit): HexBigInteger =
+                let web3Func (web3: Web3) (_: unit): Async<HexBigInteger> =
                     let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
                     let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
                     let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                                To = destination,
                                                                Value = amountInWei)
-                    WaitOnTask (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
+                    HandlePossibleEtherFailures (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
                 GetWeb3Funcs account.Currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
@@ -452,8 +462,8 @@ module Server =
         : Async<HexBigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (_: unit): HexBigInteger =
-                    WaitOnTask web3.Eth.GasPrice.SendRequestAsync ()
+                let web3Func (web3: Web3) (_: unit): Async<HexBigInteger> =
+                    HandlePossibleEtherFailures web3.Eth.GasPrice.SendRequestAsync ()
                 GetWeb3Funcs currency web3Func
             let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
@@ -470,8 +480,8 @@ module Server =
 
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (tx: string): string =
-                    WaitOnTask web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
+                let web3Func (web3: Web3) (tx: string): Async<string> =
+                    HandlePossibleEtherFailures web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
                 GetWeb3Funcs currency web3Func
             try
                 return! faultTolerantEtherClient.Query

@@ -33,13 +33,15 @@ type ParallelizationAndOptimization() =
 
         let someStringArg = "foo"
         let mutable func1Called = false
-        let aFunc1 (arg: string) =
+        let aFunc1 (arg: string) = async {
             func1Called <- true
-            0
+            return 0
+        }
         let mutable func2Called = false
-        let aFunc2 (arg: string) =
+        let aFunc2 (arg: string) = async {
             func2Called <- true
-            0
+            return 0
+        }
 
         let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
                           serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
@@ -74,15 +76,16 @@ type ParallelizationAndOptimization() =
                              NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
-        let aFunc1 (arg: string) =
-            raise SomeExceptionDuringParallelWork
-            0
-        let aFunc2 (arg: string) =
-            Thread.Sleep someLongTime
-            0
+        let aFunc1 (arg: string): Async<int> = async {
+            return raise SomeExceptionDuringParallelWork
+        }
+        let aFunc2 (arg: string) = async {
+            do! Async.Sleep <| int someLongTime.TotalMilliseconds
+            return 0
+        }
         let func3Result = 1
         let aFunc3 (arg: string) =
-            func3Result
+            async { return func3Result }
 
         let func1,func2,func3 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
                                 serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2,
@@ -114,12 +117,13 @@ type ParallelizationAndOptimization() =
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let aFunc1 (arg: string) =
-            0
-        let aFunc2 (arg: string) =
-            Thread.Sleep someLongTime
-            0
+            async { return 0 }
+        let aFunc2 (arg: string) = async {
+            do! Async.Sleep <| int someLongTime.TotalMilliseconds
+            return 0
+        }
         let aFunc3 (arg: string) =
-            0
+            async { return 0 }
 
         let func1,func2,func3 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
                                 serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2,
@@ -209,13 +213,14 @@ type ParallelizationAndOptimization() =
 
         let mutable longFuncFinishedExecution = false
         let func1 (arg: unit) =
-            0
+            async { return 0 }
         let func2 (arg: unit) =
-            0
-        let longFuncThatShouldBeCancelled (arg: unit) =
-            Thread.Sleep someLongTime
+            async { return 0 }
+        let longFuncThatShouldBeCancelled (arg: unit) = async {
+            do! Async.Sleep <| int someLongTime.TotalMilliseconds
             longFuncFinishedExecution <- true
-            0
+            return 0
+        }
 
         let allFuncs = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "func1" func1
                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "func1" func2
@@ -245,9 +250,9 @@ type ParallelizationAndOptimization() =
         let someResult1 = 1
         let someResult2 = 2
         let server1,server2 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
-                                Identifier = "server1"; Retreival = (fun arg -> someResult1) },
+                                Identifier = "server1"; Retreival = (fun arg -> async { return someResult1 }) },
                               { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
-                                Identifier = "server2"; Retreival = (fun arg -> someResult2) }
+                                Identifier = "server2"; Retreival = (fun arg -> async { return someResult2 }) }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
@@ -294,9 +299,9 @@ type ParallelizationAndOptimization() =
         let server1,server2 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
                                 Identifier = "server1"; Retreival = (fun arg -> raise SomeExceptionDuringParallelWork) },
                               { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
-                                Identifier = "server2"; Retreival = (fun arg -> someResult2) }
+                                Identifier = "server2"; Retreival = (fun arg -> async { return someResult2 }) }
         let server3 = { HistoryInfo = None
-                        Identifier = "server3"; Retreival = (fun arg -> someResult3) }
+                        Identifier = "server3"; Retreival = (fun arg -> async { return someResult3 }) }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
