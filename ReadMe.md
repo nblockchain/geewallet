@@ -93,6 +93,19 @@ sudo make install
 After that you can call `gwallet` directly.
 
 
+## Thanks
+
+Special thanks to all the [contributors](https://gitlab.com/DiginexGlobal/geewallet/graphs/frontend) (we recently surpassed 10! if you count the contributions that are in review at the moment), without forgetting as well the amazing opensource developers that contribute(d) to the great opensource libraries that this project uses. Some examples:
+
+- @juanfranblanco: Nethereum
+- @nicolasdorier, @joemphilips: NBitcoin
+- @redth, @EBrown8534, @mierzynskim: ZXing.Net.Mobile, ZXing.Net.Xamarin
+- JsonRpcSharp: @ardave, @mkfl, @jerry40, @mierzynskim, @winstongubantes and again @juanfranblanco
+- ...and all the Xamarin/Mono/.NetCore community in general, of course
+
+If you want to become part of this distributed team of brave disruptarians, check our [CONTRIBUTING guideline](CONTRIBUTING.md) first, and start coding!
+
+
 ## Feedback
 
 If you want to accelerate development/maintenance, create an issue and pledge funds with [gitcoin](http://gitcoin.co).
