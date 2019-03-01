@@ -22,6 +22,7 @@ module Main =
         use window = new FormsWindow()
         window.LoadApplication(app)
         window.SetApplicationTitle "geewallet"
+        window.SetApplicationIcon "logo.png"
         window.Show()
         Gtk.Application.Run()
         0
