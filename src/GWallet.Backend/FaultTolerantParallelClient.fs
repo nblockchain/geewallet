@@ -179,7 +179,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         match settings.ConsistencyConfig with
         | NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired ->
             if numberOfConsistentResponsesRequired < 1u then
-                raise (ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired"))
+                return raise <| ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired")
             if (howManyFuncs < numberOfConsistentResponsesRequired) then
                 return raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
                                                "funcs"))
