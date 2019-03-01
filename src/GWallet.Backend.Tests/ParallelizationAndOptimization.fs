@@ -206,8 +206,6 @@ type ParallelizationAndOptimization() =
         ) |> ignore
 
     [<Test>]
-    // this bug is probably the reason why the XamForms UI gets frozen after some time... too many unkilled threads
-    [<Ignore("not fixed yet")>]
     member __.``slower funcs get cancelled after consistent results have been gathered``() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
