@@ -80,7 +80,7 @@ privacy solutions which in my opinion will all be surpassed by MimbleWimble).
 - BCash (as it's less evolved, technically speaking; I don't want to deal with transaction malleability
 or lack of Layer2 scaling).
 
-# How to compile/install/use?
+## How to compile/install/use?
 
 The recommended way is to install the software system wide, like this:
 
