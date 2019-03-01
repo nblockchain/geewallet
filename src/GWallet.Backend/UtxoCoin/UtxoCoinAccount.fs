@@ -123,10 +123,9 @@ module Account =
         let ElectrumServerToRetreivalFunc (electrumServer: ElectrumServer)
                                           (electrumClientFunc: ElectrumServer->'T->Async<'R>)
                                           (arg: 'T)
-                                              : 'R =
+                                              : Async<'R> = async {
             try
-                electrumClientFunc electrumServer arg
-                    |> Async.RunSynchronously
+                return! electrumClientFunc electrumServer arg
             with
             | ex ->
                 if (ex :? ConnectionUnsuccessfulException ||
@@ -136,14 +135,15 @@ module Account =
                     raise (ElectrumServerDiscarded(msg, ex))
                 match ex with
                 | :? ElectrumServerReturningErrorException as esEx ->
-                    failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
+                    return failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
                                       electrumServer.Fqdn
                                       esEx.Message
                                       esEx.ErrorCode
                                       esEx.OriginalRequest
                                       esEx.OriginalResponse)
                 | _ ->
-                    reraise()
+                    return raise <| FSharpUtil.ReRaise ex
+        }
 
         let ElectrumServerToGenericServer (electrumClientFunc: ElectrumServer->'T->Async<'R>)
                                           (electrumServer: ElectrumServer)

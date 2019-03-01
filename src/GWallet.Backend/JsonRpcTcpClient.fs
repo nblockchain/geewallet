@@ -3,6 +3,7 @@
 open System
 open System.Net
 open System.Net.Sockets
+open System.Threading
 
 type ProtocolGlitchException(message: string, innerException: Exception) =
    inherit ConnectionUnsuccessfulException (message, innerException)
@@ -53,7 +54,9 @@ type JsonRpcTcpClient (host: string, port: int) =
             tcpClient.Request
         else
             let tcpClient = JsonRpcSharp.TcpClient.TcpClient(ResolveHost, port)
-            fun jsonRequest -> tcpClient.Request jsonRequest None
+            fun jsonRequest -> tcpClient.Request jsonRequest CancellationToken.None
+
+    member __.Host with get() = host
 
     member self.Request (request: string): Async<string> = async {
         try

@@ -3,6 +3,7 @@
 open System
 open System.Linq
 open System.Diagnostics
+open System.Threading
 open System.Threading.Tasks
 
 type ServerUnavailabilityException (message:string, lastException: Exception) =
@@ -62,8 +63,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
     let MeasureConsistency (results: List<'R>) =
         results |> Seq.countBy id |> Seq.sortByDescending (fun (_,count: int) -> count) |> List.ofSeq
 
-    let LaunchAsyncJobs(jobs:List<Async<NonParallelResults<'K,'T,'R,'E>>>): List<Task<NonParallelResults<'K,'T,'R,'E>>> =
-        jobs |> List.map Async.StartAsTask
+    let LaunchAsyncJobs (jobs:List<Async<NonParallelResults<'K,'T,'R,'E>>>)
+                        (cancellationSource: CancellationTokenSource)
+                            : List<Task<NonParallelResults<'K,'T,'R,'E>>> =
+        jobs
+            |> List.map (fun job -> Async.StartAsTask(job, ?cancellationToken = Some cancellationSource.Token))
 
     let rec WhenSomeInternal (consistencySettings: ConsistencySettings<'R>)
                              (tasks: List<Task<NonParallelResults<'K,'T,'R,'E>>>)
@@ -117,8 +121,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                  (jobs: List<Async<NonParallelResults<'K,'T,'R,'E>>>)
                  (resultsSoFar: List<'R>)
                  (failedFuncsSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
+                 (cancellationSource: CancellationTokenSource)
                  : Async<FinalResult<'K,'T,'R,'E>> =
-        let tasks = LaunchAsyncJobs jobs
+        let tasks = LaunchAsyncJobs jobs cancellationSource
         WhenSomeInternal consistencySettings tasks resultsSoFar failedFuncsSoFar
 
     let rec ConcatenateNonParallelFuncs (args: 'T)
@@ -135,7 +140,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                 let stopwatch = Stopwatch()
                 stopwatch.Start()
                 try
-                    let result = head.Retreival args
+                    let! result = head.Retreival args
                     stopwatch.Stop()
                     updateServer (head.Identifier, { Fault = None; TimeSpan = stopwatch.Elapsed })
                     let tailAsync = ConcatenateNonParallelFuncs args failuresSoFar tail
@@ -169,6 +174,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                           (failedFuncsSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
                           (retries: uint32)
                           (retriesForInconsistency: uint32)
+                          (cancellationSource: CancellationTokenSource)
                               : Async<'R> = async {
         if not (funcs.Any()) then
             return raise(ArgumentException("number of funcs must be higher than zero",
@@ -179,7 +185,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         match settings.ConsistencyConfig with
         | NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired ->
             if numberOfConsistentResponsesRequired < 1u then
-                raise (ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired"))
+                return raise <| ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired")
             if (howManyFuncs < numberOfConsistentResponsesRequired) then
                 return raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
                                                "funcs"))
@@ -210,17 +216,23 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                              funcBuckets.Length lengthOfBucketsSanityCheck
 
         let! result =
-            WhenSome settings.ConsistencyConfig funcBuckets resultsSoFar failedFuncsSoFar
+            WhenSome settings.ConsistencyConfig funcBuckets resultsSoFar failedFuncsSoFar cancellationSource
         match result with
         | AverageResult averageResult ->
+            cancellationSource.Cancel()
+            cancellationSource.Dispose()
             return averageResult
         | ConsistentResult consistentResult ->
+            cancellationSource.Cancel()
+            cancellationSource.Dispose()
             return consistentResult
         | InconsistentOrNotEnoughResults(allResultsSoFar,failedFuncsWithTheirExceptions) ->
             let failedFuncs = failedFuncsWithTheirExceptions |> List.map fst
             if (allResultsSoFar.Length = 0) then
                 if (retries = settings.NumberOfRetries) then
                     let firstEx = failedFuncsWithTheirExceptions.First() |> snd
+                    cancellationSource.Cancel()
+                    cancellationSource.Dispose()
                     return raise (NoneAvailableException("Not available", firstEx))
                 else
                     return! QueryInternal settings
@@ -230,6 +242,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                           List.Empty
                                           (retries + 1u)
                                           retriesForInconsistency
+                                          cancellationSource
             else
                 let totalNumberOfSuccesfulResultsObtained = allResultsSoFar.Length
                 match settings.ConsistencyConfig with
@@ -240,8 +253,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                         return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
                     | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                         if (retriesForInconsistency = settings.NumberOfRetriesForInconsistency) then
-
-
+                            cancellationSource.Cancel()
+                            cancellationSource.Dispose()
                             return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
                                                                        maxNumberOfConsistentResultsObtained,
                                                                        numberOfConsistentResponsesRequired))
@@ -253,9 +266,12 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                                   List.Empty
                                                   retries
                                                   (retriesForInconsistency + 1u)
+                                                  cancellationSource
                 | AverageBetweenResponses(minimumNumberOfResponses,averageFunc) ->
                     if (retries = settings.NumberOfRetries) then
                         let firstEx = failedFuncsWithTheirExceptions.First() |> snd
+                        cancellationSource.Cancel()
+                        cancellationSource.Dispose()
                         return raise (NotEnoughAvailableException("resultsSoFar.Length != 0 but not enough to satisfy minimum number of results for averaging func", firstEx))
                     else
                         return! QueryInternal settings
@@ -265,6 +281,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                               failedFuncsWithTheirExceptions
                                               (retries + 1u)
                                               retriesForInconsistency
+                                              cancellationSource
 
     }
 
@@ -341,4 +358,12 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         if settings.NumberOfMaximumParallelJobs < 1u then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 
-        QueryInternal settings args (OrderServers servers settings.Mode) List.Empty List.Empty 0u 0u
+        QueryInternal
+            settings
+            args
+            (OrderServers servers settings.Mode)
+            List.Empty
+            List.Empty
+            0u
+            0u
+            (new CancellationTokenSource())
