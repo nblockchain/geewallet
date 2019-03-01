@@ -245,8 +245,10 @@
     <None Include="webkit-sharp.dll.config" />
     <None Include="OpenTK.dll.config" />
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
+    <Content Include="..\..\logo.png">
+      <Link>logo.png</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
       <Project>{85236682-6463-4209-B66C-E0643EF12B46}</Project>
       <Name>GWallet.Frontend.XF</Name>
