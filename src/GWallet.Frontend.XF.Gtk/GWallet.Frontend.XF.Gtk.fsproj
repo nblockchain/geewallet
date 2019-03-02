@@ -8,7 +8,7 @@
     <UseStandardResourceNames>true</UseStandardResourceNames>
     <OutputType>WinExe</OutputType>
     <RootNamespace>GWallet.Frontend.XF.Gtk</RootNamespace>
-    <AssemblyName>GWallet.Frontend.XF.Gtk</AssemblyName>
+    <AssemblyName>geewallet</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
