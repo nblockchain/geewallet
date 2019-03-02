@@ -99,7 +99,7 @@ Special thanks to all the [contributors](https://gitlab.com/DiginexGlobal/geewal
 - @juanfranblanco: Nethereum
 - @nicolasdorier, @joemphilips: NBitcoin
 - @redth, @EBrown8534, @mierzynskim: ZXing.Net.Mobile, ZXing.Net.Xamarin
-- JsonRpcSharp: @ardave, @mkfl, @jerry40, @mierzynskim, @winstongubantes and again @juanfranblanco
+- JsonRpcSharp: @ardave, @martz2804, @jerry40, @mierzynskim, @winstongubantes and again @juanfranblanco
 - ...and all the Xamarin/Mono/.NetCore community in general, of course
 
 If you want to become part of this distributed team of brave disruptarians, check our [CONTRIBUTING guideline](CONTRIBUTING.md) first, and start coding!
