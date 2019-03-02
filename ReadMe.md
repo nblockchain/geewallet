@@ -56,20 +56,6 @@ This list is the (intended) order of preference for new features:
 - Tumblebit support?
 
 
-## Dev roadmap
-
-(Only intelligible if you're a contributor):
-- Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/, or wait for https://github.com/Microsoft/visualfsharp/pull/5850).
-- Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
-- Speed improvements:
-  * Frontend.XF: after clicking Next in the WelcomePage, not only start creating the private key, also query balances if privKey creation finishes before the user writes the payment password.
-  * (Possibly not good -> ) If using Mode.Fast, check if there's a cached balance first. If there isn't, or the time it was cached was long ago, query the confirmed balance only (like in firstStartup, we may be already doing this in case there's no cached balance) returning `decimal*Async<bool>` (the latter to give info, later, about if there's an imminentIncomingPayment), but if it was checked very recently, just query the unconfirmed one (in this case, compare the unconfirmed balance received with the cached one: if lower, show it; if higher, show the cached one and assume imminentIncomingPayment, i.e. refresh interval being shorter).
-  * (Unsure about this one -> ) Query confirmed at the same time as unconfirmed, only look at a single value of those if the one to receive earlier was the unconfirmed one.
-  * Frontend.XF: start querying servers in WelcomePage, with dummy addresses, just to gather server stats.
-  * First startup: bundle stats for all servers (gathered by the maintainer as a user).
-  * Frontend.XF: show balances as soon as the first confirmed balance is retreived, and put an in-progress animated gif in the currency rows that are still being queried (this way you will easily tell as well which currencies have low server availability, which might push the user to turn some of them off in the settings).
-  * Backend.Config.DEFAULT_NETWORK_TIMEOUT: see comment above this setting, to couple it with FaultTolerantParalellClient (or create two timeout settings, see 091b151ff4a37ca74a312609f173d5fe589ac623 ).
-
 ## Anti-roadmap
 
 Things that are not currently on our roadmap:
@@ -78,6 +64,7 @@ Things that are not currently on our roadmap:
 privacy solutions which in my opinion will all be surpassed by MimbleWimble).
 - BCash (as it's less evolved, technically speaking; I don't want to deal with transaction malleability
 or lack of Layer2 scaling).
+
 
 ## How to compile/install/use?
 

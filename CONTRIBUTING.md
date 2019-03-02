@@ -4,7 +4,7 @@ contribution under the terms of the MIT licence.
 If you don't wish to comply with this policy, you can keep a fork in your
 gitlab/github account.
 
-Below you can find a guide for our F# coding style:
+# F# Coding Style
 
 * We use PascalCase for namespaces, types, methods, properties and record
 members, but camelCase for parameters, private fields, and local functions
@@ -89,13 +89,17 @@ structure of the code. For example, a module whose full name is Foo.Bar.Baz
 should either live in a project called "Foo.Bar" (and be named "Baz" under
 the namespace "Foo.Bar"), or: in a project called "Foo", but in a subdirectory
 called "Bar" (and be named "Baz" under the namespace "Foo.Bar").
-* If you want to contribute a change to this project, you should create a
-MergeRequest in gitlab (not a PullRequest in github). The repo in gitlab is in:
-https://gitlab.com/knocte/gwallet
 * When adding NUnit tests, don't use `[<Test>]let Foo` and naked `module Bar`
 syntax, but `[<Test>]member __.Foo` and `[<TestFixture>]type Bar()` (note the
 parenthesis, as it's an important bit), otherwise the tests might not run in
 all platforms.
+
+
+# Workflow best practices
+
+* If you want to contribute a change to this project, you should create a
+MergeRequest in gitlab (not a PullRequest in github). The repo in gitlab is in:
+https://gitlab.com/DiginexGlobal/gweeallet
 * When contributing a MergeRequest, separate your commits in units of work
 (don't mix changes that have different concerns in the same commit). Don't
 forget to include all explanations and reasonings in the commit messages,
@@ -123,3 +127,19 @@ to a folder or module inside the area, but it's not a strict mapping.
 
 Do not use long lines (manually crop them with EOLs because git doesn't do this
 automatically).
+
+
+# Dev Roadmap
+
+(Only intelligible if you're already a contributor):
+- Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/, or wait for https://github.com/Microsoft/visualfsharp/pull/5850).
+- Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
+- Speed improvements:
+  * Frontend.XF: after clicking Next in the WelcomePage, not only start creating the private key, also query balances if privKey creation finishes before the user writes the payment password.
+  * (Possibly not good -> ) If using Mode.Fast, check if there's a cached balance first. If there isn't, or the time it was cached was long ago, query the confirmed balance only (like in firstStartup, we may be already doing this in case there's no cached balance) returning `decimal*Async<bool>` (the latter to give info, later, about if there's an imminentIncomingPayment), but if it was checked very recently, just query the unconfirmed one (in this case, compare the unconfirmed balance received with the cached one: if lower, show it; if higher, show the cached one and assume imminentIncomingPayment, i.e. refresh interval being shorter).
+  * (Unsure about this one -> ) Query confirmed at the same time as unconfirmed, only look at a single value of those if the one to receive earlier was the unconfirmed one.
+  * Frontend.XF: start querying servers in WelcomePage, with dummy addresses, just to gather server stats.
+  * First startup: bundle stats for all servers (gathered by the maintainer as a user).
+  * Frontend.XF: show balances as soon as the first confirmed balance is retreived, and put an in-progress animated gif in the currency rows that are still being queried (this way you will easily tell as well which currencies have low server availability, which might push the user to turn some of them off in the settings).
+  * Backend.Config.DEFAULT_NETWORK_TIMEOUT: see comment above this setting, to couple it with FaultTolerantParalellClient (or create two timeout settings, see 091b151ff4a37ca74a312609f173d5fe589ac623 ).
+
