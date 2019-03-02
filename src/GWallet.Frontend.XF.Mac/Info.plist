@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>GWallet</string>
+	<string>geewallet</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.nblockchain.GWallet</string>
 	<key>CFBundleShortVersionString</key>
