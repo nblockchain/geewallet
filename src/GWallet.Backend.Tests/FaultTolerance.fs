@@ -38,36 +38,34 @@ type FaultTolerance() =
         FaultTolerantParallelClient<string,SomeSpecificException>
             dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
-    let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId func =
-        { Identifier = serverId; HistoryInfo = None; Retreival = func; }
+    let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId job =
+        { Identifier = serverId; HistoryInfo = None; Retreival = job; }
 
     [<Test>]
     member __.``can retrieve basic T for single func``() =
-        let someStringArg = "foo"
         let someResult = 1
-        let aFunc (arg: string) =
+        let aJob =
             async { return someResult }
-        let func = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc" aFunc
+        let func = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob" aJob
         let dataRetreived =
             defaultFaultTolerantParallelClient.Query
-                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func ]
+                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) [ func ]
                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
     member __.``can retrieve basic T for 2 funcs``() =
-        let someStringArg = "foo"
         let someResult = 1
-        let aFunc1 (arg: string) =
+        let aJob1 =
             async { return someResult }
-        let aFunc2 (arg: string) =
+        let aJob2 =
             async { return someResult }
-        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2
         let dataRetreived = defaultFaultTolerantParallelClient.Query
                                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ func1; func2 ]
+                                [ func1; func2 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
@@ -78,38 +76,35 @@ type FaultTolerance() =
         Assert.Throws<ArgumentException>(
             fun _ -> client.Query
                             (defaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                            "_"
                             List.Empty
                                 |> Async.RunSynchronously |> ignore
         ) |> ignore
 
     [<Test>]
     member __.``can retrieve one if 1 of the funcs throws``() =
-        let someStringArg = "foo"
         let someResult = 1
-        let aFunc1 (arg: string) =
+        let aJob1 =
             async { return raise SomeSpecificException }
-        let aFunc2 (arg: string) =
+        let aJob2 =
             async { return someResult }
-        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2
         let dataRetreived =
             defaultFaultTolerantParallelClient.Query
-                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
+                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) [ func1; func2 ]
                     |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someResult))
 
     [<Test>]
     member __.``ServerUnavailabilityException exception contains innerException``() =
-        let someStringArg = "foo"
-        let aFunc1 (arg: string) =
-            raise SomeException
-        let aFunc2 (arg: string) =
-            raise SomeException
+        let aJob1 =
+            async { return raise SomeException }
+        let aJob2 =
+            async { return raise SomeException }
 
-        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2
 
         let dataRetrieved =
             try
@@ -117,7 +112,7 @@ type FaultTolerance() =
                     (FaultTolerantParallelClient<string,SomeException>
                         dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                         .Query
-                            (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
+                            (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) [ func1; func2 ]
                                 |> Async.RunSynchronously
                 Some(result)
             with
@@ -133,38 +128,36 @@ type FaultTolerance() =
     [<Test>]
     member __.``exception type passed in is ignored``() =
         let someResult = 1
-        let someStringArg = "foo"
-        let aFunc1 (arg: string) =
+        let aJob1 =
             async { return raise SomeException }
-        let aFunc2 (arg: string) =
+        let aJob2 =
             async { return someResult }
-        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2
 
         let result =
             (FaultTolerantParallelClient<string, SomeException>
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                 .Query
-                    (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
+                    (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) [ func1; func2 ]
                         |> Async.RunSynchronously
         Assert.That(result, Is.EqualTo(someResult))
 
     [<Test>]
     member __.``exception type not passed in is not ignored``() =
         let someResult = 1
-        let someStringArg = "foo"
-        let aFunc1 (arg: string) =
+        let aJob1 =
             async { return raise SomeOtherException }
-        let aFunc2 (arg: string) =
+        let aJob2 =
             async { return someResult }
-        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2
 
         let ex = Assert.Throws<AggregateException>(fun _ ->
             (FaultTolerantParallelClient<string, SomeException>
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                 .Query
-                    (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
+                    (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) [ func1; func2 ]
                         |> Async.RunSynchronously
                             |> ignore )
 
@@ -173,20 +166,19 @@ type FaultTolerance() =
     [<Test>]
     member __.``exception type passed in is ignored also if it's found in an innerException'``() =
         let someResult = 1
-        let someStringArg = "foo"
-        let aFunc1 (arg: string) =
+        let aJob1 =
             async { return raise <| Exception("bar", SomeInnerException()) }
-        let aFunc2 (arg: string) =
+        let aJob2 =
             async { return someResult }
 
-        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2
 
         let result =
             (FaultTolerantParallelClient<string, SomeInnerException>
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                 .Query
-                    (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func1; func2 ]
+                    (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) [ func1; func2 ]
                         |> Async.RunSynchronously
         Assert.That(result, Is.EqualTo(someResult))
 
@@ -201,21 +193,20 @@ type FaultTolerance() =
     member __.``makes sure data is consistent across N funcs``() =
         let numberOfConsistentResponsesToBeConsideredSafe = 2u
 
-        let someStringArg = "foo"
         let someConsistentResult = 1
         let someInconsistentResult = 2
 
-        let anInconsistentFunc (arg: string) =
+        let anInconsistentJob =
             async { return someInconsistentResult }
-        let aConsistentFuncA (arg: string) =
+        let aConsistentJobA =
             async { return someConsistentResult }
-        let aConsistentFuncB (arg: string) =
+        let aConsistentJobB =
             async { return someConsistentResult }
 
         let funcInconsistent,funcConsistentA,funcConsistentB =
-            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "anInconsistentFunc" anInconsistentFunc,
-            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aConsistentFuncA" aConsistentFuncA,
-            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aConsistentFuncB" aConsistentFuncB
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "anInconsistentJob" anInconsistentJob,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aConsistentJobA" aConsistentJobA,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aConsistentJobB" aConsistentJobB
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             ConsistencyConfig =
@@ -226,7 +217,7 @@ type FaultTolerance() =
 
         let dataRetreived =
             consistencyGuardClient
-                .Query settings someStringArg
+                .Query settings
                                    [ funcInconsistent; funcConsistentA; funcConsistentA; ]
                     |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
@@ -234,7 +225,7 @@ type FaultTolerance() =
 
         let dataRetreived =
             consistencyGuardClient
-                .Query settings someStringArg
+                .Query settings
                        [ funcConsistentA; funcInconsistent; funcConsistentB; ]
                     |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
@@ -242,7 +233,7 @@ type FaultTolerance() =
 
         let dataRetreived =
             consistencyGuardClient
-                .Query settings someStringArg
+                .Query settings
                        [ funcConsistentA; funcConsistentB; funcInconsistent; ]
                            |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
@@ -254,11 +245,11 @@ type FaultTolerance() =
                                     with ConsistencyConfig = NumberOfConsistentResponsesRequired 0u; }
         let dummyArg = ()
         let dummyServers =
-            [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "dummyServerName" (fun _ -> async { return () }) ]
+            [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "dummyServerName" (async { return () }) ]
         Assert.Throws<ArgumentException>(fun _ ->
             (FaultTolerantParallelClient<string, SomeSpecificException>
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
-                    .Query invalidSettings dummyArg dummyServers
+                    .Query invalidSettings dummyServers
                         |> Async.RunSynchronously
                             |> ignore ) |> ignore
 
@@ -269,16 +260,15 @@ type FaultTolerance() =
                             ConsistencyConfig =
                                 NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
 
-        let someStringArg = "foo"
         let someResult = 1
 
-        let aFunc1 (arg: string) =
+        let aJob1 =
             async { return someResult }
-        let aFunc2 (arg: string) =
+        let aJob2 =
             async { return someResult }
 
-        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2
 
         let client = FaultTolerantParallelClient<string, SomeSpecificException>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
@@ -286,7 +276,6 @@ type FaultTolerance() =
         Assert.Throws<ArgumentException>(fun _ ->
             client.Query
                 settings
-                someStringArg
                 [ func1; func2 ]
                     |> Async.RunSynchronously
                         |> ignore ) |> ignore
@@ -297,24 +286,23 @@ type FaultTolerance() =
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
 
-        let someStringArg = "foo"
         let mostConsistentResult = 1
         let someOtherResultA = 2
         let someOtherResultB = 3
 
-        let aFunc1 (arg: string) =
+        let aJob1 =
             async { return someOtherResultA }
-        let aFunc2 (arg: string) =
+        let aJob2 =
             async { return mostConsistentResult }
-        let aFunc3 (arg: string) =
+        let aJob3 =
             async { return someOtherResultB }
-        let aFunc4 (arg: string) =
+        let aJob4 =
             async { return mostConsistentResult }
 
-        let func1,func2,func3,func4 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2,
-                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc3" aFunc3,
-                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc4" aFunc4
+        let func1,func2,func3,func4 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2,
+                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob3" aJob3,
+                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob4" aJob4
 
         let client = FaultTolerantParallelClient<string, SomeSpecificException>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
@@ -322,7 +310,6 @@ type FaultTolerance() =
         let inconsistencyEx = Assert.Throws<ResultInconsistencyException>(fun _ ->
                                   client.Query
                                       settings
-                                      someStringArg
                                       [ func1; func2; func3; func4 ]
                                           |> Async.RunSynchronously
                                           |> ignore )
@@ -330,24 +317,23 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``retries at least once if all fail``() =
-        let someStringArg = "foo"
         let mutable count1 = 0
-        let aFunc1 (arg: string) = async {
+        let aJob1 = async {
             count1 <- count1 + 1
             if (count1 = 1) then
                 raise SomeException
             return 0
         }
         let mutable count2 = 0
-        let aFunc2 (arg: string) = async {
+        let aJob2 = async {
             count2 <- count2 + 1
             if (count2 = 1) then
                 raise SomeException
             return 0
         }
 
-        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             NumberOfRetries = 1u
@@ -356,7 +342,6 @@ type FaultTolerance() =
         let client = FaultTolerantParallelClient<string, SomeException>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
         client.Query settings
-                     someStringArg
                      [ func1; func2 ]
             |> Async.RunSynchronously
             // enough to know that it doesn't throw
@@ -366,19 +351,17 @@ type FaultTolerance() =
     member __.``it retries before throwing inconsistency exception``() =
         let numberOfConsistentResponsesToBeConsideredSafe = 3u
 
-        let someStringArg = "foo"
         let mostConsistentResult = 1
         let someOtherResultA = 2
         let someOtherResultB = 3
 
-
-        let aFunc1 (arg: string) =
+        let aJob1 =
             async { return someOtherResultA }
-        let aFunc2 (arg: string) =
+        let aJob2 =
             async { return mostConsistentResult }
 
         let mutable countA = 0
-        let aFunc3whichGetsConsistentAtSecondTry (arg: string) = async {
+        let aJob3whichGetsConsistentAtSecondTry = async {
             countA <- countA + 1
             if (countA = 1) then
                 return someOtherResultB
@@ -387,14 +370,14 @@ type FaultTolerance() =
         }
 
         let mutable countB = 0
-        let aFunc3whichGetsConsistentAtThirdTry (arg: string) = async {
+        let aJob3whichGetsConsistentAtThirdTry = async {
             countB <- countB + 1
             if (countB < 3) then
                 return someOtherResultB
             else
                 return mostConsistentResult
         }
-        let aFunc4 (arg: string) =
+        let aJob4 =
             async { return mostConsistentResult }
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
@@ -407,15 +390,14 @@ type FaultTolerance() =
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
         let func1,func2,func3whichGetsConsistentAtSecondTry,func3whichGetsConsistentAtThirdTry,func4 =
-            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc1" aFunc1,
-            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc2" aFunc2,
-            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc3-2" aFunc3whichGetsConsistentAtSecondTry,
-            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc3-3" aFunc3whichGetsConsistentAtThirdTry,
-            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc4" aFunc4
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob3-2" aJob3whichGetsConsistentAtSecondTry,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob3-3" aJob3whichGetsConsistentAtThirdTry,
+            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob4" aJob4
 
         client.Query
             settings
-            someStringArg
             [ func1; func2; func3whichGetsConsistentAtSecondTry; func4 ]
                 |> Async.RunSynchronously
                 |> ignore
@@ -423,7 +405,6 @@ type FaultTolerance() =
         let inconsistencyEx = Assert.Throws<ResultInconsistencyException>(fun _ ->
                                   client.Query
                                       settings
-                                      someStringArg
                                       [ func1; func2; func3whichGetsConsistentAtThirdTry; func4 ]
                                           |> Async.RunSynchronously
                                           |> ignore )
@@ -431,19 +412,16 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``using an average func instead of consistency``() =
-
-        let someStringArg = "foo"
-
-        let func1 (arg: string) =
+        let job1 =
             async { return 1 }
-        let func2 (arg: string) =
+        let job2 =
             async { return 5 }
-        let func3 (arg: string) =
+        let job3 =
             async { return 6 }
 
-        let funcs = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "func1" func1
-                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "func2" func2
-                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "func3" func3 ]
+        let funcs = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job1" job1
+                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job2" job2
+                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job3" job3 ]
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             NumberOfMaximumParallelJobs = uint32 funcs.Length
@@ -458,7 +436,6 @@ type FaultTolerance() =
 
         let result = client.Query
                          settings
-                         someStringArg
                          funcs
                              |> Async.RunSynchronously
 
@@ -466,18 +443,17 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``ordering: chooses server with no faults first``() =
-        let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server1"; Retreival = (fun arg -> async { return someResult1 }) }
+                        Identifier = "server1"; Retreival = async { return someResult1 } }
         let server2 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 })
-                        Identifier = "server2"; Retreival = (fun arg -> async { return someResult2 }) }
+                        Identifier = "server2"; Retreival = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string,DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server1; server2 ]
+                                [ server1; server2 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -486,25 +462,24 @@ type FaultTolerance() =
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server2; server1 ]
+                                [ server2; server1 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
 
     [<Test>]
     member __.``ordering: chooses fastest fail-server option first``() =
-        let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1,server2 = { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 2.0 };
-                                Identifier = "server1"; Retreival = (fun arg -> async { return someResult1 }) },
+                                Identifier = "server1"; Retreival = async { return someResult1 } },
                               { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 };
-                                Identifier = "server2"; Retreival = (fun arg -> async { return someResult2 }) }
+                                Identifier = "server2"; Retreival = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server1; server2 ]
+                                [ server1; server2 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -513,24 +488,23 @@ type FaultTolerance() =
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server2; server1 ]
+                                [ server2; server1 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
 
     [<Test>]
     member __.``ordering: chooses server with no faults over servers with no history``() =
-        let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
         let server1 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server1"; Retreival = (fun arg -> async { return someResult1 }) }
+                        Identifier = "server1"; Retreival = async { return someResult1 } }
         let server2 = { HistoryInfo = None
-                        Identifier = "server2"; Retreival = (fun arg -> async { return someResult2 }) }
+                        Identifier = "server2"; Retreival = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server1; server2 ]
+                                [ server1; server2 ]
                                     |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult1)
@@ -539,25 +513,24 @@ type FaultTolerance() =
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server2; server1 ]
+                                [ server2; server1 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult1)
 
     [<Test>]
     member __.``ordering: chooses server with no history before servers with faults in their history``() =
-        let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server1"; Retreival = (fun arg -> async { return someResult1 }) }
+                        Identifier = "server1"; Retreival = async { return someResult1 } }
         let server2 = { HistoryInfo = None
-                        Identifier = "server2"; Retreival = (fun arg -> async { return someResult2 }) }
+                        Identifier = "server2"; Retreival = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server1; server2 ]
+                                [ server1; server2 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -566,29 +539,28 @@ type FaultTolerance() =
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
-                                someStringArg [ server2; server1 ]
+                                [ server2; server1 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
 
     [<Test>]
     member __.``ordering: chooses server with no history before any other servers, in analysis(non fast) mode``() =
-        let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
         let someResult3 = 3
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server1"; Retreival = (fun arg -> async { return someResult1 }) }
+                        Identifier = "server1"; Retreival = async { return someResult1 } }
         let server2 = { HistoryInfo = None
-                        Identifier = "server2"; Retreival = (fun arg -> async { return someResult2 }) }
+                        Identifier = "server2"; Retreival = async { return someResult2 } }
         let server3 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server3"; Retreival = (fun arg -> async { return someResult3 }) }
+                        Identifier = "server3"; Retreival = async { return someResult3 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
                                       with Mode = Mode.Analysis }
-                                someStringArg [ server1; server2; server3 ]
+                                [ server1; server2; server3 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
@@ -598,32 +570,31 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
                                       with Mode = Mode.Analysis }
-                                someStringArg [ server3; server2; server1 ]
+                                [ server3; server2; server1 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult2)
 
     [<Test>]
     member __.``ordering: leaves one third of servers queried for faulty ones in analysis(non-fast) mode``() =
-        let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
         let someResult3 = 3
         let someResult4 = 4
         let server1,server2,server3 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
-                                        Identifier = "server1"; Retreival = (fun arg -> raise SomeSpecificException) },
+                                        Identifier = "server1"; Retreival = async { return raise SomeSpecificException} },
                                       { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
-                                        Identifier = "server2"; Retreival = (fun arg -> raise SomeSpecificException) },
+                                        Identifier = "server2"; Retreival = async { return raise SomeSpecificException} },
                                       { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 };
-                                        Identifier = "server3"; Retreival = (fun arg -> async { return someResult3 }) }
+                                        Identifier = "server3"; Retreival = async { return someResult3 } }
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server4 = { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 }
-                        Identifier = "server4"; Retreival = (fun arg -> async { return someResult4 }) }
+                        Identifier = "server4"; Retreival = async { return someResult4 } }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
                                       with Mode = Mode.Analysis }
-                                someStringArg [ server1; server2; server3; server4 ]
+                                [ server1; server2; server3; server4 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult4)
@@ -633,14 +604,13 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
                                       with Mode = Mode.Analysis }
-                                someStringArg [ server4; server3; server2; server1 ]
+                                [ server4; server3; server2; server1 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult4)
 
     [<Test>]
     member __.``ordering: leaves every 4th position for a non-best server in analysis(non-fast) mode``() =
-        let someStringArg = "foo"
         let someResult1 = 1
         let someResult2 = 2
         let someResult3 = 3
@@ -648,20 +618,20 @@ type FaultTolerance() =
         let someResult5 = 5
         let server1,server2,server3,server4,server5 =
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 }
-              Identifier = "server1"; Retreival = (fun arg -> raise SomeSpecificException) },
+              Identifier = "server1"; Retreival = async { return raise SomeSpecificException } },
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 }
-              Identifier = "server2"; Retreival = (fun arg -> raise SomeSpecificException) },
+              Identifier = "server2"; Retreival = async { return raise SomeSpecificException } },
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 }
-              Identifier = "server3"; Retreival = (fun arg -> raise SomeSpecificException) },
+              Identifier = "server3"; Retreival = async { return raise SomeSpecificException } },
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 4.0 }
-              Identifier = "server4"; Retreival = (fun arg -> async { return someResult4 }) },
+              Identifier = "server4"; Retreival = async { return someResult4 } },
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 5.0 }
-              Identifier = "server5"; Retreival = (fun arg -> async { return someResult5 }) }
+              Identifier = "server5"; Retreival = async { return someResult5 } }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
                                       with Mode = Mode.Analysis }
-                                someStringArg [ server1; server2; server3; server4; server5 ]
+                                [ server1; server2; server3; server4; server5 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult5)
@@ -671,19 +641,18 @@ type FaultTolerance() =
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
                                       with Mode = Mode.Analysis }
-                                someStringArg [ server5; server4; server3; server2; server1 ]
+                                [ server5; server4; server3; server2; server1 ]
                                 |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult5)
 
     [<Test>]
     member __.``can save server last stat``() =
-        let someStringArg = "foo"
         let someResult = 1
-        let aFunc (arg: string) =
+        let aJob =
             async { return someResult }
-        let serverId = "aFunc"
-        let func = serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId aFunc
+        let serverId = "aJob"
+        let func = serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId aJob
 
         let mutable someFlag = false
         let mutable someTimeStamp = None
@@ -696,24 +665,22 @@ type FaultTolerance() =
         let dataRetreived =
             (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                     saveServerLastStat).Query
-                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ func ]
+                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) [ func ]
                 |> Async.RunSynchronously
 
         Assert.That(someFlag, Is.EqualTo true)
 
     [<Test>]
     member __.``can save server last fault``() =
-        let someStringArg = "foo"
-
-        let aFailingFunc (arg: string) =
-            raise SomeSpecificException
-        let failingServerName = "aFailingFunc"
-        let server1 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest failingServerName aFailingFunc
+        let aFailingJob: Async<int> =
+            async { return raise SomeSpecificException }
+        let failingServerName = "aFailingJob"
+        let server1 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest failingServerName aFailingJob
 
         let someResult = 1
-        let aFunc (arg: string) =
+        let aJob =
             async { return someResult }
-        let server2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aFunc" aFunc
+        let server2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob" aJob
 
         let mutable someNonFailingCounter = 0
         let mutable someTotalCounter = 0
@@ -735,7 +702,7 @@ type FaultTolerance() =
         let dataRetreived =
             (FaultTolerantParallelClient<string, SomeSpecificException>
                                     saveServerLastStat).Query
-                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) someStringArg [ server1; server2 ]
+                (defaultSettingsForNoConsistencyNoParallelismAndNoRetries()) [ server1; server2 ]
                 |> Async.RunSynchronously
 
         Assert.That(someTotalCounter, Is.EqualTo 2)

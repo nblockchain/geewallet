@@ -45,7 +45,7 @@ module ElectrumClient =
             return stratumClient
         }
 
-    let GetBalance (electrumServer: ElectrumServer) (scriptHash: string) = async {
+    let GetBalance (scriptHash: string) (electrumServer: ElectrumServer) = async {
         // FIXME: we should rather implement this method in terms of:
         //        - querying all unspent transaction outputs (X) -> block heights included
         //        - querying transaction history (Y) -> block heights included
@@ -65,25 +65,25 @@ module ElectrumClient =
         return balanceResult.Result
     }
 
-    let GetUnspentTransactionOutputs (electrumServer: ElectrumServer) scriptHash = async {
+    let GetUnspentTransactionOutputs scriptHash (electrumServer: ElectrumServer) = async {
         let! stratumClient = Init electrumServer
         let! unspentListResult = stratumClient.BlockchainScripthashListUnspent scriptHash
         return unspentListResult.Result
     }
 
-    let GetBlockchainTransaction (electrumServer: ElectrumServer) txHash = async {
+    let GetBlockchainTransaction txHash (electrumServer: ElectrumServer) = async {
         let! stratumClient = Init electrumServer
         let! blockchainTransactionResult = stratumClient.BlockchainTransactionGet txHash
         return blockchainTransactionResult.Result
     }
 
-    let EstimateFee (electrumServer: ElectrumServer) (numBlocksTarget: int): Async<decimal> = async {
+    let EstimateFee (numBlocksTarget: int) (electrumServer: ElectrumServer): Async<decimal> = async {
         let! stratumClient = Init electrumServer
         let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
         return estimateFeeResult.Result
     }
 
-    let BroadcastTransaction (electrumServer: ElectrumServer) (transactionInHex: string) = async {
+    let BroadcastTransaction (transactionInHex: string) (electrumServer: ElectrumServer) = async {
         let! stratumClient = Init electrumServer
         let! blockchainTransactionBroadcastResult = stratumClient.BlockchainTransactionBroadcast transactionInHex
         return blockchainTransactionBroadcastResult.Result

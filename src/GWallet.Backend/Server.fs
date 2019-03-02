@@ -11,13 +11,13 @@ type HistoryInfo =
       Fault: Option<ExceptionInfo> }
 
 [<CustomEquality; NoComparison>]
-type Server<'K,'T,'R when 'K: equality> =
+type Server<'K,'R when 'K: equality> =
     { Identifier: 'K
       HistoryInfo: Option<HistoryInfo>
-      Retreival: 'T -> Async<'R> }
+      Retreival: Async<'R> }
     override self.Equals yObj =
         match yObj with
-        | :? Server<'K,'T,'R> as y ->
+        | :? Server<'K,'R> as y ->
             self.Identifier.Equals y.Identifier
         | _ -> false
     override self.GetHashCode () =

@@ -292,15 +292,14 @@ module Server =
 
     // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
     let private GetWeb3Funcs<'T,'R> (currency: Currency)
-                                    (web3Func: SomeWeb3->'T->Async<'R>)
-                                        : List<Server<string,'T,'R>> =
+                                    (web3Func: SomeWeb3->Async<'R>)
+                                        : List<Server<string,'R>> =
 
         let Web3ServerToRetreivalFunc (web3Server: SomeWeb3)
-                                          (web3ClientFunc: SomeWeb3->'T->Async<'R>)
-                                          (arg: 'T)
+                                          (web3ClientFunc: SomeWeb3->Async<'R>)
                                               : Async<'R> = async {
             try
-                return! web3Func web3Server arg
+                return! web3Func web3Server
             with
             | :? ConnectionUnsuccessfulException as ex ->
                 return raise <| FSharpUtil.ReRaise ex
@@ -308,9 +307,9 @@ module Server =
                 return raise <| Exception(sprintf "Some problem when connecting to %s" web3Server.Url, ex)
         }
 
-        let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->'T->Async<'R>)
+        let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
                                       (web3Server: SomeWeb3)
-                                              : Server<string,'T,'R> =
+                                              : Server<string,'R> =
 
             let retrievalFunc = Web3ServerToRetreivalFunc web3Server web3ClientFunc
             { Identifier = web3Server.Url
@@ -327,17 +326,16 @@ module Server =
                                 : Async<HexBigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): Async<HexBigInteger> =
+                let web3Func (web3: Web3): Async<HexBigInteger> =
                     let transactionCountJob =
                         async {
-                            let task = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync publicAddress
+                            let task = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync address
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures transactionCountJob
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                 (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
-                address
                 web3Funcs
         }
 
@@ -378,14 +376,14 @@ module Server =
                                      : Async<BigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): Async<BigInteger> = async {
+                let web3Func (web3: Web3): Async<BigInteger> = async {
                     let job =
                         match balType with
                         | BalanceType.Confirmed ->
-                            GetConfirmedEtherBalanceInternal web3 publicAddress
+                            GetConfirmedEtherBalanceInternal web3 address
                         | BalanceType.Unconfirmed ->
                             async {
-                                let task = web3.Eth.GetBalance.SendRequestAsync publicAddress
+                                let task = web3.Eth.GetBalance.SendRequestAsync address
                                 return! Async.AwaitTask task
                             }
                     let! balance = HandlePossibleEtherFailures job
@@ -394,7 +392,6 @@ module Server =
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
-                        address
                         web3Funcs
         }
 
@@ -419,7 +416,7 @@ module Server =
     let GetTokenBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode): Async<BigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): Async<BigInteger> =
+                let web3Func (web3: Web3): Async<BigInteger> =
                     let job =
                         match balType with
                         | BalanceType.Confirmed ->
@@ -429,7 +426,7 @@ module Server =
                             let balanceFunc: string->Task<BigInteger>
                                 = tokenService.BalanceOfQueryAsync
                             async {
-                                let task = balanceFunc publicAddress
+                                let task = balanceFunc address
                                 return! Async.AwaitTask task
                             }
 
@@ -437,7 +434,6 @@ module Server =
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
-                        address
                         web3Funcs
         }
 
@@ -445,7 +441,7 @@ module Server =
                                      : Async<HexBigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (_: unit): Async<HexBigInteger> =
+                let web3Func (web3: Web3): Async<HexBigInteger> =
                     let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
                     let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
                     let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
@@ -460,7 +456,6 @@ module Server =
                 GetWeb3Funcs account.Currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
-                        ()
                         web3Funcs
         }
 
@@ -474,7 +469,7 @@ module Server =
         : Async<HexBigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (_: unit): Async<HexBigInteger> =
+                let web3Func (web3: Web3): Async<HexBigInteger> =
                     let gasPriceJob =
                         async {
                             let task = web3.Eth.GasPrice.SendRequestAsync()
@@ -486,7 +481,6 @@ module Server =
             return! faultTolerantEtherClient.Query
                         { FaultTolerantParallelClientDefaultSettings currency Mode.Fast with
                               ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
-                        ()
                         web3Funcs
 
         }
@@ -497,10 +491,10 @@ module Server =
 
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (tx: string): Async<string> =
+                let web3Func (web3: Web3): Async<string> =
                     let broadcastJob =
                         async {
-                            let task = web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
+                            let task = web3.Eth.Transactions.SendRawTransaction.SendRequestAsync transaction
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures broadcastJob
@@ -508,7 +502,6 @@ module Server =
             try
                 return! faultTolerantEtherClient.Query
                             (FaultTolerantParallelClientSettingsForBroadcast ())
-                            transaction
                             web3Funcs
             with
             | ex ->

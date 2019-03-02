@@ -51,8 +51,7 @@ type ElectrumIntegrationTests() =
 
     let CheckServerIsReachable (electrumServer: ElectrumServer)
                                (currency: Currency)
-                               (query: ElectrumServer->string->Async<'T>)
-                               (argument: string)
+                               (query: ElectrumServer->Async<'T>)
                                (assertion: 'T->unit)
                                (maybeFilter: Option<ElectrumServer -> bool>)
                                : Async<Option<ElectrumServer>> = async {
@@ -63,7 +62,7 @@ type ElectrumIntegrationTests() =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                let result = query electrumServer argument
+                let result = query electrumServer
                                   |> Async.RunSynchronously
 
                 assertion result
@@ -114,13 +113,12 @@ type ElectrumIntegrationTests() =
 
     let CheckElectrumServersConnection electrumServers
                                        currency
-                                       (query: ElectrumServer->string->Async<'T>)
-                                       (argument: string)
+                                       (query: ElectrumServer->Async<'T>)
                                        (assertion: 'T->unit)
                                            =
         let reachServerJobs = seq {
             for electrumServer in electrumServers do
-                yield CheckServerIsReachable electrumServer currency query argument assertion None
+                yield CheckServerIsReachable electrumServer currency query assertion None
         }
         AtLeastNJobsWork (reachServerJobs |> List.ofSeq)
                          // more than one
@@ -165,21 +163,21 @@ type ElectrumIntegrationTests() =
         let currency = Currency.BTC
         let argument = GetScriptHash currency
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList currency
-                                       ElectrumClient.GetBalance argument BalanceAssertion
+                                       (ElectrumClient.GetBalance argument) BalanceAssertion
 
     [<Test>]
     member __.``can connect (just check balance) to some electrum LTC servers``() =
         let currency = Currency.LTC
         let argument = GetScriptHash currency
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList currency
-                                       ElectrumClient.GetBalance argument BalanceAssertion
+                                       (ElectrumClient.GetBalance argument) BalanceAssertion
 
     [<Test>]
     member __.``can get list UTXOs of an address from some electrum BTC servers``() =
         let currency = Currency.BTC
         let argument = GetScriptHash currency
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList currency
-                                       ElectrumClient.GetUnspentTransactionOutputs argument UtxosAssertion
+                                       (ElectrumClient.GetUnspentTransactionOutputs argument) UtxosAssertion
 
     [<Test>]
     member __.``should not get empty/null response from electrum BTC servers``() =
@@ -189,5 +187,5 @@ type ElectrumIntegrationTests() =
         let argument = "2f309ef555110ab4e9c920faa2d43e64f195aa027e80ec28e1d243bd8929a2fc"
 
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList currency
-                                       ElectrumClient.GetBlockchainTransaction argument TxAssertion
+                                       (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
 
