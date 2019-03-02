@@ -48,11 +48,11 @@ This list is the (intended) order of preference for new features:
 - Threshold signatures.
 - Use deniable encryption to allow for a duress password/passphrase/pin.
 - ETH gas station (to pay for token transactions with token value instead of ETH).
+- Decentralized currency exchange? (e.g. eth2dai.com)
 - Fee selection for custom priority.
 - Multi-sig support?
 - Crosschain atomic swaps (via [comit network](https://github.com/comit-network/comit-rs)? more info [here](https://blog.coblox.tech/2018/06/23/connect-all-the-blockchains.html) and [here](https://blog.coblox.tech/2018/12/12/erc20-lightning-and-COMIT.html)).
 - Decentralized naming resolution? (BNS/ENS/OpenCAP/...)
-- Decentralized currency exchange?
 - Tumblebit support?
 
 
@@ -61,7 +61,7 @@ This list is the (intended) order of preference for new features:
 Things that are not currently on our roadmap:
 
 - ZCash/Dash/Monero support (I don't like the trusted setup of the first, plus the others use substandard
-privacy solutions which in my opinion will all be surpassed by MimbleWimble).
+privacy solutions which in my opinion have been all surpassed by MimbleWimble/Grin).
 - BCash (as it's less evolved, technically speaking; I don't want to deal with transaction malleability
 or lack of Layer2 scaling).
 
