@@ -295,7 +295,7 @@ module Server =
                                     (web3Func: SomeWeb3->Async<'R>)
                                         : List<Server<string,'R>> =
 
-        let Web3ServerToRetreivalFunc (web3Server: SomeWeb3)
+        let Web3ServerToRetrievalFunc (web3Server: SomeWeb3)
                                           (web3ClientFunc: SomeWeb3->Async<'R>)
                                               : Async<'R> = async {
             try
@@ -311,10 +311,10 @@ module Server =
                                       (web3Server: SomeWeb3)
                                               : Server<string,'R> =
 
-            let retrievalFunc = Web3ServerToRetreivalFunc web3Server web3ClientFunc
+            let retrievalFunc = Web3ServerToRetrievalFunc web3Server web3ClientFunc
             { Identifier = web3Server.Url
               HistoryInfo = Caching.Instance.RetreiveLastServerHistory web3Server.Url
-              Retreival = retrievalFunc }
+              Retrieval = retrievalFunc }
 
         let web3servers = GetWeb3Servers currency
         let serverFuncs =

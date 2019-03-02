@@ -39,7 +39,7 @@ type FaultTolerance() =
             dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
     let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId job =
-        { Identifier = serverId; HistoryInfo = None; Retreival = job; }
+        { Identifier = serverId; HistoryInfo = None; Retrieval = job; }
 
     [<Test>]
     member __.``can retrieve basic T for single func``() =
@@ -447,9 +447,9 @@ type FaultTolerance() =
         let someResult2 = 2
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server1"; Retreival = async { return someResult1 } }
+                        Identifier = "server1"; Retrieval = async { return someResult1 } }
         let server2 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 })
-                        Identifier = "server2"; Retreival = async { return someResult2 } }
+                        Identifier = "server2"; Retrieval = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string,DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
@@ -473,9 +473,9 @@ type FaultTolerance() =
         let someResult2 = 2
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1,server2 = { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 2.0 };
-                                Identifier = "server1"; Retreival = async { return someResult1 } },
+                                Identifier = "server1"; Retrieval = async { return someResult1 } },
                               { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 };
-                                Identifier = "server2"; Retreival = async { return someResult2 } }
+                                Identifier = "server2"; Retrieval = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
@@ -498,9 +498,9 @@ type FaultTolerance() =
         let someResult1 = 1
         let someResult2 = 2
         let server1 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server1"; Retreival = async { return someResult1 } }
+                        Identifier = "server1"; Retrieval = async { return someResult1 } }
         let server2 = { HistoryInfo = None
-                        Identifier = "server2"; Retreival = async { return someResult2 } }
+                        Identifier = "server2"; Retrieval = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
@@ -524,9 +524,9 @@ type FaultTolerance() =
         let someResult2 = 2
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server1"; Retreival = async { return someResult1 } }
+                        Identifier = "server1"; Retrieval = async { return someResult1 } }
         let server2 = { HistoryInfo = None
-                        Identifier = "server2"; Retreival = async { return someResult2 } }
+                        Identifier = "server2"; Retrieval = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
@@ -551,11 +551,11 @@ type FaultTolerance() =
         let someResult3 = 3
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server1"; Retreival = async { return someResult1 } }
+                        Identifier = "server1"; Retrieval = async { return someResult1 } }
         let server2 = { HistoryInfo = None
-                        Identifier = "server2"; Retreival = async { return someResult2 } }
+                        Identifier = "server2"; Retrieval = async { return someResult2 } }
         let server3 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 })
-                        Identifier = "server3"; Retreival = async { return someResult3 } }
+                        Identifier = "server3"; Retrieval = async { return someResult3 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
@@ -582,14 +582,14 @@ type FaultTolerance() =
         let someResult3 = 3
         let someResult4 = 4
         let server1,server2,server3 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
-                                        Identifier = "server1"; Retreival = async { return raise SomeSpecificException} },
+                                        Identifier = "server1"; Retrieval = async { return raise SomeSpecificException} },
                                       { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
-                                        Identifier = "server2"; Retreival = async { return raise SomeSpecificException} },
+                                        Identifier = "server2"; Retrieval = async { return raise SomeSpecificException} },
                                       { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 };
-                                        Identifier = "server3"; Retreival = async { return someResult3 } }
+                                        Identifier = "server3"; Retrieval = async { return someResult3 } }
         let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
         let server4 = { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 }
-                        Identifier = "server4"; Retreival = async { return someResult4 } }
+                        Identifier = "server4"; Retrieval = async { return someResult4 } }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()
@@ -618,15 +618,15 @@ type FaultTolerance() =
         let someResult5 = 5
         let server1,server2,server3,server4,server5 =
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 }
-              Identifier = "server1"; Retreival = async { return raise SomeSpecificException } },
+              Identifier = "server1"; Retrieval = async { return raise SomeSpecificException } },
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 }
-              Identifier = "server2"; Retreival = async { return raise SomeSpecificException } },
+              Identifier = "server2"; Retrieval = async { return raise SomeSpecificException } },
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 }
-              Identifier = "server3"; Retreival = async { return raise SomeSpecificException } },
+              Identifier = "server3"; Retrieval = async { return raise SomeSpecificException } },
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 4.0 }
-              Identifier = "server4"; Retreival = async { return someResult4 } },
+              Identifier = "server4"; Retrieval = async { return someResult4 } },
             { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 5.0 }
-              Identifier = "server5"; Retreival = async { return someResult5 } }
+              Identifier = "server5"; Retrieval = async { return someResult5 } }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()

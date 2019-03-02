@@ -14,7 +14,7 @@ type HistoryInfo =
 type Server<'K,'R when 'K: equality> =
     { Identifier: 'K
       HistoryInfo: Option<HistoryInfo>
-      Retreival: Async<'R> }
+      Retrieval: Async<'R> }
     override self.Equals yObj =
         match yObj with
         | :? Server<'K,'R> as y ->

@@ -139,7 +139,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                 let stopwatch = Stopwatch()
                 stopwatch.Start()
                 try
-                    let! result = head.Retreival
+                    let! result = head.Retrieval
                     stopwatch.Stop()
                     updateServer (head.Identifier, { Fault = None; TimeSpan = stopwatch.Elapsed })
                     let tailAsync = ConcatenateNonParallelFuncs failuresSoFar tail

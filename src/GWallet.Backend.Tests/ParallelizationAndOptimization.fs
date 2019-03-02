@@ -15,7 +15,7 @@ exception SomeExceptionDuringParallelWork
 type ParallelizationAndOptimization() =
 
     let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId job =
-        { Identifier = serverId; HistoryInfo = None; Retreival = job; }
+        { Identifier = serverId; HistoryInfo = None; Retrieval = job; }
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ -> ())
 
     // yes, the default one is the fast one because it's the one with no filters, just sorting
@@ -237,10 +237,10 @@ type ParallelizationAndOptimization() =
         let someResult2 = 2
         let server1,server2 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
                                 Identifier = "server1"
-                                Retreival = async { return someResult1 } },
+                                Retrieval = async { return someResult1 } },
                               { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
                                 Identifier = "server2"
-                                Retreival = async { return someResult2 } }
+                                Retrieval = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries())
@@ -285,13 +285,13 @@ type ParallelizationAndOptimization() =
         let someResult3 = 3
         let server1,server2 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
                                 Identifier = "server1"
-                                Retreival = async { return raise SomeExceptionDuringParallelWork } },
+                                Retrieval = async { return raise SomeExceptionDuringParallelWork } },
                               { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
                                 Identifier = "server2"
-                                Retreival = async { return someResult2 } }
+                                Retrieval = async { return someResult2 } }
         let server3 = { HistoryInfo = None
                         Identifier = "server3"
-                        Retreival = async { return someResult3 } }
+                        Retrieval = async { return someResult3 } }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries()

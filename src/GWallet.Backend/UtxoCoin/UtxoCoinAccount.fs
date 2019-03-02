@@ -119,7 +119,7 @@ module Account =
                                           (electrumClientFunc: ElectrumServer->Async<'R>)
                                               : List<Server<string,'R>> =
 
-        let ElectrumServerToRetreivalFunc (electrumServer: ElectrumServer)
+        let ElectrumServerToRetrievalFunc (electrumServer: ElectrumServer)
                                           (electrumClientFunc: ElectrumServer->Async<'R>)
                                               : Async<'R> = async {
             try
@@ -148,7 +148,7 @@ module Account =
                                               : Server<string,'R> =
             { Identifier = electrumServer.Fqdn
               HistoryInfo = Caching.Instance.RetreiveLastServerHistory electrumServer.Fqdn
-              Retreival = ElectrumServerToRetreivalFunc electrumServer electrumClientFunc }
+              Retrieval = ElectrumServerToRetrievalFunc electrumServer electrumClientFunc }
 
         let randomizedElectrumServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedServers =
