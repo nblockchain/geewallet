@@ -87,7 +87,9 @@ module internal Account =
             if Caching.Instance.FirstRun then
                 return! getBalanceWithoutCaching None
             else
-                let unconfirmedTask = GetBalanceFromServer account BalanceType.Confirmed mode |> Async.StartAsTask
+                let! cancellationToken = Async.CancellationToken
+                let unconfirmedJob = GetBalanceFromServer account BalanceType.Confirmed mode
+                let unconfirmedTask = Async.StartAsTask(unconfirmedJob, ?cancellationToken = Some cancellationToken)
                 let maybeCachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
                 match maybeCachedBalance with
                 | NotAvailable ->
