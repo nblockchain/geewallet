@@ -80,7 +80,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                            (Formatting.DecimalAmount CurrencyType.Fiat atLeastAmount)
                            (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
 
-        totalFiatAmountLabel.Text <- strBalance
+        totalFiatAmountLabel.Text <- sprintf "Total Assets:\n%s" strBalance
 
     let rec UpdateGlobalFiatBalance (acc: Option<MaybeCached<TotalBalance>>)
                                     (fiatBalances: List<MaybeCached<decimal>>)
