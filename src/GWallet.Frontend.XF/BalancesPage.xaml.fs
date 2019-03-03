@@ -231,10 +231,16 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
             let cryptoLabel = balanceState.BalanceSet.CryptoLabel
             let fiatLabel = balanceState.BalanceSet.FiatLabel
+            let colorBox = BoxView(Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency, 
+                                   VerticalOptions = LayoutOptions.FillAndExpand,
+                                   HorizontalOptions = LayoutOptions.End,
+                                   Margin = Thickness(0., -20., -16., -20.),
+                                   WidthRequest = 8.)
 
             stackLayout.Children.Add currencyLogoImg
             stackLayout.Children.Add cryptoLabel
             stackLayout.Children.Add fiatLabel
+            stackLayout.Children.Add colorBox
 
             //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
             if Device.RuntimePlatform = Device.macOS then
