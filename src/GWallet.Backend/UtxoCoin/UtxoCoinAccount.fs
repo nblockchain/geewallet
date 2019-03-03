@@ -156,14 +156,14 @@ module Account =
                      randomizedElectrumServers
         randomizedServers
 
-    let private GetBalances(account: IUtxoAccount) (mode: Mode) =
+    let private GetBalances(account: IUtxoAccount) (mode: Mode): Async<BlockchainScripthahsGetBalanceInnerResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
-        let balance =
+        let balanceJob =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientDefaultSettings mode)
                 (GetRandomizedFuncs account.Currency (ElectrumClient.GetBalance scriptHashHex))
-        balance
+        balanceJob
 
     let private GetBalancesFromServer (account: IUtxoAccount) (mode: Mode)
                                          : Async<Option<BlockchainScripthahsGetBalanceInnerResult>> =
@@ -402,13 +402,13 @@ module Account =
         let rawTransaction = signedTransaction.ToHex()
         rawTransaction
 
-    let private BroadcastRawTransaction currency (rawTx: string) =
+    let private BroadcastRawTransaction currency (rawTx: string): Async<string> =
         let job = ElectrumClient.BroadcastTransaction rawTx
-        let newTxId =
+        let newTxIdJob =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientSettingsForBroadcast ())
                 (GetRandomizedFuncs currency job)
-        newTxId
+        newTxIdJob
 
     let BroadcastTransaction currency (transaction: SignedTransaction<_>) =
         // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
