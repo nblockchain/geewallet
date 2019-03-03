@@ -218,7 +218,7 @@ type FaultTolerance() =
         let dataRetreived =
             consistencyGuardClient
                 .Query settings
-                                   [ funcInconsistent; funcConsistentA; funcConsistentA; ]
+                       [ funcInconsistent; funcConsistentA; funcConsistentB; ]
                     |> Async.RunSynchronously
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo(someConsistentResult))

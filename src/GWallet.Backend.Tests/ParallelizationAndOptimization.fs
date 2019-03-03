@@ -210,7 +210,7 @@ type ParallelizationAndOptimization() =
         }
 
         let allFuncs = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job1" job1
-                         serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job2" job1
+                         serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job2" job2
                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "longJob" longJobThatShouldBeCancelled ]
         let number_of_parallel_jobs_allowed = uint32 allFuncs.Length
         let NUMBER_OF_CONSISTENT_RESULTS = 2u
