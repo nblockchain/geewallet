@@ -229,11 +229,11 @@ module FrontendHelpers =
 
     let internal GetCryptoColor(currency: Currency) =
         match currency with
-        | Currency.BTC -> Color.Orange
-        | Currency.DAI -> Color.Yellow
-        | Currency.ETC -> Color.Green
-        | Currency.ETH -> Color.DarkGray
-        | Currency.LTC -> Color.Blue
+        | Currency.BTC -> Color.FromRgb(245, 146, 47)
+        | Currency.DAI -> Color.FromRgb(254, 205, 83)
+        | Currency.ETC -> Color.FromRgb(14, 119, 52)
+        | Currency.ETH -> Color.FromRgb(130, 131, 132)
+        | Currency.LTC -> Color.FromRgb(54, 94, 155)
 
     let internal ApplyGtkWorkaroundForFrameTransparentBackgroundColor (frame: Frame) =
         if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then
