@@ -54,7 +54,7 @@ type JsonRpcTcpClient (host: string, port: int) =
             tcpClient.Request
         else
             let tcpClient = JsonRpcSharp.TcpClient.TcpClient(ResolveHost, port)
-            fun jsonRequest -> tcpClient.Request jsonRequest CancellationToken.None
+            fun jsonRequest -> tcpClient.Request jsonRequest
 
     member __.Host with get() = host
 
