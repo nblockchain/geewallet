@@ -20,15 +20,16 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     let passphraseConfirmation = mainLayout.FindByName<Entry>("passphraseEntryConfirmation")
 
     let email = mainLayout.FindByName<Entry>("emailEntry")
-    let dob = mainLayout.FindByName<Entry>("dobEntry")
+    let dob = mainLayout.FindByName<DatePicker>("dobPicker")
     let nextButton = mainLayout.FindByName<Button> "nextButton"
 
     let MaybeEnableCreateButton() =
-        if (passphrase.Text <> null && passphrase.Text.Length > 0 &&
-            passphraseConfirmation.Text <> null && passphraseConfirmation.Text.Length > 0 &&
-            email.Text <> null && email.Text.Length > 0 &&
-            dob.Text <> null && dob.Text.Length > 0) then
-            nextButton.IsEnabled <- true
+        let isEnabled = passphrase.Text <> null && passphrase.Text.Length > 0 &&
+                        passphraseConfirmation.Text <> null && passphraseConfirmation.Text.Length > 0 &&
+                        email.Text <> null && email.Text.Length > 0 &&
+                        dob.Date >= dob.MinimumDate && dob.Date < dob.MaximumDate
+
+        nextButton.IsEnabled <- isEnabled
 
     let LENGTH_OF_CURRENT_UNSOLVED_WARPWALLET_CHALLENGE = 8
 
@@ -77,7 +78,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     let ToggleInputWidgetsEnabledOrDisabled (enabled: bool) =
         let entry1 = mainLayout.FindByName<Entry> "passphraseEntry"
         let entry2 = mainLayout.FindByName<Entry> "passphraseEntryConfirmation"
-        let entry3 = mainLayout.FindByName<Entry> "dobEntry"
+        let datePicker = mainLayout.FindByName<DatePicker> "dobPicker"
         let entry4 = mainLayout.FindByName<Entry> "emailEntry"
 
         let newCreateButtonCaption =
@@ -89,13 +90,17 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         Device.BeginInvokeOnMainThread(fun _ ->
             entry1.IsEnabled <- enabled
             entry2.IsEnabled <- enabled
-            entry3.IsEnabled <- enabled
+            datePicker.IsEnabled <- enabled
             entry4.IsEnabled <- enabled
             nextButton.IsEnabled <- enabled
             nextButton.Text <- newCreateButtonCaption
         )
 
     do
+        let todayDate = DateTime.Now.Date
+        dob.MinimumDate <- todayDate.Subtract(TimeSpan.FromDays(120. * 365.))
+        dob.MaximumDate <- todayDate
+
         Caching.Instance.BootstrapServerStatsFromTrustedSource()
             |> FrontendHelpers.DoubleCheckCompletionAsync
 
@@ -108,27 +113,21 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             this.DisplayAlert("Alert", warning, "OK") |> ignore
 
         | None ->
-                let dateFormat = "dd/MM/yyyy"
-                match DateTime.TryParseExact(dob.Text, dateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None) with
-                | false,_ ->
-                    this.DisplayAlert("Alert", sprintf "Invalid date or invalid date format (%s)" dateFormat, "OK") |> ignore
+                ToggleInputWidgetsEnabledOrDisabled false
+                let dateTime = dob.Date
+                async {
+                    let masterPrivKeyTask =
+                        Account.GenerateMasterPrivateKey passphrase.Text dateTime (email.Text.ToLower())
+                            |> Async.StartAsTask
 
-                | true,dateTime ->
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this
+                                                                            (WelcomePage2 (state, masterPrivKeyTask))
+                    )
+                } |> FrontendHelpers.DoubleCheckCompletionAsync
 
-                    ToggleInputWidgetsEnabledOrDisabled false
 
-                    async {
-                        let masterPrivKeyTask =
-                            Account.GenerateMasterPrivateKey passphrase.Text dateTime (email.Text.ToLower())
-                                |> Async.StartAsTask
-
-                        Device.BeginInvokeOnMainThread(fun _ ->
-                            FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this
-                                                                                (WelcomePage2 (state, masterPrivKeyTask))
-                        )
-                    } |> FrontendHelpers.DoubleCheckCompletionAsync
-
-    member this.OnDobTextChanged(sender: Object, args: EventArgs) =
+    member this.OnDobDateChanged (sender: Object, args: DateChangedEventArgs) =
         MaybeEnableCreateButton()
 
     member this.OnEmailTextChanged(sender: Object, args: EventArgs) =
