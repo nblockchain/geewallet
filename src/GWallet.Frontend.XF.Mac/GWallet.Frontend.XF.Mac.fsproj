@@ -9,7 +9,7 @@
     <UseStandardResourceNames>true</UseStandardResourceNames>
     <OutputType>Exe</OutputType>
     <RootNamespace>GWallet.Frontend.XF.Mac</RootNamespace>
-    <AssemblyName>GWallet.Frontend.XF.Mac</AssemblyName>
+    <AssemblyName>geewallet</AssemblyName>
     <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
     <TargetFrameworkIdentifier>Xamarin.Mac</TargetFrameworkIdentifier>
     <MonoMacResourcePrefix>Resources</MonoMacResourcePrefix>
