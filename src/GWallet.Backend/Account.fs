@@ -316,7 +316,8 @@ module Account =
 
             SaveOutgoingTransactionInCache transactionProposal txMetadata txId
 
-            return BlockExplorer.GetTransaction currency txId
+            let uri = BlockExplorer.GetTransaction currency txId
+            return (txId, uri)
         }
 
     let SignUnsignedTransaction (account)
