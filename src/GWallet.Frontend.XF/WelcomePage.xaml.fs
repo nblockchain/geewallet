@@ -92,9 +92,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         )
 
     do
-        let todayDate = DateTime.Now.Date
-        dobDatePicker.MinimumDate <- todayDate.Subtract(TimeSpan.FromDays(120. * 365.))
-        dobDatePicker.MaximumDate <- todayDate
+        dobDatePicker.MaximumDate <- DateTime.Now.Date
 
         Caching.Instance.BootstrapServerStatsFromTrustedSource()
             |> FrontendHelpers.DoubleCheckCompletionAsync
