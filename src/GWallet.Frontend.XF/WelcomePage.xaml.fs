@@ -15,33 +15,33 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
     let _ = base.LoadFromXaml(typeof<WelcomePage>)
 
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
-    let passphrase = mainLayout.FindByName<Entry>("passphraseEntry")
-    let passphraseConfirmation = mainLayout.FindByName<Entry>("passphraseEntryConfirmation")
+    let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let passphraseEntry = mainLayout.FindByName<Entry> "passphraseEntry"
+    let passphraseConfirmationEntry = mainLayout.FindByName<Entry> "passphraseConfirmationEntry"
 
-    let email = mainLayout.FindByName<Entry>("emailEntry")
-    let dob = mainLayout.FindByName<DatePicker>("dobPicker")
+    let emailEntry = mainLayout.FindByName<Entry> "emailEntry"
+    let dobDatePicker = mainLayout.FindByName<DatePicker> "dobDatePicker"
     let nextButton = mainLayout.FindByName<Button> "nextButton"
 
     let MaybeEnableCreateButton() =
-        let isEnabled = passphrase.Text <> null && passphrase.Text.Length > 0 &&
-                        passphraseConfirmation.Text <> null && passphraseConfirmation.Text.Length > 0 &&
-                        email.Text <> null && email.Text.Length > 0 &&
-                        dob.Date >= dob.MinimumDate && dob.Date < dob.MaximumDate
+        let isEnabled = passphraseEntry.Text <> null && passphraseEntry.Text.Length > 0 &&
+                        passphraseConfirmationEntry.Text <> null && passphraseConfirmationEntry.Text.Length > 0 &&
+                        emailEntry.Text <> null && emailEntry.Text.Length > 0 &&
+                        dobDatePicker.Date >= dobDatePicker.MinimumDate && dobDatePicker.Date < dobDatePicker.MaximumDate
 
         nextButton.IsEnabled <- isEnabled
 
     let LENGTH_OF_CURRENT_UNSOLVED_WARPWALLET_CHALLENGE = 8
 
     let VerifyPassphraseIsGoodAndSecureEnough(): Option<string> =
-        let containsASpaceAtLeast = passphrase.Text.Contains " "
-        let containsADigitAtLeast = passphrase.Text.Any(fun c -> Char.IsDigit c)
-        let containsPunctuation = passphrase.Text.Any(fun c -> c = ',' ||
-                                                               c = ';' ||
-                                                               c = '.' ||
-                                                               c = '?' ||
-                                                               c = '!' ||
-                                                               c = ''')
+        let containsASpaceAtLeast = passphraseEntry.Text.Contains " "
+        let containsADigitAtLeast = passphraseEntry.Text.Any(fun c -> Char.IsDigit c)
+        let containsPunctuation = passphraseEntry.Text.Any(fun c -> c = ',' ||
+                                                                    c = ';' ||
+                                                                    c = '.' ||
+                                                                    c = '?' ||
+                                                                    c = '!' ||
+                                                                    c = ''')
         let IsColdStorageMode() =
             use conn = CrossConnectivity.Current
             not conn.IsConnected
@@ -59,28 +59,23 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                                             )
             result
 
-        if (passphrase.Text <> passphraseConfirmation.Text) then
+        if passphraseEntry.Text <> passphraseConfirmationEntry.Text then
             Some "Seed passphrases don't match, please try again"
-        elif (passphrase.Text.Length < LENGTH_OF_CURRENT_UNSOLVED_WARPWALLET_CHALLENGE) then
+        elif passphraseEntry.Text.Length < LENGTH_OF_CURRENT_UNSOLVED_WARPWALLET_CHALLENGE then
             Some (sprintf "Seed passphrases should contain %d or more characters, for security reasons"
                           LENGTH_OF_CURRENT_UNSOLVED_WARPWALLET_CHALLENGE)
         elif (not containsASpaceAtLeast) && (not containsADigitAtLeast) then
             Some "If your passphrase doesn't contain spaces (thus only a password), at least use numbers too"
-        elif (passphrase.Text.ToLower() = passphrase.Text || passphrase.Text.ToUpper() = passphrase.Text) then
+        elif passphraseEntry.Text.ToLower() = passphraseEntry.Text || passphraseEntry.Text.ToUpper() = passphraseEntry.Text then
             Some "Mix lowercase and uppercase characters in your seed phrase please"
-        elif (containsASpaceAtLeast && (not containsADigitAtLeast) && (not containsPunctuation)) then
+        elif containsASpaceAtLeast && (not containsADigitAtLeast) && (not containsPunctuation) then
             Some "For security reasons, please include numbers or punctuation in your passphrase (to increase entropy)"
-        elif IsColdStorageMode() && AllWordsInPassphraseExistInDictionaries passphrase.Text then
+        elif IsColdStorageMode() && AllWordsInPassphraseExistInDictionaries passphraseEntry.Text then
             Some "For security reasons, please include at least one word that does not exist in any dictionary (to increase entropy)"
         else
             None
 
     let ToggleInputWidgetsEnabledOrDisabled (enabled: bool) =
-        let entry1 = mainLayout.FindByName<Entry> "passphraseEntry"
-        let entry2 = mainLayout.FindByName<Entry> "passphraseEntryConfirmation"
-        let datePicker = mainLayout.FindByName<DatePicker> "dobPicker"
-        let entry4 = mainLayout.FindByName<Entry> "emailEntry"
-
         let newCreateButtonCaption =
             if enabled then
                 "Next"
@@ -88,18 +83,18 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                 "Loading..."
 
         Device.BeginInvokeOnMainThread(fun _ ->
-            entry1.IsEnabled <- enabled
-            entry2.IsEnabled <- enabled
-            datePicker.IsEnabled <- enabled
-            entry4.IsEnabled <- enabled
+            passphraseEntry.IsEnabled <- enabled
+            passphraseConfirmationEntry.IsEnabled <- enabled
+            dobDatePicker.IsEnabled <- enabled
+            emailEntry.IsEnabled <- enabled
             nextButton.IsEnabled <- enabled
             nextButton.Text <- newCreateButtonCaption
         )
 
     do
         let todayDate = DateTime.Now.Date
-        dob.MinimumDate <- todayDate.Subtract(TimeSpan.FromDays(120. * 365.))
-        dob.MaximumDate <- todayDate
+        dobDatePicker.MinimumDate <- todayDate.Subtract(TimeSpan.FromDays(120. * 365.))
+        dobDatePicker.MaximumDate <- todayDate
 
         Caching.Instance.BootstrapServerStatsFromTrustedSource()
             |> FrontendHelpers.DoubleCheckCompletionAsync
@@ -114,10 +109,10 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
         | None ->
                 ToggleInputWidgetsEnabledOrDisabled false
-                let dateTime = dob.Date
+                let dateTime = dobDatePicker.Date
                 async {
                     let masterPrivKeyTask =
-                        Account.GenerateMasterPrivateKey passphrase.Text dateTime (email.Text.ToLower())
+                        Account.GenerateMasterPrivateKey passphraseEntry.Text dateTime (emailEntry.Text.ToLower())
                             |> Async.StartAsTask
 
                     Device.BeginInvokeOnMainThread(fun _ ->

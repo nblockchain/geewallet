@@ -13,11 +13,11 @@
         <Entry x:Name="passphraseEntry" IsPassword="true"
                Placeholder="Input your new seed passphrase"
                TextChanged="OnPassphraseTextChanged" />
-        <Entry x:Name="passphraseEntryConfirmation" IsPassword="true"
+        <Entry x:Name="passphraseConfirmationEntry" IsPassword="true"
                Placeholder="Repeat your seed passphrase here"
                TextChanged="OnPassphraseTextChanged" />
                
-        <DatePicker x:Name="dobPicker"
+        <DatePicker x:Name="dobDatePicker"
                     Format="dd/MM/yyyy"
                     DateSelected="OnDobDateChanged" />
                
