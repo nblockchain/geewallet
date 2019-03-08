@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Linq
+open System.Diagnostics
 #load "Infra.fs"
 open FSX.Infrastructure
 
@@ -201,7 +202,10 @@ match maybeTarget with
 
     let pathToFrontend = Path.Combine(GetPathToFrontend debug, DEFAULT_FRONTEND + ".exe")
 
-    let proc = System.Diagnostics.Process.Start pathToFrontend
+    let startInfo = ProcessStartInfo(FileName = pathToFrontend, UseShellExecute = false)
+    startInfo.EnvironmentVariables.["MONO_ENV_OPTIONS"] <- "--debug"
+
+    let proc = Process.Start startInfo
     proc.WaitForExit()
 
 | Some "update-servers" ->
