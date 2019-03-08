@@ -43,19 +43,22 @@ module Networking =
         let isOldMonoWithBuggyAsync =
             let monoVersion = Config.GetMonoVersion()
             Option.exists (fun monoVersion -> monoVersion < Version("5.0")) monoVersion
-        let rec findBuggyExceptionMessage (ex: Exception): Option<Exception> =
+        let rec findBuggyExceptions (ex: Exception): Option<Exception> =
             if null = ex then
                 None
+            // see https://bugzilla.xamarin.com/show_bug.cgi?id=41133 | https://sentry.io/organizations/nblockchain/issues/918478485/
+            elif ex.GetType() = typeof<FieldAccessException> then
+                Some ex
             // see https://github.com/Microsoft/visualfsharp/issues/2720
             elif ex.GetType() = typeof<Exception> && ex.Message = "Unexpected no result" then
                 Some ex
             else
-                findBuggyExceptionMessage ex.InnerException
+                findBuggyExceptions ex.InnerException
 
         if not isOldMonoWithBuggyAsync then
             None
         else
-            match findBuggyExceptionMessage ex with
+            match findBuggyExceptions ex with
             | None -> None
             | Some buggyEx ->
                 BuggyExceptionFromOldMonoVersion(newExceptionMsg, buggyEx) :> Exception |> Some
