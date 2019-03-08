@@ -81,7 +81,7 @@ After that you can call `gwallet` directly.
 
 ## Thanks
 
-Special thanks to all the [contributors](https://gitlab.com/DiginexGlobal/geewallet/graphs/frontend) (we recently surpassed 10! if you count the contributions that are in review at the moment), without forgetting as well the amazing opensource developers that contribute(d) to the great opensource libraries that this project uses. Some examples:
+Special thanks to all the [contributors](https://gitlab.com/DiginexGlobal/geewallet/graphs/frontend) (we recently surpassed 10! if you count the contributions that are in review at the moment). Without forgetting as well the amazing developers that contribute(d) to the great opensource libraries that this project uses; some examples:
 
 - @juanfranblanco: Nethereum
 - @nicolasdorier, @joemphilips: NBitcoin
