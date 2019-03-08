@@ -101,28 +101,37 @@ type ElectrumIntegrationTests() =
     let rec AtLeastNJobsWork(jobs: List<Async<Option<ElectrumServer>>>) (minimumCountNeeded: uint32): unit =
         match jobs with
         | [] ->
-            Assert.Fail ("Not enough servers were reached")
+            if minimumCountNeeded > 0u then
+                Assert.Fail (sprintf "Not enough servers were reached. Required: %i" minimumCountNeeded)
         | head::tail ->
             match head |> Async.RunSynchronously with
             | None ->
                 AtLeastNJobsWork tail minimumCountNeeded
             | Some _ ->
-                let newCount = (minimumCountNeeded - 1u)
-                if newCount <> 0u then
+                if minimumCountNeeded = 0u then
+                    ()
+                else
+                    let newCount = (minimumCountNeeded - 1u)
                     AtLeastNJobsWork tail newCount
 
-    let CheckElectrumServersConnection electrumServers
+    let TestElectrumServersConnections (electrumServers: seq<_>)
                                        currency
                                        (query: ElectrumServer->Async<'T>)
                                        (assertion: 'T->unit)
+                                       (atLeast: uint32)
                                            =
+        if not (electrumServers.Any()) then
+            failwith "list received shouldn't be empty"
         let reachServerJobs = seq {
             for electrumServer in electrumServers do
                 yield CheckServerIsReachable electrumServer currency query assertion None
         }
         AtLeastNJobsWork (reachServerJobs |> List.ofSeq)
                          // more than one
-                         2u
+                         atLeast
+
+    let CheckElectrumServersConnection a b c d =
+        TestElectrumServersConnections a b c d 2u
 
     let UtxosAssertion (utxos: array<BlockchainScripthashListUnspentInnerResult>) =
         // if these ancient addresses get withdrawals it would be interesting in the crypto space...
@@ -179,6 +188,7 @@ type ElectrumIntegrationTests() =
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList currency
                                        (ElectrumClient.GetUnspentTransactionOutputs argument) UtxosAssertion
 
+
     [<Test>]
     member __.``should not get empty/null response from electrum BTC servers``() =
         let currency = Currency.BTC
@@ -188,4 +198,19 @@ type ElectrumIntegrationTests() =
 
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList currency
                                        (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
+
+    [<Test>]
+    member __.``should not get empty/null response from electrum BTC servers (specific rebel server)``() =
+        let currency = Currency.BTC
+
+        // some random existing transaction
+        let argument = "2f309ef555110ab4e9c920faa2d43e64f195aa027e80ec28e1d243bd8929a2fc"
+
+        let sameServerManyTimes =
+            Seq.replicate 10 (List.find(fun s -> s.Fqdn = "E-X.not.fyi") ElectrumServerSeedList.DefaultBtcList)
+
+        TestElectrumServersConnections sameServerManyTimes
+                                       currency
+                                       (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
+                                       0u
 
