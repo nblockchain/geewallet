@@ -131,7 +131,9 @@ automatically).
 
 # Dev Roadmap
 
-(Only intelligible if you're already a contributor):
+Our priority list is [the Kanban view of our issue/task list](https://gitlab.com/DiginexGlobal/geewallet/boards).
+
+Some other items that haven't been prioritized include (likely only intelligible if you're already a contributor):
 - Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/, or wait for https://github.com/Microsoft/visualfsharp/pull/5850).
 - Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
 - Develop a `Maybe<'T>` type that wraps `ValueOption<'T>` type (https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/value-options) (faster to type this way) but doesn't expose the `Value` property (for safety).
