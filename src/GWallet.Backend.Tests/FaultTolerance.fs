@@ -117,7 +117,7 @@ type FaultTolerance() =
                 Some(result)
             with
             | ex ->
-                Assert.That (ex :? ServerUnavailabilityException, Is.True)
+                Assert.That (ex :? ResourceUnavailabilityException, Is.True)
                 Assert.That (ex.GetType().Name, Is.EqualTo "NoneAvailableException")
                 Assert.That (ex.InnerException, Is.Not.Null)
                 Assert.That (ex.InnerException, Is.TypeOf<SomeException>())

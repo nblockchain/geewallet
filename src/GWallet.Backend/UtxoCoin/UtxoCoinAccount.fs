@@ -173,7 +173,7 @@ module Account =
                 return Some balances
             with
             | ex ->
-                if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
+                if (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome then
                     return None
                 else
                     return raise (FSharpUtil.ReRaise ex)
