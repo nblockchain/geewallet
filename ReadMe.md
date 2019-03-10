@@ -39,7 +39,7 @@ This list is the (intended) order of preference for new features:
 - snap packaging.
 - NFC support.
 - Tizen frontend (no QR scanning due to missing camera in most Tizen watches, but could use NFC).
-- Paranoid-build mode (using git submodules instead of nuget deps), depending on this RFE (https://github.com/dotnet/sdk/issues/1151) or using any workaround mentioned there.
+- Paranoid-build mode (using git submodules or [local nugets](https://github.com/mono/mono-addins/issues/73#issuecomment-389343246), instead of binary nuget deps), depending on [this RFE](https://github.com/dotnet/sdk/issues/1151) or using any workaround mentioned there.
 - flatpak packaging.
 - In mobile, allow usage when camera permissions have not been granted, by letting the user redirect him to his camera app and take a picture (see https://youtu.be/k1Ssz1dvcpk?t=63).
 - Use of 'bits' instead of BTC as default unit.
