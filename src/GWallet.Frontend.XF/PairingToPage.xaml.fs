@@ -78,6 +78,7 @@ type PairingToPage(balancesPage: Page,
             coldAddressesEntry.IsEnabled <- false
             cancelButton.IsEnabled <- false
             scanQrCodeButton.IsEnabled <- false
+            coldAddressesEntry.IsEnabled <- false
         )
         Account.CreateReadOnlyAccounts watchWalletInfo
 
