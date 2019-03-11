@@ -22,6 +22,7 @@
                TextChanged="OnDobTextChanged" />
         <Entry x:Name="emailEntry" IsPassword="false"
                Placeholder="E-mail address"
+               Keyboard="Email"
                TextChanged="OnEmailTextChanged" />
 
         <Button x:Name="nextButton"
