@@ -89,6 +89,7 @@ module Server =
     let private ethBlockScale = SomeWeb3("https://api.dev.blockscale.net/dev/parity")
     let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
     let private ethWeb3MewAws = SomeWeb3 "https://o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth"
+    let private ethAlchemyApi = SomeWeb3 "https://eth-mainnet.alchemyapi.io/jsonrpc/-vPGIFwUyjlMRF9beTLXiGQUK6Nf3k8z"
     // not sure why the below one doesn't work, gives some JSON error
     //let private ethWeb3EtherScan = SomeWeb3 "https://api.etherscan.io/api"
 
@@ -130,6 +131,7 @@ module Server =
                 ethMyCrypto;
                 ethBlockScale;
                 ethWeb3InfuraMyEtherWallet;
+                ethAlchemyApi
             ]
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
