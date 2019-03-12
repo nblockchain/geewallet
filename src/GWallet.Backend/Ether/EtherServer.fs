@@ -82,6 +82,7 @@ module Server =
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
+    let private ethWeb3InfuraMyCryptoV3 = SomeWeb3 "https://mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286"
     let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
     let private ethWeb3Giveth = SomeWeb3("https://mew.giveth.io")
     let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
@@ -123,6 +124,7 @@ module Server =
             [
                 ethWeb3MewAws;
                 ethWeb3InfuraMyCrypto;
+                ethWeb3InfuraMyCryptoV3
                 ethWeb3Mew;
                 ethWeb3Giveth;
                 ethMyCrypto;
