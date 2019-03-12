@@ -86,12 +86,14 @@ module Server =
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
+    let private ethWeb3InfuraMyCryptoV3 = SomeWeb3 "https://mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286"
     let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
     let private ethWeb3Giveth = SomeWeb3("https://mew.giveth.io")
     let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
     let private ethBlockScale = SomeWeb3("https://api.dev.blockscale.net/dev/parity")
     let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
     let private ethWeb3MewAws = SomeWeb3 "https://o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth"
+    let private ethAlchemyApi = SomeWeb3 "https://eth-mainnet.alchemyapi.io/jsonrpc/-vPGIFwUyjlMRF9beTLXiGQUK6Nf3k8z"
     // not sure why the below one doesn't work, gives some JSON error
     //let private ethWeb3EtherScan = SomeWeb3 "https://api.etherscan.io/api"
 
@@ -127,11 +129,13 @@ module Server =
             [
                 ethWeb3MewAws;
                 ethWeb3InfuraMyCrypto;
+                ethWeb3InfuraMyCryptoV3
                 ethWeb3Mew;
                 ethWeb3Giveth;
                 ethMyCrypto;
                 ethBlockScale;
                 ethWeb3InfuraMyEtherWallet;
+                ethAlchemyApi
             ]
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
