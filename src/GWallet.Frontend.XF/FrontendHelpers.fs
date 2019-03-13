@@ -229,11 +229,11 @@ module FrontendHelpers =
 
     let internal GetCryptoColor(currency: Currency) =
         match currency with
-        | Currency.BTC -> Color.Orange
-        | Currency.DAI -> Color.Yellow
-        | Currency.ETC -> Color.Green
-        | Currency.ETH -> Color.DarkGray
-        | Currency.LTC -> Color.Blue
+        | Currency.BTC -> Color.FromRgb(245, 146, 47)
+        | Currency.DAI -> Color.FromRgb(254, 205, 83)
+        | Currency.ETC -> Color.FromRgb(14, 119, 52)
+        | Currency.ETH -> Color.FromRgb(130, 131, 132)
+        | Currency.LTC -> Color.FromRgb(54, 94, 155)
 
     let internal ApplyGtkWorkaroundForFrameTransparentBackgroundColor (frame: Frame) =
         if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then
@@ -253,18 +253,21 @@ module FrontendHelpers =
             // workaround about Labels not putting a decent default left&top margin in GTK so FIXME: file bug about this
             balanceLabel.TranslationY <- MagicGtkNumber
             balanceLabel.TranslationX <- MagicGtkNumber
+            // workaround about Labels is not centered vertically inside layout
+            balanceLabel.VerticalOptions <- LayoutOptions.FillAndExpand
+
+        balanceLabel
+
+
+    let private CreateLabelWidgetForAccount horizontalOptions =
+        let label = Label(Text = "...",
+                          VerticalOptions = LayoutOptions.Center,
+                          HorizontalOptions = horizontalOptions)
+        ApplyGtkWorkarounds label true
 
     let private CreateWidgetsForAccount (): Label*Label =
-        let accountBalanceLabel = Label(Text = "...",
-                                        VerticalOptions = LayoutOptions.Center,
-                                        HorizontalOptions = LayoutOptions.Start)
-        let fiatBalanceLabel = Label(Text = "...",
-                                     VerticalOptions = LayoutOptions.Center,
-                                     HorizontalOptions = LayoutOptions.EndAndExpand)
-
-        ApplyGtkWorkarounds accountBalanceLabel true
-        ApplyGtkWorkarounds fiatBalanceLabel true
-
+        let accountBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.Start
+        let fiatBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.EndAndExpand
         accountBalanceLabel,fiatBalanceLabel
 
     let CreateWidgetsForAccounts(accounts: seq<IAccount>): List<BalanceSet> =

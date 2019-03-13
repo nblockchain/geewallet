@@ -12,13 +12,8 @@
                      Padding="15, 10"
                      Spacing="30"
                      VerticalOptions="FillAndExpand"
-                     HorizontalOptions="FillAndExpand">
-   
-            <controls:DonutChartView x:Name="chartView"
-                                     Aspect="AspectFit"
-                                     HorizontalOptions="FillAndExpand"
-                                     VerticalOptions="FillAndExpand"/>
-            
+                     HorizontalOptions="FillAndExpand">         
+
             <!-- we add {V|H}Options=Center* not only to the Label, as a workaround to
             https://github.com/xamarin/Xamarin.Forms/issues/4655 -->
             <Frame x:Name="totalFiatAmountFrame" 
@@ -65,6 +60,12 @@
                            TextColor="DarkBlue" />
                 </StackLayout>
             </Frame>
+
+            <controls:DonutChartView x:Name="chartView"
+                         Aspect="AspectFit"
+                         HorizontalOptions="FillAndExpand"
+                         VerticalOptions="FillAndExpand"/>
+
         </StackLayout>
 
         <ScrollView HorizontalOptions="FillAndExpand">
