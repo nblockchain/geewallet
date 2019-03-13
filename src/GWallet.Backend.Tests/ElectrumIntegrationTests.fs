@@ -207,7 +207,9 @@ type ElectrumIntegrationTests() =
         let argument = "2f309ef555110ab4e9c920faa2d43e64f195aa027e80ec28e1d243bd8929a2fc"
 
         let sameServerManyTimes =
-            Seq.replicate 10 (List.find(fun s -> s.Fqdn = "E-X.not.fyi") ElectrumServerSeedList.DefaultBtcList)
+            Seq.replicate 5 (List.find(fun s -> s.Fqdn = "E-X.not.fyi" ||
+                                                s.Fqdn = "currentlane.lovebitco.in")
+                                       ElectrumServerSeedList.DefaultBtcList)
 
         TestElectrumServersConnections sameServerManyTimes
                                        currency
