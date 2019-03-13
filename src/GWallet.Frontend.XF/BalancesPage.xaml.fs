@@ -220,7 +220,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                      |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             ) |> ignore
 
-            let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal)
+            let colorBoxWidth = 10.
+
+            let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
+                                          Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
 
             let colour =
                 if readOnly then
@@ -231,16 +234,22 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
             let cryptoLabel = balanceState.BalanceSet.CryptoLabel
             let fiatLabel = balanceState.BalanceSet.FiatLabel
-            let colorBox = BoxView(Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency, 
-                                   VerticalOptions = LayoutOptions.FillAndExpand,
-                                   HorizontalOptions = LayoutOptions.End,
-                                   Margin = Thickness(0., -20., -16., -20.),
-                                   WidthRequest = 8.)
 
             stackLayout.Children.Add currencyLogoImg
             stackLayout.Children.Add cryptoLabel
             stackLayout.Children.Add fiatLabel
-            stackLayout.Children.Add colorBox
+
+            let colorBox = BoxView(Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency)
+
+            let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
+            absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
+            absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
+
+            if Device.RuntimePlatform = Device.GTK then
+                //workaround about GTK ScrollView's scroll bar. Not sure if it's bug indeed.
+                absoluteLayout.Margin <- Thickness(absoluteLayout.Margin.Left, absoluteLayout.Margin.Top, 20., absoluteLayout.Margin.Bottom)
+                //workaround about GTK layouting. It ignores margins of parent layout. So, we have to duplicate them
+                stackLayout.Margin <- Thickness(stackLayout.Margin.Left, stackLayout.Margin.Top, 20., stackLayout.Margin.Bottom)
 
             //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
             if Device.RuntimePlatform = Device.macOS then
@@ -251,9 +260,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 bindImageSize VisualElement.WidthRequestProperty
                 bindImageSize VisualElement.HeightRequestProperty
 
+ 
             let frame = Frame(HasShadow = false,
                               ClassId = cryptoBalanceClassId,
-                              Content = stackLayout,
+                              Content = absoluteLayout,
+                              Padding = Thickness(0.),
                               BorderColor = Color.SeaShell)
             frame.GestureRecognizers.Add tapGestureRecognizer
 

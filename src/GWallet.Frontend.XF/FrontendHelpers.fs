@@ -253,18 +253,21 @@ module FrontendHelpers =
             // workaround about Labels not putting a decent default left&top margin in GTK so FIXME: file bug about this
             balanceLabel.TranslationY <- MagicGtkNumber
             balanceLabel.TranslationX <- MagicGtkNumber
+            // workaround about Labels is not centered vertically inside layout
+            balanceLabel.VerticalOptions <- LayoutOptions.FillAndExpand
+
+        balanceLabel
+
+
+    let private CreateLabelWidgetForAccount horizontalOptions =
+        let label = Label(Text = "...",
+                          VerticalOptions = LayoutOptions.Center,
+                          HorizontalOptions = horizontalOptions)
+        ApplyGtkWorkarounds label true
 
     let private CreateWidgetsForAccount (): Label*Label =
-        let accountBalanceLabel = Label(Text = "...",
-                                        VerticalOptions = LayoutOptions.Center,
-                                        HorizontalOptions = LayoutOptions.Start)
-        let fiatBalanceLabel = Label(Text = "...",
-                                     VerticalOptions = LayoutOptions.Center,
-                                     HorizontalOptions = LayoutOptions.EndAndExpand)
-
-        ApplyGtkWorkarounds accountBalanceLabel true
-        ApplyGtkWorkarounds fiatBalanceLabel true
-
+        let accountBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.Start
+        let fiatBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.EndAndExpand
         accountBalanceLabel,fiatBalanceLabel
 
     let CreateWidgetsForAccounts(accounts: seq<IAccount>): List<BalanceSet> =
