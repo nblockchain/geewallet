@@ -151,6 +151,76 @@ module Server =
             return result
     }
 
+    let MaybeRethrowHttpRequestException (ex: Exception): unit =
+        let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
+        match maybeHttpReqEx with
+        | Some httpReqEx ->
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
+                raise <| ServerTimedOutException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
+                raise <| ServerTimedOutException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
+                raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
+                raise <| ServerUnreachableException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
+                raise <| ServerUnreachableException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
+                raise <| ServerUnavailableException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
+                raise <| ServerUnreachableException(exMsg, httpReqEx)
+
+            // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
+                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
+                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
+                raise <| ServerUnavailableException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
+                    raise <| ServerRestrictiveException(exMsg, httpReqEx)
+        | _ ->
+            ()
+
+    let MaybeRethrowRpcResponseException (ex: Exception): unit =
+        let maybeRpcResponseEx = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex
+        match maybeRpcResponseEx with
+        | Some rpcResponseEx ->
+            if (rpcResponseEx.RpcError <> null) then
+                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode) then
+                    if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
+                        raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
+                                                   (int RpcErrorCode.StatePruningNode), rpcResponseEx)
+                    else
+                        raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
+                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                if rpcResponseEx.RpcError.Code = int RpcErrorCode.GatewayTimeout then
+                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
+                                         rpcResponseEx.RpcError.Code
+                                         rpcResponseEx.RpcError.Message
+                                         rpcResponseEx.Message,
+                                 rpcResponseEx))
+        | _ ->
+            ()
+
+    let MaybeRethrowRpcClientTimeoutException (ex: Exception): unit =
+        let maybeRpcTimeoutException = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcClientTimeoutException> ex
+        match maybeRpcTimeoutException with
+        | Some rpcTimeoutEx ->
+            raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
+        | None ->
+            ()
+
+    let MaybeRethrowNetworkingException (ex: Exception): unit =
+        let maybeSocketRewrappedException = Networking.FindExceptionToRethrow ex exMsg
+        match maybeSocketRewrappedException with
+        | Some socketRewrappedException ->
+            raise socketRewrappedException
+        | None ->
+            ()
+
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): 'R =
         let result =
             try
@@ -186,70 +256,16 @@ module Server =
 
                     raise (UnhandledWebException(webEx.Status, webEx))
                 | None ->
-                    let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
-                    match maybeHttpReqEx with
-                    | Some httpReqEx ->
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
-                            raise <| ServerTimedOutException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
-                            raise <| ServerTimedOutException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
-                            raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
-                            raise <| ServerUnreachableException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
-                            raise <| ServerUnreachableException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
-                            raise <| ServerUnavailableException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
-                            raise <| ServerUnreachableException(exMsg, httpReqEx)
+                    MaybeRethrowHttpRequestException ex
 
-                        // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
-                            raise <| ServerMisconfiguredException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
-                            raise <| ServerMisconfiguredException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
-                            raise <| ServerUnavailableException(exMsg, httpReqEx)
-                        if HttpRequestExceptionMatchesErrorCode
-                            httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
-                                raise <| ServerRestrictiveException(exMsg, httpReqEx)
-                        reraise()
+                    MaybeRethrowRpcResponseException ex
 
-                    | None ->
-                        let maybeRpcResponseEx =
-                            FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcResponseException> ex
-                        match maybeRpcResponseEx with
-                        | Some rpcResponseEx ->
-                            if (rpcResponseEx.RpcError <> null) then
-                                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode) then
-                                    if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
-                                        raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
-                                                                   (int RpcErrorCode.StatePruningNode), rpcResponseEx)
-                                    else
-                                        raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
-                                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                                if rpcResponseEx.RpcError.Code = int RpcErrorCode.GatewayTimeout then
-                                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                                raise (Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
-                                                         rpcResponseEx.RpcError.Code
-                                                         rpcResponseEx.RpcError.Message
-                                                         rpcResponseEx.Message,
-                                                 rpcResponseEx))
-                            reraise()
-                        | None ->
-                            let maybeRpcTimeoutException = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcClientTimeoutException> ex
-                            match maybeRpcTimeoutException with
-                            | Some rpcTimeoutEx ->
-                                raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
-                            | None ->
-                                let maybeSocketRewrappedException = Networking.FindExceptionToRethrow ex exMsg
-                                match maybeSocketRewrappedException with
-                                | Some socketRewrappedException ->
-                                    raise socketRewrappedException
-                                | None ->
-                                    reraise()
+                    MaybeRethrowRpcClientTimeoutException ex
+
+                    MaybeRethrowNetworkingException ex
+
+                    reraise()
+
         result
 
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
