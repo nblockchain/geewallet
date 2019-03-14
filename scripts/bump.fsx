@@ -78,14 +78,16 @@ let GitTag (newFullVersion: Version) =
     Process.SafeExecute (sprintf "git tag %s" (newFullVersion.ToString()),
                          Echo.Off) |> ignore
 
+Console.WriteLine "Bumping..."
 let fullUnstableVersion,newFullStableVersion = Bump true
 GitCommit fullUnstableVersion newFullStableVersion
 GitTag newFullStableVersion
 
 Console.WriteLine (sprintf "Version bumped to %s, release binaries now and press key when you finish."
                            (newFullStableVersion.ToString()))
-Console.ReadLine() |> ignore
+Console.Read() |> ignore
 
+Console.WriteLine "Post-bumping..."
 let fullStableVersion,newFullUnstableVersion = Bump false
 GitCommit fullStableVersion newFullUnstableVersion
 
