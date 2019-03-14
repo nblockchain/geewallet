@@ -70,7 +70,7 @@ let GitCommit (fullVersion: Version) (newFullVersion: Version) =
                          Echo.Off) |> ignore
 
 let GitTag (newFullVersion: Version) =
-    if not (IsStable newFullVersion.MinorRevision) then
+    if not (IsStableRevision newFullVersion.MinorRevision) then
         failwith "something is wrong, this script should tag only even(stable) minorRevisions, not odd(unstable) ones"
 
     Process.Execute (sprintf "git tag --delete %s" (newFullVersion.ToString()),
@@ -82,8 +82,12 @@ let fullUnstableVersion,newFullStableVersion = Bump true
 GitCommit fullUnstableVersion newFullStableVersion
 GitTag newFullStableVersion
 
+Console.WriteLine (sprintf "Version bumped to %s, release binaries now and press key when you finish."
+                           (newFullStableVersion.ToString()))
+Console.ReadLine() |> ignore
+
 let fullStableVersion,newFullUnstableVersion = Bump false
 GitCommit fullStableVersion newFullUnstableVersion
 
-Console.WriteLine (sprintf "Version bumped. Remember to push via `git push <remote> <branch> %s`"
+Console.WriteLine (sprintf "Version bumping finished. Remember to push via `git push <remote> <branch> %s`"
                            (newFullStableVersion.ToString()))
