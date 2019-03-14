@@ -69,7 +69,10 @@ let GitCommit (fullVersion: Version) (newFullVersion: Version) =
     Process.SafeExecute (sprintf "git commit -m \"%s\"" finalCommitMessage,
                          Echo.Off) |> ignore
 
-let GitTag newFullVersion =
+let GitTag (newFullVersion: Version) =
+    if not (IsStable newFullVersion.MinorRevision) then
+        failwith "something is wrong, this script should tag only even(stable) minorRevisions, not odd(unstable) ones"
+
     Process.Execute (sprintf "git tag --delete %s" (newFullVersion.ToString()),
                      Echo.Off) |> ignore
     Process.SafeExecute (sprintf "git tag %s" (newFullVersion.ToString()),
