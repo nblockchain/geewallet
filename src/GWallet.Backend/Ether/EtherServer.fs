@@ -86,12 +86,14 @@ module Server =
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
+    let private ethWeb3InfuraMyCryptoV3 = SomeWeb3 "https://mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286"
     let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
     let private ethWeb3Giveth = SomeWeb3("https://mew.giveth.io")
     let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
     let private ethBlockScale = SomeWeb3("https://api.dev.blockscale.net/dev/parity")
     let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
     let private ethWeb3MewAws = SomeWeb3 "https://o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth"
+    let private ethAlchemyApi = SomeWeb3 "https://eth-mainnet.alchemyapi.io/jsonrpc/-vPGIFwUyjlMRF9beTLXiGQUK6Nf3k8z"
     // not sure why the below one doesn't work, gives some JSON error
     //let private ethWeb3EtherScan = SomeWeb3 "https://api.etherscan.io/api"
 
@@ -127,11 +129,13 @@ module Server =
             [
                 ethWeb3MewAws;
                 ethWeb3InfuraMyCrypto;
+                ethWeb3InfuraMyCryptoV3
                 ethWeb3Mew;
                 ethWeb3Giveth;
                 ethMyCrypto;
                 ethBlockScale;
                 ethWeb3InfuraMyEtherWallet;
+                ethAlchemyApi
             ]
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
@@ -140,16 +144,95 @@ module Server =
         ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
 
     let exMsg = "Could not communicate with EtherServer"
-    let PerformEtherRemoteCallWithTimeout<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): Async<'R> = async {
-        let task = func arg
-        let operation = task |> Async.AwaitTask
-        let! maybeResult = FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT operation
+    let PerformEtherRemoteCallWithTimeout<'T,'R> (job: Async<'R>): Async<'R> = async {
+        let! maybeResult = FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT job
         match maybeResult with
         | None ->
             return raise <| ServerTimedOutException(exMsg)
         | Some result ->
             return result
     }
+
+    let MaybeRethrowHttpRequestException (ex: Exception): unit =
+        let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
+        match maybeHttpReqEx with
+        | Some httpReqEx ->
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
+                raise <| ServerTimedOutException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
+                raise <| ServerTimedOutException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
+                raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
+                raise <| ServerUnreachableException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
+                raise <| ServerUnreachableException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
+                raise <| ServerUnavailableException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
+                raise <| ServerUnreachableException(exMsg, httpReqEx)
+
+            // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
+                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
+                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
+                raise <| ServerUnavailableException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode
+                httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
+                    raise <| ServerRestrictiveException(exMsg, httpReqEx)
+
+            // TODO: report this one as a warning to sentry?
+            if httpReqEx.InnerException <> null &&
+               httpReqEx.InnerException :? System.Runtime.InteropServices.COMException then
+                // got this once, with the exception message
+                // "the text associated with this error code could not be found.
+                //  The date in the certificate is invalid or has expired"
+                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+
+        | None ->
+            ()
+
+    let MaybeRethrowRpcResponseException (ex: Exception): unit =
+        let maybeRpcResponseEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex
+        match maybeRpcResponseEx with
+        | Some rpcResponseEx ->
+            if rpcResponseEx.RpcError <> null then
+                if rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode then
+                    if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
+                        raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
+                                                   (int RpcErrorCode.StatePruningNode), rpcResponseEx)
+                    else
+                        raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
+                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                if rpcResponseEx.RpcError.Code = int RpcErrorCode.GatewayTimeout then
+                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                raise <| Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
+                                         rpcResponseEx.RpcError.Code
+                                         rpcResponseEx.RpcError.Message
+                                         rpcResponseEx.Message,
+                                   rpcResponseEx)
+        | None ->
+            ()
+
+    let MaybeRethrowRpcClientTimeoutException (ex: Exception): unit =
+        let maybeRpcTimeoutException =
+            FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientTimeoutException> ex
+        match maybeRpcTimeoutException with
+        | Some rpcTimeoutEx ->
+            raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
+        | None ->
+            ()
+
+    let MaybeRethrowNetworkingException (ex: Exception): unit =
+        let maybeSocketRewrappedException = Networking.FindExceptionToRethrow ex exMsg
+        match maybeSocketRewrappedException with
+        | Some socketRewrappedException ->
+            raise socketRewrappedException
+        | None ->
+            ()
 
     let private ReworkException (ex: Exception): unit =
         let maybeWebEx = FSharpUtil.FindException<WebException> ex
@@ -180,83 +263,20 @@ module Server =
                     raise <| ServerUnreachableException(exMsg, webEx)
 
             raise <| UnhandledWebException(webEx.Status, webEx)
+
         | None ->
-            let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
-            match maybeHttpReqEx with
-            | Some httpReqEx ->
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
-                    raise <| ServerTimedOutException(exMsg, httpReqEx)
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
-                    raise <| ServerTimedOutException(exMsg, httpReqEx)
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
-                    raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
-                    raise <| ServerUnreachableException(exMsg, httpReqEx)
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
-                    raise <| ServerUnreachableException(exMsg, httpReqEx)
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
-                    raise <| ServerUnavailableException(exMsg, httpReqEx)
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
-                    raise <| ServerUnreachableException(exMsg, httpReqEx)
+            MaybeRethrowHttpRequestException ex
 
-                // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
-                    raise <| ServerMisconfiguredException(exMsg, httpReqEx)
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
-                    raise <| ServerMisconfiguredException(exMsg, httpReqEx)
-                if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
-                    raise <| ServerUnavailableException(exMsg, httpReqEx)
-                if HttpRequestExceptionMatchesErrorCode
-                    httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
-                        raise <| ServerRestrictiveException(exMsg, httpReqEx)
+            MaybeRethrowRpcResponseException ex
 
-                // TODO: report this one as a warning to sentry?
-                if httpReqEx.InnerException <> null &&
-                   httpReqEx.InnerException :? System.Runtime.InteropServices.COMException then
-                    // got this once, with the exception message
-                    // "the text associated with this error code could not be found.
-                    //  The date in the certificate is invalid or has expired"
-                    raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+            MaybeRethrowRpcClientTimeoutException ex
 
-            | None ->
-                let maybeRpcResponseEx =
-                    FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex
-                match maybeRpcResponseEx with
-                | Some rpcResponseEx ->
-                    if rpcResponseEx.RpcError <> null then
-                        if rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode then
-                            if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
-                                raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
-                                                           (int RpcErrorCode.StatePruningNode), rpcResponseEx)
-                            else
-                                raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                        if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
-                            raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                        if rpcResponseEx.RpcError.Code = int RpcErrorCode.GatewayTimeout then
-                            raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                        raise <| Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
-                                                 rpcResponseEx.RpcError.Code
-                                                 rpcResponseEx.RpcError.Message
-                                                 rpcResponseEx.Message,
-                                           rpcResponseEx)
-                    ()
-                | None ->
-                    let maybeRpcTimeoutException =
-                        FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientTimeoutException> ex
-                    match maybeRpcTimeoutException with
-                    | Some rpcTimeoutEx ->
-                        raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
-                    | None ->
-                        let maybeSocketRewrappedException = Networking.FindExceptionToRethrow ex exMsg
-                        match maybeSocketRewrappedException with
-                        | Some socketRewrappedException ->
-                            raise socketRewrappedException
-                        | None ->
-                            ()
+            MaybeRethrowNetworkingException ex
 
-    let HandlePossibleEtherFailures<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): Async<'R> = async {
+
+    let HandlePossibleEtherFailures<'T,'R> (job: Async<'R>): Async<'R> = async {
         try
-            let! result = PerformEtherRemoteCallWithTimeout func arg
+            let! result = PerformEtherRemoteCallWithTimeout job
             return result
         with
         | ex ->
@@ -301,15 +321,14 @@ module Server =
 
     // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
     let private GetWeb3Funcs<'T,'R> (currency: Currency)
-                                    (web3Func: SomeWeb3->'T->Async<'R>)
-                                        : List<Server<string,'T,'R>> =
+                                    (web3Func: SomeWeb3->Async<'R>)
+                                        : List<Server<string,'R>> =
 
-        let Web3ServerToRetreivalFunc (web3Server: SomeWeb3)
-                                          (web3ClientFunc: SomeWeb3->'T->Async<'R>)
-                                          (arg: 'T)
+        let Web3ServerToRetrievalFunc (web3Server: SomeWeb3)
+                                          (web3ClientFunc: SomeWeb3->Async<'R>)
                                               : Async<'R> = async {
             try
-                return! web3Func web3Server arg
+                return! web3Func web3Server
             with
             | :? ConnectionUnsuccessfulException as ex ->
                 return raise <| FSharpUtil.ReRaise ex
@@ -317,14 +336,14 @@ module Server =
                 return raise <| Exception(sprintf "Some problem when connecting to %s" web3Server.Url, ex)
         }
 
-        let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->'T->Async<'R>)
+        let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
                                       (web3Server: SomeWeb3)
-                                              : Server<string,'T,'R> =
+                                              : Server<string,'R> =
 
-            let retrievalFunc = Web3ServerToRetreivalFunc web3Server web3ClientFunc
+            let retrievalFunc = Web3ServerToRetrievalFunc web3Server web3ClientFunc
             { Identifier = web3Server.Url
               HistoryInfo = Caching.Instance.RetreiveLastServerHistory web3Server.Url
-              Retreival = retrievalFunc }
+              Retrieval = retrievalFunc }
 
         let web3servers = GetWeb3Servers currency
         let serverFuncs =
@@ -336,13 +355,16 @@ module Server =
                                 : Async<HexBigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): Async<HexBigInteger> =
-                    HandlePossibleEtherFailures web3.Eth.Transactions.GetTransactionCount.SendRequestAsync
-                                   publicAddress
+                let web3Func (web3: Web3): Async<HexBigInteger> =
+                    let transactionCountJob =
+                        async {
+                            let task = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync address
+                            return! Async.AwaitTask task
+                        }
+                    HandlePossibleEtherFailures transactionCountJob
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                 (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
-                address
                 web3Funcs
         }
 
@@ -383,20 +405,22 @@ module Server =
                                      : Async<BigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): Async<BigInteger> = async {
-                    let taskFunc (publicAddress: string) =
+                let web3Func (web3: Web3): Async<BigInteger> = async {
+                    let job =
                         match balType with
                         | BalanceType.Confirmed ->
-                            GetConfirmedEtherBalanceInternal web3 publicAddress |> Async.StartAsTask
+                            GetConfirmedEtherBalanceInternal web3 address
                         | BalanceType.Unconfirmed ->
-                            web3.Eth.GetBalance.SendRequestAsync publicAddress
-                    let! balance = HandlePossibleEtherFailures taskFunc publicAddress
+                            async {
+                                let task = web3.Eth.GetBalance.SendRequestAsync address
+                                return! Async.AwaitTask task
+                            }
+                    let! balance = HandlePossibleEtherFailures job
                     return balance.Value
                 }
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
-                        address
                         web3Funcs
         }
 
@@ -421,23 +445,24 @@ module Server =
     let GetTokenBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode): Async<BigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (publicAddress: string): Async<BigInteger> =
-
-                    let taskFunc (publicAddress: string) =
+                let web3Func (web3: Web3): Async<BigInteger> =
+                    let job =
                         match balType with
                         | BalanceType.Confirmed ->
-                            GetConfirmedTokenBalanceInternal web3 address |> Async.StartAsTask
+                            GetConfirmedTokenBalanceInternal web3 address
                         | BalanceType.Unconfirmed ->
                             let tokenService = TokenManager.DaiContract web3
                             let balanceFunc: string->Task<BigInteger>
                                 = tokenService.BalanceOfQueryAsync
-                            balanceFunc publicAddress
+                            async {
+                                let task = balanceFunc address
+                                return! Async.AwaitTask task
+                            }
 
-                    HandlePossibleEtherFailures taskFunc publicAddress
+                    HandlePossibleEtherFailures job
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
-                        address
                         web3Funcs
         }
 
@@ -445,17 +470,21 @@ module Server =
                                      : Async<HexBigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (_: unit): Async<HexBigInteger> =
+                let web3Func (web3: Web3): Async<HexBigInteger> =
                     let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
                     let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
                     let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                                To = destination,
                                                                Value = amountInWei)
-                    HandlePossibleEtherFailures (fun _ -> contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg) web3
+                    let gasJob =
+                        async {
+                            let task = contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg
+                            return! Async.AwaitTask task
+                        }
+                    HandlePossibleEtherFailures gasJob
                 GetWeb3Funcs account.Currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
-                        ()
                         web3Funcs
         }
 
@@ -469,14 +498,18 @@ module Server =
         : Async<HexBigInteger> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (_: unit): Async<HexBigInteger> =
-                    HandlePossibleEtherFailures web3.Eth.GasPrice.SendRequestAsync ()
+                let web3Func (web3: Web3): Async<HexBigInteger> =
+                    let gasPriceJob =
+                        async {
+                            let task = web3.Eth.GasPrice.SendRequestAsync()
+                            return! Async.AwaitTask task
+                        }
+                    HandlePossibleEtherFailures gasPriceJob
                 GetWeb3Funcs currency web3Func
             let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
                         { FaultTolerantParallelClientDefaultSettings currency Mode.Fast with
                               ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
-                        ()
                         web3Funcs
 
         }
@@ -487,13 +520,17 @@ module Server =
 
         async {
             let web3Funcs =
-                let web3Func (web3: Web3) (tx: string): Async<string> =
-                    HandlePossibleEtherFailures web3.Eth.Transactions.SendRawTransaction.SendRequestAsync tx
+                let web3Func (web3: Web3): Async<string> =
+                    let broadcastJob =
+                        async {
+                            let task = web3.Eth.Transactions.SendRawTransaction.SendRequestAsync transaction
+                            return! Async.AwaitTask task
+                        }
+                    HandlePossibleEtherFailures broadcastJob
                 GetWeb3Funcs currency web3Func
             try
                 return! faultTolerantEtherClient.Query
                             (FaultTolerantParallelClientSettingsForBroadcast ())
-                            transaction
                             web3Funcs
             with
             | ex ->

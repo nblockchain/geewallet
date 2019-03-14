@@ -6,8 +6,14 @@ open System.Diagnostics
 open System.Threading
 open System.Threading.Tasks
 
-type ServerUnavailabilityException (message:string, lastException: Exception) =
-    inherit Exception (message, lastException)
+type ResourceUnavailabilityException (message: string, innerOrLastException: Exception) =
+    inherit Exception (message, innerOrLastException)
+
+type private TaskUnavailabilityException (message: string, innerException: Exception) =
+    inherit ResourceUnavailabilityException (message, innerException)
+
+type private ServerUnavailabilityException (message: string, lastException: Exception) =
+    inherit ResourceUnavailabilityException (message, lastException)
 
 type private NoneAvailableException (message:string, lastException: Exception) =
    inherit ServerUnavailabilityException (message, lastException)
@@ -25,17 +31,17 @@ type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                   numberOfConsistentResultsRequired)
 
 type internal ResultsSoFar<'R> = List<'R>
-type internal ExceptionsSoFar<'K,'T,'R,'E when 'K: equality and 'E :> Exception> = List<Server<'K,'T,'R>*'E>
+type internal ExceptionsSoFar<'K,'R,'E when 'K: equality and 'E :> Exception> = List<Server<'K,'R>*'E>
 type internal FinalResult<'K,'T,'R,'E when 'K: equality and 'E :> Exception> =
     | ConsistentResult of 'R
     | AverageResult of 'R
-    | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'K,'T,'R,'E>
+    | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'K,'R,'E>
 
-type internal NonParallelResultWithAdditionalWork<'K,'T,'R,'E when 'K: equality and 'E :> Exception> =
-    | SuccessfulFirstResult of ('R * Async<NonParallelResults<'K,'T,'R,'E>>)
+type internal NonParallelResultWithAdditionalWork<'K,'R,'E when 'K: equality and 'E :> Exception> =
+    | SuccessfulFirstResult of ('R * Async<NonParallelResults<'K,'R,'E>>)
     | NoneAvailable
-and internal NonParallelResults<'K,'T,'R,'E when 'K: equality and 'E :> Exception> =
-    ExceptionsSoFar<'K,'T,'R,'E> * NonParallelResultWithAdditionalWork<'K,'T,'R,'E>
+and internal NonParallelResults<'K,'R,'E when 'K: equality and 'E :> Exception> =
+    ExceptionsSoFar<'K,'R,'E> * NonParallelResultWithAdditionalWork<'K,'R,'E>
 
 type ConsistencySettings<'R> =
     | NumberOfConsistentResponsesRequired of uint32
@@ -63,16 +69,23 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
     let MeasureConsistency (results: List<'R>) =
         results |> Seq.countBy id |> Seq.sortByDescending (fun (_,count: int) -> count) |> List.ofSeq
 
-    let LaunchAsyncJobs (jobs:List<Async<NonParallelResults<'K,'T,'R,'E>>>)
+    let LaunchAsyncJobs (jobs:List<Async<NonParallelResults<'K,'R,'E>>>)
                         (cancellationSource: CancellationTokenSource)
-                            : List<Task<NonParallelResults<'K,'T,'R,'E>>> =
+                            : List<Task<NonParallelResults<'K,'R,'E>>> =
+        let token =
+            try
+                cancellationSource.Token
+            with
+            | :? ObjectDisposedException as ex ->
+                raise <| TaskUnavailabilityException("cancellationTokenSource already disposed", ex)
+
         jobs
-            |> List.map (fun job -> Async.StartAsTask(job, ?cancellationToken = Some cancellationSource.Token))
+            |> List.map (fun job -> Async.StartAsTask(job, ?cancellationToken = Some token))
 
     let rec WhenSomeInternal (consistencySettings: ConsistencySettings<'R>)
-                             (tasks: List<Task<NonParallelResults<'K,'T,'R,'E>>>)
+                             (tasks: List<Task<NonParallelResults<'K,'R,'E>>>)
                              (resultsSoFar: List<'R>)
-                             (failedFuncsSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
+                             (failedFuncsSoFar: ExceptionsSoFar<'K,'R,'E>)
                              : Async<FinalResult<'K,'T,'R,'E>> = async {
         match tasks with
         | [] ->
@@ -83,7 +96,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
             let! fastestTask = Async.AwaitTask taskToWaitForFirstFinishedTask
             let failuresOfTask,resultOfTask = fastestTask.Result
 
-            let restOfTasks: List<Task<NonParallelResults<'K,'T,'R,'E>>> =
+            let restOfTasks: List<Task<NonParallelResults<'K,'R,'E>>> =
                 theTasks.Where(fun task -> not (Object.ReferenceEquals(task, fastestTask))) |> List.ofSeq
 
             let (newResults,newRestOfTasks) =
@@ -118,18 +131,17 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
     // it (and I couldn't just consume it and call it a day, I had to modify it to be "WhenSome" instead of "WhenAny",
     // as in when N>1), so I decided to write my own, using Tasks to make sure I would not spawn duplicate jobs
     let WhenSome (consistencySettings: ConsistencySettings<'R>)
-                 (jobs: List<Async<NonParallelResults<'K,'T,'R,'E>>>)
+                 (jobs: List<Async<NonParallelResults<'K,'R,'E>>>)
                  (resultsSoFar: List<'R>)
-                 (failedFuncsSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
+                 (failedFuncsSoFar: ExceptionsSoFar<'K,'R,'E>)
                  (cancellationSource: CancellationTokenSource)
                  : Async<FinalResult<'K,'T,'R,'E>> =
         let tasks = LaunchAsyncJobs jobs cancellationSource
         WhenSomeInternal consistencySettings tasks resultsSoFar failedFuncsSoFar
 
-    let rec ConcatenateNonParallelFuncs (args: 'T)
-                                        (failuresSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
-                                        (servers: List<Server<'K,'T,'R>>)
-                                        : Async<NonParallelResults<'K,'T,'R,'E>> =
+    let rec ConcatenateNonParallelFuncs (failuresSoFar: ExceptionsSoFar<'K,'R,'E>)
+                                        (servers: List<Server<'K,'R>>)
+                                        : Async<NonParallelResults<'K,'R,'E>> =
         match servers with
         | [] ->
             async {
@@ -140,10 +152,10 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                 let stopwatch = Stopwatch()
                 stopwatch.Start()
                 try
-                    let! result = head.Retreival args
+                    let! result = head.Retrieval
                     stopwatch.Stop()
                     updateServer (head.Identifier, { Fault = None; TimeSpan = stopwatch.Elapsed })
-                    let tailAsync = ConcatenateNonParallelFuncs args failuresSoFar tail
+                    let tailAsync = ConcatenateNonParallelFuncs failuresSoFar tail
                     return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
                 with
                 | ex ->
@@ -162,16 +174,24 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                             }
                         updateServer (head.Identifier, { Fault = Some exInfo; TimeSpan = stopwatch.Elapsed })
                         let newFailures = (head,specificInnerEx)::failuresSoFar
-                        return! ConcatenateNonParallelFuncs args newFailures tail
+                        return! ConcatenateNonParallelFuncs newFailures tail
                     | None ->
                         return raise (FSharpUtil.ReRaise ex)
             }
 
-    let rec QueryInternal (settings: FaultTolerantParallelClientSettings<'R>)
-                          (args: 'T)
-                          (funcs: List<Server<'K,'T,'R>>)
+    let CancelAndDispose (source: CancellationTokenSource) =
+        try
+            source.Cancel()
+            source.Dispose()
+        with
+        | :? ObjectDisposedException ->
+            ()
+
+    let rec QueryInternalImplementation
+                          (settings: FaultTolerantParallelClientSettings<'R>)
+                          (funcs: List<Server<'K,'R>>)
                           (resultsSoFar: List<'R>)
-                          (failedFuncsSoFar: ExceptionsSoFar<'K,'T,'R,'E>)
+                          (failedFuncsSoFar: ExceptionsSoFar<'K,'R,'E>)
                           (retries: uint32)
                           (retriesForInconsistency: uint32)
                           (cancellationSource: CancellationTokenSource)
@@ -207,7 +227,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         let funcBuckets =
             Seq.splitInto numberOfMaximumParallelJobs funcs
             |> Seq.map List.ofArray
-            |> Seq.map (ConcatenateNonParallelFuncs args List.empty)
+            |> Seq.map (ConcatenateNonParallelFuncs List.empty)
             |> List.ofSeq
 
         let lengthOfBucketsSanityCheck = Math.Min(funcs.Length, numberOfMaximumParallelJobs)
@@ -219,24 +239,21 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
             WhenSome settings.ConsistencyConfig funcBuckets resultsSoFar failedFuncsSoFar cancellationSource
         match result with
         | AverageResult averageResult ->
-            cancellationSource.Cancel()
-            cancellationSource.Dispose()
+            CancelAndDispose cancellationSource
             return averageResult
         | ConsistentResult consistentResult ->
-            cancellationSource.Cancel()
-            cancellationSource.Dispose()
+            CancelAndDispose cancellationSource
             return consistentResult
         | InconsistentOrNotEnoughResults(allResultsSoFar,failedFuncsWithTheirExceptions) ->
             let failedFuncs = failedFuncsWithTheirExceptions |> List.map fst
             if (allResultsSoFar.Length = 0) then
                 if (retries = settings.NumberOfRetries) then
                     let firstEx = failedFuncsWithTheirExceptions.First() |> snd
-                    cancellationSource.Cancel()
-                    cancellationSource.Dispose()
+                    CancelAndDispose cancellationSource
                     return raise (NoneAvailableException("Not available", firstEx))
                 else
-                    return! QueryInternal settings
-                                          args
+                    return! QueryInternalImplementation
+                                          settings
                                           failedFuncs
                                           allResultsSoFar
                                           List.Empty
@@ -253,14 +270,13 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                         return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
                     | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                         if (retriesForInconsistency = settings.NumberOfRetriesForInconsistency) then
-                            cancellationSource.Cancel()
-                            cancellationSource.Dispose()
+                            CancelAndDispose cancellationSource
                             return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
                                                                        maxNumberOfConsistentResultsObtained,
                                                                        numberOfConsistentResponsesRequired))
                         else
-                            return! QueryInternal settings
-                                                  args
+                            return! QueryInternalImplementation
+                                                  settings
                                                   funcs
                                                   List.Empty
                                                   List.Empty
@@ -270,12 +286,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                 | AverageBetweenResponses(minimumNumberOfResponses,averageFunc) ->
                     if (retries = settings.NumberOfRetries) then
                         let firstEx = failedFuncsWithTheirExceptions.First() |> snd
-                        cancellationSource.Cancel()
-                        cancellationSource.Dispose()
+                        CancelAndDispose cancellationSource
                         return raise (NotEnoughAvailableException("resultsSoFar.Length != 0 but not enough to satisfy minimum number of results for averaging func", firstEx))
                     else
-                        return! QueryInternal settings
-                                              args
+                        return! QueryInternalImplementation
+                                              settings
                                               failedFuncs
                                               allResultsSoFar
                                               failedFuncsWithTheirExceptions
@@ -285,7 +300,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
 
     }
 
-    let OrderServers (servers: List<Server<'K,'T,'R>>) (mode: Mode): List<Server<'K,'T,'R>> =
+    let OrderServers (servers: List<Server<'K,'R>>) (mode: Mode): List<Server<'K,'R>> =
         let workingServers = List.filter (fun server ->
                                              match server.HistoryInfo with
                                              | None ->
@@ -351,19 +366,38 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
             let randomizationOffset = intersectionOffset + 1u
             Shuffler.RandomizeEveryNthElement result randomizationOffset
 
-    member self.Query<'T,'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
-                                                (args: 'T)
-                                                (servers: List<Server<'K,'T,'R>>)
-                                                    : Async<'R> =
+    member private self.QueryInternal<'R when 'R : equality>
+                            (settings: FaultTolerantParallelClientSettings<'R>)
+                            (servers: List<Server<'K,'R>>)
+                            (cancellationTokenSourceOption: Option<CancellationTokenSource>)
+                                : Async<'R> =
         if settings.NumberOfMaximumParallelJobs < 1u then
             raise (ArgumentException("must be higher than zero", "numberOfMaximumParallelJobs"))
 
-        QueryInternal
+        let effectiveCancellationSource =
+            match cancellationTokenSourceOption with
+            | None ->
+                new CancellationTokenSource()
+            | Some cancellationSource ->
+                cancellationSource
+
+        QueryInternalImplementation
             settings
-            args
             (OrderServers servers settings.Mode)
             List.Empty
             List.Empty
             0u
             0u
-            (new CancellationTokenSource())
+            effectiveCancellationSource
+
+    member self.QueryWithCancellation<'R when 'R : equality>
+                    (settings: FaultTolerantParallelClientSettings<'R>)
+                    (servers: List<Server<'K,'R>>)
+                    (cancellationTokenSource: CancellationTokenSource)
+                        : Async<'R> =
+        self.QueryInternal<'R> settings servers (Some cancellationTokenSource)
+
+    member self.Query<'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
+                                             (servers: List<Server<'K,'R>>)
+                                                 : Async<'R> =
+        self.QueryInternal<'R> settings servers None

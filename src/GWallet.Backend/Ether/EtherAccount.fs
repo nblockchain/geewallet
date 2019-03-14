@@ -53,7 +53,7 @@ module internal Account =
                 return Some balance
             with
             | ex ->
-                if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
+                if (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome then
                     return None
                 else
                     return raise (FSharpUtil.ReRaise ex)
@@ -95,7 +95,9 @@ module internal Account =
             if Caching.Instance.FirstRun then
                 return! getBalanceWithoutCaching None
             else
-                let unconfirmedTask = GetBalanceFromServer account BalanceType.Confirmed mode |> Async.StartAsTask
+                let! cancellationToken = Async.CancellationToken
+                let unconfirmedJob = GetBalanceFromServer account BalanceType.Confirmed mode
+                let unconfirmedTask = Async.StartAsTask(unconfirmedJob, ?cancellationToken = Some cancellationToken)
                 let maybeCachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
                 match maybeCachedBalance with
                 | NotAvailable ->

@@ -6,8 +6,8 @@ GWallet is a minimalistic and pragmatist crossplatform lightweight opensource br
 
 [![Licence](https://img.shields.io/github/license/diginex/geewallet.svg)](https://github.com/diginex/geewallet/blob/master/LICENCE.txt)
 
-| Branch            | Description                                                            | CI status                                                                                                                                                                    |
-| ----------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Branch            | Description                                                            | CI status (build & test suite)                                                                                                                                                |
+| ----------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | stable (v0.2.x)   | Console frontend, currencies: ETC&ETH+DAI(ERC20), BTC&LTC (SegWit+RBF) | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/stable/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/stable)      |
 | master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/master/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/master) <br/>macOS: [![macOS CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/master-macOS)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=7) <br/>Windows: [![Windows CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/master-Windows)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=1) |
 | frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/frontend/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/frontend)  |
@@ -68,7 +68,7 @@ This list is the (intended) order of preference for new features:
 - snap packaging.
 - NFC support.
 - Tizen frontend (no QR scanning due to missing camera in most Tizen watches, but could use NFC).
-- Paranoid-build mode (using git submodules instead of nuget deps), depending on this RFE (https://github.com/dotnet/sdk/issues/1151) or using any workaround mentioned there.
+- Paranoid-build mode (using git submodules or [local nugets](https://github.com/mono/mono-addins/issues/73#issuecomment-389343246), instead of binary nuget deps), depending on [this RFE](https://github.com/dotnet/sdk/issues/1151) or using any workaround mentioned there.
 - flatpak packaging.
 - In mobile, allow usage when camera permissions have not been granted, by letting the user redirect him to his camera app and take a picture (see https://youtu.be/k1Ssz1dvcpk?t=63).
 - Use of 'bits' instead of BTC as default unit.
@@ -77,36 +77,24 @@ This list is the (intended) order of preference for new features:
 - Threshold signatures.
 - Use deniable encryption to allow for a duress password/passphrase/pin.
 - ETH gas station (to pay for token transactions with token value instead of ETH).
+- Decentralized currency exchange? (e.g. eth2dai.com)
 - Fee selection for custom priority.
 - Multi-sig support?
 - Crosschain atomic swaps (via [comit network](https://github.com/comit-network/comit-rs)? more info [here](https://blog.coblox.tech/2018/06/23/connect-all-the-blockchains.html) and [here](https://blog.coblox.tech/2018/12/12/erc20-lightning-and-COMIT.html)).
 - Decentralized naming resolution? (BNS/ENS/OpenCAP/...)
-- Decentralized currency exchange?
 - Tumblebit support?
+- Consider [Vitalik's 1wei wallet-funding idea](https://twitter.com/VitalikButerin/status/1103997378967810048) in case the community adopts it.
 
-
-## Dev roadmap
-
-(Only intelligible if you're a contributor):
-- Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/, or wait for https://github.com/Microsoft/visualfsharp/pull/5850).
-- Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
-- Speed improvements:
-  * Frontend.XF: after clicking Next in the WelcomePage, not only start creating the private key, also query balances if privKey creation finishes before the user writes the payment password.
-  * (Possibly not good -> ) If using Mode.Fast, check if there's a cached balance first. If there isn't, or the time it was cached was long ago, query the confirmed balance only (like in firstStartup, we may be already doing this in case there's no cached balance) returning `decimal*Async<bool>` (the latter to give info, later, about if there's an imminentIncomingPayment), but if it was checked very recently, just query the unconfirmed one (in this case, compare the unconfirmed balance received with the cached one: if lower, show it; if higher, show the cached one and assume imminentIncomingPayment, i.e. refresh interval being shorter).
-  * (Unsure about this one -> ) Query confirmed at the same time as unconfirmed, only look at a single value of those if the one to receive earlier was the unconfirmed one.
-  * Frontend.XF: start querying servers in WelcomePage, with dummy addresses, just to gather server stats.
-  * First startup: bundle stats for all servers (gathered by the maintainer as a user).
-  * Frontend.XF: show balances as soon as the first confirmed balance is retreived, and put an in-progress animated gif in the currency rows that are still being queried (this way you will easily tell as well which currencies have low server availability, which might push the user to turn some of them off in the settings).
-  * Backend.Config.DEFAULT_NETWORK_TIMEOUT: see comment above this setting, to couple it with FaultTolerantParalellClient (or create two timeout settings, see 091b151ff4a37ca74a312609f173d5fe589ac623 ).
 
 ## Anti-roadmap
 
 Things that are not currently on our roadmap:
 
 - ZCash/Dash/Monero support (I don't like the trusted setup of the first, plus the others use substandard
-privacy solutions which in my opinion will all be surpassed by MimbleWimble).
+privacy solutions which in my opinion have been all surpassed by MimbleWimble/Grin).
 - BCash (as it's less evolved, technically speaking; I don't want to deal with transaction malleability
 or lack of Layer2 scaling).
+
 
 ## How to compile/install/use?
 
@@ -123,12 +111,12 @@ After that you can call `gwallet` directly.
 
 ## Thanks
 
-Special thanks to all the [contributors](https://gitlab.com/DiginexGlobal/geewallet/graphs/frontend) (we recently surpassed 10! if you count the contributions that are in review at the moment), without forgetting as well the amazing opensource developers that contribute(d) to the great opensource libraries that this project uses. Some examples:
+Special thanks to all the [contributors](https://gitlab.com/DiginexGlobal/geewallet/graphs/frontend) (we recently surpassed 10! if you count the contributions that are in review at the moment). Without forgetting as well the amazing developers that contribute(d) to the great opensource libraries that this project uses; some examples:
 
 - @juanfranblanco: Nethereum
 - @nicolasdorier, @joemphilips: NBitcoin
 - @redth, @EBrown8534, @mierzynskim: ZXing.Net.Mobile, ZXing.Net.Xamarin
-- JsonRpcSharp: @ardave, @mkfl, @jerry40, @mierzynskim, @winstongubantes and again @juanfranblanco
+- JsonRpcSharp: @ardave, @martz2804, @jerry40, @mierzynskim, @winstongubantes and again @juanfranblanco
 - ...and all the Xamarin/Mono/.NetCore community in general, of course
 
 If you want to become part of this distributed team of brave disruptarians, check our [CONTRIBUTING guideline](CONTRIBUTING.md) first, and start coding!

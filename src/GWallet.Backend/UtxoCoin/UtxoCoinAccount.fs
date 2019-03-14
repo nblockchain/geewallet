@@ -116,16 +116,15 @@ module Account =
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
     //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
-    let private GetRandomizedFuncs<'T,'R> (currency: Currency)
-                                          (electrumClientFunc: ElectrumServer->'T->Async<'R>)
-                                              : List<Server<string,'T,'R>> =
+    let private GetRandomizedFuncs<'R> (currency: Currency)
+                                          (electrumClientFunc: ElectrumServer->Async<'R>)
+                                              : List<Server<string,'R>> =
 
-        let ElectrumServerToRetreivalFunc (electrumServer: ElectrumServer)
-                                          (electrumClientFunc: ElectrumServer->'T->Async<'R>)
-                                          (arg: 'T)
+        let ElectrumServerToRetrievalFunc (electrumServer: ElectrumServer)
+                                          (electrumClientFunc: ElectrumServer->Async<'R>)
                                               : Async<'R> = async {
             try
-                return! electrumClientFunc electrumServer arg
+                return! electrumClientFunc electrumServer
             with
             | ex ->
                 if (ex :? ConnectionUnsuccessfulException ||
@@ -145,12 +144,12 @@ module Account =
                     return raise <| FSharpUtil.ReRaise ex
         }
 
-        let ElectrumServerToGenericServer (electrumClientFunc: ElectrumServer->'T->Async<'R>)
+        let ElectrumServerToGenericServer (electrumClientFunc: ElectrumServer->Async<'R>)
                                           (electrumServer: ElectrumServer)
-                                              : Server<string,'T,'R> =
+                                              : Server<string,'R> =
             { Identifier = electrumServer.Fqdn
               HistoryInfo = Caching.Instance.RetreiveLastServerHistory electrumServer.Fqdn
-              Retreival = ElectrumServerToRetreivalFunc electrumServer electrumClientFunc }
+              Retrieval = ElectrumServerToRetrievalFunc electrumServer electrumClientFunc }
 
         let randomizedElectrumServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedServers =
@@ -158,15 +157,14 @@ module Account =
                      randomizedElectrumServers
         randomizedServers
 
-    let private GetBalances(account: IUtxoAccount) (mode: Mode) =
+    let private GetBalances(account: IUtxoAccount) (mode: Mode): Async<BlockchainScripthahsGetBalanceInnerResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
-        let balance =
+        let balanceJob =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientDefaultSettings mode)
-                scriptHashHex
-                (GetRandomizedFuncs account.Currency ElectrumClient.GetBalance)
-        balance
+                (GetRandomizedFuncs account.Currency (ElectrumClient.GetBalance scriptHashHex))
+        balanceJob
 
     let private GetBalancesFromServer (account: IUtxoAccount) (mode: Mode)
                                          : Async<Option<BlockchainScripthahsGetBalanceInnerResult>> =
@@ -176,7 +174,7 @@ module Account =
                 return Some balances
             with
             | ex ->
-                if (FSharpUtil.FindException<ServerUnavailabilityException> ex).IsSome then
+                if (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome then
                     return None
                 else
                     return raise (FSharpUtil.ReRaise ex)
@@ -272,11 +270,12 @@ module Account =
                 else
                     newAcc,newSoFar
 
+        let job = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
+                  |> ElectrumClient.GetUnspentTransactionOutputs
         let! utxos =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientDefaultSettings Mode.Fast)
-                (GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress)
-                (GetRandomizedFuncs account.Currency ElectrumClient.GetUnspentTransactionOutputs)
+                (GetRandomizedFuncs account.Currency job)
 
         if not (utxos.Any()) then
             failwith "No UTXOs found!"
@@ -297,11 +296,11 @@ module Account =
             seq {
                 for utxo in utxosToUse do
                     yield async {
+                        let job = ElectrumClient.GetBlockchainTransaction utxo.TransactionId
                         let! transRaw =
                             faultTolerantElectrumClient.Query
                                 (FaultTolerantParallelClientDefaultSettings Mode.Fast)
-                                utxo.TransactionId
-                                (GetRandomizedFuncs account.Currency ElectrumClient.GetBlockchainTransaction)
+                                (GetRandomizedFuncs account.Currency job)
                         let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
                         let txOut = transaction.Outputs.[utxo.OutputIndex]
                         // should suggest a ToHex() method to NBitcoin's TxOut type?
@@ -325,13 +324,15 @@ module Account =
             avg
 
         let minResponsesRequired = 3u
+
+        //querying for 1 will always return -1 surprisingly...
+        let estimateFeeJob = ElectrumClient.EstimateFee 2
+
         let! btcPerKiloByteForFastTrans =
             faultTolerantElectrumClient.Query
                 { FaultTolerantParallelClientDefaultSettings Mode.Fast with
                       ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, averageFee) }
-                //querying for 1 will always return -1 surprisingly...
-                2
-                (GetRandomizedFuncs account.Currency ElectrumClient.EstimateFee)
+                (GetRandomizedFuncs account.Currency estimateFeeJob)
 
         let feeRate =
             try
@@ -403,13 +404,13 @@ module Account =
         let rawTransaction = signedTransaction.ToHex()
         rawTransaction
 
-    let private BroadcastRawTransaction currency (rawTx: string) =
-        let newTxId =
+    let private BroadcastRawTransaction currency (rawTx: string): Async<string> =
+        let job = ElectrumClient.BroadcastTransaction rawTx
+        let newTxIdJob =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientSettingsForBroadcast ())
-                rawTx
-                (GetRandomizedFuncs currency ElectrumClient.BroadcastTransaction)
-        newTxId
+                (GetRandomizedFuncs currency job)
+        newTxIdJob
 
     let BroadcastTransaction currency (transaction: SignedTransaction<_>) =
         // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
