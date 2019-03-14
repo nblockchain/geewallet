@@ -127,7 +127,7 @@
     <PackageReference Include="Xamarin.Essentials" Version="1.0.0" />
     <PackageReference Include="FSharp.Core" Version="4.5.3" />
     <PackageReference Include="Nethereum" Version="0.0.2.43" />
-    <PackageReference Include="JsonRpcSharp" Version="0.9.54726" />
+    <PackageReference Include="JsonRpcSharp" Version="0.9.54727" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />
