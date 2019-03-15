@@ -39,9 +39,10 @@ stocknewmono_build:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
     - mono --version
 
-    - time (./configure.sh && make && make install)
+    # compilation fails due to this bug: https://github.com/fsharp/fsharp/issues/740
+    #- time (./configure.sh && make && make install)
     # so that we log the version of nuget for when it works
-    - make nuget
+    #- make nuget
 
 newmono_build:
   image: ubuntu:18.04
