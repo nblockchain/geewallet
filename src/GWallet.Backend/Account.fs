@@ -175,7 +175,7 @@ module Account =
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
     // broadcast it even if you sent it
-    let BroadcastTransaction (trans: SignedTransaction<_>): Async<Uri> =
+    let BroadcastTransaction (trans: SignedTransaction<_>): Async<string*Uri> =
         async {
             let currency = trans.TransactionInfo.Proposal.Amount.Currency
 
@@ -189,7 +189,8 @@ module Account =
 
             SaveOutgoingTransactionInCache trans.TransactionInfo.Proposal trans.TransactionInfo.Metadata txId
 
-            return BlockExplorer.GetTransaction currency txId
+            let uri = BlockExplorer.GetTransaction currency txId
+            return (txId, uri)
         }
 
     let SignTransaction (account: NormalAccount)

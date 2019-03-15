@@ -5,21 +5,21 @@ open System.Text.RegularExpressions
 open GWallet.Backend
 open GWallet.Frontend.Console
 
-let IsOutOfGas (transactionMetadata: IBlockchainFeeInfo) (account: IAccount) (txHash: string): bool =
-    let currency = account.Currency
+let IsOutOfGas (transactionMetadata: IBlockchainFeeInfo) (currency: Currency) (txHash: string): bool =
     if currency.IsEtherBased() then
         let etherTxMetadata = transactionMetadata :?> Ether.TransactionMetadata
         Ether.Server.IsOutOfGas currency txHash etherTxMetadata.Fee.GasLimit |> Async.RunSynchronously
     else
         false
 
-let rec TrySendAmount account transactionMetadata destination amount =
+let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
+    let baseAccount = account :> IAccount
     let password = UserInteraction.AskPassword false
     try
         let (txHash, txIdUri) =
             Account.SendPayment account transactionMetadata destination amount password
                 |> Async.RunSynchronously
-        if IsOutOfGas transactionMetadata account txHash then
+        if IsOutOfGas transactionMetadata baseAccount.Currency txHash then
             Presentation.Error "Transaction failed: Out of Gas" 
         else 
             Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
@@ -56,10 +56,14 @@ let BroadcastPayment() =
     // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
     Presentation.ShowTransactionData(signedTransaction.TransactionInfo)
     if UserInteraction.AskYesNo "Do you accept?" then
-        let txIdUri =
+        let (txHash, txIdUri) =
             Account.BroadcastTransaction signedTransaction
                 |> Async.RunSynchronously
-        Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
+        let currency = signedTransaction.TransactionInfo.Proposal.Amount.Currency
+        if IsOutOfGas signedTransaction.TransactionInfo.Metadata currency txHash then
+            Presentation.Error "Transaction failed: Out of Gas"
+        else
+            Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
         UserInteraction.PressAnyKeyToContinue ()
 
 let SignOffPayment() =
