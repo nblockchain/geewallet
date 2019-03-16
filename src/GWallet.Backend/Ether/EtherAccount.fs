@@ -107,6 +107,9 @@ module internal Account =
         }
 
     let ValidateAddress (currency: Currency) (address: string) =
+        if String.IsNullOrEmpty address then
+            raise <| ArgumentNullException "address"
+
         let ETHEREUM_ADDRESSES_LENGTH = 42
         let ETHEREUM_ADDRESS_PREFIX = "0x"
 
