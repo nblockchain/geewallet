@@ -172,10 +172,22 @@ module Account =
             amountTransferredPlusFeeIfCurrencyFeeMatches
             fee.FeeValue
 
+    // FIXME: if out of gas, miner fee is still spent, we should inspect GasUsed and use it for the call to
+    //        SaveOutgoingTransactionInCache
+    let private CheckIfOutOfGas (transactionMetadata: IBlockchainFeeInfo) (currency: Currency) (txHash: string)
+                       : Async<unit> =
+        async {
+            if currency.IsEtherBased() then
+                let etherTxMetadata = transactionMetadata :?> Ether.TransactionMetadata
+                let! outOfGas = Ether.Server.IsOutOfGas currency txHash etherTxMetadata.Fee.GasLimit
+                if outOfGas then
+                    return raise <| InsufficientFee "Transaction ran out of gas"
+        }
+
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
     // broadcast it even if you sent it
-    let BroadcastTransaction (trans: SignedTransaction<_>): Async<string*Uri> =
+    let BroadcastTransaction (trans: SignedTransaction<_>): Async<Uri> =
         async {
             let currency = trans.TransactionInfo.Proposal.Amount.Currency
 
@@ -187,10 +199,12 @@ module Account =
                 else
                     failwith (sprintf "Unknown currency %A" currency)
 
+            do! CheckIfOutOfGas trans.TransactionInfo.Metadata currency txId
+
             SaveOutgoingTransactionInCache trans.TransactionInfo.Proposal trans.TransactionInfo.Metadata txId
 
             let uri = BlockExplorer.GetTransaction currency txId
-            return (txId, uri)
+            return uri
         }
 
     let SignTransaction (account: NormalAccount)
@@ -281,7 +295,7 @@ module Account =
                     (destination: string)
                     (amount: TransferAmount)
                     (password: string)
-                    =
+                        : Async<Uri> =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
@@ -308,6 +322,8 @@ module Account =
                 | _ ->
                     failwithf "Unknown tx metadata type"
 
+            do! CheckIfOutOfGas txMetadata currency txId
+
             let transactionProposal =
                 {
                     OriginAddress = baseAccount.PublicAddress
@@ -318,7 +334,7 @@ module Account =
             SaveOutgoingTransactionInCache transactionProposal txMetadata txId
 
             let uri = BlockExplorer.GetTransaction currency txId
-            return (txId, uri)
+            return uri
         }
 
     let SignUnsignedTransaction (account)

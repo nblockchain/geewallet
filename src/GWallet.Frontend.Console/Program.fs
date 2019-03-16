@@ -5,26 +5,19 @@ open System.Text.RegularExpressions
 open GWallet.Backend
 open GWallet.Frontend.Console
 
-let IsOutOfGas (transactionMetadata: IBlockchainFeeInfo) (currency: Currency) (txHash: string): bool =
-    if currency.IsEtherBased() then
-        let etherTxMetadata = transactionMetadata :?> Ether.TransactionMetadata
-        Ether.Server.IsOutOfGas currency txHash etherTxMetadata.Fee.GasLimit |> Async.RunSynchronously
-    else
-        false
-
 let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
     let baseAccount = account :> IAccount
     let password = UserInteraction.AskPassword false
     try
-        let (txHash, txIdUri) =
+        let txIdUri =
             Account.SendPayment account transactionMetadata destination amount password
                 |> Async.RunSynchronously
-        if IsOutOfGas transactionMetadata baseAccount.Currency txHash then
-            Presentation.Error "Transaction failed: Out of Gas" 
-        else 
-            Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
+        Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
         UserInteraction.PressAnyKeyToContinue ()
     with
+    | InsufficientFee msg ->
+        Presentation.Error msg
+        UserInteraction.PressAnyKeyToContinue()
     | :? DestinationEqualToOrigin ->
         Presentation.Error "Transaction's origin cannot be the same as the destination."
         UserInteraction.PressAnyKeyToContinue()
@@ -56,15 +49,22 @@ let BroadcastPayment() =
     // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
     Presentation.ShowTransactionData(signedTransaction.TransactionInfo)
     if UserInteraction.AskYesNo "Do you accept?" then
-        let (txHash, txIdUri) =
-            Account.BroadcastTransaction signedTransaction
-                |> Async.RunSynchronously
-        let currency = signedTransaction.TransactionInfo.Proposal.Amount.Currency
-        if IsOutOfGas signedTransaction.TransactionInfo.Metadata currency txHash then
-            Presentation.Error "Transaction failed: Out of Gas"
-        else
+        try
+            let txIdUri =
+                Account.BroadcastTransaction signedTransaction
+                    |> Async.RunSynchronously
             Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
-        UserInteraction.PressAnyKeyToContinue ()
+            UserInteraction.PressAnyKeyToContinue ()
+        with
+        | InsufficientFee msg ->
+            Presentation.Error msg
+            UserInteraction.PressAnyKeyToContinue()
+        | :? DestinationEqualToOrigin ->
+            Presentation.Error "Transaction's origin cannot be the same as the destination."
+            UserInteraction.PressAnyKeyToContinue()
+        | :? InsufficientFunds ->
+            Presentation.Error "Insufficient funds."
+            UserInteraction.PressAnyKeyToContinue()
 
 let SignOffPayment() =
     let fileToReadFrom = UserInteraction.AskFileNameToLoad
