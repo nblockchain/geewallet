@@ -141,8 +141,8 @@ type DonutChartView () =
            not(this.SegmentsSource.Any()) then
             ()
         else
-
-            let size = int(Math.Min(width, height))
+            let scaleFactor = Device.Info.ScalingFactor
+            let size = int(Math.Min(width, height) * scaleFactor)
             let halfSize = size / 2
 
             let nonZeroItems = this.SegmentsSource.Where(fun s -> s.Percentage > 0.)
