@@ -214,10 +214,10 @@ module Account =
                         (password: string) =
 
         match transactionMetadata with
-        | :? Ether.TransactionMetadata as etherTxMetada ->
+        | :? Ether.TransactionMetadata as etherTxMetadata ->
             Ether.Account.SignTransaction
                   account
-                  etherTxMetada
+                  etherTxMetadata
                   destination
                   amount
                   password
