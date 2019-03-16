@@ -544,7 +544,7 @@ module Server =
                         return raise (FSharpUtil.ReRaise ex)
         }
 
-    let private GetTransactionReceipt (currency: Currency) (txHash: string)
+    let private GetTransactionDetailsFromTransactionReceipt (currency: Currency) (txHash: string)
                                           : Async<TransactionStatusDetails> =
         async {
             let web3Funcs =
@@ -565,7 +565,7 @@ module Server =
 
     let IsOutOfGas (currency: Currency) (txHash: string) (spentGas: int64): Async<bool> =
         async {
-            let! transactionStatusDetails = GetTransactionReceipt currency txHash
+            let! transactionStatusDetails = GetTransactionDetailsFromTransactionReceipt currency txHash
             let failureStatus = BigInteger.Zero
             return transactionStatusDetails.Status = failureStatus &&
                    transactionStatusDetails.GasUsed = BigInteger(spentGas)
