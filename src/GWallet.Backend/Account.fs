@@ -174,14 +174,16 @@ module Account =
 
     // FIXME: if out of gas, miner fee is still spent, we should inspect GasUsed and use it for the call to
     //        SaveOutgoingTransactionInCache
-    let private CheckIfOutOfGas (transactionMetadata: IBlockchainFeeInfo) (currency: Currency) (txHash: string)
+    let private CheckIfOutOfGas (transactionMetadata: IBlockchainFeeInfo) (txHash: string)
                        : Async<unit> =
         async {
-            if currency.IsEtherBased() then
-                let etherTxMetadata = transactionMetadata :?> Ether.TransactionMetadata
-                let! outOfGas = Ether.Server.IsOutOfGas currency txHash etherTxMetadata.Fee.GasLimit
+            match transactionMetadata with
+            | :? Ether.TransactionMetadata as etherTxMetadata ->
+                let! outOfGas = Ether.Server.IsOutOfGas transactionMetadata.Currency txHash etherTxMetadata.Fee.GasLimit
                 if outOfGas then
                     return raise <| InsufficientFee "Transaction ran out of gas"
+            | _ ->
+                ()
         }
 
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
@@ -199,7 +201,7 @@ module Account =
                 else
                     failwith (sprintf "Unknown currency %A" currency)
 
-            do! CheckIfOutOfGas trans.TransactionInfo.Metadata currency txId
+            do! CheckIfOutOfGas trans.TransactionInfo.Metadata txId
 
             SaveOutgoingTransactionInCache trans.TransactionInfo.Proposal trans.TransactionInfo.Metadata txId
 
@@ -322,7 +324,7 @@ module Account =
                 | _ ->
                     failwithf "Unknown tx metadata type"
 
-            do! CheckIfOutOfGas txMetadata currency txId
+            do! CheckIfOutOfGas txMetadata txId
 
             let transactionProposal =
                 {
