@@ -238,6 +238,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                     password
                                         |> Async.RunSynchronously |> Some
             with
+            | InsufficientFee errMsg ->
+                this.ShowWarningAndEnableFormWidgetsAgain errMsg
+                None
             | :? DestinationEqualToOrigin ->
                 let errMsg = "Transaction's origin cannot be the same as the destination."
                 this.ShowWarningAndEnableFormWidgetsAgain errMsg
@@ -649,7 +652,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 )
 
     member private this.BroadcastTransaction (signedTransaction): unit =
-        let afterBroadcastJob = async {
+        let afterSuccessfullBroadcastJob = async {
             let mainThreadSynchContext = SynchronizationContext.Current
             let displayTask = this.DisplayAlert("Success", "Transaction sent.", "OK")
             let newReceivePage = newReceivePageFunc()
@@ -664,10 +667,20 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             return ()
         }
         let broadcastJob = async {
-            let! _ = Account.BroadcastTransaction signedTransaction
-            Device.BeginInvokeOnMainThread(fun _ ->
-                Async.StartImmediate afterBroadcastJob
-            )
+            try
+                let! _ = Account.BroadcastTransaction signedTransaction
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    Async.StartImmediate afterSuccessfullBroadcastJob
+                )
+            with
+            | InsufficientFee errMsg ->
+                this.ShowWarningAndEnableFormWidgetsAgain errMsg
+            | :? DestinationEqualToOrigin ->
+                let errMsg = "Transaction's origin cannot be the same as the destination."
+                this.ShowWarningAndEnableFormWidgetsAgain errMsg
+            | :? InsufficientFunds ->
+                let errMsg = "Insufficient funds."
+                this.ShowWarningAndEnableFormWidgetsAgain errMsg
         }
         Async.StartAsTask broadcastJob
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
