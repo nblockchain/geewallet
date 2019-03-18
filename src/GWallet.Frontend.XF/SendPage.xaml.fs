@@ -256,11 +256,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         | Some txIdUrlInBlockExplorer ->
             // TODO: allow linking to tx in a button or something?
 
-            let showSuccessDialogAndGoBack = async {
-                let mainThreadSynchContext = SynchronizationContext.Current
-                do! Async.AwaitTask (this.DisplayAlert("Success", "Transaction sent.", "OK"))
-                do! Async.SwitchToContext mainThreadSynchContext
-            }
             let showSuccessAndGoBack = async {
                 let mainThreadSynchContext = SynchronizationContext.Current
                 let displayTask = this.DisplayAlert("Success", "Transaction sent.", "OK")
