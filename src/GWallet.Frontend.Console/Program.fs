@@ -5,7 +5,8 @@ open System.Text.RegularExpressions
 open GWallet.Backend
 open GWallet.Frontend.Console
 
-let rec TrySendAmount account transactionMetadata destination amount =
+let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
+    let baseAccount = account :> IAccount
     let password = UserInteraction.AskPassword false
     try
         let txIdUri =
@@ -14,6 +15,9 @@ let rec TrySendAmount account transactionMetadata destination amount =
         Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
         UserInteraction.PressAnyKeyToContinue ()
     with
+    | InsufficientFee msg ->
+        Presentation.Error msg
+        UserInteraction.PressAnyKeyToContinue()
     | :? DestinationEqualToOrigin ->
         Presentation.Error "Transaction's origin cannot be the same as the destination."
         UserInteraction.PressAnyKeyToContinue()
@@ -45,11 +49,22 @@ let BroadcastPayment() =
     // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
     Presentation.ShowTransactionData(signedTransaction.TransactionInfo)
     if UserInteraction.AskYesNo "Do you accept?" then
-        let txIdUri =
-            Account.BroadcastTransaction signedTransaction
-                |> Async.RunSynchronously
-        Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
-        UserInteraction.PressAnyKeyToContinue ()
+        try
+            let txIdUri =
+                Account.BroadcastTransaction signedTransaction
+                    |> Async.RunSynchronously
+            Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
+            UserInteraction.PressAnyKeyToContinue ()
+        with
+        | InsufficientFee msg ->
+            Presentation.Error msg
+            UserInteraction.PressAnyKeyToContinue()
+        | :? DestinationEqualToOrigin ->
+            Presentation.Error "Transaction's origin cannot be the same as the destination."
+            UserInteraction.PressAnyKeyToContinue()
+        | :? InsufficientFunds ->
+            Presentation.Error "Insufficient funds."
+            UserInteraction.PressAnyKeyToContinue()
 
 let SignOffPayment() =
     let fileToReadFrom = UserInteraction.AskFileNameToLoad

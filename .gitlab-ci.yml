@@ -1,5 +1,3 @@
-image: ubuntu:18.04
-
 before_script:
   - apt-get update
   # needed to download NuGet
@@ -10,6 +8,7 @@ stages:
   - test
 
 stockmono_build:
+  image: ubuntu:18.04
   stage: build
   script:
     # https://askubuntu.com/a/1013396
@@ -21,6 +20,7 @@ stockmono_build:
     - make nuget
 
 stockmono_test:
+  image: ubuntu:18.04
   stage: test
   script:
     # https://askubuntu.com/a/1013396
@@ -31,7 +31,21 @@ stockmono_test:
             make &&
             make check)
 
+stocknewmono_build:
+  image: ubuntu:19.04
+  stage: build
+  script:
+    # https://askubuntu.com/a/1013396
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
+    - mono --version
+
+    # compilation fails due to this bug: https://github.com/fsharp/fsharp/issues/740
+    #- time (./configure.sh && make && make install)
+    # so that we log the version of nuget for when it works
+    #- make nuget
+
 newmono_build:
+  image: ubuntu:18.04
   stage: build
   artifacts:
     paths:
@@ -54,6 +68,7 @@ newmono_build:
     - make zip
 
 newmono_test:
+  image: ubuntu:18.04
   stage: test
   script:
     - ./scripts/install_mono_from_microsoft_deb_packages.sh

@@ -499,6 +499,9 @@ module Account =
                 address,None
 
     let ValidateAddress (currency: Currency) (address: string) =
+        if String.IsNullOrEmpty address then
+            raise <| ArgumentNullException "address"
+
         let BITCOIN_ADDRESS_BECH32_PREFIX = "bc1"
 
         let utxoCoinValidAddressPrefixes =

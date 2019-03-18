@@ -20,6 +20,9 @@ type ConnectionUnsuccessfulException =
 type BuggyExceptionFromOldMonoVersion (message: string, innerException: Exception) =
     inherit ConnectionUnsuccessfulException (message, innerException)
 
+type ServerClosedConnectionEarlyException(message: string, innerException: Exception) =
+    inherit ConnectionUnsuccessfulException (message, innerException)
+
 type ServerRefusedException(message:string, innerException: Exception) =
    inherit ConnectionUnsuccessfulException (message, innerException)
 
@@ -91,6 +94,8 @@ module Networking =
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
             elif socketException.ErrorCode = int SocketError.NetworkDown then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+            elif socketException.ErrorCode = int SocketError.Shutdown then
+                ServerClosedConnectionEarlyException(newExceptionMsg, ex) :> Exception |> Some
 
             else
                 UnhandledSocketException(socketException.ErrorCode, ex) :> Exception |> Some

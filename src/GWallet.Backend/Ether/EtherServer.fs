@@ -84,6 +84,12 @@ module Server =
         | UnknownBlockNumber = -32602
         | GatewayTimeout = -32050
 
+    type TransactionStatusDetails =
+        {
+            GasUsed: BigInteger
+            Status: BigInteger
+        }
+
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
     let private ethWeb3InfuraMyCryptoV3 = SomeWeb3 "https://mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286"
@@ -544,4 +550,31 @@ module Server =
                         return raise InsufficientFunds
                     else
                         return raise (FSharpUtil.ReRaise ex)
+        }
+
+    let private GetTransactionDetailsFromTransactionReceipt (currency: Currency) (txHash: string)
+                                          : Async<TransactionStatusDetails> =
+        async {
+            let web3Funcs =
+                let web3Func (web3: Web3): Async<TransactionStatusDetails> =
+                    async {
+                        let task = web3.TransactionManager.TransactionReceiptService.PollForReceiptAsync txHash
+                        let! transactionReceipt = Async.AwaitTask task
+                        return {
+                            GasUsed = transactionReceipt.GasUsed.Value
+                            Status = transactionReceipt.Status.Value
+                        }
+                    } |> HandlePossibleEtherFailures
+                GetWeb3Funcs currency web3Func
+            return! faultTolerantEtherClient.Query
+                (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
+                web3Funcs
+        }
+
+    let IsOutOfGas (currency: Currency) (txHash: string) (spentGas: int64): Async<bool> =
+        async {
+            let! transactionStatusDetails = GetTransactionDetailsFromTransactionReceipt currency txHash
+            let failureStatus = BigInteger.Zero
+            return transactionStatusDetails.Status = failureStatus &&
+                   transactionStatusDetails.GasUsed = BigInteger(spentGas)
         }
