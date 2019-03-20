@@ -6,7 +6,6 @@ open Xamarin.Forms
 open System.IO
 open SkiaSharp
 open System
-open GWallet.Frontend.XF
 
 type SegmentInfo = 
     {
@@ -23,7 +22,7 @@ type DonutChartView () =
     {1}
     {2}
     </svg>"
-    let svgSegmentPattern = @"<path fill=""{5}"" d=""M{0},{0} L{0},0 A{0},{0} 1 {4},1 {1}, {2} z"" transform=""rotate({3}, {0}, {0})"" />"
+    let svgSegmentPattern = @"<path fill=""{0}"" d=""M{1},{2} L{1},0 A{1},{1} 1 {3},1 {4},{5} L{6},{7} A{8},{8} 1 {3},0 {1},{2} z"" transform=""rotate({9}, {1}, {1})"" />"
     let svgCirclePattern = @"<circle cx=""{0}"" cy=""{0}"" r=""{1}"" fill=""{2}""/>"
     let degree360 = 360.
     let degree180 = 180.
@@ -39,51 +38,75 @@ type DonutChartView () =
         let alpha = BuildColorPart color.A
         String.Format("{0:X2}{1:X2}{2:X2}{3:X2}", alpha, red, green, blue)
 
-    let rec PrepareSegmentsSvgBuilder segmentsToDraw rotation halfSize (segmentsBuilder: StringBuilder) =
+    let GetArcCoordinates radius angle shift =
+        let angleCalculated = 
+            if angle > degree180 then 
+                degree360 - angle 
+            else 
+                angle
+
+        let angleRad = angleCalculated * Math.PI / degree180
+
+        let perpendicularDistance = 
+            if angleCalculated > degree90 then 
+                float(radius) * Math.Sin((degree180 - angleCalculated) * Math.PI / degree180) 
+            else 
+                float(radius) * Math.Sin(angleRad)
+
+        let topPointDistance =
+            Math.Sqrt(float(2 * radius * radius) - (float (2 * radius * radius) * Math.Cos(angleRad)))
+        let arcEndY = Math.Sqrt(topPointDistance * topPointDistance - perpendicularDistance * perpendicularDistance)
+        let arcEndX = 
+            if angle > degree180 then 
+                float(radius) - perpendicularDistance 
+            else 
+                float(radius) + perpendicularDistance
+
+        arcEndX + shift, arcEndY + shift
+
+    let CollectSegment color startX startY radius innerRadius angle rotation (segmentsBuilder: StringBuilder) =
+        let bigArcEndX, bigArcEndY = GetArcCoordinates radius angle 0.
+        let shift = float(radius - innerRadius)
+        let smallArcEndX, smallArcEndY = GetArcCoordinates innerRadius angle shift
+
+        let obtuseAngleFlag = 
+            if angle > degree180 then
+                1 
+            else 
+                0
+
+        segmentsBuilder.AppendLine(
+            String.Format(svgSegmentPattern, 
+                          color, 
+                          startX, 
+                          startY, 
+                          obtuseAngleFlag, 
+                          bigArcEndX, 
+                          bigArcEndY, 
+                          smallArcEndX, 
+                          smallArcEndY, 
+                          innerRadius, 
+                          rotation)
+        ) |> ignore
+
+    let rec PrepareSegmentsSvgBuilder segmentsToDraw rotation startY radius innerRadius (segmentsBuilder: StringBuilder) =
         match segmentsToDraw with 
         | [] -> 
             ()
         | item::tail -> 
             let angle = degree360 * item.Percentage
-            let color = GetHexColor(item.Color)
+            if item.Color.A > 0. then
+                let color = GetHexColor(item.Color)
+                let startX = radius
 
-            if angle >= 360. then
-                segmentsBuilder.AppendLine(String.Format(svgCirclePattern, halfSize, halfSize, color)) |> ignore
-            else
-                let angleCalculated = 
-                    if angle > degree180 then 
-                        degree360 - angle 
-                    else 
-                        angle
-
-                let angleRad = angleCalculated * Math.PI / degree180
-                let perpendicularDistance = 
-                    if angleCalculated > degree90 then 
-                        float(halfSize) * Math.Sin((degree180 - angleCalculated) * Math.PI / degree180) 
-                    else 
-                        float(halfSize) * Math.Sin(angleRad)
-
-                let topPointDistance =
-                    Math.Sqrt(float(2 * halfSize * halfSize) - (float (2 * halfSize * halfSize) * Math.Cos(angleRad)))
-                let y = Math.Sqrt(topPointDistance * topPointDistance - perpendicularDistance * perpendicularDistance)
-                let x = 
-                    if angle > degree180 then 
-                        float(halfSize) - perpendicularDistance 
-                    else 
-                        float(halfSize) + perpendicularDistance
-
-                let obtuseAngleFlag = 
-                    if angle > degree180 then
-                        1 
-                    else 
-                        0
-
-                segmentsBuilder.AppendLine(
-                    String.Format(svgSegmentPattern, halfSize, x, y, rotation, obtuseAngleFlag, color)
-                ) |> ignore
+                if angle >= 360. then
+                    CollectSegment color startX startY radius innerRadius 180. rotation segmentsBuilder
+                    CollectSegment color startX startY radius innerRadius 180. 180. segmentsBuilder
+                else
+                    CollectSegment color startX startY radius innerRadius angle rotation segmentsBuilder
 
             let newRotation = rotation + angle
-            PrepareSegmentsSvgBuilder tail newRotation halfSize segmentsBuilder
+            PrepareSegmentsSvgBuilder tail newRotation startY radius innerRadius segmentsBuilder
 
     static let segmentsSourceName = "SegmentsSource"
     static let segmentsSourceProperty =
@@ -100,30 +123,39 @@ type DonutChartView () =
     static let separatorColorName = "SeparatorColor"
     static let separatorColorProperty =
         BindableProperty.Create(separatorColorName,
-                                typeof<Color>, typeof<DonutChartView>, Color.White)
+                                typeof<Color>, typeof<DonutChartView>, Color.Transparent)
+    static let defaultImageSourceName = "DefaultImageSource"
+    static let defaultImageSourceProperty =
+        BindableProperty.Create(defaultImageSourceName,
+                                typeof<ImageSource>, typeof<DonutChartView>, null)
 
     static member SegmentsSourceProperty = segmentsSourceProperty
     static member SeparatorPercentageProperty = separatorPercentageProperty
     static member CenterCirclePercentageProperty = centerCirclePercentageProperty
     static member SeparatorColorProperty = separatorColorProperty
+    static member DefaultImageSourceProperty = defaultImageSourceProperty
 
-    member this.SegmentsSource
-        with get () = this.GetValue segmentsSourceProperty :?> seq<SegmentInfo>
-        and set (value:seq<SegmentInfo>) = this.SetValue(segmentsSourceProperty, value)
+    member self.SegmentsSource
+        with get () = self.GetValue segmentsSourceProperty :?> seq<SegmentInfo>
+        and set (value:seq<SegmentInfo>) = self.SetValue(segmentsSourceProperty, value)
 
-    member this.SeparatorPercentage
-        with get () = this.GetValue separatorPercentageProperty :?> float
-        and set (value:float) = this.SetValue(separatorPercentageProperty, value)
+    member self.SeparatorPercentage
+        with get () = self.GetValue separatorPercentageProperty :?> float
+        and set (value:float) = self.SetValue(separatorPercentageProperty, value)
 
-    member this.CenterCirclePercentage
-        with get () = this.GetValue centerCirclePercentageProperty :?> float
-        and set (value:float) = this.SetValue(centerCirclePercentageProperty, value)
+    member self.CenterCirclePercentage
+        with get () = self.GetValue centerCirclePercentageProperty :?> float
+        and set (value:float) = self.SetValue(centerCirclePercentageProperty, value)
 
-    member this.SeparatorColor
-        with get () = this.GetValue separatorColorProperty :?> Color
-        and set (value:Color) = this.SetValue(separatorColorProperty, value)
+    member self.SeparatorColor
+        with get () = self.GetValue separatorColorProperty :?> Color
+        and set (value:Color) = self.SetValue(separatorColorProperty, value)
 
-    member this.Draw () =
+    member self.DefaultImageSource
+        with get () = self.GetValue defaultImageSourceProperty :?> ImageSource
+        and set (value:ImageSource) = self.SetValue(defaultImageSourceProperty, value)
+
+    member self.Draw () =
         let width = 
             if base.WidthRequest > 0. then 
                 base.WidthRequest 
@@ -137,22 +169,26 @@ type DonutChartView () =
 
         if width <= 0. || 
            height <= 0. || 
-           this.SegmentsSource = null || 
-           not(this.SegmentsSource.Any()) then
+           self.SegmentsSource = null || 
+           not(self.SegmentsSource.Any()) then
             ()
         else
             let scaleFactor = Device.Info.ScalingFactor
-            let size = int(Math.Min(width, height) * scaleFactor)
-            let halfSize = size / 2
-
-            let nonZeroItems = this.SegmentsSource.Where(fun s -> s.Percentage > 0.)
+            let size = int(Math.Floor(Math.Min(width, height) * scaleFactor))
+            let halfSize =
+                if size / 2 % 2 = 0 then
+                    size / 2
+                else
+                    size / 2 - 1
+                    
+            let nonZeroItems = self.SegmentsSource.Where(fun s -> s.Percentage > 0.)
             let itemsCount = nonZeroItems.Count()
             if itemsCount = 0 then
-                this.Source <- FrontendHelpers.GetSizedImageSource "logo" 512
+                self.Source <- self.DefaultImageSource
             else
                 let separatorsTotalPercentage = 
                     if itemsCount > 1 then 
-                        float(itemsCount) * this.SeparatorPercentage 
+                        float(itemsCount) * self.SeparatorPercentage 
                     else 
                         0.
 
@@ -170,8 +206,8 @@ type DonutChartView () =
                         nonZeroItems
                             |> Seq.map (fun i -> 
                                    let separator = { 
-                                       Color = this.SeparatorColor
-                                       Percentage = this.SeparatorPercentage
+                                       Color = self.SeparatorColor
+                                       Percentage = self.SeparatorPercentage
                                    } 
                                    let segment = { 
                                        Color = i.Color
@@ -180,15 +216,21 @@ type DonutChartView () =
                                    [separator; segment]
                                 )
                             |> List.concat
-                            
-                let segmentsBuilder = StringBuilder()
-                
-                PrepareSegmentsSvgBuilder segmentsToDraw 0. halfSize segmentsBuilder
 
-                let centerCiclerSvg = String.Format(svgCirclePattern,
-                                                    halfSize,
-                                                    float(halfSize) * this.CenterCirclePercentage,
-                                                    GetHexColor this.SeparatorColor)
+                let innerRadius = int(float(halfSize) * self.CenterCirclePercentage)
+                let startY = int((1. - self.CenterCirclePercentage) * float(halfSize))
+                let segmentsBuilder = StringBuilder()
+                PrepareSegmentsSvgBuilder segmentsToDraw 0. startY halfSize innerRadius segmentsBuilder
+
+                let centerCiclerSvg = 
+                    if self.SeparatorColor.A > 0. then
+                        String.Format(svgCirclePattern,
+                                      halfSize,
+                                      float(halfSize) * self.CenterCirclePercentage,
+                                      GetHexColor self.SeparatorColor)
+                     else
+                         String.Empty
+
                 let fullSvg = String.Format(svgMainImagePattern, size, segmentsBuilder, centerCiclerSvg)
                 let svgHolder = SkiaSharp.Extended.Svg.SKSvg()
 
@@ -210,10 +252,9 @@ type DonutChartView () =
                 canvas.Save() |> ignore
                 use image = SKImage.FromBitmap bitmap
                 let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)       
-                this.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
-        ()
+                self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
 
-    override this.OnPropertyChanged(propertyName: string) =
+    override self.OnPropertyChanged(propertyName: string) =
         base.OnPropertyChanged(propertyName)
         if propertyName = "Height" ||
            propertyName = "Width" ||
@@ -223,5 +264,5 @@ type DonutChartView () =
            propertyName = separatorPercentageName ||
            propertyName = centerCirclePercentageName ||
            propertyName = separatorColorName then
-            this.Draw()
+            self.Draw()
         ()

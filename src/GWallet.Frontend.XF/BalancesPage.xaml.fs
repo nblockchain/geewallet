@@ -192,7 +192,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             contentLayout.Children.Remove currentCryptoBalance |> ignore
 
         let fullAmount = balances.Sum(fun b -> GetAmountOrDefault b.FiatAmount)
-        let balancesCount = float(balances.Count())
 
         let chartSourceList = 
             balances |> Seq.map (fun balanceState ->
@@ -485,6 +484,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             accountBalance.BalanceSet.FiatLabel.TextColor <- color
 
     member private this.Init () =
+        chartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalFiatAmountFrame
         FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalReadOnlyFiatAmountFrame
 
