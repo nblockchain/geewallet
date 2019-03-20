@@ -5,6 +5,7 @@
 
 open System
 open System.Numerics
+open System.Threading
 open System.Threading.Tasks
 
 open Nethereum.Signer
@@ -34,22 +35,27 @@ module internal Account =
                 "0x" + rawPublicAddress
         publicAddress
 
-    let private GetBalance(account: IAccount) (mode: Mode) (balType: BalanceType) = async {
+    let private GetBalance (account: IAccount)
+                           (mode: Mode)
+                           (balType: BalanceType)
+                           (cancelSourceOption: Option<CancellationTokenSource>)
+                               = async {
         let! balance =
             if (account.Currency.IsEther()) then
-                Server.GetEtherBalance account.Currency account.PublicAddress balType mode
+                Server.GetEtherBalance account.Currency account.PublicAddress balType mode cancelSourceOption
             elif (account.Currency.IsEthToken()) then
-                Server.GetTokenBalance account.Currency account.PublicAddress balType mode
+                Server.GetTokenBalance account.Currency account.PublicAddress balType mode cancelSourceOption
             else
                 failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
     }
 
     let private GetBalanceFromServer (account: IAccount) (balType: BalanceType) (mode: Mode)
+                                     (cancelSourceOption: Option<CancellationTokenSource>)
                                          : Async<Option<decimal>> =
         async {
             try
-                let! balance = GetBalance account mode balType
+                let! balance = GetBalance account mode balType cancelSourceOption
                 return Some balance
             with
             | ex ->
@@ -59,18 +65,21 @@ module internal Account =
                     return raise (FSharpUtil.ReRaise ex)
         }
 
-    let internal GetShowableBalance(account: IAccount) (mode: Mode): Async<Option<decimal>> =
+    let internal GetShowableBalance (account: IAccount)
+                                    (mode: Mode)
+                                    (cancelSourceOption: Option<CancellationTokenSource>)
+                                        : Async<Option<decimal>> =
         let getBalanceWithoutCaching(maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>)
                 : Async<Option<decimal>> =
             async {
-                let! confirmed = GetBalanceFromServer account BalanceType.Confirmed mode
+                let! confirmed = GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
                 if mode = Mode.Fast then
                     return confirmed
                 else
                     let! unconfirmed =
                         match maybeUnconfirmedBalanceTaskAlreadyStarted with
                         | None ->
-                            GetBalanceFromServer account BalanceType.Confirmed mode
+                            GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
                         | Some unconfirmedBalanceTask ->
                             Async.AwaitTask unconfirmedBalanceTask
 
@@ -87,8 +96,8 @@ module internal Account =
             if Caching.Instance.FirstRun then
                 return! getBalanceWithoutCaching None
             else
+                let unconfirmedJob = GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
                 let! cancellationToken = Async.CancellationToken
-                let unconfirmedJob = GetBalanceFromServer account BalanceType.Confirmed mode
                 let unconfirmedTask = Async.StartAsTask(unconfirmedJob, ?cancellationToken = Some cancellationToken)
                 let maybeCachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
                 match maybeCachedBalance with

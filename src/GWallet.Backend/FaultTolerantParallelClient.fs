@@ -391,9 +391,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
             effectiveCancellationSource
 
     member self.QueryWithCancellation<'R when 'R : equality>
+                    (cancellationTokenSource: CancellationTokenSource)
                     (settings: FaultTolerantParallelClientSettings<'R>)
                     (servers: List<Server<'K,'R>>)
-                    (cancellationTokenSource: CancellationTokenSource)
                         : Async<'R> =
         self.QueryInternal<'R> settings servers (Some cancellationTokenSource)
 

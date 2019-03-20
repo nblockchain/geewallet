@@ -217,7 +217,7 @@ module UserInteraction =
                 // frontend would never re-discover slow/failing servers or even ones with no history
                 let mode = Mode.Analysis
 
-                let! balance = Account.GetShowableBalance account mode
+                let! balance = Account.GetShowableBalance account mode None
                 return (account,balance)
             }
         let accountAndBalancesToBeQueried = accounts |> Seq.map getAccountBalance
@@ -483,7 +483,10 @@ module UserInteraction =
                 Presentation.Error "Amount surpasses current balance, try again."
                 AskParticularAmountOption currentBalance amountOption
 
-        let showableBalance = Account.GetShowableBalance account Mode.Fast |> Async.RunSynchronously
+        let showableBalance =
+            Account.GetShowableBalance account Mode.Fast None
+                |> Async.RunSynchronously
+
         match showableBalance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Balance not available if offline."

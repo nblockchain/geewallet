@@ -3,26 +3,31 @@
 open System
 open System.Linq
 open System.IO
+open System.Threading
 open System.Threading.Tasks
 
 module Account =
 
-    let private GetShowableBalanceInternal(account: IAccount) (mode: Mode): Async<Option<decimal>> =
+    let private GetShowableBalanceInternal (account: IAccount)
+                                           (mode: Mode)
+                                           (cancelSourceOption: Option<CancellationTokenSource>)
+                                               : Async<Option<decimal>> =
         match account with
         | :? UtxoCoin.IUtxoAccount as utxoAccount ->
             if not (account.Currency.IsUtxo()) then
                 failwithf "Currency %A not Utxo-type but account is? report this bug (balance)" account.Currency
 
-            UtxoCoin.Account.GetShowableBalance utxoAccount mode
+            UtxoCoin.Account.GetShowableBalance utxoAccount mode cancelSourceOption
         | _ ->
             if not (account.Currency.IsEtherBased()) then
                 failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (balance)"
                     account.Currency
-            Ether.Account.GetShowableBalance account mode
+            Ether.Account.GetShowableBalance account mode cancelSourceOption
 
-    let GetShowableBalance(account: IAccount) (mode: Mode): Async<MaybeCached<decimal>> =
+    let GetShowableBalance (account: IAccount) (mode: Mode) (cancelSourceOption: Option<CancellationTokenSource>)
+                               : Async<MaybeCached<decimal>> =
         async {
-            let! maybeBalance = GetShowableBalanceInternal account mode
+            let! maybeBalance = GetShowableBalanceInternal account mode cancelSourceOption
             match maybeBalance with
             | None ->
                 return NotFresh(Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency)
@@ -87,7 +92,8 @@ module Account =
                 EtherPublicAddress = etherPublicAddress
             }
 
-    let GetArchivedAccountsWithPositiveBalance(): Async<seq<ArchivedAccount*decimal>> =
+    let GetArchivedAccountsWithPositiveBalance (cancelSourceOption: Option<CancellationTokenSource>)
+                                                   : Async<seq<ArchivedAccount*decimal>> =
         let asyncJobs = seq<Async<ArchivedAccount*Option<decimal>>> {
             let allCurrencies = Currency.GetAll()
 
@@ -108,7 +114,7 @@ module Account =
                     let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
                     let maybeBalanceJob = GetShowableBalanceInternal account Mode.Fast
                     yield async {
-                        let! maybeBalance = maybeBalanceJob
+                        let! maybeBalance = maybeBalanceJob cancelSourceOption
                         let positiveBalance =
                             match maybeBalance with
                             | Some balance ->

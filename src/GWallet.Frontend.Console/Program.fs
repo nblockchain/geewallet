@@ -182,7 +182,9 @@ let ArchiveAccount() =
             Console.WriteLine "Read-only account removed."
             UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
-        let balance = Account.GetShowableBalance account Mode.Fast |> Async.RunSynchronously
+        let balance =
+            Account.GetShowableBalance account Mode.Fast None
+                |> Async.RunSynchronously
         match balance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Removing accounts when offline is not supported."
@@ -263,7 +265,9 @@ let rec GetAccountOfSameCurrency currency =
         account
 
 let rec CheckArchivedAccountsAreEmpty(): bool =
-    let archivedAccountsInNeedOfAction = Account.GetArchivedAccountsWithPositiveBalance() |> Async.RunSynchronously
+    let archivedAccountsInNeedOfAction =
+        Account.GetArchivedAccountsWithPositiveBalance None
+            |> Async.RunSynchronously
     for archivedAccount,balance in archivedAccountsInNeedOfAction do
         let currency = (archivedAccount:>IAccount).Currency
         Console.WriteLine (sprintf "ALERT! An archived account has received funds:%sAddress: %s Balance: %s%A"

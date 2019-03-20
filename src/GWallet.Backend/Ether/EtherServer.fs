@@ -4,6 +4,7 @@ open System
 open System.Net
 open System.Numerics
 open System.Linq
+open System.Threading
 open System.Threading.Tasks
 
 open Nethereum
@@ -356,7 +357,9 @@ module Server =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
                     let transactionCountJob =
                         async {
-                            let task = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync address
+                            let! cancelToken = Async.CancellationToken
+                            let task =
+                                web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(address, null, cancelToken)
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures transactionCountJob
@@ -369,7 +372,10 @@ module Server =
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
     let private GetBlockToCheckForConfirmedBalance(web3: Web3): Async<BlockParameter> =
         async {
-            let! latestBlock = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync () |> Async.AwaitTask
+            let! cancelToken = Async.CancellationToken
+            let! latestBlock =
+                web3.Eth.Blocks.GetBlockNumber.SendRequestAsync (null, cancelToken)
+                    |> Async.AwaitTask
             if (latestBlock = null) then
                 failwith "latestBlock somehow is null"
 
@@ -394,12 +400,20 @@ module Server =
                 Console.Error.WriteLine (sprintf "Last block number and last confirmed block number: %s: %s"
                                                  (latestBlock.Value.ToString()) (blockForConfirmationReference.BlockNumber.Value.ToString()))
 *)
+
+            let! cancelToken = Async.CancellationToken
+            cancelToken.ThrowIfCancellationRequested()
             let! balance =
-                web3.Eth.GetBalance.SendRequestAsync(publicAddress,blockForConfirmationReference) |> Async.AwaitTask
+                web3.Eth.GetBalance.SendRequestAsync (publicAddress,
+                                                      blockForConfirmationReference,
+                                                      null,
+                                                      cancelToken)
+                    |> Async.AwaitTask
             return balance
         }
 
     let GetEtherBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode)
+                        (cancelSourceOption: Option<CancellationTokenSource>)
                                      : Async<BigInteger> =
         async {
             let web3Funcs =
@@ -410,14 +424,23 @@ module Server =
                             GetConfirmedEtherBalanceInternal web3 address
                         | BalanceType.Unconfirmed ->
                             async {
-                                let task = web3.Eth.GetBalance.SendRequestAsync address
+                                let! cancelToken = Async.CancellationToken
+                                let task = web3.Eth.GetBalance.SendRequestAsync (address, null, cancelToken)
                                 return! Async.AwaitTask task
                             }
                     let! balance = HandlePossibleEtherFailures job
                     return balance.Value
                 }
                 GetWeb3Funcs currency web3Func
-            return! faultTolerantEtherClient.Query
+
+            let query =
+                match cancelSourceOption with
+                | None ->
+                    faultTolerantEtherClient.Query
+                | Some cancelSource ->
+                    faultTolerantEtherClient.QueryWithCancellation cancelSource
+
+            return! query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
                         web3Funcs
         }
@@ -433,14 +456,23 @@ module Server =
             let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
             if (contractHandler = null) then
                 failwith "contractHandler somehow is null"
+
+            let! cancelToken = Async.CancellationToken
+            cancelToken.ThrowIfCancellationRequested()
             let! balance = contractHandler.QueryAsync<BalanceOfFunction,BigInteger>
                                     (balanceOfFunctionMsg,
-                                     blockForConfirmationReference) |> Async.AwaitTask
+                                     blockForConfirmationReference,
+                                     cancelToken) |> Async.AwaitTask
             return balance
         }
 
 
-    let GetTokenBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode): Async<BigInteger> =
+    let GetTokenBalance (currency: Currency)
+                        (address: string)
+                        (balType: BalanceType)
+                        (mode: Mode)
+                        (cancelSourceOption: Option<CancellationTokenSource>)
+                            : Async<BigInteger> =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<BigInteger> =
@@ -450,16 +482,23 @@ module Server =
                             GetConfirmedTokenBalanceInternal web3 address
                         | BalanceType.Unconfirmed ->
                             let tokenService = TokenManager.DaiContract web3
-                            let balanceFunc: string->Task<BigInteger>
-                                = tokenService.BalanceOfQueryAsync
                             async {
-                                let task = balanceFunc address
+                                let! cancelToken = Async.CancellationToken
+                                let task = tokenService.BalanceOfQueryAsync (address, null, cancelToken)
                                 return! Async.AwaitTask task
                             }
 
                     HandlePossibleEtherFailures job
                 GetWeb3Funcs currency web3Func
-            return! faultTolerantEtherClient.Query
+
+            let query =
+                match cancelSourceOption with
+                | None ->
+                    faultTolerantEtherClient.Query
+                | Some cancelSource ->
+                    faultTolerantEtherClient.QueryWithCancellation cancelSource
+
+            return! query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
                         web3Funcs
         }
@@ -476,7 +515,9 @@ module Server =
                                                                Value = amountInWei)
                     let gasJob =
                         async {
-                            let task = contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg
+                            let! cancelToken = Async.CancellationToken
+                            let task =
+                                contractHandler.EstimateGasAsync<TransferFunction>(transferFunctionMsg, cancelToken)
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures gasJob
@@ -499,7 +540,8 @@ module Server =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
                     let gasPriceJob =
                         async {
-                            let task = web3.Eth.GasPrice.SendRequestAsync()
+                            let! cancelToken = Async.CancellationToken
+                            let task = web3.Eth.GasPrice.SendRequestAsync cancelToken
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures gasPriceJob
@@ -521,7 +563,9 @@ module Server =
                 let web3Func (web3: Web3): Async<string> =
                     let broadcastJob =
                         async {
-                            let task = web3.Eth.Transactions.SendRawTransaction.SendRequestAsync transaction
+                            let! cancelToken = Async.CancellationToken
+                            let task =
+                                web3.Eth.Transactions.SendRawTransaction.SendRequestAsync(transaction, cancelToken)
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures broadcastJob
@@ -550,7 +594,9 @@ module Server =
             let web3Funcs =
                 let web3Func (web3: Web3): Async<TransactionStatusDetails> =
                     async {
-                        let task = web3.TransactionManager.TransactionReceiptService.PollForReceiptAsync txHash
+                        let! cancelToken = Async.CancellationToken
+                        let task =
+                            web3.TransactionManager.TransactionReceiptService.PollForReceiptAsync(txHash, cancelToken)
                         let! transactionReceipt = Async.AwaitTask task
                         return {
                             GasUsed = transactionReceipt.GasUsed.Value
