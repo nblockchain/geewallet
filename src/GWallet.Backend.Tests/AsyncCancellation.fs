@@ -400,7 +400,7 @@ type DotNetAsyncCancellation() =
         Assert.That(task.IsFaulted, Is.EqualTo false)
         Assert.That(task.IsCanceled, Is.EqualTo false)
         cancelSource.Cancel()
-        Thread.Sleep(TimeSpan.FromSeconds 6.0)
+        Thread.Sleep(TimeSpan.FromSeconds 8.0)
         Assert.That(task.Exception, Is.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo false)
         Assert.That(task.IsCanceled, Is.EqualTo true)
