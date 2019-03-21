@@ -5,9 +5,7 @@ open System.Net
 open System.Numerics
 open System.Linq
 open System.Threading
-open System.Threading.Tasks
 
-open Nethereum
 open Nethereum.Util
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
@@ -26,64 +24,6 @@ module Server =
         inherit Web3(url)
 
         member val Url = url with get
-
-    type ServerTimedOutException =
-       inherit ConnectionUnsuccessfulException
-
-       new(message: string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
-       new(message: string) = { inherit ConnectionUnsuccessfulException(message) }
-
-    type ServerCannotBeResolvedException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerUnreachableException(message:string, innerException: Exception) =
-        inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerUnavailableException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerChannelNegotiationException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerMisconfiguredException =
-       inherit ConnectionUnsuccessfulException
-
-       new (message:string, innerException: Exception) =
-           { inherit ConnectionUnsuccessfulException (message, innerException) }
-       new (message:string) =
-           { inherit ConnectionUnsuccessfulException (message) }
-
-    type ServerRestrictiveException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type UnhandledWebException(status: WebExceptionStatus, innerException: Exception) =
-       inherit Exception (sprintf "GWallet not prepared for this WebException with Status[%d]" (int status),
-                          innerException)
-
-    // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
-    type CloudFlareError =
-        | ConnectionTimeOut = 522
-        | WebServerDown = 521
-        | OriginUnreachable = 523
-        | OriginSslHandshakeError = 525
-
-    type HttpStatusCodeNotPresentInTheBcl =
-        | TooManyRequests = 429
-
-    type RpcErrorCode =
-        // "This request is not supported because your node is running with state pruning. Run with --pruning=archive."
-        | StatePruningNode = -32000
-
-        // ambiguous or generic because I've seen same code applied to two different error messages already:
-        // "Transaction with the same hash was already imported. (Transaction with the same hash was already imported.)"
-        // AND
-        // "There are too many transactions in the queue. Your transaction was dropped due to limit.
-        //  Try increasing the fee. (There are too many transactions in the queue. Your transaction was dropped due to
-        //  limit. Try increasing the fee.)"
-        | AmbiguousOrGenericError = -32010
-
-        | UnknownBlockNumber = -32602
-        | GatewayTimeout = -32050
 
     type TransactionStatusDetails =
         {
@@ -155,7 +95,7 @@ module Server =
         let! maybeResult = FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT job
         match maybeResult with
         | None ->
-            return raise <| ServerTimedOutException(exMsg)
+            return raise <| ServerTimedOutException("Timeout when trying to communicate with Ether server")
         | Some result ->
             return result
     }

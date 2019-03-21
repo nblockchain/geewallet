@@ -30,7 +30,7 @@ type ServerTimedOutException =
    inherit ConnectionUnsuccessfulException
 
    new(message: string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
-   new() = { inherit ConnectionUnsuccessfulException() }
+   new(message) = { inherit ConnectionUnsuccessfulException(message) }
 
 type ServerUnreachableException(message:string, innerException: Exception) =
    inherit ConnectionUnsuccessfulException (message, innerException)

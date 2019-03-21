@@ -64,7 +64,7 @@ type JsonRpcTcpClient (host: string, port: int) =
             let str =
                 match stringOption with
                 | Some s -> s
-                | None   -> raise <| ServerTimedOutException()
+                | None   -> raise <| ServerTimedOutException("Timeout when trying to communicate with UtxoCoin server")
             return str
         with
         | :? ConnectionUnsuccessfulException as ex ->

@@ -72,6 +72,7 @@
     <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
     <EmbeddedResource Include="UtxoCoin\btc-servers.json" />
     <EmbeddedResource Include="UtxoCoin\ltc-servers.json" />
+    <Compile Include="Ether\Exceptions.fs" />
     <Compile Include="Ether\EtherMinerFee.fs" />
     <Compile Include="Ether\TransactionMetadata.fs" />
     <Compile Include="Ether\TokenManager.fs" />
