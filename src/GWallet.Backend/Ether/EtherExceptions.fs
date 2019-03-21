@@ -5,13 +5,6 @@ open System.Net
 
 open GWallet.Backend
 
-// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
-type CloudFlareError =
-    | ConnectionTimeOut = 522
-    | WebServerDown = 521
-    | OriginUnreachable = 523
-    | OriginSslHandshakeError = 525
-
 type HttpStatusCodeNotPresentInTheBcl =
     | TooManyRequests = 429
 
@@ -39,14 +32,6 @@ type ServerCannotBeResolvedException =
             inherit ConnectionUnsuccessfulException(message, innerException)
         }
 
-type ServerUnreachableException =
-    inherit ConnectionUnsuccessfulException
-
-    new(message: string, innerException: Exception) =
-        {
-            inherit ConnectionUnsuccessfulException(message, innerException)
-        }
-
 type ServerUnavailableException =
     inherit ConnectionUnsuccessfulException
 
@@ -61,6 +46,16 @@ type ServerChannelNegotiationException =
     new(message: string, innerException: Exception) =
         {
             inherit ConnectionUnsuccessfulException(message, innerException)
+        }
+    new(message: string, webExStatusCode: WebExceptionStatus, innerException: Exception) =
+        {
+            inherit ConnectionUnsuccessfulException(sprintf "%s (WebErr: %s)" message (webExStatusCode.ToString()),
+                                                    innerException)
+        }
+    new(message: string, cloudFlareError: CloudFlareError, innerException: Exception) =
+        {
+            inherit ConnectionUnsuccessfulException(sprintf "%s (CfErr: %s)" message (cloudFlareError.ToString()),
+                                                    innerException)
         }
 
 type ServerMisconfiguredException =

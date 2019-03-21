@@ -108,16 +108,19 @@ module Server =
                 raise <| ServerTimedOutException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
                 raise <| ServerTimedOutException(exMsg, httpReqEx)
+
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
-                raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
+                raise <| ServerChannelNegotiationException(exMsg, CloudFlareError.OriginSslHandshakeError, httpReqEx)
+
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
-                raise <| ServerUnreachableException(exMsg, httpReqEx)
+                raise <| ServerUnreachableException(exMsg, CloudFlareError.WebServerDown, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
-                raise <| ServerUnreachableException(exMsg, httpReqEx)
+                raise <| ServerUnreachableException(exMsg, HttpStatusCode.BadGateway, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
+                raise <| ServerUnreachableException(exMsg, HttpStatusCode.GatewayTimeout, httpReqEx)
+
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
-            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
-                raise <| ServerUnreachableException(exMsg, httpReqEx)
 
             // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
@@ -126,6 +129,7 @@ module Server =
                 raise <| ServerMisconfiguredException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
+
             if HttpRequestExceptionMatchesErrorCode
                 httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
                     raise <| ServerRestrictiveException(exMsg, httpReqEx)
@@ -184,17 +188,17 @@ module Server =
 
             if webEx.Status = WebExceptionStatus.NameResolutionFailure then
                 raise <| ServerCannotBeResolvedException(exMsg, webEx)
-            if webEx.Status = WebExceptionStatus.SecureChannelFailure then
-                raise <| ServerChannelNegotiationException(exMsg, webEx)
             if webEx.Status = WebExceptionStatus.ReceiveFailure then
                 raise <| ServerTimedOutException(exMsg, webEx)
             if webEx.Status = WebExceptionStatus.ConnectFailure then
                 raise <| ServerUnreachableException(exMsg, webEx)
-            if webEx.Status = WebExceptionStatus.RequestCanceled then
-                raise <| ServerChannelNegotiationException(exMsg, webEx)
 
+            if webEx.Status = WebExceptionStatus.SecureChannelFailure then
+                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
+            if webEx.Status = WebExceptionStatus.RequestCanceled then
+                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
             if (webEx.Status = WebExceptionStatus.TrustFailure) then
-                raise <| ServerChannelNegotiationException(exMsg, webEx)
+                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
 
             // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
             if not Networking.Tls12Support then
