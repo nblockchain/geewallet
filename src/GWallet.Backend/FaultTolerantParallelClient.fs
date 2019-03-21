@@ -60,6 +60,33 @@ type FaultTolerantParallelClientSettings<'R> =
         Mode: Mode
     }
 
+type Result<'Value, 'Err> =
+    | Error of 'Err
+    | Success of 'Value
+
+
+type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
+    static member Run (server: Server<_,'Resource>) (stopwatch: Stopwatch): Async<Result<'Resource,'Ex>> =
+        async {
+            try
+                try
+                    let! res = server.Retrieval
+                    return Success res
+                finally
+                    stopwatch.Stop()
+            with
+            | ex ->
+                let maybeSpecificEx = FSharpUtil.FindException<'Ex> ex
+                match maybeSpecificEx with
+                | Some specificInnerEx ->
+                    if Config.DebugLog then
+                        Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
+                                                     (ex.GetType().FullName)
+                                                     ex.Message)
+                    return Error specificInnerEx
+                | None ->
+                    return raise (FSharpUtil.ReRaise ex)
+        }
 
 type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(updateServer: 'K*HistoryInfo -> unit) =
     do
@@ -151,32 +178,23 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
             async {
                 let stopwatch = Stopwatch()
                 stopwatch.Start()
-                try
-                    let! result = head.Retrieval
-                    stopwatch.Stop()
+                let! runResult = Runner.Run head stopwatch
+
+                match runResult with
+                | Success result ->
                     updateServer (head.Identifier, { Fault = None; TimeSpan = stopwatch.Elapsed })
                     let tailAsync = ConcatenateNonParallelFuncs failuresSoFar tail
                     return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
-                with
-                | ex ->
-                    stopwatch.Stop()
-                    let maybeSpecificEx = FSharpUtil.FindException<'E> ex
-                    match maybeSpecificEx with
-                    | Some specificInnerEx ->
-                        if (Config.DebugLog) then
-                            Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
-                                                         (ex.GetType().FullName)
-                                                         ex.Message)
-                        let exInfo =
-                            {
-                                TypeFullName = specificInnerEx.GetType().FullName
-                                Message = specificInnerEx.Message
-                            }
-                        updateServer (head.Identifier, { Fault = Some exInfo; TimeSpan = stopwatch.Elapsed })
-                        let newFailures = (head,specificInnerEx)::failuresSoFar
-                        return! ConcatenateNonParallelFuncs newFailures tail
-                    | None ->
-                        return raise (FSharpUtil.ReRaise ex)
+
+                | Error ex ->
+                    let exInfo =
+                        {
+                            TypeFullName = ex.GetType().FullName
+                            Message = ex.Message
+                        }
+                    updateServer (head.Identifier, { Fault = Some exInfo; TimeSpan = stopwatch.Elapsed })
+                    let newFailures = (head,ex)::failuresSoFar
+                    return! ConcatenateNonParallelFuncs newFailures tail
             }
 
     let CancelAndDispose (source: CancellationTokenSource) =
