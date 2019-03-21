@@ -67,6 +67,7 @@ module Account =
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             Mode = mode
+            ShouldReportUncancelledJobs = (not Config.NewUtxoTcpClientDisabled)
         }
 
     let private FaultTolerantParallelClientSettingsForBroadcast() =

@@ -58,6 +58,7 @@ type FaultTolerantParallelClientSettings<'R> =
         NumberOfRetries: uint32;
         NumberOfRetriesForInconsistency: uint32;
         Mode: Mode
+        ShouldReportUncancelledJobs: bool
     }
 
 type Result<'Value, 'Err> =
@@ -66,7 +67,11 @@ type Result<'Value, 'Err> =
 
 
 type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
-    static member Run (server: Server<_,'Resource>) (stopwatch: Stopwatch): Async<Result<'Resource,'Ex>> =
+    static member Run (server: Server<_,'Resource>)
+                      (stopwatch: Stopwatch)
+                      (cancelToken: CancellationToken)
+                      (shouldReportUncancelledJobs: bool)
+                          : Async<Result<'Resource,'Ex>> =
         async {
             try
                 try
@@ -76,13 +81,13 @@ type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
                     stopwatch.Stop()
             with
             | ex ->
+                let report = Config.DebugLog && shouldReportUncancelledJobs && cancelToken.IsCancellationRequested
                 let maybeSpecificEx = FSharpUtil.FindException<'Ex> ex
                 match maybeSpecificEx with
                 | Some specificInnerEx ->
-                    if Config.DebugLog then
-                        Console.Error.WriteLine (sprintf "Fault warning: %s: %s"
-                                                     (ex.GetType().FullName)
-                                                     ex.Message)
+                    if report then
+                        Console.Error.WriteLine (sprintf "Fault warning: %s"
+                                                     (ex.ToString()))
                     return Error specificInnerEx
                 | None ->
                     return raise (FSharpUtil.ReRaise ex)
@@ -167,6 +172,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         WhenSomeInternal consistencySettings tasks resultsSoFar failedFuncsSoFar
 
     let rec ConcatenateNonParallelFuncs (failuresSoFar: ExceptionsSoFar<'K,'R,'E>)
+                                        (cancelToken: CancellationToken)
+                                        (shouldReportUncancelledJobs: bool)
                                         (servers: List<Server<'K,'R>>)
                                         : Async<NonParallelResults<'K,'R,'E>> =
         match servers with
@@ -178,12 +185,13 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
             async {
                 let stopwatch = Stopwatch()
                 stopwatch.Start()
-                let! runResult = Runner.Run head stopwatch
+                let! runResult = Runner.Run head stopwatch cancelToken shouldReportUncancelledJobs
 
                 match runResult with
                 | Success result ->
                     updateServer (head.Identifier, { Fault = None; TimeSpan = stopwatch.Elapsed })
-                    let tailAsync = ConcatenateNonParallelFuncs failuresSoFar tail
+                    let tailAsync =
+                        ConcatenateNonParallelFuncs failuresSoFar cancelToken shouldReportUncancelledJobs tail
                     return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
 
                 | Error ex ->
@@ -194,7 +202,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                         }
                     updateServer (head.Identifier, { Fault = Some exInfo; TimeSpan = stopwatch.Elapsed })
                     let newFailures = (head,ex)::failuresSoFar
-                    return! ConcatenateNonParallelFuncs newFailures tail
+                    return! ConcatenateNonParallelFuncs newFailures cancelToken shouldReportUncancelledJobs tail
             }
 
     let CancelAndDispose (source: CancellationTokenSource) =
@@ -245,7 +253,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         let funcBuckets =
             Seq.splitInto numberOfMaximumParallelJobs funcs
             |> Seq.map List.ofArray
-            |> Seq.map (ConcatenateNonParallelFuncs List.empty)
+            |> Seq.map
+                (ConcatenateNonParallelFuncs List.empty cancellationSource.Token settings.ShouldReportUncancelledJobs)
             |> List.ofSeq
 
         let lengthOfBucketsSanityCheck = Math.Min(funcs.Length, numberOfMaximumParallelJobs)

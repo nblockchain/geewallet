@@ -241,6 +241,7 @@ module Server =
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             Mode = mode
+            ShouldReportUncancelledJobs = true
         }
 
     let private FaultTolerantParallelClientDefaultSettings (currency: Currency) (mode: Mode) =
