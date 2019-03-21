@@ -96,6 +96,8 @@ module Networking =
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
             elif socketException.ErrorCode = int SocketError.Shutdown then
                 ServerClosedConnectionEarlyException(newExceptionMsg, ex) :> Exception |> Some
+            elif socketException.ErrorCode = int SocketError.ProtocolOption then
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
 
             else
                 UnhandledSocketException(socketException.ErrorCode, ex) :> Exception |> Some
