@@ -44,7 +44,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let totalFiatAmountFrame = mainLayout.FindByName<Frame> "totalFiatAmountFrame"
     let totalReadOnlyFiatAmountFrame = mainLayout.FindByName<Frame> "totalReadOnlyFiatAmountFrame"
     let contentLayout = base.FindByName<StackLayout> "contentLayout"
-    let chartView = base.FindByName<DonutChartView> "chartView"
+    let normalChartView = base.FindByName<DonutChartView> "normalChartView"
+    let readonlyChartView = base.FindByName<DonutChartView> "readonlyChartView"
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
@@ -164,6 +165,23 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         | Fresh amount | NotFresh (Cached (amount,_)) ->
             amount
 
+    let RedrawDonutView (chartView: DonutChartView) (balances: seq<BalanceState>) =
+        let fullAmount = balances.Sum(fun b -> GetAmountOrDefault b.FiatAmount)
+
+        let chartSourceList = 
+            balances |> Seq.map (fun balanceState ->
+                 let percentage = 
+                     if fullAmount = 0m then
+                         0m
+                     else
+                         GetAmountOrDefault balanceState.FiatAmount / fullAmount
+                 { 
+                     Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency
+                     Percentage = float(percentage)
+                 }
+            )
+        chartView.SegmentsSource <- chartSourceList
+
     let mutable timerRunning = false
 
     // default value of the below field is 'false', just in case there's an incoming payment which we don't want to miss
@@ -190,21 +208,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let currentCryptoBalances = FindCryptoBalances contentLayout (contentLayout.Children |> List.ofSeq) List.Empty
         for currentCryptoBalance in currentCryptoBalances do
             contentLayout.Children.Remove currentCryptoBalance |> ignore
-
-        let fullAmount = balances.Sum(fun b -> GetAmountOrDefault b.FiatAmount)
-
-        let chartSourceList = 
-            balances |> Seq.map (fun balanceState ->
-                 let percentage = 
-                     if fullAmount = 0m then
-                         0m
-                     else
-                         GetAmountOrDefault balanceState.FiatAmount / fullAmount
-                 { 
-                     Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency
-                     Percentage = float(percentage)
-                 }
-            )
                                 
         for balanceState in balances do
             let tapGestureRecognizer = TapGestureRecognizer()
@@ -269,7 +272,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
             contentLayout.Children.Add frame
 
-        chartView.SegmentsSource <- chartSourceList
+        let chartView =
+            if readOnly then
+                readonlyChartView
+            else
+                normalChartView
+
+        RedrawDonutView chartView balances
 
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) totalFiatAmountLabel =
         let fiatBalancesList = allFiatBalances |> List.ofSeq
@@ -287,6 +296,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                                                    balanceState.FiatAmount)
                         Device.BeginInvokeOnMainThread(fun _ ->
                             this.UpdateGlobalFiatBalanceSum normalFiatBalances totalFiatAmountLabel
+                            RedrawDonutView normalChartView resolvedNormalBalances
                         )
                         return resolvedNormalBalances.Any(fun balanceState ->
 
@@ -306,6 +316,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                                                        balanceState.FiatAmount)
                         Device.BeginInvokeOnMainThread(fun _ ->
                             this.UpdateGlobalFiatBalanceSum readOnlyFiatBalances totalReadOnlyFiatAmountLabel
+                            RedrawDonutView readonlyChartView resolvedReadOnlyBalances
                         )
                         return resolvedReadOnlyBalances.Any(fun balanceState ->
 
@@ -399,11 +410,21 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             else
                 "totalFiatAmountFrame","totalReadOnlyFiatAmountFrame"
 
+        let currentChartViewName,otherChartViewName =
+            if readOnly then
+                "readonlyChartView","normalChartView"
+            else
+                "normalChartView","readonlyChartView"
+
         let switchingToReadOnly = not readOnly
 
         let totalCurrentFiatAmountFrame,totalOtherFiatAmountFrame =
             mainLayout.FindByName<Frame> totalCurrentFiatAmountFrameName,
             mainLayout.FindByName<Frame> totalOtherFiatAmountFrameName
+
+        let currentChartView,otherChartView =
+            mainLayout.FindByName<DonutChartView> currentChartViewName,
+            mainLayout.FindByName<DonutChartView> otherChartViewName
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Add(fun _ ->
@@ -419,7 +440,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             if shouldNotOpenNewPage then
                 Device.BeginInvokeOnMainThread(fun _ ->
                     totalCurrentFiatAmountFrame.IsVisible <- false
+                    currentChartView.IsVisible <- false
                     totalOtherFiatAmountFrame.IsVisible <- true
+                    otherChartView.IsVisible <- true
                 )
                 this.AssignColorLabels switchingToReadOnly
                 if not switchingToReadOnly then
@@ -484,7 +507,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             accountBalance.BalanceSet.FiatLabel.TextColor <- color
 
     member private this.Init () =
-        chartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
+        normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
+        readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalFiatAmountFrame
         FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalReadOnlyFiatAmountFrame
 

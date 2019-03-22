@@ -169,6 +169,7 @@ type DonutChartView () =
 
         if width <= 0. || 
            height <= 0. || 
+           not base.IsVisible ||
            self.SegmentsSource = null || 
            not(self.SegmentsSource.Any()) then
             ()
@@ -260,6 +261,7 @@ type DonutChartView () =
            propertyName = "Width" ||
            propertyName = "WidthRequest" || 
            propertyName = "HeightRequest" || 
+           propertyName = "IsVisible" ||
            propertyName = segmentsSourceName ||
            propertyName = separatorPercentageName ||
            propertyName = centerCirclePercentageName ||
