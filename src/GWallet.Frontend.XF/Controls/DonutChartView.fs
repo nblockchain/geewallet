@@ -107,26 +107,21 @@ type DonutChartView () =
 
             let newRotation = rotation + angle
             PrepareSegmentsSvgBuilder tail newRotation startY radius innerRadius segmentsBuilder
-
-    static let segmentsSourceName = "SegmentsSource"
+            
     static let segmentsSourceProperty =
-        BindableProperty.Create(segmentsSourceName,
-                                typeof<seq<SegmentInfo>>, typeof<DonutChartView>, null)
-    static let separatorPercentageName = "SeparatorPercentage"
+        BindableProperty.Create("SegmentsSource",
+                                typeof<seq<SegmentInfo>>, typeof<DonutChartView>, null) 
     static let separatorPercentageProperty =
-        BindableProperty.Create(separatorPercentageName,
+        BindableProperty.Create("SeparatorPercentage",
                                 typeof<float>, typeof<DonutChartView>, 0.)
-    static let centerCirclePercentageName = "CenterCirclePercentage"
     static let centerCirclePercentageProperty =
-        BindableProperty.Create(centerCirclePercentageName,
+        BindableProperty.Create("CenterCirclePercentage",
                                 typeof<float>, typeof<DonutChartView>, 0.5)
-    static let separatorColorName = "SeparatorColor"
     static let separatorColorProperty =
-        BindableProperty.Create(separatorColorName,
+        BindableProperty.Create("SeparatorColor",
                                 typeof<Color>, typeof<DonutChartView>, Color.Transparent)
-    static let defaultImageSourceName = "DefaultImageSource"
     static let defaultImageSourceProperty =
-        BindableProperty.Create(defaultImageSourceName,
+        BindableProperty.Create("DefaultImageSource",
                                 typeof<ImageSource>, typeof<DonutChartView>, null)
 
     static member SegmentsSourceProperty = segmentsSourceProperty
@@ -169,8 +164,7 @@ type DonutChartView () =
 
         if width <= 0. || 
            height <= 0. || 
-           self.SegmentsSource = null || 
-           not(self.SegmentsSource.Any()) then
+           not base.IsVisible then
             ()
         else
             let scaleFactor = Device.Info.ScalingFactor
@@ -180,8 +174,13 @@ type DonutChartView () =
                     size / 2
                 else
                     size / 2 - 1
-                    
-            let nonZeroItems = self.SegmentsSource.Where(fun s -> s.Percentage > 0.)
+
+            let nonZeroItems = 
+                if self.SegmentsSource <> null then
+                    self.SegmentsSource.Where(fun s -> s.Percentage > 0.)
+                else
+                    Seq.empty<SegmentInfo>
+
             let itemsCount = nonZeroItems.Count()
             if itemsCount = 0 then
                 self.Source <- self.DefaultImageSource
@@ -256,13 +255,14 @@ type DonutChartView () =
 
     override self.OnPropertyChanged(propertyName: string) =
         base.OnPropertyChanged(propertyName)
-        if propertyName = "Height" ||
-           propertyName = "Width" ||
-           propertyName = "WidthRequest" || 
-           propertyName = "HeightRequest" || 
-           propertyName = segmentsSourceName ||
-           propertyName = separatorPercentageName ||
-           propertyName = centerCirclePercentageName ||
-           propertyName = separatorColorName then
+        if propertyName = VisualElement.HeightProperty.PropertyName ||
+           propertyName = VisualElement.WidthProperty.PropertyName ||
+           propertyName = VisualElement.HeightRequestProperty.PropertyName || 
+           propertyName = VisualElement.WidthRequestProperty.PropertyName || 
+           propertyName = VisualElement.IsVisibleProperty.PropertyName ||
+           propertyName = DonutChartView.SegmentsSourceProperty.PropertyName ||
+           propertyName = DonutChartView.SeparatorPercentageProperty.PropertyName ||
+           propertyName = DonutChartView.CenterCirclePercentageProperty.PropertyName ||
+           propertyName = DonutChartView.SeparatorColorProperty.PropertyName || 
+           propertyName = DonutChartView.DefaultImageSourceProperty.PropertyName then
             self.Draw()
-        ()
