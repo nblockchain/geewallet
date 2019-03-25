@@ -246,6 +246,7 @@ let rec PerformOptions(numAccounts: int) =
         SendPayment()
     | Options.AddReadonlyAccounts ->
         AddReadOnlyAccounts()
+            |> Async.RunSynchronously
     | Options.SignOffPayment ->
         SignOffPayment()
     | Options.BroadcastPayment ->

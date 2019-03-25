@@ -561,3 +561,34 @@ module Server =
             return transactionStatusDetails.Status = failureStatus &&
                    transactionStatusDetails.GasUsed = BigInteger(spentGas)
         }
+
+    let private GetContractCode (baseCurrency: Currency) (address: string)
+                                    : Async<string> =
+        async {
+            let web3Funcs =
+                let web3Func (web3: Web3): Async<string> =
+                    let contractCodeJob =
+                        async {
+                            let! cancelToken = Async.CancellationToken
+                            let task = web3.Eth.GetCode.SendRequestAsync(address, cancelToken)
+                            return! Async.AwaitTask task
+                        }
+                    HandlePossibleEtherFailures contractCodeJob
+                GetWeb3Funcs baseCurrency web3Func
+            return! faultTolerantEtherClient.Query
+                (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
+                web3Funcs
+        }
+
+    let CheckIfAddressIsAValidPaymentDestination (currency: Currency) (address: string): Async<unit> =
+        async {
+            let! contractCode = GetContractCode currency address
+            let emptyContract = "0x"
+
+            if not (contractCode.StartsWith emptyContract) then
+                failwithf "GetCode API should always return a string starting with %s, but got: %s"
+                          emptyContract contractCode
+            elif contractCode <> emptyContract then
+                return raise <| InvalidDestinationAddress "Sending to contract addresses is not supported yet. Supply a normal address please."
+        }
+

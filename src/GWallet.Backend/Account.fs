@@ -139,13 +139,16 @@ module Account =
         }
 
     // TODO: add tests for these (just in case address validation breaks after upgrading our dependencies)
-    let ValidateAddress (currency: Currency) (address: string) =
+    let ValidateAddress (currency: Currency) (address: string): Async<unit> = async {
         if currency.IsEtherBased() then
             Ether.Account.ValidateAddress currency address
+            do! Ether.Server.CheckIfAddressIsAValidPaymentDestination currency address
         elif currency.IsUtxo() then
             UtxoCoin.Account.ValidateAddress currency address
         else
             failwith (sprintf "Unknown currency %A" currency)
+    }
+
 
     let EstimateFee (account: IAccount) (amount: TransferAmount) destination: Async<IBlockchainFeeInfo> =
         async {
@@ -309,9 +312,10 @@ module Account =
             raise DestinationEqualToOrigin
 
         let currency = baseAccount.Currency
-        ValidateAddress currency destination
 
         async {
+            do! ValidateAddress currency destination
+
             let! txId =
                 match txMetadata with
                 | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
@@ -389,9 +393,9 @@ module Account =
 
         File.WriteAllText(filePath, json)
 
-    let CreateReadOnlyAccounts (watchWalletInfo: WatchWalletInfo): unit =
+    let CreateReadOnlyAccounts (watchWalletInfo: WatchWalletInfo): Async<unit> = async {
         for etherCurrency in Currency.GetAll().Where(fun currency -> currency.IsEtherBased()) do
-            ValidateAddress etherCurrency watchWalletInfo.EtherPublicAddress
+            do! ValidateAddress etherCurrency watchWalletInfo.EtherPublicAddress
             let conceptAccountForReadOnlyAccount = {
                 Currency = etherCurrency
                 FileRepresentation = { Name = watchWalletInfo.EtherPublicAddress; Content = fun _ -> String.Empty }
@@ -403,13 +407,14 @@ module Account =
             let address =
                 UtxoCoin.Account.GetPublicAddressFromPublicKey utxoCurrency
                                                                (NBitcoin.PubKey(watchWalletInfo.UtxoCoinPublicKey))
-            ValidateAddress utxoCurrency address
+            do! ValidateAddress utxoCurrency address
             let conceptAccountForReadOnlyAccount = {
                 Currency = utxoCurrency
                 FileRepresentation = { Name = address; Content = fun _ -> watchWalletInfo.UtxoCoinPublicKey }
                 ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
             }
             Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly |> ignore
+    }
 
     let Remove (account: ReadOnlyAccount) =
         Config.RemoveReadOnlyAccount account
@@ -512,9 +517,6 @@ module Account =
     let private SerializeUnsignedTransactionPlain (transProposal: UnsignedTransactionProposal)
                                                   (txMetadata: IBlockchainFeeInfo)
                                                       : string =
-
-        ValidateAddress transProposal.Amount.Currency transProposal.DestinationAddress
-
         let readOnlyAccounts = GetAllActiveAccounts().OfType<ReadOnlyAccount>()
 
         match txMetadata with

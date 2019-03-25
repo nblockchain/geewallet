@@ -13,3 +13,6 @@ exception AddressWithInvalidLength of seq<int>
 
 exception AddressWithInvalidChecksum of Option<string>
 exception AccountAlreadyAdded
+
+exception InvalidDestinationAddress of msg: string
+

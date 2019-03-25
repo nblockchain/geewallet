@@ -337,8 +337,12 @@ module UserInteraction =
         let validatedAddress =
             try
                 Account.ValidateAddress currency publicAddress
+                    |> Async.RunSynchronously
                 publicAddress
             with
+            | InvalidDestinationAddress msg ->
+                Presentation.Error msg
+                AskPublicAddress currency askText
             | AddressMissingProperPrefix(possiblePrefixes) ->
                 let possiblePrefixesStr = String.Join(", ", possiblePrefixes)
                 Presentation.Error (sprintf "Address starts with the wrong prefix. Valid prefixes: %s"
