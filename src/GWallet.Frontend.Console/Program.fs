@@ -15,9 +15,6 @@ let rec TrySendAmount (account: NormalAccount) transactionMetadata destination a
         Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
         UserInteraction.PressAnyKeyToContinue ()
     with
-    | InsufficientFee msg ->
-        Presentation.Error msg
-        UserInteraction.PressAnyKeyToContinue()
     | :? DestinationEqualToOrigin ->
         Presentation.Error "Transaction's origin cannot be the same as the destination."
         UserInteraction.PressAnyKeyToContinue()
@@ -56,9 +53,6 @@ let BroadcastPayment() =
             Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
             UserInteraction.PressAnyKeyToContinue ()
         with
-        | InsufficientFee msg ->
-            Presentation.Error msg
-            UserInteraction.PressAnyKeyToContinue()
         | :? DestinationEqualToOrigin ->
             Presentation.Error "Transaction's origin cannot be the same as the destination."
             UserInteraction.PressAnyKeyToContinue()

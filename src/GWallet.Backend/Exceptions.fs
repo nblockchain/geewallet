@@ -1,7 +1,6 @@
 ﻿namespace GWallet.Backend
 
 exception InsufficientFunds
-exception InsufficientFee of msg: string // <- right now only used in the case of out of gas
 exception InsufficientBalanceForFee of decimal
 
 exception InvalidPassword

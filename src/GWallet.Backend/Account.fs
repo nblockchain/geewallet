@@ -190,7 +190,7 @@ module Account =
             | :? Ether.TransactionMetadata as etherTxMetadata ->
                 let! outOfGas = Ether.Server.IsOutOfGas transactionMetadata.Currency txHash etherTxMetadata.Fee.GasLimit
                 if outOfGas then
-                    return raise <| InsufficientFee "Transaction ran out of gas."
+                    return failwithf "Transaction ran out of gas: %s" txHash
             | _ ->
                 ()
         }
