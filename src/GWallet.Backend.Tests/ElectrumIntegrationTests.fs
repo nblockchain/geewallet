@@ -216,6 +216,7 @@ type ElectrumIntegrationTests() =
                                        (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
 
     [<Test>]
+    [<Ignore "another instance of https://gitlab.com/DiginexGlobal/geewallet/issues/54">]
     member __.``should not get empty/null response from electrum BTC servers (rebel ones)``() =
         let currency = Currency.BTC
 
