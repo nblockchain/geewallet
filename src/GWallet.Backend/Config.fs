@@ -27,6 +27,9 @@ module Config =
         false
 #endif
 
+    let IsWindowsPlatform() =
+        Path.DirectorySeparatorChar = '\\'
+
     let IsMacPlatform() =
         let macDirs = [ "/Applications"; "/System"; "/Users"; "/Volumes" ]
         match Environment.OSVersion.Platform with
