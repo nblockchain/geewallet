@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend.Tests
 
 open System
+open System.Diagnostics
 open System.Threading
 open System.Threading.Tasks
 
@@ -297,6 +298,48 @@ type AsyncCancellation() =
         self.NestedTasksTest false
 
         self.NestedTasksTest true
+
+    [<Test>]
+    member self.``FSharpUtil.WithTimeout works with cancellation`` () =
+        let jobTime = TimeSpan.FromSeconds 10.0
+        let timeoutTime = TimeSpan.FromSeconds 5.0
+
+        let job = async {
+            do! Async.Sleep <| int jobTime.TotalMilliseconds
+            return 1
+        }
+
+        let externalCancellationSource = new CancellationTokenSource()
+        let jobWithTimeout = FSharpUtil.WithTimeout timeoutTime job
+
+        let stopWatch = Stopwatch()
+        stopWatch.Start()
+        let task = Async.StartAsTask(jobWithTimeout, TaskCreationOptions.None, externalCancellationSource.Token)
+
+        // to let the task start
+        Thread.Sleep (TimeSpan.FromSeconds 1.0)
+
+        externalCancellationSource.Cancel()
+
+        let result =
+            try
+                try
+                    task.Result
+                        |> Success
+                with
+                | ex ->
+                    if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                        Error ()
+                    else
+                        reraise()
+            finally
+                stopWatch.Stop()
+
+        match result with
+        | Success _ -> Assert.Fail "should have been cancelled"
+        | _ -> ()
+
+        Assert.That(stopWatch.Elapsed, Is.LessThan timeoutTime)
 
 
 [<TestFixture>]
