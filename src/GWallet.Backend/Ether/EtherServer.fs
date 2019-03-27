@@ -18,18 +18,18 @@ type BalanceType =
     | Unconfirmed
     | Confirmed
 
-module Server =
+type SomeWeb3(url: string) =
+    inherit Web3(url)
 
-    type SomeWeb3(url: string) =
-        inherit Web3(url)
+    member val Url = url with get
 
-        member val Url = url with get
+type TransactionStatusDetails =
+    {
+        GasUsed: BigInteger
+        Status: BigInteger
+    }
 
-    type TransactionStatusDetails =
-        {
-            GasUsed: BigInteger
-            Status: BigInteger
-        }
+module Web3ServerSeedList =
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
@@ -58,7 +58,7 @@ module Server =
     let private etcWeb3GasTracker = SomeWeb3 "https://web3.gastracker.io"
     let private etcWeb3EtcCooperative = SomeWeb3 "https://ethereumclassic.network"
 
-    let GetWeb3Servers (currency: Currency): List<SomeWeb3> =
+    let private GetWeb3Servers (currency: Currency): List<SomeWeb3> =
         if currency = ETC then
             [
                 etcWeb3EtcCooperative;
@@ -86,6 +86,13 @@ module Server =
             ]
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
+
+    let Randomize currency =
+        let serverList = GetWeb3Servers currency
+        Shuffler.Unsort serverList
+
+
+module Server =
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
         ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
@@ -289,7 +296,7 @@ module Server =
               HistoryInfo = Caching.Instance.RetreiveLastServerHistory web3Server.Url
               Retrieval = retrievalFunc }
 
-        let web3servers = GetWeb3Servers currency
+        let web3servers = Web3ServerSeedList.Randomize currency |> List.ofSeq
         let serverFuncs =
             List.map (Web3ServerToGenericServer web3Func)
                      web3servers
