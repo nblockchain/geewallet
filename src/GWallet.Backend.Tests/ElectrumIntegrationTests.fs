@@ -139,6 +139,7 @@ type ElectrumIntegrationTests() =
             "currentlane.lovebitco.in"
             "electrum.qtornado.com"
             "dedi.jochen-hoenicke.de"
+            "electrum-server.ninja"
         ]
 
     let btcNonRebelServers =
