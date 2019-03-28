@@ -7,7 +7,7 @@ type CurrencyType =
 
 module Formatting =
 
-    let DecimalAmount currencyType (amount: decimal): string =
+    let DecimalAmountRounding currencyType (amount: decimal): string =
         let amountOfDecimalsToShow,formattingStrategy =
             match currencyType with
             | CurrencyType.Fiat ->
@@ -21,8 +21,8 @@ module Formatting =
             .ToString formattingStrategy
 
     // FIXME: add unit tests for this func below
-    let ShowDecimalForHumansWithMax (currencyType: CurrencyType) (amount: decimal) (maxAmount: decimal)
-                                        : string =
+    let DecimalAmountTruncating (currencyType: CurrencyType) (amount: decimal) (maxAmount: decimal)
+                                    : string =
         let amountOfDecimalsToShow =
             match currencyType with
             | CurrencyType.Fiat -> 2
@@ -32,4 +32,4 @@ module Formatting =
         if (truncated > maxAmount) then
             failwithf "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
 
-        DecimalAmount currencyType truncated
+        DecimalAmountRounding currencyType truncated

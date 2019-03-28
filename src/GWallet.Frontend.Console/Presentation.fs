@@ -26,10 +26,10 @@ module Presentation =
             match FiatValueEstimation.UsdValue(currency) with
             | Fresh(usdValue) ->
                 sprintf "(~%s USD)"
-                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Fiat)
+                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
             | NotFresh(Cached(usdValue,time)) ->
                 sprintf "(~%s USD [last known rate at %s])"
-                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Fiat)
+                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
                     (time |> ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
         let feeMsg =
@@ -42,7 +42,7 @@ module Presentation =
         Console.WriteLine(sprintf "%s:%s %s %A %s"
                               feeMsg
                               Environment.NewLine
-                              (estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Crypto)
+                              (estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                               currency
                               estimatedFeeInUsd
                          )
@@ -54,11 +54,11 @@ module Presentation =
             | Fresh(usdPrice) ->
                 Some(sprintf "~ %s USD"
                              (trans.Proposal.Amount.ValueToSend * usdPrice
-                                 |> Formatting.DecimalAmount CurrencyType.Fiat))
+                                 |> Formatting.DecimalAmountRounding CurrencyType.Fiat))
             | NotFresh(Cached(usdPrice, time)) ->
                 Some(sprintf "~ %s USD (last exchange rate known at %s)"
                         (trans.Proposal.Amount.ValueToSend * usdPrice
-                            |> Formatting.DecimalAmount CurrencyType.Fiat)
+                            |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
                         (time |> ShowSaneDate))
             | NotFresh(NotAvailable) -> None
 
@@ -70,7 +70,7 @@ module Presentation =
             | Some(estimatedAmountInUsd) -> estimatedAmountInUsd
             | _ -> String.Empty
         Console.WriteLine (sprintf "Amount: %s %A %s"
-                                   (trans.Proposal.Amount.ValueToSend |> Formatting.DecimalAmount CurrencyType.Crypto)
+                                   (trans.Proposal.Amount.ValueToSend |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                                    trans.Proposal.Amount.Currency
                                    fiatAmount)
         Console.WriteLine()
