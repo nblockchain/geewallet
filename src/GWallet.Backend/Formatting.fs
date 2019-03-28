@@ -20,7 +20,6 @@ module Formatting =
         Math.Round(amount, amountOfDecimalsToShow)
             .ToString formattingStrategy
 
-    // FIXME: add unit tests for this func below
     let DecimalAmountTruncating (currencyType: CurrencyType) (amount: decimal) (maxAmount: decimal)
                                     : string =
         let amountOfDecimalsToShow =

@@ -69,3 +69,45 @@ type Formatting() =
         let someCryptoDecimalAmount2 = 2.1m
         let formattedAmount2 = Formatting.DecimalAmountRounding CurrencyType.Crypto someCryptoDecimalAmount2
         Assert.That(formattedAmount2, Is.EqualTo "2.1")
+
+    [<Test>]
+    member __.``basic fiat truncating exact amount test``() =
+        let someUsdDecimalAmount = 1000.55m
+        let maxAmount = someUsdDecimalAmount
+        let formattedAmount = Formatting.DecimalAmountTruncating CurrencyType.Fiat someUsdDecimalAmount maxAmount
+        Assert.That(formattedAmount, Is.EqualTo "1,000.55")
+
+    [<Test>]
+    member __.``basic crypto truncating exact amount test``() =
+        let someCryptoDecimalAmount = 12.56m
+        let maxAmount = someCryptoDecimalAmount
+        let formattedAmount = Formatting.DecimalAmountTruncating CurrencyType.Crypto someCryptoDecimalAmount maxAmount
+        Assert.That(formattedAmount, Is.EqualTo "12.56")
+
+    [<Test>]
+    member __.``basic fiat truncating down test``() =
+        let someUsdDecimalAmount = 1000.55001m
+        let maxAmount = 1000.55m
+        let formattedAmount = Formatting.DecimalAmountTruncating CurrencyType.Fiat someUsdDecimalAmount maxAmount
+        Assert.That(formattedAmount, Is.EqualTo "1,000.55")
+
+    [<Test>]
+    member __.``fiat truncating down test when round would surpass max``() =
+        let someUsdDecimalAmount = 1000.556m
+        let maxAmount = 1000.55m
+        let formattedAmount = Formatting.DecimalAmountTruncating CurrencyType.Fiat someUsdDecimalAmount maxAmount
+        Assert.That(formattedAmount, Is.EqualTo "1,000.55")
+
+    [<Test>]
+    member __.``basic crypto truncating down test``() =
+        let someCryptoDecimalAmount = 0.200001m
+        let maxAmount = 0.20000m
+        let formattedAmount = Formatting.DecimalAmountTruncating CurrencyType.Crypto someCryptoDecimalAmount maxAmount
+        Assert.That(formattedAmount, Is.EqualTo "0.2")
+
+    [<Test>]
+    member __.``crypto truncating down test when round would surpass max``() =
+        let someCryptoDecimalAmount = 0.200006m
+        let maxAmount = 0.20000m
+        let formattedAmount = Formatting.DecimalAmountTruncating CurrencyType.Crypto someCryptoDecimalAmount maxAmount
+        Assert.That(formattedAmount, Is.EqualTo "0.2")
