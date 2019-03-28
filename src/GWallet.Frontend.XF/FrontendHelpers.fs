@@ -70,12 +70,12 @@ module FrontendHelpers =
         | Fresh(usdValue) ->
             let fiatBalance = usdValue * balance
             Fresh(fiatBalance),sprintf "~ %s %s"
-                                   (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
+                                   (Formatting.DecimalAmountRounding CurrencyType.Fiat fiatBalance)
                                    defaultFiatCurrency
         | NotFresh(Cached(usdValue,time)) ->
             let fiatBalance = usdValue * balance
             NotFresh(Cached(fiatBalance,time)),sprintf "~ %s %s%s"
-                                                    (Formatting.DecimalAmount CurrencyType.Fiat fiatBalance)
+                                                    (Formatting.DecimalAmountRounding CurrencyType.Fiat fiatBalance)
                                                     defaultFiatCurrency
                                                     (MaybeReturnOutdatedMarkForOldDate time)
 
@@ -94,7 +94,7 @@ module FrontendHelpers =
             | None ->
                 sprintf "%A (?)" currency, NotFresh(NotAvailable), sprintf "(?) %s" defaultFiatCurrency
             | Some balanceAmount ->
-                let cryptoAmount = Formatting.DecimalAmount CurrencyType.Crypto balanceAmount
+                let cryptoAmount = Formatting.DecimalAmountRounding CurrencyType.Crypto balanceAmount
                 let cryptoAmountStr = sprintf "%A %s" currency cryptoAmount
                 let usdRate = FiatValueEstimation.UsdValue currency
                 let fiatAmount,fiatAmountStr = BalanceInUsdString balanceAmount usdRate
@@ -127,7 +127,8 @@ module FrontendHelpers =
                     // FIXME: probably we can only load confirmed balances in this case (no need to check unconfirmed)
                     return! UpdateBalanceAsync balanceSet false mode
             else
-                let! balance,imminentIncomingPayment = Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode
+                let! balance,imminentIncomingPayment =
+                    Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode None
                 let fiatAmount =
                     UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
                 return {

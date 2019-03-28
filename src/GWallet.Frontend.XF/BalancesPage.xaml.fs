@@ -67,18 +67,18 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             | Fresh amount ->
                 match amount with
                 | ExactBalance exactAmount ->
-                    sprintf "~ %s USD" (Formatting.DecimalAmount CurrencyType.Fiat exactAmount)
+                    sprintf "~ %s USD" (Formatting.DecimalAmountRounding CurrencyType.Fiat exactAmount)
                 | AtLeastBalance atLeastAmount ->
-                    sprintf "~ %s USD?" (Formatting.DecimalAmount CurrencyType.Fiat atLeastAmount)
+                    sprintf "~ %s USD?" (Formatting.DecimalAmountRounding CurrencyType.Fiat atLeastAmount)
             | NotFresh(Cached(cachedAmount,time)) ->
                 match cachedAmount with
                 | ExactBalance exactAmount ->
                     sprintf "~ %s USD%s"
-                           (Formatting.DecimalAmount CurrencyType.Fiat exactAmount)
+                           (Formatting.DecimalAmountRounding CurrencyType.Fiat exactAmount)
                            (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
                 | AtLeastBalance atLeastAmount ->
                     sprintf "~ %s USD%s?"
-                           (Formatting.DecimalAmount CurrencyType.Fiat atLeastAmount)
+                           (Formatting.DecimalAmountRounding CurrencyType.Fiat atLeastAmount)
                            (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
 
         totalFiatAmountLabel.Text <- sprintf "Total Assets:\n%s" strBalance

@@ -80,21 +80,22 @@ type PairingToPage(balancesPage: Page,
             scanQrCodeButton.IsEnabled <- false
             coldAddressesEntry.IsEnabled <- false
         )
-        Account.CreateReadOnlyAccounts watchWalletInfo
 
-        let readOnlyAccounts = Account.GetAllActiveAccounts().OfType<ReadOnlyAccount>() |> List.ofSeq
-                               |> List.map (fun account -> account :> IAccount)
-        let readOnlyAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
-        let checkReadOnlyBalancesInParallel =
-            seq {
-                for readOnlyAccountBalanceSet in readOnlyAccountsWithLabels do
-                    yield FrontendHelpers.UpdateBalanceAsync readOnlyAccountBalanceSet false Mode.Fast
-            } |> Async.Parallel
-        let normalAccountsBalancesJob =
-            FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balanceState ->
-                                                                                      balanceState.BalanceSet)) true
+        async {
+            do! Account.CreateReadOnlyAccounts watchWalletInfo
 
-        let updateBalancesInParallelAndSwitchBackToBalPage = async {
+            let readOnlyAccounts = Account.GetAllActiveAccounts().OfType<ReadOnlyAccount>() |> List.ofSeq
+                                   |> List.map (fun account -> account :> IAccount)
+            let readOnlyAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
+            let checkReadOnlyBalancesInParallel =
+                seq {
+                    for readOnlyAccountBalanceSet in readOnlyAccountsWithLabels do
+                        yield FrontendHelpers.UpdateBalanceAsync readOnlyAccountBalanceSet false Mode.Fast
+                } |> Async.Parallel
+            let normalAccountsBalancesJob =
+                FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balanceState ->
+                                                                                          balanceState.BalanceSet)) true
+
             let allBalancesJob =
                 Async.Parallel(normalAccountsBalancesJob::(checkReadOnlyBalancesInParallel::List.Empty))
             let! allResolvedBalances = allBalancesJob
@@ -115,8 +116,7 @@ type PairingToPage(balancesPage: Page,
 
                 this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
             )
-        }
-        Async.StartAsTask updateBalancesInParallelAndSwitchBackToBalPage
-            |> FrontendHelpers.DoubleCheckCompletion
+        } |> Async.StartAsTask
+          |> FrontendHelpers.DoubleCheckCompletion
 
 

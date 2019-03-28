@@ -213,7 +213,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         | _ ->
                             failwith "if no balance was available(offline?), currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
                     | _ ->
-                        Formatting.DecimalAmount CurrencyType.Crypto (decimalAmountTyped / rate)
+                        Formatting.DecimalAmountRounding CurrencyType.Crypto (decimalAmountTyped / rate)
                 currentAmountTypedEntry.Text <- convertedAmount
 
     member private this.ShowWarningAndEnableFormWidgetsAgain (msg: string) =
@@ -238,9 +238,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                     password
                                         |> Async.RunSynchronously |> Some
             with
-            | InsufficientFee errMsg ->
-                this.ShowWarningAndEnableFormWidgetsAgain errMsg
-                None
             | :? DestinationEqualToOrigin ->
                 let errMsg = "Transaction's origin cannot be the same as the destination."
                 this.ShowWarningAndEnableFormWidgetsAgain errMsg
@@ -277,17 +274,20 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 showSuccessAndGoBack |> Async.StartImmediate
             )
 
-    member private this.ValidateAddress currency destinationAddress =
+    member private this.ValidateAddress currency destinationAddress = async {
         try
-            Account.ValidateAddress currency destinationAddress
-            Some(destinationAddress)
+            do! Account.ValidateAddress currency destinationAddress
+            return Some destinationAddress
         with
+        | InvalidDestinationAddress errMsg ->
+            this.DisplayAlert("Alert", errMsg, "OK") |> ignore
+            return None
         | AddressMissingProperPrefix(possiblePrefixes) ->
             let possiblePrefixesStr = String.Join(", ", possiblePrefixes)
             let msg =  (sprintf "Address starts with the wrong prefix. Valid prefixes: %s."
                                     possiblePrefixesStr)
             this.DisplayAlert("Alert", msg, "OK") |> ignore
-            None
+            return None
         | AddressWithInvalidLength lengthLimitInfo ->
             let msg =
                 match lengthLimitInfo.Count() with
@@ -314,7 +314,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                (lengthLimitInfo.Count())
 
             this.DisplayAlert("Alert", msg, "OK") |> ignore
-            None
+            return None
         | AddressWithInvalidChecksum(maybeAddressWithValidChecksum) ->
             let final =
                 match maybeAddressWithValidChecksum with
@@ -330,7 +330,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             if final.IsNone then
                 let msg = "Address doesn't seem to be valid, please try again."
                 this.DisplayAlert("Alert", msg, "OK") |> ignore
-            final
+            return final
+    }
 
     member private this.IsPasswordUnfilledAndNeeded (mainLayout: StackLayout) =
         match account with
@@ -463,10 +464,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         let eqAmount,otherCurrency =
                             match currencySelectorPicker.SelectedItem.ToString() with
                             | "USD" ->
-                                Formatting.DecimalAmount CurrencyType.Crypto (amount / rate),
+                                Formatting.DecimalAmountRounding CurrencyType.Crypto (amount / rate),
                                     account.Currency.ToString()
                             | _ ->
-                                Formatting.DecimalAmount CurrencyType.Fiat (rate * amount),
+                                Formatting.DecimalAmountRounding CurrencyType.Fiat (rate * amount),
                                     "USD"
                         let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
                         equivalentAmount.Text <- usdAmount
@@ -632,10 +633,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
                 let feeInFiatValue = someUsdValue * feeInCrypto
                 let feeInFiatValueStr = sprintf "~ %s USD"
-                                                (Formatting.DecimalAmount CurrencyType.Fiat feeInFiatValue)
+                                                (Formatting.DecimalAmountRounding CurrencyType.Fiat feeInFiatValue)
 
                 let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s (%s)"
-                                      (Formatting.DecimalAmount CurrencyType.Crypto feeInCrypto)
+                                      (Formatting.DecimalAmountRounding CurrencyType.Crypto feeInCrypto)
                                       (txMetadataWithFeeEstimation.Currency.ToString())
                                       feeInFiatValueStr
                 let showFee = async {
@@ -673,8 +674,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     Async.StartImmediate afterSuccessfullBroadcastJob
                 )
             with
-            | InsufficientFee errMsg ->
-                this.ShowWarningAndEnableFormWidgetsAgain errMsg
             | :? DestinationEqualToOrigin ->
                 let errMsg = "Transaction's origin cannot be the same as the destination."
                 this.ShowWarningAndEnableFormWidgetsAgain errMsg
@@ -727,60 +726,57 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
                 this.ToggleInputWidgetsEnabledOrDisabled false
 
-                let maybeValidatedAddress = this.ValidateAddress currency destinationAddress
-                match maybeValidatedAddress with
-                | None -> this.ToggleInputWidgetsEnabledOrDisabled true
-                | Some validatedDestinationAddress ->
+                async {
+                    let! maybeValidatedAddress = this.ValidateAddress currency destinationAddress
+                    match maybeValidatedAddress with
+                    | None -> this.ToggleInputWidgetsEnabledOrDisabled true
+                    | Some validatedDestinationAddress ->
 
-                    match lock lockObject (fun _ -> transaction) with
-                    | ColdStorageMode (None) ->
-                        failwith "Sign button should not have been enabled if no transaction proposal was stored"
-                    | ColdStorageMode (Some someTransactionProposal) ->
-                        // FIXME: convert TransferAmount type into a record, to make it have default Equals() behaviour
-                        //        so that we can simplify the below 3 conditions of the `if` statements into 1:
-                        if (transferAmount.ValueToSend <> someTransactionProposal.Proposal.Amount.ValueToSend) ||
-                           (transferAmount.Currency <> someTransactionProposal.Proposal.Amount.Currency) ||
-                           (transferAmount.BalanceAtTheMomentOfSending <>
-                               someTransactionProposal.Proposal.Amount.BalanceAtTheMomentOfSending) then
-                            failwith "Amount's entry should have been disabled (readonly), but somehow it wasn't because it ended up being different than the transaction proposal"
-                        if (validatedDestinationAddress <> someTransactionProposal.Proposal.DestinationAddress) then
-                            failwith "Destination's entry should have been disabled (readonly), but somehow it wasn't because it ended up being different than the transaction proposal"
+                        match lock lockObject (fun _ -> transaction) with
+                        | ColdStorageMode (None) ->
+                            failwith "Sign button should not have been enabled if no transaction proposal was stored"
+                        | ColdStorageMode (Some someTransactionProposal) ->
+                            // FIXME: convert TransferAmount type into a record, to make it have default Equals() behaviour
+                            //        so that we can simplify the below 3 conditions of the `if` statements into 1:
+                            if (transferAmount.ValueToSend <> someTransactionProposal.Proposal.Amount.ValueToSend) ||
+                               (transferAmount.Currency <> someTransactionProposal.Proposal.Amount.Currency) ||
+                               (transferAmount.BalanceAtTheMomentOfSending <>
+                                   someTransactionProposal.Proposal.Amount.BalanceAtTheMomentOfSending) then
+                                failwith "Amount's entry should have been disabled (readonly), but somehow it wasn't because it ended up being different than the transaction proposal"
+                            if (validatedDestinationAddress <> someTransactionProposal.Proposal.DestinationAddress) then
+                                failwith "Destination's entry should have been disabled (readonly), but somehow it wasn't because it ended up being different than the transaction proposal"
 
-                        this.ShowFeeAndSend(Some someTransactionProposal.Metadata,
-                                            someTransactionProposal.Proposal.Amount,
-                                            validatedDestinationAddress)
+                            this.ShowFeeAndSend(Some someTransactionProposal.Metadata,
+                                                someTransactionProposal.Proposal.Amount,
+                                                validatedDestinationAddress)
 
-                    | ColdStorageRemoteControl maybeSignedTransaction ->
-                        match maybeSignedTransaction with
-                        | None -> failwith "if broadcast button was enabled, signed transaction should have been deserialized already"
-                        | Some signedTransaction ->
-                            this.BroadcastTransaction signedTransaction
+                        | ColdStorageRemoteControl maybeSignedTransaction ->
+                            match maybeSignedTransaction with
+                            | None -> failwith "if broadcast button was enabled, signed transaction should have been deserialized already"
+                            | Some signedTransaction ->
+                                this.BroadcastTransaction signedTransaction
 
-                    | NotAvailableBecauseOfHotMode ->
-                        let maybeTxMetadataWithFeeEstimationAsync = async {
-                            try
-                                let! txMetadataWithFeeEstimation =
-                                    Account.EstimateFee account transferAmount validatedDestinationAddress
-                                return Some txMetadataWithFeeEstimation
-                            with
-                            | :? InsufficientBalanceForFee ->
-                                let alertLowBalanceMsg =
-                                    // TODO: support cold storage mode here
-                                    "Remaining balance would be too low for the estimated fee, try sending lower amount"
-                                this.ShowWarningAndEnableFormWidgetsAgain alertLowBalanceMsg
-                                return None
-                        }
+                        | NotAvailableBecauseOfHotMode ->
+                            let maybeTxMetadataWithFeeEstimationAsync = async {
+                                try
+                                    let! txMetadataWithFeeEstimation =
+                                        Account.EstimateFee account transferAmount validatedDestinationAddress
+                                    return Some txMetadataWithFeeEstimation
+                                with
+                                | :? InsufficientBalanceForFee ->
+                                    let alertLowBalanceMsg =
+                                        // TODO: support cold storage mode here
+                                        "Remaining balance would be too low for the estimated fee, try sending lower amount"
+                                    this.ShowWarningAndEnableFormWidgetsAgain alertLowBalanceMsg
+                                    return None
+                            }
 
-                        let showFeeAndSendJob = async {
                             let! maybeTxMetadataWithFeeEstimation = maybeTxMetadataWithFeeEstimationAsync
                             this.ShowFeeAndSend(maybeTxMetadataWithFeeEstimation,
                                                 transferAmount,
                                                 validatedDestinationAddress)
-                        }
-                        showFeeAndSendJob
-                            |> Async.StartAsTask
-                            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                    ()
+                }    |> Async.StartAsTask
+                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     interface FrontendHelpers.IAugmentablePayPage with
         member this.AddTransactionScanner() =
