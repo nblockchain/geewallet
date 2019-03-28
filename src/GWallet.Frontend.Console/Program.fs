@@ -15,9 +15,6 @@ let rec TrySendAmount (account: NormalAccount) transactionMetadata destination a
         Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
         UserInteraction.PressAnyKeyToContinue ()
     with
-    | InsufficientFee msg ->
-        Presentation.Error msg
-        UserInteraction.PressAnyKeyToContinue()
     | :? DestinationEqualToOrigin ->
         Presentation.Error "Transaction's origin cannot be the same as the destination."
         UserInteraction.PressAnyKeyToContinue()
@@ -56,9 +53,6 @@ let BroadcastPayment() =
             Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
             UserInteraction.PressAnyKeyToContinue ()
         with
-        | InsufficientFee msg ->
-            Presentation.Error msg
-            UserInteraction.PressAnyKeyToContinue()
         | :? DestinationEqualToOrigin ->
             Presentation.Error "Transaction's origin cannot be the same as the destination."
             UserInteraction.PressAnyKeyToContinue()
@@ -182,7 +176,9 @@ let ArchiveAccount() =
             Console.WriteLine "Read-only account removed."
             UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
-        let balance,_ = Account.GetShowableBalanceAndImminentIncomingPayment account Mode.Fast |> Async.RunSynchronously
+        let balance,_ =
+            Account.GetShowableBalanceAndImminentIncomingPayment account Mode.Fast None
+                |> Async.RunSynchronously
         match balance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Removing accounts when offline is not supported."
@@ -244,6 +240,7 @@ let rec PerformOptions(numAccounts: int) =
         SendPayment()
     | Options.AddReadonlyAccounts ->
         AddReadOnlyAccounts()
+            |> Async.RunSynchronously
     | Options.SignOffPayment ->
         SignOffPayment()
     | Options.BroadcastPayment ->
@@ -263,7 +260,9 @@ let rec GetAccountOfSameCurrency currency =
         account
 
 let rec CheckArchivedAccountsAreEmpty(): bool =
-    let archivedAccountsInNeedOfAction = Account.GetArchivedAccountsWithPositiveBalance() |> Async.RunSynchronously
+    let archivedAccountsInNeedOfAction =
+        Account.GetArchivedAccountsWithPositiveBalance None
+            |> Async.RunSynchronously
     for archivedAccount,balance in archivedAccountsInNeedOfAction do
         let currency = (archivedAccount:>IAccount).Currency
         Console.WriteLine (sprintf "ALERT! An archived account has received funds:%sAddress: %s Balance: %s%A"

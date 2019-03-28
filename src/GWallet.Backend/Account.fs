@@ -3,28 +3,34 @@
 open System
 open System.Linq
 open System.IO
+open System.Threading
 open System.Threading.Tasks
 
 module Account =
 
-    let private GetShowableBalanceAndImminentPaymentInternal(account: IAccount) (mode: Mode)
-                                                                : Async<Option<decimal*Option<bool>>> =
+    let private GetShowableBalanceAndImminentPaymentInternal (account: IAccount)
+                                                             (mode: Mode)
+                                                             (cancelSourceOption: Option<CancellationTokenSource>)
+                                                                 : Async<Option<decimal*Option<bool>>> =
         match account with
         | :? UtxoCoin.IUtxoAccount as utxoAccount ->
             if not (account.Currency.IsUtxo()) then
                 failwithf "Currency %A not Utxo-type but account is? report this bug (balance)" account.Currency
 
-            UtxoCoin.Account.GetShowableBalanceAndImminentIncomingPayment utxoAccount mode
+            UtxoCoin.Account.GetShowableBalanceAndImminentIncomingPayment utxoAccount mode cancelSourceOption
         | _ ->
             if not (account.Currency.IsEtherBased()) then
                 failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (balance)"
                     account.Currency
-            Ether.Account.GetShowableBalanceAndImminentIncomingPayment account mode
+            Ether.Account.GetShowableBalanceAndImminentIncomingPayment account mode cancelSourceOption
 
-    let GetShowableBalanceAndImminentIncomingPayment (account: IAccount) (mode: Mode)
+    let GetShowableBalanceAndImminentIncomingPayment (account: IAccount)
+                                                     (mode: Mode)
+                                                     (cancelSourceOption: Option<CancellationTokenSource>)
                                                          : Async<MaybeCached<decimal>*Option<bool>> =
         async {
-            let! maybeBalanceAndImminentIncomingPayment = GetShowableBalanceAndImminentPaymentInternal account mode
+            let! maybeBalanceAndImminentIncomingPayment =
+                GetShowableBalanceAndImminentPaymentInternal account mode cancelSourceOption
             match maybeBalanceAndImminentIncomingPayment with
             | None ->
                 let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
@@ -106,7 +112,8 @@ module Account =
                 EtherPublicAddress = etherPublicAddress
             }
 
-    let GetArchivedAccountsWithPositiveBalance(): Async<seq<ArchivedAccount*decimal>> =
+    let GetArchivedAccountsWithPositiveBalance (cancelSourceOption: Option<CancellationTokenSource>)
+                                                   : Async<seq<ArchivedAccount*decimal>> =
         let asyncJobs = seq<Async<ArchivedAccount*Option<decimal>>> {
             let allCurrencies = Currency.GetAll()
 
@@ -127,7 +134,7 @@ module Account =
                     let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
                     let maybeBalanceJob = GetShowableBalanceAndImminentPaymentInternal account Mode.Fast
                     yield async {
-                        let! maybeBalance = maybeBalanceJob
+                        let! maybeBalance = maybeBalanceJob cancelSourceOption
                         let positiveBalance =
                             match maybeBalance with
                             | Some (balance,_) ->
@@ -152,13 +159,16 @@ module Account =
         }
 
     // TODO: add tests for these (just in case address validation breaks after upgrading our dependencies)
-    let ValidateAddress (currency: Currency) (address: string) =
+    let ValidateAddress (currency: Currency) (address: string): Async<unit> = async {
         if currency.IsEtherBased() then
             Ether.Account.ValidateAddress currency address
+            do! Ether.Server.CheckIfAddressIsAValidPaymentDestination currency address
         elif currency.IsUtxo() then
             UtxoCoin.Account.ValidateAddress currency address
         else
             failwith (sprintf "Unknown currency %A" currency)
+    }
+
 
     let ValidateUnknownCurrencyAddress (address: string): List<Currency> =
         if address.StartsWith "0x" then
@@ -215,7 +225,7 @@ module Account =
             | :? Ether.TransactionMetadata as etherTxMetadata ->
                 let! outOfGas = Ether.Server.IsOutOfGas transactionMetadata.Currency txHash etherTxMetadata.Fee.GasLimit
                 if outOfGas then
-                    return raise <| InsufficientFee "Transaction ran out of gas"
+                    return failwithf "Transaction ran out of gas: %s" txHash
             | _ ->
                 ()
         }
@@ -337,9 +347,10 @@ module Account =
             raise DestinationEqualToOrigin
 
         let currency = baseAccount.Currency
-        ValidateAddress currency destination
 
         async {
+            do! ValidateAddress currency destination
+
             let! txId =
                 match txMetadata with
                 | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
@@ -429,9 +440,9 @@ module Account =
         let json = SerializeSignedTransaction trans false
         File.WriteAllText(filePath, json)
 
-    let CreateReadOnlyAccounts (watchWalletInfo: WatchWalletInfo): unit =
+    let CreateReadOnlyAccounts (watchWalletInfo: WatchWalletInfo): Async<unit> = async {
         for etherCurrency in Currency.GetAll().Where(fun currency -> currency.IsEtherBased()) do
-            ValidateAddress etherCurrency watchWalletInfo.EtherPublicAddress
+            do! ValidateAddress etherCurrency watchWalletInfo.EtherPublicAddress
             let conceptAccountForReadOnlyAccount = {
                 Currency = etherCurrency
                 FileRepresentation = { Name = watchWalletInfo.EtherPublicAddress; Content = fun _ -> String.Empty }
@@ -443,13 +454,14 @@ module Account =
             let address =
                 UtxoCoin.Account.GetPublicAddressFromPublicKey utxoCurrency
                                                                (NBitcoin.PubKey(watchWalletInfo.UtxoCoinPublicKey))
-            ValidateAddress utxoCurrency address
+            do! ValidateAddress utxoCurrency address
             let conceptAccountForReadOnlyAccount = {
                 Currency = utxoCurrency
                 FileRepresentation = { Name = address; Content = fun _ -> watchWalletInfo.UtxoCoinPublicKey }
                 ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
             }
             Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly |> ignore
+    }
 
     let Remove (account: ReadOnlyAccount) =
         Config.RemoveReadOnlyAccount account
@@ -552,9 +564,6 @@ module Account =
     let private SerializeUnsignedTransactionPlain (transProposal: UnsignedTransactionProposal)
                                                   (txMetadata: IBlockchainFeeInfo)
                                                       : string =
-
-        ValidateAddress transProposal.Amount.Currency transProposal.DestinationAddress
-
         let readOnlyAccounts = GetAllActiveAccounts().OfType<ReadOnlyAccount>()
 
         match txMetadata with

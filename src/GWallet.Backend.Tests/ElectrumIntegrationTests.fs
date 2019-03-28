@@ -133,6 +133,26 @@ type ElectrumIntegrationTests() =
     let CheckElectrumServersConnection a b c d =
         TestElectrumServersConnections a b c d 2u
 
+    let rebelBtcServerHostnames =
+        [
+            "E-X.not.fyi"
+            "currentlane.lovebitco.in"
+            "electrum.qtornado.com"
+            "dedi.jochen-hoenicke.de"
+            "electrum-server.ninja"
+            "electrum.eff.ro"
+        ]
+
+    let btcNonRebelServers =
+        List.filter
+            (fun server -> rebelBtcServerHostnames.All(fun rebel -> server.Fqdn <> rebel))
+            ElectrumServerSeedList.DefaultBtcList
+
+    let btcRebelServers =
+        List.filter
+            (fun server -> rebelBtcServerHostnames.Any(fun rebel -> server.Fqdn = rebel))
+            ElectrumServerSeedList.DefaultBtcList
+
     let UtxosAssertion (utxos: array<BlockchainScripthashListUnspentInnerResult>) =
         // if these ancient addresses get withdrawals it would be interesting in the crypto space...
         // so let's make the test check a balance like this which is unlikely to change
@@ -185,9 +205,8 @@ type ElectrumIntegrationTests() =
     member __.``can get list UTXOs of an address from some electrum BTC servers``() =
         let currency = Currency.BTC
         let argument = GetScriptHash currency
-        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList currency
+        CheckElectrumServersConnection btcNonRebelServers currency
                                        (ElectrumClient.GetUnspentTransactionOutputs argument) UtxosAssertion
-
 
     [<Test>]
     member __.``should not get empty/null response from electrum BTC servers``() =
@@ -196,23 +215,17 @@ type ElectrumIntegrationTests() =
         // some random existing transaction
         let argument = "2f309ef555110ab4e9c920faa2d43e64f195aa027e80ec28e1d243bd8929a2fc"
 
-        CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList currency
+        CheckElectrumServersConnection btcNonRebelServers currency
                                        (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
 
     [<Test>]
-    member __.``should not get empty/null response from electrum BTC servers (specific rebel server)``() =
+    [<Ignore "another instance of https://gitlab.com/DiginexGlobal/geewallet/issues/54">]
+    member __.``should not get empty/null response from electrum BTC servers (rebel ones)``() =
         let currency = Currency.BTC
 
         // some random existing transaction
         let argument = "2f309ef555110ab4e9c920faa2d43e64f195aa027e80ec28e1d243bd8929a2fc"
 
-        let sameServerManyTimes =
-            Seq.replicate 5 (List.find(fun s -> s.Fqdn = "E-X.not.fyi" ||
-                                                s.Fqdn = "currentlane.lovebitco.in")
-                                       ElectrumServerSeedList.DefaultBtcList)
-
-        TestElectrumServersConnections sameServerManyTimes
-                                       currency
+        CheckElectrumServersConnection btcRebelServers currency
                                        (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
-                                       0u
 

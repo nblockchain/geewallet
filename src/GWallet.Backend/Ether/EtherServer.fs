@@ -4,9 +4,8 @@ open System
 open System.Net
 open System.Numerics
 open System.Linq
-open System.Threading.Tasks
+open System.Threading
 
-open Nethereum
 open Nethereum.Util
 open Nethereum.Hex.HexTypes
 open Nethereum.Web3
@@ -19,76 +18,18 @@ type BalanceType =
     | Unconfirmed
     | Confirmed
 
-module Server =
+type SomeWeb3(url: string) =
+    inherit Web3(url)
 
-    type SomeWeb3(url: string) =
-        inherit Web3(url)
+    member val Url = url with get
 
-        member val Url = url with get
+type TransactionStatusDetails =
+    {
+        GasUsed: BigInteger
+        Status: BigInteger
+    }
 
-    type ServerTimedOutException =
-       inherit ConnectionUnsuccessfulException
-
-       new(message: string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
-       new(message: string) = { inherit ConnectionUnsuccessfulException(message) }
-
-    type ServerCannotBeResolvedException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerUnreachableException(message:string, innerException: Exception) =
-        inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerUnavailableException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerChannelNegotiationException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type ServerMisconfiguredException =
-       inherit ConnectionUnsuccessfulException
-
-       new (message:string, innerException: Exception) =
-           { inherit ConnectionUnsuccessfulException (message, innerException) }
-       new (message:string) =
-           { inherit ConnectionUnsuccessfulException (message) }
-
-    type ServerRestrictiveException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
-
-    type UnhandledWebException(status: WebExceptionStatus, innerException: Exception) =
-       inherit Exception (sprintf "GWallet not prepared for this WebException with Status[%d]" (int status),
-                          innerException)
-
-    // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
-    type CloudFlareError =
-        | ConnectionTimeOut = 522
-        | WebServerDown = 521
-        | OriginUnreachable = 523
-        | OriginSslHandshakeError = 525
-
-    type HttpStatusCodeNotPresentInTheBcl =
-        | TooManyRequests = 429
-
-    type RpcErrorCode =
-        // "This request is not supported because your node is running with state pruning. Run with --pruning=archive."
-        | StatePruningNode = -32000
-
-        // ambiguous or generic because I've seen same code applied to two different error messages already:
-        // "Transaction with the same hash was already imported. (Transaction with the same hash was already imported.)"
-        // AND
-        // "There are too many transactions in the queue. Your transaction was dropped due to limit.
-        //  Try increasing the fee. (There are too many transactions in the queue. Your transaction was dropped due to
-        //  limit. Try increasing the fee.)"
-        | AmbiguousOrGenericError = -32010
-
-        | UnknownBlockNumber = -32602
-        | GatewayTimeout = -32050
-
-    type TransactionStatusDetails =
-        {
-            GasUsed: BigInteger
-            Status: BigInteger
-        }
+module Web3ServerSeedList =
 
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
@@ -117,7 +58,7 @@ module Server =
     let private etcWeb3GasTracker = SomeWeb3 "https://web3.gastracker.io"
     let private etcWeb3EtcCooperative = SomeWeb3 "https://ethereumclassic.network"
 
-    let GetWeb3Servers (currency: Currency): List<SomeWeb3> =
+    let private GetWeb3Servers (currency: Currency): List<SomeWeb3> =
         if currency = ETC then
             [
                 etcWeb3EtcCooperative;
@@ -146,6 +87,13 @@ module Server =
         else
             failwithf "Assertion failed: Ether currency %A not supported?" currency
 
+    let Randomize currency =
+        let serverList = GetWeb3Servers currency
+        Shuffler.Unsort serverList
+
+
+module Server =
+
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
         ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
 
@@ -154,7 +102,7 @@ module Server =
         let! maybeResult = FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT job
         match maybeResult with
         | None ->
-            return raise <| ServerTimedOutException(exMsg)
+            return raise <| ServerTimedOutException("Timeout when trying to communicate with Ether server")
         | Some result ->
             return result
     }
@@ -167,16 +115,19 @@ module Server =
                 raise <| ServerTimedOutException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
                 raise <| ServerTimedOutException(exMsg, httpReqEx)
+
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
-                raise <| ServerChannelNegotiationException(exMsg, httpReqEx)
+                raise <| ServerChannelNegotiationException(exMsg, CloudFlareError.OriginSslHandshakeError, httpReqEx)
+
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
-                raise <| ServerUnreachableException(exMsg, httpReqEx)
+                raise <| ServerUnreachableException(exMsg, CloudFlareError.WebServerDown, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
-                raise <| ServerUnreachableException(exMsg, httpReqEx)
+                raise <| ServerUnreachableException(exMsg, HttpStatusCode.BadGateway, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
+                raise <| ServerUnreachableException(exMsg, HttpStatusCode.GatewayTimeout, httpReqEx)
+
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.ServiceUnavailable) then
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
-            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
-                raise <| ServerUnreachableException(exMsg, httpReqEx)
 
             // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
@@ -185,6 +136,7 @@ module Server =
                 raise <| ServerMisconfiguredException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
+
             if HttpRequestExceptionMatchesErrorCode
                 httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
                     raise <| ServerRestrictiveException(exMsg, httpReqEx)
@@ -251,17 +203,17 @@ module Server =
 
             if webEx.Status = WebExceptionStatus.NameResolutionFailure then
                 raise <| ServerCannotBeResolvedException(exMsg, webEx)
-            if webEx.Status = WebExceptionStatus.SecureChannelFailure then
-                raise <| ServerChannelNegotiationException(exMsg, webEx)
             if webEx.Status = WebExceptionStatus.ReceiveFailure then
                 raise <| ServerTimedOutException(exMsg, webEx)
             if webEx.Status = WebExceptionStatus.ConnectFailure then
                 raise <| ServerUnreachableException(exMsg, webEx)
-            if webEx.Status = WebExceptionStatus.RequestCanceled then
-                raise <| ServerChannelNegotiationException(exMsg, webEx)
 
+            if webEx.Status = WebExceptionStatus.SecureChannelFailure then
+                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
+            if webEx.Status = WebExceptionStatus.RequestCanceled then
+                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
             if (webEx.Status = WebExceptionStatus.TrustFailure) then
-                raise <| ServerChannelNegotiationException(exMsg, webEx)
+                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
 
             // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
             if not Networking.Tls12Support then
@@ -304,6 +256,7 @@ module Server =
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             Mode = mode
+            ShouldReportUncancelledJobs = true
         }
 
     let private FaultTolerantParallelClientDefaultSettings (currency: Currency) (mode: Mode) =
@@ -351,7 +304,7 @@ module Server =
               HistoryInfo = Caching.Instance.RetreiveLastServerHistory web3Server.Url
               Retrieval = retrievalFunc }
 
-        let web3servers = GetWeb3Servers currency
+        let web3servers = Web3ServerSeedList.Randomize currency |> List.ofSeq
         let serverFuncs =
             List.map (Web3ServerToGenericServer web3Func)
                      web3servers
@@ -364,7 +317,9 @@ module Server =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
                     let transactionCountJob =
                         async {
-                            let task = web3.Eth.Transactions.GetTransactionCount.SendRequestAsync address
+                            let! cancelToken = Async.CancellationToken
+                            let task =
+                                web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(address, null, cancelToken)
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures transactionCountJob
@@ -377,7 +332,10 @@ module Server =
     let private NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED = BigInteger(45)
     let private GetBlockToCheckForConfirmedBalance(web3: Web3): Async<BlockParameter> =
         async {
-            let! latestBlock = web3.Eth.Blocks.GetBlockNumber.SendRequestAsync () |> Async.AwaitTask
+            let! cancelToken = Async.CancellationToken
+            let! latestBlock =
+                web3.Eth.Blocks.GetBlockNumber.SendRequestAsync (null, cancelToken)
+                    |> Async.AwaitTask
             if (latestBlock = null) then
                 failwith "latestBlock somehow is null"
 
@@ -402,12 +360,20 @@ module Server =
                 Console.Error.WriteLine (sprintf "Last block number and last confirmed block number: %s: %s"
                                                  (latestBlock.Value.ToString()) (blockForConfirmationReference.BlockNumber.Value.ToString()))
 *)
+
+            let! cancelToken = Async.CancellationToken
+            cancelToken.ThrowIfCancellationRequested()
             let! balance =
-                web3.Eth.GetBalance.SendRequestAsync(publicAddress,blockForConfirmationReference) |> Async.AwaitTask
+                web3.Eth.GetBalance.SendRequestAsync (publicAddress,
+                                                      blockForConfirmationReference,
+                                                      null,
+                                                      cancelToken)
+                    |> Async.AwaitTask
             return balance
         }
 
     let GetEtherBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode)
+                        (cancelSourceOption: Option<CancellationTokenSource>)
                                      : Async<BigInteger> =
         async {
             let web3Funcs =
@@ -418,14 +384,23 @@ module Server =
                             GetConfirmedEtherBalanceInternal web3 address
                         | BalanceType.Unconfirmed ->
                             async {
-                                let task = web3.Eth.GetBalance.SendRequestAsync address
+                                let! cancelToken = Async.CancellationToken
+                                let task = web3.Eth.GetBalance.SendRequestAsync (address, null, cancelToken)
                                 return! Async.AwaitTask task
                             }
                     let! balance = HandlePossibleEtherFailures job
                     return balance.Value
                 }
                 GetWeb3Funcs currency web3Func
-            return! faultTolerantEtherClient.Query
+
+            let query =
+                match cancelSourceOption with
+                | None ->
+                    faultTolerantEtherClient.Query
+                | Some cancelSource ->
+                    faultTolerantEtherClient.QueryWithCancellation cancelSource
+
+            return! query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
                         web3Funcs
         }
@@ -441,14 +416,23 @@ module Server =
             let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
             if (contractHandler = null) then
                 failwith "contractHandler somehow is null"
+
+            let! cancelToken = Async.CancellationToken
+            cancelToken.ThrowIfCancellationRequested()
             let! balance = contractHandler.QueryAsync<BalanceOfFunction,BigInteger>
                                     (balanceOfFunctionMsg,
-                                     blockForConfirmationReference) |> Async.AwaitTask
+                                     blockForConfirmationReference,
+                                     cancelToken) |> Async.AwaitTask
             return balance
         }
 
 
-    let GetTokenBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode): Async<BigInteger> =
+    let GetTokenBalance (currency: Currency)
+                        (address: string)
+                        (balType: BalanceType)
+                        (mode: Mode)
+                        (cancelSourceOption: Option<CancellationTokenSource>)
+                            : Async<BigInteger> =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<BigInteger> =
@@ -458,16 +442,23 @@ module Server =
                             GetConfirmedTokenBalanceInternal web3 address
                         | BalanceType.Unconfirmed ->
                             let tokenService = TokenManager.DaiContract web3
-                            let balanceFunc: string->Task<BigInteger>
-                                = tokenService.BalanceOfQueryAsync
                             async {
-                                let task = balanceFunc address
+                                let! cancelToken = Async.CancellationToken
+                                let task = tokenService.BalanceOfQueryAsync (address, null, cancelToken)
                                 return! Async.AwaitTask task
                             }
 
                     HandlePossibleEtherFailures job
                 GetWeb3Funcs currency web3Func
-            return! faultTolerantEtherClient.Query
+
+            let query =
+                match cancelSourceOption with
+                | None ->
+                    faultTolerantEtherClient.Query
+                | Some cancelSource ->
+                    faultTolerantEtherClient.QueryWithCancellation cancelSource
+
+            return! query
                         (FaultTolerantParallelClientDefaultSettings currency mode)
                         web3Funcs
         }
@@ -484,7 +475,9 @@ module Server =
                                                                Value = amountInWei)
                     let gasJob =
                         async {
-                            let task = contractHandler.EstimateGasAsync<TransferFunction> transferFunctionMsg
+                            let! cancelToken = Async.CancellationToken
+                            let task =
+                                contractHandler.EstimateGasAsync<TransferFunction>(transferFunctionMsg, cancelToken)
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures gasJob
@@ -507,7 +500,8 @@ module Server =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
                     let gasPriceJob =
                         async {
-                            let task = web3.Eth.GasPrice.SendRequestAsync()
+                            let! cancelToken = Async.CancellationToken
+                            let task = web3.Eth.GasPrice.SendRequestAsync cancelToken
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures gasPriceJob
@@ -529,7 +523,9 @@ module Server =
                 let web3Func (web3: Web3): Async<string> =
                     let broadcastJob =
                         async {
-                            let task = web3.Eth.Transactions.SendRawTransaction.SendRequestAsync transaction
+                            let! cancelToken = Async.CancellationToken
+                            let task =
+                                web3.Eth.Transactions.SendRawTransaction.SendRequestAsync(transaction, cancelToken)
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures broadcastJob
@@ -558,7 +554,9 @@ module Server =
             let web3Funcs =
                 let web3Func (web3: Web3): Async<TransactionStatusDetails> =
                     async {
-                        let task = web3.TransactionManager.TransactionReceiptService.PollForReceiptAsync txHash
+                        let! cancelToken = Async.CancellationToken
+                        let task =
+                            web3.TransactionManager.TransactionReceiptService.PollForReceiptAsync(txHash, cancelToken)
                         let! transactionReceipt = Async.AwaitTask task
                         return {
                             GasUsed = transactionReceipt.GasUsed.Value
@@ -578,3 +576,34 @@ module Server =
             return transactionStatusDetails.Status = failureStatus &&
                    transactionStatusDetails.GasUsed = BigInteger(spentGas)
         }
+
+    let private GetContractCode (baseCurrency: Currency) (address: string)
+                                    : Async<string> =
+        async {
+            let web3Funcs =
+                let web3Func (web3: Web3): Async<string> =
+                    let contractCodeJob =
+                        async {
+                            let! cancelToken = Async.CancellationToken
+                            let task = web3.Eth.GetCode.SendRequestAsync(address, cancelToken)
+                            return! Async.AwaitTask task
+                        }
+                    HandlePossibleEtherFailures contractCodeJob
+                GetWeb3Funcs baseCurrency web3Func
+            return! faultTolerantEtherClient.Query
+                (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
+                web3Funcs
+        }
+
+    let CheckIfAddressIsAValidPaymentDestination (currency: Currency) (address: string): Async<unit> =
+        async {
+            let! contractCode = GetContractCode currency address
+            let emptyContract = "0x"
+
+            if not (contractCode.StartsWith emptyContract) then
+                failwithf "GetCode API should always return a string starting with %s, but got: %s"
+                          emptyContract contractCode
+            elif contractCode <> emptyContract then
+                return raise <| InvalidDestinationAddress "Sending to contract addresses is not supported yet. Supply a normal address please."
+        }
+

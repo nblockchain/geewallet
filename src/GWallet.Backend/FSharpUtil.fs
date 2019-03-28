@@ -16,6 +16,37 @@ module FSharpUtil =
     // taken from http://fssnip.net/dN ( https://stackoverflow.com/a/20521059/544947 )
     module AsyncExtensions =
 
+        let MixedParallel2 (a: Async<'T1>) (b: Async<'T2>): Async<'T1*'T2> =
+            async {
+                let aJob = Async.StartChild a
+                let bJob = Async.StartChild b
+
+                let! aStartedJob = aJob
+                let! bStartedJob = bJob
+
+                let! aJobResult = aStartedJob
+                let! bJobResult = bStartedJob
+
+                return aJobResult,bJobResult
+            }
+
+        let MixedParallel3 (a: Async<'T1>) (b: Async<'T2>) (c: Async<'T3>): Async<'T1*'T2*'T3> =
+            async {
+                let aJob = Async.StartChild a
+                let bJob = Async.StartChild b
+                let cJob = Async.StartChild c
+
+                let! aStartedJob = aJob
+                let! bStartedJob = bJob
+                let! cStartedJob = cJob
+
+                let! aJobResult = aStartedJob
+                let! bJobResult = bStartedJob
+                let! cJobResult = cStartedJob
+
+                return aJobResult,bJobResult,cJobResult
+            }
+
         // efficient raise
         let private RaiseResult (e: ResultWrapper<'T>) =
             Async.FromContinuations(fun (_, econt, _) -> econt e)

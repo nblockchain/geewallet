@@ -5,6 +5,7 @@
 
 open System
 open System.Security
+open System.Threading
 open System.Linq
 
 open NBitcoin
@@ -67,6 +68,7 @@ module Account =
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             Mode = mode
+            ShouldReportUncancelledJobs = (not Config.NewUtxoTcpClientDisabled)
         }
 
     let private FaultTolerantParallelClientSettingsForBroadcast() =
@@ -157,20 +159,29 @@ module Account =
                      randomizedElectrumServers
         randomizedServers
 
-    let private GetBalances(account: IUtxoAccount) (mode: Mode): Async<BlockchainScripthahsGetBalanceInnerResult> =
+    let private GetBalances (account: IUtxoAccount) (mode: Mode) (cancelSourceOption: Option<CancellationTokenSource>)
+                                : Async<BlockchainScripthahsGetBalanceInnerResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
+        let query =
+            match cancelSourceOption with
+            | None ->
+                faultTolerantElectrumClient.Query
+            | Some cancelSource ->
+                faultTolerantElectrumClient.QueryWithCancellation cancelSource
         let balanceJob =
-            faultTolerantElectrumClient.Query
+            query
                 (FaultTolerantParallelClientDefaultSettings mode)
                 (GetRandomizedFuncs account.Currency (ElectrumClient.GetBalance scriptHashHex))
         balanceJob
 
-    let private GetBalancesFromServer (account: IUtxoAccount) (mode: Mode)
+    let private GetBalancesFromServer (account: IUtxoAccount)
+                                      (mode: Mode)
+                                      (cancelSourceOption: Option<CancellationTokenSource>)
                                          : Async<Option<BlockchainScripthahsGetBalanceInnerResult>> =
         async {
             try
-                let! balances = GetBalances account mode
+                let! balances = GetBalances account mode cancelSourceOption
                 return Some balances
             with
             | ex ->
@@ -180,10 +191,12 @@ module Account =
                     return raise (FSharpUtil.ReRaise ex)
         }
 
-    let internal GetShowableBalanceAndImminentIncomingPayment(account: IUtxoAccount) (mode: Mode)
-                                                                 : Async<Option<decimal*Option<bool>>> =
+    let internal GetShowableBalanceAndImminentIncomingPayment (account: IUtxoAccount)
+                                                              (mode: Mode)
+                                                              (cancelSourceOption: Option<CancellationTokenSource>)
+                                                                  : Async<Option<decimal*Option<bool>>> =
         async {
-            let! maybeBalances = GetBalancesFromServer account mode
+            let! maybeBalances = GetBalancesFromServer account mode cancelSourceOption
             match maybeBalances with
             | Some balances ->
                 let unconfirmedPlusConfirmed = balances.Unconfirmed + balances.Confirmed

@@ -50,6 +50,18 @@ else
     DoYetAnotherThing()
 ```
 
+Another example:
+
+```
+let someVariableToBeAssigned =
+    if foo.SomeBoolProperty then
+        "someValue"
+    elif foo.SomeOtherCondition() then
+        "otherValue"
+    else
+        "elseValue"
+```
+
 * A space should be added after the colon (and not before) when denoting a type,
 so: `(foo: Foo)`
 * When using property initializers, we prefer to use the immutable syntax sugar:

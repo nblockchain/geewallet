@@ -18,3 +18,6 @@ TestResult.xml
 
 # macOS users:
 .DS_Store
+
+# backup files of some editors such as nano
+*~

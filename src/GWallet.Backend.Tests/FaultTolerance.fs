@@ -32,6 +32,9 @@ type FaultTolerance() =
             NumberOfRetries = test_does_not_involve_retries
             NumberOfRetriesForInconsistency = test_does_not_involve_retries
             Mode = default_mode_as_it_is_irrelevant_for_this_test
+
+            // this setting below is not being tested
+            ShouldReportUncancelledJobs = false
         }
 
     let defaultFaultTolerantParallelClient =

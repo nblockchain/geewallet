@@ -171,11 +171,11 @@ module UserInteraction =
         match maybeUsdValue with
         | NotFresh(NotAvailable) -> Presentation.ExchangeRateUnreachableMsg
         | Fresh(usdValue) ->
-            sprintf "~ %s USD" (balance * usdValue |> Formatting.DecimalAmount CurrencyType.Fiat)
+            sprintf "~ %s USD" (balance * usdValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
         | NotFresh(Cached(usdValue,time)) ->
             sprintf "~ %s USD (last known rate as of %s)"
-                (balance * usdValue |> Formatting.DecimalAmount CurrencyType.Fiat)
-                (time |> Presentation.ShowSaneDate)
+                (balance * usdValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
+                (time |> Formatting.ShowSaneDate)
 
     let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
         let maybeReadOnly =
@@ -196,14 +196,14 @@ module UserInteraction =
             Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
         | NotFresh(Cached(balance,time)) ->
             let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
-                                (balance |> Formatting.DecimalAmount CurrencyType.Crypto)
-                                (time |> Presentation.ShowSaneDate)
+                                (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
+                                (time |> Formatting.ShowSaneDate)
                                 Environment.NewLine
                                 (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
         | Fresh(balance) ->
             let status = sprintf "Balance=[%s] %s"
-                                (balance |> Formatting.DecimalAmount CurrencyType.Crypto)
+                                (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                                 (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
 
@@ -218,7 +218,7 @@ module UserInteraction =
                 // frontend would never re-discover slow/failing servers or even ones with no history
                 let mode = Mode.Analysis
 
-                let! balance,_ = Account.GetShowableBalanceAndImminentIncomingPayment account mode
+                let! balance,_ = Account.GetShowableBalanceAndImminentIncomingPayment account mode None
                 return (account,balance)
             }
         let accountAndBalancesToBeQueried = accounts |> Seq.map getAccountBalance
@@ -278,7 +278,7 @@ module UserInteraction =
                             | NotFresh(NotAvailable) -> yield None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
                                 let fiatValue = BalanceInUsdString onlineBalance maybeUsdValue
-                                let cryptoValue = Formatting.DecimalAmount CurrencyType.Crypto onlineBalance
+                                let cryptoValue = Formatting.DecimalAmountRounding CurrencyType.Crypto onlineBalance
                                 let total = sprintf "Total %A: %s (%s)" currency cryptoValue fiatValue
                                 yield Some(onlineBalance * usdValue)
                                 Console.WriteLine (total)
@@ -303,7 +303,7 @@ module UserInteraction =
                 | Some(totalInUsd) ->
                     Console.WriteLine()
                     Console.WriteLine(sprintf "Total estimated value in USD: %s"
-                                          (Formatting.DecimalAmount CurrencyType.Fiat totalInUsd))
+                                          (Formatting.DecimalAmountRounding CurrencyType.Fiat totalInUsd))
             else
                 Console.WriteLine("No accounts have been created so far.")
             Console.WriteLine()
@@ -338,8 +338,12 @@ module UserInteraction =
         let validatedAddress =
             try
                 Account.ValidateAddress currency publicAddress
+                    |> Async.RunSynchronously
                 publicAddress
             with
+            | InvalidDestinationAddress msg ->
+                Presentation.Error msg
+                AskPublicAddress currency askText
             | AddressMissingProperPrefix(possiblePrefixes) ->
                 let possiblePrefixesStr = String.Join(", ", possiblePrefixes)
                 Presentation.Error (sprintf "Address starts with the wrong prefix. Valid prefixes: %s"
@@ -427,7 +431,7 @@ module UserInteraction =
         let exchangeRateDateMsg =
             match maybeTime with
             | None -> String.Empty
-            | Some(time) -> sprintf " (as of %s)" (Presentation.ShowSaneDate time)
+            | Some(time) -> sprintf " (as of %s)" (Formatting.ShowSaneDate time)
         let exchangeMsg = sprintf "%s USD per %A%s" (usdValue.ToString())
                                                     currency
                                                     exchangeRateDateMsg
@@ -435,7 +439,7 @@ module UserInteraction =
         Console.WriteLine(sprintf "At an exchange rate of %s, %A amount would be:%s%s"
                               exchangeMsg currency
                               Environment.NewLine
-                              (Formatting.DecimalAmount CurrencyType.Crypto etherAmount))
+                              (Formatting.DecimalAmountRounding CurrencyType.Crypto etherAmount))
         if AskYesNo "Do you accept?" then
             Some(usdAmount)
         else
@@ -484,7 +488,10 @@ module UserInteraction =
                 Presentation.Error "Amount surpasses current balance, try again."
                 AskParticularAmountOption currentBalance amountOption
 
-        let showableBalance,_ = Account.GetShowableBalanceAndImminentIncomingPayment account Mode.Fast |> Async.RunSynchronously
+        let showableBalance,_ =
+            Account.GetShowableBalanceAndImminentIncomingPayment account Mode.Fast None
+                |> Async.RunSynchronously
+
         match showableBalance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Balance not available if offline."

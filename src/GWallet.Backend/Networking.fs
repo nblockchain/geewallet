@@ -1,13 +1,21 @@
 ﻿namespace GWallet.Backend
 
 open System
+open System.Net
 open System.Net.Sockets
+
+// https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
+type CloudFlareError =
+    | ConnectionTimeOut = 522
+    | WebServerDown = 521
+    | OriginUnreachable = 523
+    | OriginSslHandshakeError = 525
 
 type internal UnhandledSocketException =
     inherit Exception
 
     new(socketErrorCode: int, innerException: Exception) =
-        { inherit Exception(sprintf "GWallet not prepared for this SocketException with ErrorCode[%d]" socketErrorCode,
+        { inherit Exception(sprintf "Backend not prepared for this SocketException with ErrorCode[%d]" socketErrorCode,
                                     innerException) }
 
 type ConnectionUnsuccessfulException =
@@ -30,10 +38,25 @@ type ServerTimedOutException =
    inherit ConnectionUnsuccessfulException
 
    new(message: string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
-   new() = { inherit ConnectionUnsuccessfulException() }
+   new(message) = { inherit ConnectionUnsuccessfulException(message) }
 
-type ServerUnreachableException(message:string, innerException: Exception) =
-   inherit ConnectionUnsuccessfulException (message, innerException)
+type ServerUnreachableException =
+    inherit ConnectionUnsuccessfulException
+
+    new(message: string, innerException: Exception) =
+        {
+            inherit ConnectionUnsuccessfulException(message, innerException)
+        }
+    new(message: string, httpStatusCode: HttpStatusCode, innerException: Exception) =
+        {
+            inherit ConnectionUnsuccessfulException(sprintf "%s (HttpErr: %s)" message (httpStatusCode.ToString()),
+                                                    innerException)
+        }
+    new(message: string, cloudFlareError: CloudFlareError, innerException: Exception) =
+        {
+            inherit ConnectionUnsuccessfulException(sprintf "%s (CfErr: %s)" message (cloudFlareError.ToString()),
+                                                    innerException)
+        }
 
 module Networking =
 
@@ -96,6 +119,8 @@ module Networking =
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
             elif socketException.ErrorCode = int SocketError.Shutdown then
                 ServerClosedConnectionEarlyException(newExceptionMsg, ex) :> Exception |> Some
+            elif socketException.ErrorCode = int SocketError.ProtocolOption then
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
 
             else
                 UnhandledSocketException(socketException.ErrorCode, ex) :> Exception |> Some

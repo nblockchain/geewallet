@@ -15,6 +15,7 @@ let ConfigCommandCheck (commandName: string) =
         Environment.Exit 1
     Console.WriteLine "found"
 
+ConfigCommandCheck "make"
 ConfigCommandCheck "fsharpc"
 ConfigCommandCheck "mono"
 
@@ -137,3 +138,5 @@ Console.WriteLine(sprintf
                       "\t* Installation prefix: %s"
                       prefix.FullName)
 Console.WriteLine()
+
+Console.WriteLine "Configuration succeeded, you can now run `make`"

@@ -10,11 +10,6 @@ module Presentation =
     let Error(message: string): unit =
         Console.Error.WriteLine("Error: " + message)
 
-    // FIXME: share code between Frontend.Console and Frontend.XF
-    // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh
-    let ShowSaneDate (date: DateTime): string =
-        date.ToString("dd-MMM-yyyy")
-
     let ConvertPascalCaseToSentence(pascalCaseElement: string) =
         Regex.Replace(pascalCaseElement, "[a-z][A-Z]",
                       (fun (m: Match) -> m.Value.[0].ToString() + " " + Char.ToLower(m.Value.[1]).ToString()))
@@ -27,11 +22,11 @@ module Presentation =
             match FiatValueEstimation.UsdValue(currency) with
             | Fresh(usdValue) ->
                 sprintf "(~%s USD)"
-                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Fiat)
+                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
             | NotFresh(Cached(usdValue,time)) ->
                 sprintf "(~%s USD [last known rate at %s])"
-                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Fiat)
-                    (time |> ShowSaneDate)
+                    (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
+                    (time |> Formatting.ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
         let feeMsg =
             if transactionCurrency = Currency.DAI &&
@@ -43,7 +38,7 @@ module Presentation =
         Console.WriteLine(sprintf "%s:%s %s %A %s"
                               feeMsg
                               Environment.NewLine
-                              (estimatedFee.FeeValue |> Formatting.DecimalAmount CurrencyType.Crypto)
+                              (estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                               currency
                               estimatedFeeInUsd
                          )
@@ -55,12 +50,12 @@ module Presentation =
             | Fresh(usdPrice) ->
                 Some(sprintf "~ %s USD"
                              (trans.Proposal.Amount.ValueToSend * usdPrice
-                                 |> Formatting.DecimalAmount CurrencyType.Fiat))
+                                 |> Formatting.DecimalAmountRounding CurrencyType.Fiat))
             | NotFresh(Cached(usdPrice, time)) ->
                 Some(sprintf "~ %s USD (last exchange rate known at %s)"
                         (trans.Proposal.Amount.ValueToSend * usdPrice
-                            |> Formatting.DecimalAmount CurrencyType.Fiat)
-                        (time |> ShowSaneDate))
+                            |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
+                        (time |> Formatting.ShowSaneDate))
             | NotFresh(NotAvailable) -> None
 
         Console.WriteLine("Transaction data:")
@@ -71,7 +66,7 @@ module Presentation =
             | Some(estimatedAmountInUsd) -> estimatedAmountInUsd
             | _ -> String.Empty
         Console.WriteLine (sprintf "Amount: %s %A %s"
-                                   (trans.Proposal.Amount.ValueToSend |> Formatting.DecimalAmount CurrencyType.Crypto)
+                                   (trans.Proposal.Amount.ValueToSend |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                                    trans.Proposal.Amount.Currency
                                    fiatAmount)
         Console.WriteLine()
