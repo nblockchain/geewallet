@@ -7,6 +7,10 @@ type CurrencyType =
 
 module Formatting =
 
+    // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh
+    let ShowSaneDate (date: DateTime): string =
+        date.ToString "dd-MMM-yyyy"
+
     let DecimalAmountRounding currencyType (amount: decimal): string =
         let amountOfDecimalsToShow,formattingStrategy =
             match currencyType with

@@ -10,10 +10,6 @@ module Presentation =
     let Error(message: string): unit =
         Console.Error.WriteLine("Error: " + message)
 
-    // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh
-    let ShowSaneDate (date: DateTime): string =
-        date.ToString("dd-MMM-yyyy")
-
     let ConvertPascalCaseToSentence(pascalCaseElement: string) =
         Regex.Replace(pascalCaseElement, "[a-z][A-Z]",
                       (fun (m: Match) -> m.Value.[0].ToString() + " " + Char.ToLower(m.Value.[1]).ToString()))
@@ -30,7 +26,7 @@ module Presentation =
             | NotFresh(Cached(usdValue,time)) ->
                 sprintf "(~%s USD [last known rate at %s])"
                     (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
-                    (time |> ShowSaneDate)
+                    (time |> Formatting.ShowSaneDate)
             | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
         let feeMsg =
             if transactionCurrency = Currency.DAI &&
@@ -59,7 +55,7 @@ module Presentation =
                 Some(sprintf "~ %s USD (last exchange rate known at %s)"
                         (trans.Proposal.Amount.ValueToSend * usdPrice
                             |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
-                        (time |> ShowSaneDate))
+                        (time |> Formatting.ShowSaneDate))
             | NotFresh(NotAvailable) -> None
 
         Console.WriteLine("Transaction data:")

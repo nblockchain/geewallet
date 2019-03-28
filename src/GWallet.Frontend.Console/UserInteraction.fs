@@ -174,7 +174,7 @@ module UserInteraction =
         | NotFresh(Cached(usdValue,time)) ->
             sprintf "~ %s USD (last known rate as of %s)"
                 (balance * usdValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
-                (time |> Presentation.ShowSaneDate)
+                (time |> Formatting.ShowSaneDate)
 
     let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
         let maybeReadOnly =
@@ -196,7 +196,7 @@ module UserInteraction =
         | NotFresh(Cached(balance,time)) ->
             let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
                                 (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
-                                (time |> Presentation.ShowSaneDate)
+                                (time |> Formatting.ShowSaneDate)
                                 Environment.NewLine
                                 (BalanceInUsdString balance maybeUsdValue)
             Console.WriteLine(status)
@@ -430,7 +430,7 @@ module UserInteraction =
         let exchangeRateDateMsg =
             match maybeTime with
             | None -> String.Empty
-            | Some(time) -> sprintf " (as of %s)" (Presentation.ShowSaneDate time)
+            | Some(time) -> sprintf " (as of %s)" (Formatting.ShowSaneDate time)
         let exchangeMsg = sprintf "%s USD per %A%s" (usdValue.ToString())
                                                     currency
                                                     exchangeRateDateMsg
