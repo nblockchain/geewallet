@@ -19,3 +19,17 @@ module Formatting =
 
         Math.Round(amount, amountOfDecimalsToShow)
             .ToString formattingStrategy
+
+    // FIXME: add unit tests for this func below
+    let ShowDecimalForHumansWithMax (currencyType: CurrencyType) (amount: decimal) (maxAmount: decimal)
+                                        : string =
+        let amountOfDecimalsToShow =
+            match currencyType with
+            | CurrencyType.Fiat -> 2
+            | CurrencyType.Crypto -> 5
+        // https://stackoverflow.com/a/25451689/544947
+        let truncated = amount - (amount % (1m / decimal(amountOfDecimalsToShow * 10)))
+        if (truncated > maxAmount) then
+            failwithf "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
+
+        DecimalAmount currencyType truncated
