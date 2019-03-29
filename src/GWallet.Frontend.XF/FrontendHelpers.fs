@@ -145,25 +145,6 @@ module FrontendHelpers =
                 yield balanceJob
         } |> Async.Parallel
 
-    // FIXME: share code between Frontend.Console and Frontend.XF
-    // with this we want to avoid the weird default US format of starting with the month, then day, then year... sigh
-    let ShowSaneDate (date: DateTime): string =
-        date.ToString("dd-MMM-yyyy")
-
-    // FIXME: add this use case to Formatting module, and with a unit test
-    let ShowDecimalForHumansWithMax (currencyType: CurrencyType) (amount: decimal) (maxAmount: decimal)
-                                                  : string =
-        let amountOfDecimalsToShow =
-            match currencyType with
-            | CurrencyType.Fiat -> 2
-            | CurrencyType.Crypto -> 5
-        // https://stackoverflow.com/a/25451689/544947
-        let truncated = amount - (amount % (1m / decimal(amountOfDecimalsToShow * 10)))
-        if (truncated > maxAmount) then
-            failwithf "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
-
-        Formatting.DecimalAmount currencyType truncated
-
     let private MaybeCrash (ex: Exception) =
         if null = ex then
             ()

@@ -207,7 +207,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     | "USD" ->
                         match cachedBalanceAtPageCreation with
                         | Cached(cachedBalance,_) ->
-                            FrontendHelpers.ShowDecimalForHumansWithMax CurrencyType.Fiat
+                            Formatting.DecimalAmountTruncating CurrencyType.Fiat
                                                                         (rate * decimalAmountTyped)
                                                                         (cachedBalance * rate)
                         | _ ->
