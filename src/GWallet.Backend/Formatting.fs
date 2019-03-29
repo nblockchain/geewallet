@@ -31,7 +31,7 @@ module Formatting =
             | CurrencyType.Fiat -> 2
             | CurrencyType.Crypto -> 5
         // https://stackoverflow.com/a/25451689/544947
-        let truncated = amount - (amount % (1m / decimal(amountOfDecimalsToShow * 10)))
+        let truncated = amount - (amount % (1m / decimal(Math.Pow(10., float amountOfDecimalsToShow))))
         if (truncated > maxAmount) then
             failwithf "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
 
