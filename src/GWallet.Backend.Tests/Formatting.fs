@@ -140,3 +140,11 @@ type Formatting() =
         let formattedAmount = Formatting.DecimalAmountTruncating CurrencyType.Crypto someCryptoDecimalAmount maxAmount
         Assert.That(formattedAmount, Is.EqualTo "0.2")
 
+    [<Test>]
+    //https://gitlab.com/DiginexGlobal/geewallet/issues/97
+    member __.``wrong fiat truncating test``() =
+        let someUsdDecimalAmount = 0.01m
+        let maxAmount = 0.1m
+        let formattedAmount = Formatting.DecimalAmountTruncating CurrencyType.Fiat someUsdDecimalAmount maxAmount
+        Assert.That(formattedAmount, Is.EqualTo "0.01")
+

@@ -501,7 +501,7 @@ module Server =
                     let gasPriceJob =
                         async {
                             let! cancelToken = Async.CancellationToken
-                            let task = web3.Eth.GasPrice.SendRequestAsync cancelToken
+                            let task = web3.Eth.GasPrice.SendRequestAsync(null, cancelToken)
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures gasPriceJob
@@ -525,7 +525,7 @@ module Server =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task =
-                                web3.Eth.Transactions.SendRawTransaction.SendRequestAsync(transaction, cancelToken)
+                                web3.Eth.Transactions.SendRawTransaction.SendRequestAsync(transaction, null, cancelToken)
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures broadcastJob
@@ -585,7 +585,7 @@ module Server =
                     let contractCodeJob =
                         async {
                             let! cancelToken = Async.CancellationToken
-                            let task = web3.Eth.GetCode.SendRequestAsync(address, cancelToken)
+                            let task = web3.Eth.GetCode.SendRequestAsync(address, null, cancelToken)
                             return! Async.AwaitTask task
                         }
                     HandlePossibleEtherFailures contractCodeJob
