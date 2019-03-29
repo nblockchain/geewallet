@@ -280,13 +280,19 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             return Some destinationAddress
         with
         | InvalidDestinationAddress errMsg ->
-            this.DisplayAlert("Alert", errMsg, "OK") |> ignore
+            Device.BeginInvokeOnMainThread(fun _ ->
+                this.DisplayAlert("Alert", errMsg, "OK")
+                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            )
             return None
         | AddressMissingProperPrefix(possiblePrefixes) ->
             let possiblePrefixesStr = String.Join(", ", possiblePrefixes)
             let msg =  (sprintf "Address starts with the wrong prefix. Valid prefixes: %s."
                                     possiblePrefixesStr)
-            this.DisplayAlert("Alert", msg, "OK") |> ignore
+            Device.BeginInvokeOnMainThread(fun _ ->
+                this.DisplayAlert("Alert", msg, "OK")
+                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            )
             return None
         | AddressWithInvalidLength lengthLimitInfo ->
             let msg =
@@ -313,7 +319,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     failwithf "AddressWithInvalidLength returned an invalid parameter length (%d). Report this bug."
                                (lengthLimitInfo.Count())
 
-            this.DisplayAlert("Alert", msg, "OK") |> ignore
+            Device.BeginInvokeOnMainThread(fun _ ->
+                this.DisplayAlert("Alert", msg, "OK")
+                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            )
             return None
         | AddressWithInvalidChecksum(maybeAddressWithValidChecksum) ->
             let final =
@@ -329,7 +338,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         maybeAddressWithValidChecksum
             if final.IsNone then
                 let msg = "Address doesn't seem to be valid, please try again."
-                this.DisplayAlert("Alert", msg, "OK") |> ignore
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    this.DisplayAlert("Alert", msg, "OK")
+                        |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                )
             return final
     }
 
