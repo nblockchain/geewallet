@@ -141,6 +141,7 @@ type ElectrumIntegrationTests() =
             "dedi.jochen-hoenicke.de"
             "electrum-server.ninja"
             "electrum.eff.ro"
+            "electrum.leblancnet.us"
         ]
 
     let btcNonRebelServers =
