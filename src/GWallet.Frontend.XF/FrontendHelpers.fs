@@ -144,7 +144,7 @@ module FrontendHelpers =
                 return! UpdateBalanceWithoutCacheAsync balanceSet mode
         }
 
-    let UpdateBalancesAsync accountBalances (tryCacheFirst: bool) =
+    let UpdateBalancesAsync accountBalances (tryCacheFirst: bool): Async<array<BalanceState>> =
         seq {
             for balanceSet in accountBalances do
                 let balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst Mode.Fast
