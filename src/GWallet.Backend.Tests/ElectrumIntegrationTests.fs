@@ -143,6 +143,7 @@ type ElectrumIntegrationTests() =
             "electrum.eff.ro"
             "electrum.leblancnet.us"
             "daedalus.bauerj.eu"
+            "electrum2.villocq.com"
         ]
 
     let btcNonRebelServers =
