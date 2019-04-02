@@ -288,7 +288,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     member private this.UpdateGlobalBalance awake (balancesJob: Async<array<BalanceState>>) fiatLabel donutView =
         async {
             if awake then
+
+                // as in: we can't(NONE) know the answer to this because we're going to sleep
                 return None
+
             else
                 let! resolvedBalances = balancesJob
                 let fiatBalances = resolvedBalances.Select(fun balanceState ->
@@ -299,10 +302,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 )
                 return resolvedBalances.Any(fun balanceState ->
 
-                    // this means: maybe there's an imminent incoming payment?
+                    // ".IsNone" means: we don't know if there's an incoming payment (absence of info)
+                    // so the whole `".IsNone" || "yes"` means: maybe there's an imminent incoming payment?
+                    // as in "it's false that we know for sure that there's no incoming payment"
                     balanceState.ImminentIncomingPayment.IsNone ||
-
                         Option.exists id balanceState.ImminentIncomingPayment
+
+                // we can(SOME) answer: either there's no incoming payment (false) or that maybe there is (true)
                 ) |> Some
         }
 
