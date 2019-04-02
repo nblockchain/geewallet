@@ -105,7 +105,21 @@ module FrontendHelpers =
         )
         fiatAmount
 
-    let rec UpdateBalanceAsync (balanceSet: BalanceSet) (tryCachedFirst: bool) (mode: Mode)
+    let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet) (mode: Mode)
+                                           : Async<BalanceState> =
+        async {
+            let! balance,imminentIncomingPayment =
+                Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode None
+            let fiatAmount =
+                UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
+            return {
+                BalanceSet = balanceSet
+                FiatAmount = fiatAmount
+                ImminentIncomingPayment = imminentIncomingPayment
+            }
+        }
+
+    let UpdateBalanceAsync (balanceSet: BalanceSet) (tryCachedFirst: bool) (mode: Mode)
                                : Async<BalanceState> =
         async {
             if tryCachedFirst then
@@ -125,17 +139,9 @@ module FrontendHelpers =
                     }
                 | _ ->
                     // FIXME: probably we can only load confirmed balances in this case (no need to check unconfirmed)
-                    return! UpdateBalanceAsync balanceSet false mode
+                    return! UpdateBalanceWithoutCacheAsync balanceSet mode
             else
-                let! balance,imminentIncomingPayment =
-                    Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode None
-                let fiatAmount =
-                    UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
-                return {
-                    BalanceSet = balanceSet
-                    FiatAmount = fiatAmount
-                    ImminentIncomingPayment = imminentIncomingPayment
-                }
+                return! UpdateBalanceWithoutCacheAsync balanceSet mode
         }
 
     let UpdateBalancesAsync accountBalances (tryCacheFirst: bool) =
