@@ -13,7 +13,12 @@ open Xamarin.Forms.Platform.Android
 
 type Resources = GWallet.Frontend.XF.Android.Resource
 
-[<Activity (Label = "geewallet", Icon = "@drawable/icon", Theme = "@style/MyTheme", MainLauncher = true, ConfigurationChanges = (ConfigChanges.ScreenSize ||| ConfigChanges.Orientation))>]
+[<Activity (LaunchMode = LaunchMode.SingleTask, 
+            Label = "geewallet", 
+            Icon = "@drawable/icon", 
+            Theme = "@style/MyTheme", 
+            MainLauncher = true, 
+            ConfigurationChanges = (ConfigChanges.ScreenSize ||| ConfigChanges.Orientation))>]
 type MainActivity() =
     inherit FormsAppCompatActivity()
 
@@ -26,6 +31,8 @@ type MainActivity() =
 
         base.OnCreate (bundle)
 
+        //FIXME: remove SetFlags call once it is merged https://github.com/xamarin/Xamarin.Forms/issues/5724
+        Xamarin.Forms.Forms.SetFlags "FastRenderers_Experimental"
         Xamarin.Forms.Forms.Init (this, bundle)
 
         ZXing.Net.Mobile.Forms.Android.Platform.Init()
