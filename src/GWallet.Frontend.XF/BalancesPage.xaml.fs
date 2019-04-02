@@ -2,6 +2,8 @@
 
 open System
 open System.Linq
+open System.Threading
+open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -10,10 +12,6 @@ open GWallet.Frontend.XF.Controls
 
 open GWallet.Backend
 
-type CycleStart =
-    | ImmediateForAll
-    | ImmediateForReadOnlyAccounts
-    | Delayed
 
 // this type allows us to represent the idea that if we have, for example, 3 LTC and an unknown number of ETC (might
 // be because all ETC servers are unresponsive), then it means we have AT LEAST 3LTC; as opposed to when we know for
@@ -174,7 +172,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             )
         chartView.SegmentsSource <- chartSourceList
 
-    let mutable timerRunning = false
+    let GetBaseRefreshInterval() =
+        if this.NoImminentIncomingPayment then
+            standardTimeToRefreshBalances
+        else
+            standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow
+
+    let mutable lastRefreshBalancesStamp = DateTime.UtcNow,new CancellationTokenSource()
 
     // default value of the below field is 'false', just in case there's an incoming payment which we don't want to miss
     let mutable noImminentIncomingPayment = false
@@ -190,10 +194,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,
                          Map.empty,false)
 
-    member private this.IsTimerRunning
-        with get() = lock lockObject (fun _ -> timerRunning)
-         and set value = lock lockObject (fun _ -> timerRunning <- value)
-
+    member private this.LastRefreshBalancesStamp
+        with get() = lock lockObject (fun _ -> lastRefreshBalancesStamp)
+        and set value = lock lockObject (fun _ -> lastRefreshBalancesStamp <- value)
+        
     member private this.NoImminentIncomingPayment
         with get() = lock lockObject (fun _ -> noImminentIncomingPayment)
          and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
@@ -289,7 +293,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                             donutView
                                                 : Async<Option<bool>> =
         async {
-            if not state.Awake then
+            let _,cancelSource = this.LastRefreshBalancesStamp
+            if cancelSource.IsCancellationRequested then
 
                 // as in: we can't(NONE) know the answer to this because we're going to sleep
                 return None
@@ -314,106 +319,96 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 ) |> Some
         }
 
-    member private this.RefreshBalancesAndCheckIfAwake (onlyReadOnlyAccounts: bool): bool =
+    member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
         // we don't mind to be non-fast because it's refreshing in the background anyway
         let refreshMode = Mode.Analysis
 
-        if state.Awake then
+        let readOnlyCancelSources,readOnlyBalancesJob =
+            FrontendHelpers.UpdateBalancesAsync (readOnlyAccountsAndBalances.Select(fun balanceState ->
+                                                                                        balanceState.BalanceSet))
+                                                false refreshMode
 
-            let readOnlyCancelSources,readOnlyBalancesJob =
-                FrontendHelpers.UpdateBalancesAsync (readOnlyAccountsAndBalances.Select(fun balanceState ->
-                                                                                            balanceState.BalanceSet))
-                                                    false refreshMode
+        let readOnlyAccountsBalanceUpdate =
+            this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
 
-            let readOnlyAccountsBalanceUpdate =
-                this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
+        let allCancelSources,allBalanceUpdates =
+            if (not onlyReadOnlyAccounts) then
 
-            let allCancelSources,allBalanceUpdates =
-                if (not onlyReadOnlyAccounts) then
+                let normalCancelSources,normalBalancesJob =
+                    FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balState ->
+                                                                                              balState.BalanceSet))
+                                                        false refreshMode
 
-                    let normalCancelSources,normalBalancesJob =
-                        FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balState ->
-                                                                                                  balState.BalanceSet))
-                                                            false refreshMode
+                let normalAccountsBalanceUpdate =
+                    this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel normalChartView
 
-                    let normalAccountsBalanceUpdate =
-                        this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel normalChartView
+                let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
 
-                    let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
+                let allJobs = Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
+                Seq.append readOnlyCancelSources normalCancelSources,allJobs
+            else
+                readOnlyCancelSources,Async.Parallel([readOnlyAccountsBalanceUpdate])
+                
+        this.BalanceRefreshCancelSources <- allCancelSources
 
-                    let allJobs = Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
-                    Seq.append readOnlyCancelSources normalCancelSources,allJobs
-                else
-                    readOnlyCancelSources,Async.Parallel([readOnlyAccountsBalanceUpdate])
-
-            let balanceAndImminentIncomingPaymentUpdate =
-                async {
-                    let! balanceUpdates = allBalanceUpdates
-                    if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
-                        Option.exists id maybeImminentIncomingPayment
-                    ) then
-                        this.NoImminentIncomingPayment <- false
-                    elif (not onlyReadOnlyAccounts) &&
-                          balanceUpdates.All(fun maybeImminentIncomingPayment ->
-                        Option.exists not maybeImminentIncomingPayment
-                    ) then
-                        this.NoImminentIncomingPayment <- true
-                }
-
-            this.BalanceRefreshCancelSources <- allCancelSources
-
-            balanceAndImminentIncomingPaymentUpdate
-                |> Async.StartAsTask
-                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-
-        state.Awake
-
-    member private this.TimerIntervalMatchesImminentIncomingPaymentCondition (interval: TimeSpan): bool =
-        let result = (this.NoImminentIncomingPayment &&
-                      interval = standardTimeToRefreshBalances) ||
-                     ((not this.NoImminentIncomingPayment) &&
-                       interval = standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow)
-        result
+        async {
+            let! balanceUpdates = allBalanceUpdates
+            if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
+                Option.exists id maybeImminentIncomingPayment
+            ) then
+                this.NoImminentIncomingPayment <- false
+            elif (not onlyReadOnlyAccounts) &&
+                  balanceUpdates.All(fun maybeImminentIncomingPayment ->
+                Option.exists not maybeImminentIncomingPayment
+            ) then
+                this.NoImminentIncomingPayment <- true
+        }
 
     member private this.StartTimer(): unit =
-        if not (this.IsTimerRunning) then
+        let prevRefreshTime,_ = this.LastRefreshBalancesStamp
+        let cancelSource = new CancellationTokenSource()
+        let cancellationToken = cancelSource.Token
+        this.LastRefreshBalancesStamp <- prevRefreshTime,cancelSource
 
-            let refreshTime =
-                // sync the below with TimerIntervalMatchesImminentIncomingPaymentCondition() func
-                if this.NoImminentIncomingPayment then
-                    standardTimeToRefreshBalances
-                else
-                    standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow
 
-            Device.StartTimer(refreshTime, fun _ ->
+        let refreshesDiff = DateTime.UtcNow - prevRefreshTime
+        let shiftedRefreshDiff =
+            if refreshesDiff > TimeSpan.Zero then
+                refreshesDiff
+            else
+                TimeSpan.Zero
 
-                this.IsTimerRunning <- true
+        let baseRefreshInterval = GetBaseRefreshInterval()
+        let refreshInterval = baseRefreshInterval - shiftedRefreshDiff
+        let timerInterval =
+            if refreshInterval > TimeSpan.Zero then
+                refreshInterval
+            else
+                //Avoid cases when user changes timezone in device settings
+                TimeSpan.Zero
+                
+        Device.StartTimer(timerInterval, fun _ ->
+            if not cancellationToken.IsCancellationRequested then
+                async {
+                    try
+                        cancellationToken.ThrowIfCancellationRequested()
+                        do! this.RefreshBalances false
+                        cancellationToken.ThrowIfCancellationRequested()
+                        this.LastRefreshBalancesStamp <- DateTime.UtcNow,cancelSource
+                        this.StartTimer()
+                    with
+                    | :? OperationCanceledException ->
+                        raise <| TaskCanceledException()
 
-                let awake = this.RefreshBalancesAndCheckIfAwake false
+                } |> FrontendHelpers.DoubleCheckCompletionAsync
+            false
+        )
 
-                let awakeAndSameInterval =
-                    if not awake then
-                        this.IsTimerRunning <- false
-                        false
-                    else
-                        if (this.TimerIntervalMatchesImminentIncomingPaymentCondition refreshTime) then
-                            true
-                        else
-                            // start timer again with new interval
-                            this.IsTimerRunning <- false
-                            this.StartTimer()
-
-                            // so we stop this timer that has an old interval
-                            false
-
-                // to keep or stop timer recurring
-                awakeAndSameInterval
-            )
-
-    member this.StartBalanceRefreshCycle (cycleStart: CycleStart) =
-        let onlyReadOnlyAccounts = (cycleStart = CycleStart.ImmediateForReadOnlyAccounts)
-        if ((cycleStart <> CycleStart.Delayed && this.RefreshBalancesAndCheckIfAwake onlyReadOnlyAccounts) || true) then
-            this.StartTimer()
+    member private this.StopTimer() =
+        let _,cancelSource = this.LastRefreshBalancesStamp
+        if not cancelSource.IsCancellationRequested then
+            cancelSource.Cancel()
+            cancelSource.Dispose()
 
     member private this.ConfigureFiatAmountFrame (normalAccountsBalances: seq<BalanceState>)
                                                  (readOnlyAccountsBalances: seq<BalanceState>)
@@ -556,11 +551,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             this.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances totalFiatAmountLabel
             this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances totalReadOnlyFiatAmountLabel
         )
-        this.StartBalanceRefreshCycle CycleStart.ImmediateForReadOnlyAccounts
 
-        state.Resumed.Add (fun _ -> this.StartBalanceRefreshCycle CycleStart.ImmediateForAll)
+        this.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync
+        this.StartTimer()
 
-        state.GoneToSleep.Add (fun _ ->
+        state.Resumed.Add (fun _ -> this.StartTimer())
+
+        state.GoneToSleep.Add (fun _ -> 
+            this.StopTimer()
             this.CancelBalanceRefreshJobs()
         )
-

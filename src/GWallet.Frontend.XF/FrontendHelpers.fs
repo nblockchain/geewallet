@@ -27,8 +27,6 @@ module FrontendHelpers =
     let private enableGtkWorkarounds = true
 
     type IGlobalAppState =
-        abstract member Awake: bool with get
-
         [<CLIEvent>]
         abstract member Resumed: IEvent<unit> with get
         [<CLIEvent>]
