@@ -285,51 +285,40 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         if fiatBalancesList.Any() then
             UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
 
+    member private this.UpdateGlobalBalance awake (balancesJob: Async<array<BalanceState>>) fiatLabel donutView =
+        async {
+            if awake then
+                return None
+            else
+                let! resolvedBalances = balancesJob
+                let fiatBalances = resolvedBalances.Select(fun balanceState ->
+                                                                     balanceState.FiatAmount)
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    this.UpdateGlobalFiatBalanceSum fiatBalances totalFiatAmountLabel
+                    RedrawDonutView donutView resolvedBalances
+                )
+                return resolvedBalances.Any(fun balanceState ->
+
+                    // this means: maybe there's an imminent incoming payment?
+                    balanceState.ImminentIncomingPayment.IsNone ||
+
+                        Option.exists id balanceState.ImminentIncomingPayment
+                ) |> Some
+        }
+
     member private this.RefreshBalancesAndCheckIfAwake (onlyReadOnlyAccounts: bool): bool =
         let awake = state.Awake
         if (awake) then
-            let normalAccountsBalanceUpdate =
-                async {
-                    if (state.Awake) then
-                        let! resolvedNormalBalances = normalBalancesJob
-                        let normalFiatBalances = resolvedNormalBalances.Select(fun balanceState ->
-                                                                                   balanceState.FiatAmount)
-                        Device.BeginInvokeOnMainThread(fun _ ->
-                            this.UpdateGlobalFiatBalanceSum normalFiatBalances totalFiatAmountLabel
-                            RedrawDonutView normalChartView resolvedNormalBalances
-                        )
-                        return resolvedNormalBalances.Any(fun balanceState ->
 
-                            // this means: maybe there's an imminent incoming payment?
-                            balanceState.ImminentIncomingPayment.IsNone ||
-
-                                Option.exists id balanceState.ImminentIncomingPayment
-                        ) |> Some
-                    else
-                        return None
-                }
             let readOnlyAccountsBalanceUpdate =
-                async {
-                    if (state.Awake) then
-                        let! resolvedReadOnlyBalances = readOnlyBalancesJob
-                        let readOnlyFiatBalances = resolvedReadOnlyBalances.Select(fun balanceState ->
-                                                                                       balanceState.FiatAmount)
-                        Device.BeginInvokeOnMainThread(fun _ ->
-                            this.UpdateGlobalFiatBalanceSum readOnlyFiatBalances totalReadOnlyFiatAmountLabel
-                            RedrawDonutView readonlyChartView resolvedReadOnlyBalances
-                        )
-                        return resolvedReadOnlyBalances.Any(fun balanceState ->
+                this.UpdateGlobalBalance state.Awake readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
 
-                            // this means: maybe there's an imminent incoming payment?
-                            balanceState.ImminentIncomingPayment.IsNone ||
-
-                                Option.exists id balanceState.ImminentIncomingPayment
-                        ) |> Some
-                    else
-                        return None
-                }
             let allBalanceUpdates =
                 if (not onlyReadOnlyAccounts) then
+
+                    let normalAccountsBalanceUpdate =
+                        this.UpdateGlobalBalance state.Awake normalBalancesJob totalFiatAmountLabel normalChartView
+
                     Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
                 else
                     Async.Parallel([readOnlyAccountsBalanceUpdate])
