@@ -62,7 +62,9 @@ module Account =
 
     let private FaultTolerantParallelClientDefaultSettings(mode: Mode) =
         {
-            NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
+            NumberOfMinimumParallelJobs = NumberOfParallelJobsForMode mode
+            NumberOfMaximumParallelJobs = NumberOfParallelJobsForMode mode
+            TimeoutToSpawnMoreParallelJobs = Some Config.DEFAULT_TIMEOUT_TO_RESPAWN_MORE_PARALLEL_JOBS
             ConsistencyConfig = NumberOfConsistentResponsesRequired 2u;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;

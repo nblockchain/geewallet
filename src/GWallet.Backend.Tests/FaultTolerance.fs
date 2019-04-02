@@ -27,7 +27,9 @@ type FaultTolerance() =
 
     let defaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         {
-            NumberOfParallelJobsAllowed = not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization
+            NumberOfMinimumParallelJobs = not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization
+            NumberOfMaximumParallelJobs = not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization
+            TimeoutToSpawnMoreParallelJobs = None
             ConsistencyConfig = NumberOfConsistentResponsesRequired one_consistent_result_because_this_test_doesnt_test_consistency
             NumberOfRetries = test_does_not_involve_retries
             NumberOfRetriesForInconsistency = test_does_not_involve_retries
@@ -427,7 +429,8 @@ type FaultTolerance() =
                       serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job3" job3 ]
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                            NumberOfParallelJobsAllowed = uint32 funcs.Length
+                            NumberOfMinimumParallelJobs = uint32 funcs.Length
+                            NumberOfMaximumParallelJobs = uint32 funcs.Length
                             ConsistencyConfig =
                                 AverageBetweenResponses (uint32 funcs.Length,
                                                          (fun (list:List<int>) ->

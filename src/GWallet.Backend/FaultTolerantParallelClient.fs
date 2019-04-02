@@ -53,7 +53,9 @@ type Mode =
 
 type FaultTolerantParallelClientSettings<'R> =
     {
-        NumberOfParallelJobsAllowed: uint32;
+        NumberOfMinimumParallelJobs: uint32
+        NumberOfMaximumParallelJobs: uint32
+        TimeoutToSpawnMoreParallelJobs: Option<TimeSpan>
         ConsistencyConfig: ConsistencySettings<'R>;
         NumberOfRetries: uint32;
         NumberOfRetriesForInconsistency: uint32;
@@ -257,7 +259,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
             return raise(ArgumentException("number of funcs must be higher than zero",
                                            "funcs"))
         let howManyFuncs = uint32 funcs.Length
-        let numberOfParallelJobsAllowed = int settings.NumberOfParallelJobsAllowed
+        let numberOfMinimumParallelJobs = int settings.NumberOfMinimumParallelJobs
 
         match settings.ConsistencyConfig with
         | NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired ->
@@ -267,13 +269,13 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                 return raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
                                                "funcs"))
         | AverageBetweenResponses(minimumNumberOfResponses,averageFunc) ->
-            if (int minimumNumberOfResponses > numberOfParallelJobsAllowed) then
-                return raise(ArgumentException("numberOfParallelJobsAllowed should be equal or higher than minimumNumberOfResponses for the averageFunc",
-                                               "settings"))
+            if (int minimumNumberOfResponses > numberOfMinimumParallelJobs) then
+                return raise <| ArgumentException("numberOfMinimumParallelJobs should be equal or higher than minimumNumberOfResponses for the averageFunc",
+                                                  "settings")
 
         let funcsToRunInParallel,restOfFuncs =
-            if (howManyFuncs > settings.NumberOfParallelJobsAllowed) then
-                funcs |> Seq.take numberOfParallelJobsAllowed, funcs |> Seq.skip numberOfParallelJobsAllowed
+            if (howManyFuncs > settings.NumberOfMaximumParallelJobs) then
+                funcs |> Seq.take numberOfMinimumParallelJobs, funcs |> Seq.skip numberOfMinimumParallelJobs
             else
                 funcs |> Seq.ofList, Seq.empty
 
@@ -282,13 +284,13 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         //      funcBucket2(C,D), then fb1&fb2 are started at the same time (A&C start at the same time), and B
         //      starts only when A finishes or fails, and D only starts when C finishes or fails
         let funcBuckets =
-            Seq.splitInto numberOfParallelJobsAllowed funcs
+            Seq.splitInto numberOfMinimumParallelJobs funcs
             |> Seq.map List.ofArray
             |> Seq.map
                 (ConcatenateNonParallelFuncs List.empty settings.ShouldReportUncancelledJobs cancelledInternally)
             |> List.ofSeq
 
-        let lengthOfBucketsSanityCheck = Math.Min(funcs.Length, numberOfParallelJobsAllowed)
+        let lengthOfBucketsSanityCheck = Math.Min(funcs.Length, numberOfMinimumParallelJobs)
         if (lengthOfBucketsSanityCheck <> funcBuckets.Length) then
             return failwithf "Assertion failed, splitInto didn't work as expected? got %d, should be %d"
                              funcBuckets.Length lengthOfBucketsSanityCheck
@@ -432,8 +434,13 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                             (servers: List<Server<'K,'R>>)
                             (cancellationTokenSourceOption: Option<CancellationTokenSource>)
                                 : Async<'R> =
-        if settings.NumberOfParallelJobsAllowed < 1u then
-            raise (ArgumentException("must be higher than zero", "numberOfParallelJobsAllowed"))
+        if settings.NumberOfMinimumParallelJobs < 1u then
+            raise <| ArgumentException("must be higher than zero", "NumberOfMinimumParallelJobs")
+        if settings.NumberOfMaximumParallelJobs < 1u then
+            raise <| ArgumentException("must be higher than zero", "NumberOfMaximumParallelJobs")
+        if settings.NumberOfMaximumParallelJobs < settings.NumberOfMinimumParallelJobs then
+            raise <| ArgumentException("max can't be lower than min",
+                                       "NumberOfMaximumParallelJobs or NumberOfMinimumParallelJobs")
 
         let effectiveCancellationSource =
             match cancellationTokenSourceOption with

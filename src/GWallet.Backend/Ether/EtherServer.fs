@@ -243,7 +243,9 @@ module Server =
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
                                                          (mode: Mode) =
         {
-            NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
+            NumberOfMinimumParallelJobs = NumberOfParallelJobsForMode mode
+            NumberOfMaximumParallelJobs = NumberOfParallelJobsForMode mode
+            TimeoutToSpawnMoreParallelJobs = Some Config.DEFAULT_TIMEOUT_TO_RESPAWN_MORE_PARALLEL_JOBS
             ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;

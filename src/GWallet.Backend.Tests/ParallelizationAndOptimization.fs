@@ -28,7 +28,8 @@ type ParallelizationAndOptimization() =
         let NUMBER_OF_CONSISTENT_RESULTS = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
+                             NumberOfMinimumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
+                             NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let mutable job1Done = false
@@ -72,7 +73,8 @@ type ParallelizationAndOptimization() =
         let NUMBER_OF_CONSISTENT_RESULTS = 1u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
+                             NumberOfMinimumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
+                             NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let aJob1: Async<int> = async {
@@ -102,6 +104,50 @@ type ParallelizationAndOptimization() =
         Assert.That(stopWatch.Elapsed, Is.LessThan(someLongTime))
 
     [<Test>]
+    member __.``timeout setting, when expired, makes more parallel jobs possible``() =
+        let someLongTime = TimeSpan.FromSeconds 10.0
+
+        let MIN_NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 1u
+        let MAX_NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 2u
+
+        // because Mode.Analysis randomizes the order of servers, and this test depends on a particular order
+        let mode = Mode.Fast
+
+        // because this test doesn't deal with inconsistencies
+        let NUMBER_OF_CONSISTENT_RESULTS = 1u
+
+        let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+                             Mode = mode
+                             NumberOfMinimumParallelJobs = MIN_NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
+                             NumberOfMaximumParallelJobs = MAX_NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
+                             TimeoutToSpawnMoreParallelJobs = TimeSpan.FromSeconds 2.0 |> Some
+                             ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS }
+
+        let aJob1: Async<int> = async {
+            do! Async.Sleep <| int someLongTime.TotalMilliseconds
+            return 0
+        }
+        let job2Result = 1
+        let aJob2 =
+            async {
+                return job2Result
+            }
+
+        let func1,func2 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2
+
+        let stopWatch = Stopwatch.StartNew()
+        let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
+                         dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
+        let result = client.Query settings
+                                  [ func1; func2 ]
+                         |> Async.RunSynchronously
+
+        stopWatch.Stop()
+        Assert.That(stopWatch.Elapsed, Is.LessThan someLongTime)
+        Assert.That(result, Is.EqualTo job2Result)
+
+    [<Test>]
     member __.``a long func doesn't block gathering more succesful results for consistency``() =
         let someLongTime = TimeSpan.FromSeconds 10.0
 
@@ -109,7 +155,8 @@ type ParallelizationAndOptimization() =
         let NUMBER_OF_CONSISTENT_RESULTS = 2u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
+                             NumberOfMinimumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
+                             NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let aJob1 =
@@ -174,9 +221,10 @@ type ParallelizationAndOptimization() =
 
     [<Test>]
     member __.``using an average func encourages you (via throwing an exception) to use parallelism``() =
-
+        let one_parallel_job = 1u
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                            NumberOfParallelJobsAllowed = 1u
+                            NumberOfMinimumParallelJobs = one_parallel_job
+                            NumberOfMaximumParallelJobs = one_parallel_job
                             ConsistencyConfig =
                                 AverageBetweenResponses (2u,
                                                          (fun _ ->
