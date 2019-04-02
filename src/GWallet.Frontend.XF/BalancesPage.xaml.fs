@@ -303,7 +303,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                             // this means: maybe there's an imminent incoming payment?
                             balanceState.ImminentIncomingPayment.IsNone ||
 
-                                (balanceState.ImminentIncomingPayment.Value = true)
+                                Option.exists id balanceState.ImminentIncomingPayment
                         ) |> Some
                     else
                         return None
