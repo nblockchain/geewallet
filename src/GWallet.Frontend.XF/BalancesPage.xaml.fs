@@ -287,7 +287,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     member private this.UpdateGlobalBalance awake (balancesJob: Async<array<BalanceState>>) fiatLabel donutView =
         async {
-            if awake then
+            if not awake then
 
                 // as in: we can't(NONE) know the answer to this because we're going to sleep
                 return None
