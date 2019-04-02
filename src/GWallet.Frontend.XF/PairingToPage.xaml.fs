@@ -97,10 +97,8 @@ type PairingToPage(balancesPage: Page,
                                                                                           balanceState.BalanceSet)) true
 
             let allBalancesJob =
-                Async.Parallel(normalAccountsBalancesJob::(checkReadOnlyBalancesInParallel::List.Empty))
-            let! allResolvedBalances = allBalancesJob
-            let allResolvedNormalAccountBalances = allResolvedBalances.ElementAt(0)
-            let allResolvedReadOnlyBalances = allResolvedBalances.ElementAt(1)
+                FSharpUtil.AsyncExtensions.MixedParallel2 normalAccountsBalancesJob checkReadOnlyBalancesInParallel
+            let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = allBalancesJob
 
             Device.BeginInvokeOnMainThread(fun _ ->
                 let newBalancesPage = newBalancesPageFunc(allResolvedNormalAccountBalances,

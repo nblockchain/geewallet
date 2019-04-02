@@ -84,19 +84,13 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
 
         let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
         let readOnlyAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true
+        let preloadCurrencyImagesJob = PreLoadCurrencyImages()
 
         let populateGrid = async {
-            let! allBalancesJob =
-                Async.Parallel(allNormalAccountBalancesJob::(readOnlyAccountBalancesJob::List.Empty))
-                    |> Async.StartChild
-            let! preloadCurrencyImagesJob = PreLoadCurrencyImages()
-                                            |> Async.StartChild
-
-            let! allResolvedBalances = allBalancesJob
-            let allResolvedNormalAccountBalances = allResolvedBalances.ElementAt(0)
-            let allResolvedReadOnlyBalances = allResolvedBalances.ElementAt(1)
-
-            let! currencyImages = preloadCurrencyImagesJob
+            let all3Jobs = FSharpUtil.AsyncExtensions.MixedParallel3 allNormalAccountBalancesJob
+                                                                     preloadCurrencyImagesJob
+                                                                     readOnlyAccountBalancesJob
+            let! allResolvedNormalAccountBalances,currencyImages,allResolvedReadOnlyBalances = all3Jobs
 
             Device.BeginInvokeOnMainThread(fun _ ->
                 let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
