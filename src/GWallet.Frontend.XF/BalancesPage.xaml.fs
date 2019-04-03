@@ -285,9 +285,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         if fiatBalancesList.Any() then
             UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
 
-    member private this.UpdateGlobalBalance awake (balancesJob: Async<array<BalanceState>>) fiatLabel donutView =
+    member private this.UpdateGlobalBalance (state: FrontendHelpers.IGlobalAppState)
+                                            (balancesJob: Async<array<BalanceState>>)
+                                            fiatLabel
+                                            donutView
+                                                : Async<Option<bool>> =
         async {
-            if not awake then
+            if not state.Awake then
 
                 // as in: we can't(NONE) know the answer to this because we're going to sleep
                 return None
@@ -313,17 +317,16 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         }
 
     member private this.RefreshBalancesAndCheckIfAwake (onlyReadOnlyAccounts: bool): bool =
-        let awake = state.Awake
-        if (awake) then
+        if state.Awake then
 
             let readOnlyAccountsBalanceUpdate =
-                this.UpdateGlobalBalance state.Awake readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
+                this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
 
             let allBalanceUpdates =
                 if (not onlyReadOnlyAccounts) then
 
                     let normalAccountsBalanceUpdate =
-                        this.UpdateGlobalBalance state.Awake normalBalancesJob totalFiatAmountLabel normalChartView
+                        this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel normalChartView
 
                     Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
                 else
@@ -347,7 +350,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 |> Async.StartAsTask
                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
-        awake
+        state.Awake
 
     member private this.TimerIntervalMatchesImminentIncomingPaymentCondition (interval: TimeSpan): bool =
         let result = (this.NoImminentIncomingPayment &&
