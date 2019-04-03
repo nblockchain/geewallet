@@ -50,14 +50,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
 
-    let GetBalanceUpdateJobs accountsAndBalances =
-        seq {
-            for balanceState in accountsAndBalances do
-                yield FrontendHelpers.UpdateBalanceAsync balanceState.BalanceSet false Mode.Analysis
-        }
-    let normalBalancesJob = Async.Parallel (GetBalanceUpdateJobs normalAccountsAndBalances)
-    let readOnlyBalancesJob = Async.Parallel (GetBalanceUpdateJobs readOnlyAccountsAndBalances)
-
     // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
     let UpdateGlobalFiatBalanceLabel (balance: MaybeCached<TotalBalance>) (totalFiatAmountLabel: Label) =
         let strBalance =
@@ -317,14 +309,25 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         }
 
     member private this.RefreshBalancesAndCheckIfAwake (onlyReadOnlyAccounts: bool): bool =
+        // we don't mind to be non-fast because it's refreshing in the background anyway
+        let refreshMode = Mode.Analysis
+
         if state.Awake then
 
+            let readOnlyBalancesJob =
+                FrontendHelpers.UpdateBalancesAsync (readOnlyAccountsAndBalances.Select(fun balanceState ->
+                                                                                            balanceState.BalanceSet))
+                                                    false refreshMode
             let readOnlyAccountsBalanceUpdate =
                 this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
 
             let allBalanceUpdates =
                 if (not onlyReadOnlyAccounts) then
 
+                    let normalBalancesJob =
+                        FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balState ->
+                                                                                                  balState.BalanceSet))
+                                                            false refreshMode
                     let normalAccountsBalanceUpdate =
                         this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel normalChartView
 
