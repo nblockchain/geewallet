@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Frontend.XF
 
 open System
+open System.Threading
 open System.Threading.Tasks
 
 open Xamarin.Forms
@@ -22,9 +23,6 @@ type BalanceState = {
 }
 
 module FrontendHelpers =
-
-    // TODO: get rid of this below when we have proper cancellation support
-    let internal BruteForceCancellationEnabled = true
 
     let private enableGtkWorkarounds = true
 
@@ -105,11 +103,11 @@ module FrontendHelpers =
         )
         fiatAmount
 
-    let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet) (mode: Mode)
+    let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet) (mode: Mode) (cancelSource: CancellationTokenSource)
                                            : Async<BalanceState> =
         async {
             let! balance,imminentIncomingPayment =
-                Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode None
+                Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode (Some cancelSource)
             let fiatAmount =
                 UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
             return {
@@ -120,8 +118,9 @@ module FrontendHelpers =
         }
 
     let UpdateBalanceAsync (balanceSet: BalanceSet) (tryCachedFirst: bool) (mode: Mode)
-                               : Async<BalanceState> =
-        async {
+                               : CancellationTokenSource*Async<BalanceState> =
+        let cancelSource = new CancellationTokenSource()
+        let job = async {
             if tryCachedFirst then
                 let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance balanceSet.Account.PublicAddress
                                                                                  balanceSet.Account.Currency
@@ -139,29 +138,39 @@ module FrontendHelpers =
                     }
                 | _ ->
                     // FIXME: probably we can only load confirmed balances in this case (no need to check unconfirmed)
-                    return! UpdateBalanceWithoutCacheAsync balanceSet mode
+                    return! UpdateBalanceWithoutCacheAsync balanceSet mode cancelSource
             else
-                return! UpdateBalanceWithoutCacheAsync balanceSet mode
+                return! UpdateBalanceWithoutCacheAsync balanceSet mode cancelSource
         }
+        cancelSource,job
 
-    let UpdateBalancesAsync accountBalances (tryCacheFirst: bool) (mode: Mode): Async<array<BalanceState>> =
-        seq {
+    let UpdateBalancesAsync accountBalances (tryCacheFirst: bool) (mode: Mode)
+                                : seq<CancellationTokenSource>*Async<array<BalanceState>> =
+        let sourcesAndJobs = seq {
             for balanceSet in accountBalances do
-                let balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst mode
-                yield balanceJob
-        } |> Async.Parallel
+                let cancelSource,balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst mode
+                yield cancelSource,balanceJob
+        }
+        let parallelJobs =
+            Seq.map snd sourcesAndJobs |> Async.Parallel
+        let allCancelSources =
+            Seq.map fst sourcesAndJobs
+        allCancelSources,parallelJobs
 
     let private MaybeCrash (ex: Exception) =
         if null = ex then
             ()
         else
             let shouldCrash =
+                true
+                (* with no brute force cancellation, we might not need to catch TaskCanceledException anymore?
                 if not BruteForceCancellationEnabled then
                     true
                 elif (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
                     false
                 else
                     true
+                *)
             if shouldCrash then
                 Device.BeginInvokeOnMainThread(fun _ ->
                     raise ex

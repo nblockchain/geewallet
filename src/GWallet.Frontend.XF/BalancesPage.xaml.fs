@@ -179,6 +179,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     // default value of the below field is 'false', just in case there's an incoming payment which we don't want to miss
     let mutable noImminentIncomingPayment = false
 
+    let mutable balanceRefreshCancelSources = Seq.empty
+
     let lockObject = Object()
 
     do
@@ -195,6 +197,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     member private this.NoImminentIncomingPayment
         with get() = lock lockObject (fun _ -> noImminentIncomingPayment)
          and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
+
+    member private this.BalanceRefreshCancelSources
+        with get() = lock lockObject (fun _ -> balanceRefreshCancelSources)
+         and set value = lock lockObject (fun _ -> balanceRefreshCancelSources <- value)
 
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
         let currentCryptoBalances = FindCryptoBalances contentLayout (contentLayout.Children |> List.ofSeq) List.Empty
@@ -314,26 +320,31 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
         if state.Awake then
 
-            let readOnlyBalancesJob =
+            let readOnlyCancelSources,readOnlyBalancesJob =
                 FrontendHelpers.UpdateBalancesAsync (readOnlyAccountsAndBalances.Select(fun balanceState ->
                                                                                             balanceState.BalanceSet))
                                                     false refreshMode
+
             let readOnlyAccountsBalanceUpdate =
                 this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
 
-            let allBalanceUpdates =
+            let allCancelSources,allBalanceUpdates =
                 if (not onlyReadOnlyAccounts) then
 
-                    let normalBalancesJob =
+                    let normalCancelSources,normalBalancesJob =
                         FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balState ->
                                                                                                   balState.BalanceSet))
                                                             false refreshMode
+
                     let normalAccountsBalanceUpdate =
                         this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel normalChartView
 
-                    Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
+                    let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
+
+                    let allJobs = Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
+                    Seq.append readOnlyCancelSources normalCancelSources,allJobs
                 else
-                    Async.Parallel([readOnlyAccountsBalanceUpdate])
+                    readOnlyCancelSources,Async.Parallel([readOnlyAccountsBalanceUpdate])
 
             let balanceAndImminentIncomingPaymentUpdate =
                 async {
@@ -348,6 +359,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     ) then
                         this.NoImminentIncomingPayment <- true
                 }
+
+            this.BalanceRefreshCancelSources <- allCancelSources
 
             balanceAndImminentIncomingPaymentUpdate
                 |> Async.StartAsTask
@@ -507,6 +520,14 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             accountBalance.BalanceSet.CryptoLabel.TextColor <- color
             accountBalance.BalanceSet.FiatLabel.TextColor <- color
 
+    member private this.CancelBalanceRefreshJobs() =
+        this.BalanceRefreshCancelSources
+            |> Seq.map (fun cancelSource ->
+                            cancelSource.Cancel()
+                            cancelSource.Dispose())
+            |> ignore
+        this.BalanceRefreshCancelSources <- Seq.empty
+
     member private this.Init () =
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
@@ -540,7 +561,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         state.Resumed.Add (fun _ -> this.StartBalanceRefreshCycle CycleStart.ImmediateForAll)
 
         state.GoneToSleep.Add (fun _ ->
-            if FrontendHelpers.BruteForceCancellationEnabled then
-                Async.CancelDefaultToken()
+            this.CancelBalanceRefreshJobs()
         )
 
