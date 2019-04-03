@@ -235,7 +235,7 @@ module Server =
             return raise <| FSharpUtil.ReRaise ex
     }
 
-    let private MaxNumberOfParallelJobsForMode mode =
+    let private NumberOfParallelJobsForMode mode =
         match mode with
         | Mode.Fast -> 5u
         | Mode.Analysis -> 3u
@@ -243,7 +243,7 @@ module Server =
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
                                                          (mode: Mode) =
         {
-            NumberOfMaximumParallelJobs = MaxNumberOfParallelJobsForMode mode
+            NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
             ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;

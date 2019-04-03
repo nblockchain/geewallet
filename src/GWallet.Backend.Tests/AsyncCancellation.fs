@@ -38,7 +38,7 @@ type AsyncCancellation() =
         let NUMBER_OF_CONSISTENT_RESULTS = 2u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfMaximumParallelJobs = number_of_parallel_jobs_allowed;
+                             NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
@@ -72,7 +72,7 @@ type AsyncCancellation() =
         let NUMBER_OF_CONSISTENT_RESULTS = 1u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfMaximumParallelJobs = number_of_parallel_jobs_allowed;
+                             NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
@@ -120,7 +120,7 @@ type AsyncCancellation() =
         let NUMBER_OF_CONSISTENT_RESULTS = 1u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfMaximumParallelJobs = number_of_parallel_jobs_allowed;
+                             NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
@@ -161,7 +161,7 @@ type AsyncCancellation() =
         let NUMBER_OF_CONSISTENT_RESULTS = 1u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfMaximumParallelJobs = number_of_parallel_jobs_allowed;
+                             NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
@@ -204,7 +204,7 @@ type AsyncCancellation() =
         let NUMBER_OF_CONSISTENT_RESULTS = 1u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfMaximumParallelJobs = number_of_parallel_jobs_allowed;
+                             NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
@@ -270,7 +270,7 @@ type AsyncCancellation() =
         let NUMBER_OF_CONSISTENT_RESULTS = 2u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfMaximumParallelJobs = number_of_parallel_jobs_allowed
+                             NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS }
 
         let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>

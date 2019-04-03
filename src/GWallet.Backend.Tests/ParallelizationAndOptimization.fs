@@ -28,7 +28,7 @@ type ParallelizationAndOptimization() =
         let NUMBER_OF_CONSISTENT_RESULTS = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
+                             NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let mutable job1Done = false
@@ -72,7 +72,7 @@ type ParallelizationAndOptimization() =
         let NUMBER_OF_CONSISTENT_RESULTS = 1u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
+                             NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let aJob1: Async<int> = async {
@@ -109,7 +109,7 @@ type ParallelizationAndOptimization() =
         let NUMBER_OF_CONSISTENT_RESULTS = 2u
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             NumberOfMaximumParallelJobs = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
+                             NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
                              ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let aJob1 =
@@ -176,7 +176,7 @@ type ParallelizationAndOptimization() =
     member __.``using an average func encourages you (via throwing an exception) to use parallelism``() =
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                            NumberOfMaximumParallelJobs = 1u
+                            NumberOfParallelJobsAllowed = 1u
                             ConsistencyConfig =
                                 AverageBetweenResponses (2u,
                                                          (fun _ ->

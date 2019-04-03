@@ -55,14 +55,14 @@ module Account =
     type ElectrumServerDiscarded(message:string, innerException: Exception) =
        inherit Exception (message, innerException)
 
-    let private MaxNumberOfParallelJobsForMode mode =
+    let private NumberOfParallelJobsForMode mode =
         match mode with
         | Mode.Fast -> 8u
         | Mode.Analysis -> 5u
 
     let private FaultTolerantParallelClientDefaultSettings(mode: Mode) =
         {
-            NumberOfMaximumParallelJobs = MaxNumberOfParallelJobsForMode mode
+            NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
             ConsistencyConfig = NumberOfConsistentResponsesRequired 2u;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
