@@ -87,17 +87,16 @@ type PairingToPage(balancesPage: Page,
             let readOnlyAccounts = Account.GetAllActiveAccounts().OfType<ReadOnlyAccount>() |> List.ofSeq
                                    |> List.map (fun account -> account :> IAccount)
             let readOnlyAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
-            let checkReadOnlyBalancesInParallel =
-                seq {
-                    for readOnlyAccountBalanceSet in readOnlyAccountsWithLabels do
-                        yield FrontendHelpers.UpdateBalanceAsync readOnlyAccountBalanceSet false Mode.Fast
-                } |> Async.Parallel
+
+            let readOnlyAccountsBalancesJob =
+                FrontendHelpers.UpdateBalancesAsync readOnlyAccountsWithLabels false
+
             let normalAccountsBalancesJob =
                 FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balanceState ->
                                                                                           balanceState.BalanceSet)) true
 
             let allBalancesJob =
-                FSharpUtil.AsyncExtensions.MixedParallel2 normalAccountsBalancesJob checkReadOnlyBalancesInParallel
+                FSharpUtil.AsyncExtensions.MixedParallel2 normalAccountsBalancesJob readOnlyAccountsBalancesJob
             let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = allBalancesJob
 
             Device.BeginInvokeOnMainThread(fun _ ->
