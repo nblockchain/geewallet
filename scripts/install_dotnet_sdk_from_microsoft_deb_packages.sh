@@ -15,7 +15,7 @@ apt install -y dotnet-runtime-2.1 aspnetcore-runtime-2.1
 # HACK to get old version of dotnetsdk, otherwise `apt install -y dotnet-sdk-2.1` would
 # install a buggy version that can't build .NET Standard, see https://github.com/dotnet/core/issues/2460 and https://github.com/NuGet/Home/issues/7956
 SDK_PKG=dotnet-sdk-2.1.505-x64.deb
-wget https://packages.microsoft.com/ubuntu/18.04/prod/pool/main/d/dotnet-sdk-2.1/$SDK_PKG
+curl https://packages.microsoft.com/ubuntu/18.04/prod/pool/main/d/dotnet-sdk-2.1/$SDK_PKG -O
 dpkg --install $SDK_PKG
 
 dotnet --version
