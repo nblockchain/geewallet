@@ -14,7 +14,7 @@
 		<Curl Condition=" '$(OS)' != 'Windows_NT' ">curl $(CurlArgs)</Curl>
 		<PowerShell Condition=" '$(PowerShell)' == '' ">%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe</PowerShell>
 		<ContinueOnRestoreError Condition=" '$(ContinueOnRestoreError)' == '' ">ErrorAndContinue</ContinueOnRestoreError>  
-		<RestoreVerbosity Condition="'$(RestoreVerbosity)' == ''">quiet</RestoreVerbosity>
+		<RestoreVerbosity Condition="'$(RestoreVerbosity)' == ''">detailed</RestoreVerbosity>
 		<RestoreLoggingVerbosity Condition="'$(RestoreLoggingVerbosity)' == ''">normal</RestoreLoggingVerbosity>
 		<TargetsFile>$(MSBuildThisFilename)$(MSBuildThisFileExtension)</TargetsFile>
 	</PropertyGroup>
