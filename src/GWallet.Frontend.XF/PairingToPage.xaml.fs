@@ -88,10 +88,10 @@ type PairingToPage(balancesPage: Page,
                                    |> List.map (fun account -> account :> IAccount)
             let readOnlyAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
 
-            let readOnlyAccountsBalancesJob =
+            let _,readOnlyAccountsBalancesJob =
                 FrontendHelpers.UpdateBalancesAsync readOnlyAccountsWithLabels false Mode.Fast
 
-            let normalAccountsBalancesJob =
+            let _,normalAccountsBalancesJob =
                 FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balanceState ->
                                                                                           balanceState.BalanceSet))
                                                     true
