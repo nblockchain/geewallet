@@ -11,3 +11,4 @@ apt install -y apt-transport-https
 apt update
 apt install -y dotnet-sdk-2.1
 
+dotnet --version
