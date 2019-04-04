@@ -199,7 +199,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
          and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
 
     member private this.BalanceRefreshCancelSources
-        with get() = lock lockObject (fun _ -> balanceRefreshCancelSources)
+        with get() = lock lockObject (fun _ -> balanceRefreshCancelSources |> List.ofSeq :> seq<_>)
          and set value = lock lockObject (fun _ -> balanceRefreshCancelSources <- value)
 
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
