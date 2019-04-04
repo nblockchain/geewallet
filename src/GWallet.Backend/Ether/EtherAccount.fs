@@ -155,7 +155,7 @@ module internal Account =
 
     let EstimateEtherTransferFee (account: IAccount) (amount: TransferAmount): Async<TransactionMetadata> = async {
         let! gasPrice64 = GetGasPrice account.Currency
-        let ethMinerFee = MinerFee(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION, gasPrice64, DateTime.Now, account.Currency)
+        let ethMinerFee = MinerFee(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION, gasPrice64, DateTime.UtcNow, account.Currency)
         let! txCount = GetTransactionCount account.Currency account.PublicAddress
 
         let feeValue = ethMinerFee.CalculateAbsoluteValue()
@@ -181,7 +181,7 @@ module internal Account =
                           (tokenTransferFee.Value.ToString()))
         let gasCost64: Int64 = BigInteger.op_Explicit tokenTransferFee.Value
 
-        let ethMinerFee = MinerFee(gasCost64, gasPrice64, DateTime.Now, baseCurrency)
+        let ethMinerFee = MinerFee(gasCost64, gasPrice64, DateTime.UtcNow, baseCurrency)
         let! txCount = GetTransactionCount account.Currency account.PublicAddress
         return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
     }

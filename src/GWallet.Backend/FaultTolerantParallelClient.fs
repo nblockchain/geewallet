@@ -100,7 +100,7 @@ type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
                     match cancelledAt with
                     | None -> false
                     | Some date ->
-                        (date + TimeSpan.FromSeconds 1.) < DateTime.Now
+                        (date + TimeSpan.FromSeconds 1.) < DateTime.UtcNow
 
                 let report = Config.DebugLog &&
                              shouldReportUncancelledJobs &&
@@ -236,7 +236,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                 if cancelledInternallyState.Value.IsNone then
                     try
                         source.Cancel()
-                        cancelledInternallyState.Value <- Some DateTime.Now
+                        cancelledInternallyState.Value <- Some DateTime.UtcNow
                         source.Dispose()
                     with
                     | :? ObjectDisposedException ->

@@ -362,7 +362,7 @@ module Account =
         let estimatedMinerFee = transactionBuilder.EstimateFees feeRate
 
         let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
-        let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.Now, account.Currency)
+        let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.UtcNow, account.Currency)
 
         return { Inputs = transactionDraftInputs; Fee = minerFee }
     }
