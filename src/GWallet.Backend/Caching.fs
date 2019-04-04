@@ -38,7 +38,7 @@ type CachedNetworkData =
         }
 
     static member FromDietCache (dietCache: DietCache): CachedNetworkData =
-        let now = DateTime.Now
+        let now = DateTime.UtcNow
         let fiatPrices =
             [ for KeyValue(currencyString, price) in dietCache.UsdPrice -> (Currency.Parse currencyString,(price,now)) ]
                 |> Map.ofSeq
@@ -253,7 +253,7 @@ module Caching =
 
         let GetSumOfAllTransactions (trans: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>)
                                     currency address: decimal =
-            let now = DateTime.Now
+            let now = DateTime.UtcNow
             let currencyTrans = trans.TryFind currency
             match currencyTrans with
             | None -> 0m
@@ -330,7 +330,7 @@ module Caching =
 
         member self.StoreLastFiatUsdPrice (currency, lastFiatUsdPrice: decimal): unit =
             lock cacheFiles.CachedNetworkData (fun _ ->
-                let time = DateTime.Now
+                let time = DateTime.UtcNow
 
                 let newCachedValue =
                     { sessionCachedNetworkData
@@ -370,7 +370,7 @@ module Caching =
                                                          (currency: Currency)
                                                          (newBalance: decimal)
                                                              : CachedValue<decimal> =
-            let time = DateTime.Now
+            let time = DateTime.UtcNow
             lock cacheFiles.CachedNetworkData (fun _ ->
                 let newCachedValueWithNewBalance,previousBalance =
                     let newCurrencyBalances,previousBalance =
@@ -449,7 +449,7 @@ module Caching =
                                                    (txId: string)
                                                    (amount: decimal)
                                                        : unit =
-            let time = DateTime.Now
+            let time = DateTime.UtcNow
             lock cacheFiles.CachedNetworkData (fun _ ->
                 let newCurrencyAddresses =
                     match sessionCachedNetworkData.OutgoingTransactions.TryFind currency with
@@ -490,7 +490,7 @@ module Caching =
         member self.SaveServerLastStat (server, historyInfo): unit =
             lock cacheFiles.ServerStats (fun _ ->
                 let newCachedValue =
-                        sessionServerRanking.Add(server, (historyInfo, DateTime.Now))
+                        sessionServerRanking.Add(server, (historyInfo, DateTime.UtcNow))
 
                 sessionServerRanking <- newCachedValue
 

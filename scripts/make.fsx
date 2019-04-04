@@ -249,13 +249,36 @@ match maybeTarget with
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
+    let oldVersionOfMono =
+        let versionOfMonoWhereRunningExesDirectlyIsSupported = "5.16"
+
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Windows ->
+            // not using Mono anyway
+            false
+        | Misc.Platform.Mac ->
+            // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
+            false
+        | Misc.Platform.Linux ->
+            let pkgConfig = "pkg-config"
+            if (Process.CommandCheck pkgConfig).IsNone then
+                failwithf "'%s' was uninstalled after ./configure.sh was invoked?" pkgConfig
+            let pkgConfigCmd = sprintf "%s --atleast-version=%s mono"
+                                   pkgConfig versionOfMonoWhereRunningExesDirectlyIsSupported
+            let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
+            processResult.ExitCode <> 0
+
     let debug = BinaryConfig.Debug
     let frontend,_ = JustBuild debug
 
     let frontendDir,frontendExecutable = GetPathToFrontend frontend debug
 
-    let startInfo = ProcessStartInfo(FileName = frontendExecutable.FullName,
-                                     UseShellExecute = false)
+    let pathToFrontend = frontendExecutable.FullName
+    let startInfo =
+        if oldVersionOfMono then
+            ProcessStartInfo(FileName = "mono", Arguments = pathToFrontend, UseShellExecute = false)
+        else
+            ProcessStartInfo(FileName = pathToFrontend, UseShellExecute = false)
     startInfo.EnvironmentVariables.["MONO_ENV_OPTIONS"] <- "--debug"
 
     let proc = Process.Start startInfo

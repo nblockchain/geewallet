@@ -30,12 +30,12 @@ module JsonRpcSharpOld =
         let rec ReadInternal (stream: NetworkStream) acc (initTime: DateTime): string =
             let timeIsUp (): bool =
                 if (List.Empty = acc) then
-                    if (DateTime.Now > initTime + DEFAULT_TIMEOUT_FOR_FIRST_DATA_AVAILABLE_SIGNAL_TO_HAPPEN) then
+                    if (DateTime.UtcNow > initTime + DEFAULT_TIMEOUT_FOR_FIRST_DATA_AVAILABLE_SIGNAL_TO_HAPPEN) then
                         raise JsonRpcSharp.TcpClient.NoResponseReceivedAfterRequestException
                     else
                         false
                 else
-                    (DateTime.Now > initTime + DEFAULT_TIMEOUT_FOR_SUBSEQUENT_DATA_AVAILABLE_SIGNAL_TO_HAPPEN)
+                    (DateTime.UtcNow > initTime + DEFAULT_TIMEOUT_FOR_SUBSEQUENT_DATA_AVAILABLE_SIGNAL_TO_HAPPEN)
 
             if (not (stream.DataAvailable)) || (not (stream.CanRead)) then
                 if (timeIsUp()) then
@@ -47,10 +47,10 @@ module JsonRpcSharpOld =
                 match ReadByte stream with
                 | None -> WrapResult acc
                 | Some(byte) ->
-                    ReadInternal stream (byte::acc) DateTime.Now
+                    ReadInternal stream (byte::acc) DateTime.UtcNow
 
         let Read (stream: NetworkStream): string =
-            ReadInternal stream List.Empty DateTime.Now
+            ReadInternal stream List.Empty DateTime.UtcNow
 
         let Connect(): System.Net.Sockets.TcpClient =
 
