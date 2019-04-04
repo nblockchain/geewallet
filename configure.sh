@@ -3,3 +3,4 @@ set -e
 
 ./scripts/fsicheck.sh configure
 ./scripts/configure.fsx "$@"
+mono --version
