@@ -61,6 +61,7 @@ module Account =
 #if FALSE
         WipeConfig allCurrencies
         Caching.Instance.ClearAll()
+        failwith "OK, all accounts and cache is clear, you can disable this code block again"
 #endif
 
         seq {
