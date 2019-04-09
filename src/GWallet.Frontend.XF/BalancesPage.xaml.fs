@@ -47,6 +47,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
+    let timerStartDelay = TimeSpan.FromMilliseconds 500.
 
     // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
     let UpdateGlobalFiatBalanceLabel (balance: MaybeCached<TotalBalance>) (totalFiatAmountLabel: Label) =
@@ -406,7 +407,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 //Avoid cases when user changes timezone in device settings
                 TimeSpan.Zero
                 
-        Device.StartTimer(timerInterval, fun _ ->
+        Device.StartTimer(timerInterval + timerStartDelay, fun _ ->
             if not cancellationToken.IsCancellationRequested then
                 async {
                     try
