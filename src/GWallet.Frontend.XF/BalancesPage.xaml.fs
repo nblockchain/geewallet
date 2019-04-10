@@ -372,16 +372,21 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         this.BalanceRefreshCancelSources <- allCancelSources
 
         async {
-            let! balanceUpdates = allBalanceUpdates
-            if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
-                Option.exists id maybeImminentIncomingPayment
-            ) then
-                this.NoImminentIncomingPayment <- false
-            elif (not onlyReadOnlyAccounts) &&
-                  balanceUpdates.All(fun maybeImminentIncomingPayment ->
-                Option.exists not maybeImminentIncomingPayment
-            ) then
-                this.NoImminentIncomingPayment <- true
+            try
+                let! balanceUpdates = allBalanceUpdates
+                if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
+                    Option.exists id maybeImminentIncomingPayment
+                ) then
+                    this.NoImminentIncomingPayment <- false
+                elif (not onlyReadOnlyAccounts) &&
+                      balanceUpdates.All(fun maybeImminentIncomingPayment ->
+                    Option.exists not maybeImminentIncomingPayment
+                ) then
+                    this.NoImminentIncomingPayment <- true
+            with
+            | ex ->
+                if not (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                    raise <| FSharpUtil.ReRaise ex
         }
 
     member private this.StartTimer(): unit =
