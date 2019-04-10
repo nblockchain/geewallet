@@ -82,6 +82,9 @@ type ElectrumIntegrationTests() =
                 Console.Error.WriteLine (sprintf "%A server %s is unhealthy" currency server.Fqdn)
                 None
 
+            | :? ElectrumServerReturningErrorException as ex ->
+                raise <| Exception(sprintf "%A server %s is failing with '%s" currency server.Fqdn ex.Message, ex)
+
         match maybeFilter with
         | Some filterFunc ->
             if (filterFunc electrumServer) then
