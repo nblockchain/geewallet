@@ -324,7 +324,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let fiatBalances = resolvedBalances.Select(fun balanceState ->
                                                                      balanceState.FiatAmount)
                 Device.BeginInvokeOnMainThread(fun _ ->
-                    this.UpdateGlobalFiatBalanceSum fiatBalances totalFiatAmountLabel
+                    this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
                     RedrawDonutView donutView resolvedBalances
                 )
                 return resolvedBalances.Any(fun balanceState ->
