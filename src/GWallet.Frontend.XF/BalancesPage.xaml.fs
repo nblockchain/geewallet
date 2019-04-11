@@ -2,6 +2,8 @@
 
 open System
 open System.Linq
+open System.Threading
+open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -10,10 +12,6 @@ open GWallet.Frontend.XF.Controls
 
 open GWallet.Backend
 
-type CycleStart =
-    | ImmediateForAll
-    | ImmediateForReadOnlyAccounts
-    | Delayed
 
 // this type allows us to represent the idea that if we have, for example, 3 LTC and an unknown number of ETC (might
 // be because all ETC servers are unresponsive), then it means we have AT LEAST 3LTC; as opposed to when we know for
@@ -49,6 +47,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
+    let timerStartDelay = TimeSpan.FromMilliseconds 500.
 
     // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
     let UpdateGlobalFiatBalanceLabel (balance: MaybeCached<TotalBalance>) (totalFiatAmountLabel: Label) =
@@ -133,9 +132,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                             tail
                                             totalFiatAmountLabel
 
-    let cryptoBalanceClassId = "cryptoBalanceFrame"
+    let normalCryptoBalanceClassId = "normalCryptoBalanceFrame"
+    let readonlyCryptoBalanceClassId = "readonlyCryptoBalanceFrame"
 
-    let rec FindCryptoBalances (layout: StackLayout) (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
+    let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
+                               (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
         match elements with
         | [] -> resultsSoFar
         | head::tail ->
@@ -146,9 +147,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         frame::resultsSoFar
                     else
                         resultsSoFar
-                FindCryptoBalances layout tail newResults
+                FindCryptoBalances cryptoBalanceClassId layout tail newResults
             | _ ->
-                FindCryptoBalances layout tail resultsSoFar
+                FindCryptoBalances cryptoBalanceClassId layout tail resultsSoFar
 
     let GetAmountOrDefault maybeAmount =
         match maybeAmount with
@@ -174,7 +175,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             )
         chartView.SegmentsSource <- chartSourceList
 
-    let mutable timerRunning = false
+    let GetBaseRefreshInterval() =
+        if this.NoImminentIncomingPayment then
+            standardTimeToRefreshBalances
+        else
+            standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow
+
+    let mutable lastRefreshBalancesStamp = DateTime.UtcNow,new CancellationTokenSource()
 
     // default value of the below field is 'false', just in case there's an incoming payment which we don't want to miss
     let mutable noImminentIncomingPayment = false
@@ -190,10 +197,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,
                          Map.empty,false)
 
-    member private this.IsTimerRunning
-        with get() = lock lockObject (fun _ -> timerRunning)
-         and set value = lock lockObject (fun _ -> timerRunning <- value)
-
+    member private this.LastRefreshBalancesStamp
+        with get() = lock lockObject (fun _ -> lastRefreshBalancesStamp)
+        and set value = lock lockObject (fun _ -> lastRefreshBalancesStamp <- value)
+        
     member private this.NoImminentIncomingPayment
         with get() = lock lockObject (fun _ -> noImminentIncomingPayment)
          and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
@@ -203,80 +210,97 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
          and set value = lock lockObject (fun _ -> balanceRefreshCancelSources <- value)
 
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
-        let currentCryptoBalances = FindCryptoBalances contentLayout (contentLayout.Children |> List.ofSeq) List.Empty
-        for currentCryptoBalance in currentCryptoBalances do
-            contentLayout.Children.Remove currentCryptoBalance |> ignore
-                                
-        for balanceState in balances do
-            let tapGestureRecognizer = TapGestureRecognizer()
-            tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                let receivePage =
-                    ReceivePage(balanceState.BalanceSet.Account, this,
-                                balanceState.BalanceSet.CryptoLabel, balanceState.BalanceSet.FiatLabel)
-                NavigationPage.SetHasNavigationBar(receivePage, false)
-                let navPage = NavigationPage receivePage
-
-                this.Navigation.PushAsync navPage
-                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-            ) |> ignore
-
-            let colorBoxWidth = 10.
-
-            let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
-                                          Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
-
-            let colour =
-                if readOnly then
-                    "grey"
-                else
-                    "red"
-
-            let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
-            let cryptoLabel = balanceState.BalanceSet.CryptoLabel
-            let fiatLabel = balanceState.BalanceSet.FiatLabel
-
-            stackLayout.Children.Add currencyLogoImg
-            stackLayout.Children.Add cryptoLabel
-            stackLayout.Children.Add fiatLabel
-
-            let colorBox = BoxView(Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency)
-
-            let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
-            absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
-            absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
-
-            if Device.RuntimePlatform = Device.GTK then
-                //workaround about GTK ScrollView's scroll bar. Not sure if it's bug indeed.
-                absoluteLayout.Margin <- Thickness(absoluteLayout.Margin.Left, absoluteLayout.Margin.Top, 20., absoluteLayout.Margin.Bottom)
-                //workaround about GTK layouting. It ignores margins of parent layout. So, we have to duplicate them
-                stackLayout.Margin <- Thickness(stackLayout.Margin.Left, stackLayout.Margin.Top, 20., stackLayout.Margin.Bottom)
-
-            //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
-            if Device.RuntimePlatform = Device.macOS then
-                let bindImageSize(bindableProperty) =
-                    let binding = Binding(Path = "Height", Source = cryptoLabel)
-                    currencyLogoImg.SetBinding(bindableProperty, binding)
-
-                bindImageSize VisualElement.WidthRequestProperty
-                bindImageSize VisualElement.HeightRequestProperty
-
- 
-            let frame = Frame(HasShadow = false,
-                              ClassId = cryptoBalanceClassId,
-                              Content = absoluteLayout,
-                              Padding = Thickness(0.),
-                              BorderColor = Color.SeaShell)
-            frame.GestureRecognizers.Add tapGestureRecognizer
-
-            contentLayout.Children.Add frame
-
-        let chartView =
+        let activeCurrencyClassId,inactiveCurrencyClassId,activeChartView =
             if readOnly then
-                readonlyChartView
+                readonlyCryptoBalanceClassId,normalCryptoBalanceClassId,readonlyChartView
             else
-                normalChartView
+                normalCryptoBalanceClassId,readonlyCryptoBalanceClassId,normalChartView
 
-        RedrawDonutView chartView balances
+        let activeCryptoBalances = FindCryptoBalances activeCurrencyClassId 
+                                                      contentLayout 
+                                                      (contentLayout.Children |> List.ofSeq) 
+                                                      List.Empty
+
+        let inactiveCryptoBalances = FindCryptoBalances inactiveCurrencyClassId 
+                                                        contentLayout 
+                                                        (contentLayout.Children |> List.ofSeq) 
+                                                        List.Empty
+
+        contentLayout.BatchBegin()                      
+
+        for inactiveCryptoBalance in inactiveCryptoBalances do
+            inactiveCryptoBalance.IsVisible <- false
+
+        //We should create new frames only once, then just play with IsVisible(True|False) 
+        if activeCryptoBalances.Any() then
+            for activeCryptoBalance in activeCryptoBalances do
+                activeCryptoBalance.IsVisible <- true
+        else
+            for balanceState in balances do
+                let tapGestureRecognizer = TapGestureRecognizer()
+                tapGestureRecognizer.Tapped.Subscribe(fun _ ->
+                    let receivePage =
+                        ReceivePage(balanceState.BalanceSet.Account, this,
+                                    balanceState.BalanceSet.CryptoLabel, balanceState.BalanceSet.FiatLabel)
+                    NavigationPage.SetHasNavigationBar(receivePage, false)
+                    let navPage = NavigationPage receivePage
+
+                    this.Navigation.PushAsync navPage
+                         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                ) |> ignore
+
+                let colorBoxWidth = 10.
+
+                let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
+                                              Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
+
+                let colour =
+                    if readOnly then
+                        "grey"
+                    else
+                        "red"
+
+                let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
+                let cryptoLabel = balanceState.BalanceSet.CryptoLabel
+                let fiatLabel = balanceState.BalanceSet.FiatLabel
+
+                stackLayout.Children.Add currencyLogoImg
+                stackLayout.Children.Add cryptoLabel
+                stackLayout.Children.Add fiatLabel
+
+                let colorBox = BoxView(Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency)
+
+                let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
+                absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
+                absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
+
+                if Device.RuntimePlatform = Device.GTK then
+                    //workaround about GTK ScrollView's scroll bar. Not sure if it's bug indeed.
+                    absoluteLayout.Margin <- Thickness(absoluteLayout.Margin.Left, absoluteLayout.Margin.Top, 20., absoluteLayout.Margin.Bottom)
+                    //workaround about GTK layouting. It ignores margins of parent layout. So, we have to duplicate them
+                    stackLayout.Margin <- Thickness(stackLayout.Margin.Left, stackLayout.Margin.Top, 20., stackLayout.Margin.Bottom)
+
+                //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
+                if Device.RuntimePlatform = Device.macOS then
+                    let bindImageSize bindableProperty =
+                        let binding = Binding(Path = "Height", Source = cryptoLabel)
+                        currencyLogoImg.SetBinding(bindableProperty, binding)
+
+                    bindImageSize VisualElement.WidthRequestProperty
+                    bindImageSize VisualElement.HeightRequestProperty
+
+
+                let frame = Frame(HasShadow = false,
+                                  ClassId = activeCurrencyClassId,
+                                  Content = absoluteLayout,
+                                  Padding = Thickness(0.),
+                                  BorderColor = Color.SeaShell)
+                frame.GestureRecognizers.Add tapGestureRecognizer
+
+                contentLayout.Children.Add frame
+
+        contentLayout.BatchCommit()
+        RedrawDonutView activeChartView balances
 
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) totalFiatAmountLabel =
         let fiatBalancesList = allFiatBalances |> List.ofSeq
@@ -289,7 +313,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                             donutView
                                                 : Async<Option<bool>> =
         async {
-            if not state.Awake then
+            let _,cancelSource = this.LastRefreshBalancesStamp
+            if cancelSource.IsCancellationRequested then
 
                 // as in: we can't(NONE) know the answer to this because we're going to sleep
                 return None
@@ -314,106 +339,101 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 ) |> Some
         }
 
-    member private this.RefreshBalancesAndCheckIfAwake (onlyReadOnlyAccounts: bool): bool =
+    member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
         // we don't mind to be non-fast because it's refreshing in the background anyway
         let refreshMode = Mode.Analysis
 
-        if state.Awake then
+        let readOnlyCancelSources,readOnlyBalancesJob =
+            FrontendHelpers.UpdateBalancesAsync (readOnlyAccountsAndBalances.Select(fun balanceState ->
+                                                                                        balanceState.BalanceSet))
+                                                false refreshMode
 
-            let readOnlyCancelSources,readOnlyBalancesJob =
-                FrontendHelpers.UpdateBalancesAsync (readOnlyAccountsAndBalances.Select(fun balanceState ->
-                                                                                            balanceState.BalanceSet))
-                                                    false refreshMode
+        let readOnlyAccountsBalanceUpdate =
+            this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
 
-            let readOnlyAccountsBalanceUpdate =
-                this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
+        let allCancelSources,allBalanceUpdates =
+            if (not onlyReadOnlyAccounts) then
 
-            let allCancelSources,allBalanceUpdates =
-                if (not onlyReadOnlyAccounts) then
+                let normalCancelSources,normalBalancesJob =
+                    FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balState ->
+                                                                                              balState.BalanceSet))
+                                                        false refreshMode
 
-                    let normalCancelSources,normalBalancesJob =
-                        FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balState ->
-                                                                                                  balState.BalanceSet))
-                                                            false refreshMode
+                let normalAccountsBalanceUpdate =
+                    this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel normalChartView
 
-                    let normalAccountsBalanceUpdate =
-                        this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel normalChartView
+                let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
 
-                    let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
+                let allJobs = Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
+                Seq.append readOnlyCancelSources normalCancelSources,allJobs
+            else
+                readOnlyCancelSources,Async.Parallel([readOnlyAccountsBalanceUpdate])
+                
+        this.BalanceRefreshCancelSources <- allCancelSources
 
-                    let allJobs = Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
-                    Seq.append readOnlyCancelSources normalCancelSources,allJobs
-                else
-                    readOnlyCancelSources,Async.Parallel([readOnlyAccountsBalanceUpdate])
-
-            let balanceAndImminentIncomingPaymentUpdate =
-                async {
-                    let! balanceUpdates = allBalanceUpdates
-                    if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
-                        Option.exists id maybeImminentIncomingPayment
-                    ) then
-                        this.NoImminentIncomingPayment <- false
-                    elif (not onlyReadOnlyAccounts) &&
-                          balanceUpdates.All(fun maybeImminentIncomingPayment ->
-                        Option.exists not maybeImminentIncomingPayment
-                    ) then
-                        this.NoImminentIncomingPayment <- true
-                }
-
-            this.BalanceRefreshCancelSources <- allCancelSources
-
-            balanceAndImminentIncomingPaymentUpdate
-                |> Async.StartAsTask
-                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-
-        state.Awake
-
-    member private this.TimerIntervalMatchesImminentIncomingPaymentCondition (interval: TimeSpan): bool =
-        let result = (this.NoImminentIncomingPayment &&
-                      interval = standardTimeToRefreshBalances) ||
-                     ((not this.NoImminentIncomingPayment) &&
-                       interval = standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow)
-        result
+        async {
+            try
+                let! balanceUpdates = allBalanceUpdates
+                if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
+                    Option.exists id maybeImminentIncomingPayment
+                ) then
+                    this.NoImminentIncomingPayment <- false
+                elif (not onlyReadOnlyAccounts) &&
+                      balanceUpdates.All(fun maybeImminentIncomingPayment ->
+                    Option.exists not maybeImminentIncomingPayment
+                ) then
+                    this.NoImminentIncomingPayment <- true
+            with
+            | ex ->
+                if not (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                    raise <| FSharpUtil.ReRaise ex
+        }
 
     member private this.StartTimer(): unit =
-        if not (this.IsTimerRunning) then
+        let prevRefreshTime,_ = this.LastRefreshBalancesStamp
+        let cancelSource = new CancellationTokenSource()
+        let cancellationToken = cancelSource.Token
+        this.LastRefreshBalancesStamp <- prevRefreshTime,cancelSource
 
-            let refreshTime =
-                // sync the below with TimerIntervalMatchesImminentIncomingPaymentCondition() func
-                if this.NoImminentIncomingPayment then
-                    standardTimeToRefreshBalances
-                else
-                    standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow
 
-            Device.StartTimer(refreshTime, fun _ ->
+        let refreshesDiff = DateTime.UtcNow - prevRefreshTime
+        let shiftedRefreshDiff =
+            if refreshesDiff > TimeSpan.Zero then
+                refreshesDiff
+            else
+                TimeSpan.Zero
 
-                this.IsTimerRunning <- true
+        let baseRefreshInterval = GetBaseRefreshInterval()
+        let refreshInterval = baseRefreshInterval - shiftedRefreshDiff
+        let timerInterval =
+            if refreshInterval > TimeSpan.Zero then
+                refreshInterval
+            else
+                //Avoid cases when user changes timezone in device settings
+                TimeSpan.Zero
+                
+        Device.StartTimer(timerInterval + timerStartDelay, fun _ ->
+            if not cancellationToken.IsCancellationRequested then
+                async {
+                    try
+                        cancellationToken.ThrowIfCancellationRequested()
+                        do! this.RefreshBalances false
+                        cancellationToken.ThrowIfCancellationRequested()
+                        this.LastRefreshBalancesStamp <- DateTime.UtcNow,cancelSource
+                        this.StartTimer()
+                    with
+                    | :? OperationCanceledException ->
+                        raise <| TaskCanceledException()
 
-                let awake = this.RefreshBalancesAndCheckIfAwake false
+                } |> FrontendHelpers.DoubleCheckCompletionAsync
+            false
+        )
 
-                let awakeAndSameInterval =
-                    if not awake then
-                        this.IsTimerRunning <- false
-                        false
-                    else
-                        if (this.TimerIntervalMatchesImminentIncomingPaymentCondition refreshTime) then
-                            true
-                        else
-                            // start timer again with new interval
-                            this.IsTimerRunning <- false
-                            this.StartTimer()
-
-                            // so we stop this timer that has an old interval
-                            false
-
-                // to keep or stop timer recurring
-                awakeAndSameInterval
-            )
-
-    member this.StartBalanceRefreshCycle (cycleStart: CycleStart) =
-        let onlyReadOnlyAccounts = (cycleStart = CycleStart.ImmediateForReadOnlyAccounts)
-        if ((cycleStart <> CycleStart.Delayed && this.RefreshBalancesAndCheckIfAwake onlyReadOnlyAccounts) || true) then
-            this.StartTimer()
+    member private this.StopTimer() =
+        let _,cancelSource = this.LastRefreshBalancesStamp
+        if not cancelSource.IsCancellationRequested then
+            cancelSource.Cancel()
+            cancelSource.Dispose()
 
     member private this.ConfigureFiatAmountFrame (normalAccountsBalances: seq<BalanceState>)
                                                  (readOnlyAccountsBalances: seq<BalanceState>)
@@ -556,11 +576,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             this.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances totalFiatAmountLabel
             this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances totalReadOnlyFiatAmountLabel
         )
-        this.StartBalanceRefreshCycle CycleStart.ImmediateForReadOnlyAccounts
 
-        state.Resumed.Add (fun _ -> this.StartBalanceRefreshCycle CycleStart.ImmediateForAll)
+        this.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync
+        this.StartTimer()
 
-        state.GoneToSleep.Add (fun _ ->
+        state.Resumed.Add (fun _ -> this.StartTimer())
+
+        state.GoneToSleep.Add (fun _ -> 
+            this.StopTimer()
             this.CancelBalanceRefreshJobs()
         )
-

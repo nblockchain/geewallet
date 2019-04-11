@@ -92,7 +92,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         )
 
     do
-        dobDatePicker.MaximumDate <- DateTime.Now.Date
+        dobDatePicker.MaximumDate <- DateTime.UtcNow.Date
 
         Caching.Instance.BootstrapServerStatsFromTrustedSource()
             |> FrontendHelpers.DoubleCheckCompletionAsync

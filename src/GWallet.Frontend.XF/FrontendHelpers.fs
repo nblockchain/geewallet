@@ -27,8 +27,6 @@ module FrontendHelpers =
     let private enableGtkWorkarounds = true
 
     type IGlobalAppState =
-        abstract member Awake: bool with get
-
         [<CLIEvent>]
         abstract member Resumed: IEvent<unit> with get
         [<CLIEvent>]
@@ -54,7 +52,7 @@ module FrontendHelpers =
     let internal TimeSpanToConsiderExchangeRateOutdated = TimeSpan.FromMinutes 30.0
 
     let MaybeReturnOutdatedMarkForOldDate (date: DateTime) =
-        if (date + TimeSpanToConsiderExchangeRateOutdated < DateTime.Now) then
+        if (date + TimeSpanToConsiderExchangeRateOutdated < DateTime.UtcNow) then
             ExchangeOutdatedVisualElement
         else
             String.Empty
