@@ -1,6 +1,6 @@
 The MIT License
 
-Copyright (c) 2017-2018 Andres G. Aragoneses
+Copyright (c) 2017-2019 Andres G. Aragoneses
 Copyright (c) 2018-2019 Diginex Ltd (www.diginex.com)
 Copyright (c) 2019 project contributors
 

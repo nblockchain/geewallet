@@ -527,26 +527,20 @@ module Caching =
                 }
 
             let targetBranch = "master"
-            let username1,username2,username3 = "diginex","knocte","DiginexGlobal"
+            let username = "knocte"
             let projName1,projName2 = "geewallet","gwallet"
             let githubBaseUrl,gitlabBaseUrl = "https://raw.githubusercontent.com","https://gitlab.com"
             let pathToFile = "src/GWallet.Backend/lastServerStats.json"
 
-            let diginexGithub =
-                sprintf "%s/%s/%s/%s/%s"
-                        githubBaseUrl username1 projName1 targetBranch pathToFile
             let knocteGithub =
                 sprintf "%s/%s/%s/%s/%s"
-                        githubBaseUrl username2 projName2 targetBranch pathToFile
+                        githubBaseUrl username projName2 targetBranch pathToFile
 
-            let diginexGitLab =
-                sprintf "%s/%s/%s/raw/%s/%s"
-                        gitlabBaseUrl username3 projName1 targetBranch pathToFile
             let knocteGitLab =
                 sprintf "%s/%s/%s/raw/%s/%s"
-                        gitlabBaseUrl username2 projName2 targetBranch pathToFile
+                        gitlabBaseUrl username projName1 targetBranch pathToFile
 
-            let allUrls = [ diginexGithub; knocteGithub; diginexGitLab; knocteGitLab ]
+            let allUrls = [ knocteGithub; knocteGitLab ]
             let allJobs =
                 allUrls |> Seq.map downloadFile
 
