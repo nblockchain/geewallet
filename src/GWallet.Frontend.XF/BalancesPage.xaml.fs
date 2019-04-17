@@ -556,7 +556,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-            Device.OpenUri (Uri "https://www.diginex.com")
+            Device.OpenUri (Uri "https://www.geewallet.com")
         ) |> ignore
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
         footerLabel.GestureRecognizers.Add tapGestureRecognizer

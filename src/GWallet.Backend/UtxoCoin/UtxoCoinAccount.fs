@@ -352,7 +352,7 @@ module Account =
                 Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC) |> FeeRate
             with
             | ex ->
-                // we need more info in case this bug shows again: https://gitlab.com/DiginexGlobal/geewallet/issues/43
+                // we need more info in case this bug shows again: https://gitlab.com/knocte/geewallet/issues/43
                 raise <| Exception(sprintf "Could not create fee rate from %s btc per KB"
                                            (btcPerKiloByteForFastTrans.ToString()), ex)
 
