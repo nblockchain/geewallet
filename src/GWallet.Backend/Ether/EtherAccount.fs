@@ -115,7 +115,7 @@ module internal Account =
                         return! getBalanceWithoutCaching(Some unconfirmedTask)
         }
 
-    let ValidateAddress (currency: Currency) (address: string) =
+    let ValidateAddress (currency: Currency) (address: string) = async {
         if String.IsNullOrEmpty address then
             raise <| ArgumentNullException "address"
 
@@ -128,9 +128,12 @@ module internal Account =
         if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
             raise <| AddressWithInvalidLength [ ETHEREUM_ADDRESSES_LENGTH ]
 
+        do! Ether.Server.CheckIfAddressIsAValidPaymentDestination currency address
+
         if (not (addressUtil.IsChecksumAddress(address))) then
             let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
             raise (AddressWithInvalidChecksum(Some validCheckSumAddress))
+    }
 
     let private GetTransactionCount (currency: Currency) (publicAddress: string): Async<int64> = async {
         let! result = Ether.Server.GetTransactionCount currency publicAddress
