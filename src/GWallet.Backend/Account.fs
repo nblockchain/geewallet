@@ -141,7 +141,13 @@ module Account =
     // TODO: add tests for these (just in case address validation breaks after upgrading our dependencies)
     let ValidateAddress (currency: Currency) (address: string): Async<unit> = async {
         if currency.IsEtherBased() then
-            Ether.Account.ValidateAddress currency address
+            try
+                Ether.Account.ValidateAddress currency address
+            with
+            | AddressWithInvalidChecksum (Some addressWithCorrectedCheckSum) ->
+                do! Ether.Server.CheckIfAddressIsAValidPaymentDestination currency addressWithCorrectedCheckSum
+            | ex ->
+                return raise <| FSharpUtil.ReRaise ex
             do! Ether.Server.CheckIfAddressIsAValidPaymentDestination currency address
         elif currency.IsUtxo() then
             UtxoCoin.Account.ValidateAddress currency address
