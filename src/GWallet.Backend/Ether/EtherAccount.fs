@@ -354,14 +354,13 @@ module internal Account =
 
     let private CreateInternal (password: string) (seed: array<byte>): FileRepresentation =
         let privateKey = EthECKey(seed, true)
-        let privateKeyBytes = privateKey.GetPrivateKeyAsBytes()
         let publicAddress = privateKey.GetPublicAddress()
         if not (addressUtil.IsChecksumAddress(publicAddress)) then
             failwith ("Nethereum's GetPublicAddress gave a non-checksum address: " + publicAddress)
 
         let accountSerializedJson =
             KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson(password,
-                                                                    privateKeyBytes,
+                                                                    seed,
                                                                     publicAddress)
         let fileNameForAccount = KeyStoreService.GenerateUTCFileName(publicAddress)
 

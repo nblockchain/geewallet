@@ -1,18 +1,18 @@
-# <img src="https://github.com/diginex/geewallet/raw/master/logo.png" width="50" /> GWallet
+# <img src="https://github.com/knocte/geewallet/raw/master/logo.png" width="50" /> GWallet
 
 Welcome!
 
 GWallet is a minimalistic and pragmatist crossplatform lightweight opensource brainwallet for people that want to hold the most important cryptocurrencies in the same application with ease and peace of mind.
 
-[![Licence](https://img.shields.io/github/license/diginex/geewallet.svg)](https://github.com/diginex/geewallet/blob/master/LICENCE.txt)
+[![Licence](https://img.shields.io/github/license/knocte/gwallet.svg)](https://github.com/knocte/gwallet/blob/master/LICENCE.txt)
 
 | Branch            | Description                                                            | CI status (build & test suite)                                                                                                                                                |
 | ----------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| stable (v0.2.x)   | Console frontend, currencies: ETC&ETH+DAI(ERC20), BTC&LTC (SegWit+RBF) | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/stable/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/stable)      |
-| master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/master/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/master) <br/>macOS: [![macOS CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/master-macOS)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=7) <br/>Windows: [![Windows CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/master-Windows)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=1) |
-| frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | Linux: [![Linux CI pipeline status badge](http://gitlab.com/DiginexGlobal/geewallet/badges/frontend/build.svg)](https://gitlab.com/DiginexGlobal/geewallet/commits/frontend)  |
+| stable (v0.2.x)   | Console frontend, currencies: ETC&ETH+DAI(ERC20), BTC&LTC (SegWit+RBF) | Linux: [![Linux CI pipeline status badge](http://gitlab.com/knocte/geewallet/badges/stable/build.svg)](https://gitlab.com/knocte/geewallet/commits/stable)      |
+| master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | Linux: [![Linux CI pipeline status badge](http://gitlab.com/knocte/geewallet/badges/master/build.svg)](https://gitlab.com/knocte/geewallet/commits/master) <br/>macOS: [![macOS CI pipeline status badge](https://dev.azure.com/knocte/geewallet/_apis/build/status/master-macOS)](https://dev.azure.com/knocte/geewallet/_build/latest?definitionId=7) <br/>Windows: [![Windows CI pipeline status badge](https://dev.azure.com/knocte/geewallet/_apis/build/status/master-Windows)](https://dev.azure.com/knocte/geewallet/_build/latest?definitionId=1) |
+| frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | Linux: [![Linux CI pipeline status badge](http://gitlab.com/knocte/geewallet/badges/frontend/build.svg)](https://gitlab.com/knocte/geewallet/commits/frontend)  |
 
-[![Balances mobile-page screenshot](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/maciosandroid-balances.png)](https://raw.githubusercontent.com/diginex/geewallet/master/img/screenshots/maciosandroid-balances.png)
+[![Balances mobile-page screenshot](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/maciosandroid-balances.png)](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/maciosandroid-balances.png)
 
 ## Principles
 
@@ -111,7 +111,7 @@ After that you can call `gwallet` directly.
 
 ## Thanks
 
-Special thanks to all the [contributors](https://gitlab.com/DiginexGlobal/geewallet/graphs/frontend) (we recently surpassed 10! if you count the contributions that are in review at the moment). Without forgetting as well the amazing developers that contribute(d) to the great opensource libraries that this project uses; some examples:
+Special thanks to all the [contributors](https://gitlab.com/knocte/geewallet/graphs/frontend) (we recently surpassed 10! if you count the contributions that are in review at the moment). Without forgetting as well the amazing developers that contribute(d) to the great opensource libraries that this project uses; some examples:
 
 - @juanfranblanco: Nethereum
 - @nicolasdorier, @joemphilips: NBitcoin

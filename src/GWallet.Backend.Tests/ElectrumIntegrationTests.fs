@@ -82,6 +82,9 @@ type ElectrumIntegrationTests() =
                 Console.Error.WriteLine (sprintf "%A server %s is unhealthy" currency server.Fqdn)
                 None
 
+            | :? ElectrumServerReturningErrorException as ex ->
+                raise <| Exception(sprintf "%A server %s is failing with '%s" currency server.Fqdn ex.Message, ex)
+
         match maybeFilter with
         | Some filterFunc ->
             if (filterFunc electrumServer) then
@@ -222,7 +225,7 @@ type ElectrumIntegrationTests() =
                                        (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
 
     [<Test>]
-    [<Ignore "another instance of https://gitlab.com/DiginexGlobal/geewallet/issues/54">]
+    [<Ignore "another instance of https://gitlab.com/knocte/geewallet/issues/54">]
     member __.``should not get empty/null response from electrum BTC servers (rebel ones)``() =
         let currency = Currency.BTC
 
