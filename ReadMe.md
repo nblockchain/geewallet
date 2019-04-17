@@ -60,10 +60,11 @@ This list is the (intended) order of preference for new features:
 
 ## Anti-roadmap
 
-Things that are not currently on our roadmap:
+Things we will never develop (if you want them, feel free to fork us):
 
 - ZCash/Dash/Monero support (I don't like the trusted setup of the first, plus the others use substandard
 privacy solutions which in my opinion have been all surpassed by MimbleWimble/Grin).
+- Ripple/Stellar/OneCoin support (they're all a scam).
 - BCash (as it's less evolved, technically speaking; I don't want to deal with transaction malleability
 or lack of Layer2 scaling).
 
