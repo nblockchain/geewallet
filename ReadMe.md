@@ -1,8 +1,8 @@
-# <img src="https://github.com/knocte/geewallet/raw/master/logo.png" width="50" /> GWallet
+# <img src="https://github.com/knocte/geewallet/raw/master/logo.png" width="50" /> geewallet
 
 Welcome!
 
-GWallet is a minimalistic and pragmatist crossplatform lightweight opensource brainwallet for people that want to hold the most important cryptocurrencies in the same application with ease and peace of mind.
+geewallet is a minimalistic and pragmatist crossplatform lightweight opensource brainwallet for people that want to hold the most important cryptocurrencies in the same application with ease and peace of mind.
 
 [![Licence](https://img.shields.io/github/license/knocte/gwallet.svg)](https://github.com/knocte/gwallet/blob/master/LICENCE.txt)
 
