@@ -68,35 +68,8 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.Net.Http" />
-    <Reference Include="Common.Logging.Core">
-      <HintPath>..\..\packages\Common.Logging.Core.3.4.1\lib\netstandard1.0\Common.Logging.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="Zlib.Portable">
-      <HintPath>..\..\packages\Zlib.Portable.1.11.0\lib\portable-net4+sl5+wp8+win8+wpa81+MonoTouch+MonoAndroid\Zlib.Portable.dll</HintPath>
-    </Reference>
-    <Reference Include="Plugin.Clipboard.Abstractions">
-      <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.2.1\lib\MonoAndroid10\Plugin.Clipboard.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Plugin.Clipboard">
-      <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.2.1\lib\MonoAndroid10\Plugin.Clipboard.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
-    </Reference>
-    <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.2\lib\netstandard2.0\BouncyCastle.Crypto.dll</HintPath>
-    </Reference>
-    <Reference Include="Plugin.Connectivity.Abstractions">
-      <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\MonoAndroid10\Plugin.Connectivity.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Plugin.Connectivity">
-      <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\MonoAndroid10\Plugin.Connectivity.dll</HintPath>
-    </Reference>
     <Reference Include="System.Configuration.ConfigurationManager">
       <HintPath>..\..\packages\System.Configuration.ConfigurationManager.4.4.0\lib\netstandard2.0\System.Configuration.ConfigurationManager.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpRaven">
-      <HintPath>..\..\packages\SharpRaven.2.4.0\lib\netstandard2.0\SharpRaven.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
       <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.0\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
@@ -110,12 +83,6 @@
     <Reference Include="System.Buffers">
       <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
     </Reference>
-    <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.4.1.1.80\lib\netstandard2.0\NBitcoin.dll</HintPath>
-    </Reference>
-    <Reference Include="NBitcoin.Altcoins">
-      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.35\lib\netstandard2.0\NBitcoin.Altcoins.dll</HintPath>
-    </Reference>
     <Reference Include="Xamarin.Android.FSharp.ResourceProvider.Runtime">
       <HintPath>..\..\packages\Xamarin.Android.FSharp.ResourceProvider.1.0.0.28\lib\monoandroid81\Xamarin.Android.FSharp.ResourceProvider.Runtime.dll</HintPath>
     </Reference>
@@ -124,21 +91,6 @@
     </Reference>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\netstandard2.0\FSharp.Data.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXing.Net.Mobile.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\MonoAndroid71\zxing.portable.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXingNetMobile.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms.Android">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.Android.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Android.Support.Annotations">
       <HintPath>..\..\packages\Xamarin.Android.Support.Annotations.27.0.2.1\lib\MonoAndroid81\Xamarin.Android.Support.Annotations.dll</HintPath>
@@ -205,66 +157,6 @@
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.5.3\lib\netstandard1.6\FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Xamarin.Essentials">
-      <HintPath>..\..\packages\Xamarin.Essentials.1.0.0\lib\monoandroid81\Xamarin.Essentials.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Abstractions">
-      <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.Client">
-      <HintPath>..\..\packages\JsonRpcSharp.0.9.54732\lib\netstandard2.0\JsonRpcSharp.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.IpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.9.54732\lib\netstandard2.0\JsonRpcSharp.IpcClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.RpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.9.54732\lib\netstandard2.0\JsonRpcSharp.RpcClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.TcpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.9.54732\lib\netstandard2.0\JsonRpcSharp.TcpClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.WebSocketClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.9.54732\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Accounts">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.StandardTokenEIP20">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
-    </Reference>
-    <Reference Include="SkiaSharp">
-      <HintPath>..\..\packages\SkiaSharp.1.68.0\lib\MonoAndroid\SkiaSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="SkiaSharp.Extended.Svg">
-      <HintPath>..\..\packages\SkiaSharp.Svg.1.60.0\lib\netstandard2.0\SkiaSharp.Extended.Svg.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MainActivity.fs" />
@@ -278,9 +170,6 @@
     <AndroidResource Include="Resources\drawable-xxhdpi\icon.png" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <None Include="Properties\AndroidManifest.xml" />
-    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
-      <Link>Properties\CommonAssemblyInfo.fs</Link>
-    </Compile>
     <None Include="Assets\AboutAssets.txt" />
     <None Include="packages.config" />
   </ItemGroup>
@@ -288,10 +177,6 @@
     <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
       <Project>{85236682-6463-4209-B66C-E0643EF12B46}</Project>
       <Name>GWallet.Frontend.XF</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj">
-      <Project>{D1D192E0-F226-40AD-8D81-687F7E6F7DAB}</Project>
-      <Name>GWallet.Backend.NetStandard</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.FSharp.targets" />

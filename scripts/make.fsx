@@ -16,7 +16,7 @@ open Process
 let UNIX_NAME = "gwallet"
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
-let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
+let DEFAULT_SOLUTION_FILE = "gwallet.linux.sln"
 let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
 
 type Frontend =
