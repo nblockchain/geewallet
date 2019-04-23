@@ -144,9 +144,11 @@ type ElectrumIntegrationTests() =
             "dedi.jochen-hoenicke.de"
             "electrum-server.ninja"
             "electrum.eff.ro"
+            (* mmm, seems like the culprit is not in the specific servers because this list keeps growing and growing...
             "electrum.leblancnet.us"
             "daedalus.bauerj.eu"
             "electrum2.villocq.com"
+            *)
         ]
 
     let btcNonRebelServers =
@@ -215,7 +217,8 @@ type ElectrumIntegrationTests() =
                                        (ElectrumClient.GetUnspentTransactionOutputs argument) UtxosAssertion
 
     [<Test>]
-    member __.``should not get empty/null response from electrum BTC servers``() =
+    // to make sure the workaround for https://github.com/nblockchain/JsonRpcSharp/issues/9 works
+    member __.``should not get empty/null response from electrum BTC servers I``() =
         let currency = Currency.BTC
 
         // some random existing transaction
@@ -225,8 +228,8 @@ type ElectrumIntegrationTests() =
                                        (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
 
     [<Test>]
-    [<Ignore "another instance of https://gitlab.com/knocte/geewallet/issues/54">]
-    member __.``should not get empty/null response from electrum BTC servers (rebel ones)``() =
+    // to make sure the workaround for https://github.com/nblockchain/JsonRpcSharp/issues/9 works
+    member __.``should not get empty/null response from electrum BTC servers II``() =
         let currency = Currency.BTC
 
         // some random existing transaction
