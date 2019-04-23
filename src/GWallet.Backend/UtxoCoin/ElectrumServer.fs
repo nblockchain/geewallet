@@ -10,7 +10,7 @@ open FSharp.Data.JsonExtensions
 open GWallet.Backend
 
 type IncompatibleServerException(message) =
-    inherit Exception(message)
+    inherit ConnectionUnsuccessfulException(message)
 
 type IncompatibleProtocolException(message) =
     inherit IncompatibleServerException(message)

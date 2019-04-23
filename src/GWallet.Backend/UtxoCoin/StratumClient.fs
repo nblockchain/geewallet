@@ -75,7 +75,7 @@ type ErrorResult =
     }
 
 type public ElectrumServerReturningErrorInJsonResponseException(message: string, code: int) =
-    inherit Exception(message)
+    inherit ConnectionUnsuccessfulException(message)
 
     member val ErrorCode: int =
         code with get

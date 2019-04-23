@@ -280,6 +280,8 @@ module Server =
                                               : Async<'R> = async {
             try
                 return! web3Func web3Server
+
+            // NOTE: try to make this 'with' block be in sync with the one in UtxoCoinAccount:GetRandomizedFuncs()
             with
             | :? ConnectionUnsuccessfulException as ex ->
                 return raise <| FSharpUtil.ReRaise ex
