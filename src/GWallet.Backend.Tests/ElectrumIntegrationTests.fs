@@ -37,6 +37,7 @@ type ElectrumServerUnitTests() =
                         electrumServer.Fqdn)
 
 [<TestFixture>]
+[<Ignore ("Seems we have general issues reaching electrum servers these days, probably related to DDOS attack on them")>]
 type ElectrumIntegrationTests() =
 
     // probably a satoshi address because it was used in blockheight 2 and is unspent yet
@@ -217,7 +218,6 @@ type ElectrumIntegrationTests() =
                                        (ElectrumClient.GetUnspentTransactionOutputs argument) UtxosAssertion
 
     [<Test>]
-    [<Ignore ("Don't ask me why these 2 tests seem to time-out now, I'm sick of integration tests altogether...")>]
     // to make sure the workaround for https://github.com/nblockchain/JsonRpcSharp/issues/9 works
     member __.``should not get empty/null response from electrum BTC servers I``() =
         let currency = Currency.BTC
@@ -229,7 +229,6 @@ type ElectrumIntegrationTests() =
                                        (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
 
     [<Test>]
-    [<Ignore("Don't ask me why these 2 tests seem to time-out now, I'm sick of integration tests altogether...")>]
     // to make sure the workaround for https://github.com/nblockchain/JsonRpcSharp/issues/9 works
     member __.``should not get empty/null response from electrum BTC servers II``() =
         let currency = Currency.BTC
