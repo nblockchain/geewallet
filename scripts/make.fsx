@@ -68,14 +68,12 @@ let PrintNugetVersion () =
     if not (nugetExe.Exists) then
         false
     else
-        let nugetProc = Process.Execute (sprintf "mono %s" nugetExe.FullName, Echo.Off)
-        let firstChunk = nugetProc.Output.First()
-        match firstChunk with
-        | StdOut stdOut ->
-            Console.WriteLine stdOut
+        let nugetProc = Process.Execute ({ Command = "mono"; Arguments = nugetExe.FullName }, Echo.Off)
+        Console.WriteLine nugetProc.Output.StdOut
+        if nugetProc.ExitCode = 0 then
             true
-        | StdErr stdErr ->
-            Process.PrintToScreen nugetProc.Output
+        else
+            Console.Error.WriteLine nugetProc.Output.StdErr
             Console.WriteLine()
             failwith "nuget process' output contained errors ^"
 
@@ -90,7 +88,7 @@ let JustBuild binaryConfig =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> sprintf "%s;DefineConstants=%s" configOption constants
         | None   -> configOption
-    let buildProcess = Process.Execute (sprintf "%s %s" buildTool.Value configOptions, Echo.All)
+    let buildProcess = Process.Execute ({ Command = buildTool.Value; Arguments = configOptions }, Echo.All)
     if (buildProcess.ExitCode <> 0) then
         Console.Error.WriteLine (sprintf "%s build failed" buildTool.Value)
         PrintNugetVersion() |> ignore
@@ -148,15 +146,18 @@ match maybeTarget with
         Directory.Delete (pathToFolderToBeZipped, true)
 
     let pathToFrontend = GetPathToFrontend release
-    let zipRun = Process.Execute(sprintf "cp -rfvp %s %s" pathToFrontend pathToFolderToBeZipped, Echo.All)
+    let zipRun = Process.Execute({ Command = "cp"
+                                   Arguments = sprintf "-rfvp %s %s" pathToFrontend pathToFolderToBeZipped },
+                                 Echo.All)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "Precopy for ZIP compression failed"
         Environment.Exit 1
 
     let previousCurrentDir = Directory.GetCurrentDirectory()
     Directory.SetCurrentDirectory binDir
-    let zipLaunch = sprintf "%s -r %s %s"
-                            zipCommand zipName zipNameWithoutExtension
+    let zipLaunch = { Command = zipCommand
+                      Arguments = sprintf "%s -r %s %s"
+                                      zipCommand zipName zipNameWithoutExtension }
     let zipRun = Process.Execute(zipLaunch, Echo.All)
     if (zipRun.ExitCode <> 0) then
         Console.Error.WriteLine "ZIP compression failed"
@@ -174,7 +175,7 @@ match maybeTarget with
                                         testAssembly + ".dll")
     if not (File.Exists(testAssemblyPath)) then
         failwithf "File not found: %s" testAssemblyPath
-    let nunitRun = Process.Execute(sprintf "%s %s" nunitCommand testAssemblyPath,
+    let nunitRun = Process.Execute({ Command = nunitCommand; Arguments = testAssemblyPath },
                                    Echo.All)
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
@@ -193,7 +194,8 @@ match maybeTarget with
     if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
         Directory.CreateDirectory(finalPrefixPathOfWrapperScript.Directory.FullName) |> ignore
     File.Copy(launcherScriptPath.FullName, finalPrefixPathOfWrapperScript.FullName, true)
-    if ((Process.Execute(sprintf "chmod ugo+x %s" finalPrefixPathOfWrapperScript.FullName, Echo.Off)).ExitCode <> 0) then
+    if Process.Execute({ Command = "chmod"; Arguments = sprintf "ugo+x %s" finalPrefixPathOfWrapperScript.FullName },
+                        Echo.Off).ExitCode <> 0 then
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
@@ -211,8 +213,9 @@ match maybeTarget with
             let pkgConfig = "pkg-config"
             if (Process.CommandCheck pkgConfig).IsNone then
                 failwithf "'%s' was uninstalled after ./configure.sh was invoked?" pkgConfig
-            let pkgConfigCmd = sprintf "%s --atleast-version=%s mono"
-                                   pkgConfig versionOfMonoWhereRunningExesDirectlyIsSupported
+            let pkgConfigCmd = { Command = pkgConfig
+                                 Arguments = sprintf "--atleast-version=%s mono"
+                                                 versionOfMonoWhereRunningExesDirectlyIsSupported }
             let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
             processResult.ExitCode <> 0
 
@@ -236,14 +239,16 @@ match maybeTarget with
 
     let btcServersUrl = "https://raw.githubusercontent.com/spesmilo/electrum/master/electrum/servers.json"
     let btcServersFile = Path.Combine(utxoCoinFolder, "btc-servers.json")
-    let updateBtc = Process.Execute (sprintf "curl --fail -o %s %s" btcServersFile btcServersUrl, Echo.All)
+    let updateBtc = Process.Execute ({ Command = "curl"
+                                       Arguments = sprintf "--fail -o %s %s" btcServersFile btcServersUrl }, Echo.All)
     if (updateBtc.ExitCode <> 0) then
         Console.Error.WriteLine "Update failed"
         Environment.Exit 1
 
     let ltcServersUrl = "https://raw.githubusercontent.com/pooler/electrum-ltc/master/electrum_ltc/servers.json"
     let ltcServersFile = Path.Combine(utxoCoinFolder, "ltc-servers.json")
-    let updateLtc = Process.Execute (sprintf "curl --fail -o %s %s" ltcServersFile ltcServersUrl, Echo.All)
+    let updateLtc = Process.Execute ({ Command = "curl"
+                                       Arguments = sprintf "--fail -o %s %s" ltcServersFile ltcServersUrl }, Echo.All)
     if (updateLtc.ExitCode <> 0) then
         Console.Error.WriteLine "Update failed"
         Environment.Exit 1

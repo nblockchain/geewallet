@@ -9,16 +9,60 @@ open System.Threading
 open System.Reflection
 open System.Diagnostics
 
-type OutChunk =
-    | StdOut of StringBuilder
-    | StdErr of StringBuilder
-type OutputBuffer = list<OutChunk>
 type Standard =
     | Output
     | Error
     override self.ToString() =
         sprintf "%A" self
+
+type OutputChunk =
+    { OutputType: Standard; Chunk: StringBuilder }
+
+type OutputBuffer(buffer: list<OutputChunk>) =
+
+    //NOTE both Filter() and Print() process tail before head
+    // because of the way the buffer-aggregation is implemented in
+    // Execute()'s ReadIteration()
+
+    let rec Filter (subBuffer: list<OutputChunk>, outputType: Option<Standard>) =
+        match subBuffer with
+        | [] -> new StringBuilder()
+        | head::tail ->
+            let filteredTail = Filter(tail, outputType)
+            if (outputType.IsNone || head.OutputType = outputType.Value) then
+                filteredTail.Append(head.Chunk.ToString())
+            else
+                filteredTail
+
+    let rec Print (subBuffer: list<OutputChunk>): unit =
+        match subBuffer with
+        | [] -> ()
+        | head::tail ->
+            Print(tail)
+            match head.OutputType with
+            | Standard.Output ->
+                Console.Write(head.Chunk.ToString())
+                Console.Out.Flush()
+            | Standard.Error ->
+                Console.Error.Write(head.Chunk.ToString())
+                Console.Error.Flush()
+
+    member this.StdOut with get () = Filter(buffer, Some(Standard.Output)).ToString()
+
+    member this.StdErr with get () = Filter(buffer, Some(Standard.Error)).ToString()
+
+    member this.PrintToConsole() =
+        Print(buffer)
+
+    override self.ToString() =
+        Filter(buffer, None).ToString()
+
 type ProcessResult = { ExitCode: int; Output: OutputBuffer }
+
+type ProcessDetails =
+    { Command: string; Arguments: string }
+    override self.ToString() =
+        sprintf "Command: %s. Arguments: %s." self.Command self.Arguments
 
 type Echo =
     | All
@@ -26,6 +70,10 @@ type Echo =
     | Off
 
 module Misc =
+
+    let IsRunningInGitLab(): bool =
+        let gitlabUserEmail = Environment.GetEnvironmentVariable "GITLAB_USER_EMAIL"
+        not (String.IsNullOrEmpty gitlabUserEmail)
 
     let IsPathEqual (a, b): bool =
         // FIXME: do case-insensitive comparison in Windows and Mac
@@ -116,68 +164,51 @@ module Misc =
                 Platform.Linux
         | _ -> Platform.Windows
 
+    let rec GatherOrGetDefaultPrefix(args: List<string>, previousIsPrefixArg: bool, prefixSet: Option<string>): string =
+        let GatherPrefix(newPrefix: string): Option<string> =
+            match prefixSet with
+            | None -> Some newPrefix
+            | _ -> failwith ("prefix argument duplicated")
+
+        let prefixArgWithEquals = "--prefix="
+        match args with
+        | [] ->
+            match prefixSet with
+            | None -> "/usr/local"
+            | Some prefix -> prefix
+        | head::tail ->
+            if previousIsPrefixArg then
+                GatherOrGetDefaultPrefix(tail, false, GatherPrefix head)
+            elif head = "--prefix" then
+                GatherOrGetDefaultPrefix(tail, true, prefixSet)
+            elif head.StartsWith prefixArgWithEquals then
+                GatherOrGetDefaultPrefix(tail, false, GatherPrefix(head.Substring prefixArgWithEquals.Length))
+            else
+                failwithf "argument not recognized: %s" head
+
 
 module Process =
 
     exception ProcessFailed of string
 
-    let rec internal GetStdOut (outputBuffer: OutputBuffer) =
-        match outputBuffer with
-        | [] -> StringBuilder()
-        | head::tail ->
-            match head with
-            | StdOut(out) ->
-                GetStdOut(tail).Append(out.ToString())
-            | _ ->
-                GetStdOut(tail)
-
-    let rec internal GetStdErr (outputBuffer: OutputBuffer) =
-        match outputBuffer with
-        | [] -> StringBuilder()
-        | head::tail ->
-            match head with
-            | StdErr(err) ->
-                GetStdErr(tail).Append(err.ToString())
-            | _ ->
-                GetStdErr(tail)
-
-    let rec PrintToScreen (outputBuffer: OutputBuffer) =
-        match outputBuffer with
-        | [] -> ()
-        | head::tail ->
-            match head with
-            | StdOut(out) ->
-                Console.WriteLine(out)
-                Console.Out.Flush()
-            | StdErr(err) ->
-                Console.Error.WriteLine(err)
-                Console.Error.Flush()
-            PrintToScreen(tail)
-
-    type ProcessCouldNotStart(commandWithArguments, innerException: Exception) =
+    type ProcessCouldNotStart(procDetails, innerException: Exception) =
         inherit Exception(sprintf
-            "Process could not start! %s" commandWithArguments, innerException)
+            "Process could not start! %s" (procDetails.ToString()),
+            innerException)
 
-    let Execute (commandWithArguments: string, echo: Echo)
+
+    let Execute (procDetails: ProcessDetails, echo: Echo)
         : ProcessResult =
 
         // I know, this shit below is mutable, but it's a consequence of dealing with .NET's Process class' events?
-        let mutable outputBuffer: list<OutChunk> = []
         let outputBufferLock = new Object()
-
-
-        let firstSpaceAt = commandWithArguments.IndexOf(" ")
-        let (command, args) =
-            if (firstSpaceAt >= 0) then
-                (commandWithArguments.Substring(0, firstSpaceAt), commandWithArguments.Substring(firstSpaceAt + 1))
-            else
-                (commandWithArguments, String.Empty)
+        let mutable outputBuffer: list<OutputChunk> = []
 
         if echo = Echo.All then
-            Console.WriteLine commandWithArguments
+            Console.WriteLine(sprintf "%s %s" procDetails.Command procDetails.Arguments)
             Console.Out.Flush()
 
-        let startInfo = new ProcessStartInfo(command, args)
+        let startInfo = new ProcessStartInfo(procDetails.Command, procDetails.Arguments)
         startInfo.UseShellExecute <- false
         startInfo.RedirectStandardOutput <- true
         startInfo.RedirectStandardError <- true
@@ -239,29 +270,31 @@ module Process =
                     lock outputBufferLock (fun _ ->
 
                         let leChar = outChar.[uniqueElementIndexInTheSingleCharBuffer]
+                        let newBuilder = StringBuilder(leChar.ToString())
                         match outputBuffer with
                         | [] ->
-                            let newBuilder = StringBuilder(leChar.ToString())
                             let newBlock =
                                 match std with
-                                | Standard.Output -> StdOut newBuilder
-                                | Standard.Error -> StdErr newBuilder
+                                | Standard.Output ->
+                                    { OutputType = Standard.Output; Chunk = newBuilder }
+                                | Standard.Error ->
+                                    { OutputType = Standard.Error; Chunk = newBuilder }
                             outputBuffer <- [ newBlock ]
                         | head::tail ->
-                            match head with
-                            | StdOut(out) ->
+                            match head.OutputType with
+                            | Standard.Output ->
                                 match std with
                                 | Standard.Output ->
-                                    out.Append outChar |> ignore
+                                    head.Chunk.Append outChar |> ignore
                                 | Standard.Error ->
-                                    let newErrBuilder = StdErr(StringBuilder(leChar.ToString()))
+                                    let newErrBuilder = { OutputType = Standard.Error; Chunk = newBuilder }
                                     outputBuffer <- newErrBuilder::outputBuffer
-                            | StdErr(err) ->
+                            | Standard.Error ->
                                 match std with
                                 | Standard.Error ->
-                                    err.Append outChar |> ignore
+                                    head.Chunk.Append outChar |> ignore
                                 | Standard.Output ->
-                                    let newOutBuilder = StdOut(StringBuilder(leChar.ToString()))
+                                    let newOutBuilder = { OutputType = Standard.Output; Chunk = newBuilder }
                                     outputBuffer <- newOutBuilder::outputBuffer
                     )
 
@@ -283,7 +316,7 @@ module Process =
         try
             proc.Start() |> ignore
         with
-        | e -> raise(ProcessCouldNotStart(commandWithArguments, e))
+        | e -> raise(ProcessCouldNotStart(procDetails, e))
 
         outReaderThread.Start()
         errReaderThread.Start()
@@ -293,14 +326,15 @@ module Process =
         outReaderThread.Join()
         errReaderThread.Join()
 
-        { ExitCode = exitCode; Output = outputBuffer }
+        { ExitCode = exitCode; Output = OutputBuffer(outputBuffer) }
+
 
     let CommandCheck (commandName: string): Option<string> =
-        let commandWhich = Execute (sprintf "which %s" commandName, Echo.Off)
+        let commandWhich = Execute ({ Command = "which"; Arguments = commandName }, Echo.Off)
         if (commandWhich.ExitCode <> 0) then
             None
         else
-            Some(GetStdOut(commandWhich.Output).ToString())
+            Some commandWhich.Output.StdOut
 
 
     let rec private ExceptionIsOfTypeOrIncludesAnyInnerExceptionOfType(ex: Exception, t: Type): bool =
@@ -315,7 +349,7 @@ module Process =
         let WhichCommandWorksInShell (): bool =
             let maybeResult =
                 try
-                    Some(Execute("which", Echo.Off))
+                    Some(Execute({ Command = "which"; Arguments = String.Empty }, Echo.Off))
                 with
                 | ex when (ExceptionIsOfTypeOrIncludesAnyInnerExceptionOfType(ex, typeof<System.ComponentModel.Win32Exception>))
                     -> None
@@ -328,7 +362,7 @@ module Process =
         if not (WhichCommandWorksInShell()) then
             failwith "'which' doesn't work, please install it first"
 
-        let whichProcResult = Execute("which " + command, Echo.Off)
+        let whichProcResult = Execute({ Command = "which"; Arguments = command }, Echo.Off)
         match whichProcResult.ExitCode with
         | 0 -> true
         | _ -> false
@@ -356,15 +390,15 @@ module Process =
             CheckIfCommandWorksInShellWithWhich(command)
 
 
-    let SafeExecute (commandWithArguments: string, echo: Echo): ProcessResult =
-        let procResult = Execute(commandWithArguments, echo)
+    let SafeExecute (procDetails: ProcessDetails, echo: Echo): ProcessResult =
+        let procResult = Execute(procDetails, echo)
         if not (procResult.ExitCode = 0) then
             if (echo = Echo.Off) then
-                Console.WriteLine(GetStdOut(procResult.Output).ToString())
-                Console.Error.WriteLine(GetStdErr(procResult.Output).ToString())
+                Console.WriteLine procResult.Output.StdOut
+                Console.Error.WriteLine procResult.Output.StdErr
                 Console.Error.WriteLine()
             raise(ProcessFailed(sprintf "Command '%s' failed with exit code %d"
-                                        commandWithArguments procResult.ExitCode))
+                                        procDetails.Command procResult.ExitCode))
         procResult
 
 
@@ -373,27 +407,51 @@ module Unix =
     let mutable firstTimeSudoIsRun = true
     let private SudoInternal (command: string, safe: bool): Option<int> =
         if not (Process.CommandWorksInShell "id") then
-            Console.WriteLine ("'id' unix command is needed for this script to work")
+            Console.Error.WriteLine ("'id' unix command is needed for this script to work")
             Environment.Exit(2)
 
-        let idProcResult = Process.Execute("id -u", Echo.Off)
-        if (Process.GetStdOut(idProcResult.Output).ToString().Trim() = "0") then
+        let idOutput = Process.Execute({ Command = "id"; Arguments = "-u" }, Echo.Off).Output.StdOut
+        let alreadySudo = (idOutput.Trim() = "0")
+
+        if (alreadySudo && (not (Misc.IsRunningInGitLab()))) then
             Console.Error.WriteLine ("Error: sudo privileges detected. Please don't run this directly with sudo or with the root user.")
             Environment.Exit(3)
 
-        if (firstTimeSudoIsRun) then
-            Process.SafeExecute("sudo -k", Echo.All) |> ignore
+        if ((not (alreadySudo)) && (not (Process.CommandWorksInShell "sudo"))) then
+            failwith "'sudo' unix command is needed for this script to work"
 
-        Console.WriteLine("Attempting sudo for '{0}'", command)
+        if ((not (alreadySudo)) && firstTimeSudoIsRun) then
+            Process.SafeExecute({ Command = "sudo"; Arguments = "-k" }, Echo.All) |> ignore
+
+        if (not (alreadySudo)) then
+            Console.WriteLine("Attempting sudo for '{0}'", command)
+
+        // FIXME: we should change Sudo() signature to not receive command but command and args arguments
+        let (commandToExecute,argsToPass) =
+            match (alreadySudo) with
+            | false -> ("sudo",command)
+            | true ->
+                if (command.Contains(" ")) then
+                    let spaceIndex = command.IndexOf(" ")
+                    let firstCommand = command.Substring(0, spaceIndex)
+                    let args = command.Substring(spaceIndex + 1, command.Length - firstCommand.Length - 1)
+                    (firstCommand,args)
+                else
+                    (command,String.Empty)
+
         let result =
+            let cmd = { Command = commandToExecute; Arguments = argsToPass }
             if (safe) then
-                Process.SafeExecute("sudo " + command, Echo.All) |> ignore
+                Process.SafeExecute(cmd, Echo.All) |> ignore
                 None
             else
-                let proc = Process.Execute("sudo " + command, Echo.All)
-                proc.ExitCode |> Some
-        firstTimeSudoIsRun <- false
+                Some(Process.Execute(cmd, Echo.All).ExitCode)
+
+        if (not (alreadySudo)) then
+            firstTimeSudoIsRun <- false
+
         result
+
 
     let UnsafeSudo(command: string) =
         let res = SudoInternal(command, false)
@@ -412,11 +470,11 @@ module Unix =
             Console.Error.WriteLine ("This script is only for debian-based distros, aborting.")
             Environment.Exit(3)
 
-        let dpkgSearchProc = Process.Execute(sprintf "dpkg -s %s" packageName, Echo.Off)
+        let dpkgSearchProc = Process.Execute({ Command = "dpkg"; Arguments = sprintf "-s %s" packageName }, Echo.Off)
         if not (dpkgSearchProc.ExitCode = 0) then
             AptPackage.Missing
         else
-            let dpkgLines = Process.GetStdOut(dpkgSearchProc.Output).ToString().Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries)
+            let dpkgLines = dpkgSearchProc.Output.StdOut.Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries)
             let versionTag = "Version: "
             let maybeVersion = dpkgLines.Where(fun line -> line.StartsWith(versionTag)).Single()
             let version = maybeVersion.Substring(versionTag.Length)
@@ -430,17 +488,17 @@ module Unix =
     let rec DownloadAptPackage (packageName: string) =
         Console.WriteLine()
         Console.WriteLine(sprintf "Downloading %s..."  packageName)
-        let procResult = Process.Execute("apt download " + packageName, Echo.OutputOnly)
+        let procResult = Process.Execute({ Command = "apt"; Arguments = sprintf "download %s" packageName }, Echo.OutputOnly)
         if (procResult.ExitCode = 0) then
             Console.WriteLine("Downloaded " + packageName)
             ()
-        else if (Process.GetStdErr(procResult.Output).ToString().Contains("E: Can't select candidate version from package")) then
+        else if (procResult.Output.StdErr.Contains("E: Can't select candidate version from package")) then
             Console.WriteLine()
             Console.WriteLine()
             Console.WriteLine("Virtual package '{0}' found, provided by:", packageName)
             InstallAptPackageIfNotAlreadyInstalled("aptitude")
-            let aptitudeShowProc = Process.SafeExecute("aptitude show " + packageName, Echo.Off)
-            let lines = Process.GetStdOut(aptitudeShowProc.Output).ToString().Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries)
+            let aptitudeShowProc = Process.SafeExecute({ Command = "aptitude"; Arguments = sprintf "show %s" packageName }, Echo.Off)
+            let lines = aptitudeShowProc.Output.StdOut.Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries)
             for line in lines do
                 if (line.StartsWith("Provided by:")) then
                     Console.WriteLine(line.Substring("Provided by:".Length))
@@ -452,8 +510,8 @@ module Unix =
 
     let DownloadAptPackageRecursively (packageName: string) =
         InstallAptPackageIfNotAlreadyInstalled("apt-rdepends")
-        let aptRdependsProc = Process.SafeExecute("apt-rdepends " + packageName, Echo.Off)
-        let lines = Process.GetStdOut(aptRdependsProc.Output).ToString().Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries)
+        let aptRdependsProc = Process.SafeExecute({ Command = "apt-rdepends"; Arguments = packageName }, Echo.Off)
+        let lines = aptRdependsProc.Output.StdOut.Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries)
         for line in lines do
             if not (line.Trim().Contains("Depends:")) then
                 DownloadAptPackage(line.Trim())
@@ -514,4 +572,47 @@ module Util =
         // below for #!/usr/bin/fsx shebang
         else
             FsxArgumentsInternalFsx(cmdLineArgs)
+
+module Git =
+
+    let GetRepoInfo () =
+        let rec GetBranchFromGitBranch(outchunks: List<string>) =
+            match outchunks with
+            | [] -> failwith "current branch not found, unexpected output from `git branch`"
+            | head::tail ->
+                if head.StartsWith "*" then
+                    let branchName = head.Substring("* ".Length)
+                    branchName
+                else
+                    GetBranchFromGitBranch tail
+
+        let gitWhich = Process.Execute({ Command = "which"; Arguments = "git" }, Echo.Off)
+        if gitWhich.ExitCode <> 0 then
+            String.Empty
+        else
+            let gitLog = Process.Execute({ Command = "git"; Arguments = "log --oneline" }, Echo.Off)
+            if gitLog.ExitCode <> 0 then
+                String.Empty
+            else
+                let gitBranch = Process.Execute({ Command = "git"; Arguments = "branch" }, Echo.Off)
+                if gitBranch.ExitCode <> 0 then
+                    failwith "Unexpected git behaviour, as `git log` succeeded but `git branch` didn't"
+                else
+                    let branchesOutput =
+                        gitBranch.Output.StdOut.Split([|Environment.NewLine|], StringSplitOptions.RemoveEmptyEntries)
+                            |> List.ofSeq
+                    let branch = GetBranchFromGitBranch branchesOutput
+                    let gitLogCmd = { Command = "git"
+                                      Arguments = "log --no-color --first-parent -n1 --pretty=format:%h" }
+                    let gitLastCommit = Process.Execute(gitLogCmd, Echo.Off)
+                    if gitLastCommit.ExitCode <> 0 then
+                        failwith "Unexpected git behaviour, as `git log` succeeded before but not now"
+
+                    let lines = gitLastCommit.Output.StdOut.Split([|Environment.NewLine|],
+                                                                  StringSplitOptions.RemoveEmptyEntries)
+                    if lines.Length <> 1 then
+                        failwith "Unexpected git output for special git log command"
+                    else
+                        let lastCommitSingleOutput = lines.[0]
+                        sprintf "(%s/%s)" branch lastCommitSingleOutput
 
