@@ -36,6 +36,7 @@ type ElectrumServerUnitTests() =
                 sprintf "BTC servers list should be filtered against onion servers, but %s was found"
                         electrumServer.Fqdn)
 
+(* not sure if the <Ignore> attrib works on a TestFixture in all platforms...
 [<TestFixture>]
 [<Ignore ("Seems we have general issues reaching electrum servers these days, probably related to DDOS attack on them")>]
 type ElectrumIntegrationTests() =
@@ -239,3 +240,4 @@ type ElectrumIntegrationTests() =
         CheckElectrumServersConnection btcRebelServers currency
                                        (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
 
+*)
