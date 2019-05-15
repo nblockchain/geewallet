@@ -170,20 +170,21 @@ module Account =
     }
 
 
-    let ValidateUnknownCurrencyAddress (address: string): List<Currency> =
+    let ValidateUnknownCurrencyAddress (address: string): Async<List<Currency>> = async {
         if address.StartsWith "0x" then
             let someEtherCurrency = Currency.ETC
-            Ether.Account.ValidateAddress someEtherCurrency address
+            do! Ether.Account.ValidateAddress someEtherCurrency address
             let allEtherCurrencies = [ Currency.ETC; Currency.ETH; Currency.DAI ]
-            allEtherCurrencies
+            return allEtherCurrencies
         elif (address.StartsWith "L" || address.StartsWith "M") then
             let ltc = Currency.LTC
             UtxoCoin.Account.ValidateAddress ltc address
-            [ ltc ]
+            return [ ltc ]
         else
             let btc = Currency.BTC
             UtxoCoin.Account.ValidateAddress btc address
-            [ btc ]
+            return [ btc ]
+    }
 
     let EstimateFee (account: IAccount) (amount: TransferAmount) destination: Async<IBlockchainFeeInfo> =
         async {
