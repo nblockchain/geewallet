@@ -4,8 +4,13 @@ open System
 open System.IO
 open System.Linq
 open System.Diagnostics
-#load "Infra.fs"
+
+#r "System.Configuration"
+#load "InfraLib/Misc.fs"
+#load "InfraLib/Process.fs"
+#load "InfraLib/Git.fs"
 open FSX.Infrastructure
+open Process
 
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
 
@@ -101,14 +106,14 @@ let JustBuild binaryConfig =
     File.WriteAllText (launcherScriptPath.FullName, wrapperScriptWithPaths)
 
 let MakeCheckCommand (commandName: string) =
-    if (Process.CommandCheck commandName).IsNone then
+    if not (Process.CommandWorksInShell commandName) then
         Console.Error.WriteLine (sprintf "%s not found, please install it first" commandName)
         Environment.Exit 1
 
 let GetPathToFrontend (binaryConfig: BinaryConfig) =
     Path.Combine ("src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString())
 
-let maybeTarget = GatherTarget (Util.FsxArguments(), None)
+let maybeTarget = GatherTarget (Misc.FsxArguments(), None)
 match maybeTarget with
 | None ->
     Console.WriteLine "Building gwallet in DEBUG mode..."
@@ -187,8 +192,7 @@ match maybeTarget with
 
     Console.WriteLine "Installing gwallet..."
     Console.WriteLine ()
-    Directory.CreateDirectory(libInstallPath.FullName) |> ignore
-    Misc.CopyDirectoryRecursively (mainBinariesPath, libInstallPath)
+    Misc.CopyDirectoryRecursively (mainBinariesPath, libInstallPath, [])
 
     let finalPrefixPathOfWrapperScript = FileInfo (Path.Combine(binInstallPath.FullName, launcherScriptPath.Name))
     if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
@@ -211,7 +215,7 @@ match maybeTarget with
             false
         | Misc.Platform.Linux ->
             let pkgConfig = "pkg-config"
-            if (Process.CommandCheck pkgConfig).IsNone then
+            if not (Process.CommandWorksInShell pkgConfig) then
                 failwithf "'%s' was uninstalled after ./configure.sh was invoked?" pkgConfig
             let pkgConfigCmd = { Command = pkgConfig
                                  Arguments = sprintf "--atleast-version=%s mono"

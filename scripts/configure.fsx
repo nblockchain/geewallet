@@ -4,12 +4,16 @@ open System
 open System.IO
 open System.Linq
 
-#load "Infra.fs"
+#r "System.Configuration"
+#load "InfraLib/Misc.fs"
+#load "InfraLib/Process.fs"
+#load "InfraLib/Git.fs"
 open FSX.Infrastructure
+open Process
 
 let ConfigCommandCheck (commandName: string) =
     Console.Write (sprintf "checking for %s... " commandName)
-    if (Process.CommandCheck commandName).IsNone then
+    if not (Process.CommandWorksInShell commandName) then
         Console.Error.WriteLine "not found"
         Console.Error.WriteLine (sprintf "configuration failed, please install \"%s\"" commandName)
         Environment.Exit 1
@@ -48,7 +52,7 @@ let buildTool =
         "msbuild"
 ConfigCommandCheck buildTool
 
-let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Util.FsxArguments(), false, None))
+let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxArguments(), false, None))
 
 if not (prefix.Exists) then
     let warning = sprintf "WARNING: prefix doesn't exist: %s" prefix.FullName
