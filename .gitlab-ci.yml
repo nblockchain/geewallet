@@ -39,10 +39,13 @@ stocknewmono_build:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
     - mono --version
 
-    # compilation fails due to this bug: https://github.com/fsharp/fsharp/issues/740
-    #- time (./configure.sh && make && make install)
-    # so that we log the version of nuget for when it works
-    #- make nuget
+    # fsharpi is broken in Ubuntu 19.04 ( https://github.com/fsharp/fsharp/issues/740 ) so
+    # we can install 'fsx' as a workaorund
+    - apt install -y git && git clone https://gitlab.com/knocte/fsx.git
+    - cd fsx && ./configure.sh && make install && cd ..
+
+    - ./configure.sh
+    # FIXME: compilation fails for now due to some Nuget's bug:https://github.com/NuGet/Home/issues/7202
 
 newmono_build:
   image: ubuntu:18.04

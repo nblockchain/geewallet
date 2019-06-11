@@ -11,20 +11,29 @@ open System.Linq
 open FSX.Infrastructure
 open Process
 
-let ConfigCommandCheck (commandName: string) =
-    Console.Write (sprintf "checking for %s... " commandName)
-    if not (Process.CommandWorksInShell commandName) then
-        Console.Error.WriteLine "not found"
-        Console.Error.WriteLine (sprintf "configuration failed, please install \"%s\"" commandName)
-        Environment.Exit 1
-    Console.WriteLine "found"
+let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) =
+    let rec configCommandCheck currentCommandNamesQueue allCommands =
+        match Seq.tryHead currentCommandNamesQueue with
+        | Some currentCommand ->
+            Console.Write (sprintf "checking for %s... " currentCommand)
+            if not (Process.CommandWorksInShell currentCommand) then
+                Console.Error.WriteLine "not found"
+                configCommandCheck (Seq.tail currentCommandNamesQueue) allCommands
+            else
+                Console.WriteLine "found"
+                currentCommand
+        | None ->
+            Console.Error.WriteLine (sprintf "configuration failed, please install %s" (String.Join(" or ", List.ofSeq allCommands)))
+            Environment.Exit 1
+            failwith "unreachable"
+    configCommandCheck commandNamesByOrderOfPreference commandNamesByOrderOfPreference
 
-ConfigCommandCheck "make"
-ConfigCommandCheck "fsharpc"
-ConfigCommandCheck "mono"
+ConfigCommandCheck ["make"] |> ignore
+ConfigCommandCheck ["fsharpc"] |> ignore
+ConfigCommandCheck ["mono"] |> ignore
 
 // needed by NuGet.Restore.targets & the "update-servers" Makefile target
-ConfigCommandCheck "curl"
+ConfigCommandCheck ["curl"]
 
 let oldVersionOfMono =
     // we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) with no msbuild
@@ -39,18 +48,13 @@ let oldVersionOfMono =
         false
     | Misc.Platform.Linux ->
         let pkgConfig = "pkg-config"
-        ConfigCommandCheck pkgConfig
+        ConfigCommandCheck [pkgConfig] |> ignore
         let pkgConfigCmd = { Command = pkgConfig
                              Arguments = sprintf "--atleast-version=%s mono" versionOfMonoWhereTheRuntimeBugWasFixed }
         let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
         processResult.ExitCode <> 0
 
-let buildTool =
-    if oldVersionOfMono then
-        "xbuild"
-    else
-        "msbuild"
-ConfigCommandCheck buildTool
+let buildTool = ConfigCommandCheck ["msbuild"; "xbuild"]
 
 let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxArguments(), false, None))
 
@@ -67,7 +71,7 @@ let lines =
     |> Seq.map toConfigFileLine
 
 let path = Path.Combine(__SOURCE_DIRECTORY__, "build.config")
-File.WriteAllLines(path, lines |> Array.ofSeq)
+File.AppendAllLines(path, lines |> Array.ofSeq)
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let version = Misc.GetCurrentVersion(rootDir)
