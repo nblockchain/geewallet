@@ -360,6 +360,14 @@ module Caching =
                         Cached(compoundBalance,time)
             )
 
+        member self.TryRetreiveLastCompoundBalance (address: PublicAddress) (currency: Currency): Option<decimal> =
+            let maybeCachedBalance = self.RetreiveLastCompoundBalance address currency
+            match maybeCachedBalance with
+            | NotAvailable ->
+                None
+            | Cached(cachedBalance,_) ->
+                Some cachedBalance
+
         member self.RetreiveAndUpdateLastCompoundBalance (address: PublicAddress)
                                                          (currency: Currency)
                                                          (newBalance: decimal)

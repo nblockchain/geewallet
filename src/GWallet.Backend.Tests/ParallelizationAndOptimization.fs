@@ -29,7 +29,7 @@ type ParallelizationAndOptimization() =
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
-                             ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
+                             ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let mutable job1Done = false
         let aJob1 = async {
@@ -73,7 +73,7 @@ type ParallelizationAndOptimization() =
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
-                             ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
+                             ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let aJob1: Async<int> = async {
             return raise SomeExceptionDuringParallelWork
@@ -110,7 +110,7 @@ type ParallelizationAndOptimization() =
 
         let settings = { FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                              NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED;
-                             ConsistencyConfig = NumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
+                             ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
         let aJob1 =
             async { return 0 }

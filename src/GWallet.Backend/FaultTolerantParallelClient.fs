@@ -44,7 +44,11 @@ and internal NonParallelResults<'K,'R,'E when 'K: equality and 'E :> Exception> 
     ExceptionsSoFar<'K,'R,'E> * NonParallelResultWithAdditionalWork<'K,'R,'E>
 
 type ConsistencySettings<'R> =
-    | NumberOfConsistentResponsesRequired of uint32
+
+    // fun passed represents if cached value matches or not
+    | OneServerConsistentWithCacheOrTwoServers of ('R->bool)
+
+    | SpecificNumberOfConsistentResponsesRequired of uint32
     | AverageBetweenResponses of (uint32 * (List<'R> -> 'R))
 
 type Mode =
@@ -164,22 +168,28 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                     resultsSoFar,restOfTasks
             let newFailedFuncs = List.append failedFuncsSoFar failuresOfTask
 
+            let returnWithConsistencyOf number cacheMatchFunc = async {
+                let resultsSortedByCount = MeasureConsistency newResults
+                match resultsSortedByCount with
+                | [] ->
+                    return! WhenSomeInternal consistencySettings newRestOfTasks newResults newFailedFuncs
+                | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
+                    if cacheMatchFunc mostConsistentResult || (maxNumberOfConsistentResultsObtained = int number) then
+                        return ConsistentResult mostConsistentResult
+                    else
+                        return! WhenSomeInternal consistencySettings newRestOfTasks newResults newFailedFuncs
+            }
+
             match consistencySettings with
             | AverageBetweenResponses (minimumNumberOfResponses,averageFunc) ->
                 if (newResults.Length >= int minimumNumberOfResponses) then
                     return AverageResult (averageFunc newResults)
                 else
                     return! WhenSomeInternal consistencySettings newRestOfTasks newResults newFailedFuncs
-            | NumberOfConsistentResponsesRequired number ->
-                let resultsSortedByCount = MeasureConsistency newResults
-                match resultsSortedByCount with
-                | [] ->
-                    return! WhenSomeInternal consistencySettings newRestOfTasks newResults newFailedFuncs
-                | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
-                    if (maxNumberOfConsistentResultsObtained = int number) then
-                        return ConsistentResult mostConsistentResult
-                    else
-                        return! WhenSomeInternal consistencySettings newRestOfTasks newResults newFailedFuncs
+            | SpecificNumberOfConsistentResponsesRequired number ->
+                return! returnWithConsistencyOf number (fun _ -> false)
+            | OneServerConsistentWithCacheOrTwoServers cacheMatchFunc ->
+                return! returnWithConsistencyOf 2u cacheMatchFunc
     }
 
     // at the time of writing this, I only found a Task.WhenAny() equivalent function in the asyncF# world, called
@@ -260,7 +270,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         let numberOfParallelJobsAllowed = int settings.NumberOfParallelJobsAllowed
 
         match settings.ConsistencyConfig with
-        | NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired ->
+        | SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired ->
             if numberOfConsistentResponsesRequired < 1u then
                 return raise <| ArgumentException("must be higher than zero", "numberOfConsistentResponsesRequired")
             if (howManyFuncs < numberOfConsistentResponsesRequired) then
@@ -270,6 +280,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
             if (int minimumNumberOfResponses > numberOfParallelJobsAllowed) then
                 return raise(ArgumentException("numberOfParallelJobsAllowed should be equal or higher than minimumNumberOfResponses for the averageFunc",
                                                "settings"))
+        | OneServerConsistentWithCacheOrTwoServers _ ->
+            ()
 
         let funcsToRunInParallel,restOfFuncs =
             if (howManyFuncs > settings.NumberOfParallelJobsAllowed) then
@@ -321,8 +333,17 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                           cancelledInternally
             else
                 let totalNumberOfSuccesfulResultsObtained = allResultsSoFar.Length
-                match settings.ConsistencyConfig with
-                | NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired ->
+
+                // HACK: we do this as a quick fix wrt new OneServerConsistentWithCacheOrTwoServers setting, but we should
+                // (TODO) rather throw a specific overload of ResultInconsistencyException about this mode being used
+                let wrappedSettings =
+                    match settings.ConsistencyConfig with
+                    | OneServerConsistentWithCacheOrTwoServers _ ->
+                        SpecificNumberOfConsistentResponsesRequired 2u
+                    | _ -> settings.ConsistencyConfig
+
+                match wrappedSettings with
+                | SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired ->
                     let resultsOrderedByCount = MeasureConsistency allResultsSoFar
                     match resultsOrderedByCount with
                     | [] ->
@@ -358,6 +379,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                               retriesForInconsistency
                                               cancellationSource
                                               cancelledInternally
+                | _ ->
+                    return failwith "wrapping settings didn't work?"
 
     }
 
