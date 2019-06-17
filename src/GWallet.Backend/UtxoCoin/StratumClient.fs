@@ -75,7 +75,7 @@ type ErrorResult =
     }
 
 type public ElectrumServerReturningErrorInJsonResponseException(message: string, code: int) =
-    inherit Exception(message)
+    inherit ConnectionUnsuccessfulException(message)
 
     member val ErrorCode: int =
         code with get
@@ -94,6 +94,11 @@ type public ElectrumServerReturningInternalErrorException(message: string, code:
                                                           originalRequest: string, originalResponse: string) =
     inherit ElectrumServerReturningErrorException(message, code, originalRequest, originalResponse)
 
+// FIXME: we should actually fix this bug in JsonRpcSharp (https://github.com/nblockchain/JsonRpcSharp/issues/9) and
+//        send a warning to Sentry, not just hide it under the rug
+type public FlakyJsonRpcSharpClient (message: string) =
+    inherit ConnectionUnsuccessfulException(message)
+
 type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
     let Serialize(req: Request): string =
@@ -104,8 +109,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
     member private self.Request<'R> (jsonRequest: string): Async<'R> = async {
         let! rawResponse = jsonRpcClient.Request jsonRequest
         if String.IsNullOrEmpty rawResponse then
-            return failwithf "Server '%s' returned a null/empty JSON response to the request '%s'"
-                             jsonRpcClient.Host jsonRequest
+            return raise <| FlakyJsonRpcSharpClient(sprintf "Server '%s' returned a null/empty JSON response to the request '%s'"
+                                                        jsonRpcClient.Host jsonRequest)
         try
             return StratumClient.Deserialize<'R> rawResponse
         with

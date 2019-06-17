@@ -28,7 +28,8 @@ type FaultTolerance() =
     let defaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         {
             NumberOfParallelJobsAllowed = not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization
-            ConsistencyConfig = NumberOfConsistentResponsesRequired one_consistent_result_because_this_test_doesnt_test_consistency
+            ConsistencyConfig =
+                SpecificNumberOfConsistentResponsesRequired one_consistent_result_because_this_test_doesnt_test_consistency
             NumberOfRetries = test_does_not_involve_retries
             NumberOfRetriesForInconsistency = test_does_not_involve_retries
             Mode = default_mode_as_it_is_irrelevant_for_this_test
@@ -213,7 +214,7 @@ type FaultTolerance() =
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             ConsistencyConfig =
-                                NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
+                                SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
         let consistencyGuardClient =
             FaultTolerantParallelClient<string, SomeSpecificException>
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
@@ -245,7 +246,7 @@ type FaultTolerance() =
     [<Test>]
     member __.``consistency precondition > 0``() =
         let invalidSettings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries()
-                                    with ConsistencyConfig = NumberOfConsistentResponsesRequired 0u; }
+                                    with ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired 0u; }
         let dummyArg = ()
         let dummyServers =
             [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "dummyServerName" (async { return () }) ]
@@ -261,7 +262,7 @@ type FaultTolerance() =
         let numberOfConsistentResponsesToBeConsideredSafe = 3u
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             ConsistencyConfig =
-                                NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
+                                SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
 
         let someResult = 1
 
@@ -287,7 +288,7 @@ type FaultTolerance() =
     member __.``if consistency is not found, throws inconsistency exception``() =
         let numberOfConsistentResponsesToBeConsideredSafe = 3u
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
-                             ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
+                             ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe; }
 
         let mostConsistentResult = 1
         let someOtherResultA = 2
@@ -317,6 +318,87 @@ type FaultTolerance() =
                                           |> Async.RunSynchronously
                                           |> ignore )
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
+
+    [<Test>]
+    member __.``test new consistency setting designed to take advantage of caching (I)``() =
+        let someBalance = 1.0m
+        let someBalanceMatchFunc someBalanceRetreived =
+            someBalanceRetreived = someBalance
+        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+                             ConsistencyConfig =
+                                OneServerConsistentWithCacheOrTwoServers someBalanceMatchFunc }
+
+        let otherBalance = 2.0m
+        let yetAnotherBalance = 3.0m
+
+        let aJob1 =
+            async { return otherBalance }
+        let aJob2 =
+            async { return yetAnotherBalance }
+        let aJob3 =
+            async { return someBalance }
+
+        let func1,func2,func3 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob3" aJob3
+
+        let client = FaultTolerantParallelClient<string, SomeSpecificException>
+                         dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
+
+        let consistencyGuardClient =
+            FaultTolerantParallelClient<string, SomeSpecificException>
+                dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
+
+        let dataRetreived =
+            client
+                .Query settings
+                       [ func1; func2; func3 ]
+                    |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<decimal>())
+        Assert.That(dataRetreived, Is.EqualTo someBalance)
+
+    [<Test>]
+    member __.``test new consistency setting designed to take advantage of caching (II - cache obsolete)``() =
+        let someBalance = 1.0m
+        let someBalanceMatchFunc someBalanceRetreived =
+            someBalanceRetreived = someBalance
+        let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
+                             ConsistencyConfig =
+                                OneServerConsistentWithCacheOrTwoServers someBalanceMatchFunc }
+
+        let newBalance = 2.0m
+        let wrongBalance = 3.0m
+        let otherWrongBalance = 4.0m
+
+        let aJob1 =
+            async { return wrongBalance }
+        let aJob2 =
+            async { return newBalance }
+        let aJob3 =
+            async { return otherWrongBalance }
+        let aJob4 =
+            async { return newBalance }
+
+        let func1,func2,func3,func4 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2,
+                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob3" aJob3,
+                                      serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob4" aJob4
+
+        let client = FaultTolerantParallelClient<string, SomeSpecificException>
+                         dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
+
+        let consistencyGuardClient =
+            FaultTolerantParallelClient<string, SomeSpecificException>
+                dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
+
+        let dataRetreived =
+            client
+                .Query settings
+                       [ func1; func2; func3; func4 ]
+                    |> Async.RunSynchronously
+        Assert.That(dataRetreived, Is.TypeOf<decimal>())
+        Assert.That(dataRetreived, Is.EqualTo newBalance)
+
 
     [<Test>]
     member __.``retries at least once if all fail``() =
@@ -385,7 +467,7 @@ type FaultTolerance() =
 
         let settings = { defaultSettingsForNoConsistencyNoParallelismAndNoRetries() with
                             ConsistencyConfig =
-                                NumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe;
+                                SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe;
                             NumberOfRetries = 0u;
                             NumberOfRetriesForInconsistency = 1u }
 

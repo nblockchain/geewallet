@@ -252,7 +252,7 @@ module Server =
                                                          (mode: Mode) =
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
-            ConsistencyConfig = NumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired;
+            ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             Mode = mode
@@ -267,6 +267,18 @@ module Server =
                 2u
         FaultTolerantParallelClientInnerSettings numberOfConsistentResponsesRequired
                                                  mode
+
+    let private FaultTolerantParallelClientSettingsForBalanceCheck (currency: Currency)
+                                                                   (mode: Mode)
+                                                                   (cacheMatchFunc: decimal->bool) =
+        let defaultSettings = FaultTolerantParallelClientDefaultSettings currency mode
+        if mode = Mode.Fast then
+            {
+                defaultSettings with
+                    ConsistencyConfig = OneServerConsistentWithCacheOrTwoServers cacheMatchFunc
+            }
+        else
+            defaultSettings
 
     let private FaultTolerantParallelClientSettingsForBroadcast () =
         FaultTolerantParallelClientInnerSettings 1u Mode.Fast
@@ -288,6 +300,8 @@ module Server =
                                               : Async<'R> = async {
             try
                 return! web3Func web3Server
+
+            // NOTE: try to make this 'with' block be in sync with the one in UtxoCoinAccount:GetRandomizedFuncs()
             with
             | :? ConnectionUnsuccessfulException as ex ->
                 return raise <| FSharpUtil.ReRaise ex
@@ -372,12 +386,17 @@ module Server =
             return balance
         }
 
+    let private CachedBalanceMatch address currency someBalanceRetreived =
+        match Caching.Instance.TryRetreiveLastCompoundBalance address currency with
+        | None -> false
+        | Some balance -> someBalanceRetreived = balance
+
     let GetEtherBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode)
                         (cancelSourceOption: Option<CancellationTokenSource>)
-                                     : Async<BigInteger> =
+                                     : Async<decimal> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3): Async<BigInteger> = async {
+                let web3Func (web3: Web3): Async<decimal> = async {
                     let job =
                         match balType with
                         | BalanceType.Confirmed ->
@@ -389,7 +408,7 @@ module Server =
                                 return! Async.AwaitTask task
                             }
                     let! balance = HandlePossibleEtherFailures job
-                    return balance.Value
+                    return UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
                 }
                 GetWeb3Funcs currency web3Func
 
@@ -401,11 +420,12 @@ module Server =
                     faultTolerantEtherClient.QueryWithCancellation cancelSource
 
             return! query
-                        (FaultTolerantParallelClientDefaultSettings currency mode)
+                        (FaultTolerantParallelClientSettingsForBalanceCheck
+                            currency mode (CachedBalanceMatch address currency))
                         web3Funcs
         }
 
-    let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Async<BigInteger> =
+    let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Async<decimal> =
         if (web3 = null) then
             invalidArg "web3" "web3 argument should not be null"
 
@@ -423,7 +443,7 @@ module Server =
                                     (balanceOfFunctionMsg,
                                      blockForConfirmationReference,
                                      cancelToken) |> Async.AwaitTask
-            return balance
+            return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
         }
 
 
@@ -432,10 +452,10 @@ module Server =
                         (balType: BalanceType)
                         (mode: Mode)
                         (cancelSourceOption: Option<CancellationTokenSource>)
-                            : Async<BigInteger> =
+                            : Async<decimal> =
         async {
             let web3Funcs =
-                let web3Func (web3: Web3): Async<BigInteger> =
+                let web3Func (web3: Web3): Async<decimal> =
                     let job =
                         match balType with
                         | BalanceType.Confirmed ->
@@ -445,7 +465,8 @@ module Server =
                             async {
                                 let! cancelToken = Async.CancellationToken
                                 let task = tokenService.BalanceOfQueryAsync (address, null, cancelToken)
-                                return! Async.AwaitTask task
+                                let! balance = Async.AwaitTask task
+                                return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
                             }
 
                     HandlePossibleEtherFailures job
@@ -459,7 +480,8 @@ module Server =
                     faultTolerantEtherClient.QueryWithCancellation cancelSource
 
             return! query
-                        (FaultTolerantParallelClientDefaultSettings currency mode)
+                        (FaultTolerantParallelClientSettingsForBalanceCheck
+                            currency mode (CachedBalanceMatch address currency))
                         web3Funcs
         }
 

@@ -64,7 +64,7 @@ module Account =
     let private FaultTolerantParallelClientDefaultSettings(mode: Mode) =
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
-            ConsistencyConfig = NumberOfConsistentResponsesRequired 2u;
+            ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired 2u;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             Mode = mode
@@ -74,8 +74,19 @@ module Account =
     let private FaultTolerantParallelClientSettingsForBroadcast() =
         {
             FaultTolerantParallelClientDefaultSettings Mode.Fast with
-                ConsistencyConfig = NumberOfConsistentResponsesRequired 1u;
+                ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired 1u;
         }
+
+    let private FaultTolerantParallelClientSettingsForBalanceCheck (mode: Mode)
+                                                                   cacheMatchFunc =
+        let defaultSettings = FaultTolerantParallelClientDefaultSettings mode
+        if mode = Mode.Fast then
+            {
+                defaultSettings with
+                    ConsistencyConfig = OneServerConsistentWithCacheOrTwoServers cacheMatchFunc
+            }
+        else
+            defaultSettings
 
     let private faultTolerantElectrumClient =
         FaultTolerantParallelClient<string,ElectrumServerDiscarded> Caching.Instance.SaveServerLastStat
@@ -127,11 +138,11 @@ module Account =
                                               : Async<'R> = async {
             try
                 return! electrumClientFunc electrumServer
+
+            // NOTE: try to make this 'with' block be in sync with the one in EtherServer:GetWeb3Funcs()
             with
             | ex ->
-                if (ex :? ConnectionUnsuccessfulException ||
-                    ex :? ElectrumServerReturningInternalErrorException ||
-                    ex :? IncompatibleServerException) then
+                if ex :? ConnectionUnsuccessfulException then
                     let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
                     raise (ElectrumServerDiscarded(msg, ex))
                 match ex with
@@ -159,6 +170,23 @@ module Account =
                      randomizedElectrumServers
         randomizedServers
 
+    let private BalanceToShow (balances: BlockchainScripthahsGetBalanceInnerResult) =
+        let unconfirmedPlusConfirmed = balances.Unconfirmed + balances.Confirmed
+        let amountToShowInSatoshis,imminentIncomingPayment =
+            if unconfirmedPlusConfirmed <= balances.Confirmed then
+                unconfirmedPlusConfirmed, Some false
+            else
+                balances.Confirmed, Some true
+        let amountInBtc = (Money.Satoshis amountToShowInSatoshis).ToUnit MoneyUnit.BTC
+        (amountInBtc, imminentIncomingPayment)
+
+    let private CachedBalanceMatch address currency (someBalancesRetreived: BlockchainScripthahsGetBalanceInnerResult) =
+        match Caching.Instance.TryRetreiveLastCompoundBalance address currency with
+        | None -> false
+        | Some balance ->
+            let balanceFromServers,_ = BalanceToShow someBalancesRetreived
+            balanceFromServers = balance
+
     let private GetBalances (account: IUtxoAccount) (mode: Mode) (cancelSourceOption: Option<CancellationTokenSource>)
                                 : Async<BlockchainScripthahsGetBalanceInnerResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
@@ -171,7 +199,8 @@ module Account =
                 faultTolerantElectrumClient.QueryWithCancellation cancelSource
         let balanceJob =
             query
-                (FaultTolerantParallelClientDefaultSettings mode)
+                (FaultTolerantParallelClientSettingsForBalanceCheck
+                    mode (CachedBalanceMatch account.PublicAddress account.Currency))
                 (GetRandomizedFuncs account.Currency (ElectrumClient.GetBalance scriptHashHex))
         balanceJob
 
@@ -199,14 +228,7 @@ module Account =
             let! maybeBalances = GetBalancesFromServer account mode cancelSourceOption
             match maybeBalances with
             | Some balances ->
-                let unconfirmedPlusConfirmed = balances.Unconfirmed + balances.Confirmed
-                let amountToShowInSatoshis,imminentIncomingPayment =
-                    if unconfirmedPlusConfirmed <= balances.Confirmed then
-                        unconfirmedPlusConfirmed, Some false
-                    else
-                        balances.Confirmed, Some true
-                let amountInBtc = (Money.Satoshis amountToShowInSatoshis).ToUnit MoneyUnit.BTC
-                return Some (amountInBtc, imminentIncomingPayment)
+                return Some (BalanceToShow balances)
             | None ->
                 return None
         }

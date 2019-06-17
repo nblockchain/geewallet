@@ -47,7 +47,7 @@ module internal Account =
                 Server.GetTokenBalance account.Currency account.PublicAddress balType mode cancelSourceOption
             else
                 failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
-        return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
+        return balance
     }
 
     let private GetBalanceFromServer (account: IAccount) (balType: BalanceType) (mode: Mode)
