@@ -35,6 +35,14 @@ type ServerTimedOutException =
 type ServerUnreachableException(message:string, innerException: Exception) =
    inherit ConnectionUnsuccessfulException (message, innerException)
 
+type ServerMisconfiguredException =
+   inherit ConnectionUnsuccessfulException
+
+   new (message:string, innerException: Exception) =
+       { inherit ConnectionUnsuccessfulException (message, innerException) }
+   new (message:string) =
+       { inherit ConnectionUnsuccessfulException (message) }
+
 module Networking =
 
     // Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that doesn't have TLS1.2 support

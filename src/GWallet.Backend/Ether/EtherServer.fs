@@ -40,14 +40,6 @@ module Server =
     type ServerChannelNegotiationException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 
-    type ServerMisconfiguredException =
-       inherit ConnectionUnsuccessfulException
-
-       new (message:string, innerException: Exception) =
-           { inherit ConnectionUnsuccessfulException (message, innerException) }
-       new (message:string) =
-           { inherit ConnectionUnsuccessfulException (message) }
-
     type ServerRestrictiveException(message:string, innerException: Exception) =
        inherit ConnectionUnsuccessfulException (message, innerException)
 

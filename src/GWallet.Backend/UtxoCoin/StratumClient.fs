@@ -74,6 +74,13 @@ type ErrorResult =
         Error: ErrorInnerResult;
     }
 
+type RpcErrorCode =
+    // see git commit msg of 0aba03a8291daa526fde888d0c02a789abe411f2
+    | InternalError = -32603
+
+    // see https://gitlab.com/knocte/geewallet/issues/112
+    | UnknownMethod = -32601
+
 type public ElectrumServerReturningErrorInJsonResponseException(message: string, code: int) =
     inherit Exception(message)
 
@@ -110,8 +117,10 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             return StratumClient.Deserialize<'R> rawResponse
         with
         | :? ElectrumServerReturningErrorInJsonResponseException as ex ->
-            if (ex.ErrorCode = -32603) then
+            if ex.ErrorCode = int RpcErrorCode.InternalError then
                 return raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
+            if ex.ErrorCode = int RpcErrorCode.UnknownMethod then
+                return raise <| ServerMisconfiguredException(ex.Message, ex)
             return raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
     }
 
