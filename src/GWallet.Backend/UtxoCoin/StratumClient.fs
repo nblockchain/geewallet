@@ -75,6 +75,9 @@ type ErrorResult =
     }
 
 type RpcErrorCode =
+    // see https://gitlab.com/knocte/geewallet/issues/110
+    | ExcessiveResourceUsage = -101
+
     // see https://gitlab.com/knocte/geewallet/issues/117
     | ServerBusy = -102
 
@@ -132,6 +135,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             if ex.ErrorCode = int RpcErrorCode.UnknownMethod then
                 return raise <| ServerMisconfiguredException(ex.Message, ex)
             if ex.ErrorCode = int RpcErrorCode.ServerBusy then
+                return raise <| ServerUnavailabilityException(ex.Message, ex)
+            if ex.ErrorCode = int RpcErrorCode.ExcessiveResourceUsage then
                 return raise <| ServerUnavailabilityException(ex.Message, ex)
 
             return raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
