@@ -213,6 +213,21 @@ module Server =
         | None ->
             ()
 
+    // this could be a Xamarin.Android bug (see https://gitlab.com/knocte/geewallet/issues/119)
+    let MaybeRethrowObjectDisposedException (ex: Exception): unit =
+        let maybeRpcUnknownEx = FSharpUtil.FindException<Nethereum.JsonRpc.Client.RpcClientUnknownException> ex
+        match maybeRpcUnknownEx with
+        | Some rpcUnknownEx ->
+            let maybeObjectDisposedEx = FSharpUtil.FindException<ObjectDisposedException> ex
+            match maybeObjectDisposedEx with
+            | Some objectDisposedEx ->
+                if objectDisposedEx.Message.Contains "MobileAuthenticatedStream" then
+                    raise <| ProtocolGlitchException(objectDisposedEx.Message, objectDisposedEx)
+            | None ->
+                ()
+        | None ->
+            ()
+
     let WaitOnTask<'T,'R> (func: 'T -> Task<'R>) (arg: 'T): 'R =
         let result =
             try
@@ -255,6 +270,8 @@ module Server =
                     MaybeRethrowRpcClientTimeoutException ex
 
                     MaybeRethrowNetworkingException ex
+
+                    MaybeRethrowObjectDisposedException ex
 
                     reraise()
 
