@@ -74,8 +74,21 @@ type ErrorResult =
         Error: ErrorInnerResult;
     }
 
+type RpcErrorCode =
+    // see https://gitlab.com/knocte/geewallet/issues/110
+    | ExcessiveResourceUsage = -101
+
+    // see https://gitlab.com/knocte/geewallet/issues/117
+    | ServerBusy = -102
+
+    // see git commit msg of 0aba03a8291daa526fde888d0c02a789abe411f2
+    | InternalError = -32603
+
+    // see https://gitlab.com/knocte/geewallet/issues/112
+    | UnknownMethod = -32601
+
 type public ElectrumServerReturningErrorInJsonResponseException(message: string, code: int) =
-    inherit ConnectionUnsuccessfulException(message)
+    inherit CommunicationUnsuccessfulException(message)
 
     member val ErrorCode: int =
         code with get
@@ -96,8 +109,8 @@ type public ElectrumServerReturningInternalErrorException(message: string, code:
 
 // FIXME: we should actually fix this bug in JsonRpcSharp (https://github.com/nblockchain/JsonRpcSharp/issues/9) and
 //        send a warning to Sentry, not just hide it under the rug
-type public FlakyJsonRpcSharpClient (message: string) =
-    inherit ConnectionUnsuccessfulException(message)
+type FlakyJsonRpcSharpClientException (message: string) =
+    inherit CommunicationUnsuccessfulException(message)
 
 type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
@@ -109,14 +122,23 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
     member private self.Request<'R> (jsonRequest: string): Async<'R> = async {
         let! rawResponse = jsonRpcClient.Request jsonRequest
         if String.IsNullOrEmpty rawResponse then
-            return raise <| FlakyJsonRpcSharpClient(sprintf "Server '%s' returned a null/empty JSON response to the request '%s'"
-                                                        jsonRpcClient.Host jsonRequest)
+            return raise <|
+                FlakyJsonRpcSharpClientException(
+                    sprintf "Server '%s' returned a null/empty JSON response to the request '%s'"
+                            jsonRpcClient.Host jsonRequest)
         try
             return StratumClient.Deserialize<'R> rawResponse
         with
         | :? ElectrumServerReturningErrorInJsonResponseException as ex ->
-            if (ex.ErrorCode = -32603) then
+            if ex.ErrorCode = int RpcErrorCode.InternalError then
                 return raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
+            if ex.ErrorCode = int RpcErrorCode.UnknownMethod then
+                return raise <| ServerMisconfiguredException(ex.Message, ex)
+            if ex.ErrorCode = int RpcErrorCode.ServerBusy then
+                return raise <| ServerUnavailabilityException(ex.Message, ex)
+            if ex.ErrorCode = int RpcErrorCode.ExcessiveResourceUsage then
+                return raise <| ServerUnavailabilityException(ex.Message, ex)
+
             return raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
     }
 

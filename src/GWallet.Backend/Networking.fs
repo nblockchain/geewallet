@@ -18,7 +18,7 @@ type internal UnhandledSocketException =
         { inherit Exception(sprintf "Backend not prepared for this SocketException with ErrorCode[%d]" socketErrorCode,
                                     innerException) }
 
-type ConnectionUnsuccessfulException =
+type CommunicationUnsuccessfulException =
     inherit Exception
 
     new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
@@ -26,37 +26,47 @@ type ConnectionUnsuccessfulException =
     new() = { inherit Exception() }
 
 type BuggyExceptionFromOldMonoVersion (message: string, innerException: Exception) =
-    inherit ConnectionUnsuccessfulException (message, innerException)
+    inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerClosedConnectionEarlyException(message: string, innerException: Exception) =
-    inherit ConnectionUnsuccessfulException (message, innerException)
+    inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerRefusedException(message:string, innerException: Exception) =
-   inherit ConnectionUnsuccessfulException (message, innerException)
+   inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerTimedOutException =
-   inherit ConnectionUnsuccessfulException
+    inherit CommunicationUnsuccessfulException
 
-   new(message: string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
-   new(message) = { inherit ConnectionUnsuccessfulException(message) }
+    new(message: string, innerException: Exception) =
+        { inherit CommunicationUnsuccessfulException(message, innerException) }
+    new(message) =
+        { inherit CommunicationUnsuccessfulException(message) }
 
 type ServerUnreachableException =
-    inherit ConnectionUnsuccessfulException
+    inherit CommunicationUnsuccessfulException
 
     new(message: string, innerException: Exception) =
         {
-            inherit ConnectionUnsuccessfulException(message, innerException)
+            inherit CommunicationUnsuccessfulException(message, innerException)
         }
     new(message: string, httpStatusCode: HttpStatusCode, innerException: Exception) =
         {
-            inherit ConnectionUnsuccessfulException(sprintf "%s (HttpErr: %s)" message (httpStatusCode.ToString()),
+            inherit CommunicationUnsuccessfulException(sprintf "%s (HttpErr: %s)" message (httpStatusCode.ToString()),
                                                     innerException)
         }
     new(message: string, cloudFlareError: CloudFlareError, innerException: Exception) =
         {
-            inherit ConnectionUnsuccessfulException(sprintf "%s (CfErr: %s)" message (cloudFlareError.ToString()),
+            inherit CommunicationUnsuccessfulException(sprintf "%s (CfErr: %s)" message (cloudFlareError.ToString()),
                                                     innerException)
         }
+
+type ServerMisconfiguredException =
+   inherit CommunicationUnsuccessfulException
+
+   new (message: string, innerException: Exception) =
+       { inherit CommunicationUnsuccessfulException (message, innerException) }
+   new (message: string) =
+       { inherit CommunicationUnsuccessfulException (message) }
 
 module Networking =
 
