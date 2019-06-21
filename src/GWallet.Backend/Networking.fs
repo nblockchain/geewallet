@@ -10,7 +10,7 @@ type internal UnhandledSocketException =
         { inherit Exception(sprintf "GWallet not prepared for this SocketException with ErrorCode[%d]" socketErrorCode,
                                     innerException) }
 
-type ConnectionUnsuccessfulException =
+type CommunicationUnsuccessfulException =
     inherit Exception
 
     new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
@@ -18,30 +18,30 @@ type ConnectionUnsuccessfulException =
     new() = { inherit Exception() }
 
 type BuggyExceptionFromOldMonoVersion (message: string, innerException: Exception) =
-    inherit ConnectionUnsuccessfulException (message, innerException)
+    inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerClosedConnectionEarlyException(message: string, innerException: Exception) =
-    inherit ConnectionUnsuccessfulException (message, innerException)
+    inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerRefusedException(message:string, innerException: Exception) =
-   inherit ConnectionUnsuccessfulException (message, innerException)
+   inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerTimedOutException =
-   inherit ConnectionUnsuccessfulException
+   inherit CommunicationUnsuccessfulException
 
-   new(message: string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
-   new() = { inherit ConnectionUnsuccessfulException() }
+   new(message: string, innerException: Exception) = { inherit CommunicationUnsuccessfulException(message, innerException) }
+   new() = { inherit CommunicationUnsuccessfulException() }
 
 type ServerUnreachableException(message:string, innerException: Exception) =
-   inherit ConnectionUnsuccessfulException (message, innerException)
+   inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerMisconfiguredException =
-   inherit ConnectionUnsuccessfulException
+   inherit CommunicationUnsuccessfulException
 
    new (message:string, innerException: Exception) =
-       { inherit ConnectionUnsuccessfulException (message, innerException) }
+       { inherit CommunicationUnsuccessfulException (message, innerException) }
    new (message:string) =
-       { inherit ConnectionUnsuccessfulException (message) }
+       { inherit CommunicationUnsuccessfulException (message) }
 
 module Networking =
 

@@ -71,9 +71,9 @@ type ElectrumIntegrationTests() =
                 Console.WriteLine (sprintf "%A server %s is reachable" currency server.Fqdn)
                 Some electrumServer
             with
-            | :? ConnectionUnsuccessfulException as ex ->
+            | :? CommunicationUnsuccessfulException as ex ->
                 // to make sure this exception type is an abstract class
-                Assert.That(ex.GetType(), Is.Not.EqualTo(typeof<ConnectionUnsuccessfulException>))
+                Assert.That(ex.GetType(), Is.Not.EqualTo typeof<CommunicationUnsuccessfulException>)
 
                 let exDescription = sprintf "%s: %s" (ex.GetType().Name) ex.Message
 

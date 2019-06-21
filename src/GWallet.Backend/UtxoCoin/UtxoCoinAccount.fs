@@ -124,7 +124,7 @@ module Account =
                     |> Async.RunSynchronously
             with
             | ex ->
-                if (ex :? ConnectionUnsuccessfulException ||
+                if (ex :? CommunicationUnsuccessfulException ||
                     ex :? ElectrumServerReturningInternalErrorException ||
                     ex :? IncompatibleServerException) then
                     let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message

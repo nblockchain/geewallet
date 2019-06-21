@@ -110,7 +110,7 @@ type public ElectrumServerReturningInternalErrorException(message: string, code:
 // FIXME: we should actually fix this bug in JsonRpcSharp (https://github.com/nblockchain/JsonRpcSharp/issues/9) and
 //        send a warning to Sentry, not just hide it under the rug
 type FlakyJsonRpcSharpClientException (message: string) =
-    inherit ConnectionUnsuccessfulException(message)
+    inherit CommunicationUnsuccessfulException(message)
 
 type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 

@@ -5,13 +5,13 @@ open System.Net
 open System.Net.Sockets
 
 type ProtocolGlitchException(message: string, innerException: Exception) =
-   inherit ConnectionUnsuccessfulException (message, innerException)
+   inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerCannotBeResolvedException =
-   inherit ConnectionUnsuccessfulException
+   inherit CommunicationUnsuccessfulException
 
-   new(message) = { inherit ConnectionUnsuccessfulException(message) }
-   new(message:string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
+   new(message) = { inherit CommunicationUnsuccessfulException(message) }
+   new(message:string, innerException: Exception) = { inherit CommunicationUnsuccessfulException(message, innerException) }
 
 type JsonRpcTcpClient (host: string, port: int) =
 
@@ -66,7 +66,7 @@ type JsonRpcTcpClient (host: string, port: int) =
                 | None   -> raise <| ServerTimedOutException()
             return str
         with
-        | :? ConnectionUnsuccessfulException as ex ->
+        | :? CommunicationUnsuccessfulException as ex ->
             return raise <| FSharpUtil.ReRaise ex
         | :? JsonRpcSharp.ServerUnresponsiveException as ex ->
             return raise <| ServerTimedOutException(exceptionMsg, ex)

@@ -23,25 +23,25 @@ module Server =
         member val Url = url with get
 
     type ServerTimedOutException =
-       inherit ConnectionUnsuccessfulException
+       inherit CommunicationUnsuccessfulException
 
-       new(message: string, innerException: Exception) = { inherit ConnectionUnsuccessfulException(message, innerException) }
-       new(message: string) = { inherit ConnectionUnsuccessfulException(message) }
+       new(message: string, innerException: Exception) = { inherit CommunicationUnsuccessfulException(message, innerException) }
+       new(message: string) = { inherit CommunicationUnsuccessfulException(message) }
 
     type ServerCannotBeResolvedException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
+       inherit CommunicationUnsuccessfulException (message, innerException)
 
     type ServerUnreachableException(message:string, innerException: Exception) =
-        inherit ConnectionUnsuccessfulException (message, innerException)
+        inherit CommunicationUnsuccessfulException (message, innerException)
 
     type ServerUnavailableException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
+       inherit CommunicationUnsuccessfulException (message, innerException)
 
     type ServerChannelNegotiationException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
+       inherit CommunicationUnsuccessfulException (message, innerException)
 
     type ServerRestrictiveException(message:string, innerException: Exception) =
-       inherit ConnectionUnsuccessfulException (message, innerException)
+       inherit CommunicationUnsuccessfulException (message, innerException)
 
     type UnhandledWebException(status: WebExceptionStatus, innerException: Exception) =
        inherit Exception (sprintf "GWallet not prepared for this WebException with Status[%d]" (int status),
@@ -303,7 +303,7 @@ module Server =
 
     let private faultTolerantEtherClient =
         JsonRpc.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
-        FaultTolerantParallelClient<string,ConnectionUnsuccessfulException> Caching.Instance.SaveServerLastStat
+        FaultTolerantParallelClient<string,CommunicationUnsuccessfulException> Caching.Instance.SaveServerLastStat
 
     // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
     let private GetWeb3Funcs<'T,'R> (currency: Currency)
@@ -317,7 +317,7 @@ module Server =
             try
                 web3Func web3Server arg
             with
-            | :? ConnectionUnsuccessfulException ->
+            | :? CommunicationUnsuccessfulException ->
                 reraise()
             | ex ->
                 raise (Exception(sprintf "Some problem when connecting to %s" web3Server.Url, ex))
