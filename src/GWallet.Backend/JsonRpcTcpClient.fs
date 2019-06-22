@@ -6,13 +6,13 @@ open System.Net.Sockets
 open System.Threading
 
 type ProtocolGlitchException(message: string, innerException: Exception) =
-   inherit CommunicationUnsuccessfulException (message, innerException)
+    inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerCannotBeResolvedException =
-   inherit CommunicationUnsuccessfulException
+    inherit CommunicationUnsuccessfulException
 
-   new(message) = { inherit CommunicationUnsuccessfulException(message) }
-   new(message:string, innerException: Exception) = { inherit CommunicationUnsuccessfulException(message, innerException) }
+    new(message) = { inherit CommunicationUnsuccessfulException(message) }
+    new(message:string, innerException: Exception) = { inherit CommunicationUnsuccessfulException(message, innerException) }
 
 type JsonRpcTcpClient (host: string, port: int) =
 

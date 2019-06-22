@@ -32,7 +32,7 @@ type ServerClosedConnectionEarlyException(message: string, innerException: Excep
     inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerRefusedException(message:string, innerException: Exception) =
-   inherit CommunicationUnsuccessfulException (message, innerException)
+    inherit CommunicationUnsuccessfulException (message, innerException)
 
 type ServerTimedOutException =
     inherit CommunicationUnsuccessfulException
@@ -61,12 +61,12 @@ type ServerUnreachableException =
         }
 
 type ServerMisconfiguredException =
-   inherit CommunicationUnsuccessfulException
+    inherit CommunicationUnsuccessfulException
 
-   new (message: string, innerException: Exception) =
-       { inherit CommunicationUnsuccessfulException (message, innerException) }
-   new (message: string) =
-       { inherit CommunicationUnsuccessfulException (message) }
+    new (message: string, innerException: Exception) =
+        { inherit CommunicationUnsuccessfulException (message, innerException) }
+    new (message: string) =
+        { inherit CommunicationUnsuccessfulException (message) }
 
 module Networking =
 

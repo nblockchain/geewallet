@@ -59,19 +59,19 @@ type ServerChannelNegotiationException =
         }
 
 type ServerRestrictiveException =
-   inherit CommunicationUnsuccessfulException
+    inherit CommunicationUnsuccessfulException
 
-   new (message: string, innerException: Exception) =
-       {
-           inherit CommunicationUnsuccessfulException (message, innerException)
-       }
+    new (message: string, innerException: Exception) =
+        {
+            inherit CommunicationUnsuccessfulException (message, innerException)
+        }
 
 type UnhandledWebException =
-   inherit Exception
+    inherit Exception
 
-   new (status: WebExceptionStatus, innerException: Exception) =
-       {
-           inherit Exception (sprintf "Backend not prepared for this WebException with Status[%d]"
-                                      (int status),
-                                      innerException)
-       }
+    new (status: WebExceptionStatus, innerException: Exception) =
+        {
+            inherit Exception (sprintf "Backend not prepared for this WebException with Status[%d]"
+                                       (int status),
+                                       innerException)
+        }

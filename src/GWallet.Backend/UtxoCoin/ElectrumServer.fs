@@ -22,10 +22,10 @@ type ServerTooOldException(message) =
     inherit IncompatibleProtocolException(message)
 
 type TlsNotSupportedYetInGWalletException(message) =
-   inherit IncompatibleServerException(message)
+    inherit IncompatibleServerException(message)
 
 type TorNotSupportedYetInGWalletException(message) =
-   inherit IncompatibleServerException(message)
+    inherit IncompatibleServerException(message)
 
 type ElectrumServer =
     {
