@@ -58,18 +58,6 @@ type ServerChannelNegotiationException =
                                                     innerException)
         }
 
-type ServerMisconfiguredException =
-   inherit CommunicationUnsuccessfulException
-
-   new (message: string, innerException: Exception) =
-       {
-           inherit CommunicationUnsuccessfulException (message, innerException)
-       }
-   new (message: string) =
-       {
-           inherit CommunicationUnsuccessfulException (message)
-       }
-
 type ServerRestrictiveException =
    inherit CommunicationUnsuccessfulException
 
