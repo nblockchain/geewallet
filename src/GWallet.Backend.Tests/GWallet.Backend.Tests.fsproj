@@ -67,6 +67,7 @@
     <Compile Include="WarpWallet.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />
     <Compile Include="Formatting.fs" />
+    <Compile Include="AsyncExtensions.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
