@@ -27,7 +27,7 @@ module Config =
         false
 #endif
 
-    let internal NoNetworkBalanceForDebuggingPurposes = false
+    let internal NoNetworkBalanceForDebuggingPurposes = true
 
     let IsWindowsPlatform() =
         Path.DirectorySeparatorChar = '\\'
