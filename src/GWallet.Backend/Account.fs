@@ -29,6 +29,10 @@ module Account =
                                                      (cancelSourceOption: Option<CancellationTokenSource>)
                                                          : Async<MaybeCached<decimal>*Option<bool>> =
         async {
+            if Config.NoNetworkBalanceForDebuggingPurposes then
+                return Fresh 1m,Some false
+            else
+
             let! maybeBalanceAndImminentIncomingPayment =
                 GetShowableBalanceAndImminentPaymentInternal account mode cancelSourceOption
             match maybeBalanceAndImminentIncomingPayment with

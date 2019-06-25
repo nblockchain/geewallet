@@ -11,16 +11,16 @@ open Newtonsoft.Json
 open Newtonsoft.Json.Serialization
 
 type DeserializationException =
-   inherit Exception
+    inherit Exception
 
-   new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
-   new(message: string) = { inherit Exception(message) }
+    new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
+    new(message: string) = { inherit Exception(message) }
 
 type SerializationException(message:string, innerException: Exception) =
     inherit Exception (message, innerException)
 
 type VersionMismatchDuringDeserializationException (message:string, innerException: Exception) =
-   inherit DeserializationException (message, innerException)
+    inherit DeserializationException (message, innerException)
 
 module VersionHelper =
     let CurrentVersion ()=

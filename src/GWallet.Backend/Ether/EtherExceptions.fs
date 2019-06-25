@@ -25,65 +25,53 @@ type RpcErrorCode =
 
 
 type ServerCannotBeResolvedException =
-    inherit ConnectionUnsuccessfulException
+    inherit CommunicationUnsuccessfulException
 
     new(message: string, innerException: Exception) =
         {
-            inherit ConnectionUnsuccessfulException(message, innerException)
+            inherit CommunicationUnsuccessfulException(message, innerException)
         }
 
 type ServerUnavailableException =
-    inherit ConnectionUnsuccessfulException
+    inherit CommunicationUnsuccessfulException
 
     new(message: string, innerException: Exception) =
         {
-            inherit ConnectionUnsuccessfulException(message, innerException)
+            inherit CommunicationUnsuccessfulException(message, innerException)
         }
 
 type ServerChannelNegotiationException =
-    inherit ConnectionUnsuccessfulException
+    inherit CommunicationUnsuccessfulException
 
     new(message: string, innerException: Exception) =
         {
-            inherit ConnectionUnsuccessfulException(message, innerException)
+            inherit CommunicationUnsuccessfulException(message, innerException)
         }
     new(message: string, webExStatusCode: WebExceptionStatus, innerException: Exception) =
         {
-            inherit ConnectionUnsuccessfulException(sprintf "%s (WebErr: %s)" message (webExStatusCode.ToString()),
+            inherit CommunicationUnsuccessfulException(sprintf "%s (WebErr: %s)" message (webExStatusCode.ToString()),
                                                     innerException)
         }
     new(message: string, cloudFlareError: CloudFlareError, innerException: Exception) =
         {
-            inherit ConnectionUnsuccessfulException(sprintf "%s (CfErr: %s)" message (cloudFlareError.ToString()),
+            inherit CommunicationUnsuccessfulException(sprintf "%s (CfErr: %s)" message (cloudFlareError.ToString()),
                                                     innerException)
         }
 
-type ServerMisconfiguredException =
-   inherit ConnectionUnsuccessfulException
-
-   new (message: string, innerException: Exception) =
-       {
-           inherit ConnectionUnsuccessfulException (message, innerException)
-       }
-   new (message: string) =
-       {
-           inherit ConnectionUnsuccessfulException (message)
-       }
-
 type ServerRestrictiveException =
-   inherit ConnectionUnsuccessfulException
+    inherit CommunicationUnsuccessfulException
 
-   new (message: string, innerException: Exception) =
-       {
-           inherit ConnectionUnsuccessfulException (message, innerException)
-       }
+    new (message: string, innerException: Exception) =
+        {
+            inherit CommunicationUnsuccessfulException (message, innerException)
+        }
 
 type UnhandledWebException =
-   inherit Exception
+    inherit Exception
 
-   new (status: WebExceptionStatus, innerException: Exception) =
-       {
-           inherit Exception (sprintf "Backend not prepared for this WebException with Status[%d]"
-                                      (int status),
-                                      innerException)
-       }
+    new (status: WebExceptionStatus, innerException: Exception) =
+        {
+            inherit Exception (sprintf "Backend not prepared for this WebException with Status[%d]"
+                                       (int status),
+                                       innerException)
+        }

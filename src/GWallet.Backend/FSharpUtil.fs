@@ -13,7 +13,6 @@ module FSharpUtil =
 
         member self.Value = value
 
-    // taken from http://fssnip.net/dN ( https://stackoverflow.com/a/20521059/544947 )
     module AsyncExtensions =
 
         let MixedParallel2 (a: Async<'T1>) (b: Async<'T2>): Async<'T1*'T2> =
@@ -51,7 +50,31 @@ module FSharpUtil =
         let private RaiseResult (e: ResultWrapper<'T>) =
             Async.FromContinuations(fun (_, econt, _) -> econt e)
 
-        let Choice<'T>(jobs: seq<Async<Option<'T>>>) : Async<'T option> =
+        // taken from http://fssnip.net/dN ( https://stackoverflow.com/a/20521059/544947 )
+        let WhenAny<'T>(jobs: seq<Async<'T>>): Async<'T> =
+            let wrap job =
+                async {
+                    let! res = job
+                    return! RaiseResult <| ResultWrapper res
+                }
+
+            async {
+                try
+                    do!
+                        jobs
+                        |> Seq.map wrap
+                        |> Async.Parallel
+                        |> Async.Ignore
+
+                    // unreachable
+                    return failwith "No successful result?"
+                with
+                | :? ResultWrapper<'T> as ex ->
+                    return ex.Value
+            }
+
+        // like WhenAny, but None results are considered non successful jobs
+        let WhenAnySuccessful<'T>(jobs: seq<Async<Option<'T>>>): Async<Option<'T>> =
             let wrap job =
                 async {
                     let! res = job

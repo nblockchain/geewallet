@@ -142,7 +142,7 @@ module Account =
             // NOTE: try to make this 'with' block be in sync with the one in EtherServer:GetWeb3Funcs()
             with
             | ex ->
-                if ex :? ConnectionUnsuccessfulException then
+                if ex :? CommunicationUnsuccessfulException then
                     let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
                     raise (ElectrumServerDiscarded(msg, ex))
                 match ex with

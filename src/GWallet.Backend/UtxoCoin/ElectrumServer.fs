@@ -11,7 +11,7 @@ open FSharp.Data.JsonExtensions
 open GWallet.Backend
 
 type IncompatibleServerException(message) =
-    inherit ConnectionUnsuccessfulException(message)
+    inherit CommunicationUnsuccessfulException(message)
 
 type IncompatibleProtocolException(message) =
     inherit IncompatibleServerException(message)
@@ -23,10 +23,10 @@ type ServerTooOldException(message) =
     inherit IncompatibleProtocolException(message)
 
 type TlsNotSupportedYetInGWalletException(message) =
-   inherit IncompatibleServerException(message)
+    inherit IncompatibleServerException(message)
 
 type TorNotSupportedYetInGWalletException(message) =
-   inherit IncompatibleServerException(message)
+    inherit IncompatibleServerException(message)
 
 type ElectrumServer =
     {

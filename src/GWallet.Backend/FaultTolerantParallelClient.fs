@@ -16,10 +16,10 @@ type private ServerUnavailabilityException (message: string, lastException: Exce
     inherit ResourceUnavailabilityException (message, lastException)
 
 type private NoneAvailableException (message:string, lastException: Exception) =
-   inherit ServerUnavailabilityException (message, lastException)
+    inherit ServerUnavailabilityException (message, lastException)
 
 type private NotEnoughAvailableException (message:string, lastException: Exception) =
-   inherit ServerUnavailabilityException (message, lastException)
+    inherit ServerUnavailabilityException (message, lastException)
 
 type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                    maxNumberOfConsistentResultsObtained: int,

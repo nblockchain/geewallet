@@ -12,7 +12,7 @@ exception SomeSpecificException
 exception SomeException
 exception SomeOtherException
 type SomeInnerException() =
-   inherit Exception()
+    inherit Exception()
 
 [<TestFixture>]
 type FaultTolerance() =

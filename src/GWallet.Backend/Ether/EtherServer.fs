@@ -192,6 +192,21 @@ module Server =
         | None ->
             ()
 
+    // this could be a Xamarin.Android bug (see https://gitlab.com/knocte/geewallet/issues/119)
+    let MaybeRethrowObjectDisposedException (ex: Exception): unit =
+        let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
+        match maybeRpcUnknownEx with
+        | Some rpcUnknownEx ->
+            let maybeObjectDisposedEx = FSharpUtil.FindException<ObjectDisposedException> ex
+            match maybeObjectDisposedEx with
+            | Some objectDisposedEx ->
+                if objectDisposedEx.Message.Contains "MobileAuthenticatedStream" then
+                    raise <| ProtocolGlitchException(objectDisposedEx.Message, objectDisposedEx)
+            | None ->
+                ()
+        | None ->
+            ()
+
     let private ReworkException (ex: Exception): unit =
         let maybeWebEx = FSharpUtil.FindException<WebException> ex
         match maybeWebEx with
@@ -230,6 +245,8 @@ module Server =
             MaybeRethrowRpcClientTimeoutException ex
 
             MaybeRethrowNetworkingException ex
+
+            MaybeRethrowObjectDisposedException ex
 
 
     let HandlePossibleEtherFailures<'T,'R> (job: Async<'R>): Async<'R> = async {
@@ -288,7 +305,7 @@ module Server =
 
     let private faultTolerantEtherClient =
         JsonRpcSharp.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
-        FaultTolerantParallelClient<string,ConnectionUnsuccessfulException> Caching.Instance.SaveServerLastStat
+        FaultTolerantParallelClient<string,CommunicationUnsuccessfulException> Caching.Instance.SaveServerLastStat
 
     // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
     let private GetWeb3Funcs<'T,'R> (currency: Currency)
@@ -303,7 +320,7 @@ module Server =
 
             // NOTE: try to make this 'with' block be in sync with the one in UtxoCoinAccount:GetRandomizedFuncs()
             with
-            | :? ConnectionUnsuccessfulException as ex ->
+            | :? CommunicationUnsuccessfulException as ex ->
                 return raise <| FSharpUtil.ReRaise ex
             | ex ->
                 return raise <| Exception(sprintf "Some problem when connecting to %s" web3Server.Url, ex)

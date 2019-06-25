@@ -105,6 +105,12 @@ called "Bar" (and be named "Baz" under the namespace "Foo.Bar").
 syntax, but `[<Test>]member __.Foo` and `[<TestFixture>]type Bar()` (note the
 parenthesis, as it's an important bit), otherwise the tests might not run in
 all platforms.
+* When dealing with exceptions in async{} code, we prefer normal try-with
+blocks instead of using `Async.Catch`, because the latter incentivizes the
+developer to use a type-less style of catching an exception, plus the
+discriminated union used for its result is quite unreadable (`Choice1Of2`
+and `Choice2Of2` don't give any clue about which one is the successful case
+and which one is the exceptional one).
 
 
 # Workflow best practices

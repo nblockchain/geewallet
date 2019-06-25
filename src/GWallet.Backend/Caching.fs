@@ -559,7 +559,7 @@ module Caching =
                 allUrls |> Seq.map downloadFile
 
             async {
-                let! maybeLastServerStatsInJson = FSharpUtil.AsyncExtensions.Choice allJobs
+                let! maybeLastServerStatsInJson = FSharpUtil.AsyncExtensions.WhenAnySuccessful allJobs
                 match maybeLastServerStatsInJson with
                 | None ->
                     Console.Error.WriteLine "WARNING: Couldn't reach a trusted server to retreive server stats to bootstrap cache, running in offline mode?"
