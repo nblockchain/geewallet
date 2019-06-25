@@ -27,6 +27,10 @@ module Account =
     let GetShowableBalance (account: IAccount) (mode: Mode) (cancelSourceOption: Option<CancellationTokenSource>)
                                : Async<MaybeCached<decimal>> =
         async {
+            if Config.NoNetworkBalanceForDebuggingPurposes then
+                return Fresh 1m
+            else
+
             let! maybeBalance = GetShowableBalanceInternal account mode cancelSourceOption
             match maybeBalance with
             | None ->
