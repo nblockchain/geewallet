@@ -24,7 +24,7 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <PackageReference Include="FSharp.Core" Version="4.5.3" />
-    <PackageReference Include="Xamarin.Forms" Version="3.0.0.446417" />
+    <PackageReference Include="Xamarin.Forms" Version="3.6.0.344457" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
   </ItemGroup>
 </Project>
