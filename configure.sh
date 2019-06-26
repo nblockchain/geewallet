@@ -18,12 +18,12 @@ if ! which fsharpi >/dev/null 2>&1; then
     fi
 else
     if ! fsharpi scripts/problem.fsx >/dev/null 2>&1; then
-        echo "$REPL_CHECK_MSG" $'not found'
+        echo "$REPL_CHECK_MSG" $'installed version is buggy. See https://github.com/fsharp/fsharp/issues/740. Trying fsx instead.'
 
         if ! which fsx >/dev/null 2>&1; then
             echo "$FSX_CHECK_MSG" $'not found\n'
 
-            echo "$1" $'failed, please install "fsx" first'
+            echo "$1" $'failed, please install "fsx" first: https://github.com/knocte/fsx'
             exit 1
         else
             echo "$FSX_CHECK_MSG" $'found'
