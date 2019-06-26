@@ -2,8 +2,13 @@
 
 open System
 open System.IO
-#load "Infra.fs"
+
+#r "System.Configuration"
+#load "InfraLib/Misc.fs"
+#load "InfraLib/Process.fs"
+#load "InfraLib/Git.fs"
 open FSX.Infrastructure
+open Process
 
 let rec ReplaceInDir (dir: DirectoryInfo) (oldString: string) (newString: string) =
     let ReplaceInFile (file: FileInfo) (oldString: string) (newString: string) =
@@ -22,7 +27,7 @@ let rec ReplaceInDir (dir: DirectoryInfo) (oldString: string) (newString: string
         if subFolder.Name <> ".git" then
             ReplaceInDir subFolder oldString newString
 
-let args = Util.FsxArguments()
+let args = Misc.FsxArguments()
 let note = "NOTE: by default, some kind of files/folders will be excluded, e.g.: .git, *.dll, *.png, ..."
 if args.Length > 2 then
     Console.Error.WriteLine "Can only pass two arguments: replace.fsx oldstring newstring"
