@@ -28,8 +28,9 @@ let rec private GatherTarget (args: string list, targetSet: Option<string>): Opt
             failwith "only one target can be passed to make"
         GatherTarget (tail, Some (head))
 
+let buildConfigFileName = "build.config"
 let buildConfigContents =
-    let buildConfig = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "build.config"))
+    let buildConfig = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, buildConfigFileName))
     if not (buildConfig.Exists) then
         Console.Error.WriteLine "ERROR: configure hasn't been run yet, run ./configure.sh first"
         Environment.Exit 1
@@ -38,7 +39,8 @@ let buildConfigContents =
     let splitLineIntoKeyValueTuple (line:string) =
         let pair = line.Split([|'='|], StringSplitOptions.RemoveEmptyEntries)
         if pair.Length <> 2 then
-            failwith "All lines in build.config must conform to format:\n\tkey=value"
+            failwithf "All lines in %s must conform to format:\n\tkey=value"
+                      buildConfigFileName
         pair.[0], pair.[1]
 
     let buildConfigContents =
@@ -51,7 +53,8 @@ let buildConfigContents =
 let GetOrExplain key map =
     match map |> Map.tryFind key with
     | Some k -> k
-    | None   -> failwithf "No entry exists in build.config with a key '%s'." key
+    | None   -> failwithf "No entry exists in %s with a key '%s'."
+                          buildConfigFileName key
 
 let prefix = buildConfigContents |> GetOrExplain "Prefix"
 let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", "gwallet"))
