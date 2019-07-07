@@ -41,6 +41,7 @@ module Web3ServerSeedList =
     let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
     let private ethWeb3MewAws = SomeWeb3 "https://o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth"
     let private ethAlchemyApi = SomeWeb3 "https://eth-mainnet.alchemyapi.io/jsonrpc/-vPGIFwUyjlMRF9beTLXiGQUK6Nf3k8z"
+    let private ethCloudFlare = SomeWeb3 "https://cloudflare-eth.com/"
     // not sure why the below one doesn't work, gives some JSON error
     //let private ethWeb3EtherScan = SomeWeb3 "https://api.etherscan.io/api"
 
@@ -57,10 +58,12 @@ module Web3ServerSeedList =
     let private etcWeb3ChainKorea = SomeWeb3("https://node.classicexplorer.org/")
     let private etcWeb3GasTracker = SomeWeb3 "https://web3.gastracker.io"
     let private etcWeb3EtcCooperative = SomeWeb3 "https://ethereumclassic.network"
+    let private etcWeb3EthCluster = SomeWeb3 "https://www.ethercluster.com/etc"
 
     let private GetWeb3Servers (currency: Currency): List<SomeWeb3> =
         if currency = ETC then
             [
+                etcWeb3EthCluster
                 etcWeb3EtcCooperative;
                 etcWeb3GasTracker;
                 etcWeb3ePoolIo1;
@@ -74,6 +77,7 @@ module Web3ServerSeedList =
             ]
         elif (currency.IsEthToken() || currency = Currency.ETH) then
             [
+                ethCloudFlare
                 ethWeb3MewAws;
                 ethWeb3InfuraMyCrypto;
                 ethWeb3InfuraMyCryptoV3
