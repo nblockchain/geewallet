@@ -47,9 +47,15 @@ module MarshallingData =
         { UsdPrice = Map.empty; Addresses = Map.empty; Balances = Map.empty; }
 
     let EmptyCachingDataExampleInJson =
-        sprintf "{\"Version\":\"%s\",\"TypeName\":\"%s\","
-                version (EmptyCachingDataExample.GetType().FullName) +
-                "\"Value\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}"
+        sprintf """{
+  "Version": "%s",
+  "TypeName": "%s",
+  "Value": {
+    "UsdPrice": {},
+    "Addresses": {},
+    "Balances": {}
+  }
+}"""        version (EmptyCachingDataExample.GetType().FullName)
 
     let private balances = Map.empty.Add(Currency.BTC.ToString(), 0m)
                                     .Add(Currency.ETC.ToString(), 123456789.12345678m)
@@ -59,18 +65,29 @@ module MarshallingData =
                                       .Add(Currency.ETC.ToString(), 169.99999999m)
     let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Addresses = addresses; Balances = balances; }
 
-    let private innerCachingDataForSofisticatedUseCase =
-        "{\"UsdPrice\":{\"ETC\":169.99999999" +
-        ",\"ETH\":161.796" +
-        "},\"Addresses\":{\"0xFOOBARBAZ\":[\"ETC\"],\"1fooBarBaz\":[\"BTC\"]}," +
-        "\"Balances\":{\"BTC\":0.0," +
-        "\"ETC\":123456789.12345678}}"
-
     let SofisticatedCachingDataExampleInJson =
-        (sprintf "{\"Version\":\"%s\",\"TypeName\":\"%s\","
-                 version (typedefof<DietCache>.FullName)) +
-                 "\"Value\":" + innerCachingDataForSofisticatedUseCase +
-                 "}"
+        sprintf """{
+  "Version": "%s",
+  "TypeName": "%s",
+  "Value": {
+    "UsdPrice": {
+      "ETC": 169.99999999,
+      "ETH": 161.796
+    },
+    "Addresses": {
+      "0xFOOBARBAZ": [
+        "ETC"
+      ],
+      "1fooBarBaz": [
+        "BTC"
+      ]
+    },
+    "Balances": {
+      "BTC": 0.0,
+      "ETC": 123456789.12345678
+    }
+  }
+}"""        version (typedefof<DietCache>.FullName)
 
     let private someUnsignedBtcTransactionProposal =
         {

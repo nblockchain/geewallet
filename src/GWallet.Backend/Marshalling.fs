@@ -57,6 +57,13 @@ type private PascalCase2LowercasePlusUnderscoreContractResolver() =
 
 module Marshalling =
 
+    let private DefaultFormatting =
+#if DEBUG
+        Formatting.Indented
+#else
+        Formatting.None
+#endif
+
     let internal PascalCase2LowercasePlusUnderscoreConversionSettings =
         JsonSerializerSettings(ContractResolver = PascalCase2LowercasePlusUnderscoreContractResolver())
 
@@ -99,6 +106,7 @@ module Marshalling =
 
     let private SerializeInternal<'S>(value: 'S): string =
         JsonConvert.SerializeObject(SerializableValue<'S>(value),
+                                    DefaultFormatting,
                                     JsonSerializerSettings(DateTimeZoneHandling = DateTimeZoneHandling.Utc))
 
     let Serialize<'S>(value: 'S): string =
