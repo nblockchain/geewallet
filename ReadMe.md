@@ -4,7 +4,7 @@ Welcome!
 
 GWallet is a minimalistic and pragmatist crossplatform lightweight opensource brainwallet for people that want to hold the most important cryptocurrencies in the same application with ease and peace of mind.
 
-[![Licence](https://img.shields.io/github/license/knocte/gwallet.svg)](https://github.com/knocte/gwallet/blob/master/LICENCE.txt)
+[![Licence](https://img.shields.io/github/license/knocte/geewallet.svg)](https://github.com/knocte/geewallet/blob/master/LICENCE.txt)
 
 | Branch            | Description                                                            | CI status (build & test suite)                                                                                                                                                |
 | ----------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -12,7 +12,7 @@ GWallet is a minimalistic and pragmatist crossplatform lightweight opensource br
 | master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | Linux: [![Linux CI pipeline status badge](http://gitlab.com/knocte/geewallet/badges/master/build.svg)](https://gitlab.com/knocte/geewallet/commits/master) <br/>macOS: [![macOS CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/master-macOS)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=7) <br/>Windows: [![Windows CI pipeline status badge](https://dev.azure.com/diginex/geewallet/_apis/build/status/master-Windows)](https://dev.azure.com/diginex/geewallet/_build/latest?definitionId=1) |
 | frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | Linux: [![Linux CI pipeline status badge](http://gitlab.com/knocte/geewallet/badges/frontend/build.svg)](https://gitlab.com/knocte/geewallet/commits/frontend)  |
 
-[![Balances mobile-page screenshot](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/maciosandroid-balances.png)](https://raw.githubusercontent.com/knocte/gwallet/master/img/screenshots/maciosandroid-balances.png)
+[![Balances mobile-page screenshot](https://raw.githubusercontent.com/knocte/geewallet/master/img/screenshots/maciosandroid-balances.png)](https://raw.githubusercontent.com/knocte/geewallet/master/img/screenshots/maciosandroid-balances.png)
 
 ## Principles
 
