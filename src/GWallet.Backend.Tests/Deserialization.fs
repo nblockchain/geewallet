@@ -87,7 +87,7 @@ type Deserialization() =
         Assert.That(etherTxMetadata.Fee.Currency, Is.EqualTo(Currency.ETC))
         Assert.That(etherTxMetadata.Fee.GasPriceInWei, Is.EqualTo(6969))
         Assert.That(deserializedUnsignedTrans.Metadata.FeeEstimationTime,
-                    Is.EqualTo(MarshallingData.SomeDate))
+                    Is.EqualTo(DateTime.Parse "2019-07-10T15:43:22.133411Z"))
 
         Assert.That(deserializedUnsignedTrans.Cache.Balances.Count, Is.EqualTo(0))
         Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(0))
@@ -166,7 +166,7 @@ type Deserialization() =
         Assert.That(etherTxMetadata.Fee.GasPriceInWei,
                     Is.EqualTo(6969))
         Assert.That(deserializedSignedTrans.TransactionInfo.Metadata.FeeEstimationTime,
-                    Is.EqualTo(MarshallingData.SomeDate))
+                    Is.EqualTo(DateTime.Parse "2019-07-10T15:43:22.133411Z"))
 
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.Balances.Count,
                     Is.EqualTo(2))

@@ -33,9 +33,8 @@ module MarshallingData =
 
     let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
-    let SomeDate = DateTime.UtcNow
-
-    let private someEtherMinerFee = Ether.MinerFee(21000L, 6969L, SomeDate, Currency.ETC)
+    let private someEtherMinerFee =
+        Ether.MinerFee(21000L, 6969L, DateTime.Parse "2019-07-10T23:43:22.133411Z", Currency.ETC)
 
     let private someUnsignedEtherTransactionProposal =
         {
@@ -193,38 +192,7 @@ module MarshallingData =
             RawTransaction = "doijfsoifjdosisdjfomirmjosmi";
         }
     let SignedEtherTransactionExampleInJson =
-        (sprintf "{\"Version\":\"%s\"," version) +
-        (sprintf "\"TypeName\":\"%s\",\"Value\":" (SignedEtherTransactionExample.GetType().FullName)) +
-        "{\"TransactionInfo\":{\"Proposal\":" +
-        "{" +
-        "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"ETC\"}}," +
-        "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
-        ",\"Metadata\":{" +
-        "\"Fee\":{" +
-        "\"GasLimit\":21000," +
-        "\"GasPriceInWei\":6969," +
-        "\"Currency\":{\"Case\":\"ETC\"}," +
-        "\"EstimationTime\":" +
-        JsonConvert.SerializeObject (SomeDate) + "}," +
-        "\"TransactionCount\":69}," +
-        "\"Cache\":" + innerCachingDataForSofisticatedUseCase + "}," +
-        "\"RawTransaction\":\"doijfsoifjdosisdjfomirmjosmi\"}}"
+        ReadEmbeddedResource "signedAndFormattedEtherTransaction.json"
 
     let UnsignedEtherTransactionExampleInJson =
-        (sprintf "{\"Version\":\"%s\"," version) +
-        (sprintf "\"TypeName\":\"%s\",\"Value\":" (UnsignedEtherTransactionExample.GetType().FullName)) +
-        "{\"Proposal\":" +
-        "{" +
-        "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"ETC\"}}," +
-        "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
-        ",\"Metadata\":{" +
-        "\"Fee\":{" +
-        "\"GasLimit\":21000," +
-        "\"GasPriceInWei\":6969," +
-        "\"Currency\":{\"Case\":\"ETC\"}," +
-        "\"EstimationTime\":" +
-        JsonConvert.SerializeObject(SomeDate) + "}," +
-        "\"TransactionCount\":69}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}}"
+        ReadEmbeddedResource "unsignedAndFormattedEtherTransaction.json"
