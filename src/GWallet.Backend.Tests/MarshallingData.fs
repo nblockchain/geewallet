@@ -33,8 +33,10 @@ module MarshallingData =
 
     let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
+    let internal SomeDate = DateTime.Parse "2018-06-14T16:50:09.133411"
+
     let private someEtherMinerFee =
-        Ether.MinerFee(21000L, 6969L, DateTime.Parse "2019-07-10T23:43:22.133411Z", Currency.ETC)
+        Ether.MinerFee(21000L, 6969L, SomeDate, Currency.ETC)
 
     let private someUnsignedEtherTransactionProposal =
         {
@@ -127,7 +129,7 @@ module MarshallingData =
     let private realCachingDataExample =
         { UsdPrice = realUsdPriceDataSample; Addresses = realAddressesSample; Balances = realBalancesDataSample; }
 
-    let private someBtcMinerFee = UtxoCoin.MinerFee(10L, DateTime.Parse "2018-06-14T16:50:09.133411Z", Currency.BTC)
+    let private someBtcMinerFee = UtxoCoin.MinerFee(10L, SomeDate, Currency.BTC)
     let private someBtcTxMetadata =
         {
             Fee = someBtcMinerFee;
@@ -166,7 +168,7 @@ module MarshallingData =
 
     let private someEtherMinerFeeForDaiTransfer = Ether.MinerFee(37298L,
                                                                  3343750000L,
-                                                                 DateTime.Parse "2018-03-14T16:50:09.133411",
+                                                                 SomeDate,
                                                                  Currency.ETH)
     let private someDaiTxMetadata =
         {
