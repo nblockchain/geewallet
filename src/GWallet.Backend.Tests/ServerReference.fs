@@ -120,3 +120,29 @@ type ServerReference() =
         Assert.That(serverBPos, Is.Not.LessThan 0)
 
         Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #4")
+
+    [<Test>]
+    member __.``details of server are included in serialization``() =
+        let now = DateTime.UtcNow
+        let serverWithSomeRecentConnection =
+            {
+                 HostName = "eliuh4midkndk"
+                 LastSuccessfulCommunication = Some now
+             }
+        let serverDetails = ServerRegistry.Serialize [ serverWithSomeRecentConnection ]
+
+        let dayPos = serverDetails.IndexOf (now.Day.ToString())
+        Assert.That(dayPos, Is.GreaterThan 0)
+
+        let monthPos = serverDetails.IndexOf (now.Month.ToString())
+        Assert.That(monthPos, Is.GreaterThan 0)
+
+        let yearPos = serverDetails.IndexOf (now.Year.ToString())
+        Assert.That(yearPos, Is.GreaterThan 0)
+
+        let hourPos = serverDetails.IndexOf (now.Hour.ToString())
+        Assert.That(hourPos, Is.GreaterThan 0)
+
+        let minPos = serverDetails.IndexOf (now.Minute.ToString())
+        Assert.That(minPos, Is.GreaterThan 0)
+
