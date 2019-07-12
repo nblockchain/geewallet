@@ -70,6 +70,7 @@
     <Compile Include="CompoundBalanceCaching.fs" />
     <Compile Include="Formatting.fs" />
     <Compile Include="AsyncExtensions.fs" />
+    <Compile Include="ServerReference.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
