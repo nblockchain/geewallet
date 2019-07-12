@@ -8,28 +8,6 @@ open NUnit.Framework
 
 open GWallet.Backend
 
-type Protocol =
-    | Http
-    | Tcp of port: uint32
-
-type ConnectionType =
-    {
-        Encrypted: bool
-        Protocol: Protocol
-    }
-
-type Server =
-    {
-        HostName: string
-        ConnectionType: ConnectionType
-        LastSuccessfulCommunication: Option<DateTime>
-    }
-
-module ServerRegistry =
-    let Serialize(servers: seq<Server>): string =
-        JsonConvert.SerializeObject
-            (servers |> Seq.sortByDescending (fun s -> s.LastSuccessfulCommunication))
-
 [<TestFixture>]
 type ServerReference() =
 
