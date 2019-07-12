@@ -3,6 +3,7 @@
 open System
 open System.Text
 
+open Newtonsoft.Json
 open NUnit.Framework
 
 open GWallet.Backend
@@ -15,11 +16,8 @@ type Server =
 
 module ServerRegistry =
     let Serialize(servers: seq<Server>): string =
-        let stringBuilder = StringBuilder()
-        for server in servers |> Seq.sortByDescending (fun s -> s.LastSuccessfulCommunication) do
-            stringBuilder.Append server
-                |> ignore
-        stringBuilder.ToString()
+        JsonConvert.SerializeObject
+            (servers |> Seq.sortByDescending (fun s -> s.LastSuccessfulCommunication))
 
 [<TestFixture>]
 type ServerReference() =
@@ -145,4 +143,17 @@ type ServerReference() =
 
         let minPos = serverDetails.IndexOf (now.Minute.ToString())
         Assert.That(minPos, Is.GreaterThan 0)
+
+    [<Test>]
+    member __.``serialization is JSON based (for readability and consistency with rest of wallet)``() =
+        let now = DateTime.UtcNow
+        let serverWithSomeRecentConnection =
+            {
+                 HostName = "eliuh4midkndk"
+                 LastSuccessfulCommunication = Some DateTime.UtcNow
+             }
+        let serverDetails = ServerRegistry.Serialize [ serverWithSomeRecentConnection ]
+
+        let deserializedServerDetails = JsonConvert.DeserializeObject serverDetails
+        Assert.That(deserializedServerDetails, Is.Not.Null)
 
