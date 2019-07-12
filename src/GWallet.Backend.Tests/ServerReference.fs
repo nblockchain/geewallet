@@ -8,9 +8,20 @@ open NUnit.Framework
 
 open GWallet.Backend
 
+type Protocol =
+    | Http
+    | Tcp of port: uint32
+
+type ConnectionType =
+    {
+        Encrypted: bool
+        Protocol: Protocol
+    }
+
 type Server =
     {
         HostName: string
+        ConnectionType: ConnectionType
         LastSuccessfulCommunication: Option<DateTime>
     }
 
@@ -22,16 +33,20 @@ module ServerRegistry =
 [<TestFixture>]
 type ServerReference() =
 
+    let some_connection_type_irrelevant_for_this_test = { Encrypted = false; Protocol = Http }
+
     [<Test>]
     member __.``order of servers is kept if non-hostname details are same``() =
         let serverWithHighestPriority =
             {
                 HostName = "dlm8yerwlcifs"
+                ConnectionType = some_connection_type_irrelevant_for_this_test
                 LastSuccessfulCommunication = None
             }
         let serverWithLowestPriority =
             {
                  HostName = "eliuh4midkndk"
+                 ConnectionType = some_connection_type_irrelevant_for_this_test
                  LastSuccessfulCommunication = None
              }
         let serverDetails = ServerRegistry.Serialize [ serverWithHighestPriority; serverWithLowestPriority]
@@ -61,11 +76,13 @@ type ServerReference() =
         let serverWithOldestConnection =
             {
                 HostName = "dlm8yerwlcifs"
+                ConnectionType = some_connection_type_irrelevant_for_this_test
                 LastSuccessfulCommunication = Some (DateTime.Now - TimeSpan.FromDays 10.0)
             }
         let serverWithMostRecentConnection =
             {
                  HostName = "eliuh4midkndk"
+                 ConnectionType = some_connection_type_irrelevant_for_this_test
                  LastSuccessfulCommunication = Some DateTime.Now
              }
         let serverDetails = ServerRegistry.Serialize [ serverWithOldestConnection; serverWithMostRecentConnection]
@@ -94,6 +111,7 @@ type ServerReference() =
         let serverWithNoLastConnection =
             {
                 HostName = "dlm8yerwlcifs"
+                ConnectionType = some_connection_type_irrelevant_for_this_test
                 LastSuccessfulCommunication = None
             }
 
@@ -120,11 +138,12 @@ type ServerReference() =
         Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #4")
 
     [<Test>]
-    member __.``details of server are included in serialization``() =
+    member __.``stats of server are included in serialization``() =
         let now = DateTime.UtcNow
         let serverWithSomeRecentConnection =
             {
                  HostName = "eliuh4midkndk"
+                 ConnectionType = some_connection_type_irrelevant_for_this_test
                  LastSuccessfulCommunication = Some now
              }
         let serverDetails = ServerRegistry.Serialize [ serverWithSomeRecentConnection ]
@@ -150,10 +169,25 @@ type ServerReference() =
         let serverWithSomeRecentConnection =
             {
                  HostName = "eliuh4midkndk"
+                 ConnectionType = some_connection_type_irrelevant_for_this_test
                  LastSuccessfulCommunication = Some DateTime.UtcNow
              }
         let serverDetails = ServerRegistry.Serialize [ serverWithSomeRecentConnection ]
 
         let deserializedServerDetails = JsonConvert.DeserializeObject serverDetails
         Assert.That(deserializedServerDetails, Is.Not.Null)
+
+    [<Test>]
+    member __.``details of server are included in serialization``() =
+        let port = 50001u
+        let serverWithSomeRecentConnection =
+            {
+                 HostName = "eliuh4midkndk"
+                 ConnectionType = { Encrypted = false; Protocol = Tcp port }
+                 LastSuccessfulCommunication = None
+             }
+        let serverDetails = ServerRegistry.Serialize [ serverWithSomeRecentConnection ]
+
+        let portPos = serverDetails.IndexOf (port.ToString())
+        Assert.That(portPos, Is.GreaterThan 0)
 
