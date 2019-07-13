@@ -21,6 +21,10 @@ type ParallelizationAndOptimization() =
     // yes, the default one is the fast one because it's the one with no filters, just sorting
     let default_mode_as_it_is_irrelevant_for_this_test = Mode.Fast
 
+    let some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test =
+        Fault ({ TypeFullName = typeof<Exception>.FullName; Message = "some err" },None)
+    let some_successful_irrelevant_date = LastSuccessfulCommunication DateTime.UtcNow
+
     [<Test>]
     member __.``calls both funcs (because it launches them in parallel)``() =
         let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 2u
@@ -198,10 +202,12 @@ type ParallelizationAndOptimization() =
     member __.``ordering: chooses fastest option first``() =
         let someResult1 = 1
         let someResult2 = 2
-        let server1,server2 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
+        let server1,server2 = { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                                     TimeSpan = TimeSpan.FromSeconds 2.0 }
                                 Identifier = "server1"
                                 Retrieval = async { return someResult1 } },
-                              { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
+                              { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                                     TimeSpan = TimeSpan.FromSeconds 1.0 }
                                 Identifier = "server2"
                                 Retrieval = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
@@ -246,10 +252,12 @@ type ParallelizationAndOptimization() =
         let someResult1 = 1
         let someResult2 = 2
         let someResult3 = 3
-        let server1,server2 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
+        let server1,server2 = { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                                     TimeSpan = TimeSpan.FromSeconds 1.0 }
                                 Identifier = "server1"
                                 Retrieval = async { return raise SomeExceptionDuringParallelWork } },
-                              { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
+                              { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                                     TimeSpan = TimeSpan.FromSeconds 2.0 }
                                 Identifier = "server2"
                                 Retrieval = async { return someResult2 } }
         let server3 = { HistoryInfo = None

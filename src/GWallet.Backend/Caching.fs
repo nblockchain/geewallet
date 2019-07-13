@@ -491,8 +491,29 @@ module Caching =
 
         member self.SaveServerLastStat (server, historyInfo): unit =
             lock cacheFiles.ServerStats (fun _ ->
+                let previousLastSuccessfulCommunication =
+                    match sessionServerRanking.TryFind server with
+                    | None -> None
+                    | Some (prevHistoryInfo,_) ->
+                        match prevHistoryInfo.Status with
+                        | LastSuccessfulCommunication lsc -> Some lsc
+                        | Fault (_, maybeLsc) -> maybeLsc
+
+                let newHistoryInfo =
+                    match previousLastSuccessfulCommunication with
+                    | None -> historyInfo
+                    | Some lsc ->
+                        match historyInfo.Status with
+                        | LastSuccessfulCommunication newLsc -> historyInfo
+                        // _ because the FaultParallelClient cannot know the last successful communication in this case
+                        | Fault (fault, _) ->
+                            {
+                                TimeSpan = historyInfo.TimeSpan
+                                Status = Fault(fault, Some lsc)
+                            }
+
                 let newCachedValue =
-                        sessionServerRanking.Add(server, (historyInfo, DateTime.UtcNow))
+                        sessionServerRanking.Add(server, (newHistoryInfo, DateTime.UtcNow))
 
                 sessionServerRanking <- newCachedValue
 

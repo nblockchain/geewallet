@@ -25,6 +25,10 @@ type FaultTolerance() =
     // yes, the default one is the fast one because it's the one with no filters, just sorting
     let default_mode_as_it_is_irrelevant_for_this_test = Mode.Fast
 
+    let some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test =
+        Fault ({ TypeFullName = typeof<Exception>.FullName; Message = "some err" },None)
+    let some_successful_irrelevant_date = LastSuccessfulCommunication DateTime.UtcNow
+
     let defaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         {
             NumberOfParallelJobsAllowed = not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization
@@ -530,10 +534,11 @@ type FaultTolerance() =
     member __.``ordering: chooses server with no faults first``() =
         let someResult1 = 1
         let someResult2 = 2
-        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
-        let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
+        let fault = some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test
+        let server1 = { HistoryInfo = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
                         Identifier = "server1"; Retrieval = async { return someResult1 } }
-        let server2 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 })
+        let server2 = { HistoryInfo = Some ({ Status = some_successful_irrelevant_date
+                                              TimeSpan = TimeSpan.FromSeconds 2.0 })
                         Identifier = "server2"; Retrieval = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string,DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -556,10 +561,10 @@ type FaultTolerance() =
     member __.``ordering: chooses fastest fail-server option first``() =
         let someResult1 = 1
         let someResult2 = 2
-        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
-        let server1,server2 = { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 2.0 };
+        let fault = some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test
+        let server1,server2 = { HistoryInfo = Some { Status = fault; TimeSpan = TimeSpan.FromSeconds 2.0 };
                                 Identifier = "server1"; Retrieval = async { return someResult1 } },
-                              { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 };
+                              { HistoryInfo = Some { Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 };
                                 Identifier = "server2"; Retrieval = async { return someResult2 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -582,7 +587,8 @@ type FaultTolerance() =
     member __.``ordering: chooses server with no faults over servers with no history``() =
         let someResult1 = 1
         let someResult2 = 2
-        let server1 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 })
+        let server1 = { HistoryInfo = Some ({ Status = some_successful_irrelevant_date;
+                                              TimeSpan = TimeSpan.FromSeconds 1.0 })
                         Identifier = "server1"; Retrieval = async { return someResult1 } }
         let server2 = { HistoryInfo = None
                         Identifier = "server2"; Retrieval = async { return someResult2 } }
@@ -607,8 +613,8 @@ type FaultTolerance() =
     member __.``ordering: chooses server with no history before servers with faults in their history``() =
         let someResult1 = 1
         let someResult2 = 2
-        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
-        let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
+        let fault = some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test
+        let server1 = { HistoryInfo = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
                         Identifier = "server1"; Retrieval = async { return someResult1 } }
         let server2 = { HistoryInfo = None
                         Identifier = "server2"; Retrieval = async { return someResult2 } }
@@ -634,12 +640,13 @@ type FaultTolerance() =
         let someResult1 = 1
         let someResult2 = 2
         let someResult3 = 3
-        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
-        let server1 = { HistoryInfo = Some ({ Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
+        let fault = some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test
+        let server1 = { HistoryInfo = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 })
                         Identifier = "server1"; Retrieval = async { return someResult1 } }
         let server2 = { HistoryInfo = None
                         Identifier = "server2"; Retrieval = async { return someResult2 } }
-        let server3 = { HistoryInfo = Some ({ Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 })
+        let server3 = { HistoryInfo = Some ({ Status = some_successful_irrelevant_date
+                                              TimeSpan = TimeSpan.FromSeconds 1.0 })
                         Identifier = "server3"; Retrieval = async { return someResult3 } }
         let dataRetreived = (FaultTolerantParallelClient<string, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -666,14 +673,17 @@ type FaultTolerance() =
         let someResult2 = 2
         let someResult3 = 3
         let someResult4 = 4
-        let server1,server2,server3 = { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 };
+        let server1,server2,server3 = { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                                             TimeSpan = TimeSpan.FromSeconds 1.0 }
                                         Identifier = "server1"; Retrieval = async { return raise SomeSpecificException} },
-                                      { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 };
+                                      { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                                             TimeSpan = TimeSpan.FromSeconds 2.0 }
                                         Identifier = "server2"; Retrieval = async { return raise SomeSpecificException} },
-                                      { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 };
+                                      { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                                             TimeSpan = TimeSpan.FromSeconds 3.0 }
                                         Identifier = "server3"; Retrieval = async { return someResult3 } }
-        let fault = Some { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
-        let server4 = { HistoryInfo = Some { Fault = fault; TimeSpan = TimeSpan.FromSeconds 1.0 }
+        let fault = some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test
+        let server4 = { HistoryInfo = Some { Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 }
                         Identifier = "server4"; Retrieval = async { return someResult4 } }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -702,15 +712,20 @@ type FaultTolerance() =
         let someResult4 = 4
         let someResult5 = 5
         let server1,server2,server3,server4,server5 =
-            { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 1.0 }
+            { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                   TimeSpan = TimeSpan.FromSeconds 1.0 }
               Identifier = "server1"; Retrieval = async { return raise SomeSpecificException } },
-            { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 2.0 }
+            { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                   TimeSpan = TimeSpan.FromSeconds 2.0 }
               Identifier = "server2"; Retrieval = async { return raise SomeSpecificException } },
-            { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 3.0 }
+            { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                   TimeSpan = TimeSpan.FromSeconds 3.0 }
               Identifier = "server3"; Retrieval = async { return raise SomeSpecificException } },
-            { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 4.0 }
+            { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                   TimeSpan = TimeSpan.FromSeconds 4.0 }
               Identifier = "server4"; Retrieval = async { return someResult4 } },
-            { HistoryInfo = Some { Fault = None; TimeSpan = TimeSpan.FromSeconds 5.0 }
+            { HistoryInfo = Some { Status = some_successful_irrelevant_date
+                                   TimeSpan = TimeSpan.FromSeconds 5.0 }
               Identifier = "server5"; Retrieval = async { return someResult5 } }
         let dataRetreived = (FaultTolerantParallelClient<string, SomeSpecificException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -743,7 +758,11 @@ type FaultTolerance() =
         let mutable someTimeStamp = None
         let saveServerLastStat (serverId: string, historyInfo): unit =
             Assert.That(serverId, Is.EqualTo serverId)
-            Assert.That(historyInfo.Fault, Is.EqualTo None)
+            match historyInfo.Status with
+            | Fault _ ->
+                failwith "assertion failed"
+            | _ ->
+                ()
             Assert.That(historyInfo.TimeSpan, Is.GreaterThan TimeSpan.Zero)
             someFlag <- true
 
@@ -773,13 +792,14 @@ type FaultTolerance() =
         let lockObj = Object()
         let saveServerLastStat (serverId: string, historyInfo): unit =
             lock lockObj (fun _ ->
-                match historyInfo.Fault with
-                | None ->
-                    Assert.That(serverId, Is.Not.EqualTo failingServerName)
-                    someNonFailingCounter <- someNonFailingCounter + 1
-                | Some fault ->
+                match historyInfo.Status with
+                | Fault (fault,_) ->
                     Assert.That(serverId, Is.EqualTo failingServerName)
                     Assert.That(fault.TypeFullName, Is.EqualTo typeof<SomeSpecificException>.FullName)
+                | _ ->
+                    Assert.That(serverId, Is.Not.EqualTo failingServerName)
+                    someNonFailingCounter <- someNonFailingCounter + 1
+
                 Assert.That(historyInfo.TimeSpan, Is.GreaterThan TimeSpan.Zero)
                 someTotalCounter <- someTotalCounter + 1
             )

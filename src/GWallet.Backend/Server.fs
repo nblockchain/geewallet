@@ -8,9 +8,15 @@ type ExceptionInfo =
     { TypeFullName: string
       Message: string }
 
+type LastSuccessfulCommunication = DateTime
+
+type Status =
+    | Fault of ExceptionInfo*Option<LastSuccessfulCommunication>
+    | LastSuccessfulCommunication of LastSuccessfulCommunication
+
 type HistoryInfo =
     { TimeSpan: TimeSpan
-      Fault: Option<ExceptionInfo> }
+      Status: Status }
 
 type Protocol =
     | Http
@@ -26,13 +32,25 @@ type ServerDetails =
     {
         HostName: string
         ConnectionType: ConnectionType
-        LastSuccessfulCommunication: Option<DateTime>
+        CommunicationHistory: Option<HistoryInfo>
     }
 
 module ServerRegistry =
     let Serialize(servers: seq<ServerDetails>): string =
         JsonConvert.SerializeObject
-            (servers |> Seq.sortByDescending (fun s -> s.LastSuccessfulCommunication))
+            (servers |> Seq.sortByDescending (fun server ->
+                                                  match server.CommunicationHistory with
+                                                  | None -> None
+                                                  | Some history ->
+                                                      match history.Status with
+                                                      | Fault (_,lsc) -> lsc
+                                                      | LastSuccessfulCommunication lsc ->
+                                                          Some lsc
+                                              )
+            )
+
+    let Deserialize(json: string): seq<ServerDetails> =
+        JsonConvert.DeserializeObject<seq<ServerDetails>> json
 
 [<CustomEquality; NoComparison>]
 type Server<'K,'R when 'K: equality> =

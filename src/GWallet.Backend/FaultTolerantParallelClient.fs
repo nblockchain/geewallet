@@ -223,7 +223,12 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
 
                 match runResult with
                 | Success result ->
-                    updateServer (head.Identifier, { Fault = None; TimeSpan = stopwatch.Elapsed })
+                    let history =
+                        {
+                            TimeSpan = stopwatch.Elapsed
+                            Status = LastSuccessfulCommunication DateTime.UtcNow
+                        }
+                    updateServer (head.Identifier, history)
                     let tailAsync =
                         ConcatenateNonParallelFuncs failuresSoFar shouldReportUncancelledJobs cancelledInternally tail
                     return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
@@ -234,7 +239,12 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                             TypeFullName = ex.GetType().FullName
                             Message = ex.Message
                         }
-                    updateServer (head.Identifier, { Fault = Some exInfo; TimeSpan = stopwatch.Elapsed })
+                    let history =
+                        {
+                            TimeSpan = stopwatch.Elapsed
+                            Status = Fault(exInfo, None)
+                        }
+                    updateServer (head.Identifier, history)
                     let newFailures = (head,ex)::failuresSoFar
                     return! ConcatenateNonParallelFuncs newFailures shouldReportUncancelledJobs cancelledInternally tail
             }
@@ -390,11 +400,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                              | None ->
                                                  false
                                              | Some historyInfo ->
-                                                 match historyInfo.Fault with
-                                                 | None ->
-                                                     true
-                                                 | Some _ ->
+                                                 match historyInfo.Status with
+                                                 | Fault _ ->
                                                      false
+                                                 | _ ->
+                                                     true
                                          ) servers
         let sortedWorkingServers =
             List.sortBy
@@ -403,11 +413,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                     | None ->
                         failwith "previous filter didn't work? should get working servers only, not lacking history"
                     | Some historyInfo ->
-                        match historyInfo.Fault with
-                        | None ->
-                            historyInfo.TimeSpan
-                        | Some _ ->
+                        match historyInfo.Status with
+                        | Fault _ ->
                             failwith "previous filter didn't work? should get working servers only, not faulty"
+                        | _ ->
+                            historyInfo.TimeSpan
                 )
                 workingServers
 
@@ -418,11 +428,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                                             | None ->
                                                 false
                                             | Some historyInfo ->
-                                                match historyInfo.Fault with
-                                                | None ->
-                                                    false
-                                                | Some _ ->
+                                                match historyInfo.Status with
+                                                | Fault _ ->
                                                     true
+                                                | _ ->
+                                                    false
                                         ) servers
         let sortedFaultyServers =
             List.sortBy
@@ -431,11 +441,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                     | None ->
                         failwith "previous filter didn't work? should get working servers only, not lacking history"
                     | Some historyInfo ->
-                        match historyInfo.Fault with
-                        | None ->
-                            failwith "previous filter didn't work? should get faulty servers only, not working ones"
-                        | Some _ ->
+                        match historyInfo.Status with
+                        | Fault _ ->
                             historyInfo.TimeSpan
+                        | _ ->
+                            failwith "previous filter didn't work? should get faulty servers only, not working ones"
                 )
                 faultyServers
 
