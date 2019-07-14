@@ -12,8 +12,17 @@ open NUnit.Framework
 [<TestFixture>]
 type AsyncCancellation() =
 
+    let dummy_connection_type = { Encrypted = false; Protocol = Http }
     let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId job =
-        { Identifier = serverId; HistoryInfo = None; Retrieval = job; }
+        {
+            Details =
+                {
+                    HostName = serverId
+                    ConnectionType = dummy_connection_type
+                    CommunicationHistory = None
+                }
+            Retrieval = job
+        }
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ -> ())
 
     [<Test>]
@@ -41,7 +50,7 @@ type AsyncCancellation() =
                              NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
-        let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
+        let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
         let result = client.Query settings allFuncs
                          |> Async.RunSynchronously
@@ -75,7 +84,7 @@ type AsyncCancellation() =
                              NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
-        let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
+        let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
         let externalCancellationSource = new CancellationTokenSource()
@@ -123,7 +132,7 @@ type AsyncCancellation() =
                              NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
-        let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
+        let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
         let result =
@@ -164,7 +173,7 @@ type AsyncCancellation() =
                              NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
-        let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
+        let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
         let result =
@@ -207,7 +216,7 @@ type AsyncCancellation() =
                              NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed;
                              ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS; }
 
-        let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
+        let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
         let result =
@@ -273,7 +282,7 @@ type AsyncCancellation() =
                              NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed
                              ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS }
 
-        let client = FaultTolerantParallelClient<string, SomeExceptionDuringParallelWork>
+        let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
         let task = client.QueryWithCancellation cancelSource settings allFuncs
                          |> Async.StartAsTask

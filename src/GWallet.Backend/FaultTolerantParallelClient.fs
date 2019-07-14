@@ -31,16 +31,19 @@ type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                   numberOfConsistentResultsRequired)
 
 type internal ResultsSoFar<'R> = List<'R>
-type internal ExceptionsSoFar<'K,'R,'E when 'K: equality and 'E :> Exception> = List<Server<'K,'R>*'E>
-type internal FinalResult<'K,'T,'R,'E when 'K: equality and 'E :> Exception> =
+type internal ExceptionsSoFar<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
+    List<Server<'K,'R>*'E>
+type internal FinalResult<'K,'T,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
     | ConsistentResult of 'R
     | AverageResult of 'R
     | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'K,'R,'E>
 
-type internal NonParallelResultWithAdditionalWork<'K,'R,'E when 'K: equality and 'E :> Exception> =
+type internal NonParallelResultWithAdditionalWork<'K,'R,'E when 'K: equality
+                                                            and 'K :> ICommunicationHistory
+                                                            and 'E :> Exception> =
     | SuccessfulFirstResult of ('R * Async<NonParallelResults<'K,'R,'E>>)
     | NoneAvailable
-and internal NonParallelResults<'K,'R,'E when 'K: equality and 'E :> Exception> =
+and internal NonParallelResults<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
     ExceptionsSoFar<'K,'R,'E> * NonParallelResultWithAdditionalWork<'K,'R,'E>
 
 type ConsistencySettings<'R> =
@@ -121,7 +124,8 @@ type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
                     return raise (FSharpUtil.ReRaise ex)
         }
 
-type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(updateServer: 'K*HistoryInfo -> unit) =
+type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception>
+        (updateServer: 'K*HistoryInfo -> unit) =
     do
         if typeof<'E> = typeof<Exception> then
             raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
@@ -228,7 +232,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                             TimeSpan = stopwatch.Elapsed
                             Status = LastSuccessfulCommunication DateTime.UtcNow
                         }
-                    updateServer (head.Identifier, history)
+                    updateServer (head.Details, history)
                     let tailAsync =
                         ConcatenateNonParallelFuncs failuresSoFar shouldReportUncancelledJobs cancelledInternally tail
                     return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
@@ -244,7 +248,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                             TimeSpan = stopwatch.Elapsed
                             Status = Fault(exInfo, None)
                         }
-                    updateServer (head.Identifier, history)
+                    updateServer (head.Details, history)
                     let newFailures = (head,ex)::failuresSoFar
                     return! ConcatenateNonParallelFuncs newFailures shouldReportUncancelledJobs cancelledInternally tail
             }
@@ -396,7 +400,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
 
     let OrderServers (servers: List<Server<'K,'R>>) (mode: Mode): List<Server<'K,'R>> =
         let workingServers = List.filter (fun server ->
-                                             match server.HistoryInfo with
+                                             match server.Details.CommunicationHistory with
                                              | None ->
                                                  false
                                              | Some historyInfo ->
@@ -409,7 +413,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         let sortedWorkingServers =
             List.sortBy
                 (fun server ->
-                    match server.HistoryInfo with
+                    match server.Details.CommunicationHistory with
                     | None ->
                         failwith "previous filter didn't work? should get working servers only, not lacking history"
                     | Some historyInfo ->
@@ -421,10 +425,10 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
                 )
                 workingServers
 
-        let serversWithNoHistoryServers = List.filter (fun server -> server.HistoryInfo.IsNone) servers
+        let serversWithNoHistoryServers = List.filter (fun server -> server.Details.CommunicationHistory.IsNone) servers
 
         let faultyServers = List.filter (fun server ->
-                                            match server.HistoryInfo with
+                                            match server.Details.CommunicationHistory with
                                             | None ->
                                                 false
                                             | Some historyInfo ->
@@ -437,7 +441,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'E :> Exception>(up
         let sortedFaultyServers =
             List.sortBy
                 (fun server ->
-                    match server.HistoryInfo with
+                    match server.Details.CommunicationHistory with
                     | None ->
                         failwith "previous filter didn't work? should get working servers only, not lacking history"
                     | Some historyInfo ->

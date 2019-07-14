@@ -489,10 +489,10 @@ module Caching =
             if transactionCurrency <> feeCurrency && (not Config.EthTokenEstimationCouldBeBuggyAsInNotAccurate) then
                 self.StoreTransactionRecord address feeCurrency txId feeAmount
 
-        member self.SaveServerLastStat (server, historyInfo): unit =
+        member self.SaveServerLastStat (server: ServerDetails, historyInfo): unit =
             lock cacheFiles.ServerStats (fun _ ->
                 let previousLastSuccessfulCommunication =
-                    match sessionServerRanking.TryFind server with
+                    match sessionServerRanking.TryFind server.HostName with
                     | None -> None
                     | Some (prevHistoryInfo,_) ->
                         match prevHistoryInfo.Status with
@@ -513,7 +513,7 @@ module Caching =
                             }
 
                 let newCachedValue =
-                        sessionServerRanking.Add(server, (newHistoryInfo, DateTime.UtcNow))
+                        sessionServerRanking.Add(server.HostName, (newHistoryInfo, DateTime.UtcNow))
 
                 sessionServerRanking <- newCachedValue
 

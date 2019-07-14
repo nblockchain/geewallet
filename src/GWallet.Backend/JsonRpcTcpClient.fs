@@ -13,7 +13,7 @@ type ServerCannotBeResolvedException =
     new(message) = { inherit CommunicationUnsuccessfulException(message) }
     new(message:string, innerException: Exception) = { inherit CommunicationUnsuccessfulException(message, innerException) }
 
-type JsonRpcTcpClient (host: string, port: int) =
+type JsonRpcTcpClient (host: string, port: uint32) =
 
     let ResolveAsync (hostName: string): Async<Option<IPAddress>> = async {
         // FIXME: loop over all addresses?
@@ -52,7 +52,7 @@ type JsonRpcTcpClient (host: string, port: int) =
             let tcpClient = JsonRpcSharpOld.LegacyTcpClient(ResolveHost, port)
             tcpClient.Request
         else
-            let tcpClient = JsonRpcSharp.TcpClient.TcpClient(ResolveHost, port)
+            let tcpClient = JsonRpcSharp.TcpClient.TcpClient(ResolveHost, int port)
             fun jsonRequest -> tcpClient.Request jsonRequest
 
     member __.Host with get() = host

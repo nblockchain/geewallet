@@ -301,12 +301,12 @@ module Server =
 
     let private faultTolerantEtherClient =
         JsonRpcSharp.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
-        FaultTolerantParallelClient<string,CommunicationUnsuccessfulException> Caching.Instance.SaveServerLastStat
+        FaultTolerantParallelClient<ServerDetails,CommunicationUnsuccessfulException> Caching.Instance.SaveServerLastStat
 
     // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
     let private GetWeb3Funcs<'T,'R> (currency: Currency)
                                     (web3Func: SomeWeb3->Async<'R>)
-                                        : List<Server<string,'R>> =
+                                        : List<Server<ServerDetails,'R>> =
 
         let Web3ServerToRetrievalFunc (web3Server: SomeWeb3)
                                           (web3ClientFunc: SomeWeb3->Async<'R>)
@@ -324,11 +324,17 @@ module Server =
 
         let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
                                       (web3Server: SomeWeb3)
-                                              : Server<string,'R> =
+                                              : Server<ServerDetails,'R> =
 
             let retrievalFunc = Web3ServerToRetrievalFunc web3Server web3ClientFunc
-            { Identifier = web3Server.Url
-              HistoryInfo = Caching.Instance.RetreiveLastServerHistory web3Server.Url
+
+            if not (web3Server.Url.StartsWith "https://") then
+                failwithf "Unexpected non-https protocol in server URL: %s" web3Server.Url
+
+            let serverUri = Uri web3Server.Url
+            { Details = { HostName = serverUri.Host
+                          ConnectionType = { Encrypted = true; Protocol = Http }
+                          CommunicationHistory = Caching.Instance.RetreiveLastServerHistory web3Server.Url }
               Retrieval = retrievalFunc }
 
         let web3servers = Web3ServerSeedList.Randomize currency |> List.ofSeq

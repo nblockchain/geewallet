@@ -11,7 +11,7 @@ module JsonRpcSharpOld =
 
     exception ServerUnresponsiveException
 
-    type LegacyTcpClient  (resolveHostAsync: unit->Async<IPAddress>, port) =
+    type LegacyTcpClient  (resolveHostAsync: unit->Async<IPAddress>, port: uint32) =
         let rec WrapResult (acc: List<byte>): string =
             let reverse = List.rev acc
             Encoding.UTF8.GetString(reverse.ToArray())
@@ -59,13 +59,13 @@ module JsonRpcSharpOld =
             tcpClient.SendTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
             tcpClient.ReceiveTimeout <- Convert.ToInt32 Config.DEFAULT_NETWORK_TIMEOUT.TotalMilliseconds
 
-            let connectTask = tcpClient.ConnectAsync(host, port)
+            let connectTask = tcpClient.ConnectAsync(host, int port)
 
             if not (connectTask.Wait(Config.DEFAULT_NETWORK_TIMEOUT)) then
                 raise ServerUnresponsiveException
             tcpClient
 
-        new(host: IPAddress, port: int) = new LegacyTcpClient((fun () -> async { return host }), port)
+        new(host: IPAddress, port: uint32) = new LegacyTcpClient((fun () -> async { return host }), port)
 
         member self.Request (request: string): Async<string> = async {
             use tcpClient = Connect()

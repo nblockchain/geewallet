@@ -88,7 +88,7 @@ module Account =
             defaultSettings
 
     let private faultTolerantElectrumClient =
-        FaultTolerantParallelClient<string,ElectrumServerDiscarded> Caching.Instance.SaveServerLastStat
+        FaultTolerantParallelClient<ServerDetails,ElectrumServerDiscarded> Caching.Instance.SaveServerLastStat
 
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
@@ -130,7 +130,7 @@ module Account =
     //        [1] https://gitlab.com/knocte/geewallet/blob/stable/src/GWallet.Backend/EtherServer.fs
     let private GetRandomizedFuncs<'R> (currency: Currency)
                                           (electrumClientFunc: ElectrumServer->Async<'R>)
-                                              : List<Server<string,'R>> =
+                                              : List<Server<ServerDetails,'R>> =
 
         let ElectrumServerToRetrievalFunc (electrumServer: ElectrumServer)
                                           (electrumClientFunc: ElectrumServer->Async<'R>)
@@ -158,10 +158,14 @@ module Account =
 
         let ElectrumServerToGenericServer (electrumClientFunc: ElectrumServer->Async<'R>)
                                           (electrumServer: ElectrumServer)
-                                              : Server<string,'R> =
-            { Identifier = electrumServer.Fqdn
-              HistoryInfo = Caching.Instance.RetreiveLastServerHistory electrumServer.Fqdn
-              Retrieval = ElectrumServerToRetrievalFunc electrumServer electrumClientFunc }
+                                              : Server<ServerDetails,'R> =
+            match electrumServer.UnencryptedPort with
+            | None -> failwith "filtering for non-ssl electrum servers didn't work?"
+            | Some unencryptedPort ->
+                { Details = { HostName = electrumServer.Fqdn
+                              ConnectionType = { Encrypted = false; Protocol = Tcp unencryptedPort }
+                              CommunicationHistory = Caching.Instance.RetreiveLastServerHistory electrumServer.Fqdn }
+                  Retrieval = ElectrumServerToRetrievalFunc electrumServer electrumClientFunc }
 
         let randomizedElectrumServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedServers =

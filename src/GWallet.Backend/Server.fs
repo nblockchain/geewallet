@@ -28,12 +28,25 @@ type ConnectionType =
         Protocol: Protocol
     }
 
+type ICommunicationHistory =
+    abstract member CommunicationHistory: Option<HistoryInfo> with get
+
+[<CustomEquality; NoComparison>]
 type ServerDetails =
     {
         HostName: string
         ConnectionType: ConnectionType
         CommunicationHistory: Option<HistoryInfo>
     }
+    override self.Equals yObj =
+        match yObj with
+        | :? ServerDetails as y ->
+            self.HostName.Equals y.HostName
+        | _ -> false
+    override self.GetHashCode () =
+        self.HostName.GetHashCode()
+    interface ICommunicationHistory with
+        member self.CommunicationHistory with get() = self.CommunicationHistory
 
 module ServerRegistry =
     let Serialize(servers: seq<ServerDetails>): string =
@@ -53,14 +66,13 @@ module ServerRegistry =
         JsonConvert.DeserializeObject<seq<ServerDetails>> json
 
 [<CustomEquality; NoComparison>]
-type Server<'K,'R when 'K: equality> =
-    { Identifier: 'K
-      HistoryInfo: Option<HistoryInfo>
+type Server<'K,'R when 'K: equality and 'K :> ICommunicationHistory> =
+    { Details: 'K
       Retrieval: Async<'R> }
     override self.Equals yObj =
         match yObj with
         | :? Server<'K,'R> as y ->
-            self.Identifier.Equals y.Identifier
+            self.Details.Equals y.Details
         | _ -> false
     override self.GetHashCode () =
-        self.Identifier.GetHashCode()
+        self.Details.GetHashCode()

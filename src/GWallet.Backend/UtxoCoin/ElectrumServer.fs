@@ -31,8 +31,8 @@ type ElectrumServer =
     {
         Fqdn: string;
         Pruning: string;
-        PrivatePort: Option<int>;
-        UnencryptedPort: Option<int>;
+        PrivatePort: Option<uint32>
+        UnencryptedPort: Option<uint32>
         Version: string;
     }
     member self.CheckCompatibility (): unit =
@@ -58,12 +58,12 @@ module ElectrumServerSeedList =
                     let unencryptedPort =
                         match maybeUnencryptedPort with
                         | None -> None
-                        | Some portAsString -> Some (Int32.Parse (portAsString.AsString()))
+                        | Some portAsString -> Some (UInt32.Parse (portAsString.AsString()))
                     let maybeEncryptedPort = value.TryGetProperty "s"
                     let encryptedPort =
                         match maybeEncryptedPort with
                         | None -> None
-                        | Some portAsString -> Some (Int32.Parse (portAsString.AsString()))
+                        | Some portAsString -> Some (UInt32.Parse (portAsString.AsString()))
                     yield { Fqdn = key;
                             Pruning = value?pruning.AsString();
                             PrivatePort = encryptedPort;
