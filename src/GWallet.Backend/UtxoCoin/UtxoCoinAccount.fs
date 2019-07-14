@@ -127,7 +127,7 @@ module Account =
 
     // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
-    //        [1] https://gitlab.com/knocte/gwallet/blob/stable/src/GWallet.Backend/EtherServer.fs
+    //        [1] https://gitlab.com/knocte/geewallet/blob/stable/src/GWallet.Backend/EtherServer.fs
     let private GetRandomizedFuncs<'R> (currency: Currency)
                                           (electrumClientFunc: ElectrumServer->Async<'R>)
                                               : List<Server<string,'R>> =
