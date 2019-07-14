@@ -49,21 +49,26 @@ type ServerDetails =
         member self.CommunicationHistory with get() = self.CommunicationHistory
 
 module ServerRegistry =
-    let Serialize(servers: seq<ServerDetails>): string =
-        JsonConvert.SerializeObject
-            (servers |> Seq.sortByDescending (fun server ->
-                                                  match server.CommunicationHistory with
-                                                  | None -> None
-                                                  | Some history ->
-                                                      match history.Status with
-                                                      | Fault (_,lsc) -> lsc
-                                                      | LastSuccessfulCommunication lsc ->
-                                                          Some lsc
-                                              )
-            )
+    let Serialize(servers: Map<Currency,seq<ServerDetails>>): string =
+        let sort servers =
+            Seq.sortByDescending (fun server ->
+                                      match server.CommunicationHistory with
+                                      | None -> None
+                                      | Some history ->
+                                          match history.Status with
+                                          | Fault (_,lsc) -> lsc
+                                          | LastSuccessfulCommunication lsc ->
+                                              Some lsc
+                                 ) servers
+        let sortedServers =
+            servers
+            |> Map.toSeq
+            |> Seq.map (fun (currency, servers) -> currency, sort servers)
+            |> Map.ofSeq
+        JsonConvert.SerializeObject sortedServers
 
-    let Deserialize(json: string): seq<ServerDetails> =
-        JsonConvert.DeserializeObject<seq<ServerDetails>> json
+    let Deserialize(json: string): Map<Currency,seq<ServerDetails>> =
+        JsonConvert.DeserializeObject<Map<Currency,seq<ServerDetails>>> json
 
 [<CustomEquality; NoComparison>]
 type Server<'K,'R when 'K: equality and 'K :> ICommunicationHistory> =

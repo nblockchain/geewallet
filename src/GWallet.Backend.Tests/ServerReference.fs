@@ -1,7 +1,6 @@
 ﻿namespace GWallet.Backend.Tests
 
 open System
-open System.Text
 
 open Newtonsoft.Json
 open NUnit.Framework
@@ -11,6 +10,7 @@ open GWallet.Backend
 [<TestFixture>]
 type ServerReference() =
 
+    let dummy_currency_because_irrelevant_for_this_test = Currency.BTC
     let some_connection_type_irrelevant_for_this_test = { Encrypted = false; Protocol = Http }
 
     let CreateHistoryInfo(lastSuccessfulCommunication: DateTime) =
@@ -35,7 +35,10 @@ type ServerReference() =
                  ConnectionType = some_connection_type_irrelevant_for_this_test
                  CommunicationHistory = None
              }
-        let serverDetails = ServerRegistry.Serialize [ serverWithHighestPriority; serverWithLowestPriority]
+        let servers1 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithHighestPriority; yield serverWithLowestPriority })
+        let serverDetails = ServerRegistry.Serialize servers1
 
         let serverAPos = serverDetails.IndexOf serverWithHighestPriority.HostName
         let serverBPos = serverDetails.IndexOf serverWithLowestPriority.HostName
@@ -46,7 +49,10 @@ type ServerReference() =
 
         Assert.That(serverBPos, Is.GreaterThan serverAPos, "shouldn't be sorted #1")
 
-        let serverDetailsReverse = ServerRegistry.Serialize [ serverWithLowestPriority; serverWithHighestPriority ]
+        let servers2 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithLowestPriority; yield serverWithHighestPriority })
+        let serverDetailsReverse = ServerRegistry.Serialize servers2
 
         let serverAPos = serverDetailsReverse.IndexOf serverWithHighestPriority.HostName
         let serverBPos = serverDetailsReverse.IndexOf serverWithLowestPriority.HostName
@@ -71,7 +77,10 @@ type ServerReference() =
                  ConnectionType = some_connection_type_irrelevant_for_this_test
                  CommunicationHistory = CreateHistoryInfo DateTime.Now
              }
-        let serverDetails = ServerRegistry.Serialize [ serverWithOldestConnection; serverWithMostRecentConnection]
+        let servers1 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithOldestConnection; yield serverWithMostRecentConnection })
+        let serverDetails = ServerRegistry.Serialize servers1
 
         let serverAPos = serverDetails.IndexOf serverWithOldestConnection.HostName
         let serverBPos = serverDetails.IndexOf serverWithMostRecentConnection.HostName
@@ -82,7 +91,10 @@ type ServerReference() =
 
         Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #1")
 
-        let serverDetailsReverse = ServerRegistry.Serialize [ serverWithMostRecentConnection; serverWithOldestConnection ]
+        let servers2 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithMostRecentConnection; yield serverWithOldestConnection })
+        let serverDetailsReverse = ServerRegistry.Serialize servers2
 
         let serverAPos = serverDetailsReverse.IndexOf serverWithOldestConnection.HostName
         let serverBPos = serverDetailsReverse.IndexOf serverWithMostRecentConnection.HostName
@@ -101,7 +113,10 @@ type ServerReference() =
                 CommunicationHistory = None
             }
 
-        let serverDetails3 = ServerRegistry.Serialize [ serverWithNoLastConnection; serverWithMostRecentConnection]
+        let servers3 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithNoLastConnection; yield serverWithMostRecentConnection })
+        let serverDetails3 = ServerRegistry.Serialize servers3
 
         let serverAPos = serverDetails.IndexOf serverWithNoLastConnection.HostName
         let serverBPos = serverDetails.IndexOf serverWithMostRecentConnection.HostName
@@ -112,7 +127,10 @@ type ServerReference() =
 
         Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #3")
 
-        let serverDetails3Rev = ServerRegistry.Serialize [ serverWithMostRecentConnection; serverWithNoLastConnection]
+        let servers4 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithMostRecentConnection; yield serverWithNoLastConnection })
+        let serverDetails3Rev = ServerRegistry.Serialize servers4
 
         let serverAPos = serverDetails3Rev.IndexOf serverWithNoLastConnection.HostName
         let serverBPos = serverDetails3Rev.IndexOf serverWithMostRecentConnection.HostName
@@ -132,7 +150,10 @@ type ServerReference() =
                  ConnectionType = some_connection_type_irrelevant_for_this_test
                  CommunicationHistory = CreateHistoryInfo now
              }
-        let serverDetails = ServerRegistry.Serialize [ serverWithSomeRecentConnection ]
+        let servers = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithSomeRecentConnection })
+        let serverDetails = ServerRegistry.Serialize servers
 
         let dayPos = serverDetails.IndexOf (now.Day.ToString())
         Assert.That(dayPos, Is.GreaterThan 0)
@@ -158,7 +179,10 @@ type ServerReference() =
                  ConnectionType = some_connection_type_irrelevant_for_this_test
                  CommunicationHistory = CreateHistoryInfo DateTime.UtcNow
              }
-        let serverDetails = ServerRegistry.Serialize [ serverWithSomeRecentConnection ]
+        let servers = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithSomeRecentConnection })
+        let serverDetails = ServerRegistry.Serialize servers
 
         let deserializedServerDetails = JsonConvert.DeserializeObject serverDetails
         Assert.That(deserializedServerDetails, Is.Not.Null)
@@ -172,7 +196,10 @@ type ServerReference() =
                  ConnectionType = { Encrypted = false; Protocol = Tcp port }
                  CommunicationHistory = None
              }
-        let serverDetails = ServerRegistry.Serialize [ serverWithSomeRecentConnection ]
+        let servers = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithSomeRecentConnection })
+        let serverDetails = ServerRegistry.Serialize servers
 
         let portPos = serverDetails.IndexOf (port.ToString())
         Assert.That(portPos, Is.GreaterThan 0)
@@ -223,12 +250,19 @@ type ServerReference() =
                                              })
              }
 
-        let serverDetails = ServerRegistry.Serialize [ tcpServerWithNoHistory
-                                                       httpSuccessfulServer
-                                                       httpsFailureServer1
-                                                       httpsFailureServer2 ]
+        let servers = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                 seq {
+                                     yield tcpServerWithNoHistory
+                                     yield httpSuccessfulServer
+                                     yield httpsFailureServer1
+                                     yield httpsFailureServer2
+                                 })
+        let serverDetails = ServerRegistry.Serialize servers
 
-        let deserializedServers = ServerRegistry.Deserialize serverDetails |> List.ofSeq
+        let deserializedServers =
+            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
+                |> List.ofSeq
         Assert.That(deserializedServers.Length, Is.EqualTo 4)
 
         let tcpServers = Seq.filter (fun server -> server.HostName = tcpServerHostName)
