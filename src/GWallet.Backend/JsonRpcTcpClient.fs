@@ -3,7 +3,6 @@
 open System
 open System.Net
 open System.Net.Sockets
-open System.Threading
 
 type ProtocolGlitchException(message: string, innerException: Exception) =
     inherit CommunicationUnsuccessfulException (message, innerException)

@@ -1,7 +1,6 @@
 ﻿namespace GWallet.Backend
 
 open System
-open System.Buffers
 open System.Linq
 open System.Text
 open System.Net

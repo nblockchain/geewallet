@@ -1,11 +1,9 @@
 ﻿namespace GWallet.Backend.Ether
 
 open System.Numerics
-open System.Linq
 
 open Nethereum.Web3
 open Nethereum.Hex.HexTypes
-open Nethereum.Contracts
 open Nethereum.StandardTokenEIP20
 open Nethereum.StandardTokenEIP20.ContractDefinition
 
