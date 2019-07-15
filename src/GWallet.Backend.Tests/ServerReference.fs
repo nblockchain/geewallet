@@ -11,6 +11,7 @@ open GWallet.Backend
 type ServerReference() =
 
     let dummy_currency_because_irrelevant_for_this_test = Currency.BTC
+    let dummy_now = DateTime.UtcNow
     let some_connection_type_irrelevant_for_this_test = { Encrypted = false; Protocol = Http }
 
     let CreateHistoryInfo(lastSuccessfulCommunication: DateTime) =
@@ -328,3 +329,118 @@ type ServerReference() =
                 Assert.That(maybeLsc, Is.EqualTo (Some lastSuccessfulCommunication))
             | _ ->
                 Assert.Fail "https server should be fault, not successful"
+
+    [<Test>]
+    member __.``duplicate servers are removed``() =
+        let sameRandomHostname = "xfoihror3uo3wmio"
+        let serverA =
+            {
+                HostName = sameRandomHostname
+                ConnectionType = some_connection_type_irrelevant_for_this_test
+                CommunicationHistory = None
+            }
+        let serverB =
+            {
+                HostName = sameRandomHostname
+                ConnectionType = some_connection_type_irrelevant_for_this_test
+                CommunicationHistory = CreateHistoryInfo dummy_now
+            }
+        let servers = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverA; yield serverB })
+        let serverDetails = ServerRegistry.Serialize servers
+        let deserializedServers =
+            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
+                |> List.ofSeq
+
+        Assert.That(deserializedServers.Length, Is.EqualTo 1)
+
+    [<Test>]
+    member __.``when removing duplicate servers, the ones with history and most up to date, stay``() =
+        let sameRandomHostname = "xfoihror3uo3wmio"
+        let serverA =
+            {
+                HostName = sameRandomHostname
+                ConnectionType = some_connection_type_irrelevant_for_this_test
+                CommunicationHistory = None
+            }
+        let serverB =
+            {
+                HostName = sameRandomHostname
+                ConnectionType = some_connection_type_irrelevant_for_this_test
+                CommunicationHistory = CreateHistoryInfo dummy_now
+            }
+        let servers = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverA; yield serverB })
+        let serverDetails = ServerRegistry.Serialize servers
+        let deserializedServers =
+            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
+                |> List.ofSeq
+
+        Assert.That(deserializedServers.Length, Is.EqualTo 1)
+        Assert.That(deserializedServers.[0].CommunicationHistory, Is.Not.EqualTo None)
+
+        let olderDate = dummy_now - TimeSpan.FromDays 1.0
+        let sameRandomHostname = "xfoihror3uo3wmio"
+        let serverA =
+            {
+                HostName = sameRandomHostname
+                ConnectionType = some_connection_type_irrelevant_for_this_test
+                CommunicationHistory = CreateHistoryInfo dummy_now
+            }
+        let serverB =
+            {
+                HostName = sameRandomHostname
+                ConnectionType = some_connection_type_irrelevant_for_this_test
+                CommunicationHistory = CreateHistoryInfo olderDate
+            }
+        let servers = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverA; yield serverB })
+        let serverDetails = ServerRegistry.Serialize servers
+        let deserializedServers =
+            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
+                |> List.ofSeq
+
+        Assert.That(deserializedServers.Length, Is.EqualTo 1)
+        match deserializedServers.[0].CommunicationHistory with
+        | None ->
+            Assert.Fail "should have some history since no server stored had None on it #1"
+        | Some history ->
+            match history.Status with
+            | Fault(_,_) -> Assert.Fail "should have status since both servers inserted had it #1"
+            | LastSuccessfulCommunication lsc ->
+                Assert.That(lsc, Is.EqualTo dummy_now)
+
+        let olderDate = dummy_now - TimeSpan.FromDays 1.0
+        let sameRandomHostname = "xfoihror3uo3wmio"
+        let serverA =
+            {
+                HostName = sameRandomHostname
+                ConnectionType = some_connection_type_irrelevant_for_this_test
+                CommunicationHistory = CreateHistoryInfo olderDate
+            }
+        let serverB =
+            {
+                HostName = sameRandomHostname
+                ConnectionType = some_connection_type_irrelevant_for_this_test
+                CommunicationHistory = CreateHistoryInfo dummy_now
+            }
+        let servers = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverA; yield serverB })
+        let serverDetails = ServerRegistry.Serialize servers
+        let deserializedServers =
+            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
+                |> List.ofSeq
+
+        Assert.That(deserializedServers.Length, Is.EqualTo 1)
+        match deserializedServers.[0].CommunicationHistory with
+        | None ->
+            Assert.Fail "should have some history since no server stored had None on it #2"
+        | Some history ->
+            match history.Status with
+            | Fault(_,_) -> Assert.Fail "should have status since both servers inserted had it #2"
+            | LastSuccessfulCommunication lsc ->
+                Assert.That(lsc, Is.EqualTo dummy_now)

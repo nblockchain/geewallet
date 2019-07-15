@@ -50,7 +50,38 @@ type ServerDetails =
 
 module ServerRegistry =
     let Serialize(servers: Map<Currency,seq<ServerDetails>>): string =
-        let sort servers =
+        let rec removeDupesInternal (servers: seq<ServerDetails>) (serversMap: Map<string,ServerDetails>) =
+            match Seq.tryHead servers with
+            | None -> Seq.empty
+            | Some server ->
+                let tail = Seq.tail servers
+                match serversMap.TryGetValue server.HostName with
+                | false,_ ->
+                    removeDupesInternal tail serversMap
+                | true,serverInMap ->
+                    let serverToAppend =
+                        match server.CommunicationHistory,serverInMap.CommunicationHistory with
+                        | None,_ -> serverInMap
+                        | _,None -> server
+                        | Some commHistory,Some commHistoryInMap ->
+                            match commHistory.Status,commHistoryInMap.Status with
+                            | Fault(_,None),_ -> serverInMap
+                            | _,Fault(_,None) -> server
+                            | LastSuccessfulCommunication lsc,LastSuccessfulCommunication lscInMap
+                            | LastSuccessfulCommunication lsc,Fault(_,Some lscInMap)
+                            | Fault(_,Some lsc),LastSuccessfulCommunication lscInMap
+                            | Fault(_,Some lsc),Fault(_,Some lscInMap) ->
+                                if lsc > lscInMap then
+                                    server
+                                else
+                                    serverInMap
+                    let newMap = serversMap.Remove serverToAppend.HostName
+                    Seq.append (seq { yield serverToAppend }) (removeDupesInternal tail newMap)
+
+        let removeDupes (servers: seq<ServerDetails>)  =
+            removeDupesInternal servers (servers |> Seq.map (fun server -> server.HostName,server) |> Map.ofSeq)
+
+        let sort (servers: seq<ServerDetails>) =
             Seq.sortByDescending (fun server ->
                                       match server.CommunicationHistory with
                                       | None -> None
@@ -60,12 +91,13 @@ module ServerRegistry =
                                           | LastSuccessfulCommunication lsc ->
                                               Some lsc
                                  ) servers
-        let sortedServers =
+
+        let rearrangedServers =
             servers
             |> Map.toSeq
-            |> Seq.map (fun (currency, servers) -> currency, sort servers)
+            |> Seq.map (fun (currency, servers) -> currency, servers |> removeDupes |> sort)
             |> Map.ofSeq
-        JsonConvert.SerializeObject sortedServers
+        JsonConvert.SerializeObject rearrangedServers
 
     let Deserialize(json: string): Map<Currency,seq<ServerDetails>> =
         JsonConvert.DeserializeObject<Map<Currency,seq<ServerDetails>>> json
