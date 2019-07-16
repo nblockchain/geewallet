@@ -2,7 +2,6 @@
 
 open System
 open System.IO
-open System.Linq
 open System.Diagnostics
 
 #r "System.Configuration"
@@ -13,6 +12,7 @@ open FSX.Infrastructure
 open Process
 
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
+let BACKEND = "GWallet.Backend"
 
 type BinaryConfig =
     | Debug
@@ -61,8 +61,12 @@ let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", "gwallet"))
 let binInstallPath = DirectoryInfo (Path.Combine (prefix, "bin"))
 
 let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", "gwallet"))
-let mainBinariesPath = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__, "..",
-                                                   "src", DEFAULT_FRONTEND, "bin", "Release"))
+let mainBinariesPath binaryConfig = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__,
+                                                                "..",
+                                                                "src",
+                                                                DEFAULT_FRONTEND,
+                                                                "bin",
+                                                                binaryConfig.ToString()))
 
 let wrapperScript = """#!/bin/sh
 set -e
@@ -90,7 +94,7 @@ let JustBuild binaryConfig =
     if buildTool.IsNone then
         failwith "A BuildTool should have been chosen by the configure script, please report this bug"
 
-    Console.WriteLine "Compiling gwallet..."
+    Console.WriteLine (sprintf "Building gwallet in %s mode..." (binaryConfig.ToString()))
     let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
     let configOptions =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
@@ -113,14 +117,60 @@ let MakeCheckCommand (commandName: string) =
         Console.Error.WriteLine (sprintf "%s not found, please install it first" commandName)
         Environment.Exit 1
 
-let GetPathToFrontend (binaryConfig: BinaryConfig) =
-    Path.Combine ("src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString())
+let GetPathToFrontendBinariesDir (binaryConfig: BinaryConfig) =
+    Path.Combine (rootDir.FullName, "src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString())
+
+let GetPathToBackend () =
+    Path.Combine (rootDir.FullName, "src", BACKEND)
+
+let MakeAll() =
+    let buildConfig = BinaryConfig.Debug
+    JustBuild buildConfig
+    buildConfig
+
+let RunFrontend (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
+    let oldVersionOfMono =
+        let versionOfMonoWhereRunningExesDirectlyIsSupported = "5.16"
+
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Windows ->
+            // not using Mono anyway
+            false
+        | Misc.Platform.Mac ->
+            // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
+            false
+        | Misc.Platform.Linux ->
+            let pkgConfig = "pkg-config"
+            if not (Process.CommandWorksInShell pkgConfig) then
+                failwithf "'%s' was uninstalled after ./configure.sh was invoked?" pkgConfig
+            let pkgConfigCmd = { Command = pkgConfig
+                                 Arguments = sprintf "--atleast-version=%s mono"
+                                                 versionOfMonoWhereRunningExesDirectlyIsSupported }
+            let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
+            processResult.ExitCode <> 0
+
+    let pathToFrontend = Path.Combine(GetPathToFrontendBinariesDir buildConfig, DEFAULT_FRONTEND + ".exe")
+
+    let fileName, finalArgs =
+        if oldVersionOfMono then
+            match maybeArgs with
+            | None | Some "" -> "mono",pathToFrontend
+            | Some args -> "mono",pathToFrontend + " " + args
+        else
+            match maybeArgs with
+            | None | Some "" -> pathToFrontend,String.Empty
+            | Some args -> pathToFrontend,args
+
+    let startInfo = ProcessStartInfo(FileName = fileName, Arguments = finalArgs, UseShellExecute = false)
+    startInfo.EnvironmentVariables.["MONO_ENV_OPTIONS"] <- "--debug"
+
+    let proc = Process.Start startInfo
+    proc.WaitForExit()
 
 let maybeTarget = GatherTarget (Misc.FsxArguments(), None)
 match maybeTarget with
 | None ->
-    Console.WriteLine "Building gwallet in DEBUG mode..."
-    JustBuild BinaryConfig.Debug
+    MakeAll() |> ignore
 
 | Some("release") ->
     JustBuild BinaryConfig.Release
@@ -153,7 +203,7 @@ match maybeTarget with
     if (Directory.Exists (pathToFolderToBeZipped)) then
         Directory.Delete (pathToFolderToBeZipped, true)
 
-    let pathToFrontend = GetPathToFrontend release
+    let pathToFrontend = GetPathToFrontendBinariesDir release
     let zipRun = Process.Execute({ Command = "cp"
                                    Arguments = sprintf "-rfvp %s %s" pathToFrontend pathToFolderToBeZipped },
                                  Echo.All)
@@ -190,12 +240,12 @@ match maybeTarget with
         Environment.Exit 1
 
 | Some("install") ->
-    Console.WriteLine "Building gwallet in RELEASE mode..."
-    JustBuild BinaryConfig.Release
+    let buildConfig = BinaryConfig.Release
+    JustBuild buildConfig
 
     Console.WriteLine "Installing gwallet..."
     Console.WriteLine ()
-    Misc.CopyDirectoryRecursively (mainBinariesPath, libInstallPath, [])
+    Misc.CopyDirectoryRecursively (mainBinariesPath buildConfig, libInstallPath, [])
 
     let finalPrefixPathOfWrapperScript = FileInfo (Path.Combine(binInstallPath.FullName, launcherScriptPath.Name))
     if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
@@ -206,59 +256,13 @@ match maybeTarget with
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
-    let oldVersionOfMono =
-        let versionOfMonoWhereRunningExesDirectlyIsSupported = "5.16"
-
-        match Misc.GuessPlatform() with
-        | Misc.Platform.Windows ->
-            // not using Mono anyway
-            false
-        | Misc.Platform.Mac ->
-            // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
-            false
-        | Misc.Platform.Linux ->
-            let pkgConfig = "pkg-config"
-            if not (Process.CommandWorksInShell pkgConfig) then
-                failwithf "'%s' was uninstalled after ./configure.sh was invoked?" pkgConfig
-            let pkgConfigCmd = { Command = pkgConfig
-                                 Arguments = sprintf "--atleast-version=%s mono"
-                                                 versionOfMonoWhereRunningExesDirectlyIsSupported }
-            let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
-            processResult.ExitCode <> 0
-
-    let debug = BinaryConfig.Debug
-    JustBuild debug
-
-    let pathToFrontend = Path.Combine(GetPathToFrontend debug, DEFAULT_FRONTEND + ".exe")
-
-    let startInfo =
-        if oldVersionOfMono then
-            ProcessStartInfo(FileName = "mono", Arguments = pathToFrontend, UseShellExecute = false)
-        else
-            ProcessStartInfo(FileName = pathToFrontend, UseShellExecute = false)
-    startInfo.EnvironmentVariables.["MONO_ENV_OPTIONS"] <- "--debug"
-
-    let proc = Process.Start startInfo
-    proc.WaitForExit()
+    let buildConfig = MakeAll()
+    RunFrontend buildConfig None
 
 | Some "update-servers" ->
-    let utxoCoinFolder = Path.Combine("src", "GWallet.Backend", "UtxoCoin")
-
-    let btcServersUrl = "https://raw.githubusercontent.com/spesmilo/electrum/master/electrum/servers.json"
-    let btcServersFile = Path.Combine(utxoCoinFolder, "btc-servers.json")
-    let updateBtc = Process.Execute ({ Command = "curl"
-                                       Arguments = sprintf "--fail -o %s %s" btcServersFile btcServersUrl }, Echo.All)
-    if (updateBtc.ExitCode <> 0) then
-        Console.Error.WriteLine "Update failed"
-        Environment.Exit 1
-
-    let ltcServersUrl = "https://raw.githubusercontent.com/pooler/electrum-ltc/master/electrum_ltc/servers.json"
-    let ltcServersFile = Path.Combine(utxoCoinFolder, "ltc-servers.json")
-    let updateLtc = Process.Execute ({ Command = "curl"
-                                       Arguments = sprintf "--fail -o %s %s" ltcServersFile ltcServersUrl }, Echo.All)
-    if (updateLtc.ExitCode <> 0) then
-        Console.Error.WriteLine "Update failed"
-        Environment.Exit 1
+    let buildConfig = MakeAll()
+    Directory.SetCurrentDirectory (GetPathToBackend())
+    RunFrontend buildConfig (Some "--update-servers")
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)

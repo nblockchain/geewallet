@@ -2,17 +2,15 @@
 
 open System
 
-open Newtonsoft.Json
-
 type ExceptionInfo =
     { TypeFullName: string
       Message: string }
 
-type LastSuccessfulCommunication = DateTime
+type LastSuccessfulCommunicationTime = DateTime
 
 type Status =
-    | Fault of ExceptionInfo*Option<LastSuccessfulCommunication>
-    | LastSuccessfulCommunication of LastSuccessfulCommunication
+    | Fault of ExceptionInfo*Option<LastSuccessfulCommunicationTime>
+    | LastSuccessfulCommunication of LastSuccessfulCommunicationTime
 
 type HistoryInfo =
     { TimeSpan: TimeSpan
@@ -34,28 +32,31 @@ type ICommunicationHistory =
 [<CustomEquality; NoComparison>]
 type ServerDetails =
     {
-        HostName: string
+        NetworkPath: string
         ConnectionType: ConnectionType
         CommunicationHistory: Option<HistoryInfo>
     }
     override self.Equals yObj =
         match yObj with
         | :? ServerDetails as y ->
-            self.HostName.Equals y.HostName
+            self.NetworkPath.Equals y.NetworkPath
         | _ -> false
     override self.GetHashCode () =
-        self.HostName.GetHashCode()
+        self.NetworkPath.GetHashCode()
     interface ICommunicationHistory with
         member self.CommunicationHistory with get() = self.CommunicationHistory
 
 module ServerRegistry =
+
+    let ServersEmbeddedResourceFileName = "servers.json"
+
     let Serialize(servers: Map<Currency,seq<ServerDetails>>): string =
         let rec removeDupesInternal (servers: seq<ServerDetails>) (serversMap: Map<string,ServerDetails>) =
             match Seq.tryHead servers with
             | None -> Seq.empty
             | Some server ->
                 let tail = Seq.tail servers
-                match serversMap.TryGetValue server.HostName with
+                match serversMap.TryGetValue server.NetworkPath with
                 | false,_ ->
                     removeDupesInternal tail serversMap
                 | true,serverInMap ->
@@ -75,11 +76,11 @@ module ServerRegistry =
                                     server
                                 else
                                     serverInMap
-                    let newMap = serversMap.Remove serverToAppend.HostName
+                    let newMap = serversMap.Remove serverToAppend.NetworkPath
                     Seq.append (seq { yield serverToAppend }) (removeDupesInternal tail newMap)
 
         let removeDupes (servers: seq<ServerDetails>)  =
-            removeDupesInternal servers (servers |> Seq.map (fun server -> server.HostName,server) |> Map.ofSeq)
+            removeDupesInternal servers (servers |> Seq.map (fun server -> server.NetworkPath,server) |> Map.ofSeq)
 
         let sort (servers: seq<ServerDetails>) =
             Seq.sortByDescending (fun server ->
@@ -97,10 +98,17 @@ module ServerRegistry =
             |> Map.toSeq
             |> Seq.map (fun (currency, servers) -> currency, servers |> removeDupes |> sort)
             |> Map.ofSeq
-        JsonConvert.SerializeObject rearrangedServers
+        Marshalling.Serialize rearrangedServers
 
     let Deserialize(json: string): Map<Currency,seq<ServerDetails>> =
-        JsonConvert.DeserializeObject<Map<Currency,seq<ServerDetails>>> json
+        Marshalling.Deserialize json
+
+    let internal servers = Deserialize (Config.ExtractEmbeddedResourceFileContents ServersEmbeddedResourceFileName)
+
+    let GetServers currency =
+        match servers.TryFind currency with
+        | Some currencyServers -> currencyServers
+        | _ -> failwithf "No servers found in resource file for %A?" currency
 
 [<CustomEquality; NoComparison>]
 type Server<'K,'R when 'K: equality and 'K :> ICommunicationHistory> =

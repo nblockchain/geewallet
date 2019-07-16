@@ -129,11 +129,11 @@ module Account =
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
     //        [1] https://gitlab.com/knocte/geewallet/blob/stable/src/GWallet.Backend/EtherServer.fs
     let private GetRandomizedFuncs<'R> (currency: Currency)
-                                          (electrumClientFunc: ElectrumServer->Async<'R>)
+                                       (electrumClientFunc: ServerDetails->Async<'R>)
                                               : List<Server<ServerDetails,'R>> =
 
-        let ElectrumServerToRetrievalFunc (electrumServer: ElectrumServer)
-                                          (electrumClientFunc: ElectrumServer->Async<'R>)
+        let ElectrumServerToRetrievalFunc (electrumServer: ServerDetails)
+                                          (electrumClientFunc: ServerDetails->Async<'R>)
                                               : Async<'R> = async {
             try
                 return! electrumClientFunc electrumServer
@@ -147,7 +147,7 @@ module Account =
                 match ex with
                 | :? ElectrumServerReturningErrorException as esEx ->
                     return failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
-                                      electrumServer.Fqdn
+                                      electrumServer.NetworkPath
                                       esEx.Message
                                       esEx.ErrorCode
                                       esEx.OriginalRequest
@@ -156,16 +156,17 @@ module Account =
                     return raise <| FSharpUtil.ReRaise ex
         }
 
-        let ElectrumServerToGenericServer (electrumClientFunc: ElectrumServer->Async<'R>)
-                                          (electrumServer: ElectrumServer)
+        let ElectrumServerToGenericServer (electrumClientFunc: ServerDetails->Async<'R>)
+                                          (electrumServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
-            match electrumServer.UnencryptedPort with
-            | None -> failwith "filtering for non-ssl electrum servers didn't work?"
-            | Some unencryptedPort ->
-                { Details = { HostName = electrumServer.Fqdn
-                              ConnectionType = { Encrypted = false; Protocol = Tcp unencryptedPort }
-                              CommunicationHistory = Caching.Instance.RetreiveLastServerHistory electrumServer.Fqdn }
-                  Retrieval = ElectrumServerToRetrievalFunc electrumServer electrumClientFunc }
+            let lastDetailsForServer =
+                match Caching.Instance.RetreiveLastServerHistory electrumServer.NetworkPath with
+                | None -> electrumServer
+                | Some historyInCache ->
+                    { electrumServer with
+                        CommunicationHistory = Some historyInCache }
+            { Details = lastDetailsForServer
+              Retrieval = ElectrumServerToRetrievalFunc electrumServer electrumClientFunc }
 
         let randomizedElectrumServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedServers =

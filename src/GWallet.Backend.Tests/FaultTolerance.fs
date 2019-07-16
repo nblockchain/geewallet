@@ -27,7 +27,7 @@ type FaultTolerance() =
 
     let some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test =
         Fault ({ TypeFullName = typeof<Exception>.FullName; Message = "some err" },None)
-    let some_successful_irrelevant_date = LastSuccessfulCommunication DateTime.UtcNow
+    let some_successful_irrelevant_date: Status = LastSuccessfulCommunication DateTime.UtcNow
 
     let defaultSettingsForNoConsistencyNoParallelismAndNoRetries() =
         {
@@ -51,7 +51,7 @@ type FaultTolerance() =
         {
             Details =
                 {
-                    HostName = serverId
+                    NetworkPath = serverId
                     ConnectionType = dummy_connection_type
                     CommunicationHistory = None
                 }
@@ -547,7 +547,7 @@ type FaultTolerance() =
         let server1 = {
                           Details =
                               {
-                                  HostName = "server1"
+                                  NetworkPath = "server1"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 }
                               }
@@ -556,7 +556,7 @@ type FaultTolerance() =
         let server2 = {
                           Details =
                               {
-                                  HostName = "server2"
+                                  NetworkPath = "server2"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 }
@@ -588,7 +588,7 @@ type FaultTolerance() =
         let server1 = {
                           Details =
                               {
-                                  HostName = "server1"
+                                  NetworkPath = "server1"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = fault; TimeSpan = TimeSpan.FromSeconds 2.0 }
                               }
@@ -597,7 +597,7 @@ type FaultTolerance() =
         let server2 = {
                           Details =
                               {
-                                  HostName = "server2"
+                                  NetworkPath = "server2"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 }
                               }
@@ -627,7 +627,7 @@ type FaultTolerance() =
         let server1 = {
                           Details =
                               {
-                                  HostName = "server1"
+                                  NetworkPath = "server1"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 }
@@ -637,7 +637,7 @@ type FaultTolerance() =
         let server2 = {
                           Details =
                               {
-                                  HostName = "server2"
+                                  NetworkPath = "server2"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = None
                               }
@@ -668,7 +668,7 @@ type FaultTolerance() =
         let server1 = {
                           Details =
                               {
-                                  HostName = "server1"
+                                  NetworkPath = "server1"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 }
                               }
@@ -677,7 +677,7 @@ type FaultTolerance() =
         let server2 = {
                           Details =
                               {
-                                  HostName = "server2"
+                                  NetworkPath = "server2"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = None
                               }
@@ -709,7 +709,7 @@ type FaultTolerance() =
         let server1 = {
                           Details =
                               {
-                                  HostName = "server1"
+                                  NetworkPath = "server1"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 }
                               }
@@ -718,7 +718,7 @@ type FaultTolerance() =
         let server2 = {
                           Details =
                               {
-                                  HostName = "server2"
+                                  NetworkPath = "server2"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = None
                               }
@@ -727,7 +727,7 @@ type FaultTolerance() =
         let server3 = {
                           Details =
                               {
-                                  HostName = "server3"
+                                  NetworkPath = "server3"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 }
@@ -762,7 +762,7 @@ type FaultTolerance() =
         let server1 = {
                           Details =
                               {
-                                  HostName = "server1"
+                                  NetworkPath = "server1"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 }
@@ -772,7 +772,7 @@ type FaultTolerance() =
         let server2 = {
                           Details =
                               {
-                                  HostName = "server2"
+                                  NetworkPath = "server2"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 }
@@ -782,7 +782,7 @@ type FaultTolerance() =
         let server3 = {
                           Details =
                               {
-                                  HostName = "server3"
+                                  NetworkPath = "server3"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 3.0 }
@@ -793,7 +793,7 @@ type FaultTolerance() =
         let server4 = {
                           Details =
                               {
-                                  HostName = "server4"
+                                  NetworkPath = "server4"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = fault
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 }
@@ -829,7 +829,7 @@ type FaultTolerance() =
         let server1 = {
                           Details =
                               {
-                                  HostName = "server1"
+                                  NetworkPath = "server1"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 }
@@ -839,7 +839,7 @@ type FaultTolerance() =
         let server2 = {
                           Details =
                               {
-                                  HostName = "server2"
+                                  NetworkPath = "server2"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 }
@@ -849,7 +849,7 @@ type FaultTolerance() =
         let server3 = {
                           Details =
                               {
-                                  HostName = "server3"
+                                  NetworkPath = "server3"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 3.0 }
@@ -860,7 +860,7 @@ type FaultTolerance() =
         let server4 = {
                           Details =
                               {
-                                  HostName = "server4"
+                                  NetworkPath = "server4"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 4.0 }
@@ -870,7 +870,7 @@ type FaultTolerance() =
         let server5 = {
                           Details =
                               {
-                                  HostName = "server5"
+                                  NetworkPath = "server5"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 5.0 }
@@ -907,7 +907,7 @@ type FaultTolerance() =
         let mutable someFlag = false
         let mutable someTimeStamp = None
         let saveServerLastStat (serverDetails: ServerDetails, historyInfo): unit =
-            Assert.That(serverDetails.HostName, Is.EqualTo serverId)
+            Assert.That(serverDetails.NetworkPath, Is.EqualTo serverId)
             match historyInfo.Status with
             | Fault _ ->
                 failwith "assertion failed"
@@ -944,10 +944,10 @@ type FaultTolerance() =
             lock lockObj (fun _ ->
                 match historyInfo.Status with
                 | Fault (fault,_) ->
-                    Assert.That(serverDetails.HostName, Is.EqualTo failingServerName)
+                    Assert.That(serverDetails.NetworkPath, Is.EqualTo failingServerName)
                     Assert.That(fault.TypeFullName, Is.EqualTo typeof<SomeSpecificException>.FullName)
                 | _ ->
-                    Assert.That(serverDetails.HostName, Is.Not.EqualTo failingServerName)
+                    Assert.That(serverDetails.NetworkPath, Is.Not.EqualTo failingServerName)
                     someNonFailingCounter <- someNonFailingCounter + 1
 
                 Assert.That(historyInfo.TimeSpan, Is.GreaterThan TimeSpan.Zero)

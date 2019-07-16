@@ -495,7 +495,7 @@ module Caching =
         member self.SaveServerLastStat (server: ServerDetails, historyInfo): unit =
             lock cacheFiles.ServerStats (fun _ ->
                 let previousLastSuccessfulCommunication =
-                    match sessionServerRanking.TryFind server.HostName with
+                    match sessionServerRanking.TryFind server.NetworkPath with
                     | None -> None
                     | Some (prevHistoryInfo,_) ->
                         if WeirdNullCheckToDetectVersionConflicts prevHistoryInfo ||
@@ -521,7 +521,7 @@ module Caching =
                             }
 
                 let newCachedValue =
-                        sessionServerRanking.Add(server.HostName, (newHistoryInfo, DateTime.UtcNow))
+                        sessionServerRanking.Add(server.NetworkPath, (newHistoryInfo, DateTime.UtcNow))
 
                 sessionServerRanking <- newCachedValue
 

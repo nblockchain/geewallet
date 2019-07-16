@@ -5,8 +5,6 @@ open System.Linq
 
 open NUnit.Framework
 
-open NBitcoin
-
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 
@@ -17,24 +15,24 @@ type ElectrumServerUnitTests() =
     [<Test>]
     member __.``filters electrum BTC servers``() =
         for electrumServer in ElectrumServerSeedList.DefaultBtcList do
-            Assert.That (electrumServer.UnencryptedPort, Is.Not.EqualTo(None),
+            Assert.That (electrumServer.ConnectionType.Encrypted, Is.EqualTo false,
                 sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
-                        electrumServer.Fqdn)
+                        electrumServer.NetworkPath)
 
-            Assert.That (electrumServer.Fqdn, Is.Not.StringEnding(".onion"),
+            Assert.That (electrumServer.NetworkPath, Is.Not.StringEnding ".onion",
                 sprintf "BTC servers list should be filtered against onion servers, but %s was found"
-                        electrumServer.Fqdn)
+                        electrumServer.NetworkPath)
 
     [<Test>]
     member __.``filters electrum LTC servers``() =
         for electrumServer in ElectrumServerSeedList.DefaultLtcList do
-            Assert.That (electrumServer.UnencryptedPort, Is.Not.EqualTo(None),
+            Assert.That (electrumServer.ConnectionType.Encrypted, Is.EqualTo false,
                 sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
-                        electrumServer.Fqdn)
+                        electrumServer.NetworkPath)
 
-            Assert.That (electrumServer.Fqdn, Is.Not.StringEnding(".onion"),
+            Assert.That (electrumServer.NetworkPath, Is.Not.StringEnding ".onion",
                 sprintf "BTC servers list should be filtered against onion servers, but %s was found"
-                        electrumServer.Fqdn)
+                        electrumServer.NetworkPath)
 
 [<TestFixture>]
 [<Ignore ("Seems we have general issues reaching electrum servers these days, probably related to DDOS attack on them")>]
@@ -50,12 +48,12 @@ type ElectrumIntegrationTests() =
     let SCRIPTHASH_OF_LTC_GENESIS_BLOCK_ADDRESS =
         UtxoCoin.Account.GetElectrumScriptHashFromPublicAddress Currency.LTC "Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2"
 
-    let CheckServerIsReachable (electrumServer: ElectrumServer)
+    let CheckServerIsReachable (electrumServer: ServerDetails)
                                (currency: Currency)
-                               (query: ElectrumServer->Async<'T>)
+                               (query: ServerDetails->Async<'T>)
                                (assertion: 'T->unit)
-                               (maybeFilter: Option<ElectrumServer -> bool>)
-                               : Async<Option<ElectrumServer>> = async {
+                               (maybeFilter: Option<ServerDetails -> bool>)
+                               : Async<Option<ServerDetails>> = async {
 
         let innerCheck server =
             // this try-with block is similar to the one in UtxoCoinAccount, where it rethrows as
@@ -68,7 +66,7 @@ type ElectrumIntegrationTests() =
 
                 assertion result
 
-                Console.WriteLine (sprintf "%A server %s is reachable" currency server.Fqdn)
+                Console.WriteLine (sprintf "%A server %s is reachable" currency server.NetworkPath)
                 Some electrumServer
             with
             | :? CommunicationUnsuccessfulException as ex ->
@@ -77,14 +75,16 @@ type ElectrumIntegrationTests() =
 
                 let exDescription = sprintf "%s: %s" (ex.GetType().Name) ex.Message
 
-                Console.Error.WriteLine (sprintf "%s -> %A server %s is unreachable" exDescription currency server.Fqdn)
+                Console.Error.WriteLine (sprintf "%s -> %A server %s is unreachable" exDescription
+                                                                                     currency
+                                                                                     server.NetworkPath)
                 None
             | :? ElectrumServerReturningInternalErrorException as ex ->
-                Console.Error.WriteLine (sprintf "%A server %s is unhealthy" currency server.Fqdn)
+                Console.Error.WriteLine (sprintf "%A server %s is unhealthy" currency server.NetworkPath)
                 None
 
             | :? ElectrumServerReturningErrorException as ex ->
-                raise <| Exception(sprintf "%A server %s is failing with '%s" currency server.Fqdn ex.Message, ex)
+                raise <| Exception(sprintf "%A server %s is failing with '%s" currency server.NetworkPath ex.Message, ex)
 
         match maybeFilter with
         | Some filterFunc ->
@@ -102,7 +102,7 @@ type ElectrumIntegrationTests() =
         // so let's make the test check a balance like this which is unlikely to change
         Assert.That(balance.Confirmed, Is.Not.LessThan 998292)
 
-    let rec AtLeastNJobsWork(jobs: List<Async<Option<ElectrumServer>>>) (minimumCountNeeded: uint32): unit =
+    let rec AtLeastNJobsWork(jobs: List<Async<Option<ServerDetails>>>) (minimumCountNeeded: uint32): unit =
         match jobs with
         | [] ->
             if minimumCountNeeded > 0u then
@@ -120,7 +120,7 @@ type ElectrumIntegrationTests() =
 
     let TestElectrumServersConnections (electrumServers: seq<_>)
                                        currency
-                                       (query: ElectrumServer->Async<'T>)
+                                       (query: ServerDetails->Async<'T>)
                                        (assertion: 'T->unit)
                                        (atLeast: uint32)
                                            =
@@ -154,12 +154,12 @@ type ElectrumIntegrationTests() =
 
     let btcNonRebelServers =
         List.filter
-            (fun server -> rebelBtcServerHostnames.All(fun rebel -> server.Fqdn <> rebel))
+            (fun server -> rebelBtcServerHostnames.All(fun rebel -> server.NetworkPath <> rebel))
             ElectrumServerSeedList.DefaultBtcList
 
     let btcRebelServers =
         List.filter
-            (fun server -> rebelBtcServerHostnames.Any(fun rebel -> server.Fqdn = rebel))
+            (fun server -> rebelBtcServerHostnames.Any(fun rebel -> server.NetworkPath = rebel))
             ElectrumServerSeedList.DefaultBtcList
 
     let UtxosAssertion (utxos: array<BlockchainScripthashListUnspentInnerResult>) =

@@ -1,4 +1,5 @@
 ﻿open System
+open System.IO
 open System.Linq
 open System.Text.RegularExpressions
 
@@ -293,8 +294,8 @@ let rec ProgramMainLoop() =
         PerformOptions(accounts.Count())
     ProgramMainLoop()
 
-[<EntryPoint>]
-let main argv =
+
+let NormalStartWithNoParameters () =
 
     Infrastructure.SetupSentryHook ()
 
@@ -308,3 +309,18 @@ let main argv =
             1
 
     exitCode
+
+
+let UpdateServers () =
+    ServerManager.UpdateServersFile()
+    0
+
+[<EntryPoint>]
+let main argv =
+    match argv.Length with
+    | 0 ->
+        NormalStartWithNoParameters()
+    | 1 when argv.[0] = "--update-servers" ->
+        UpdateServers()
+    | _ ->
+        failwith "Arguments not recognized"

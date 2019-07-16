@@ -31,65 +31,25 @@ type TransactionStatusDetails =
 
 module Web3ServerSeedList =
 
+    // -------------- SERVERS TO REVIEW ADDING TO THE REGISTRY: -----------------------------
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
-    let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
-    let private ethWeb3InfuraMyCryptoV3 = SomeWeb3 "https://mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286"
-    let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
-    let private ethWeb3Giveth = SomeWeb3("https://mew.giveth.io")
-    let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
-    let private ethBlockScale = SomeWeb3("https://api.dev.blockscale.net/dev/parity")
-    let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
-    let private ethWeb3MewAws = SomeWeb3 "https://o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth"
-    let private ethAlchemyApi = SomeWeb3 "https://eth-mainnet.alchemyapi.io/jsonrpc/-vPGIFwUyjlMRF9beTLXiGQUK6Nf3k8z"
-    let private ethCloudFlare = SomeWeb3 "https://cloudflare-eth.com/"
     // not sure why the below one doesn't work, gives some JSON error
     //let private ethWeb3EtherScan = SomeWeb3 "https://api.etherscan.io/api"
 
     // TODO: add the one from https://etcchain.com/api/ too
-    let private etcWeb3ePoolIo1 = SomeWeb3("https://cry.epool.io")
-    let private etcWeb3ePoolIo2 = SomeWeb3("https://mew.epool.io")
-    let private etcWeb3ePoolIo3 = SomeWeb3("https://mewapi.epool.io")
-    let private etcWeb3ZeroXInfraGeth = SomeWeb3("https://etc-geth.0xinfra.com")
-    let private etcWeb3ZeroXInfraParity = SomeWeb3("https://etc-parity.0xinfra.com")
-    let private etcWeb3CommonWealthGeth = SomeWeb3("https://etcrpc.viperid.online")
     // FIXME: the below one doesn't seem to work; we should include it anyway and make the algorithm discard it at runtime
     //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
-    let private etcWeb3CommonWealthParity = SomeWeb3("https://etc-parity.callisto.network")
-    let private etcWeb3ChainKorea = SomeWeb3("https://node.classicexplorer.org/")
-    let private etcWeb3GasTracker = SomeWeb3 "https://web3.gastracker.io"
-    let private etcWeb3EtcCooperative = SomeWeb3 "https://ethereumclassic.network"
-    let private etcWeb3EthCluster = SomeWeb3 "https://www.ethercluster.com/etc"
+    // --------------------------------------------------------------------------------------
 
-    let private GetWeb3Servers (currency: Currency): List<SomeWeb3> =
-        if currency = ETC then
-            [
-                etcWeb3EthCluster
-                etcWeb3EtcCooperative;
-                etcWeb3GasTracker;
-                etcWeb3ePoolIo1;
-                etcWeb3ChainKorea;
-                etcWeb3CommonWealthParity;
-                etcWeb3CommonWealthGeth;
-                etcWeb3ZeroXInfraParity;
-                etcWeb3ZeroXInfraGeth;
-                etcWeb3ePoolIo2;
-                etcWeb3ePoolIo3;
-            ]
-        elif (currency.IsEthToken() || currency = Currency.ETH) then
-            [
-                ethCloudFlare
-                ethWeb3MewAws;
-                ethWeb3InfuraMyCrypto;
-                ethWeb3InfuraMyCryptoV3
-                ethWeb3Mew;
-                ethWeb3Giveth;
-                ethMyCrypto;
-                ethBlockScale;
-                ethWeb3InfuraMyEtherWallet;
-                ethAlchemyApi
-            ]
-        else
-            failwithf "Assertion failed: Ether currency %A not supported?" currency
+    let private GetWeb3Servers (currency: Currency): List<ServerDetails> =
+        let baseCurrency =
+            if currency = Currency.ETC || currency = Currency.ETH then
+                currency
+            elif currency.IsEthToken() then
+                Currency.ETH
+            else
+                failwithf "Assertion failed: Ether currency %A not supported?" currency
+        ServerRegistry.GetServers baseCurrency |> List.ofSeq
 
     let Randomize currency =
         let serverList = GetWeb3Servers currency
@@ -97,6 +57,19 @@ module Web3ServerSeedList =
 
 
 module Server =
+
+    let private Web3Server (serverDetails: ServerDetails) =
+        match serverDetails.ConnectionType with
+        | { Protocol = Tcp _ ; Encrypted = _ } ->
+            failwithf "Ether server of TCP connection type?: %s" serverDetails.NetworkPath
+        | { Protocol = Http ; Encrypted = encrypted } ->
+            let protocol =
+                if encrypted then
+                    "https"
+                else
+                    "http"
+            let uri = sprintf "%s://%s" protocol serverDetails.NetworkPath
+            SomeWeb3 uri
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
         ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
@@ -323,19 +296,22 @@ module Server =
         }
 
         let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
-                                      (web3Server: SomeWeb3)
+                                      (etherServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
 
-            let retrievalFunc = Web3ServerToRetrievalFunc web3Server web3ClientFunc
+            let lastDetailsForServer =
+                match Caching.Instance.RetreiveLastServerHistory etherServer.NetworkPath with
+                | None -> etherServer
+                | Some historyInCache ->
+                    { etherServer with
+                        CommunicationHistory = Some historyInCache }
+            let web3 = Web3Server lastDetailsForServer
+            let retrievalFunc = web3ClientFunc
 
-            if not (web3Server.Url.StartsWith "https://") then
-                failwithf "Unexpected non-https protocol in server URL: %s" web3Server.Url
-
-            let serverUri = Uri web3Server.Url
-            { Details = { HostName = serverUri.Host
-                          ConnectionType = { Encrypted = true; Protocol = Http }
-                          CommunicationHistory = Caching.Instance.RetreiveLastServerHistory web3Server.Url }
-              Retrieval = retrievalFunc }
+            {
+                Details = lastDetailsForServer
+                Retrieval = Web3ServerToRetrievalFunc web3 web3ClientFunc
+            }
 
         let web3servers = Web3ServerSeedList.Randomize currency |> List.ofSeq
         let serverFuncs =

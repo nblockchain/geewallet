@@ -156,3 +156,11 @@ module Config =
 
     let RemoveReadOnlyAccount (account: ReadOnlyAccount): unit =
         RemoveAccount account
+
+    let ExtractEmbeddedResourceFileContents resourceName =
+        let assembly = Assembly.GetExecutingAssembly()
+        use stream = assembly.GetManifestResourceStream resourceName
+        if (stream = null) then
+            failwithf "Embedded resource %s not found" resourceName
+        use reader = new StreamReader(stream)
+        reader.ReadToEnd()

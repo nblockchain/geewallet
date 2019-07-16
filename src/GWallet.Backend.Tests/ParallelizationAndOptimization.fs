@@ -17,7 +17,7 @@ type ParallelizationAndOptimization() =
     let dummy_connection_type = { Encrypted = false; Protocol = Http }
     let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId job =
         {
-            Details = { HostName = serverId; ConnectionType = dummy_connection_type; CommunicationHistory = None }
+            Details = { NetworkPath = serverId; ConnectionType = dummy_connection_type; CommunicationHistory = None }
             Retrieval = job
         }
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ -> ())
@@ -209,7 +209,7 @@ type ParallelizationAndOptimization() =
         let server1 = {
                           Details =
                               {
-                                  HostName = "server1"
+                                  NetworkPath = "server1"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 }
@@ -219,7 +219,7 @@ type ParallelizationAndOptimization() =
         let server2 = {
                           Details =
                               {
-                                  HostName = "server2"
+                                  NetworkPath = "server2"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 }
@@ -271,7 +271,7 @@ type ParallelizationAndOptimization() =
         let server1 = {
                           Details =
                               {
-                                  HostName = "server1"
+                                  NetworkPath = "server1"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 }
@@ -281,7 +281,7 @@ type ParallelizationAndOptimization() =
         let server2 = {
                           Details =
                               {
-                                  HostName = "server2"
+                                  NetworkPath = "server2"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = Some { Status = some_successful_irrelevant_date
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 }
@@ -291,7 +291,7 @@ type ParallelizationAndOptimization() =
         let server3 = {
                           Details =
                               {
-                                  HostName = "server3"
+                                  NetworkPath = "server3"
                                   ConnectionType = dummy_connection_type
                                   CommunicationHistory = None
                               }

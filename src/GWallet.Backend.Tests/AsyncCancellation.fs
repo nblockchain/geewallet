@@ -17,7 +17,7 @@ type AsyncCancellation() =
         {
             Details =
                 {
-                    HostName = serverId
+                    NetworkPath = serverId
                     ConnectionType = dummy_connection_type
                     CommunicationHistory = None
                 }

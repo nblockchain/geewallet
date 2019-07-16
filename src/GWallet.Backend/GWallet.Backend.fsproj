@@ -70,8 +70,6 @@
     <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
     <Compile Include="UtxoCoin\TransactionTypes.fs" />
     <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
-    <EmbeddedResource Include="UtxoCoin\btc-servers.json" />
-    <EmbeddedResource Include="UtxoCoin\ltc-servers.json" />
     <Compile Include="Ether\EtherExceptions.fs" />
     <Compile Include="Ether\EtherMinerFee.fs" />
     <Compile Include="Ether\TransactionMetadata.fs" />
@@ -83,7 +81,9 @@
     <Compile Include="Account.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="Formatting.fs" />
+    <Compile Include="ServerManager.fs" />
     <Content Include="packages.config" />
+    <EmbeddedResource Include="servers.json" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">
@@ -252,6 +252,9 @@
     </Reference>
     <Reference Include="Nethereum.Web3">
       <HintPath>..\..\packages\Nethereum.0.0.2.59\lib\net46\Nethereum.Web3.dll</HintPath>
+    </Reference>
+    <Reference Include="HtmlAgilityPack">
+      <HintPath>..\..\packages\HtmlAgilityPack.1.11.9\lib\Net45\HtmlAgilityPack.dll</HintPath>
     </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
