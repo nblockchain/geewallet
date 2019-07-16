@@ -427,6 +427,8 @@ module Server =
                                 return! Async.AwaitTask task
                             }
                     let! balance = HandlePossibleEtherFailures job
+                    if Object.ReferenceEquals(balance, null) then
+                        failwith "Weird null response from balance job"
                     return UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
                 }
                 GetWeb3Funcs currency web3Func
