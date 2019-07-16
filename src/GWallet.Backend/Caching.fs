@@ -123,6 +123,11 @@ module Caching =
             Console.Error.WriteLine("Warning: cleaning incompatible cache data found")
             None
 
+    // this weird thing could happen because the previous version of GWallet didn't have a new element
+    // FIXME: we should save each Map<> into its own file
+    let private WeirdNullCheckToDetectVersionConflicts x =
+        Object.ReferenceEquals(x, null)
+
     let private LoadFromDisk (files: CacheFiles): bool*CachedNetworkData*ServerRanking =
         let maybeNetworkData = LoadFromDiskInternal<CachedNetworkData> files.CachedNetworkData
         let maybeFirstRun,resultingNetworkData =
@@ -130,9 +135,7 @@ module Caching =
             | None ->
                 true,CachedNetworkData.Empty
             | Some networkData ->
-                // this weird thing could happen because the previous version of GWallet didn't have a new element
-                // FIXME: we should save each Map<> into its own file
-                if Object.ReferenceEquals(networkData.OutgoingTransactions, null) then
+                if WeirdNullCheckToDetectVersionConflicts networkData.OutgoingTransactions then
                     Console.Error.WriteLine droppedCachedMsgWarning
                     true,CachedNetworkData.Empty
                 else
@@ -495,9 +498,14 @@ module Caching =
                     match sessionServerRanking.TryFind server.HostName with
                     | None -> None
                     | Some (prevHistoryInfo,_) ->
-                        match prevHistoryInfo.Status with
-                        | LastSuccessfulCommunication lsc -> Some lsc
-                        | Fault (_, maybeLsc) -> maybeLsc
+                        if WeirdNullCheckToDetectVersionConflicts prevHistoryInfo ||
+                           WeirdNullCheckToDetectVersionConflicts prevHistoryInfo.Status then
+                            Console.Error.WriteLine droppedCachedMsgWarning
+                            None
+                        else
+                            match prevHistoryInfo.Status with
+                            | LastSuccessfulCommunication lsc -> Some lsc
+                            | Fault (_, maybeLsc) -> maybeLsc
 
                 let newHistoryInfo =
                     match previousLastSuccessfulCommunication with
