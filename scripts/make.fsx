@@ -166,6 +166,7 @@ let RunFrontend (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
 
     let proc = Process.Start startInfo
     proc.WaitForExit()
+    proc
 
 let maybeTarget = GatherTarget (Misc.FsxArguments(), None)
 match maybeTarget with
@@ -258,11 +259,13 @@ match maybeTarget with
 | Some("run") ->
     let buildConfig = MakeAll()
     RunFrontend buildConfig None
+        |> ignore
 
 | Some "update-servers" ->
     let buildConfig = MakeAll()
     Directory.SetCurrentDirectory (GetPathToBackend())
-    RunFrontend buildConfig (Some "--update-servers")
+    let proc = RunFrontend buildConfig (Some "--update-servers-file")
+    Environment.Exit proc.ExitCode
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
