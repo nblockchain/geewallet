@@ -106,6 +106,8 @@ module Networking =
                 ServerClosedConnectionEarlyException(newExceptionMsg, ex) :> Exception |> Some
             elif socketException.ErrorCode = int SocketError.ProtocolOption then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+            elif socketException.ErrorCode = int SocketError.HostNotFound then
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
 
             else
                 UnhandledSocketException(socketException.ErrorCode, ex) :> Exception |> Some
