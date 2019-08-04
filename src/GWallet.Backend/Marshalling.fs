@@ -81,6 +81,9 @@ module Marshalling =
 
         let deserialized: 'S =
             try
+                // FIXME: we should use MissingMemberHandling = MissingMemberHandling.Error
+                // (see https://stackoverflow.com/questions/21030712/detect-if-deserialized-object-is-missing-a-field-with-the-jsonconvert-class-in-j
+                //  and https://github.com/JamesNK/Newtonsoft.Json/issues/2116)
                 JsonConvert.DeserializeObject<'S>(json)
             with
             | ex ->
