@@ -23,28 +23,18 @@ module VersionHelper =
     let CurrentVersion ()=
         Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
-type SerializableValue<'T>(value: 'T) =
-    member val Version: string =
-        VersionHelper.CurrentVersion() with get
-
-    member val TypeName: string =
-        typeof<'T>.FullName with get
-
-    member val Value: 'T = value with get
-
-type DeserializableValueInfo(version: string, typeName: string) =
-
-    member __.Version
-        with get() = version 
-
-    member __.TypeName
-        with get() = typeName 
-
-type DeserializableValue<'T>(version, typeName, value: 'T) =
-    inherit DeserializableValueInfo(version, typeName)
-
-    member this.Value
-        with get() = value
+type MarshallingWrapper<'T> =
+    {
+        Version: string
+        TypeName: string
+        Value: 'T
+    }
+    static member New value =
+        {
+            Value = value
+            Version = VersionHelper.CurrentVersion()
+            TypeName = typeof<'T>.FullName
+        }
 
 type private PascalCase2LowercasePlusUnderscoreContractResolver() =
     inherit DefaultContractResolver()
@@ -74,18 +64,18 @@ module Marshalling =
     let private currentVersion = VersionHelper.CurrentVersion()
 
     let ExtractType(json: string): Type =
-        let fullTypeName = (JsonConvert.DeserializeObject<DeserializableValueInfo> json).TypeName
+        let fullTypeName = (JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json).TypeName
         Type.GetType(fullTypeName)
 
-    let Deserialize<'S,'T when 'S:> DeserializableValue<'T>>(json: string): 'T =
+    let Deserialize<'T>(json: string): 'T =
         if (json = null) then
             raise (ArgumentNullException("json"))
         if (String.IsNullOrWhiteSpace(json)) then
             raise (ArgumentException("empty or whitespace json", "json"))
 
-        let deserialized: 'S =
+        let deserialized =
             try
-                JsonConvert.DeserializeObject<'S>(json, DefaultSettings)
+                JsonConvert.DeserializeObject<MarshallingWrapper<'T>>(json, DefaultSettings)
             with
             | ex ->
                 let versionJsonTag = "\"Version\":\""
@@ -108,16 +98,16 @@ module Marshalling =
                                                       json)
         deserialized.Value
 
-    let private SerializeInternal<'S>(value: 'S): string =
-        JsonConvert.SerializeObject(SerializableValue<'S>(value),
+    let private SerializeInternal<'T>(value: 'T): string =
+        JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
                                     DefaultFormatting,
                                     DefaultSettings)
 
-    let Serialize<'S>(value: 'S): string =
+    let Serialize<'T>(value: 'T): string =
         try
             SerializeInternal value
         with
         | exn ->
             raise(SerializationException(sprintf "Could not serialize object of type '%s' and value '%A'"
-                                                  (typeof<'S>.FullName) value, exn))
+                                                  (typeof<'T>.FullName) value, exn))
 
