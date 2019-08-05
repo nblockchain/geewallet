@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend.Ether
 
 open System
+open System.IO
 open System.Net
 open System.Numerics
 open System.Linq
@@ -176,6 +177,32 @@ module Server =
         | None ->
             ()
 
+    // this could be a mono 6.0.x bug (see https://gitlab.com/knocte/geewallet/issues/121)
+    let MaybeRethrowSslException (ex: Exception): unit =
+        let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
+        match maybeRpcUnknownEx with
+        | Some rpcUnknownEx ->
+            let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
+            match maybeHttpReqEx with
+            | Some httpReqEx ->
+                if httpReqEx.Message.Contains "SSL" then
+                    let maybeIOEx = FSharpUtil.FindException<IOException> ex
+                    match maybeIOEx with
+                    | Some ioEx ->
+                        raise <| ProtocolGlitchException(ioEx.Message, ex)
+                    | None ->
+                        let maybeSecEx =
+                            FSharpUtil.FindException<System.Security.Authentication.AuthenticationException> ex
+                        match maybeSecEx with
+                        | Some secEx ->
+                            raise <| ProtocolGlitchException(secEx.Message, ex)
+                        | None ->
+                            ()
+            | None ->
+                ()
+        | None ->
+            ()
+
     let private ReworkException (ex: Exception): unit =
         let maybeWebEx = FSharpUtil.FindException<WebException> ex
         match maybeWebEx with
@@ -216,6 +243,8 @@ module Server =
             MaybeRethrowNetworkingException ex
 
             MaybeRethrowObjectDisposedException ex
+
+            MaybeRethrowSslException ex
 
 
     let HandlePossibleEtherFailures<'T,'R> (job: Async<'R>): Async<'R> = async {
