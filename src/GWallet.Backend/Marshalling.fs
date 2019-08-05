@@ -67,6 +67,10 @@ module Marshalling =
     let internal PascalCase2LowercasePlusUnderscoreConversionSettings =
         JsonSerializerSettings(ContractResolver = PascalCase2LowercasePlusUnderscoreContractResolver())
 
+    let internal DefaultSettings =
+        JsonSerializerSettings(MissingMemberHandling = MissingMemberHandling.Error,
+                               DateTimeZoneHandling = DateTimeZoneHandling.Utc)
+
     let private currentVersion = VersionHelper.CurrentVersion()
 
     let ExtractType(json: string): Type =
@@ -81,10 +85,7 @@ module Marshalling =
 
         let deserialized: 'S =
             try
-                // FIXME: we should use MissingMemberHandling = MissingMemberHandling.Error
-                // (see https://stackoverflow.com/questions/21030712/detect-if-deserialized-object-is-missing-a-field-with-the-jsonconvert-class-in-j
-                //  and https://github.com/JamesNK/Newtonsoft.Json/issues/2116)
-                JsonConvert.DeserializeObject<'S>(json)
+                JsonConvert.DeserializeObject<'S>(json, DefaultSettings)
             with
             | ex ->
                 let versionJsonTag = "\"Version\":\""
@@ -110,7 +111,7 @@ module Marshalling =
     let private SerializeInternal<'S>(value: 'S): string =
         JsonConvert.SerializeObject(SerializableValue<'S>(value),
                                     DefaultFormatting,
-                                    JsonSerializerSettings(DateTimeZoneHandling = DateTimeZoneHandling.Utc))
+                                    DefaultSettings)
 
     let Serialize<'S>(value: 'S): string =
         try
