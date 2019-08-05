@@ -45,6 +45,26 @@ type private PascalCase2LowercasePlusUnderscoreContractResolver() =
     override __.ResolvePropertyName (propertyName: string) =
         pascalToUnderScoreRegex.Replace(propertyName, pascalToUnderScoreReplacementExpression).ToLower()
 
+// combine https://stackoverflow.com/a/48330214/544947 with https://stackoverflow.com/a/29660550/544947
+// (because null values should map to None values in the case of Option<> types, otherwise tests fail)
+type RequireAllPropertiesContractResolver() =
+    inherit DefaultContractResolver()
+
+    override __.CreateObjectContract(objectType: Type) =
+        let contract = base.CreateObjectContract objectType
+        contract.ItemRequired <- Nullable<Required> Required.Always
+        contract
+
+    override __.CreateProperty(memberInfo: MemberInfo, memberSerialization: MemberSerialization) =
+        let property = base.CreateProperty(memberInfo, memberSerialization)
+        // https://stackoverflow.com/questions/20696262/reflection-to-find-out-if-property-is-of-option-type
+        let isOption =
+            property.PropertyType.IsGenericType &&
+            property.PropertyType.GetGenericTypeDefinition() = typedefof<Option<_>>
+        if isOption then
+            property.Required <- Required.AllowNull
+        property
+
 module Marshalling =
 
     let private DefaultFormatting =
@@ -59,6 +79,7 @@ module Marshalling =
 
     let internal DefaultSettings =
         JsonSerializerSettings(MissingMemberHandling = MissingMemberHandling.Error,
+                               ContractResolver = RequireAllPropertiesContractResolver(),
                                DateTimeZoneHandling = DateTimeZoneHandling.Utc)
 
     let private currentVersion = VersionHelper.CurrentVersion()
