@@ -146,12 +146,12 @@ module Account =
                     raise (ElectrumServerDiscarded(msg, ex))
                 match ex with
                 | :? ElectrumServerReturningErrorException as esEx ->
-                    return failwith (sprintf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
+                    return failwithf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
                                       electrumServer.NetworkPath
                                       esEx.Message
                                       esEx.ErrorCode
                                       esEx.OriginalRequest
-                                      esEx.OriginalResponse)
+                                      esEx.OriginalResponse
                 | _ ->
                     return raise <| FSharpUtil.ReRaise ex
         }
@@ -298,8 +298,8 @@ module Account =
             match utxos with
             | [] ->
                 // should `raise InsufficientFunds` instead?
-                failwith (sprintf "Not enough funds (needed: %s, got so far: %s)"
-                                  (amount.ToString()) (soFarInSatoshis.ToString()))
+                failwithf "Not enough funds (needed: %s, got so far: %s)"
+                          (amount.ToString()) (soFarInSatoshis.ToString())
             | utxoInfo::tail ->
                 let newAcc = utxoInfo::acc
 
@@ -411,7 +411,7 @@ module Account =
         let finalTransaction = finalTransactionBuilder.BuildTransaction true
         let transCheckResultAfterSigning = finalTransaction.Check()
         if (transCheckResultAfterSigning <> TransactionCheckResult.Success) then
-            failwith (sprintf "Transaction check failed after signing with %A" transCheckResultAfterSigning)
+            failwithf "Transaction check failed after signing with %A" transCheckResultAfterSigning
 
         if not (finalTransactionBuilder.Verify finalTransaction) then
             failwith "Something went wrong when verifying transaction"

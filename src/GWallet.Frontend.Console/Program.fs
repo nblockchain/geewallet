@@ -203,8 +203,8 @@ let ArchiveAccount() =
                 else
                     TryArchiveAccount normalAccount
     | _ ->
-        failwith (sprintf "Account type not valid for archiving: %s. Please report this issue."
-                      (account.GetType().FullName))
+        failwithf "Account type not valid for archiving: %s. Please report this issue."
+                  (account.GetType().FullName)
 
 let PairToWatchWallet() =
     match Account.GetNormalAccountsPairingInfoForWatchWallet() with
