@@ -246,18 +246,6 @@ module Server =
 
             MaybeRethrowSslException ex
 
-
-    let HandlePossibleEtherFailures<'T,'R> (job: Async<'R>): Async<'R> = async {
-        try
-            let! result = PerformEtherRemoteCallWithTimeout job
-            return result
-        with
-        | ex ->
-            ReworkException ex
-
-            return raise <| FSharpUtil.ReRaise ex
-    }
-
     let private NumberOfParallelJobsForMode mode =
         match mode with
         | Mode.Fast -> 5u
@@ -310,6 +298,18 @@ module Server =
                                     (web3Func: SomeWeb3->Async<'R>)
                                         : List<Server<ServerDetails,'R>> =
 
+        let HandlePossibleEtherFailures (job: Async<'R>): Async<'R> =
+            async {
+                try
+                    let! result = PerformEtherRemoteCallWithTimeout job
+                    return result
+                with
+                | ex ->
+                    ReworkException ex
+
+                    return raise <| FSharpUtil.ReRaise ex
+            }
+
         let Web3ServerToRetrievalFunc (web3Server: SomeWeb3)
                                           (web3ClientFunc: SomeWeb3->Async<'R>)
                                               : Async<'R> = async {
@@ -340,6 +340,7 @@ module Server =
             {
                 Details = lastDetailsForServer
                 Retrieval = Web3ServerToRetrievalFunc web3 web3ClientFunc
+                                |> HandlePossibleEtherFailures
             }
 
         let web3servers = Web3ServerSeedList.Randomize currency |> List.ofSeq
@@ -353,14 +354,12 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
-                    let transactionCountJob =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task =
                                 web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(address, null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                    HandlePossibleEtherFailures transactionCountJob
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                 (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
@@ -421,7 +420,7 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<decimal> = async {
-                    let job =
+                    let! balance =
                         match balType with
                         | BalanceType.Confirmed ->
                             GetConfirmedEtherBalanceInternal web3 address
@@ -431,7 +430,6 @@ module Server =
                                 let task = web3.Eth.GetBalance.SendRequestAsync (address, null, cancelToken)
                                 return! Async.AwaitTask task
                             }
-                    let! balance = HandlePossibleEtherFailures job
                     if Object.ReferenceEquals(balance, null) then
                         failwith "Weird null response from balance job"
                     return UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
@@ -482,7 +480,6 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<decimal> =
-                    let job =
                         match balType with
                         | BalanceType.Confirmed ->
                             GetConfirmedTokenBalanceInternal web3 address
@@ -494,8 +491,6 @@ module Server =
                                 let! balance = Async.AwaitTask task
                                 return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
                             }
-
-                    HandlePossibleEtherFailures job
                 GetWeb3Funcs currency web3Func
 
             let query =
@@ -521,14 +516,12 @@ module Server =
                     let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                                To = destination,
                                                                Value = amountInWei)
-                    let gasJob =
-                        async {
+                    async {
                             let! cancelToken = Async.CancellationToken
                             let task =
                                 contractHandler.EstimateGasAsync<TransferFunction>(transferFunctionMsg, cancelToken)
                             return! Async.AwaitTask task
-                        }
-                    HandlePossibleEtherFailures gasJob
+                    }
                 GetWeb3Funcs account.Currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
@@ -546,13 +539,11 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
-                    let gasPriceJob =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task = web3.Eth.GasPrice.SendRequestAsync(null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                    HandlePossibleEtherFailures gasPriceJob
                 GetWeb3Funcs currency web3Func
             let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
@@ -569,14 +560,12 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<string> =
-                    let broadcastJob =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task =
                                 web3.Eth.Transactions.SendRawTransaction.SendRequestAsync(transaction, null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                    HandlePossibleEtherFailures broadcastJob
                 GetWeb3Funcs currency web3Func
             try
                 return! faultTolerantEtherClient.Query
@@ -610,7 +599,7 @@ module Server =
                             GasUsed = transactionReceipt.GasUsed.Value
                             Status = transactionReceipt.Status.Value
                         }
-                    } |> HandlePossibleEtherFailures
+                    }
                 GetWeb3Funcs currency web3Func
             return! faultTolerantEtherClient.Query
                 (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
@@ -630,13 +619,11 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<string> =
-                    let contractCodeJob =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task = web3.Eth.GetCode.SendRequestAsync(address, null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                    HandlePossibleEtherFailures contractCodeJob
                 GetWeb3Funcs baseCurrency web3Func
             return! faultTolerantEtherClient.Query
                 (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
