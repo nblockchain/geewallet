@@ -141,17 +141,10 @@ module Account =
             // NOTE: try to make this 'with' block be in sync with the one in EtherServer:GetWeb3Funcs()
             with
             | ex ->
-                if ex :? CommunicationUnsuccessfulException then
-                    let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
-                    raise (ElectrumServerDiscarded(msg, ex))
                 match ex with
-                | :? ElectrumServerReturningErrorException as esEx ->
-                    return failwithf "Error received from Electrum server %s: '%s' (code '%d'). Original request: '%s'. Original response: '%s'."
-                                      electrumServer.NetworkPath
-                                      esEx.Message
-                                      esEx.ErrorCode
-                                      esEx.OriginalRequest
-                                      esEx.OriginalResponse
+                | :? CommunicationUnsuccessfulException ->
+                    let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                    return raise <| ElectrumServerDiscarded(msg, ex)
                 | _ ->
                     return raise <| FSharpUtil.ReRaise ex
         }

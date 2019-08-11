@@ -79,12 +79,6 @@ type ElectrumIntegrationTests() =
                                                                                      currency
                                                                                      server.NetworkPath)
                 None
-            | :? ElectrumServerReturningInternalErrorException as ex ->
-                Console.Error.WriteLine (sprintf "%A server %s is unhealthy" currency server.NetworkPath)
-                None
-
-            | :? ElectrumServerReturningErrorException as ex ->
-                raise <| Exception(sprintf "%A server %s is failing with '%s" currency server.NetworkPath ex.Message, ex)
 
         match maybeFilter with
         | Some filterFunc ->
