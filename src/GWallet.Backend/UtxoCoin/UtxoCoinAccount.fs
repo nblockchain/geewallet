@@ -52,9 +52,6 @@ type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
 
 module Account =
 
-    type ElectrumServerDiscarded(message:string, innerException: Exception) =
-       inherit Exception (message, innerException)
-
     let private NumberOfParallelJobsForMode mode =
         match mode with
         | Mode.Fast -> 8u
@@ -88,7 +85,7 @@ module Account =
             defaultSettings
 
     let private faultTolerantElectrumClient =
-        FaultTolerantParallelClient<ServerDetails,ElectrumServerDiscarded> Caching.Instance.SaveServerLastStat
+        FaultTolerantParallelClient<ServerDetails,ServerDiscardedException> Caching.Instance.SaveServerLastStat
 
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
@@ -129,27 +126,26 @@ module Account =
     //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
     //        [1] https://gitlab.com/knocte/geewallet/blob/stable/src/GWallet.Backend/EtherServer.fs
     let private GetRandomizedFuncs<'R> (currency: Currency)
-                                       (electrumClientFunc: ServerDetails->Async<'R>)
+                                       (electrumClientFunc: Async<StratumClient>->Async<'R>)
                                               : List<Server<ServerDetails,'R>> =
 
-        let ElectrumServerToRetrievalFunc (electrumServer: ServerDetails)
-                                          (electrumClientFunc: ServerDetails->Async<'R>)
+        let ElectrumServerToRetrievalFunc (server: ServerDetails)
+                                          (electrumClientFunc: Async<StratumClient>->Async<'R>)
                                               : Async<'R> = async {
             try
-                return! electrumClientFunc electrumServer
+                let stratumClient = ElectrumClient.StratumServer server
+                return! electrumClientFunc stratumClient
 
             // NOTE: try to make this 'with' block be in sync with the one in EtherServer:GetWeb3Funcs()
             with
+            | :? CommunicationUnsuccessfulException as ex ->
+                let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                return raise <| ServerDiscardedException(msg, ex)
             | ex ->
-                match ex with
-                | :? CommunicationUnsuccessfulException ->
-                    let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
-                    return raise <| ElectrumServerDiscarded(msg, ex)
-                | _ ->
-                    return raise <| FSharpUtil.ReRaise ex
+                return raise <| Exception(sprintf "Some problem when connecting to %s" server.NetworkPath, ex)
         }
 
-        let ElectrumServerToGenericServer (electrumClientFunc: ServerDetails->Async<'R>)
+        let ElectrumServerToGenericServer (electrumClientFunc: Async<StratumClient>->Async<'R>)
                                           (electrumServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
             let lastDetailsForServer =
@@ -158,8 +154,9 @@ module Account =
                 | Some historyInCache ->
                     { electrumServer with
                         CommunicationHistory = Some historyInCache }
+
             { Details = lastDetailsForServer
-              Retrieval = ElectrumServerToRetrievalFunc electrumServer electrumClientFunc }
+              Retrieval = ElectrumServerToRetrievalFunc lastDetailsForServer electrumClientFunc }
 
         let randomizedElectrumServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
         let randomizedServers =

@@ -50,7 +50,7 @@ type ElectrumIntegrationTests() =
 
     let CheckServerIsReachable (electrumServer: ServerDetails)
                                (currency: Currency)
-                               (query: ServerDetails->Async<'T>)
+                               (query: Async<StratumClient>->Async<'T>)
                                (assertion: 'T->unit)
                                (maybeFilter: Option<ServerDetails -> bool>)
                                : Async<Option<ServerDetails>> = async {
@@ -61,7 +61,8 @@ type ElectrumIntegrationTests() =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                let result = query electrumServer
+                let stratumClient = ElectrumClient.StratumServer server
+                let result = query stratumClient
                                   |> Async.RunSynchronously
 
                 assertion result
@@ -114,7 +115,7 @@ type ElectrumIntegrationTests() =
 
     let TestElectrumServersConnections (electrumServers: seq<_>)
                                        currency
-                                       (query: ServerDetails->Async<'T>)
+                                       (query: Async<StratumClient>->Async<'T>)
                                        (assertion: 'T->unit)
                                        (atLeast: uint32)
                                            =

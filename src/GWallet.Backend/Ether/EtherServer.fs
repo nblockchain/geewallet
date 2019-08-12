@@ -291,12 +291,12 @@ module Server =
 
     let private faultTolerantEtherClient =
         JsonRpcSharp.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
-        FaultTolerantParallelClient<ServerDetails,CommunicationUnsuccessfulException> Caching.Instance.SaveServerLastStat
+        FaultTolerantParallelClient<ServerDetails,ServerDiscardedException> Caching.Instance.SaveServerLastStat
 
-    // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
-    let private GetWeb3Funcs<'T,'R> (currency: Currency)
-                                    (web3Func: SomeWeb3->Async<'R>)
-                                        : List<Server<ServerDetails,'R>> =
+
+    let Web3ServerToRetrievalFunc (server: ServerDetails)
+                                  (web3ClientFunc: SomeWeb3->Async<'R>)
+                                      : Async<'R> =
 
         let HandlePossibleEtherFailures (job: Async<'R>): Async<'R> =
             async {
@@ -309,38 +309,37 @@ module Server =
 
                     return raise <| FSharpUtil.ReRaise ex
             }
-
-        let Web3ServerToRetrievalFunc (web3Server: SomeWeb3)
-                                          (web3ClientFunc: SomeWeb3->Async<'R>)
-                                              : Async<'R> = async {
+        async {
+            let web3Server = Web3Server server
             try
-                return! web3Func web3Server
+                return! HandlePossibleEtherFailures (web3ClientFunc web3Server)
 
             // NOTE: try to make this 'with' block be in sync with the one in UtxoCoinAccount:GetRandomizedFuncs()
             with
             | :? CommunicationUnsuccessfulException as ex ->
-                return raise <| FSharpUtil.ReRaise ex
+                let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                return raise <| ServerDiscardedException(msg, ex)
             | ex ->
-                return raise <| Exception(sprintf "Some problem when connecting to %s" web3Server.Url, ex)
+                return raise <| Exception(sprintf "Some problem when connecting to %s" server.NetworkPath, ex)
         }
 
+    // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
+    let private GetRandomizedFuncs<'R> (currency: Currency)
+                                          (web3Func: SomeWeb3->Async<'R>)
+                                              : List<Server<ServerDetails,'R>> =
         let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
                                       (etherServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
-
             let lastDetailsForServer =
                 match Caching.Instance.RetreiveLastServerHistory etherServer.NetworkPath with
                 | None -> etherServer
                 | Some historyInCache ->
                     { etherServer with
                         CommunicationHistory = Some historyInCache }
-            let web3 = Web3Server lastDetailsForServer
-            let retrievalFunc = web3ClientFunc
 
             {
                 Details = lastDetailsForServer
-                Retrieval = Web3ServerToRetrievalFunc web3 web3ClientFunc
-                                |> HandlePossibleEtherFailures
+                Retrieval = Web3ServerToRetrievalFunc lastDetailsForServer web3ClientFunc
             }
 
         let web3servers = Web3ServerSeedList.Randomize currency |> List.ofSeq
@@ -360,7 +359,7 @@ module Server =
                                 web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(address, null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
                 (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
                 web3Funcs
@@ -434,7 +433,7 @@ module Server =
                         failwith "Weird null response from balance job"
                     return UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
                 }
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
 
             let query =
                 match cancelSourceOption with
@@ -491,7 +490,7 @@ module Server =
                                 let! balance = Async.AwaitTask task
                                 return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
                             }
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
 
             let query =
                 match cancelSourceOption with
@@ -522,7 +521,7 @@ module Server =
                                 contractHandler.EstimateGasAsync<TransferFunction>(transferFunctionMsg, cancelToken)
                             return! Async.AwaitTask task
                     }
-                GetWeb3Funcs account.Currency web3Func
+                GetRandomizedFuncs account.Currency web3Func
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
                         web3Funcs
@@ -544,7 +543,7 @@ module Server =
                             let task = web3.Eth.GasPrice.SendRequestAsync(null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
             let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
                         { FaultTolerantParallelClientDefaultSettings currency Mode.Fast with
@@ -566,7 +565,7 @@ module Server =
                                 web3.Eth.Transactions.SendRawTransaction.SendRequestAsync(transaction, null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
             try
                 return! faultTolerantEtherClient.Query
                             (FaultTolerantParallelClientSettingsForBroadcast ())
@@ -600,7 +599,7 @@ module Server =
                             Status = transactionReceipt.Status.Value
                         }
                     }
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
                 (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
                 web3Funcs
@@ -624,7 +623,7 @@ module Server =
                             let task = web3.Eth.GetCode.SendRequestAsync(address, null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                GetWeb3Funcs baseCurrency web3Func
+                GetRandomizedFuncs baseCurrency web3Func
             return! faultTolerantEtherClient.Query
                 (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
                 web3Funcs

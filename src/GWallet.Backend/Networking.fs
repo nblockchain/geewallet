@@ -25,6 +25,9 @@ type CommunicationUnsuccessfulException =
     new(message: string) = { inherit Exception(message) }
     new() = { inherit Exception() }
 
+type ServerDiscardedException(message: string, innerException: CommunicationUnsuccessfulException) =
+   inherit Exception (message, innerException)
+
 type BuggyExceptionFromOldMonoVersion (message: string, innerException: Exception) =
     inherit CommunicationUnsuccessfulException (message, innerException)
 
