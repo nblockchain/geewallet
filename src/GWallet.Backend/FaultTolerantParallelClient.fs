@@ -117,7 +117,7 @@ type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
                 match maybeSpecificEx with
                 | Some specificInnerEx ->
                     if report then
-                        Console.Error.WriteLine (sprintf "Fault warning: %s"
+                        Console.Error.WriteLine (sprintf "Cancellation fault warning: %s"
                                                      (ex.ToString()))
                     return Error specificInnerEx
                 | None ->
