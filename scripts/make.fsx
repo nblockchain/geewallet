@@ -264,8 +264,12 @@ match maybeTarget with
 | Some "update-servers" ->
     let buildConfig = MakeAll()
     Directory.SetCurrentDirectory (GetPathToBackend())
-    let proc = RunFrontend buildConfig (Some "--update-servers-file")
-    Environment.Exit proc.ExitCode
+    let proc1 = RunFrontend buildConfig (Some "--update-servers-file")
+    if proc1.ExitCode <> 0 then
+        Environment.Exit proc1.ExitCode
+    else
+        let proc2 = RunFrontend buildConfig (Some "--update-servers-stats")
+        Environment.Exit proc2.ExitCode
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)

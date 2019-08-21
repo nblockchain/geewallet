@@ -15,24 +15,24 @@ type ElectrumServerUnitTests() =
     [<Test>]
     member __.``filters electrum BTC servers``() =
         for electrumServer in ElectrumServerSeedList.DefaultBtcList do
-            Assert.That (electrumServer.ConnectionType.Encrypted, Is.EqualTo false,
+            Assert.That (electrumServer.ServerInfo.ConnectionType.Encrypted, Is.EqualTo false,
                 sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
-                        electrumServer.NetworkPath)
+                        electrumServer.ServerInfo.NetworkPath)
 
-            Assert.That (electrumServer.NetworkPath, Is.Not.StringEnding ".onion",
+            Assert.That (electrumServer.ServerInfo.NetworkPath, Is.Not.StringEnding ".onion",
                 sprintf "BTC servers list should be filtered against onion servers, but %s was found"
-                        electrumServer.NetworkPath)
+                        electrumServer.ServerInfo.NetworkPath)
 
     [<Test>]
     member __.``filters electrum LTC servers``() =
         for electrumServer in ElectrumServerSeedList.DefaultLtcList do
-            Assert.That (electrumServer.ConnectionType.Encrypted, Is.EqualTo false,
+            Assert.That (electrumServer.ServerInfo.ConnectionType.Encrypted, Is.EqualTo false,
                 sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
-                        electrumServer.NetworkPath)
+                        electrumServer.ServerInfo.NetworkPath)
 
-            Assert.That (electrumServer.NetworkPath, Is.Not.StringEnding ".onion",
+            Assert.That (electrumServer.ServerInfo.NetworkPath, Is.Not.StringEnding ".onion",
                 sprintf "BTC servers list should be filtered against onion servers, but %s was found"
-                        electrumServer.NetworkPath)
+                        electrumServer.ServerInfo.NetworkPath)
 
 [<TestFixture>]
 [<Ignore ("Seems we have general issues reaching electrum servers these days, probably related to DDOS attack on them")>]
@@ -67,7 +67,7 @@ type ElectrumIntegrationTests() =
 
                 assertion result
 
-                Console.WriteLine (sprintf "%A server %s is reachable" currency server.NetworkPath)
+                Console.WriteLine (sprintf "%A server %s is reachable" currency server.ServerInfo.NetworkPath)
                 Some electrumServer
             with
             | :? CommunicationUnsuccessfulException as ex ->
@@ -78,7 +78,7 @@ type ElectrumIntegrationTests() =
 
                 Console.Error.WriteLine (sprintf "%s -> %A server %s is unreachable" exDescription
                                                                                      currency
-                                                                                     server.NetworkPath)
+                                                                                     server.ServerInfo.NetworkPath)
                 None
 
         match maybeFilter with
@@ -149,12 +149,12 @@ type ElectrumIntegrationTests() =
 
     let btcNonRebelServers =
         List.filter
-            (fun server -> rebelBtcServerHostnames.All(fun rebel -> server.NetworkPath <> rebel))
+            (fun server -> rebelBtcServerHostnames.All(fun rebel -> server.ServerInfo.NetworkPath <> rebel))
             ElectrumServerSeedList.DefaultBtcList
 
     let btcRebelServers =
         List.filter
-            (fun server -> rebelBtcServerHostnames.Any(fun rebel -> server.NetworkPath = rebel))
+            (fun server -> rebelBtcServerHostnames.Any(fun rebel -> server.ServerInfo.NetworkPath = rebel))
             ElectrumServerSeedList.DefaultBtcList
 
     let UtxosAssertion (utxos: array<BlockchainScripthashListUnspentInnerResult>) =

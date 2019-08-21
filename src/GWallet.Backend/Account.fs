@@ -9,7 +9,7 @@ open System.Threading.Tasks
 module Account =
 
     let private GetShowableBalanceInternal (account: IAccount)
-                                           (mode: Mode)
+                                           (mode: ServerSelectionMode)
                                            (cancelSourceOption: Option<CancellationTokenSource>)
                                                : Async<Option<decimal>> =
         match account with
@@ -24,7 +24,9 @@ module Account =
                     account.Currency
             Ether.Account.GetShowableBalance account mode cancelSourceOption
 
-    let GetShowableBalance (account: IAccount) (mode: Mode) (cancelSourceOption: Option<CancellationTokenSource>)
+    let GetShowableBalance (account: IAccount)
+                           (mode: ServerSelectionMode)
+                           (cancelSourceOption: Option<CancellationTokenSource>)
                                : Async<MaybeCached<decimal>> =
         async {
             if Config.NoNetworkBalanceForDebuggingPurposes then
@@ -116,7 +118,7 @@ module Account =
 
                 for accountFile in Config.GetAccountFiles [currency] AccountKind.Archived do
                     let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
-                    let maybeBalanceJob = GetShowableBalanceInternal account Mode.Fast
+                    let maybeBalanceJob = GetShowableBalanceInternal account ServerSelectionMode.Fast
                     yield async {
                         let! maybeBalance = maybeBalanceJob cancelSourceOption
                         let positiveBalance =

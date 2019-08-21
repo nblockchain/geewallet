@@ -42,7 +42,7 @@ module Web3ServerSeedList =
     //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
     // --------------------------------------------------------------------------------------
 
-    let private GetWeb3Servers (currency: Currency): List<ServerDetails> =
+    let private GetEtherServers (currency: Currency): List<ServerDetails> =
         let baseCurrency =
             if currency = Currency.ETC || currency = Currency.ETH then
                 currency
@@ -50,26 +50,26 @@ module Web3ServerSeedList =
                 Currency.ETH
             else
                 failwithf "Assertion failed: Ether currency %A not supported?" currency
-        ServerRegistry.GetServers baseCurrency |> List.ofSeq
+        Caching.Instance.GetServers baseCurrency |> List.ofSeq
 
     let Randomize currency =
-        let serverList = GetWeb3Servers currency
+        let serverList = GetEtherServers currency
         Shuffler.Unsort serverList
 
 
 module Server =
 
     let private Web3Server (serverDetails: ServerDetails) =
-        match serverDetails.ConnectionType with
+        match serverDetails.ServerInfo.ConnectionType with
         | { Protocol = Tcp _ ; Encrypted = _ } ->
-            failwithf "Ether server of TCP connection type?: %s" serverDetails.NetworkPath
+            failwithf "Ether server of TCP connection type?: %s" serverDetails.ServerInfo.NetworkPath
         | { Protocol = Http ; Encrypted = encrypted } ->
             let protocol =
                 if encrypted then
                     "https"
                 else
                     "http"
-            let uri = sprintf "%s://%s" protocol serverDetails.NetworkPath
+            let uri = sprintf "%s://%s" protocol serverDetails.ServerInfo.NetworkPath
             SomeWeb3 uri
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
@@ -248,21 +248,32 @@ module Server =
 
     let private NumberOfParallelJobsForMode mode =
         match mode with
-        | Mode.Fast -> 5u
-        | Mode.Analysis -> 3u
+        | ServerSelectionMode.Fast -> 5u
+        | ServerSelectionMode.Analysis -> 3u
 
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
-                                                         (mode: Mode) =
+                                                         (mode: ServerSelectionMode)
+                                                         maybeConsistencyConfig =
+
+        let consistencyConfig =
+            match maybeConsistencyConfig with
+            | None -> SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired
+            | Some specificConsistencyConfig -> specificConsistencyConfig
+
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
-            ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
-            Mode = mode
-            ShouldReportUncancelledJobs = true
+            ResultSelectionMode =
+                Selective
+                    {
+                        ServerSelectionMode = mode
+                        ConsistencyConfig = consistencyConfig
+                        ReportUncancelledJobs = true
+                    }
         }
 
-    let private FaultTolerantParallelClientDefaultSettings (currency: Currency) (mode: Mode) =
+    let private FaultTolerantParallelClientDefaultSettings (currency: Currency) (mode: ServerSelectionMode) =
         let numberOfConsistentResponsesRequired =
             if not Networking.Tls12Support then
                 1u
@@ -272,19 +283,17 @@ module Server =
                                                  mode
 
     let private FaultTolerantParallelClientSettingsForBalanceCheck (currency: Currency)
-                                                                   (mode: Mode)
+                                                                   (mode: ServerSelectionMode)
                                                                    (cacheMatchFunc: decimal->bool) =
-        let defaultSettings = FaultTolerantParallelClientDefaultSettings currency mode
-        if mode = Mode.Fast then
-            {
-                defaultSettings with
-                    ConsistencyConfig = OneServerConsistentWithCacheOrTwoServers cacheMatchFunc
-            }
-        else
-            defaultSettings
+        let consistencyConfig =
+            if mode = ServerSelectionMode.Fast then
+                Some (OneServerConsistentWithCacheOrTwoServers cacheMatchFunc)
+            else
+                None
+        FaultTolerantParallelClientDefaultSettings currency mode consistencyConfig
 
     let private FaultTolerantParallelClientSettingsForBroadcast () =
-        FaultTolerantParallelClientInnerSettings 1u Mode.Fast
+        FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast None
 
     let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
@@ -320,33 +329,34 @@ module Server =
                 let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
                 return raise <| ServerDiscardedException(msg, ex)
             | ex ->
-                return raise <| Exception(sprintf "Some problem when connecting to %s" server.NetworkPath, ex)
+                return raise <| Exception(sprintf "Some problem when connecting to '%s'"
+                                                  server.ServerInfo.NetworkPath, ex)
         }
 
-    // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
-    let private GetRandomizedFuncs<'R> (currency: Currency)
-                                          (web3Func: SomeWeb3->Async<'R>)
-                                              : List<Server<ServerDetails,'R>> =
+    // FIXME: seems there's some code duplication between this function and UtxoCoinAccount.fs's GetServerFuncs function
+    //        and room for simplification to not pass a new ad-hoc delegate?
+    let GetServerFuncs<'R> (web3Func: SomeWeb3->Async<'R>)
+                           (etherServers: seq<ServerDetails>)
+                               : seq<Server<ServerDetails,'R>> =
         let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
                                       (etherServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
-            let lastDetailsForServer =
-                match Caching.Instance.RetreiveLastServerHistory etherServer.NetworkPath with
-                | None -> etherServer
-                | Some historyInCache ->
-                    { etherServer with
-                        CommunicationHistory = Some historyInCache }
-
             {
-                Details = lastDetailsForServer
-                Retrieval = Web3ServerToRetrievalFunc lastDetailsForServer web3ClientFunc
+                Details = etherServer
+                Retrieval = Web3ServerToRetrievalFunc etherServer web3ClientFunc
             }
 
-        let web3servers = Web3ServerSeedList.Randomize currency |> List.ofSeq
         let serverFuncs =
-            List.map (Web3ServerToGenericServer web3Func)
-                     web3servers
+            Seq.map (Web3ServerToGenericServer web3Func)
+                    etherServers
         serverFuncs
+
+    let private GetRandomizedFuncs<'R> (currency: Currency)
+                                       (web3Func: SomeWeb3->Async<'R>)
+                                           : List<Server<ServerDetails,'R>> =
+        let etherServers = Web3ServerSeedList.Randomize currency
+        GetServerFuncs web3Func etherServers
+            |> List.ofSeq
 
     let GetTransactionCount (currency: Currency) (address: string)
                                 : Async<HexBigInteger> =
@@ -361,7 +371,7 @@ module Server =
                         }
                 GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
+                (FaultTolerantParallelClientDefaultSettings currency ServerSelectionMode.Fast None)
                 web3Funcs
         }
 
@@ -413,7 +423,10 @@ module Server =
         | None -> false
         | Some balance -> someBalanceRetreived = balance
 
-    let GetEtherBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode)
+    let GetEtherBalance (currency: Currency)
+                        (address: string)
+                        (balType: BalanceType)
+                        (mode: ServerSelectionMode)
                         (cancelSourceOption: Option<CancellationTokenSource>)
                                      : Async<decimal> =
         async {
@@ -473,7 +486,7 @@ module Server =
     let GetTokenBalance (currency: Currency)
                         (address: string)
                         (balType: BalanceType)
-                        (mode: Mode)
+                        (mode: ServerSelectionMode)
                         (cancelSourceOption: Option<CancellationTokenSource>)
                             : Async<decimal> =
         async {
@@ -523,7 +536,7 @@ module Server =
                     }
                 GetRandomizedFuncs account.Currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
+                        (FaultTolerantParallelClientDefaultSettings baseCurrency ServerSelectionMode.Fast None)
                         web3Funcs
         }
 
@@ -546,8 +559,9 @@ module Server =
                 GetRandomizedFuncs currency web3Func
             let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
-                        { FaultTolerantParallelClientDefaultSettings currency Mode.Fast with
-                              ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
+                        (FaultTolerantParallelClientDefaultSettings
+                            currency ServerSelectionMode.Fast
+                            (Some (AverageBetweenResponses (minResponsesRequired, AverageGasPrice))))
                         web3Funcs
 
         }
@@ -601,7 +615,7 @@ module Server =
                     }
                 GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
+                (FaultTolerantParallelClientDefaultSettings currency ServerSelectionMode.Fast None)
                 web3Funcs
         }
 
@@ -625,7 +639,7 @@ module Server =
                         }
                 GetRandomizedFuncs baseCurrency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
+                (FaultTolerantParallelClientDefaultSettings baseCurrency ServerSelectionMode.Fast None)
                 web3Funcs
         }
 

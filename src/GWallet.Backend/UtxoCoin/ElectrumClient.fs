@@ -44,11 +44,11 @@ module ElectrumClient =
         }
 
     let StratumServer (electrumServer: ServerDetails): Async<StratumClient> =
-        match electrumServer.ConnectionType with
+        match electrumServer.ServerInfo.ConnectionType with
         | { Encrypted = true; Protocol = _ } -> failwith "Incompatibility filter for non-encryption didn't work?"
         | { Encrypted = false; Protocol = Http } -> failwith "HTTP server for UtxoCoin?"
         | { Encrypted = false; Protocol = Tcp port } ->
-            Init electrumServer.NetworkPath port
+            Init electrumServer.ServerInfo.NetworkPath port
 
     let GetBalance (scriptHash: string) (stratumServer: Async<StratumClient>) = async {
         // FIXME: we should rather implement this method in terms of:

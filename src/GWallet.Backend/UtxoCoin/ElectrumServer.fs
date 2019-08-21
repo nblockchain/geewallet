@@ -145,11 +145,11 @@ module ElectrumServerSeedList =
             |> Seq.filter FilterCompatibleServer
 
     let DefaultBtcList =
-        ServerRegistry.GetServers Currency.BTC
+        Caching.Instance.GetServers Currency.BTC
             |> List.ofSeq
 
     let DefaultLtcList =
-        ServerRegistry.GetServers Currency.LTC
+        Caching.Instance.GetServers Currency.LTC
             |> List.ofSeq
 
     let Randomize currency =

@@ -36,7 +36,7 @@ module internal Account =
         publicAddress
 
     let private GetBalance (account: IAccount)
-                           (mode: Mode)
+                           (mode: ServerSelectionMode)
                            (balType: BalanceType)
                            (cancelSourceOption: Option<CancellationTokenSource>)
                                = async {
@@ -50,7 +50,9 @@ module internal Account =
         return balance
     }
 
-    let private GetBalanceFromServer (account: IAccount) (balType: BalanceType) (mode: Mode)
+    let private GetBalanceFromServer (account: IAccount)
+                                     (balType: BalanceType)
+                                     (mode: ServerSelectionMode)
                                      (cancelSourceOption: Option<CancellationTokenSource>)
                                          : Async<Option<decimal>> =
         async {
@@ -66,14 +68,14 @@ module internal Account =
         }
 
     let internal GetShowableBalance (account: IAccount)
-                                    (mode: Mode)
+                                    (mode: ServerSelectionMode)
                                     (cancelSourceOption: Option<CancellationTokenSource>)
                                         : Async<Option<decimal>> =
         let getBalanceWithoutCaching(maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>)
                 : Async<Option<decimal>> =
             async {
                 let! confirmed = GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
-                if mode = Mode.Fast then
+                if mode = ServerSelectionMode.Fast then
                     return confirmed
                 else
                     let! unconfirmed =

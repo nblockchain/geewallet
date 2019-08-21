@@ -16,8 +16,11 @@ module ServerManager =
             | None -> failwith "filtering for non-ssl electrum servers didn't work?"
             | Some unencryptedPort ->
                 {
-                    NetworkPath = es.Fqdn
-                    ConnectionType = { Encrypted = false; Protocol = Tcp unencryptedPort }
+                    ServerInfo =
+                        {
+                            NetworkPath = es.Fqdn
+                            ConnectionType = { Encrypted = false; Protocol = Tcp unencryptedPort }
+                        }
                     CommunicationHistory = None
                 }
 
@@ -51,7 +54,7 @@ module ServerManager =
                             |> Seq.map fromElectrumServerToGenericServerDetails
                             |> Seq.append baseLineLtcServers
 
-        for currency,servers in baseLineServers |> Map.toSeq do
+        for KeyValue(currency,servers) in baseLineServers do
             Console.WriteLine (sprintf "%i %A servers from baseline JSON file" (servers.Count()) currency)
 
             match currency with
@@ -73,5 +76,93 @@ module ServerManager =
 
         Console.WriteLine "OUTPUT:"
         let filteredOutServers = ServerRegistry.Deserialize allServersJson
-        for currency,servers in filteredOutServers |> Map.toSeq do
+        for KeyValue(currency,servers) in filteredOutServers do
             Console.WriteLine (sprintf "%i %A servers total" (servers.Count()) currency)
+
+    let private tester =
+        FaultTolerantParallelClient<ServerDetails,CommunicationUnsuccessfulException>
+            Caching.Instance.SaveServerLastStat
+
+    let private testingSettings =
+        {
+            NumberOfParallelJobsAllowed = 4u
+            NumberOfRetries = 1u
+            NumberOfRetriesForInconsistency = 1u
+            ResultSelectionMode = Exhaustive
+        }
+
+    let private GetDummyBalanceAction (currency: Currency) servers =
+
+        let retrievalFuncs =
+            if (currency.IsUtxo()) then
+                let scriptHash =
+                    match currency with
+                    | Currency.BTC ->
+                        // probably a satoshi address because it was used in blockheight 2 and is unspent yet
+                        let SATOSHI_ADDRESS = "1HLoD9E4SDFFPDiYfNYnkBLQ85Y51J3Zb1"
+                        // funny that it almost begins with "1HoDL"
+                        UtxoCoin.Account.GetElectrumScriptHashFromPublicAddress currency SATOSHI_ADDRESS
+                    | Currency.LTC ->
+                        // https://medium.com/@SatoshiLite/satoshilite-1e2dad89a017
+                        let LTC_GENESIS_BLOCK_ADDRESS = "Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2"
+                        UtxoCoin.Account.GetElectrumScriptHashFromPublicAddress currency LTC_GENESIS_BLOCK_ADDRESS
+                    | _ ->
+                        failwithf "Currency %A not UTXO?" currency
+                let utxoFunc electrumServer =
+                    async {
+                        let! bal = UtxoCoin.ElectrumClient.GetBalance scriptHash electrumServer
+                        return bal.Confirmed |> decimal
+                    }
+                UtxoCoin.Account.GetServerFuncs utxoFunc servers |> Some
+
+            elif currency.IsEther() then
+                let ETH_GENESISBLOCK_ADDRESS = "0x0000000000000000000000000000000000000000"
+
+                let web3Func (web3: Ether.SomeWeb3): Async<decimal> =
+                    async {
+                        let! balance = Async.AwaitTask (web3.Eth.GetBalance.SendRequestAsync ETH_GENESISBLOCK_ADDRESS)
+                        return balance.Value |> decimal
+                    }
+
+                Ether.Server.GetServerFuncs web3Func servers |> Some
+
+            else
+                None
+
+        match retrievalFuncs with
+        | Some queryFuncs ->
+            async {
+                try
+                    let! _ = tester.Query testingSettings
+                                          (queryFuncs |> List.ofSeq)
+                    return ()
+                with
+                | :? NoneAvailableException ->
+                    return ()
+            } |> Some
+        | _ ->
+            None
+
+    let private UpdateBaseline() =
+        match Caching.Instance.ExportServers() with
+        | None -> failwith "After updating servers, cache should not be empty"
+        | Some serversInJson ->
+            File.WriteAllText(ServerRegistry.ServersEmbeddedResourceFileName, serversInJson)
+
+    let UpdateServersStats () =
+        let jobs = seq {
+            for currency in Currency.GetAll() do
+
+                // because ETH tokens use ETH servers
+                if not (currency.IsEthToken()) then
+                    let serversForSpecificCurrency = Caching.Instance.GetServers currency
+                    match GetDummyBalanceAction currency serversForSpecificCurrency with
+                    | None -> ()
+                    | Some job -> yield job
+        }
+        Async.Parallel jobs
+            |> Async.RunSynchronously
+            |> ignore
+
+        UpdateBaseline()
+

@@ -178,7 +178,7 @@ let ArchiveAccount() =
             UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
         let balance =
-            Account.GetShowableBalance account Mode.Fast None
+            Account.GetShowableBalance account ServerSelectionMode.Fast None
                 |> Async.RunSynchronously
         match balance with
         | NotFresh(NotAvailable) ->
@@ -311,8 +311,12 @@ let NormalStartWithNoParameters () =
     exitCode
 
 
-let UpdateServers () =
+let UpdateServersFile () =
     ServerManager.UpdateServersFile()
+    0
+
+let UpdateServersStats () =
+    ServerManager.UpdateServersStats()
     0
 
 [<EntryPoint>]
@@ -320,7 +324,9 @@ let main argv =
     match argv.Length with
     | 0 ->
         NormalStartWithNoParameters()
-    | 1 when argv.[0] = "--update-servers" ->
-        UpdateServers()
+    | 1 when argv.[0] = "--update-servers-file" ->
+        UpdateServersFile()
+    | 1 when argv.[0] = "--update-servers-stats" ->
+        UpdateServersStats()
     | _ ->
         failwith "Arguments not recognized"

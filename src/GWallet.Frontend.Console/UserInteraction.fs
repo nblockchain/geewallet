@@ -215,7 +215,7 @@ module UserInteraction =
                 // opposed to the other frontends) because it doesn't have automatic balance refresh (it's this
                 // operation the one that should only use Analysis mode). If we used Mode.Fast here, then the console
                 // frontend would never re-discover slow/failing servers or even ones with no history
-                let mode = Mode.Analysis
+                let mode = ServerSelectionMode.Analysis
 
                 let! balance = Account.GetShowableBalance account mode None
                 return (account,balance)
@@ -488,7 +488,7 @@ module UserInteraction =
                 AskParticularAmountOption currentBalance amountOption
 
         let showableBalance =
-            Account.GetShowableBalance account Mode.Fast None
+            Account.GetShowableBalance account ServerSelectionMode.Fast None
                 |> Async.RunSynchronously
 
         match showableBalance with

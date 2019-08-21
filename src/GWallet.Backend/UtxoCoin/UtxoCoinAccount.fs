@@ -54,35 +54,41 @@ module Account =
 
     let private NumberOfParallelJobsForMode mode =
         match mode with
-        | Mode.Fast -> 8u
-        | Mode.Analysis -> 5u
+        | ServerSelectionMode.Fast -> 8u
+        | ServerSelectionMode.Analysis -> 5u
 
-    let private FaultTolerantParallelClientDefaultSettings(mode: Mode) =
+    let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode)
+                                                           maybeConsistencyConfig =
+        let consistencyConfig =
+            match maybeConsistencyConfig with
+            | None -> SpecificNumberOfConsistentResponsesRequired 2u
+            | Some specificConsistencyConfig -> specificConsistencyConfig
+
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
-            ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired 2u;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
-            Mode = mode
-            ShouldReportUncancelledJobs = (not Config.NewUtxoTcpClientDisabled)
+            ResultSelectionMode =
+                Selective
+                    {
+                        ServerSelectionMode = mode
+                        ConsistencyConfig = consistencyConfig
+                        ReportUncancelledJobs = (not Config.NewUtxoTcpClientDisabled)
+                    }
         }
 
     let private FaultTolerantParallelClientSettingsForBroadcast() =
-        {
-            FaultTolerantParallelClientDefaultSettings Mode.Fast with
-                ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired 1u;
-        }
+        FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast
+                                                   (Some (SpecificNumberOfConsistentResponsesRequired 1u))
 
-    let private FaultTolerantParallelClientSettingsForBalanceCheck (mode: Mode)
+    let private FaultTolerantParallelClientSettingsForBalanceCheck (mode: ServerSelectionMode)
                                                                    cacheMatchFunc =
-        let defaultSettings = FaultTolerantParallelClientDefaultSettings mode
-        if mode = Mode.Fast then
-            {
-                defaultSettings with
-                    ConsistencyConfig = OneServerConsistentWithCacheOrTwoServers cacheMatchFunc
-            }
-        else
-            defaultSettings
+        let consistencyConfig =
+            if mode = ServerSelectionMode.Fast then
+                Some (OneServerConsistentWithCacheOrTwoServers cacheMatchFunc)
+            else
+                None
+        FaultTolerantParallelClientDefaultSettings mode consistencyConfig
 
     let private faultTolerantElectrumClient =
         FaultTolerantParallelClient<ServerDetails,ServerDiscardedException> Caching.Instance.SaveServerLastStat
@@ -122,12 +128,11 @@ module Account =
         let privateKey = Key.Parse(privateKey, GetNetwork currency)
         GetPublicAddressFromPublicKey currency privateKey.PubKey
 
-    // FIXME: there should be a way to simplify this function to not need to pass a new ad-hoc delegate
-    //        (maybe make it more similar to old EtherServer.fs' PlumbingCall() in stable branch[1]?)
-    //        [1] https://gitlab.com/knocte/geewallet/blob/stable/src/GWallet.Backend/EtherServer.fs
-    let private GetRandomizedFuncs<'R> (currency: Currency)
-                                       (electrumClientFunc: Async<StratumClient>->Async<'R>)
-                                              : List<Server<ServerDetails,'R>> =
+    // FIXME: seems there's some code duplication between this function and EtherServer.fs's GetServerFuncs function
+    //        and room for simplification to not pass a new ad-hoc delegate?
+    let GetServerFuncs<'R> (electrumClientFunc: Async<StratumClient>->Async<'R>)
+                           (electrumServers: seq<ServerDetails>)
+                               : seq<Server<ServerDetails,'R>> =
 
         let ElectrumServerToRetrievalFunc (server: ServerDetails)
                                           (electrumClientFunc: Async<StratumClient>->Async<'R>)
@@ -142,27 +147,26 @@ module Account =
                 let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
                 return raise <| ServerDiscardedException(msg, ex)
             | ex ->
-                return raise <| Exception(sprintf "Some problem when connecting to %s" server.NetworkPath, ex)
+                return raise <| Exception(sprintf "Some problem when connecting to %s" server.ServerInfo.NetworkPath, ex)
         }
-
         let ElectrumServerToGenericServer (electrumClientFunc: Async<StratumClient>->Async<'R>)
                                           (electrumServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
-            let lastDetailsForServer =
-                match Caching.Instance.RetreiveLastServerHistory electrumServer.NetworkPath with
-                | None -> electrumServer
-                | Some historyInCache ->
-                    { electrumServer with
-                        CommunicationHistory = Some historyInCache }
+            { Details = electrumServer
+              Retrieval = ElectrumServerToRetrievalFunc electrumServer electrumClientFunc }
 
-            { Details = lastDetailsForServer
-              Retrieval = ElectrumServerToRetrievalFunc lastDetailsForServer electrumClientFunc }
+        let serverFuncs =
+            Seq.map (ElectrumServerToGenericServer electrumClientFunc)
+                     electrumServers
+        serverFuncs
 
-        let randomizedElectrumServers = ElectrumServerSeedList.Randomize currency |> List.ofSeq
-        let randomizedServers =
-            List.map (ElectrumServerToGenericServer electrumClientFunc)
-                     randomizedElectrumServers
-        randomizedServers
+    let private GetRandomizedFuncs<'R> (currency: Currency)
+                                       (electrumClientFunc: Async<StratumClient>->Async<'R>)
+                                              : List<Server<ServerDetails,'R>> =
+
+        let electrumServers = ElectrumServerSeedList.Randomize currency
+        GetServerFuncs electrumClientFunc electrumServers
+            |> List.ofSeq
 
     let private BalanceToShow (balances: BlockchainScripthahsGetBalanceInnerResult) =
         let unconfirmedPlusConfirmed = balances.Unconfirmed + balances.Confirmed
@@ -180,7 +184,9 @@ module Account =
         | Some balance ->
             BalanceToShow someBalancesRetreived = balance
 
-    let private GetBalances (account: IUtxoAccount) (mode: Mode) (cancelSourceOption: Option<CancellationTokenSource>)
+    let private GetBalances (account: IUtxoAccount)
+                            (mode: ServerSelectionMode)
+                            (cancelSourceOption: Option<CancellationTokenSource>)
                                 : Async<BlockchainScripthahsGetBalanceInnerResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
@@ -198,7 +204,7 @@ module Account =
         balanceJob
 
     let private GetBalancesFromServer (account: IUtxoAccount)
-                                      (mode: Mode)
+                                      (mode: ServerSelectionMode)
                                       (cancelSourceOption: Option<CancellationTokenSource>)
                                          : Async<Option<BlockchainScripthahsGetBalanceInnerResult>> =
         async {
@@ -214,7 +220,7 @@ module Account =
         }
 
     let internal GetShowableBalance (account: IUtxoAccount)
-                                    (mode: Mode)
+                                    (mode: ServerSelectionMode)
                                     (cancelSourceOption: Option<CancellationTokenSource>)
                                         : Async<Option<decimal>> =
         async {
@@ -303,7 +309,7 @@ module Account =
                   |> ElectrumClient.GetUnspentTransactionOutputs
         let! utxos =
             faultTolerantElectrumClient.Query
-                (FaultTolerantParallelClientDefaultSettings Mode.Fast)
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
                 (GetRandomizedFuncs account.Currency job)
 
         if not (utxos.Any()) then
@@ -328,7 +334,7 @@ module Account =
                         let job = ElectrumClient.GetBlockchainTransaction utxo.TransactionId
                         let! transRaw =
                             faultTolerantElectrumClient.Query
-                                (FaultTolerantParallelClientDefaultSettings Mode.Fast)
+                                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
                                 (GetRandomizedFuncs account.Currency job)
                         let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
                         let txOut = transaction.Outputs.[utxo.OutputIndex]
@@ -359,8 +365,10 @@ module Account =
 
         let! btcPerKiloByteForFastTrans =
             faultTolerantElectrumClient.Query
-                { FaultTolerantParallelClientDefaultSettings Mode.Fast with
-                      ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, averageFee) }
+                (FaultTolerantParallelClientDefaultSettings
+                    ServerSelectionMode.Fast
+                    (Some (AverageBetweenResponses (minResponsesRequired, averageFee))))
+
                 (GetRandomizedFuncs account.Currency estimateFeeJob)
 
         let feeRate =

@@ -4,794 +4,916 @@
   "Value": {
     "BTC": [
       {
-        "NetworkPath": "E-X.not.fyi",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "E-X.not.fyi",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "VPS.hsmiths.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "VPS.hsmiths.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "b.ooze.cc",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "b.ooze.cc",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "bitcoin.corgi.party",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "bitcoin.corgi.party",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "bitcoins.sk",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "bitcoins.sk",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "btc.cihar.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "btc.cihar.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "btc.xskyx.net",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "btc.xskyx.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "currentlane.lovebitco.in",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "currentlane.lovebitco.in",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "daedalus.bauerj.eu",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "daedalus.bauerj.eu",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.jochen-hoenicke.de",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50003
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.jochen-hoenicke.de",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "e-1.claudioboxx.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "e-1.claudioboxx.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "e.keff.org",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "e.keff.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum-server.ninja",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum-server.ninja",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.eff.ro",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.eff.ro",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.festivaldelhumor.org",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.festivaldelhumor.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.hsmiths.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.hsmiths.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.leblancnet.us",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.leblancnet.us",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.qtornado.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.qtornado.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.villocq.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.villocq.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum2.eff.ro",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum2.eff.ro",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum2.villocq.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum2.villocq.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrumx.bot.nu",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrumx.bot.nu",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrumx.ddns.net",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrumx.ddns.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrumx.ml",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrumx.ml",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrumx.soon.it",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrumx.soon.it",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "elx01.knas.systems",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "elx01.knas.systems",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "enode.duckdns.org",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "enode.duckdns.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "fedaykin.goip.de",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "fedaykin.goip.de",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "fn.48.org",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50003
-            ]
+        "ServerInfo": {
+          "NetworkPath": "fn.48.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "helicarrier.bauerj.eu",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "helicarrier.bauerj.eu",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "icarus.tetradrachm.net",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "icarus.tetradrachm.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.emzy.de",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.emzy.de",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "ndnd.selfhost.eu",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "ndnd.selfhost.eu",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "orannis.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "orannis.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "tardis.bauerj.eu",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "tardis.bauerj.eu",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "tomscryptos.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "tomscryptos.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "ulrichard.ch",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "ulrichard.ch",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "vmd27610.contaboserver.net",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "vmd27610.contaboserver.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "vmd30612.contaboserver.net",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "vmd30612.contaboserver.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "yuio.top",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "yuio.top",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "bitcoin.dragon.zone",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50003
-            ]
+        "ServerInfo": {
+          "NetworkPath": "bitcoin.dragon.zone",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "ecdsa.net",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "ecdsa.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "e2.keff.org",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "e2.keff.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "fortress.qtornado.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "fortress.qtornado.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "green-gold.westeurope.cloudapp.azure.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              56001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "green-gold.westeurope.cloudapp.azure.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                56001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrumx.erbium.eu",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrumx.erbium.eu",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "btc.jochen-hoenicke.de",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "btc.jochen-hoenicke.de",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "dedi.jochen-hoenicke.de",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "dedi.jochen-hoenicke.de",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrumx-core.1209k.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrumx-core.1209k.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "b6.1209k.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "b6.1209k.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "b.1209k.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "b.1209k.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "185.64.116.15",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "185.64.116.15",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "kirsche.emzy.de",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "kirsche.emzy.de",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "52.1.56.181",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "52.1.56.181",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.coineuskal.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.coineuskal.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "cashyes.zapto.org",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "cashyes.zapto.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum3.hachre.de",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum3.hachre.de",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrumx.nmdps.net",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrumx.nmdps.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "erbium1.sytes.net",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "erbium1.sytes.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "oneweek.duckdns.org",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "oneweek.duckdns.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "us.electrum.be",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "us.electrum.be",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
@@ -799,157 +921,181 @@
     ],
     "LTC": [
       {
-        "NetworkPath": "backup.electrum-ltc.org",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "backup.electrum-ltc.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "e-1.claudioboxx.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50003
-            ]
+        "ServerInfo": {
+          "NetworkPath": "e-1.claudioboxx.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "e-3.claudioboxx.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50003
-            ]
+        "ServerInfo": {
+          "NetworkPath": "e-3.claudioboxx.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum-ltc.bysh.me",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum-ltc.bysh.me",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum-ltc.villocq.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              60001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum-ltc.villocq.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                60001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum-ltc.wilv.in",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum-ltc.wilv.in",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.leblancnet.us",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50003
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.leblancnet.us",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrum.ltc.xurious.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrum.ltc.xurious.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "ltc01.knas.systems",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50003
-            ]
+        "ServerInfo": {
+          "NetworkPath": "ltc01.knas.systems",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "node.ispol.sk",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50003
-            ]
+        "ServerInfo": {
+          "NetworkPath": "node.ispol.sk",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "ltc.rentonisk.com",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              50001
-            ]
+        "ServerInfo": {
+          "NetworkPath": "ltc.rentonisk.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "electrumx.nmdps.net",
-        "ConnectionType": {
-          "Encrypted": false,
-          "Protocol": {
-            "Case": "Tcp",
-            "Fields": [
-              9433
-            ]
+        "ServerInfo": {
+          "NetworkPath": "electrumx.nmdps.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9433
+              ]
+            }
           }
         },
         "CommunicationHistory": null
@@ -957,91 +1103,109 @@
     ],
     "ETH": [
       {
-        "NetworkPath": "cloudflare-eth.com/",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "cloudflare-eth.com/",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "eth-mainnet.alchemyapi.io/jsonrpc/-vPGIFwUyjlMRF9beTLXiGQUK6Nf3k8z",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "eth-mainnet.alchemyapi.io/jsonrpc/-vPGIFwUyjlMRF9beTLXiGQUK6Nf3k8z",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "mainnet.infura.io/mew",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "mainnet.infura.io/mew",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "api.dev.blockscale.net/dev/parity",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "api.dev.blockscale.net/dev/parity",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "mew.giveth.io",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "mew.giveth.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "api.myetherapi.com/eth",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "api.myetherapi.com/eth",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "mainnet.infura.io/mycrypto",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "mainnet.infura.io/mycrypto",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
@@ -1049,101 +1213,121 @@
     ],
     "ETC": [
       {
-        "NetworkPath": "www.ethercluster.com/etc",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "www.ethercluster.com/etc",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "ethereumclassic.network",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "ethereumclassic.network",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "web3.gastracker.io",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "web3.gastracker.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "node.classicexplorer.org/",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "node.classicexplorer.org/",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "etc-parity.callisto.network",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "etc-parity.callisto.network",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "etcrpc.viperid.online",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "etcrpc.viperid.online",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "etc-parity.0xinfra.com",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "etc-parity.0xinfra.com",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "etc-geth.0xinfra.com",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "etc-geth.0xinfra.com",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "mewapi.epool.io",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "mewapi.epool.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null
       },
       {
-        "NetworkPath": "cry.epool.io",
-        "ConnectionType": {
-          "Encrypted": true,
-          "Protocol": {
-            "Case": "Http"
+        "ServerInfo": {
+          "NetworkPath": "cry.epool.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
           }
         },
         "CommunicationHistory": null

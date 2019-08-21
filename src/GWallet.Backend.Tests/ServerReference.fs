@@ -15,34 +15,40 @@ type ServerReference() =
     let some_connection_type_irrelevant_for_this_test = { Encrypted = false; Protocol = Http }
 
     let CreateHistoryInfo(lastSuccessfulCommunication: DateTime) =
-        {
+        ({
             Status = LastSuccessfulCommunication lastSuccessfulCommunication
 
             //irrelevant for this test
             TimeSpan = TimeSpan.Zero
-        } |> Some
+        },dummy_now) |> Some
 
     [<Test>]
     member __.``order of servers is kept if non-hostname details are same``() =
         let serverWithHighestPriority =
             {
-                NetworkPath = "dlm8yerwlcifs"
-                ConnectionType = some_connection_type_irrelevant_for_this_test
+                ServerInfo =
+                    {
+                        NetworkPath = "dlm8yerwlcifs"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
                 CommunicationHistory = None
             }
         let serverWithLowestPriority =
             {
-                 NetworkPath = "eliuh4midkndk"
-                 ConnectionType = some_connection_type_irrelevant_for_this_test
-                 CommunicationHistory = None
-             }
+                ServerInfo =
+                    {
+                        NetworkPath = "eliuh4midkndk"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = None
+            }
         let servers1 = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
                                 seq { yield serverWithHighestPriority; yield serverWithLowestPriority })
         let serverDetails = ServerRegistry.Serialize servers1
 
-        let serverAPos = serverDetails.IndexOf serverWithHighestPriority.NetworkPath
-        let serverBPos = serverDetails.IndexOf serverWithLowestPriority.NetworkPath
+        let serverAPos = serverDetails.IndexOf serverWithHighestPriority.ServerInfo.NetworkPath
+        let serverBPos = serverDetails.IndexOf serverWithLowestPriority.ServerInfo.NetworkPath
 
         Assert.That(serverAPos, Is.Not.LessThan 0)
 
@@ -55,8 +61,8 @@ type ServerReference() =
                                 seq { yield serverWithLowestPriority; yield serverWithHighestPriority })
         let serverDetailsReverse = ServerRegistry.Serialize servers2
 
-        let serverAPos = serverDetailsReverse.IndexOf serverWithHighestPriority.NetworkPath
-        let serverBPos = serverDetailsReverse.IndexOf serverWithLowestPriority.NetworkPath
+        let serverAPos = serverDetailsReverse.IndexOf serverWithHighestPriority.ServerInfo.NetworkPath
+        let serverBPos = serverDetailsReverse.IndexOf serverWithLowestPriority.ServerInfo.NetworkPath
 
         Assert.That(serverAPos, Is.Not.LessThan 0)
 
@@ -68,23 +74,29 @@ type ServerReference() =
     member __.``order of servers depends on last successful conn``() =
         let serverWithOldestConnection =
             {
-                NetworkPath = "dlm8yerwlcifs"
-                ConnectionType = some_connection_type_irrelevant_for_this_test
+                ServerInfo =
+                    {
+                        NetworkPath = "dlm8yerwlcifs"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
                 CommunicationHistory = CreateHistoryInfo (DateTime.Now - TimeSpan.FromDays 10.0)
             }
         let serverWithMostRecentConnection =
             {
-                 NetworkPath = "eliuh4midkndk"
-                 ConnectionType = some_connection_type_irrelevant_for_this_test
-                 CommunicationHistory = CreateHistoryInfo DateTime.Now
-             }
+                ServerInfo =
+                    {
+                        NetworkPath = "eliuh4midkndk"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfo DateTime.Now
+            }
         let servers1 = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
                                 seq { yield serverWithOldestConnection; yield serverWithMostRecentConnection })
         let serverDetails = ServerRegistry.Serialize servers1
 
-        let serverAPos = serverDetails.IndexOf serverWithOldestConnection.NetworkPath
-        let serverBPos = serverDetails.IndexOf serverWithMostRecentConnection.NetworkPath
+        let serverAPos = serverDetails.IndexOf serverWithOldestConnection.ServerInfo.NetworkPath
+        let serverBPos = serverDetails.IndexOf serverWithMostRecentConnection.ServerInfo.NetworkPath
 
         Assert.That(serverAPos, Is.Not.LessThan 0)
 
@@ -97,8 +109,8 @@ type ServerReference() =
                                 seq { yield serverWithMostRecentConnection; yield serverWithOldestConnection })
         let serverDetailsReverse = ServerRegistry.Serialize servers2
 
-        let serverAPos = serverDetailsReverse.IndexOf serverWithOldestConnection.NetworkPath
-        let serverBPos = serverDetailsReverse.IndexOf serverWithMostRecentConnection.NetworkPath
+        let serverAPos = serverDetailsReverse.IndexOf serverWithOldestConnection.ServerInfo.NetworkPath
+        let serverBPos = serverDetailsReverse.IndexOf serverWithMostRecentConnection.ServerInfo.NetworkPath
 
         Assert.That(serverAPos, Is.Not.LessThan 0)
 
@@ -109,8 +121,11 @@ type ServerReference() =
 
         let serverWithNoLastConnection =
             {
-                NetworkPath = "dlm8yerwlcifs"
-                ConnectionType = some_connection_type_irrelevant_for_this_test
+                ServerInfo =
+                    {
+                        NetworkPath = "dlm8yerwlcifs"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
                 CommunicationHistory = None
             }
 
@@ -119,8 +134,8 @@ type ServerReference() =
                                 seq { yield serverWithNoLastConnection; yield serverWithMostRecentConnection })
         let serverDetails3 = ServerRegistry.Serialize servers3
 
-        let serverAPos = serverDetails.IndexOf serverWithNoLastConnection.NetworkPath
-        let serverBPos = serverDetails.IndexOf serverWithMostRecentConnection.NetworkPath
+        let serverAPos = serverDetails.IndexOf serverWithNoLastConnection.ServerInfo.NetworkPath
+        let serverBPos = serverDetails.IndexOf serverWithMostRecentConnection.ServerInfo.NetworkPath
 
         Assert.That(serverAPos, Is.Not.LessThan 0)
 
@@ -133,8 +148,8 @@ type ServerReference() =
                                 seq { yield serverWithMostRecentConnection; yield serverWithNoLastConnection })
         let serverDetails3Rev = ServerRegistry.Serialize servers4
 
-        let serverAPos = serverDetails3Rev.IndexOf serverWithNoLastConnection.NetworkPath
-        let serverBPos = serverDetails3Rev.IndexOf serverWithMostRecentConnection.NetworkPath
+        let serverAPos = serverDetails3Rev.IndexOf serverWithNoLastConnection.ServerInfo.NetworkPath
+        let serverBPos = serverDetails3Rev.IndexOf serverWithMostRecentConnection.ServerInfo.NetworkPath
 
         Assert.That(serverAPos, Is.Not.LessThan 0)
 
@@ -147,10 +162,13 @@ type ServerReference() =
         let now = DateTime.UtcNow
         let serverWithSomeRecentConnection =
             {
-                 NetworkPath = "eliuh4midkndk"
-                 ConnectionType = some_connection_type_irrelevant_for_this_test
-                 CommunicationHistory = CreateHistoryInfo now
-             }
+                ServerInfo =
+                    {
+                        NetworkPath = "eliuh4midkndk"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfo now
+            }
         let servers = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
                                 seq { yield serverWithSomeRecentConnection })
@@ -176,10 +194,13 @@ type ServerReference() =
         let now = DateTime.UtcNow
         let serverWithSomeRecentConnection =
             {
-                 NetworkPath = "eliuh4midkndk"
-                 ConnectionType = some_connection_type_irrelevant_for_this_test
-                 CommunicationHistory = CreateHistoryInfo DateTime.UtcNow
-             }
+                ServerInfo =
+                    {
+                        NetworkPath = "eliuh4midkndk"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfo DateTime.UtcNow
+            }
         let servers = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
                                 seq { yield serverWithSomeRecentConnection })
@@ -193,9 +214,12 @@ type ServerReference() =
         let port = 50001u
         let serverWithSomeRecentConnection =
             {
-                 NetworkPath = "eliuh4midkndk"
-                 ConnectionType = { Encrypted = false; Protocol = Tcp port }
-                 CommunicationHistory = None
+                ServerInfo =
+                    {
+                        NetworkPath = "eliuh4midkndk"
+                        ConnectionType = { Encrypted = false; Protocol = Tcp port }
+                    }
+                CommunicationHistory = None
              }
         let servers = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
@@ -210,22 +234,29 @@ type ServerReference() =
         let tcpServerNetworkPath = "tcp"
         let tcpServerWithNoHistory =
             {
-                 NetworkPath = tcpServerNetworkPath
-                 ConnectionType = { Encrypted = false; Protocol = Tcp 50001u }
-                 CommunicationHistory = None
-             }
+                ServerInfo =
+                    {
+                        NetworkPath = tcpServerNetworkPath
+                        ConnectionType = { Encrypted = false; Protocol = Tcp 50001u }
+                    }
+                CommunicationHistory = None
+            }
 
         let timeSpanForHttpServer = TimeSpan.FromSeconds 1.0
         let httpServerNetworkPath = "http"
         let lastSuccessfulCommunication = DateTime.UtcNow
         let httpSuccessfulServer =
             {
-                 NetworkPath = httpServerNetworkPath
-                 ConnectionType = { Encrypted = false; Protocol = Http }
-                 CommunicationHistory = Some({
+                ServerInfo =
+                    {
+                        NetworkPath = httpServerNetworkPath
+                        ConnectionType = { Encrypted = false; Protocol = Http }
+                    }
+                CommunicationHistory = Some({
                                                 Status = LastSuccessfulCommunication lastSuccessfulCommunication
                                                 TimeSpan = timeSpanForHttpServer
-                                             })
+                                            },
+                                            dummy_now)
              }
 
         let httpsServerNetworkPath1 = "https1"
@@ -233,22 +264,30 @@ type ServerReference() =
         let exInfo = { TypeFullName = "SomeNamespace.SomeException" ; Message = "argh" }
         let httpsFailureServer1 =
             {
-                 NetworkPath = httpsServerNetworkPath1
-                 ConnectionType = { Encrypted = true; Protocol = Http }
-                 CommunicationHistory = Some({
+                ServerInfo =
+                    {
+                        NetworkPath = httpsServerNetworkPath1
+                        ConnectionType = { Encrypted = true; Protocol = Http }
+                    }
+                CommunicationHistory = Some({
                                                 Status = Fault (exInfo, None)
                                                 TimeSpan = timeSpanForHttpsServer
-                                             })
+                                            },
+                                            dummy_now)
              }
         let httpsServerNetworkPath2 = "https2"
         let httpsFailureServer2 =
             {
-                 NetworkPath = httpsServerNetworkPath2
-                 ConnectionType = { Encrypted = true; Protocol = Http }
-                 CommunicationHistory = Some({
+                ServerInfo =
+                    {
+                        NetworkPath = httpsServerNetworkPath2
+                        ConnectionType = { Encrypted = true; Protocol = Http }
+                    }
+                CommunicationHistory = Some({
                                                 Status = Fault (exInfo, Some lastSuccessfulCommunication)
                                                 TimeSpan = timeSpanForHttpsServer
-                                             })
+                                            },
+                                            dummy_now)
              }
 
         let servers = Map.empty.Add
@@ -266,25 +305,25 @@ type ServerReference() =
                 |> List.ofSeq
         Assert.That(deserializedServers.Length, Is.EqualTo 4)
 
-        let tcpServers = Seq.filter (fun server -> server.NetworkPath = tcpServerNetworkPath)
+        let tcpServers = Seq.filter (fun server -> server.ServerInfo.NetworkPath = tcpServerNetworkPath)
                                     deserializedServers
                                         |> List.ofSeq
         Assert.That(tcpServers.Length, Is.EqualTo 1)
         let tcpServer = tcpServers.[0]
-        Assert.That(tcpServer.NetworkPath, Is.EqualTo tcpServerNetworkPath)
-        Assert.That(tcpServer.ConnectionType.Encrypted, Is.EqualTo false)
+        Assert.That(tcpServer.ServerInfo.NetworkPath, Is.EqualTo tcpServerNetworkPath)
+        Assert.That(tcpServer.ServerInfo.ConnectionType.Encrypted, Is.EqualTo false)
         Assert.That(tcpServer.CommunicationHistory, Is.EqualTo None)
 
-        let httpServers = Seq.filter (fun server -> server.NetworkPath = httpServerNetworkPath)
+        let httpServers = Seq.filter (fun server -> server.ServerInfo.NetworkPath = httpServerNetworkPath)
                                       deserializedServers
                                           |> List.ofSeq
         Assert.That(httpServers.Length, Is.EqualTo 1)
         let httpServer = httpServers.[0]
-        Assert.That(httpServer.NetworkPath, Is.EqualTo httpServerNetworkPath)
-        Assert.That(httpServer.ConnectionType.Encrypted, Is.EqualTo false)
+        Assert.That(httpServer.ServerInfo.NetworkPath, Is.EqualTo httpServerNetworkPath)
+        Assert.That(httpServer.ServerInfo.ConnectionType.Encrypted, Is.EqualTo false)
         match httpServer.CommunicationHistory with
         | None -> Assert.Fail "http server should have some historyinfo"
-        | Some historyInfo ->
+        | Some (historyInfo,_) ->
             Assert.That(historyInfo.TimeSpan, Is.EqualTo timeSpanForHttpServer)
             match historyInfo.Status with
             | Fault _ ->
@@ -292,16 +331,16 @@ type ServerReference() =
             | LastSuccessfulCommunication lsc ->
                 Assert.That(lsc, Is.EqualTo lastSuccessfulCommunication)
 
-        let https1Servers = Seq.filter (fun server -> server.NetworkPath = httpsServerNetworkPath1)
+        let https1Servers = Seq.filter (fun server -> server.ServerInfo.NetworkPath = httpsServerNetworkPath1)
                                         deserializedServers
                                           |> List.ofSeq
         Assert.That(https1Servers.Length, Is.EqualTo 1)
         let httpsServer1 = https1Servers.[0]
-        Assert.That(httpsServer1.NetworkPath, Is.EqualTo httpsServerNetworkPath1)
-        Assert.That(httpsServer1.ConnectionType.Encrypted, Is.EqualTo true)
+        Assert.That(httpsServer1.ServerInfo.NetworkPath, Is.EqualTo httpsServerNetworkPath1)
+        Assert.That(httpsServer1.ServerInfo.ConnectionType.Encrypted, Is.EqualTo true)
         match httpsServer1.CommunicationHistory with
         | None -> Assert.Fail "https server should have some historyinfo"
-        | Some historyInfo ->
+        | Some (historyInfo,_) ->
             Assert.That(historyInfo.TimeSpan, Is.EqualTo timeSpanForHttpsServer)
             match historyInfo.Status with
             | Fault (fault, maybeLsc) ->
@@ -311,16 +350,16 @@ type ServerReference() =
             | _ ->
                 Assert.Fail "https server should be fault, not successful"
 
-        let https2Servers = Seq.filter (fun server -> server.NetworkPath = httpsServerNetworkPath2)
+        let https2Servers = Seq.filter (fun server -> server.ServerInfo.NetworkPath = httpsServerNetworkPath2)
                                         deserializedServers
                                           |> List.ofSeq
         Assert.That(https2Servers.Length, Is.EqualTo 1)
         let httpsServer2 = https2Servers.[0]
-        Assert.That(httpsServer2.NetworkPath, Is.EqualTo httpsServerNetworkPath2)
-        Assert.That(httpsServer2.ConnectionType.Encrypted, Is.EqualTo true)
+        Assert.That(httpsServer2.ServerInfo.NetworkPath, Is.EqualTo httpsServerNetworkPath2)
+        Assert.That(httpsServer2.ServerInfo.ConnectionType.Encrypted, Is.EqualTo true)
         match httpsServer2.CommunicationHistory with
         | None -> Assert.Fail "https server should have some historyinfo"
-        | Some historyInfo ->
+        | Some (historyInfo,_) ->
             Assert.That(historyInfo.TimeSpan, Is.EqualTo timeSpanForHttpsServer)
             match historyInfo.Status with
             | Fault (fault, maybeLsc) ->
@@ -335,14 +374,20 @@ type ServerReference() =
         let sameRandomHostname = "xfoihror3uo3wmio"
         let serverA =
             {
-                NetworkPath = sameRandomHostname
-                ConnectionType = some_connection_type_irrelevant_for_this_test
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
                 CommunicationHistory = None
             }
         let serverB =
             {
-                NetworkPath = sameRandomHostname
-                ConnectionType = some_connection_type_irrelevant_for_this_test
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
                 CommunicationHistory = CreateHistoryInfo dummy_now
             }
         let servers = Map.empty.Add
@@ -356,91 +401,154 @@ type ServerReference() =
         Assert.That(deserializedServers.Length, Is.EqualTo 1)
 
     [<Test>]
-    member __.``when removing duplicate servers, the ones with history and most up to date, stay``() =
+    member __.``non-duplicate servers are not removed``() =
         let sameRandomHostname = "xfoihror3uo3wmio"
         let serverA =
             {
-                NetworkPath = sameRandomHostname
-                ConnectionType = some_connection_type_irrelevant_for_this_test
+                ServerInfo =
+                    {
+                        NetworkPath = "A"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
                 CommunicationHistory = None
             }
         let serverB =
             {
-                NetworkPath = sameRandomHostname
-                ConnectionType = some_connection_type_irrelevant_for_this_test
-                CommunicationHistory = CreateHistoryInfo dummy_now
+                ServerInfo =
+                    {
+                        NetworkPath = "B"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = None
             }
+
         let servers = Map.empty.Add
-                                (dummy_currency_because_irrelevant_for_this_test,
-                                seq { yield serverA; yield serverB })
+                                (dummy_currency_because_irrelevant_for_this_test, seq { yield serverA; yield serverB })
         let serverDetails = ServerRegistry.Serialize servers
         let deserializedServers =
             ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
                 |> List.ofSeq
+
+        Assert.That(deserializedServers.Length, Is.EqualTo 2)
+
+    member private __.SerializeAndDeserialize (serverA: ServerDetails) (serverB: ServerDetails): List<ServerDetails> =
+        let servers = seq { yield serverA; yield serverB }
+        let serverRanking = Map.empty.Add (dummy_currency_because_irrelevant_for_this_test, servers)
+        let serverDetails = ServerRegistry.Serialize serverRanking
+        ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
+            |> List.ofSeq
+
+    member private __.Merge (serverA: ServerDetails) (serverB: ServerDetails): List<ServerDetails> =
+        let serverRankingA =
+            Map.empty.Add (dummy_currency_because_irrelevant_for_this_test, seq { yield serverA })
+        let serverRankingB =
+            Map.empty.Add (dummy_currency_because_irrelevant_for_this_test, seq { yield serverB })
+        let mergedServerRanking = ServerRegistry.Merge serverRankingA serverRankingB
+        ((ServerRegistry.Merge serverRankingA serverRankingB).TryFind dummy_currency_because_irrelevant_for_this_test)
+            .Value
+            |> List.ofSeq
+
+    [<Test>]
+    member self.``when removing duplicate servers, the ones with history and most up to date, stay (I)``() =
+        let sameRandomHostname = "xfoihror3uo3wmio"
+        let serverA =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = None
+            }
+        let serverB =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfo dummy_now
+            }
+        let deserializedServers = self.SerializeAndDeserialize serverA serverB
 
         Assert.That(deserializedServers.Length, Is.EqualTo 1)
         Assert.That(deserializedServers.[0].CommunicationHistory, Is.Not.EqualTo None)
 
-        let olderDate = dummy_now - TimeSpan.FromDays 1.0
-        let sameRandomHostname = "xfoihror3uo3wmio"
-        let serverA =
-            {
-                NetworkPath = sameRandomHostname
-                ConnectionType = some_connection_type_irrelevant_for_this_test
-                CommunicationHistory = CreateHistoryInfo dummy_now
-            }
-        let serverB =
-            {
-                NetworkPath = sameRandomHostname
-                ConnectionType = some_connection_type_irrelevant_for_this_test
-                CommunicationHistory = CreateHistoryInfo olderDate
-            }
-        let servers = Map.empty.Add
-                                (dummy_currency_because_irrelevant_for_this_test,
-                                seq { yield serverA; yield serverB })
-        let serverDetails = ServerRegistry.Serialize servers
-        let deserializedServers =
-            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
-                |> List.ofSeq
+        let mergedServers = self.Merge serverA serverB
+        Assert.That(mergedServers.Length, Is.EqualTo 1)
+        Assert.That(mergedServers.[0].CommunicationHistory, Is.Not.EqualTo None)
 
-        Assert.That(deserializedServers.Length, Is.EqualTo 1)
-        match deserializedServers.[0].CommunicationHistory with
-        | None ->
-            Assert.Fail "should have some history since no server stored had None on it #1"
-        | Some history ->
-            match history.Status with
-            | Fault(_,_) -> Assert.Fail "should have status since both servers inserted had it #1"
-            | LastSuccessfulCommunication lsc ->
-                Assert.That(lsc, Is.EqualTo dummy_now)
+    [<Test>]
+    member self.``when removing duplicate servers, the ones with history and most up to date, stay (II)``() =
 
         let olderDate = dummy_now - TimeSpan.FromDays 1.0
         let sameRandomHostname = "xfoihror3uo3wmio"
         let serverA =
             {
-                NetworkPath = sameRandomHostname
-                ConnectionType = some_connection_type_irrelevant_for_this_test
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfo dummy_now
+            }
+        let serverB =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfo olderDate
+            }
+        let deserializedServers = self.SerializeAndDeserialize serverA serverB
+        let mergedServers = self.Merge serverA serverB
+
+        Assert.That(deserializedServers.Length, Is.EqualTo 1)
+        Assert.That(mergedServers.Length, Is.EqualTo 1)
+        match deserializedServers.[0].CommunicationHistory,mergedServers.[0].CommunicationHistory with
+        | Some (dHistory,_), Some (mHistory,_) ->
+            match dHistory.Status,mHistory.Status with
+            | LastSuccessfulCommunication dLsc,LastSuccessfulCommunication mLsc ->
+                Assert.That(dLsc, Is.EqualTo dummy_now)
+                Assert.That(mLsc, Is.EqualTo dummy_now)
+            | _ -> Assert.Fail "both deserialized and merged should have status since both servers inserted had it #1"
+        | _ ->
+            Assert.Fail "both deserialized and merged should have some history since no server stored had None on it #1"
+
+    [<Test>]
+    member self.``when removing duplicate servers, the ones with history and most up to date, stay (III)``() =
+        let olderDate = dummy_now - TimeSpan.FromDays 1.0
+        let sameRandomHostname = "xfoihror3uo3wmio"
+        let serverA =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
                 CommunicationHistory = CreateHistoryInfo olderDate
             }
         let serverB =
             {
-                NetworkPath = sameRandomHostname
-                ConnectionType = some_connection_type_irrelevant_for_this_test
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
                 CommunicationHistory = CreateHistoryInfo dummy_now
             }
-        let servers = Map.empty.Add
-                                (dummy_currency_because_irrelevant_for_this_test,
-                                seq { yield serverA; yield serverB })
-        let serverDetails = ServerRegistry.Serialize servers
-        let deserializedServers =
-            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
-                |> List.ofSeq
+        let deserializedServers = self.SerializeAndDeserialize serverA serverB
+        let mergedServers = self.Merge serverA serverB
 
         Assert.That(deserializedServers.Length, Is.EqualTo 1)
-        match deserializedServers.[0].CommunicationHistory with
-        | None ->
-            Assert.Fail "should have some history since no server stored had None on it #2"
-        | Some history ->
-            match history.Status with
-            | Fault(_,_) -> Assert.Fail "should have status since both servers inserted had it #2"
-            | LastSuccessfulCommunication lsc ->
-                Assert.That(lsc, Is.EqualTo dummy_now)
+        Assert.That(mergedServers.Length, Is.EqualTo 1)
+        match deserializedServers.[0].CommunicationHistory,mergedServers.[0].CommunicationHistory with
+        | Some (dHistory, _), Some (mHistory, _) ->
+            match dHistory.Status,mHistory.Status with
+            | LastSuccessfulCommunication dLsc,LastSuccessfulCommunication mLsc ->
+                Assert.That(dLsc, Is.EqualTo dummy_now)
+                Assert.That(mLsc, Is.EqualTo dummy_now)
+            | _ -> Assert.Fail "both deserialized and merged should have status since both servers inserted had it #1"
+        | _ ->
+            Assert.Fail "both deserialized and merged should have some history since no server stored had None on it #2"
