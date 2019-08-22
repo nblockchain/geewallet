@@ -170,7 +170,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                              (tasks: List<Task<NonParallelResults<'K,'R,'E>>>)
                              (resultsSoFar: List<'R>)
                              (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
-                             : Async<FinalResult<'K,'T,'R,'E>> = async {
+                                 : Async<FinalResult<'K,'T,'R,'E>> = async {
         match tasks with
         | [] ->
             return
@@ -267,7 +267,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                  (resultsSoFar: List<'R>)
                  (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                  (cancellationSource: CancellationTokenSource)
-                 : Async<FinalResult<'K,'T,'R,'E>> =
+                     : Async<FinalResult<'K,'T,'R,'E>> =
         let tasks = LaunchAsyncJobs jobs cancellationSource
         WhenSomeInternal consistencySettings initialServerCount tasks resultsSoFar failedFuncsSoFar
 
@@ -275,7 +275,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                         (shouldReportUncancelledJobs: bool)
                                         (cancelledInternally: MutableStateCapsule<Option<DateTime>>)
                                         (servers: List<Server<'K,'R>>)
-                                        : Async<NonParallelResults<'K,'R,'E>> =
+                                            : Async<NonParallelResults<'K,'R,'E>> =
         match servers with
         | [] ->
             async {
@@ -381,7 +381,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             Seq.splitInto numberOfParallelJobsAllowed funcs
             |> Seq.map List.ofArray
             |> Seq.map
-                (ConcatenateNonParallelFuncs List.empty shouldReportUncancelledJobs cancelledInternally)
+                (ConcatenateNonParallelFuncs List.Empty shouldReportUncancelledJobs cancelledInternally)
             |> List.ofSeq
 
         let lengthOfBucketsSanityCheck = Math.Min(funcs.Length, numberOfParallelJobsAllowed)
