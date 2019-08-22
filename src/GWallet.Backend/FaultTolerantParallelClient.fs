@@ -80,9 +80,9 @@ type FaultTolerantParallelClientSettings<'R> =
         ResultSelectionMode: ResultSelectionMode<'R>
     }
 
-type Result<'Value, 'Err> =
+type Result<'Val, 'Err> =
     | Error of 'Err
-    | Success of 'Value
+    | Value of 'Val
 
 type MutableStateUnsafeAccessor<'T>(initialState: 'T) =
     let mutable state = initialState
@@ -108,7 +108,7 @@ type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
             try
                 try
                     let! res = server.Retrieval
-                    return Success res
+                    return Value res
                 finally
                     stopwatch.Stop()
             with
@@ -295,7 +295,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             let! runResult = Runner.Run server stopwatch cancelledInternally shouldReportUncancelledJobs
 
             match runResult with
-            | Success result ->
+            | Value result ->
                 let historyFact = { TimeSpan = stopwatch.Elapsed; Fault = None }
                 updateServer (fun srv -> srv = server.Details) historyFact
                 return SuccessfulResult result

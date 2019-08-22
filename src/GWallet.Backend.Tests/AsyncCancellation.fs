@@ -355,7 +355,7 @@ type AsyncCancellation() =
             try
                 try
                     task.Result
-                        |> Result.Success
+                        |> Result.Value
                 with
                 | ex ->
                     if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
@@ -366,7 +366,7 @@ type AsyncCancellation() =
                 stopWatch.Stop()
 
         match result with
-        | Result.Success _ -> Assert.Fail "should have been cancelled"
+        | Result.Value _ -> Assert.Fail "should have been cancelled"
         | _ -> ()
 
         Assert.That(stopWatch.Elapsed, Is.LessThan timeoutTime)
