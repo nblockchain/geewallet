@@ -115,13 +115,18 @@ module ServerRegistry =
 
     let internal Sort (servers: seq<ServerDetails>): seq<ServerDetails> =
         Seq.sortByDescending (fun server ->
+                                  let invertOrder (timeSpan: TimeSpan): int =
+                                      0 - int timeSpan.TotalMilliseconds
                                   match server.CommunicationHistory with
                                   | None -> None
                                   | Some (history,_) ->
                                       match history.Status with
-                                      | Fault (_,lsc) -> lsc
+                                      | Fault (_,maybeLsc) ->
+                                          match maybeLsc with
+                                          | None -> Some (invertOrder history.TimeSpan, None)
+                                          | Some lsc -> Some (invertOrder history.TimeSpan, Some lsc)
                                       | LastSuccessfulCommunication lsc ->
-                                          Some lsc
+                                          Some (invertOrder history.TimeSpan, Some lsc)
                              ) servers
 
     let Serialize(servers: ServerRanking): string =

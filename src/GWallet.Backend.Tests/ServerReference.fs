@@ -14,12 +14,20 @@ type ServerReference() =
     let dummy_now = DateTime.UtcNow
     let some_connection_type_irrelevant_for_this_test = { Encrypted = false; Protocol = Http }
 
-    let CreateHistoryInfo(lastSuccessfulCommunication: DateTime) =
+    let CreateHistoryInfoWithLsc(lastSuccessfulCommunication: DateTime) =
         ({
             Status = LastSuccessfulCommunication lastSuccessfulCommunication
 
             //irrelevant for this test
             TimeSpan = TimeSpan.Zero
+        },dummy_now) |> Some
+
+    let CreateHistoryInfoWithSpan(timeSpan: TimeSpan) =
+        ({
+            //irrelevant for this test
+            Status = LastSuccessfulCommunication dummy_now
+
+            TimeSpan = timeSpan
         },dummy_now) |> Some
 
     [<Test>]
@@ -79,7 +87,7 @@ type ServerReference() =
                         NetworkPath = "pkine34o4hirn"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo DateTime.Now
+                CommunicationHistory = CreateHistoryInfoWithLsc DateTime.Now
             }
         let serverWithNoLastConnection =
             {
@@ -128,7 +136,7 @@ type ServerReference() =
                         NetworkPath = "dlm8yerwlcifs"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo (DateTime.Now - TimeSpan.FromDays 10.0)
+                CommunicationHistory = CreateHistoryInfoWithLsc (DateTime.Now - TimeSpan.FromDays 10.0)
             }
         let serverWithMostRecentConnection =
             {
@@ -137,7 +145,7 @@ type ServerReference() =
                         NetworkPath = "eliuh4midkndk"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo DateTime.Now
+                CommunicationHistory = CreateHistoryInfoWithLsc DateTime.Now
             }
         let servers1 = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
@@ -168,6 +176,54 @@ type ServerReference() =
         Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #2")
 
     [<Test>]
+    member __.``order of servers depends on shortest timespan``() =
+        let serverWithWorstConnectionSpan =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = "mxiunrciunri"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfoWithSpan (TimeSpan.FromSeconds 5.0)
+            }
+        let serverWithBestConnectionSpan =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = "ekuyzegnuyen"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfoWithSpan (TimeSpan.FromSeconds 1.0)
+            }
+        let servers1 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithWorstConnectionSpan; yield serverWithBestConnectionSpan })
+        let serverDetails = ServerRegistry.Serialize servers1
+
+        let serverAPos = serverDetails.IndexOf serverWithWorstConnectionSpan.ServerInfo.NetworkPath
+        let serverBPos = serverDetails.IndexOf serverWithBestConnectionSpan.ServerInfo.NetworkPath
+
+        Assert.That(serverAPos, Is.Not.LessThan 0)
+
+        Assert.That(serverBPos, Is.Not.LessThan 0)
+
+        Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #1")
+
+        let servers2 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithBestConnectionSpan; yield serverWithWorstConnectionSpan })
+        let serverDetailsReverse = ServerRegistry.Serialize servers2
+
+        let serverAPos = serverDetailsReverse.IndexOf serverWithWorstConnectionSpan.ServerInfo.NetworkPath
+        let serverBPos = serverDetailsReverse.IndexOf serverWithBestConnectionSpan.ServerInfo.NetworkPath
+
+        Assert.That(serverAPos, Is.Not.LessThan 0)
+
+        Assert.That(serverBPos, Is.Not.LessThan 0)
+
+        Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #2")
+
+    [<Test>]
     member __.``stats of server are included in serialization``() =
         let now = DateTime.UtcNow
         let serverWithSomeRecentConnection =
@@ -177,7 +233,7 @@ type ServerReference() =
                         NetworkPath = "eliuh4midkndk"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo now
+                CommunicationHistory = CreateHistoryInfoWithLsc now
             }
         let servers = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
@@ -209,7 +265,7 @@ type ServerReference() =
                         NetworkPath = "eliuh4midkndk"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo DateTime.UtcNow
+                CommunicationHistory = CreateHistoryInfoWithLsc DateTime.UtcNow
             }
         let servers = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
@@ -398,7 +454,7 @@ type ServerReference() =
                         NetworkPath = sameRandomHostname
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo dummy_now
+                CommunicationHistory = CreateHistoryInfoWithLsc dummy_now
             }
         let servers = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
@@ -477,7 +533,7 @@ type ServerReference() =
                         NetworkPath = sameRandomHostname
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo dummy_now
+                CommunicationHistory = CreateHistoryInfoWithLsc dummy_now
             }
         let deserializedServers = self.SerializeAndDeserialize serverA serverB
 
@@ -500,7 +556,7 @@ type ServerReference() =
                         NetworkPath = sameRandomHostname
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo dummy_now
+                CommunicationHistory = CreateHistoryInfoWithLsc dummy_now
             }
         let serverB =
             {
@@ -509,7 +565,7 @@ type ServerReference() =
                         NetworkPath = sameRandomHostname
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo olderDate
+                CommunicationHistory = CreateHistoryInfoWithLsc olderDate
             }
         let deserializedServers = self.SerializeAndDeserialize serverA serverB
         let mergedServers = self.Merge serverA serverB
@@ -537,7 +593,7 @@ type ServerReference() =
                         NetworkPath = sameRandomHostname
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo olderDate
+                CommunicationHistory = CreateHistoryInfoWithLsc olderDate
             }
         let serverB =
             {
@@ -546,7 +602,7 @@ type ServerReference() =
                         NetworkPath = sameRandomHostname
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = CreateHistoryInfo dummy_now
+                CommunicationHistory = CreateHistoryInfoWithLsc dummy_now
             }
         let deserializedServers = self.SerializeAndDeserialize serverA serverB
         let mergedServers = self.Merge serverA serverB
