@@ -71,6 +71,55 @@ type ServerReference() =
         Assert.That(serverAPos, Is.GreaterThan serverBPos, "shouldn't be sorted #2")
 
     [<Test>]
+    member __.``order of servers: no history comes last``() =
+        let serverWithRecentConnectionInfo =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = "pkine34o4hirn"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfo DateTime.Now
+            }
+        let serverWithNoLastConnection =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = "dlm8yerwlcifs"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = None
+            }
+
+        let servers1 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithNoLastConnection; yield serverWithRecentConnectionInfo })
+        let serverDetails1 = ServerRegistry.Serialize servers1
+
+        let serverAPos = serverDetails1.IndexOf serverWithNoLastConnection.ServerInfo.NetworkPath
+        let serverBPos = serverDetails1.IndexOf serverWithRecentConnectionInfo.ServerInfo.NetworkPath
+
+        Assert.That(serverAPos, Is.Not.LessThan 0)
+
+        Assert.That(serverBPos, Is.Not.LessThan 0)
+
+        Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #1")
+
+        let servers2 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithRecentConnectionInfo; yield serverWithNoLastConnection })
+        let serverDetails2 = ServerRegistry.Serialize servers2
+
+        let serverAPos = serverDetails2.IndexOf serverWithNoLastConnection.ServerInfo.NetworkPath
+        let serverBPos = serverDetails2.IndexOf serverWithRecentConnectionInfo.ServerInfo.NetworkPath
+
+        Assert.That(serverAPos, Is.Not.LessThan 0)
+
+        Assert.That(serverBPos, Is.Not.LessThan 0)
+
+        Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #2")
+
+    [<Test>]
     member __.``order of servers depends on last successful conn``() =
         let serverWithOldestConnection =
             {
@@ -117,45 +166,6 @@ type ServerReference() =
         Assert.That(serverBPos, Is.Not.LessThan 0)
 
         Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #2")
-
-
-        let serverWithNoLastConnection =
-            {
-                ServerInfo =
-                    {
-                        NetworkPath = "dlm8yerwlcifs"
-                        ConnectionType = some_connection_type_irrelevant_for_this_test
-                    }
-                CommunicationHistory = None
-            }
-
-        let servers3 = Map.empty.Add
-                                (dummy_currency_because_irrelevant_for_this_test,
-                                seq { yield serverWithNoLastConnection; yield serverWithMostRecentConnection })
-        let serverDetails3 = ServerRegistry.Serialize servers3
-
-        let serverAPos = serverDetails.IndexOf serverWithNoLastConnection.ServerInfo.NetworkPath
-        let serverBPos = serverDetails.IndexOf serverWithMostRecentConnection.ServerInfo.NetworkPath
-
-        Assert.That(serverAPos, Is.Not.LessThan 0)
-
-        Assert.That(serverBPos, Is.Not.LessThan 0)
-
-        Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #3")
-
-        let servers4 = Map.empty.Add
-                                (dummy_currency_because_irrelevant_for_this_test,
-                                seq { yield serverWithMostRecentConnection; yield serverWithNoLastConnection })
-        let serverDetails3Rev = ServerRegistry.Serialize servers4
-
-        let serverAPos = serverDetails3Rev.IndexOf serverWithNoLastConnection.ServerInfo.NetworkPath
-        let serverBPos = serverDetails3Rev.IndexOf serverWithMostRecentConnection.ServerInfo.NetworkPath
-
-        Assert.That(serverAPos, Is.Not.LessThan 0)
-
-        Assert.That(serverBPos, Is.Not.LessThan 0)
-
-        Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #4")
 
     [<Test>]
     member __.``stats of server are included in serialization``() =
