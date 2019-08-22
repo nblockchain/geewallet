@@ -38,8 +38,8 @@ type FaultTolerance() =
 
 
     let some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test =
-        Fault ({ TypeFullName = typeof<Exception>.FullName; Message = "some err" },None)
-    let some_successful_irrelevant_date: Status = LastSuccessfulCommunication DateTime.UtcNow
+        Fault { Exception = { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
+                LastSuccessfulCommunication = None }
 
     let dummy_date_for_cache = DateTime.Now
 
@@ -584,7 +584,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some ({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some ({ Status = Success
                                                                  TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                                 dummy_date_for_cache)
                               }
@@ -667,7 +667,7 @@ type FaultTolerance() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some ({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some ({ Status = Success
                                                                  TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                                dummy_date_for_cache)
                               }
@@ -788,7 +788,7 @@ type FaultTolerance() =
                                           NetworkPath = "server3"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -840,7 +840,7 @@ type FaultTolerance() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -854,7 +854,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
@@ -868,7 +868,7 @@ type FaultTolerance() =
                                           NetworkPath = "server3"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 3.0 },
                                                               dummy_date_for_cache)
                               }
@@ -937,7 +937,7 @@ type FaultTolerance() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -951,7 +951,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
@@ -965,7 +965,7 @@ type FaultTolerance() =
                                           NetworkPath = "server3"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 3.0 },
                                                               dummy_date_for_cache)
                               }
@@ -980,7 +980,7 @@ type FaultTolerance() =
                                           NetworkPath = "server4"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 4.0 },
                                                               dummy_date_for_cache)
                               }
@@ -994,7 +994,7 @@ type FaultTolerance() =
                                           NetworkPath = "server5"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 5.0 },
                                                               dummy_date_for_cache)
                               }

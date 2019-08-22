@@ -16,16 +16,17 @@ type ServerReference() =
 
     let CreateHistoryInfoWithLsc(lastSuccessfulCommunication: DateTime) =
         ({
-            Status = LastSuccessfulCommunication lastSuccessfulCommunication
+            Status = Success
 
             //irrelevant for this test
             TimeSpan = TimeSpan.Zero
-        },dummy_now) |> Some
+
+        },lastSuccessfulCommunication) |> Some
 
     let CreateHistoryInfoWithSpan(timeSpan: TimeSpan) =
         ({
             //irrelevant for this test
-            Status = LastSuccessfulCommunication dummy_now
+            Status = Success
 
             TimeSpan = timeSpan
         },dummy_now) |> Some
@@ -33,7 +34,8 @@ type ServerReference() =
     let CreateFaultyHistoryInfoWithSpan(timeSpan: TimeSpan) =
         ({
             //irrelevant for this test
-            Status = Fault ({ TypeFullName = "SomeNamespace.SomeException" ; Message = "argh" },None)
+            Status = Fault { Exception = { TypeFullName = "SomeNamespace.SomeException" ; Message = "argh" }
+                             LastSuccessfulCommunication = None }
 
             TimeSpan = timeSpan
         },dummy_now) |> Some
@@ -375,10 +377,10 @@ type ServerReference() =
                         ConnectionType = { Encrypted = false; Protocol = Http }
                     }
                 CommunicationHistory = Some({
-                                                Status = LastSuccessfulCommunication lastSuccessfulCommunication
+                                                Status = Success
                                                 TimeSpan = timeSpanForHttpServer
                                             },
-                                            dummy_now)
+                                            lastSuccessfulCommunication)
              }
 
         let httpsServerNetworkPath1 = "https1"
@@ -392,7 +394,8 @@ type ServerReference() =
                         ConnectionType = { Encrypted = true; Protocol = Http }
                     }
                 CommunicationHistory = Some({
-                                                Status = Fault (exInfo, None)
+                                                Status = Fault { Exception = exInfo
+                                                                 LastSuccessfulCommunication = None }
                                                 TimeSpan = timeSpanForHttpsServer
                                             },
                                             dummy_now)
@@ -406,7 +409,13 @@ type ServerReference() =
                         ConnectionType = { Encrypted = true; Protocol = Http }
                     }
                 CommunicationHistory = Some({
-                                                Status = Fault (exInfo, Some lastSuccessfulCommunication)
+                                                Status =
+                                                    Fault
+                                                        {
+                                                            Exception = exInfo
+                                                            LastSuccessfulCommunication =
+                                                                Some lastSuccessfulCommunication
+                                                        }
                                                 TimeSpan = timeSpanForHttpsServer
                                             },
                                             dummy_now)
@@ -445,13 +454,13 @@ type ServerReference() =
         Assert.That(httpServer.ServerInfo.ConnectionType.Encrypted, Is.EqualTo false)
         match httpServer.CommunicationHistory with
         | None -> Assert.Fail "http server should have some historyinfo"
-        | Some (historyInfo,_) ->
+        | Some (historyInfo,lastComm) ->
             Assert.That(historyInfo.TimeSpan, Is.EqualTo timeSpanForHttpServer)
             match historyInfo.Status with
             | Fault _ ->
                 Assert.Fail "http server should be successful, not failure"
-            | LastSuccessfulCommunication lsc ->
-                Assert.That(lsc, Is.EqualTo lastSuccessfulCommunication)
+            | Success ->
+                Assert.That(lastComm, Is.EqualTo lastSuccessfulCommunication)
 
         let https1Servers = Seq.filter (fun server -> server.ServerInfo.NetworkPath = httpsServerNetworkPath1)
                                         deserializedServers
@@ -465,10 +474,10 @@ type ServerReference() =
         | Some (historyInfo,_) ->
             Assert.That(historyInfo.TimeSpan, Is.EqualTo timeSpanForHttpsServer)
             match historyInfo.Status with
-            | Fault (fault, maybeLsc) ->
-                Assert.That(fault.TypeFullName, Is.EqualTo exInfo.TypeFullName)
-                Assert.That(fault.Message, Is.EqualTo exInfo.Message)
-                Assert.That(maybeLsc, Is.EqualTo None)
+            | Fault faultInfo ->
+                Assert.That(faultInfo.Exception.TypeFullName, Is.EqualTo exInfo.TypeFullName)
+                Assert.That(faultInfo.Exception.Message, Is.EqualTo exInfo.Message)
+                Assert.That(faultInfo.LastSuccessfulCommunication, Is.EqualTo None)
             | _ ->
                 Assert.Fail "https server should be fault, not successful"
 
@@ -484,10 +493,10 @@ type ServerReference() =
         | Some (historyInfo,_) ->
             Assert.That(historyInfo.TimeSpan, Is.EqualTo timeSpanForHttpsServer)
             match historyInfo.Status with
-            | Fault (fault, maybeLsc) ->
-                Assert.That(fault.TypeFullName, Is.EqualTo exInfo.TypeFullName)
-                Assert.That(fault.Message, Is.EqualTo exInfo.Message)
-                Assert.That(maybeLsc, Is.EqualTo (Some lastSuccessfulCommunication))
+            | Fault faultInfo ->
+                Assert.That(faultInfo.Exception.TypeFullName, Is.EqualTo exInfo.TypeFullName)
+                Assert.That(faultInfo.Exception.Message, Is.EqualTo exInfo.Message)
+                Assert.That(faultInfo.LastSuccessfulCommunication, Is.EqualTo (Some lastSuccessfulCommunication))
             | _ ->
                 Assert.Fail "https server should be fault, not successful"
 
@@ -629,11 +638,11 @@ type ServerReference() =
         Assert.That(deserializedServers.Length, Is.EqualTo 1)
         Assert.That(mergedServers.Length, Is.EqualTo 1)
         match deserializedServers.[0].CommunicationHistory,mergedServers.[0].CommunicationHistory with
-        | Some (dHistory,_), Some (mHistory,_) ->
+        | Some (dHistory,dLastComm), Some (mHistory,mLastComm) ->
             match dHistory.Status,mHistory.Status with
-            | LastSuccessfulCommunication dLsc,LastSuccessfulCommunication mLsc ->
-                Assert.That(dLsc, Is.EqualTo dummy_now)
-                Assert.That(mLsc, Is.EqualTo dummy_now)
+            | Success,Success ->
+                Assert.That(dLastComm, Is.EqualTo dummy_now)
+                Assert.That(mLastComm, Is.EqualTo dummy_now)
             | _ -> Assert.Fail "both deserialized and merged should have status since both servers inserted had it #1"
         | _ ->
             Assert.Fail "both deserialized and merged should have some history since no server stored had None on it #1"
@@ -666,11 +675,11 @@ type ServerReference() =
         Assert.That(deserializedServers.Length, Is.EqualTo 1)
         Assert.That(mergedServers.Length, Is.EqualTo 1)
         match deserializedServers.[0].CommunicationHistory,mergedServers.[0].CommunicationHistory with
-        | Some (dHistory, _), Some (mHistory, _) ->
+        | Some (dHistory, dLastComm), Some (mHistory, mLastComm) ->
             match dHistory.Status,mHistory.Status with
-            | LastSuccessfulCommunication dLsc,LastSuccessfulCommunication mLsc ->
-                Assert.That(dLsc, Is.EqualTo dummy_now)
-                Assert.That(mLsc, Is.EqualTo dummy_now)
+            | Success,Success ->
+                Assert.That(dLastComm, Is.EqualTo dummy_now)
+                Assert.That(mLastComm, Is.EqualTo dummy_now)
             | _ -> Assert.Fail "both deserialized and merged should have status since both servers inserted had it #1"
         | _ ->
             Assert.Fail "both deserialized and merged should have some history since no server stored had None on it #2"

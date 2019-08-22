@@ -6,11 +6,15 @@ type ExceptionInfo =
     { TypeFullName: string
       Message: string }
 
-type LastSuccessfulCommunicationTime = DateTime
+type FaultInfo =
+    {
+        Exception: ExceptionInfo
+        LastSuccessfulCommunication: Option<DateTime>
+    }
 
 type Status =
-    | Fault of ExceptionInfo*Option<LastSuccessfulCommunicationTime>
-    | LastSuccessfulCommunication of LastSuccessfulCommunicationTime
+    | Fault of FaultInfo
+    | Success
 
 type HistoryInfo =
     { TimeSpan: TimeSpan
@@ -95,15 +99,15 @@ module ServerRegistry =
                         match server.CommunicationHistory,serverInMap.CommunicationHistory with
                         | None,_ -> serverInMap
                         | _,None -> server
-                        | Some (commHistory,_),Some (commHistoryInMap,_) ->
+                        | Some (commHistory,lastComm),Some (commHistoryInMap,lastCommInMap) ->
                             match commHistory.Status,commHistoryInMap.Status with
-                            | Fault(_,None),_ -> serverInMap
-                            | _,Fault(_,None) -> server
-                            | LastSuccessfulCommunication lsc,LastSuccessfulCommunication lscInMap
-                            | LastSuccessfulCommunication lsc,Fault(_,Some lscInMap)
-                            | Fault(_,Some lsc),LastSuccessfulCommunication lscInMap
-                            | Fault(_,Some lsc),Fault(_,Some lscInMap) ->
-                                if lsc > lscInMap then
+                            | Fault _,_ -> serverInMap
+                            | _,Fault _ -> server
+                            | Success,Success
+                            | Success,Fault _
+                            | Fault _,Success
+                            | Fault _,Fault _ ->
+                                if lastComm > lastCommInMap then
                                     server
                                 else
                                     serverInMap
@@ -119,16 +123,16 @@ module ServerRegistry =
                                       0 - int timeSpan.TotalMilliseconds
                                   match server.CommunicationHistory with
                                   | None -> None
-                                  | Some (history,_) ->
+                                  | Some (history, lastComm) ->
                                       match history.Status with
-                                      | Fault (_,maybeLsc) ->
+                                      | Fault faultInfo ->
                                           let success = false
-                                          match maybeLsc with
+                                          match faultInfo.LastSuccessfulCommunication with
                                           | None -> Some (success, invertOrder history.TimeSpan, None)
                                           | Some lsc -> Some (success, invertOrder history.TimeSpan, Some lsc)
-                                      | LastSuccessfulCommunication lsc ->
+                                      | Success ->
                                           let success = true
-                                          Some (success, invertOrder history.TimeSpan, Some lsc)
+                                          Some (success, invertOrder history.TimeSpan, Some lastComm)
                              ) servers
 
     let Serialize(servers: ServerRanking): string =

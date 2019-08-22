@@ -509,18 +509,20 @@ module Caching =
                     | Some (currency,server) ->
                             match server.CommunicationHistory with
                             | None -> currency,server.ServerInfo,None
-                            | Some (prevHistoryInfo,_) ->
+                            | Some (prevHistoryInfo,lastComm) ->
                                     match prevHistoryInfo.Status with
-                                    | LastSuccessfulCommunication lsc -> currency,server.ServerInfo,Some lsc
-                                    | Fault (_, maybeLsc) -> currency,server.ServerInfo,maybeLsc
+                                    | Success -> currency,server.ServerInfo,Some lastComm
+                                    | Fault faultInfo -> currency,server.ServerInfo,faultInfo.LastSuccessfulCommunication
 
                 let now = DateTime.Now
                 let newHistoryInfo: CachedValue<HistoryInfo> =
                     match stat.Fault with
                     | None ->
-                        ({ TimeSpan = stat.TimeSpan; Status = LastSuccessfulCommunication now }, now)
+                        ({ TimeSpan = stat.TimeSpan; Status = Success }, now)
                     | Some exInfo ->
-                        ({ TimeSpan = stat.TimeSpan; Status = Fault(exInfo, previousLastSuccessfulCommunication) }, now)
+                        ({ TimeSpan = stat.TimeSpan
+                           Status = Fault { Exception = exInfo
+                                            LastSuccessfulCommunication = previousLastSuccessfulCommunication }}, now)
 
                 let newServerDetails =
                     {

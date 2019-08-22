@@ -36,8 +36,8 @@ type ParallelizationAndOptimization() =
     let default_mode_as_it_is_irrelevant_for_this_test = ServerSelectionMode.Fast
 
     let some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test =
-        Fault ({ TypeFullName = typeof<Exception>.FullName; Message = "some err" },None)
-    let some_successful_irrelevant_date = LastSuccessfulCommunication DateTime.UtcNow
+        Fault { Exception = { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
+                LastSuccessfulCommunication = None }
 
     [<Test>]
     member __.``calls both funcs (because it launches them in parallel)``() =
@@ -231,7 +231,7 @@ type ParallelizationAndOptimization() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
@@ -245,7 +245,7 @@ type ParallelizationAndOptimization() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -301,7 +301,7 @@ type ParallelizationAndOptimization() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -315,7 +315,7 @@ type ParallelizationAndOptimization() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = some_successful_irrelevant_date
+                                  CommunicationHistory = Some({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
