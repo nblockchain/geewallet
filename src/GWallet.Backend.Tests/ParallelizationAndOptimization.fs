@@ -366,3 +366,72 @@ type ParallelizationAndOptimization() =
         Assert.That(dataRetreived, Is.TypeOf<int>())
         Assert.That(dataRetreived, Is.EqualTo someResult3)
 
+    [<Test>]
+    member __.``parallel jobs is honored (corner case)``() =
+        let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 2u
+        let NUMBER_OF_CONSISTENT_RESULTS = 1u
+
+        let consistencyCfg = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS |> Some
+        let settings =
+            {
+                FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyCfg with
+                    NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
+            }
+
+        let aJob1 = async {
+            do! Async.Sleep 2000
+            return 0
+        }
+        let aJob2 = async {
+            return 0
+        }
+        let aJob3 = async {
+            return raise SomeExceptionDuringParallelWork
+        }
+        let stopWatch = Stopwatch.StartNew()
+
+        let func1,func2,func3 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob3" aJob3
+
+        let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
+                         dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
+        client.Query settings [ func1; func2; func3 ]
+            |> Async.RunSynchronously |> ignore
+        stopWatch.Stop()
+        Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
+
+        stopWatch.Start()
+        //same as before, but with different order now
+        client.Query settings [ func1; func3; func2 ]
+            |> Async.RunSynchronously |> ignore
+        stopWatch.Stop()
+        Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
+
+        stopWatch.Start()
+        //same as before, but with different order now
+        client.Query settings [ func2; func3; func1 ]
+            |> Async.RunSynchronously |> ignore
+        Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
+
+        stopWatch.Start()
+        //same as before, but with different order now
+        client.Query settings [ func2; func1; func3 ]
+            |> Async.RunSynchronously |> ignore
+        stopWatch.Stop()
+        Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
+
+        stopWatch.Start()
+        //same as before, but with different order now
+        client.Query settings [ func3; func1; func2 ]
+            |> Async.RunSynchronously |> ignore
+        stopWatch.Stop()
+        Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
+
+        stopWatch.Start()
+        //same as before, but with different order now
+        client.Query settings [ func3; func2; func1 ]
+            |> Async.RunSynchronously |> ignore
+        stopWatch.Stop()
+        Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
+
