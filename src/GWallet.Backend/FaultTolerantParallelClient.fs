@@ -148,24 +148,23 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
     let MeasureConsistency (results: List<'R>) =
         results |> Seq.countBy id |> Seq.sortByDescending (fun (_,count: int) -> count) |> List.ofSeq
 
-    let LaunchAsyncJobs (jobs:List<Async<NonParallelResults<'K,'R,'E>>>)
-                        (cancellationSource: CancellationTokenSource)
-                            : List<Task<NonParallelResults<'K,'R,'E>>> =
+    let LaunchAsyncJob (job: Async<NonParallelResults<'K,'R,'E>>)
+                       (cancellationSource: CancellationTokenSource)
+                           : Task<NonParallelResults<'K,'R,'E>> =
         let token =
             try
                 cancellationSource.Token
             with
             | :? ObjectDisposedException as ex ->
                 raise <| TaskUnavailabilityException("cancellationTokenSource already disposed", ex)
-
-        jobs
-            |> List.map (fun job -> Async.StartAsTask(job, ?cancellationToken = Some token))
+        Async.StartAsTask(job, ?cancellationToken = Some token)
 
     let rec WhenSomeInternal (consistencySettings: Option<ConsistencySettings<'R>>)
                              (initialServerCount: uint32)
                              (tasks: List<Task<NonParallelResults<'K,'R,'E>>>)
                              (resultsSoFar: List<'R>)
                              (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
+                             (cancellationSource: CancellationTokenSource)
                                  : Async<FinalResult<'K,'T,'R,'E>> = async {
         match tasks with
         | [] ->
@@ -195,7 +194,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 | None ->
                     restOfTasks
                 | Some unlaunchedJobWithMoreTasks ->
-                    let newTask = Async.StartAsTask unlaunchedJobWithMoreTasks
+                    let newTask = LaunchAsyncJob unlaunchedJobWithMoreTasks cancellationSource
                     newTask::restOfTasks
 
             let newFailedFuncs = List.append failedFuncsSoFar fastestTask.Result.Failures
@@ -206,7 +205,10 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 | [] ->
                     return! WhenSomeInternal consistencySettings
                                              initialServerCount
-                                             newRestOfTasks newResults newFailedFuncs
+                                             newRestOfTasks
+                                             newResults
+                                             newFailedFuncs
+                                             cancellationSource
                 | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                     match minNumberOfConsistentResultsRequired,cacheMatchFunc with
                     | None, None ->
@@ -220,6 +222,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                      newRestOfTasks
                                                      newResults
                                                      newFailedFuncs
+                                                     cancellationSource
                     | _ -> return failwith "should be either both None or both Some!"
             }
 
@@ -233,6 +236,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newRestOfTasks
                                              newResults
                                              newFailedFuncs
+                                             cancellationSource
             | Some (SpecificNumberOfConsistentResponsesRequired number) ->
                 return! returnWithConsistencyOf (Some number) ((fun _ -> false) |> Some)
             | Some (OneServerConsistentWithCacheOrTwoServers cacheMatchFunc) ->
@@ -259,6 +263,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newRestOfTasks
                                              newResults
                                              newFailedFuncs
+                                             cancellationSource
     }
 
     // at the time of writing this, I only found a Task.WhenAny() equivalent function in the asyncF# world, called
@@ -272,8 +277,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                  (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                  (cancellationSource: CancellationTokenSource)
                      : Async<FinalResult<'K,'T,'R,'E>> =
-        let tasks = LaunchAsyncJobs jobs cancellationSource
-        WhenSomeInternal consistencySettings initialServerCount tasks resultsSoFar failedFuncsSoFar
+        let tasks = jobs |> List.map (fun job -> LaunchAsyncJob job cancellationSource)
+        WhenSomeInternal consistencySettings initialServerCount tasks resultsSoFar failedFuncsSoFar cancellationSource
 
     let rec ConcatenateNonParallelFuncs (failuresSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                                         (shouldReportUncancelledJobs: bool)
