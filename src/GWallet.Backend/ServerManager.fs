@@ -86,8 +86,11 @@ module ServerManager =
     let private testingSettings =
         {
             NumberOfParallelJobsAllowed = 4u
-            NumberOfRetries = 1u
-            NumberOfRetriesForInconsistency = 1u
+
+            // if not zero we might screw up our percentage logging when performing the requests?
+            NumberOfRetries = 0u
+            NumberOfRetriesForInconsistency = 0u
+
             ResultSelectionMode = Exhaustive
         }
 
