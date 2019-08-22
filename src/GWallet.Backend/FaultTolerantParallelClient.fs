@@ -161,21 +161,19 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
 
     let rec WhenSomeInternal (consistencySettings: Option<ConsistencySettings<'R>>)
                              (initialServerCount: uint32)
-                             (tasks: List<Task<NonParallelResults<'K,'R,'E>>>)
+                             (theTasks: List<Task<NonParallelResults<'K,'R,'E>>>)
                              (resultsSoFar: List<'R>)
                              (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                              (cancellationSource: CancellationTokenSource)
                                  : Async<FinalResult<'K,'T,'R,'E>> = async {
-        match tasks with
-        | [] ->
+        if theTasks = List.Empty then
             return
                 InconsistentOrNotEnoughResults
                     {
                         SuccessfulResults = resultsSoFar
                         UnsuccessfulServers = failedFuncsSoFar
                     }
-        | theTasks ->
-
+        else
             let taskToWaitForFirstFinishedTask = Task.WhenAny theTasks
             let! fastestTask = Async.AwaitTask taskToWaitForFirstFinishedTask
 
