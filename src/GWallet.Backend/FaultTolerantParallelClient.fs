@@ -30,13 +30,20 @@ type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                   maxNumberOfConsistentResultsObtained
                                   numberOfConsistentResultsRequired)
 
-type internal ResultsSoFar<'R> = List<'R>
-type internal ExceptionsSoFar<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
-    List<Server<'K,'R>*'E>
+type UnsuccessfulServer<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
+    {
+        Server: Server<'K,'R>
+        Failure: 'E
+    }
+type ExecutedServers<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
+    {
+        SuccessfulResults: List<'R>
+        UnsuccessfulServers: List<UnsuccessfulServer<'K,'R,'E>>
+    }
 type internal FinalResult<'K,'T,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
     | ConsistentResult of 'R
     | AverageResult of 'R
-    | InconsistentOrNotEnoughResults of ResultsSoFar<'R>*ExceptionsSoFar<'K,'R,'E>
+    | InconsistentOrNotEnoughResults of ExecutedServers<'K,'R,'E>
 
 type internal NonParallelResultWithAdditionalWork<'K,'R,'E when 'K: equality
                                                             and 'K :> ICommunicationHistory
@@ -44,7 +51,10 @@ type internal NonParallelResultWithAdditionalWork<'K,'R,'E when 'K: equality
     | SuccessfulFirstResult of ('R * Async<NonParallelResults<'K,'R,'E>>)
     | NoneAvailable
 and internal NonParallelResults<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
-    ExceptionsSoFar<'K,'R,'E> * NonParallelResultWithAdditionalWork<'K,'R,'E>
+    {
+        Failures: List<UnsuccessfulServer<'K,'R,'E>>
+        Tail: NonParallelResultWithAdditionalWork<'K,'R,'E>
+    }
 
 type ConsistencySettings<'R> =
 
@@ -159,28 +169,32 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                              (initialServerCount: uint32)
                              (tasks: List<Task<NonParallelResults<'K,'R,'E>>>)
                              (resultsSoFar: List<'R>)
-                             (failedFuncsSoFar: ExceptionsSoFar<'K,'R,'E>)
+                             (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                              : Async<FinalResult<'K,'T,'R,'E>> = async {
         match tasks with
         | [] ->
-            return InconsistentOrNotEnoughResults(resultsSoFar,failedFuncsSoFar)
+            return
+                InconsistentOrNotEnoughResults
+                    {
+                        SuccessfulResults = resultsSoFar
+                        UnsuccessfulServers = failedFuncsSoFar
+                    }
         | theTasks ->
 
             let taskToWaitForFirstFinishedTask = Task.WhenAny theTasks
             let! fastestTask = Async.AwaitTask taskToWaitForFirstFinishedTask
-            let failuresOfTask,resultOfTask = fastestTask.Result
 
             let restOfTasks: List<Task<NonParallelResults<'K,'R,'E>>> =
                 theTasks.Where(fun task -> not (Object.ReferenceEquals(task, fastestTask))) |> List.ofSeq
 
             let (newResults,newRestOfTasks) =
-                match resultOfTask with
+                match fastestTask.Result.Tail with
                 | SuccessfulFirstResult(newResult,unlaunchedJobWithMoreTasks) ->
                     let newTask = Async.StartAsTask unlaunchedJobWithMoreTasks
                     (newResult::resultsSoFar),(newTask::restOfTasks)
                 | NoneAvailable ->
                     resultsSoFar,restOfTasks
-            let newFailedFuncs = List.append failedFuncsSoFar failuresOfTask
+            let newFailedFuncs = List.append failedFuncsSoFar fastestTask.Result.Failures
 
             let returnWithConsistencyOf (minNumberOfConsistentResultsRequired: Option<uint32>) cacheMatchFunc = async {
                 let resultsSortedByCount = MeasureConsistency newResults
@@ -251,13 +265,13 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                  (initialServerCount: uint32)
                  (jobs: List<Async<NonParallelResults<'K,'R,'E>>>)
                  (resultsSoFar: List<'R>)
-                 (failedFuncsSoFar: ExceptionsSoFar<'K,'R,'E>)
+                 (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                  (cancellationSource: CancellationTokenSource)
                  : Async<FinalResult<'K,'T,'R,'E>> =
         let tasks = LaunchAsyncJobs jobs cancellationSource
         WhenSomeInternal consistencySettings initialServerCount tasks resultsSoFar failedFuncsSoFar
 
-    let rec ConcatenateNonParallelFuncs (failuresSoFar: ExceptionsSoFar<'K,'R,'E>)
+    let rec ConcatenateNonParallelFuncs (failuresSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                                         (shouldReportUncancelledJobs: bool)
                                         (cancelledInternally: MutableStateCapsule<Option<DateTime>>)
                                         (servers: List<Server<'K,'R>>)
@@ -265,7 +279,10 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
         match servers with
         | [] ->
             async {
-                return failuresSoFar,NoneAvailable
+                return {
+                    Failures = failuresSoFar
+                    Tail = NoneAvailable
+                }
             }
         | head::tail ->
             async {
@@ -279,7 +296,10 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     updateServer (fun server -> server = head.Details) historyFact
                     let tailAsync =
                         ConcatenateNonParallelFuncs failuresSoFar shouldReportUncancelledJobs cancelledInternally tail
-                    return failuresSoFar,SuccessfulFirstResult(result,tailAsync)
+                    return {
+                        Failures = failuresSoFar
+                        Tail = SuccessfulFirstResult(result,tailAsync)
+                    }
 
                 | Error ex ->
                     let exInfo =
@@ -289,7 +309,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                         }
                     let historyFact = { TimeSpan = stopwatch.Elapsed; Fault = (Some exInfo) }
                     updateServer (fun server -> server = head.Details) historyFact
-                    let newFailures = (head,ex)::failuresSoFar
+                    let newFailures = { Server = head; Failure = ex }::failuresSoFar
                     return! ConcatenateNonParallelFuncs newFailures shouldReportUncancelledJobs cancelledInternally tail
             }
 
@@ -312,7 +332,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                           (initialFuncCount: uint32)
                           (funcs: List<Server<'K,'R>>)
                           (resultsSoFar: List<'R>)
-                          (failedFuncsSoFar: ExceptionsSoFar<'K,'R,'E>)
+                          (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                           (retries: uint32)
                           (retriesForInconsistency: uint32)
                           (cancellationSource: CancellationTokenSource)
@@ -382,11 +402,12 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
         | ConsistentResult consistentResult ->
             CancelAndDispose cancellationSource cancelledInternally
             return consistentResult
-        | InconsistentOrNotEnoughResults(allResultsSoFar,failedFuncsWithTheirExceptions) ->
-            let failedFuncs = failedFuncsWithTheirExceptions |> List.map fst
-            if (allResultsSoFar.Length = 0) then
+        | InconsistentOrNotEnoughResults executedServers ->
+            let failedFuncs = executedServers.UnsuccessfulServers
+                                  |> List.map (fun unsuccessfulServer -> unsuccessfulServer.Server)
+            if executedServers.SuccessfulResults.Length = 0 then
                 if (retries = settings.NumberOfRetries) then
-                    let firstEx = failedFuncsWithTheirExceptions.First() |> snd
+                    let firstEx = executedServers.UnsuccessfulServers.First().Failure
                     CancelAndDispose cancellationSource cancelledInternally
                     return raise (NoneAvailableException("Not available", firstEx))
                 else
@@ -394,14 +415,14 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                           settings
                                           initialFuncCount
                                           failedFuncs
-                                          allResultsSoFar
+                                          executedServers.SuccessfulResults
                                           List.Empty
                                           (retries + 1u)
                                           retriesForInconsistency
                                           cancellationSource
                                           cancelledInternally
             else
-                let totalNumberOfSuccesfulResultsObtained = allResultsSoFar.Length
+                let totalNumberOfSuccesfulResultsObtained = executedServers.SuccessfulResults.Length
 
                 // HACK: we do this as a quick fix wrt new OneServerConsistentWithCacheOrTwoServers setting, but we should
                 // (TODO) rather throw a specific overload of ResultInconsistencyException about this mode being used
@@ -413,7 +434,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
 
                 match wrappedSettings with
                 | Some (SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired) ->
-                    let resultsOrderedByCount = MeasureConsistency allResultsSoFar
+                    let resultsOrderedByCount = MeasureConsistency executedServers.SuccessfulResults
                     match resultsOrderedByCount with
                     | [] ->
                         return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
@@ -436,7 +457,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                   cancelledInternally
                 | Some(AverageBetweenResponses(minimumNumberOfResponses,averageFunc)) ->
                     if (retries = settings.NumberOfRetries) then
-                        let firstEx = failedFuncsWithTheirExceptions.First() |> snd
+                        let firstEx = executedServers.UnsuccessfulServers.First().Failure
                         CancelAndDispose cancellationSource cancelledInternally
                         return raise (NotEnoughAvailableException("resultsSoFar.Length != 0 but not enough to satisfy minimum number of results for averaging func", firstEx))
                     else
@@ -444,8 +465,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                               settings
                                               initialFuncCount
                                               failedFuncs
-                                              allResultsSoFar
-                                              failedFuncsWithTheirExceptions
+                                              executedServers.SuccessfulResults
+                                              executedServers.UnsuccessfulServers
                                               (retries + 1u)
                                               retriesForInconsistency
                                               cancellationSource

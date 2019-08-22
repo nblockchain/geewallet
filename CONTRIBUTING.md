@@ -101,6 +101,8 @@ structure of the code. For example, a module whose full name is Foo.Bar.Baz
 should either live in a project called "Foo.Bar" (and be named "Baz" under
 the namespace "Foo.Bar"), or: in a project called "Foo", but in a subdirectory
 called "Bar" (and be named "Baz" under the namespace "Foo.Bar").
+* We prefer records over tuples, especially when being part of other type
+structures.
 * When adding NUnit tests, don't use `[<Test>]let Foo` and naked `module Bar`
 syntax, but `[<Test>]member __.Foo` and `[<TestFixture>]type Bar()` (note the
 parenthesis, as it's an important bit), otherwise the tests might not run in
