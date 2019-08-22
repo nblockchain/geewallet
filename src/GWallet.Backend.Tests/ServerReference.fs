@@ -30,6 +30,14 @@ type ServerReference() =
             TimeSpan = timeSpan
         },dummy_now) |> Some
 
+    let CreateFaultyHistoryInfoWithSpan(timeSpan: TimeSpan) =
+        ({
+            //irrelevant for this test
+            Status = Fault ({ TypeFullName = "SomeNamespace.SomeException" ; Message = "argh" },None)
+
+            TimeSpan = timeSpan
+        },dummy_now) |> Some
+
     [<Test>]
     member __.``order of servers is kept if non-hostname details are same``() =
         let serverWithHighestPriority =
@@ -216,6 +224,54 @@ type ServerReference() =
 
         let serverAPos = serverDetailsReverse.IndexOf serverWithWorstConnectionSpan.ServerInfo.NetworkPath
         let serverBPos = serverDetailsReverse.IndexOf serverWithBestConnectionSpan.ServerInfo.NetworkPath
+
+        Assert.That(serverAPos, Is.Not.LessThan 0)
+
+        Assert.That(serverBPos, Is.Not.LessThan 0)
+
+        Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #2")
+
+    [<Test>]
+    member __.``order of servers: faulty ones come after successful ones``() =
+        let serverWithBadConnectionSpan =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = "mxiunrciunri"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateFaultyHistoryInfoWithSpan (TimeSpan.FromSeconds 0.5)
+            }
+        let serverWithGoodConnectionSpan =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = "ekuyzegnuyen"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfoWithSpan (TimeSpan.FromSeconds 1.0)
+            }
+        let servers1 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithBadConnectionSpan; yield serverWithGoodConnectionSpan })
+        let serverDetails = ServerRegistry.Serialize servers1
+
+        let serverAPos = serverDetails.IndexOf serverWithBadConnectionSpan.ServerInfo.NetworkPath
+        let serverBPos = serverDetails.IndexOf serverWithGoodConnectionSpan.ServerInfo.NetworkPath
+
+        Assert.That(serverAPos, Is.Not.LessThan 0)
+
+        Assert.That(serverBPos, Is.Not.LessThan 0)
+
+        Assert.That(serverAPos, Is.GreaterThan serverBPos, "should be sorted #1")
+
+        let servers2 = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test,
+                                seq { yield serverWithGoodConnectionSpan; yield serverWithBadConnectionSpan })
+        let serverDetailsReverse = ServerRegistry.Serialize servers2
+
+        let serverAPos = serverDetailsReverse.IndexOf serverWithBadConnectionSpan.ServerInfo.NetworkPath
+        let serverBPos = serverDetailsReverse.IndexOf serverWithGoodConnectionSpan.ServerInfo.NetworkPath
 
         Assert.That(serverAPos, Is.Not.LessThan 0)
 

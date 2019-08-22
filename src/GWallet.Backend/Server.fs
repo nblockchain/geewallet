@@ -122,11 +122,13 @@ module ServerRegistry =
                                   | Some (history,_) ->
                                       match history.Status with
                                       | Fault (_,maybeLsc) ->
+                                          let success = false
                                           match maybeLsc with
-                                          | None -> Some (invertOrder history.TimeSpan, None)
-                                          | Some lsc -> Some (invertOrder history.TimeSpan, Some lsc)
+                                          | None -> Some (success, invertOrder history.TimeSpan, None)
+                                          | Some lsc -> Some (success, invertOrder history.TimeSpan, Some lsc)
                                       | LastSuccessfulCommunication lsc ->
-                                          Some (invertOrder history.TimeSpan, Some lsc)
+                                          let success = true
+                                          Some (success, invertOrder history.TimeSpan, Some lsc)
                              ) servers
 
     let Serialize(servers: ServerRanking): string =
