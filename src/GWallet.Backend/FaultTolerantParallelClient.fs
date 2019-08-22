@@ -45,15 +45,11 @@ type internal FinalResult<'K,'T,'R,'E when 'K: equality and 'K :> ICommunication
     | AverageResult of 'R
     | InconsistentOrNotEnoughResults of ExecutedServers<'K,'R,'E>
 
-type internal NonParallelResultWithAdditionalWork<'K,'R,'E when 'K: equality
-                                                            and 'K :> ICommunicationHistory
-                                                            and 'E :> Exception> =
-    | SuccessfulFirstResult of ('R * Async<NonParallelResults<'K,'R,'E>>)
-    | NoneAvailable
-and internal NonParallelResults<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
+type internal NonParallelResults<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
     {
+        PossibleResult: Option<'R>
         Failures: List<UnsuccessfulServer<'K,'R,'E>>
-        Tail: NonParallelResultWithAdditionalWork<'K,'R,'E>
+        PendingWork: Option<Async<NonParallelResults<'K,'R,'E>>>
     }
 
 type ConsistencySettings<'R> =
@@ -187,13 +183,21 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             let restOfTasks: List<Task<NonParallelResults<'K,'R,'E>>> =
                 theTasks.Where(fun task -> not (Object.ReferenceEquals(task, fastestTask))) |> List.ofSeq
 
-            let (newResults,newRestOfTasks) =
-                match fastestTask.Result.Tail with
-                | SuccessfulFirstResult(newResult,unlaunchedJobWithMoreTasks) ->
+            let newResults =
+                match fastestTask.Result.PossibleResult with
+                | None ->
+                    resultsSoFar
+                | Some newResult ->
+                    newResult::resultsSoFar
+
+            let newRestOfTasks =
+                match fastestTask.Result.PendingWork with
+                | None ->
+                    restOfTasks
+                | Some unlaunchedJobWithMoreTasks ->
                     let newTask = Async.StartAsTask unlaunchedJobWithMoreTasks
-                    (newResult::resultsSoFar),(newTask::restOfTasks)
-                | NoneAvailable ->
-                    resultsSoFar,restOfTasks
+                    newTask::restOfTasks
+
             let newFailedFuncs = List.append failedFuncsSoFar fastestTask.Result.Failures
 
             let returnWithConsistencyOf (minNumberOfConsistentResultsRequired: Option<uint32>) cacheMatchFunc = async {
@@ -280,8 +284,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
         | [] ->
             async {
                 return {
+                    PossibleResult = None
                     Failures = failuresSoFar
-                    Tail = NoneAvailable
+                    PendingWork = None
                 }
             }
         | head::tail ->
@@ -297,8 +302,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     let tailAsync =
                         ConcatenateNonParallelFuncs failuresSoFar shouldReportUncancelledJobs cancelledInternally tail
                     return {
+                        PossibleResult = Some result
                         Failures = failuresSoFar
-                        Tail = SuccessfulFirstResult(result,tailAsync)
+                        PendingWork = Some tailAsync
                     }
 
                 | Error ex ->
