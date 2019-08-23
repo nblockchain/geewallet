@@ -127,3 +127,4 @@ If you want to become part of this distributed team of brave disruptarians, chec
 ## Feedback
 
 If you want to accelerate development/maintenance, create an issue and pledge funds with [gitcoin](http://gitcoin.co).
+
