@@ -11,6 +11,7 @@ open System.Diagnostics
 open FSX.Infrastructure
 open Process
 
+let UNIX_NAME = "gwallet"
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
 let BACKEND = "GWallet.Backend"
 
@@ -57,10 +58,10 @@ let GetOrExplain key map =
                           buildConfigFileName key
 
 let prefix = buildConfigContents |> GetOrExplain "Prefix"
-let libInstallDir = DirectoryInfo (Path.Combine (prefix, "lib", "gwallet"))
+let libInstallDir = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
 let binInstallDir = DirectoryInfo (Path.Combine (prefix, "bin"))
 
-let launcherScriptFile = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", "gwallet"))
+let launcherScriptFile = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", UNIX_NAME))
 let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__,
                                                                 "..",
                                                                 "src",
@@ -94,7 +95,7 @@ let JustBuild binaryConfig =
     if buildTool.IsNone then
         failwith "A BuildTool should have been chosen by the configure script, please report this bug"
 
-    Console.WriteLine (sprintf "Building gwallet in %s mode..." (binaryConfig.ToString()))
+    Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
     let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
     let configOptions =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
@@ -194,7 +195,7 @@ match maybeTarget with
     let binDir = "bin"
     Directory.CreateDirectory(binDir) |> ignore
 
-    let zipNameWithoutExtension = sprintf "gwallet.v.%s" version
+    let zipNameWithoutExtension = sprintf "%s.v.%s" UNIX_NAME version
     let zipName = sprintf "%s.zip" zipNameWithoutExtension
     let pathToZip = Path.Combine(binDir, zipName)
     if (File.Exists (pathToZip)) then
@@ -244,7 +245,7 @@ match maybeTarget with
     let buildConfig = BinaryConfig.Release
     JustBuild buildConfig
 
-    Console.WriteLine "Installing gwallet..."
+    Console.WriteLine "Installing..."
     Console.WriteLine ()
     Misc.CopyDirectoryRecursively (mainBinariesDir buildConfig, libInstallDir, [])
 
