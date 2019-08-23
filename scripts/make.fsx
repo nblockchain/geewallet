@@ -57,11 +57,11 @@ let GetOrExplain key map =
                           buildConfigFileName key
 
 let prefix = buildConfigContents |> GetOrExplain "Prefix"
-let libInstallPath = DirectoryInfo (Path.Combine (prefix, "lib", "gwallet"))
-let binInstallPath = DirectoryInfo (Path.Combine (prefix, "bin"))
+let libInstallDir = DirectoryInfo (Path.Combine (prefix, "lib", "gwallet"))
+let binInstallDir = DirectoryInfo (Path.Combine (prefix, "bin"))
 
-let launcherScriptPath = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", "gwallet"))
-let mainBinariesPath binaryConfig = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__,
+let launcherScriptFile = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", "gwallet"))
+let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__,
                                                                 "..",
                                                                 "src",
                                                                 DEFAULT_FRONTEND,
@@ -106,11 +106,11 @@ let JustBuild binaryConfig =
         PrintNugetVersion() |> ignore
         Environment.Exit 1
 
-    Directory.CreateDirectory(launcherScriptPath.Directory.FullName) |> ignore
+    Directory.CreateDirectory(launcherScriptFile.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
-        wrapperScript.Replace("$TARGET_DIR", libInstallPath.FullName)
+        wrapperScript.Replace("$TARGET_DIR", libInstallDir.FullName)
                      .Replace("$GWALLET_PROJECT", DEFAULT_FRONTEND)
-    File.WriteAllText (launcherScriptPath.FullName, wrapperScriptWithPaths)
+    File.WriteAllText (launcherScriptFile.FullName, wrapperScriptWithPaths)
 
 let MakeCheckCommand (commandName: string) =
     if not (Process.CommandWorksInShell commandName) then
@@ -246,13 +246,13 @@ match maybeTarget with
 
     Console.WriteLine "Installing gwallet..."
     Console.WriteLine ()
-    Misc.CopyDirectoryRecursively (mainBinariesPath buildConfig, libInstallPath, [])
+    Misc.CopyDirectoryRecursively (mainBinariesDir buildConfig, libInstallDir, [])
 
-    let finalPrefixPathOfWrapperScript = FileInfo (Path.Combine(binInstallPath.FullName, launcherScriptPath.Name))
-    if not (Directory.Exists(finalPrefixPathOfWrapperScript.Directory.FullName)) then
-        Directory.CreateDirectory(finalPrefixPathOfWrapperScript.Directory.FullName) |> ignore
-    File.Copy(launcherScriptPath.FullName, finalPrefixPathOfWrapperScript.FullName, true)
-    if Process.Execute({ Command = "chmod"; Arguments = sprintf "ugo+x %s" finalPrefixPathOfWrapperScript.FullName },
+    let finalLauncherScriptInPrefix = FileInfo (Path.Combine(binInstallDir.FullName, launcherScriptFile.Name))
+    if not (Directory.Exists(finalLauncherScriptInPrefix.Directory.FullName)) then
+        Directory.CreateDirectory(finalLauncherScriptInPrefix.Directory.FullName) |> ignore
+    File.Copy(launcherScriptFile.FullName, finalLauncherScriptInPrefix.FullName, true)
+    if Process.Execute({ Command = "chmod"; Arguments = sprintf "ugo+x %s" finalLauncherScriptInPrefix.FullName },
                         Echo.Off).ExitCode <> 0 then
         failwith "Unexpected chmod failure, please report this bug"
 
