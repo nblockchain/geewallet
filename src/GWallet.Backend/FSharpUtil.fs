@@ -50,7 +50,7 @@ module FSharpUtil =
         let private RaiseResult (e: ResultWrapper<'T>) =
             Async.FromContinuations(fun (_, econt, _) -> econt e)
 
-        // taken from http://fssnip.net/dN ( https://stackoverflow.com/a/20521059/544947 )
+        // like Async.Choice, but with no need for Option<T> types
         let WhenAny<'T>(jobs: seq<Async<'T>>): Async<'T> =
             let wrap job =
                 async {
@@ -71,31 +71,6 @@ module FSharpUtil =
                 with
                 | :? ResultWrapper<'T> as ex ->
                     return ex.Value
-            }
-
-        // like WhenAny, but None results are considered non successful jobs
-        let WhenAnySuccessful<'T>(jobs: seq<Async<Option<'T>>>): Async<Option<'T>> =
-            let wrap job =
-                async {
-                    let! res = job
-                    match res with
-                    | None -> return None
-                    | Some r ->
-                        return! RaiseResult <| ResultWrapper r
-                }
-
-            async {
-                try
-                    do!
-                        jobs
-                        |> Seq.map wrap
-                        |> Async.Parallel
-                        |> Async.Ignore
-
-                    return None
-                with
-                | :? ResultWrapper<'T> as ex ->
-                    return Some ex.Value
             }
 
     let rec private ListIntersectInternal list1 list2 offset acc currentIndex =

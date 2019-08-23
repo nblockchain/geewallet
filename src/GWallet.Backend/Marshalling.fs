@@ -26,28 +26,18 @@ module VersionHelper =
     let CurrentVersion ()=
         typedefof<DeserializationException>.GetTypeInfo().Assembly.GetName().Version.ToString()
 
-type SerializableValue<'T>(value: 'T) =
-    member val Version: string =
-        VersionHelper.CurrentVersion() with get
-
-    member val TypeName: string =
-        typeof<'T>.FullName with get
-
-    member val Value: 'T = value with get
-
-type DeserializableValueInfo(version: string, typeName: string) =
-
-    member __.Version
-        with get() = version 
-
-    member __.TypeName
-        with get() = typeName 
-
-type DeserializableValue<'T>(version, typeName, value: 'T) =
-    inherit DeserializableValueInfo(version, typeName)
-
-    member this.Value
-        with get() = value
+type MarshallingWrapper<'T> =
+    {
+        Version: string
+        TypeName: string
+        Value: 'T
+    }
+    static member New value =
+        {
+            Value = value
+            Version = VersionHelper.CurrentVersion()
+            TypeName = typeof<'T>.FullName
+        }
 
 type private PascalCase2LowercasePlusUnderscoreContractResolver() =
     inherit DefaultContractResolver()
@@ -58,31 +48,63 @@ type private PascalCase2LowercasePlusUnderscoreContractResolver() =
     override __.ResolvePropertyName (propertyName: string) =
         pascalToUnderScoreRegex.Replace(propertyName, pascalToUnderScoreReplacementExpression).ToLower()
 
+// combine https://stackoverflow.com/a/48330214/544947 with https://stackoverflow.com/a/29660550/544947
+// (because null values should map to None values in the case of Option<> types, otherwise tests fail)
+type RequireAllPropertiesContractResolver() =
+    inherit DefaultContractResolver()
+
+    override __.CreateObjectContract(objectType: Type) =
+        let contract = base.CreateObjectContract objectType
+        contract.ItemRequired <- Nullable<Required> Required.Always
+        contract
+
+    override __.CreateProperty(memberInfo: MemberInfo, memberSerialization: MemberSerialization) =
+        let property = base.CreateProperty(memberInfo, memberSerialization)
+        // https://stackoverflow.com/questions/20696262/reflection-to-find-out-if-property-is-of-option-type
+        let isOption =
+            property.PropertyType.IsGenericType &&
+            property.PropertyType.GetGenericTypeDefinition() = typedefof<Option<_>>
+        if isOption then
+            property.Required <- Required.AllowNull
+        property
+
 module Marshalling =
+
+    let private DefaultFormatting =
+#if DEBUG
+        Formatting.Indented
+#else
+        Formatting.None
+#endif
 
     let internal PascalCase2LowercasePlusUnderscoreConversionSettings =
         JsonSerializerSettings(ContractResolver = PascalCase2LowercasePlusUnderscoreContractResolver())
+
+    let internal DefaultSettings =
+        JsonSerializerSettings(MissingMemberHandling = MissingMemberHandling.Error,
+                               ContractResolver = RequireAllPropertiesContractResolver(),
+                               DateTimeZoneHandling = DateTimeZoneHandling.Utc)
 
     let private currentVersion = VersionHelper.CurrentVersion()
 
     let ExtractType(json: string): Type =
         let typeInfo =
             try
-                JsonConvert.DeserializeObject<DeserializableValueInfo> json
+                JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json
             with
             | ex -> raise (DeserializationException("Could not extract type", ex))
-        let fullTypeName = (typeInfo).TypeName
+        let fullTypeName = typeInfo.TypeName
         Type.GetType(fullTypeName)
 
-    let Deserialize<'S,'T when 'S:> DeserializableValue<'T>>(json: string): 'T =
+    let Deserialize<'T>(json: string): 'T =
         if (json = null) then
             raise (ArgumentNullException("json"))
         if (String.IsNullOrWhiteSpace(json)) then
             raise (ArgumentException("empty or whitespace json", "json"))
 
-        let deserialized: 'S =
+        let deserialized =
             try
-                JsonConvert.DeserializeObject<'S>(json)
+                JsonConvert.DeserializeObject<MarshallingWrapper<'T>>(json, DefaultSettings)
             with
             | ex ->
                 let versionJsonTag = "\"Version\":\""
@@ -105,17 +127,18 @@ module Marshalling =
                                                       json)
         deserialized.Value
 
-    let private SerializeInternal<'S>(value: 'S): string =
-        JsonConvert.SerializeObject(SerializableValue<'S>(value),
-                                    JsonSerializerSettings(DateTimeZoneHandling = DateTimeZoneHandling.Utc))
+    let private SerializeInternal<'T>(value: 'T): string =
+        JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
+                                    DefaultFormatting,
+                                    DefaultSettings)
 
-    let Serialize<'S>(value: 'S): string =
+    let Serialize<'T>(value: 'T): string =
         try
             SerializeInternal value
         with
         | exn ->
             raise(SerializationException(sprintf "Could not serialize object of type '%s' and value '%A'"
-                                                  (typeof<'S>.FullName) value, exn))
+                                                  (typeof<'T>.FullName) value, exn))
 
     type CompressionOrDecompressionException(msg: string, innerException: Exception) =
         inherit Exception(msg, innerException)

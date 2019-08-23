@@ -6,10 +6,8 @@ open GWallet.Backend
 
 module ElectrumClient =
 
-    let private Init (electrumServer: ElectrumServer): Async<StratumClient> =
-        electrumServer.CheckCompatibility()
-
-        let jsonRpcClient = new JsonRpcTcpClient(electrumServer.Fqdn, electrumServer.UnencryptedPort.Value)
+    let private Init (fqdn: string) (port: uint32): Async<StratumClient> =
+        let jsonRpcClient = new JsonRpcTcpClient(fqdn, port)
         let stratumClient = new StratumClient(jsonRpcClient)
 
         // this is the last version of Electrum released at the time of writing this module
@@ -45,7 +43,14 @@ module ElectrumClient =
             return stratumClient
         }
 
-    let GetBalance (scriptHash: string) (electrumServer: ElectrumServer) = async {
+    let StratumServer (electrumServer: ServerDetails): Async<StratumClient> =
+        match electrumServer.ServerInfo.ConnectionType with
+        | { Encrypted = true; Protocol = _ } -> failwith "Incompatibility filter for non-encryption didn't work?"
+        | { Encrypted = false; Protocol = Http } -> failwith "HTTP server for UtxoCoin?"
+        | { Encrypted = false; Protocol = Tcp port } ->
+            Init electrumServer.ServerInfo.NetworkPath port
+
+    let GetBalance (scriptHash: string) (stratumServer: Async<StratumClient>) = async {
         // FIXME: we should rather implement this method in terms of:
         //        - querying all unspent transaction outputs (X) -> block heights included
         //        - querying transaction history (Y) -> block heights included
@@ -60,31 +65,31 @@ module ElectrumClient =
         //    integrity (in a similar fashion as Electrum Wallet client already does), to not have to trust servers*
         //    [ see https://www.youtube.com/watch?v=hjYCXOyDy7Y&feature=youtu.be&t=1171 for more information ]
         // * -> although that would be fixing only half of the problem, we also need proof of completeness
-        let! stratumClient = Init electrumServer
+        let! stratumClient = stratumServer
         let! balanceResult = stratumClient.BlockchainScripthashGetBalance scriptHash
         return balanceResult.Result
     }
 
-    let GetUnspentTransactionOutputs scriptHash (electrumServer: ElectrumServer) = async {
-        let! stratumClient = Init electrumServer
+    let GetUnspentTransactionOutputs scriptHash (stratumServer: Async<StratumClient>) = async {
+        let! stratumClient = stratumServer
         let! unspentListResult = stratumClient.BlockchainScripthashListUnspent scriptHash
         return unspentListResult.Result
     }
 
-    let GetBlockchainTransaction txHash (electrumServer: ElectrumServer) = async {
-        let! stratumClient = Init electrumServer
+    let GetBlockchainTransaction txHash (stratumServer: Async<StratumClient>) = async {
+        let! stratumClient = stratumServer
         let! blockchainTransactionResult = stratumClient.BlockchainTransactionGet txHash
         return blockchainTransactionResult.Result
     }
 
-    let EstimateFee (numBlocksTarget: int) (electrumServer: ElectrumServer): Async<decimal> = async {
-        let! stratumClient = Init electrumServer
+    let EstimateFee (numBlocksTarget: int) (stratumServer: Async<StratumClient>): Async<decimal> = async {
+        let! stratumClient = stratumServer
         let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
         return estimateFeeResult.Result
     }
 
-    let BroadcastTransaction (transactionInHex: string) (electrumServer: ElectrumServer) = async {
-        let! stratumClient = Init electrumServer
+    let BroadcastTransaction (transactionInHex: string) (stratumServer: Async<StratumClient>) = async {
+        let! stratumClient = stratumServer
         let! blockchainTransactionBroadcastResult = stratumClient.BlockchainTransactionBroadcast transactionInHex
         return blockchainTransactionBroadcastResult.Result
     }

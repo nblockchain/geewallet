@@ -25,6 +25,9 @@ type CommunicationUnsuccessfulException =
     new(message: string) = { inherit Exception(message) }
     new() = { inherit Exception() }
 
+type ServerDiscardedException(message: string, innerException: CommunicationUnsuccessfulException) =
+   inherit Exception (message, innerException)
+
 type BuggyExceptionFromOldMonoVersion (message: string, innerException: Exception) =
     inherit CommunicationUnsuccessfulException (message, innerException)
 
@@ -130,6 +133,8 @@ module Networking =
             elif socketException.ErrorCode = int SocketError.Shutdown then
                 ServerClosedConnectionEarlyException(newExceptionMsg, ex) :> Exception |> Some
             elif socketException.ErrorCode = int SocketError.ProtocolOption then
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+            elif socketException.ErrorCode = int SocketError.HostNotFound then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
 
             else

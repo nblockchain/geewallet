@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend.Ether
 
 open System
+open System.IO
 open System.Net
 open System.Numerics
 open System.Linq
@@ -31,68 +32,45 @@ type TransactionStatusDetails =
 
 module Web3ServerSeedList =
 
+    // -------------- SERVERS TO REVIEW ADDING TO THE REGISTRY: -----------------------------
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
-    let private ethWeb3InfuraMyCrypto = SomeWeb3("https://mainnet.infura.io/mycrypto")
-    let private ethWeb3InfuraMyCryptoV3 = SomeWeb3 "https://mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286"
-    let private ethWeb3Mew = SomeWeb3("https://api.myetherapi.com/eth") // docs: https://www.myetherapi.com/
-    let private ethWeb3Giveth = SomeWeb3("https://mew.giveth.io")
-    let private ethMyCrypto = SomeWeb3("https://api.mycryptoapi.com/eth")
-    let private ethBlockScale = SomeWeb3("https://api.dev.blockscale.net/dev/parity")
-    let private ethWeb3InfuraMyEtherWallet = SomeWeb3("https://mainnet.infura.io/mew")
-    let private ethWeb3MewAws = SomeWeb3 "https://o70075sme1.execute-api.us-east-1.amazonaws.com/latest/eth"
-    let private ethAlchemyApi = SomeWeb3 "https://eth-mainnet.alchemyapi.io/jsonrpc/-vPGIFwUyjlMRF9beTLXiGQUK6Nf3k8z"
     // not sure why the below one doesn't work, gives some JSON error
     //let private ethWeb3EtherScan = SomeWeb3 "https://api.etherscan.io/api"
 
     // TODO: add the one from https://etcchain.com/api/ too
-    let private etcWeb3ePoolIo1 = SomeWeb3("https://cry.epool.io")
-    let private etcWeb3ePoolIo2 = SomeWeb3("https://mew.epool.io")
-    let private etcWeb3ePoolIo3 = SomeWeb3("https://mewapi.epool.io")
-    let private etcWeb3ZeroXInfraGeth = SomeWeb3("https://etc-geth.0xinfra.com")
-    let private etcWeb3ZeroXInfraParity = SomeWeb3("https://etc-parity.0xinfra.com")
-    let private etcWeb3CommonWealthGeth = SomeWeb3("https://etcrpc.viperid.online")
     // FIXME: the below one doesn't seem to work; we should include it anyway and make the algorithm discard it at runtime
     //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
-    let private etcWeb3CommonWealthParity = SomeWeb3("https://etc-parity.callisto.network")
-    let private etcWeb3ChainKorea = SomeWeb3("https://node.classicexplorer.org/")
-    let private etcWeb3GasTracker = SomeWeb3 "https://web3.gastracker.io"
-    let private etcWeb3EtcCooperative = SomeWeb3 "https://ethereumclassic.network"
+    // --------------------------------------------------------------------------------------
 
-    let private GetWeb3Servers (currency: Currency): List<SomeWeb3> =
-        if currency = ETC then
-            [
-                etcWeb3EtcCooperative;
-                etcWeb3GasTracker;
-                etcWeb3ePoolIo1;
-                etcWeb3ChainKorea;
-                etcWeb3CommonWealthParity;
-                etcWeb3CommonWealthGeth;
-                etcWeb3ZeroXInfraParity;
-                etcWeb3ZeroXInfraGeth;
-                etcWeb3ePoolIo2;
-                etcWeb3ePoolIo3;
-            ]
-        elif (currency.IsEthToken() || currency = Currency.ETH) then
-            [
-                ethWeb3MewAws;
-                ethWeb3InfuraMyCrypto;
-                ethWeb3InfuraMyCryptoV3
-                ethWeb3Mew;
-                ethWeb3Giveth;
-                ethMyCrypto;
-                ethBlockScale;
-                ethWeb3InfuraMyEtherWallet;
-                ethAlchemyApi
-            ]
-        else
-            failwithf "Assertion failed: Ether currency %A not supported?" currency
+    let private GetEtherServers (currency: Currency): List<ServerDetails> =
+        let baseCurrency =
+            if currency = Currency.ETC || currency = Currency.ETH then
+                currency
+            elif currency.IsEthToken() then
+                Currency.ETH
+            else
+                failwithf "Assertion failed: Ether currency %A not supported?" currency
+        Caching.Instance.GetServers baseCurrency |> List.ofSeq
 
     let Randomize currency =
-        let serverList = GetWeb3Servers currency
+        let serverList = GetEtherServers currency
         Shuffler.Unsort serverList
 
 
 module Server =
+
+    let private Web3Server (serverDetails: ServerDetails) =
+        match serverDetails.ServerInfo.ConnectionType with
+        | { Protocol = Tcp _ ; Encrypted = _ } ->
+            failwithf "Ether server of TCP connection type?: %s" serverDetails.ServerInfo.NetworkPath
+        | { Protocol = Http ; Encrypted = encrypted } ->
+            let protocol =
+                if encrypted then
+                    "https"
+                else
+                    "http"
+            let uri = sprintf "%s://%s" protocol serverDetails.ServerInfo.NetworkPath
+            SomeWeb3 uri
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
         ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
@@ -207,6 +185,32 @@ module Server =
         | None ->
             ()
 
+    // this could be a mono 6.0.x bug (see https://gitlab.com/knocte/geewallet/issues/121)
+    let MaybeRethrowSslException (ex: Exception): unit =
+        let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
+        match maybeRpcUnknownEx with
+        | Some rpcUnknownEx ->
+            let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
+            match maybeHttpReqEx with
+            | Some httpReqEx ->
+                if httpReqEx.Message.Contains "SSL" then
+                    let maybeIOEx = FSharpUtil.FindException<IOException> ex
+                    match maybeIOEx with
+                    | Some ioEx ->
+                        raise <| ProtocolGlitchException(ioEx.Message, ex)
+                    | None ->
+                        let maybeSecEx =
+                            FSharpUtil.FindException<System.Security.Authentication.AuthenticationException> ex
+                        match maybeSecEx with
+                        | Some secEx ->
+                            raise <| ProtocolGlitchException(secEx.Message, ex)
+                        | None ->
+                            ()
+            | None ->
+                ()
+        | None ->
+            ()
+
     let private ReworkException (ex: Exception): unit =
         let maybeWebEx = FSharpUtil.FindException<WebException> ex
         match maybeWebEx with
@@ -248,35 +252,36 @@ module Server =
 
             MaybeRethrowObjectDisposedException ex
 
-
-    let HandlePossibleEtherFailures<'T,'R> (job: Async<'R>): Async<'R> = async {
-        try
-            let! result = PerformEtherRemoteCallWithTimeout job
-            return result
-        with
-        | ex ->
-            ReworkException ex
-
-            return raise <| FSharpUtil.ReRaise ex
-    }
+            MaybeRethrowSslException ex
 
     let private NumberOfParallelJobsForMode mode =
         match mode with
-        | Mode.Fast -> 5u
-        | Mode.Analysis -> 3u
+        | ServerSelectionMode.Fast -> 5u
+        | ServerSelectionMode.Analysis -> 3u
 
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
-                                                         (mode: Mode) =
+                                                         (mode: ServerSelectionMode)
+                                                         maybeConsistencyConfig =
+
+        let consistencyConfig =
+            match maybeConsistencyConfig with
+            | None -> SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired
+            | Some specificConsistencyConfig -> specificConsistencyConfig
+
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
-            ConsistencyConfig = SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired;
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
-            Mode = mode
-            ShouldReportUncancelledJobs = true
+            ResultSelectionMode =
+                Selective
+                    {
+                        ServerSelectionMode = mode
+                        ConsistencyConfig = consistencyConfig
+                        ReportUncancelledJobs = true
+                    }
         }
 
-    let private FaultTolerantParallelClientDefaultSettings (currency: Currency) (mode: Mode) =
+    let private FaultTolerantParallelClientDefaultSettings (currency: Currency) (mode: ServerSelectionMode) =
         let numberOfConsistentResponsesRequired =
             if not Networking.Tls12Support then
                 1u
@@ -286,77 +291,95 @@ module Server =
                                                  mode
 
     let private FaultTolerantParallelClientSettingsForBalanceCheck (currency: Currency)
-                                                                   (mode: Mode)
+                                                                   (mode: ServerSelectionMode)
                                                                    (cacheMatchFunc: decimal->bool) =
-        let defaultSettings = FaultTolerantParallelClientDefaultSettings currency mode
-        if mode = Mode.Fast then
-            {
-                defaultSettings with
-                    ConsistencyConfig = OneServerConsistentWithCacheOrTwoServers cacheMatchFunc
-            }
-        else
-            defaultSettings
+        let consistencyConfig =
+            if mode = ServerSelectionMode.Fast then
+                Some (OneServerConsistentWithCacheOrTwoServers cacheMatchFunc)
+            else
+                None
+        FaultTolerantParallelClientDefaultSettings currency mode consistencyConfig
 
     let private FaultTolerantParallelClientSettingsForBroadcast () =
-        FaultTolerantParallelClientInnerSettings 1u Mode.Fast
+        FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast None
 
     let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
     let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
     let private faultTolerantEtherClient =
         JsonRpcSharp.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
-        FaultTolerantParallelClient<string,CommunicationUnsuccessfulException> Caching.Instance.SaveServerLastStat
+        FaultTolerantParallelClient<ServerDetails,ServerDiscardedException> Caching.Instance.SaveServerLastStat
 
-    // FIXME: seems there's some code duplication between this function and UtxoAccount's GetRandomizedFuncs function
-    let private GetWeb3Funcs<'T,'R> (currency: Currency)
-                                    (web3Func: SomeWeb3->Async<'R>)
-                                        : List<Server<string,'R>> =
 
-        let Web3ServerToRetrievalFunc (web3Server: SomeWeb3)
-                                          (web3ClientFunc: SomeWeb3->Async<'R>)
-                                              : Async<'R> = async {
+    let Web3ServerToRetrievalFunc (server: ServerDetails)
+                                  (web3ClientFunc: SomeWeb3->Async<'R>)
+                                      : Async<'R> =
+
+        let HandlePossibleEtherFailures (job: Async<'R>): Async<'R> =
+            async {
+                try
+                    let! result = PerformEtherRemoteCallWithTimeout job
+                    return result
+                with
+                | ex ->
+                    ReworkException ex
+
+                    return raise <| FSharpUtil.ReRaise ex
+            }
+        async {
+            let web3Server = Web3Server server
             try
-                return! web3Func web3Server
+                return! HandlePossibleEtherFailures (web3ClientFunc web3Server)
 
             // NOTE: try to make this 'with' block be in sync with the one in UtxoCoinAccount:GetRandomizedFuncs()
             with
             | :? CommunicationUnsuccessfulException as ex ->
-                return raise <| FSharpUtil.ReRaise ex
+                let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                return raise <| ServerDiscardedException(msg, ex)
             | ex ->
-                return raise <| Exception(sprintf "Some problem when connecting to %s" web3Server.Url, ex)
+                return raise <| Exception(sprintf "Some problem when connecting to '%s'"
+                                                  server.ServerInfo.NetworkPath, ex)
         }
 
+    // FIXME: seems there's some code duplication between this function and UtxoCoinAccount.fs's GetServerFuncs function
+    //        and room for simplification to not pass a new ad-hoc delegate?
+    let GetServerFuncs<'R> (web3Func: SomeWeb3->Async<'R>)
+                           (etherServers: seq<ServerDetails>)
+                               : seq<Server<ServerDetails,'R>> =
         let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
-                                      (web3Server: SomeWeb3)
-                                              : Server<string,'R> =
+                                      (etherServer: ServerDetails)
+                                              : Server<ServerDetails,'R> =
+            {
+                Details = etherServer
+                Retrieval = Web3ServerToRetrievalFunc etherServer web3ClientFunc
+            }
 
-            let retrievalFunc = Web3ServerToRetrievalFunc web3Server web3ClientFunc
-            { Identifier = web3Server.Url
-              HistoryInfo = Caching.Instance.RetreiveLastServerHistory web3Server.Url
-              Retrieval = retrievalFunc }
-
-        let web3servers = Web3ServerSeedList.Randomize currency |> List.ofSeq
         let serverFuncs =
-            List.map (Web3ServerToGenericServer web3Func)
-                     web3servers
+            Seq.map (Web3ServerToGenericServer web3Func)
+                    etherServers
         serverFuncs
+
+    let private GetRandomizedFuncs<'R> (currency: Currency)
+                                       (web3Func: SomeWeb3->Async<'R>)
+                                           : List<Server<ServerDetails,'R>> =
+        let etherServers = Web3ServerSeedList.Randomize currency
+        GetServerFuncs web3Func etherServers
+            |> List.ofSeq
 
     let GetTransactionCount (currency: Currency) (address: string)
                                 : Async<HexBigInteger> =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
-                    let transactionCountJob =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task =
                                 web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(address, null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                    HandlePossibleEtherFailures transactionCountJob
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
+                (FaultTolerantParallelClientDefaultSettings currency ServerSelectionMode.Fast None)
                 web3Funcs
         }
 
@@ -408,13 +431,16 @@ module Server =
         | None -> false
         | Some balance -> someBalanceRetreived = balance
 
-    let GetEtherBalance (currency: Currency) (address: string) (balType: BalanceType) (mode: Mode)
+    let GetEtherBalance (currency: Currency)
+                        (address: string)
+                        (balType: BalanceType)
+                        (mode: ServerSelectionMode)
                         (cancelSourceOption: Option<CancellationTokenSource>)
                                      : Async<decimal> =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<decimal> = async {
-                    let job =
+                    let! balance =
                         match balType with
                         | BalanceType.Confirmed ->
                             GetConfirmedEtherBalanceInternal web3 address
@@ -424,10 +450,11 @@ module Server =
                                 let task = web3.Eth.GetBalance.SendRequestAsync (address, null, cancelToken)
                                 return! Async.AwaitTask task
                             }
-                    let! balance = HandlePossibleEtherFailures job
+                    if Object.ReferenceEquals(balance, null) then
+                        failwith "Weird null response from balance job"
                     return UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
                 }
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
 
             let query =
                 match cancelSourceOption with
@@ -467,13 +494,12 @@ module Server =
     let GetTokenBalance (currency: Currency)
                         (address: string)
                         (balType: BalanceType)
-                        (mode: Mode)
+                        (mode: ServerSelectionMode)
                         (cancelSourceOption: Option<CancellationTokenSource>)
                             : Async<decimal> =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<decimal> =
-                    let job =
                         match balType with
                         | BalanceType.Confirmed ->
                             GetConfirmedTokenBalanceInternal web3 address
@@ -485,9 +511,7 @@ module Server =
                                 let! balance = Async.AwaitTask task
                                 return UnitConversion.Convert.FromWei(balance, UnitConversion.EthUnit.Ether)
                             }
-
-                    HandlePossibleEtherFailures job
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
 
             let query =
                 match cancelSourceOption with
@@ -512,17 +536,15 @@ module Server =
                     let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                                To = destination,
                                                                Value = amountInWei)
-                    let gasJob =
-                        async {
+                    async {
                             let! cancelToken = Async.CancellationToken
                             let task =
                                 contractHandler.EstimateGasAsync<TransferFunction>(transferFunctionMsg, cancelToken)
                             return! Async.AwaitTask task
-                        }
-                    HandlePossibleEtherFailures gasJob
-                GetWeb3Funcs account.Currency web3Func
+                    }
+                GetRandomizedFuncs account.Currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
+                        (FaultTolerantParallelClientDefaultSettings baseCurrency ServerSelectionMode.Fast None)
                         web3Funcs
         }
 
@@ -537,18 +559,17 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
-                    let gasPriceJob =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task = web3.Eth.GasPrice.SendRequestAsync(null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                    HandlePossibleEtherFailures gasPriceJob
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
             let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
-                        { FaultTolerantParallelClientDefaultSettings currency Mode.Fast with
-                              ConsistencyConfig = AverageBetweenResponses (minResponsesRequired, AverageGasPrice) }
+                        (FaultTolerantParallelClientDefaultSettings
+                            currency ServerSelectionMode.Fast
+                            (Some (AverageBetweenResponses (minResponsesRequired, AverageGasPrice))))
                         web3Funcs
 
         }
@@ -560,15 +581,13 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<string> =
-                    let broadcastJob =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task =
                                 web3.Eth.Transactions.SendRawTransaction.SendRequestAsync(transaction, null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                    HandlePossibleEtherFailures broadcastJob
-                GetWeb3Funcs currency web3Func
+                GetRandomizedFuncs currency web3Func
             try
                 return! faultTolerantEtherClient.Query
                             (FaultTolerantParallelClientSettingsForBroadcast ())
@@ -601,10 +620,10 @@ module Server =
                             GasUsed = transactionReceipt.GasUsed.Value
                             Status = transactionReceipt.Status.Value
                         }
-                    } |> HandlePossibleEtherFailures
-                GetWeb3Funcs currency web3Func
+                    }
+                GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency Mode.Fast)
+                (FaultTolerantParallelClientDefaultSettings currency ServerSelectionMode.Fast None)
                 web3Funcs
         }
 
@@ -621,16 +640,14 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<string> =
-                    let contractCodeJob =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task = web3.Eth.GetCode.SendRequestAsync(address, null, cancelToken)
                             return! Async.AwaitTask task
                         }
-                    HandlePossibleEtherFailures contractCodeJob
-                GetWeb3Funcs baseCurrency web3Func
+                GetRandomizedFuncs baseCurrency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings baseCurrency Mode.Fast)
+                (FaultTolerantParallelClientDefaultSettings baseCurrency ServerSelectionMode.Fast None)
                 web3Funcs
         }
 

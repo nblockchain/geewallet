@@ -9,7 +9,7 @@ open System.Threading.Tasks
 module Account =
 
     let private GetShowableBalanceAndImminentPaymentInternal (account: IAccount)
-                                                             (mode: Mode)
+                                                             (mode: ServerSelectionMode)
                                                              (cancelSourceOption: Option<CancellationTokenSource>)
                                                                  : Async<Option<decimal*Option<bool>>> =
         match account with
@@ -25,7 +25,7 @@ module Account =
             Ether.Account.GetShowableBalanceAndImminentIncomingPayment account mode cancelSourceOption
 
     let GetShowableBalanceAndImminentIncomingPayment (account: IAccount)
-                                                     (mode: Mode)
+                                                     (mode: ServerSelectionMode)
                                                      (cancelSourceOption: Option<CancellationTokenSource>)
                                                          : Async<MaybeCached<decimal>*Option<bool>> =
         async {
@@ -94,7 +94,7 @@ module Account =
                                 Ether.Account.GetPublicAddressFromNormalAccountFile
                             NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
                         else
-                            failwith (sprintf "Unknown currency %A" currency)
+                            failwithf "Unknown currency %A" currency
                     yield account
         } |> List.ofSeq
 
@@ -129,7 +129,7 @@ module Account =
                     elif currency.IsEtherBased() then
                         Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
                     else
-                        failwith (sprintf "Unknown currency %A" currency)
+                        failwithf "Unknown currency %A" currency
 
                 let fromConfigAccountFileToPublicAddressFunc (accountConfigFile: FileRepresentation) =
                     let privateKeyFromConfigFile = accountConfigFile.Content()
@@ -137,7 +137,7 @@ module Account =
 
                 for accountFile in Config.GetAccountFiles [currency] AccountKind.Archived do
                     let account = ArchivedAccount(currency, accountFile, fromConfigAccountFileToPublicAddressFunc)
-                    let maybeBalanceJob = GetShowableBalanceAndImminentPaymentInternal account Mode.Fast
+                    let maybeBalanceJob = GetShowableBalanceAndImminentPaymentInternal account ServerSelectionMode.Fast
                     yield async {
                         let! maybeBalance = maybeBalanceJob cancelSourceOption
                         let positiveBalance =
@@ -170,7 +170,7 @@ module Account =
         elif currency.IsUtxo() then
             UtxoCoin.Account.ValidateAddress currency address
         else
-            failwith (sprintf "Unknown currency %A" currency)
+            failwithf "Unknown currency %A" currency
     }
 
 
@@ -248,7 +248,7 @@ module Account =
                 elif currency.IsUtxo() then
                     UtxoCoin.Account.BroadcastTransaction currency trans
                 else
-                    failwith (sprintf "Unknown currency %A" currency)
+                    failwithf "Unknown currency %A" currency
 
             do! CheckIfOutOfGas trans.TransactionInfo.Metadata txId
 
@@ -293,7 +293,7 @@ module Account =
             elif currency.IsEther() then
                 Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
             else
-                failwith (sprintf "Unknown currency %A" currency)
+                failwithf "Unknown currency %A" currency
 
         let fromConfigFileToPublicAddressFunc (accountConfigFile: FileRepresentation) =
             // there's no ETH unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
@@ -322,7 +322,7 @@ module Account =
                 let privKey = Ether.Account.GetPrivateKey account password
                 privKey.GetPrivateKey()
             else
-                failwith (sprintf "Unknown currency %A" currency)
+                failwithf "Unknown currency %A" currency
         CreateArchivedAccount currency privateKeyAsString |> ignore
         Config.RemoveNormalAccount account
 
@@ -487,7 +487,7 @@ module Account =
             elif currency.IsEtherBased() then
                 return! CreateConceptEtherAccountInternal password seed
             else
-                return failwith (sprintf "Unknown currency %A" currency)
+                return failwithf "Unknown currency %A" currency
         }
 
 

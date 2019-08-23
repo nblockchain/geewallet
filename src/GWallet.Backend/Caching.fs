@@ -5,24 +5,6 @@ open System.IO
 open System.Linq
 open System.Net.Http
 
-type CachedValue<'T> = ('T*DateTime)
-type NotFresh<'T> =
-    NotAvailable | Cached of CachedValue<'T>
-type MaybeCached<'T> =
-    NotFresh of NotFresh<'T> | Fresh of 'T
-
-type PublicAddress = string
-type private DietCurrency = string
-type private ServerIdentifier = string
-
-type DietCache =
-    {
-        UsdPrice: Map<DietCurrency,decimal>;
-        Addresses: Map<PublicAddress,List<DietCurrency>>;
-        Balances: Map<DietCurrency,decimal>;
-    }
-
-type ServerRanking = Map<ServerIdentifier,HistoryInfo*DateTime>
 
 type CachedNetworkData =
     {
@@ -98,19 +80,26 @@ module Caching =
     let private defaultCacheFiles =
         {
             CachedNetworkData = FileInfo(Path.Combine(GetCacheDir().FullName, "networkdata.json"))
-            ServerStats = FileInfo(Path.Combine(GetCacheDir().FullName, "stats.json"))
+            ServerStats = FileInfo(Path.Combine(GetCacheDir().FullName,
+                                                ServerRegistry.ServersEmbeddedResourceFileName))
         }
 
     let public ImportFromJson<'T> (cacheData: string): 'T =
         Marshalling.Deserialize cacheData
 
+    let private LoadFromDiskInner (file: FileInfo): Option<string> =
+        let json = File.ReadAllText file.FullName
+        if String.IsNullOrWhiteSpace json then
+            None
+        else
+            Some json
+
     let droppedCachedMsgWarning = "Warning: cleaning incompatible cache data found from different GWallet version"
     let private LoadFromDiskInternal<'T> (file: FileInfo): Option<'T> =
         try
-            let json = File.ReadAllText file.FullName
-            if String.IsNullOrWhiteSpace json then
-                None
-            else
+            match LoadFromDiskInner file with
+            | None -> None
+            | Some json ->
                 let deserializedJson = ImportFromJson json
                 Some deserializedJson
         with
@@ -123,6 +112,11 @@ module Caching =
             Console.Error.WriteLine("Warning: cleaning incompatible cache data found")
             None
 
+    // this weird thing could happen because the previous version of GWallet didn't have a new element
+    // FIXME: we should save each Map<> into its own file
+    let private WeirdNullCheckToDetectVersionConflicts x =
+        Object.ReferenceEquals(x, null)
+
     let private LoadFromDisk (files: CacheFiles): bool*CachedNetworkData*ServerRanking =
         let maybeNetworkData = LoadFromDiskInternal<CachedNetworkData> files.CachedNetworkData
         let maybeFirstRun,resultingNetworkData =
@@ -130,9 +124,7 @@ module Caching =
             | None ->
                 true,CachedNetworkData.Empty
             | Some networkData ->
-                // this weird thing could happen because the previous version of GWallet didn't have a new element
-                // FIXME: we should save each Map<> into its own file
-                if Object.ReferenceEquals(networkData.OutgoingTransactions, null) then
+                if WeirdNullCheckToDetectVersionConflicts networkData.OutgoingTransactions then
                     Console.Error.WriteLine droppedCachedMsgWarning
                     true,CachedNetworkData.Empty
                 else
@@ -235,21 +227,39 @@ module Caching =
             | Some files -> files
             | None -> defaultCacheFiles
 
-        let firstRun,initialSessionCachedNetworkData,initialServerStats = LoadFromDisk cacheFiles
-        let mutable sessionCachedNetworkData = initialSessionCachedNetworkData
-        let mutable sessionServerRanking = initialServerStats
-
         let SaveNetworkDataToDisk (newCachedData: CachedNetworkData) =
             let networkDataInJson = Marshalling.Serialize newCachedData
 
             // it is assumed that SaveToDisk is being run under a lock() block
             File.WriteAllText (cacheFiles.CachedNetworkData.FullName, networkDataInJson)
 
+        // we return back the rankings because the serialization process could remove dupes (and deserialization time
+        // is basically negligible, i.e. took 15 milliseconds max in my MacBook in Debug mode)
         let SaveServerRankingsToDisk (serverStats: ServerRanking) =
-            let serverStatsInJson = Marshalling.Serialize serverStats
+            let serverStatsInJson = ServerRegistry.Serialize serverStats
 
             // it is assumed that SaveToDisk is being run under a lock() block
             File.WriteAllText (cacheFiles.ServerStats.FullName, serverStatsInJson)
+
+            match LoadFromDiskInternal<ServerRanking> cacheFiles.ServerStats with
+            | None -> failwith "should return something after having saved it"
+            | Some cleansedServerStats -> cleansedServerStats
+
+        let InitServers (lastServerStats: ServerRanking) =
+            let mergedServers = ServerRegistry.MergeWithBaseline lastServerStats
+            let mergedAndSaved = SaveServerRankingsToDisk mergedServers
+            for KeyValue(currency,servers) in mergedAndSaved do
+                for server in servers do
+                    if server.CommunicationHistory.IsNone then
+                        Console.Error.WriteLine (sprintf "WARNING: no history stats about %A server %s"
+                                                         currency server.ServerInfo.NetworkPath)
+            mergedServers
+
+        let firstRun,initialSessionCachedNetworkData,lastServerStats = LoadFromDisk cacheFiles
+        let initialServerStats = InitServers lastServerStats
+
+        let mutable sessionCachedNetworkData = initialSessionCachedNetworkData
+        let mutable sessionServerRanking = initialServerStats
 
         let GetSumOfAllTransactions (trans: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>)
                                     currency address: decimal =
@@ -495,24 +505,61 @@ module Caching =
             if transactionCurrency <> feeCurrency && (not Config.EthTokenEstimationCouldBeBuggyAsInNotAccurate) then
                 self.StoreTransactionRecord address feeCurrency txId feeAmount
 
-        member self.SaveServerLastStat (server, historyInfo): unit =
+        member self.SaveServerLastStat (serverMatchFunc: ServerDetails->bool)
+                                       (stat: HistoryFact): unit =
             lock cacheFiles.ServerStats (fun _ ->
-                let newCachedValue =
-                        sessionServerRanking.Add(server, (historyInfo, DateTime.UtcNow))
+                let currency,serverInfo,previousLastSuccessfulCommunication =
+                    match ServerRegistry.TryFindValue sessionServerRanking serverMatchFunc with
+                    | None ->
+                        failwith "Merge&Save didn't happen before launching the FaultTolerantPClient?"
+                    | Some (currency,server) ->
+                            match server.CommunicationHistory with
+                            | None -> currency,server.ServerInfo,None
+                            | Some (prevHistoryInfo,lastComm) ->
+                                    match prevHistoryInfo.Status with
+                                    | Success -> currency,server.ServerInfo,Some lastComm
+                                    | Fault faultInfo -> currency,server.ServerInfo,faultInfo.LastSuccessfulCommunication
 
+                let now = DateTime.Now
+                let newHistoryInfo: CachedValue<HistoryInfo> =
+                    match stat.Fault with
+                    | None ->
+                        ({ TimeSpan = stat.TimeSpan; Status = Success }, now)
+                    | Some exInfo ->
+                        ({ TimeSpan = stat.TimeSpan
+                           Status = Fault { Exception = exInfo
+                                            LastSuccessfulCommunication = previousLastSuccessfulCommunication }}, now)
+
+                let newServerDetails =
+                    {
+                        ServerInfo = serverInfo
+                        CommunicationHistory = Some newHistoryInfo
+                    }
+                let serversForCurrency =
+                    match sessionServerRanking.TryFind currency with
+                    | None -> Seq.empty
+                    | Some servers -> servers
+
+                let newServersForCurrency =
+                    Seq.append (seq { yield newServerDetails }) serversForCurrency
+
+                let newServerList = sessionServerRanking.Add(currency, newServersForCurrency)
+
+                let newCachedValue = SaveServerRankingsToDisk newServerList
                 sessionServerRanking <- newCachedValue
-
-                SaveServerRankingsToDisk newCachedValue
             )
 
-        member self.RetreiveLastServerHistory (serverId: string): Option<HistoryInfo> =
+        member self.GetServers (currency: Currency): seq<ServerDetails> =
             lock cacheFiles.ServerStats (fun _ ->
-                match sessionServerRanking.TryFind serverId with
+                match sessionServerRanking.TryFind currency with
                 | None ->
-                    if Config.DebugLog then
-                        Console.Error.WriteLine (sprintf "WARNING: no history stats about %s" serverId)
-                    None
-                | Some (historyInfo,_) -> Some historyInfo
+                    failwithf "Initialization of servers' cache failed? currency %A not found" currency
+                | Some servers -> servers
+            )
+
+        member self.ExportServers (): Option<string> =
+            lock cacheFiles.ServerStats (fun _ ->
+                LoadFromDiskInner cacheFiles.ServerStats
             )
 
         member self.BootstrapServerStatsFromTrustedSource(): Async<unit> =
@@ -542,32 +589,32 @@ module Caching =
 
             let targetBranch = "stable"
             let username = "knocte"
-            let projName1,projName2 = "geewallet","gwallet"
+            let projName = "geewallet"
             let githubBaseUrl,gitlabBaseUrl = "https://raw.githubusercontent.com","https://gitlab.com"
-            let pathToFile = "src/GWallet.Backend/lastServerStats.json"
+            let pathToFile = sprintf "src/GWallet.Backend/%s" ServerRegistry.ServersEmbeddedResourceFileName
 
-            let knocteGithub =
+            let knocteGitHub =
                 sprintf "%s/%s/%s/%s/%s"
-                        githubBaseUrl username projName2 targetBranch pathToFile
+                        githubBaseUrl username projName targetBranch pathToFile
 
             let knocteGitLab =
                 sprintf "%s/%s/%s/raw/%s/%s"
-                        gitlabBaseUrl username projName1 targetBranch pathToFile
+                        gitlabBaseUrl username projName targetBranch pathToFile
 
-            let allUrls = [ knocteGithub; knocteGitLab ]
+            let allUrls = [ knocteGitHub; knocteGitLab ]
             let allJobs =
                 allUrls |> Seq.map downloadFile
 
             async {
-                let! maybeLastServerStatsInJson = FSharpUtil.AsyncExtensions.WhenAnySuccessful allJobs
+                let! maybeLastServerStatsInJson = Async.Choice allJobs
                 match maybeLastServerStatsInJson with
                 | None ->
                     Console.Error.WriteLine "WARNING: Couldn't reach a trusted server to retreive server stats to bootstrap cache, running in offline mode?"
                 | Some lastServerStatsInJson ->
                     let lastServerStats = ImportFromJson<ServerRanking> lastServerStatsInJson
                     lock cacheFiles.ServerStats (fun _ ->
-                        sessionServerRanking <- lastServerStats
-                        SaveServerRankingsToDisk lastServerStats
+                        let savedServerStats = SaveServerRankingsToDisk lastServerStats
+                        sessionServerRanking <- savedServerStats
                     )
             }
 

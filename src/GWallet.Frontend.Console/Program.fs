@@ -1,4 +1,5 @@
 ﻿open System
+open System.IO
 open System.Linq
 open System.Text.RegularExpressions
 
@@ -177,7 +178,7 @@ let ArchiveAccount() =
             UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
         let balance,_ =
-            Account.GetShowableBalanceAndImminentIncomingPayment account Mode.Fast None
+            Account.GetShowableBalanceAndImminentIncomingPayment account ServerSelectionMode.Fast None
                 |> Async.RunSynchronously
         match balance with
         | NotFresh(NotAvailable) ->
@@ -202,8 +203,8 @@ let ArchiveAccount() =
                 else
                     TryArchiveAccount normalAccount
     | _ ->
-        failwith (sprintf "Account type not valid for archiving: %s. Please report this issue."
-                      (account.GetType().FullName))
+        failwithf "Account type not valid for archiving: %s. Please report this issue."
+                  (account.GetType().FullName)
 
 let PairToWatchWallet() =
     match Account.GetNormalAccountsPairingInfoForWatchWallet() with
@@ -293,8 +294,8 @@ let rec ProgramMainLoop() =
         PerformOptions(accounts.Count())
     ProgramMainLoop()
 
-[<EntryPoint>]
-let main argv =
+
+let NormalStartWithNoParameters () =
 
     Infrastructure.SetupSentryHook ()
 
@@ -308,3 +309,24 @@ let main argv =
             1
 
     exitCode
+
+
+let UpdateServersFile () =
+    ServerManager.UpdateServersFile()
+    0
+
+let UpdateServersStats () =
+    ServerManager.UpdateServersStats()
+    0
+
+[<EntryPoint>]
+let main argv =
+    match argv.Length with
+    | 0 ->
+        NormalStartWithNoParameters()
+    | 1 when argv.[0] = "--update-servers-file" ->
+        UpdateServersFile()
+    | 1 when argv.[0] = "--update-servers-stats" ->
+        UpdateServersStats()
+    | _ ->
+        failwith "Arguments not recognized"

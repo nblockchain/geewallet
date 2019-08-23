@@ -63,11 +63,14 @@
     <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedBtcTransaction.json" />
+    <EmbeddedResource Include="data\signedAndFormattedEtherTransaction.json" />
+    <EmbeddedResource Include="data\unsignedAndFormattedEtherTransaction.json" />
     <Compile Include="ElectrumIntegrationTests.fs" />
     <Compile Include="WarpWallet.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />
     <Compile Include="Formatting.fs" />
     <Compile Include="AsyncExtensions.fs" />
+    <Compile Include="ServerReference.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />

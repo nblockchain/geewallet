@@ -36,7 +36,7 @@ module internal Account =
         publicAddress
 
     let private GetBalance (account: IAccount)
-                           (mode: Mode)
+                           (mode: ServerSelectionMode)
                            (balType: BalanceType)
                            (cancelSourceOption: Option<CancellationTokenSource>)
                                = async {
@@ -50,7 +50,9 @@ module internal Account =
         return balance
     }
 
-    let private GetBalanceFromServer (account: IAccount) (balType: BalanceType) (mode: Mode)
+    let private GetBalanceFromServer (account: IAccount)
+                                     (balType: BalanceType)
+                                     (mode: ServerSelectionMode)
                                      (cancelSourceOption: Option<CancellationTokenSource>)
                                          : Async<Option<decimal>> =
         async {
@@ -66,14 +68,14 @@ module internal Account =
         }
 
     let internal GetShowableBalanceAndImminentIncomingPayment (account: IAccount)
-                                                              (mode: Mode)
+                                                              (mode: ServerSelectionMode)
                                                               (cancelSourceOption: Option<CancellationTokenSource>)
                                                                   : Async<Option<decimal*Option<bool>>> =
         let getBalanceWithoutCaching(maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>)
                 : Async<Option<decimal*Option<bool>>> =
             async {
                 let! confirmed = GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
-                if mode = Mode.Fast then
+                if mode = ServerSelectionMode.Fast then
                     match confirmed with
                     | None ->
                         return None
@@ -146,8 +148,8 @@ module internal Account =
         let! result = Ether.Server.GetTransactionCount currency publicAddress
         let value = result.Value
         if (value > BigInteger(Int64.MaxValue)) then
-            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
-                          (result.ToString()))
+            failwithf "Serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
+                      (result.ToString())
         let int64result:Int64 = BigInteger.op_Explicit value
         return int64result
     }
@@ -155,8 +157,8 @@ module internal Account =
     let private GetGasPrice currency: Async<int64> = async {
         let! gasPrice = Ether.Server.GetGasPrice currency
         if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
-            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas, please report this issue."
-                          (gasPrice.Value.ToString()))
+            failwithf "Serialization doesn't support such a big integer (%s) for the gas, please report this issue."
+                      (gasPrice.Value.ToString())
         let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
         return gasPrice64
     }
@@ -187,8 +189,8 @@ module internal Account =
 
         let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee baseCurrency account amount destination
         if (tokenTransferFee.Value > BigInteger(Int64.MaxValue)) then
-            failwith (sprintf "GWallet serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
-                          (tokenTransferFee.Value.ToString()))
+            failwithf "Serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
+                      (tokenTransferFee.Value.ToString())
         let gasCost64: Int64 = BigInteger.op_Explicit tokenTransferFee.Value
 
         let ethMinerFee = MinerFee(gasCost64, gasPrice64, DateTime.UtcNow, baseCurrency)

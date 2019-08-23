@@ -33,9 +33,10 @@ module MarshallingData =
 
     let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
-    let SomeDate = DateTime.UtcNow
+    let internal SomeDate = DateTime.Parse "2018-06-14T16:50:09.133411"
 
-    let private someEtherMinerFee = Ether.MinerFee(21000L, 6969L, SomeDate, Currency.ETC)
+    let private someEtherMinerFee =
+        Ether.MinerFee(21000L, 6969L, SomeDate, Currency.ETC)
 
     let private someUnsignedEtherTransactionProposal =
         {
@@ -48,9 +49,15 @@ module MarshallingData =
         { UsdPrice = Map.empty; Addresses = Map.empty; Balances = Map.empty; }
 
     let EmptyCachingDataExampleInJson =
-        sprintf "{\"Version\":\"%s\",\"TypeName\":\"%s\","
-                version (EmptyCachingDataExample.GetType().FullName) +
-                "\"Value\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}"
+        sprintf """{
+  "Version": "%s",
+  "TypeName": "%s",
+  "Value": {
+    "UsdPrice": {},
+    "Addresses": {},
+    "Balances": {}
+  }
+}"""        version (EmptyCachingDataExample.GetType().FullName)
 
     let private balances = Map.empty.Add(Currency.BTC.ToString(), 0m)
                                     .Add(Currency.ETC.ToString(), 123456789.12345678m)
@@ -60,18 +67,29 @@ module MarshallingData =
                                       .Add(Currency.ETC.ToString(), 169.99999999m)
     let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Addresses = addresses; Balances = balances; }
 
-    let private innerCachingDataForSofisticatedUseCase =
-        "{\"UsdPrice\":{\"ETC\":169.99999999" +
-        ",\"ETH\":161.796" +
-        "},\"Addresses\":{\"0xFOOBARBAZ\":[\"ETC\"],\"1fooBarBaz\":[\"BTC\"]}," +
-        "\"Balances\":{\"BTC\":0.0," +
-        "\"ETC\":123456789.12345678}}"
-
     let SofisticatedCachingDataExampleInJson =
-        (sprintf "{\"Version\":\"%s\",\"TypeName\":\"%s\","
-                 version (typedefof<DietCache>.FullName)) +
-                 "\"Value\":" + innerCachingDataForSofisticatedUseCase +
-                 "}"
+        sprintf """{
+  "Version": "%s",
+  "TypeName": "%s",
+  "Value": {
+    "UsdPrice": {
+      "ETC": 169.99999999,
+      "ETH": 161.796
+    },
+    "Addresses": {
+      "0xFOOBARBAZ": [
+        "ETC"
+      ],
+      "1fooBarBaz": [
+        "BTC"
+      ]
+    },
+    "Balances": {
+      "BTC": 0.0,
+      "ETC": 123456789.12345678
+    }
+  }
+}"""        version (typedefof<DietCache>.FullName)
 
     let private someUnsignedBtcTransactionProposal =
         {
@@ -111,7 +129,7 @@ module MarshallingData =
     let private realCachingDataExample =
         { UsdPrice = realUsdPriceDataSample; Addresses = realAddressesSample; Balances = realBalancesDataSample; }
 
-    let private someBtcMinerFee = UtxoCoin.MinerFee(10L, DateTime.Parse "2018-06-14T16:50:09.133411Z", Currency.BTC)
+    let private someBtcMinerFee = UtxoCoin.MinerFee(10L, SomeDate, Currency.BTC)
     let private someBtcTxMetadata =
         {
             Fee = someBtcMinerFee;
@@ -150,7 +168,7 @@ module MarshallingData =
 
     let private someEtherMinerFeeForDaiTransfer = Ether.MinerFee(37298L,
                                                                  3343750000L,
-                                                                 DateTime.Parse "2018-03-14T16:50:09.133411",
+                                                                 SomeDate,
                                                                  Currency.ETH)
     let private someDaiTxMetadata =
         {
@@ -193,38 +211,7 @@ module MarshallingData =
             RawTransaction = "doijfsoifjdosisdjfomirmjosmi";
         }
     let SignedEtherTransactionExampleInJson =
-        (sprintf "{\"Version\":\"%s\"," version) +
-        (sprintf "\"TypeName\":\"%s\",\"Value\":" (SignedEtherTransactionExample.GetType().FullName)) +
-        "{\"TransactionInfo\":{\"Proposal\":" +
-        "{" +
-        "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"ETC\"}}," +
-        "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
-        ",\"Metadata\":{" +
-        "\"Fee\":{" +
-        "\"GasLimit\":21000," +
-        "\"GasPriceInWei\":6969," +
-        "\"Currency\":{\"Case\":\"ETC\"}," +
-        "\"EstimationTime\":" +
-        JsonConvert.SerializeObject (SomeDate) + "}," +
-        "\"TransactionCount\":69}," +
-        "\"Cache\":" + innerCachingDataForSofisticatedUseCase + "}," +
-        "\"RawTransaction\":\"doijfsoifjdosisdjfomirmjosmi\"}}"
+        ReadEmbeddedResource "signedAndFormattedEtherTransaction.json"
 
     let UnsignedEtherTransactionExampleInJson =
-        (sprintf "{\"Version\":\"%s\"," version) +
-        (sprintf "\"TypeName\":\"%s\",\"Value\":" (UnsignedEtherTransactionExample.GetType().FullName)) +
-        "{\"Proposal\":" +
-        "{" +
-        "\"OriginAddress\":\"0xf3j4m0rjx94sushh03j\"," +
-        "\"Amount\":{\"ValueToSend\":10.01,\"BalanceAtTheMomentOfSending\":12.02,\"Currency\":{\"Case\":\"ETC\"}}," +
-        "\"DestinationAddress\":\"0xf3j4m0rjxdddud9403j\"}" +
-        ",\"Metadata\":{" +
-        "\"Fee\":{" +
-        "\"GasLimit\":21000," +
-        "\"GasPriceInWei\":6969," +
-        "\"Currency\":{\"Case\":\"ETC\"}," +
-        "\"EstimationTime\":" +
-        JsonConvert.SerializeObject(SomeDate) + "}," +
-        "\"TransactionCount\":69}," +
-        "\"Cache\":{\"UsdPrice\":{},\"Addresses\":{},\"Balances\":{}}}}"
+        ReadEmbeddedResource "unsignedAndFormattedEtherTransaction.json"

@@ -48,7 +48,7 @@ type Serialization() =
                                MarshallingData.UnsignedEtherTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json,
+        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
                     Is.EqualTo(MarshallingData.UnsignedEtherTransactionExampleInJson))
 
     [<Test>]
@@ -64,7 +64,8 @@ type Serialization() =
         let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedEtherTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json, Is.EqualTo (MarshallingData.SignedEtherTransactionExampleInJson))
+        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
+                    Is.EqualTo MarshallingData.SignedEtherTransactionExampleInJson)
 
     [<Test>]
     member __.``unsigned DAI transaction export``() =
