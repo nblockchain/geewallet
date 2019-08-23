@@ -45,7 +45,7 @@ type internal FinalResult<'K,'T,'R,'E when 'K: equality and 'K :> ICommunication
     | AverageResult of 'R
     | InconsistentOrNotEnoughResults of ExecutedServers<'K,'R,'E>
 
-type internal NonParallelResult<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
+type internal ServerResult<'K,'R,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception> =
     | SuccessfulResult of 'R
     | Failure of UnsuccessfulServer<'K,'R,'E>
 
@@ -145,9 +145,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
     let MeasureConsistency (results: List<'R>) =
         results |> Seq.countBy id |> Seq.sortByDescending (fun (_,count: int) -> count) |> List.ofSeq
 
-    let LaunchAsyncJob (job: Async<NonParallelResult<'K,'R,'E>>)
+    let LaunchAsyncJob (job: Async<ServerResult<'K,'R,'E>>)
                        (cancellationSource: CancellationTokenSource)
-                           : Task<NonParallelResult<'K,'R,'E>> =
+                           : Task<ServerResult<'K,'R,'E>> =
         let token =
             try
                 cancellationSource.Token
@@ -158,8 +158,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
 
     let rec WhenSomeInternal (consistencySettings: Option<ConsistencySettings<'R>>)
                              (initialServerCount: uint32)
-                             (startedTasks: List<Task<NonParallelResult<'K,'R,'E>>>)
-                             (jobsToContinueWith: List<Async<NonParallelResult<'K,'R,'E>>>)
+                             (startedTasks: List<Task<ServerResult<'K,'R,'E>>>)
+                             (jobsToContinueWith: List<Async<ServerResult<'K,'R,'E>>>)
                              (resultsSoFar: List<'R>)
                              (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                              (cancellationSource: CancellationTokenSource)
@@ -246,12 +246,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     return! returnWithConsistencyOf None None
 
                 else
-                    if Config.DebugLog &&
-
-                       // even when all funcs have been finished, we still have newRestOfTasks.Length==1
-                       // because of the way ConcatenateNonParallelFuncs works with empty([]) servers var
-                       not (newFailedFuncs.Length + newResults.Length = int initialServerCount) then
-
+                    if Config.DebugLog then
                         Console.WriteLine(sprintf "%f%% done (for this currency)"
                             (100.*(float (newFailedFuncs.Length+newResults.Length))/(float initialServerCount)))
 
@@ -269,8 +264,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
     // it (and I couldn't just consume it and call it a day, I had to modify it to be "WhenSome" instead of "WhenAny",
     // as in when N>1), so I decided to write my own, using Tasks to make sure I would not spawn duplicate jobs
     let WhenSome (consistencySettings: Option<ConsistencySettings<'R>>)
-                 (jobsToStart: List<Async<NonParallelResult<'K,'R,'E>>>)
-                 (jobsToContinueWith: List<Async<NonParallelResult<'K,'R,'E>>>)
+                 (jobsToStart: List<Async<ServerResult<'K,'R,'E>>>)
+                 (jobsToContinueWith: List<Async<ServerResult<'K,'R,'E>>>)
                  (resultsSoFar: List<'R>)
                  (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                  (cancellationSource: CancellationTokenSource)
@@ -288,7 +283,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
     let rec CreateAsyncJobFromFunc (shouldReportUncancelledJobs: bool)
                                    (cancelledInternally: MutableStateCapsule<Option<DateTime>>)
                                    (server: Server<'K,'R>)
-                                       : Async<NonParallelResult<'K,'R,'E>> =
+                                       : Async<ServerResult<'K,'R,'E>> =
         async {
             let stopwatch = Stopwatch()
             stopwatch.Start()
