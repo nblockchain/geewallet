@@ -10,8 +10,6 @@ dpkg -i packages-microsoft-prod.deb
 apt install -y apt-transport-https
 apt update
 
-# WORKAROUND to get old version of dotnetsdk, otherwise `apt install -y dotnet-sdk-2.1` would
-# install a buggy version that can't build .NET Standard, see https://github.com/dotnet/core/issues/2460 and https://github.com/NuGet/Home/issues/7956
-apt-get install -y dotnet-sdk-2.1=2.1.505-1
+apt-get install -y dotnet-sdk-2.1
 
 dotnet --version
