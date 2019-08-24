@@ -73,6 +73,9 @@
     <EmbeddedResource Include="..\..\img\ltc_red_120x120.png">
       <Link>img\ltc_red_120x120.png</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\logo_512x512.png">
+      <Link>img\logo_512x512.png</Link>
+    </EmbeddedResource>
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
       <Link>Properties\CommonAssemblyInfo.fs</Link>
@@ -82,43 +85,49 @@
     <Compile Include="Controls\DonutChartView.fs" />
     <Compile Include="PairingFromPage.xaml.fs">
       <DependentUpon>PairingFromPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="SendPage.xaml.fs">
       <DependentUpon>SendPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="PairingToPage.xaml.fs">
       <DependentUpon>PairingToPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="ReceivePage.xaml.fs">
       <DependentUpon>ReceivePage.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="BalancesPage.xaml.fs">
       <DependentUpon>BalancesPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="LoadingPage.xaml.fs">
       <DependentUpon>LoadingPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="WelcomePage2.xaml.fs">
       <DependentUpon>WelcomePage2.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="WelcomePage.xaml.fs">
       <DependentUpon>WelcomePage.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
     <Compile Include="Initialization.fs" />
     <Compile Include="App.xaml.fs">
       <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
+    <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
     <PackageReference Include="FSharp.Core" Version="4.5.3" />
+    <PackageReference Include="SkiaSharp.Svg" Version="1.60.0" />
     <PackageReference Include="Xamarin.Forms" Version="3.0.0.446417" />
-    <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
     <PackageReference Include="Xam.Plugin.Connectivity" Version="4.0.0.190-beta" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="2.99.0-CI-20190225-092434" />
-    <PackageReference Include="SkiaSharp.Svg" Version="1.60.0" />
     <PackageReference Include="SkiaSharp" Version="1.68.0" />
-    <EmbeddedResource Include="..\..\img\logo_512x512.png">
-      <Link>img\logo_512x512.png</Link>
-    </EmbeddedResource>
   </ItemGroup>
 </Project>

@@ -171,8 +171,19 @@ module Config =
 
     let ExtractEmbeddedResourceFileContents resourceName =
         let assembly = Assembly.GetExecutingAssembly()
-        use stream = assembly.GetManifestResourceStream resourceName
+        let allEmbeddedResources = assembly.GetManifestResourceNames()
+        let resourceList = String.Join(",", allEmbeddedResources)
+        let assemblyResourceName = allEmbeddedResources.FirstOrDefault(fun r -> r.EndsWith resourceName)
+        if (assemblyResourceName = null) then
+            failwithf "Embedded resource %s not found in %s. Resource list: %s"
+                      resourceName
+                      (assembly.ToString())
+                      resourceList
+        use stream = assembly.GetManifestResourceStream assemblyResourceName
         if (stream = null) then
-            failwithf "Embedded resource %s not found" resourceName
+            failwithf "Assertion failed: Embedded resource %s not found in %s. Resource list: %s"
+                                  resourceName
+                                  (assembly.ToString())
+                                  resourceList
         use reader = new StreamReader(stream)
         reader.ReadToEnd()

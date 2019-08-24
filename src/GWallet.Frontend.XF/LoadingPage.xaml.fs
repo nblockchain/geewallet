@@ -80,10 +80,12 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
             ShowLoadingText()
 
         let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts
-        let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances false Mode.Fast
+        let _,allNormalAccountBalancesJob =
+            FrontendHelpers.UpdateBalancesAsync normalAccountsBalances false ServerSelectionMode.Fast
 
         let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
-        let _,readOnlyAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true Mode.Fast
+        let _,readOnlyAccountBalancesJob =
+            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast
         let preloadCurrencyImagesJob = PreLoadCurrencyImages()
 
         let populateGrid = async {

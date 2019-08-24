@@ -48,6 +48,9 @@
     <Compile Include="..\GWallet.Backend\Infrastructure.fs">
       <Link>Infrastructure.fs</Link>
     </Compile>
+    <Compile Include="..\GWallet.Backend\CachingTypes.fs">
+      <Link>CachingTypes.fs</Link>
+    </Compile>
     <Compile Include="..\GWallet.Backend\Server.fs">
       <Link>Server.fs</Link>
     </Compile>
@@ -78,12 +81,6 @@
     <Compile Include="..\GWallet.Backend\UtxoCoin\UtxoCoinAccount.fs">
       <Link>UtxoCoin\UtxoCoinAccount.fs</Link>
     </Compile>
-    <EmbeddedResource Include="..\GWallet.Backend\UtxoCoin\btc-servers.json">
-      <Link>UtxoCoin\btc-servers.json</Link>
-    </EmbeddedResource>
-    <EmbeddedResource Include="..\GWallet.Backend\UtxoCoin\ltc-servers.json">
-      <Link>UtxoCoin\ltc-servers.json</Link>
-    </EmbeddedResource>
     <Compile Include="..\GWallet.Backend\Ether\EtherExceptions.fs">
       <Link>Ether\EtherExceptions.fs</Link>
     </Compile>
@@ -117,8 +114,9 @@
     <Compile Include="..\GWallet.Backend\Formatting.fs">
       <Link>Formatting.fs</Link>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
+    <EmbeddedResource Include="..\GWallet.Backend\servers.json">
+      <Link>servers.json</Link>
+    </EmbeddedResource>
     <PackageReference Include="NBitcoin" Version="4.1.1.80" />
     <PackageReference Include="FSharp.Data" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
@@ -131,6 +129,7 @@
     <PackageReference Include="FSharp.Core" Version="4.5.3" />
     <PackageReference Include="Nethereum" Version="0.0.2.59" />
     <PackageReference Include="JsonRpcSharp" Version="0.9.54732" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.9" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />

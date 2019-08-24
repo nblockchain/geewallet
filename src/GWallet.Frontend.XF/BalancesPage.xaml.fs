@@ -341,7 +341,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
         // we don't mind to be non-fast because it's refreshing in the background anyway
-        let refreshMode = Mode.Analysis
+        let refreshMode = ServerSelectionMode.Analysis
 
         let readOnlyCancelSources,readOnlyBalancesJob =
             FrontendHelpers.UpdateBalancesAsync (readOnlyAccountsAndBalances.Select(fun balanceState ->

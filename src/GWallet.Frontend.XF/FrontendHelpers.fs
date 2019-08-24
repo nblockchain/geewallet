@@ -101,7 +101,7 @@ module FrontendHelpers =
         )
         fiatAmount
 
-    let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet) (mode: Mode) (cancelSource: CancellationTokenSource)
+    let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet) (mode: ServerSelectionMode) (cancelSource: CancellationTokenSource)
                                            : Async<BalanceState> =
         async {
             let! balance,imminentIncomingPayment =
@@ -115,7 +115,7 @@ module FrontendHelpers =
             }
         }
 
-    let UpdateBalanceAsync (balanceSet: BalanceSet) (tryCachedFirst: bool) (mode: Mode)
+    let UpdateBalanceAsync (balanceSet: BalanceSet) (tryCachedFirst: bool) (mode: ServerSelectionMode)
                                : CancellationTokenSource*Async<BalanceState> =
         let cancelSource = new CancellationTokenSource()
         let job = async {
@@ -142,7 +142,7 @@ module FrontendHelpers =
         }
         cancelSource,job
 
-    let UpdateBalancesAsync accountBalances (tryCacheFirst: bool) (mode: Mode)
+    let UpdateBalancesAsync accountBalances (tryCacheFirst: bool) (mode: ServerSelectionMode)
                                 : seq<CancellationTokenSource>*Async<array<BalanceState>> =
         let sourcesAndJobs = seq {
             for balanceSet in accountBalances do
