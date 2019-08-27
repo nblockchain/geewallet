@@ -118,6 +118,8 @@ module Server =
             if HttpRequestExceptionMatchesErrorCode
                 httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
                     raise <| ServerRestrictiveException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCodeNotPresentInTheBcl.FrozenSite) then
+                raise <| ServerUnavailableException(exMsg, httpReqEx)
 
         | None ->
             ()
