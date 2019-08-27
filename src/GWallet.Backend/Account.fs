@@ -37,11 +37,11 @@ module Account =
                 GetShowableBalanceAndImminentPaymentInternal account mode cancelSourceOption
             match maybeBalanceAndImminentIncomingPayment with
             | None ->
-                let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+                let cachedBalance = Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
                 return (NotFresh cachedBalance, None)
             | Some (balance,imminentIncomingPayment) ->
                 let compoundBalance,_ =
-                    Caching.Instance.RetreiveAndUpdateLastCompoundBalance account.PublicAddress
+                    Caching.Instance.RetrieveAndUpdateLastCompoundBalance account.PublicAddress
                                                                           account.Currency
                                                                           balance
                 return (Fresh compoundBalance, imminentIncomingPayment)

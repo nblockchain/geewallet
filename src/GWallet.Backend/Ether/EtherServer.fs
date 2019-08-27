@@ -118,6 +118,8 @@ module Server =
             if HttpRequestExceptionMatchesErrorCode
                 httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
                     raise <| ServerRestrictiveException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCodeNotPresentInTheBcl.FrozenSite) then
+                raise <| ServerUnavailableException(exMsg, httpReqEx)
 
             // TODO: report this one as a warning to sentry?
             if httpReqEx.InnerException <> null &&
@@ -426,10 +428,10 @@ module Server =
             return balance
         }
 
-    let private CachedBalanceMatch address currency someBalanceRetreived =
-        match Caching.Instance.TryRetreiveLastCompoundBalance address currency with
+    let private CachedBalanceMatch address currency someRetrievedBalance =
+        match Caching.Instance.TryRetrieveLastCompoundBalance address currency with
         | None -> false
-        | Some balance -> someBalanceRetreived = balance
+        | Some balance -> someRetrievedBalance = balance
 
     let GetEtherBalance (currency: Currency)
                         (address: string)

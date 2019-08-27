@@ -251,22 +251,22 @@ type ParallelizationAndOptimization() =
                               }
                           Retrieval = async { return someResult2 }
                       }
-        let dataRetreived = (FaultTolerantParallelClient<ServerDetails, DummyIrrelevantToThisTestException>
+        let retrievedData = (FaultTolerantParallelClient<ServerDetails, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries None)
                                 [ server1; server2 ]
                                 |> Async.RunSynchronously
-        Assert.That(dataRetreived, Is.TypeOf<int>())
-        Assert.That(dataRetreived, Is.EqualTo someResult2)
+        Assert.That(retrievedData, Is.TypeOf<int>())
+        Assert.That(retrievedData, Is.EqualTo someResult2)
 
         // same but different order
-        let dataRetreived = (FaultTolerantParallelClient<ServerDetails, DummyIrrelevantToThisTestException>
+        let retrievedData = (FaultTolerantParallelClient<ServerDetails, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 (FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries None)
                                 [ server2; server1 ]
                                 |> Async.RunSynchronously
-        Assert.That(dataRetreived, Is.TypeOf<int>())
-        Assert.That(dataRetreived, Is.EqualTo someResult2)
+        Assert.That(retrievedData, Is.TypeOf<int>())
+        Assert.That(retrievedData, Is.EqualTo someResult2)
 
     [<Test>]
     member __.``ListIntersect metatest`` () =
@@ -349,22 +349,22 @@ type ParallelizationAndOptimization() =
                 }
             | _ -> failwith "default settings should be selective! :-?"
 
-        let dataRetreived = (FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
+        let retrievedData = (FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 settings
                                 [ server1; server2; server3 ]
                                 |> Async.RunSynchronously
-        Assert.That(dataRetreived, Is.TypeOf<int>())
-        Assert.That(dataRetreived, Is.EqualTo someResult3)
+        Assert.That(retrievedData, Is.TypeOf<int>())
+        Assert.That(retrievedData, Is.EqualTo someResult3)
 
         // same but different order
-        let dataRetreived = (FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
+        let retrievedData = (FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
                                 settings
                                 [ server3; server2; server1 ]
                                 |> Async.RunSynchronously
-        Assert.That(dataRetreived, Is.TypeOf<int>())
-        Assert.That(dataRetreived, Is.EqualTo someResult3)
+        Assert.That(retrievedData, Is.TypeOf<int>())
+        Assert.That(retrievedData, Is.EqualTo someResult3)
 
     [<Test>]
     member __.``parallel jobs is honored (corner case)``() =

@@ -42,7 +42,7 @@ type CompoundBalanceCaching() =
 
         try
             let someBalance = 10m
-            let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
         finally
             File.Delete cacheFiles.CachedNetworkData.FullName
@@ -55,7 +55,7 @@ type CompoundBalanceCaching() =
 
         try
             let someBalance = 10m
-            let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
             let someTransactionValue = 1m
@@ -65,7 +65,7 @@ type CompoundBalanceCaching() =
                                            someDummyTxId
                                            someTransactionValue
                                            zero_fee_because_this_test_does_not_involve_fees
-            match cache.RetreiveLastCompoundBalance someAddress someCurrency with
+            match cache.RetrieveLastCompoundBalance someAddress someCurrency with
             | NotAvailable -> Assert.Fail "should have saved some balance"
             | Cached(cachedBalance2,_) ->
                 Assert.That(cachedBalance2, Is.EqualTo (someBalance - someTransactionValue))
@@ -80,7 +80,7 @@ type CompoundBalanceCaching() =
 
         try
             let someBalance = 10m
-            let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
             let someTransactionValue = 1m
@@ -97,7 +97,7 @@ type CompoundBalanceCaching() =
                                            someTransactionValue
                                            zero_fee_because_this_test_does_not_involve_fees
 
-            match cache.RetreiveLastCompoundBalance someAddress someCurrency with
+            match cache.RetrieveLastCompoundBalance someAddress someCurrency with
             | NotAvailable -> Assert.Fail "should have saved some balance"
             | Cached(cachedBalance2,_) ->
                 Assert.That(cachedBalance2, Is.EqualTo (someBalance - someTransactionValue))
@@ -112,7 +112,7 @@ type CompoundBalanceCaching() =
 
         try
             let someBalance = 10m
-            let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
             let firstTransactionAmount = 1m
@@ -130,7 +130,7 @@ type CompoundBalanceCaching() =
                                            secondTransactionAmount
                                            zero_fee_because_this_test_does_not_involve_fees
 
-            match cache.RetreiveLastCompoundBalance someAddress someCurrency with
+            match cache.RetrieveLastCompoundBalance someAddress someCurrency with
             | NotAvailable -> Assert.Fail "should have saved some balance"
             | Cached(cachedBalance2,_) ->
                 Assert.That(cachedBalance2, Is.EqualTo (someBalance - firstTransactionAmount - secondTransactionAmount))
@@ -145,7 +145,7 @@ type CompoundBalanceCaching() =
 
         try
             let someBalance = 10m
-            let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
             let firstTransactionAmount = 1m
@@ -164,7 +164,7 @@ type CompoundBalanceCaching() =
                                            zero_fee_because_this_test_does_not_involve_fees
 
             let newBalanceAfterFirstTransactionIsConfirmed = someBalance - firstTransactionAmount
-            let cachedBalance2,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress
+            let cachedBalance2,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress
                                                                               someCurrency
                                                                               newBalanceAfterFirstTransactionIsConfirmed
             Assert.That(cachedBalance2, Is.EqualTo (someBalance - firstTransactionAmount - secondTransactionAmount))
@@ -179,7 +179,7 @@ type CompoundBalanceCaching() =
 
         try
             let someBalance = 10m
-            let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
             let firstTransactionAmount = 1m
@@ -189,7 +189,7 @@ type CompoundBalanceCaching() =
                                            "x"
                                            firstTransactionAmount
                                            zero_fee_because_this_test_does_not_involve_fees
-            let cachedBalance = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             let secondTransactionAmount = 2m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency
@@ -199,7 +199,7 @@ type CompoundBalanceCaching() =
                                            zero_fee_because_this_test_does_not_involve_fees
 
             let newBalanceAfterSndTransactionIsConfirmed = someBalance - secondTransactionAmount
-            let cachedBalance2,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress
+            let cachedBalance2,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress
                                                                               someCurrency
                                                                               newBalanceAfterSndTransactionIsConfirmed
             Assert.That(cachedBalance2, Is.EqualTo (someBalance - firstTransactionAmount - secondTransactionAmount))
@@ -214,7 +214,7 @@ type CompoundBalanceCaching() =
 
         try
             let someBalance = 10m
-            let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
             let firstTransactionAmount = 1m
@@ -233,7 +233,7 @@ type CompoundBalanceCaching() =
                                            zero_fee_because_this_test_does_not_involve_fees
 
             let newBalanceAfterBothTxsAreConfirmed = someBalance - secondTransactionAmount - firstTransactionAmount
-            let cachedBalance2,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress
+            let cachedBalance2,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress
                                                                               someCurrency
                                                                               newBalanceAfterBothTxsAreConfirmed
             Assert.That(cachedBalance2, Is.EqualTo (someBalance - firstTransactionAmount - secondTransactionAmount))
@@ -249,7 +249,7 @@ type CompoundBalanceCaching() =
 
         try
             let someBalance = 10m
-            let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
             cache.StoreOutgoingTransaction someAddress
@@ -259,21 +259,21 @@ type CompoundBalanceCaching() =
                                            1m
                                            zero_fee_because_this_test_does_not_involve_fees
             Threading.Thread.Sleep(expirationTime + expirationTime)
-            let cachedBalance2,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance2,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance2, Is.EqualTo someBalance)
         finally
             File.Delete cacheFiles.CachedNetworkData.FullName
             File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
-    member __.``single-compound balance with expired transaction (just retreive)``() =
+    member __.``single-compound balance with expired transaction (just retrieve)``() =
         let expirationTime = TimeSpan.FromMilliseconds 100.0
         let cache,cacheFiles =
             SpawnNewCacheInstanceToTest expirationTime
 
         try
             let someBalance = 10m
-            let cachedBalance,_ = cache.RetreiveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
+            let cachedBalance,_ = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             Assert.That(cachedBalance, Is.EqualTo someBalance)
 
             cache.StoreOutgoingTransaction someAddress
@@ -283,7 +283,7 @@ type CompoundBalanceCaching() =
                                            1m
                                            zero_fee_because_this_test_does_not_involve_fees
             Threading.Thread.Sleep(expirationTime + expirationTime)
-            match cache.RetreiveLastCompoundBalance someAddress someCurrency with
+            match cache.RetrieveLastCompoundBalance someAddress someCurrency with
             | NotAvailable -> Assert.Fail "should have saved some balance"
             | Cached(cachedBalance2,_) ->
                 Assert.That(cachedBalance2, Is.EqualTo someBalance)
@@ -302,10 +302,10 @@ type CompoundBalanceCaching() =
             let someEthCurrency = Currency.ETH
             let someEthBalance = 5m
             let cachedTokenBalance,_ =
-                cache.RetreiveAndUpdateLastCompoundBalance someAddress someTokenCurrency someTokenBalance
+                cache.RetrieveAndUpdateLastCompoundBalance someAddress someTokenCurrency someTokenBalance
             Assert.That(cachedTokenBalance, Is.EqualTo someTokenBalance)
             let cachedEthBalance,_ =
-                cache.RetreiveAndUpdateLastCompoundBalance someAddress someEthCurrency someEthBalance
+                cache.RetrieveAndUpdateLastCompoundBalance someAddress someEthCurrency someEthBalance
             Assert.That(cachedEthBalance, Is.EqualTo someEthBalance)
 
             let someTransactionAmount = 1m
@@ -316,12 +316,12 @@ type CompoundBalanceCaching() =
                                            someDummyTxId
                                            someTransactionAmount
                                            someFeeAmount
-            match cache.RetreiveLastCompoundBalance someAddress someTokenCurrency with
+            match cache.RetrieveLastCompoundBalance someAddress someTokenCurrency with
             | NotAvailable -> Assert.Fail "should have saved some balance"
             | Cached(cachedTokenBalance2,_) ->
                 Assert.That(cachedTokenBalance2, Is.EqualTo (someTokenBalance - someTransactionAmount))
 
-            match cache.RetreiveLastCompoundBalance someAddress someEthCurrency with
+            match cache.RetrieveLastCompoundBalance someAddress someEthCurrency with
             | NotAvailable -> Assert.Fail "should have saved some balance"
             | Cached(cachedEthBalance2,_) ->
                 if not Config.EthTokenEstimationCouldBeBuggyAsInNotAccurate then

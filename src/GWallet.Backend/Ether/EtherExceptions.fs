@@ -7,6 +7,7 @@ open GWallet.Backend
 
 type HttpStatusCodeNotPresentInTheBcl =
     | TooManyRequests = 429
+    | FrozenSite = 530
 
 type RpcErrorCode =
     // "This request is not supported because your node is running with state pruning. Run with --pruning=archive."
