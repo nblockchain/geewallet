@@ -36,10 +36,10 @@ module Account =
             let! maybeBalance = GetShowableBalanceInternal account mode cancelSourceOption
             match maybeBalance with
             | None ->
-                return NotFresh(Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency)
+                return NotFresh(Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency)
             | Some balance ->
                 let compoundBalance,_ =
-                    Caching.Instance.RetreiveAndUpdateLastCompoundBalance account.PublicAddress
+                    Caching.Instance.RetrieveAndUpdateLastCompoundBalance account.PublicAddress
                                                                           account.Currency
                                                                           balance
                 return Fresh compoundBalance

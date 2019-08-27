@@ -323,7 +323,7 @@ module Caching =
                 sessionCachedNetworkData
             )
 
-        member self.RetreiveLastKnownUsdPrice (currency): NotFresh<decimal> =
+        member self.RetrieveLastKnownUsdPrice currency: NotFresh<decimal> =
             lock cacheFiles.CachedNetworkData (fun _ ->
                 try
                     Cached(sessionCachedNetworkData.UsdPrice.Item currency)
@@ -344,7 +344,7 @@ module Caching =
                 SaveNetworkDataToDisk newCachedValue
             )
 
-        member self.RetreiveLastCompoundBalance (address: PublicAddress) (currency: Currency): NotFresh<decimal> =
+        member self.RetrieveLastCompoundBalance (address: PublicAddress) (currency: Currency): NotFresh<decimal> =
             lock cacheFiles.CachedNetworkData (fun _ ->
                 let balance =
                     try
@@ -370,15 +370,15 @@ module Caching =
                         Cached(compoundBalance,time)
             )
 
-        member self.TryRetreiveLastCompoundBalance (address: PublicAddress) (currency: Currency): Option<decimal> =
-            let maybeCachedBalance = self.RetreiveLastCompoundBalance address currency
+        member self.TryRetrieveLastCompoundBalance (address: PublicAddress) (currency: Currency): Option<decimal> =
+            let maybeCachedBalance = self.RetrieveLastCompoundBalance address currency
             match maybeCachedBalance with
             | NotAvailable ->
                 None
             | Cached(cachedBalance,_) ->
                 Some cachedBalance
 
-        member self.RetreiveAndUpdateLastCompoundBalance (address: PublicAddress)
+        member self.RetrieveAndUpdateLastCompoundBalance (address: PublicAddress)
                                                          (currency: Currency)
                                                          (newBalance: decimal)
                                                              : CachedValue<decimal> =
@@ -568,7 +568,7 @@ module Caching =
                         if isSuccess then
                             return content
                         else
-                            Console.Error.WriteLine ("WARNING: error trying to retreive server stats: " + content)
+                            Console.Error.WriteLine ("WARNING: error trying to retrieve server stats: " + content)
                             return failwith content
                     }
                 async {
@@ -603,7 +603,7 @@ module Caching =
                 let! maybeLastServerStatsInJson = Async.Choice allJobs
                 match maybeLastServerStatsInJson with
                 | None ->
-                    Console.Error.WriteLine "WARNING: Couldn't reach a trusted server to retreive server stats to bootstrap cache, running in offline mode?"
+                    Console.Error.WriteLine "WARNING: Couldn't reach a trusted server to retrieve server stats to bootstrap cache, running in offline mode?"
                 | Some lastServerStatsInJson ->
                     let lastServerStats = ImportFromJson<ServerRanking> lastServerStatsInJson
                     lock cacheFiles.ServerStats (fun _ ->

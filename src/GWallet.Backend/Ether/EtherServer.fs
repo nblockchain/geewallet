@@ -418,10 +418,10 @@ module Server =
             return balance
         }
 
-    let private CachedBalanceMatch address currency someBalanceRetreived =
-        match Caching.Instance.TryRetreiveLastCompoundBalance address currency with
+    let private CachedBalanceMatch address currency someRetrievedBalance =
+        match Caching.Instance.TryRetrieveLastCompoundBalance address currency with
         | None -> false
-        | Some balance -> someBalanceRetreived = balance
+        | Some balance -> someRetrievedBalance = balance
 
     let GetEtherBalance (currency: Currency)
                         (address: string)

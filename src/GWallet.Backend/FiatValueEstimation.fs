@@ -29,7 +29,7 @@ module FiatValueEstimation =
 ]
     """>
 
-    let private RetreiveOnlineInternal currency: Option<string> =
+    let private RetrieveOnlineInternal currency: Option<string> =
         use webClient = new WebClient()
         let tickerName =
             match currency with
@@ -55,24 +55,24 @@ module FiatValueEstimation =
         Caching.Instance.StoreLastFiatUsdPrice(currency, usdPrice)
         result
 
-    let private RetreiveOnline currency: Option<decimal> =
-        match RetreiveOnlineInternal currency with
+    let private RetrieveOnline currency: Option<decimal> =
+        match RetrieveOnlineInternal currency with
         | None -> None
         | Some json ->
             Some (ParseJsonStoringInCache currency json)
 
     let UsdValue(currency: Currency): MaybeCached<decimal> =
-        let maybeUsdPrice = Caching.Instance.RetreiveLastKnownUsdPrice currency
+        let maybeUsdPrice = Caching.Instance.RetrieveLastKnownUsdPrice currency
         match maybeUsdPrice with
         | NotAvailable ->
-            match RetreiveOnline currency with
+            match RetrieveOnline currency with
             | None -> NotFresh NotAvailable
             | Some value -> Fresh value
         | Cached(someValue,someDate) ->
             if (someDate + PERIOD_TO_CONSIDER_PRICE_STILL_FRESH) > DateTime.UtcNow then
                 Fresh someValue
             else
-                match RetreiveOnline currency with
+                match RetrieveOnline currency with
                 | None ->
                     NotFresh (Cached(someValue,someDate))
                 | Some freshValue ->

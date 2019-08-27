@@ -178,11 +178,11 @@ module Account =
         let amountInBtc = (Money.Satoshis amountToShowInSatoshis).ToUnit MoneyUnit.BTC
         amountInBtc
 
-    let private CachedBalanceMatch address currency (someBalancesRetreived: BlockchainScripthahsGetBalanceInnerResult) =
-        match Caching.Instance.TryRetreiveLastCompoundBalance address currency with
+    let private CachedBalanceMatch address currency (someRetrievedBalance: BlockchainScripthahsGetBalanceInnerResult) =
+        match Caching.Instance.TryRetrieveLastCompoundBalance address currency with
         | None -> false
         | Some balance ->
-            BalanceToShow someBalancesRetreived = balance
+            BalanceToShow someRetrievedBalance = balance
 
     let private GetBalances (account: IUtxoAccount)
                             (mode: ServerSelectionMode)

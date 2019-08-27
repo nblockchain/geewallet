@@ -101,7 +101,7 @@ module internal Account =
                 let unconfirmedJob = GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
                 let! cancellationToken = Async.CancellationToken
                 let unconfirmedTask = Async.StartAsTask(unconfirmedJob, ?cancellationToken = Some cancellationToken)
-                let maybeCachedBalance = Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+                let maybeCachedBalance = Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
                 match maybeCachedBalance with
                 | NotAvailable ->
                     return! getBalanceWithoutCaching(Some unconfirmedTask)

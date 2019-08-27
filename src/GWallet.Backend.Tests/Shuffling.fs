@@ -10,7 +10,7 @@ open GWallet.Backend
 type Shuffling() =
 
     [<Test>]
-    member __.``retreives same number of elements``() =
+    member __.``retrieves same number of elements``() =
         let someList = [ 1; 2; 3; 4; 5; 6; 7; 8; 9; 10; ]
         let randomizedList = Shuffler.Unsort someList
 
