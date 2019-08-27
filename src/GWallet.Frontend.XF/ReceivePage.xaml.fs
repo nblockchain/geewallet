@@ -39,7 +39,7 @@ type ReceivePage(account: IAccount,
         let fiatBalanceLabel = mainLayout.FindByName<Label>("fiatBalanceLabel")
 
         let accountBalance =
-            Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+            Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
         FrontendHelpers.UpdateBalance (NotFresh accountBalance) account.Currency balanceLabel fiatBalanceLabel
             |> ignore
 

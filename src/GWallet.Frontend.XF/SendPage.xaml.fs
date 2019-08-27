@@ -32,7 +32,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     let GetCachedBalance() =
         // FIXME: should make sure to get the unconfirmed balance
-        Caching.Instance.RetreiveLastCompoundBalance account.PublicAddress account.Currency
+        Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
 
     let usdRateAtPageCreation = FiatValueEstimation.UsdValue account.Currency
     let cachedBalanceAtPageCreation = GetCachedBalance()

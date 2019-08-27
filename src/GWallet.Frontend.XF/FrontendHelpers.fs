@@ -120,7 +120,7 @@ module FrontendHelpers =
         let cancelSource = new CancellationTokenSource()
         let job = async {
             if tryCachedFirst then
-                let cachedBalance = Caching.Instance.RetreiveLastCompoundBalance balanceSet.Account.PublicAddress
+                let cachedBalance = Caching.Instance.RetrieveLastCompoundBalance balanceSet.Account.PublicAddress
                                                                                  balanceSet.Account.Currency
                 match cachedBalance with
                 | Cached _ ->
