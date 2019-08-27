@@ -57,6 +57,7 @@ module Server =
 
     type HttpStatusCodeNotPresentInTheBcl =
         | TooManyRequests = 429
+        | FrozenSite = 530
 
     type RpcErrorCode =
         // "This request is not supported because your node is running with state pruning. Run with --pruning=archive."
@@ -176,6 +177,8 @@ module Server =
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
                     raise <| ServerRestrictiveException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCodeNotPresentInTheBcl.FrozenSite) then
+                raise <| ServerUnavailableException(exMsg, httpReqEx)
         | _ ->
             ()
 
