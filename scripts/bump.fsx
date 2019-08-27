@@ -2,8 +2,12 @@
 
 open System
 open System.IO
-#load "Infra.fs"
+#r "System.Configuration"
+#load "InfraLib/Misc.fs"
+#load "InfraLib/Process.fs"
+#load "InfraLib/Git.fs"
 open FSX.Infrastructure
+open Process
 
 let IsStableRevision revision =
     (int revision % 2) = 0
@@ -19,13 +23,14 @@ let Bump(toStable: bool): Version*Version =
         failwith "sanity check failed, post-bump should happen in a stable version"
 
     let newFullVersion,newVersion =
-        if Util.FsxArguments().Length > 0 then
-            if Util.FsxArguments().Length > 1 then
+        let args = Misc.FsxArguments()
+        if args.Length > 0 then
+            if args.Length > 1 then
                 Console.Error.WriteLine "Only one argument supported, not more"
                 Environment.Exit 1
                 failwith "Unreachable"
             else
-                let full = Version(Util.FsxArguments().Head)
+                let full = Version(args.Head)
                 full,full.MinorRevision
         else
             let newVersion = androidVersion + 1s
@@ -37,28 +42,47 @@ let Bump(toStable: bool): Version*Version =
             full,newVersion
 
     let replaceScript = Path.Combine(__SOURCE_DIRECTORY__, "replace.fsx")
-    Process.SafeExecute (sprintf "%s %s %s"
-                             replaceScript
+    let proc1 =
+        {
+            Command = replaceScript
+            Arguments = sprintf "%s %s"
                              (fullVersion.ToString())
-                             (newFullVersion.ToString()),
-                         Echo.Off) |> ignore
+                             (newFullVersion.ToString())
+        }
+    Process.SafeExecute (proc1, Echo.Off) |> ignore
+
     // to replace Android's versionCode attrib in AndroidManifest.xml
-    Process.SafeExecute (sprintf "%s versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
-                             replaceScript
+    let proc2 =
+        {
+            proc1 with
+                Arguments = sprintf "versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
                              (androidVersion.ToString())
-                             (newVersion.ToString()),
-                         Echo.Off) |> ignore
+                             (newVersion.ToString())
+        }
+    Process.SafeExecute (proc2, Echo.Off) |> ignore
 
     fullVersion,newFullVersion
 
 
 let GitCommit (fullVersion: Version) (newFullVersion: Version) =
-    Process.SafeExecute (sprintf "git add src/GWallet.Backend.Tests/*.json",
-                         Echo.Off) |> ignore
-    Process.SafeExecute (sprintf "git add src/GWallet.Backend/Properties/CommonAssemblyInfo.fs",
-                         Echo.Off) |> ignore
-    Process.SafeExecute (sprintf "git add src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml",
-                         Echo.Off) |> ignore
+    let gitAddJson =
+        {
+            Command = "git"
+            Arguments = "add src/GWallet.Backend.Tests/*.json"
+        }
+    Process.SafeExecute (gitAddJson, Echo.Off) |> ignore
+    let gitAddCommonAssemblyInfo =
+        {
+            Command = "git"
+            Arguments = "add src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
+        }
+    Process.SafeExecute (gitAddCommonAssemblyInfo, Echo.Off) |> ignore
+    let gitAddAndroidManifest =
+        {
+            Command = "git"
+            Arguments = "add src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml"
+        }
+    Process.SafeExecute (gitAddAndroidManifest, Echo.Off) |> ignore
 
     let commitMessage = sprintf "Bump version: %s -> %s" (fullVersion.ToString()) (newFullVersion.ToString())
     let finalCommitMessage =
@@ -66,16 +90,31 @@ let GitCommit (fullVersion: Version) (newFullVersion: Version) =
             sprintf "(Post)%s" commitMessage
         else
             commitMessage
-    Process.SafeExecute (sprintf "git commit -m \"%s\"" finalCommitMessage,
+    let gitCommit =
+        {
+            Command = "git"
+            Arguments = sprintf "commit -m \"%s\"" finalCommitMessage
+        }
+    Process.SafeExecute (gitCommit,
                          Echo.Off) |> ignore
 
 let GitTag (newFullVersion: Version) =
     if not (IsStableRevision newFullVersion.MinorRevision) then
         failwith "something is wrong, this script should tag only even(stable) minorRevisions, not odd(unstable) ones"
 
-    Process.Execute (sprintf "git tag --delete %s" (newFullVersion.ToString()),
+    let gitDeleteTag =
+        {
+            Command = "git"
+            Arguments = sprintf "tag --delete %s" (newFullVersion.ToString())
+        }
+    Process.Execute (gitDeleteTag,
                      Echo.Off) |> ignore
-    Process.SafeExecute (sprintf "git tag %s" (newFullVersion.ToString()),
+    let gitCreateTag =
+        {
+            Command = "git"
+            Arguments = sprintf "tag %s" (newFullVersion.ToString())
+        }
+    Process.SafeExecute (gitCreateTag,
                          Echo.Off) |> ignore
 
 Console.WriteLine "Bumping..."
