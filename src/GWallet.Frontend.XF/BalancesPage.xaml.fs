@@ -478,11 +478,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     totalOtherFiatAmountFrame.IsVisible <- true
                     otherChartView.IsVisible <- true
                 )
+                let balancesToPopulate =
+                    if switchingToReadOnly then
+                        readOnlyAccountsBalances
+                    else
+                        normalAccountsBalances
                 this.AssignColorLabels switchingToReadOnly
-                if not switchingToReadOnly then
-                    this.PopulateBalances switchingToReadOnly normalAccountsBalances
-                else
-                    this.PopulateBalances switchingToReadOnly readOnlyAccountsBalances
+                this.PopulateBalances switchingToReadOnly balancesToPopulate
             else
                 let coldStoragePage =
                     // FIXME: save IsConnected to cache at app startup, and if it has ever been connected to the
