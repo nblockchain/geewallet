@@ -1,2 +1,2 @@
 @ECHO OFF
-%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe
+"%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
