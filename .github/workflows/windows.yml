@@ -1,0 +1,11 @@
+name: windows
+
+on: [push]
+
+jobs:
+  windows_build:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Run a one-line script
+      run: build_ci.bat
