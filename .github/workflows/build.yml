@@ -3,9 +3,9 @@ name: CI
 on: [push]
 
 jobs:
-  build:
+  build_macOS:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
     - name: Run a one-line script
-      run: ./configure.sh
+      run: ./configure.sh && make
