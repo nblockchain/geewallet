@@ -2,7 +2,6 @@
 
 open System
 open System.IO
-open System.Linq
 
 #r "System.Configuration"
 #load "InfraLib/Misc.fs"
@@ -34,25 +33,6 @@ ConfigCommandCheck ["mono"] |> ignore
 
 // needed by NuGet.Restore.targets & the "update-servers" Makefile target
 ConfigCommandCheck ["curl"]
-
-let oldVersionOfMono =
-    // we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) with no msbuild
-    let versionOfMonoWhereTheRuntimeBugWasFixed = "5.4"
-
-    match Misc.GuessPlatform() with
-    | Misc.Platform.Windows ->
-        // not using Mono anyway
-        false
-    | Misc.Platform.Mac ->
-        // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
-        false
-    | Misc.Platform.Linux ->
-        let pkgConfig = "pkg-config"
-        ConfigCommandCheck [pkgConfig] |> ignore
-        let pkgConfigCmd = { Command = pkgConfig
-                             Arguments = sprintf "--atleast-version=%s mono" versionOfMonoWhereTheRuntimeBugWasFixed }
-        let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
-        processResult.ExitCode <> 0
 
 let buildTool = ConfigCommandCheck ["msbuild"; "xbuild"]
 
