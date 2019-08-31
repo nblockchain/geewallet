@@ -33,6 +33,7 @@ ConfigCommandCheck ["mono"] |> ignore
 
 // needed by NuGet.Restore.targets & the "update-servers" Makefile target
 ConfigCommandCheck ["curl"]
+    |> ignore
 
 let buildTool = ConfigCommandCheck ["msbuild"; "xbuild"]
 
