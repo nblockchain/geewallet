@@ -33,7 +33,12 @@ let buildConfigFileName = "build.config"
 let buildConfigContents =
     let buildConfig = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, buildConfigFileName))
     if not (buildConfig.Exists) then
-        Console.Error.WriteLine "ERROR: configure hasn't been run yet, run ./configure.sh first"
+        let configureLaunch =
+            match Misc.GuessPlatform() with
+            | Misc.Platform.Windows -> ".\\configure.bat"
+            | _ -> "./configure.sh"
+        Console.Error.WriteLine (sprintf "ERROR: configure hasn't been run yet, run %s first"
+                                         configureLaunch)
         Environment.Exit 1
 
     let skipBlankLines line = not <| String.IsNullOrWhiteSpace line

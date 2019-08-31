@@ -8,11 +8,11 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Run a one-line script
-      run: build_ci.bat
+      run: configure.bat && make.bat release
 
   windows_tests:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
     - name: Run a one-line script
-      run: build_ci && run_tests.bat
+      run: configure.bat && make.bat && make.bat check

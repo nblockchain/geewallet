@@ -16,7 +16,7 @@ let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) =
         | Some currentCommand ->
             Console.Write (sprintf "checking for %s... " currentCommand)
             if not (Process.CommandWorksInShell currentCommand) then
-                Console.Error.WriteLine "not found"
+                Console.WriteLine "not found"
                 configCommandCheck (Seq.tail currentCommandNamesQueue) allCommands
             else
                 Console.WriteLine "found"
@@ -27,15 +27,31 @@ let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) =
             failwith "unreachable"
     configCommandCheck commandNamesByOrderOfPreference commandNamesByOrderOfPreference
 
-ConfigCommandCheck ["make"] |> ignore
-ConfigCommandCheck ["fsharpc"] |> ignore
-ConfigCommandCheck ["mono"] |> ignore
+let buildTool =
+    match Misc.GuessPlatform() with
+    | Misc.Platform.Linux | Misc.Platform.Mac ->
+        ConfigCommandCheck ["make"] |> ignore
+        ConfigCommandCheck ["fsharpc"] |> ignore
+        ConfigCommandCheck ["mono"] |> ignore
 
-// needed by NuGet.Restore.targets & the "update-servers" Makefile target
-ConfigCommandCheck ["curl"]
-    |> ignore
+        // needed by NuGet.Restore.targets & the "update-servers" Makefile target
+        ConfigCommandCheck ["curl"]
+            |> ignore
 
-let buildTool = ConfigCommandCheck ["msbuild"; "xbuild"]
+        ConfigCommandCheck [ "msbuild"; "xbuild" ]
+    | Misc.Platform.Windows ->
+        let programFiles = Environment.GetFolderPath Environment.SpecialFolder.ProgramFilesX86
+        let msbuildPathPrefix = Path.Combine(programFiles, "Microsoft Visual Studio", "2019")
+        let GetMsBuildPath vsEdition =
+            Path.Combine(msbuildPathPrefix, vsEdition, "MSBuild", "Current", "Bin", "MSBuild.exe")
+
+        // FIXME: we should use vscheck.exe
+        ConfigCommandCheck
+            [
+                GetMsBuildPath "Community"
+                GetMsBuildPath "Enterprise"
+            ]
+
 
 let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxArguments(), false, None))
 
