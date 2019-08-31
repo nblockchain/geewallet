@@ -228,14 +228,36 @@ match maybeTarget with
     Console.WriteLine "Running tests..."
     Console.WriteLine ()
 
-    let nunitCommand = "nunit-console"
-    MakeCheckCommand nunitCommand
     let testAssembly = "GWallet.Backend.Tests"
     let testAssemblyPath = Path.Combine(__SOURCE_DIRECTORY__, "..", "src", testAssembly, "bin",
                                         testAssembly + ".dll")
     if not (File.Exists(testAssemblyPath)) then
         failwithf "File not found: %s" testAssemblyPath
-    let nunitRun = Process.Execute({ Command = nunitCommand; Arguments = testAssemblyPath },
+
+    let runnerCommand =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Linux ->
+            let nunitCommand = "nunit-console"
+            MakeCheckCommand nunitCommand
+
+            { Command = nunitCommand; Arguments = testAssemblyPath }
+        | _ ->
+            let nunitVersion = "2.7.1"
+            let nugetExe = Path.Combine(__SOURCE_DIRECTORY__, "..", ".nuget",
+                                        "nuget.exe") |> FileInfo
+            if not nugetExe.Exists then
+                MakeAll () |> ignore
+
+            Process.SafeExecute({ Command = nugetExe.FullName
+                                  Arguments = sprintf "install NUnit.Runners -Version %s" nunitVersion }, Echo.All)
+                |> ignore
+
+            {
+                Command = Path.Combine(sprintf "NUnit.Runners.%s" nunitVersion, "tools", "nunit-console.exe")
+                Arguments = testAssemblyPath
+            }
+
+    let nunitRun = Process.Execute(runnerCommand,
                                    Echo.All)
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
