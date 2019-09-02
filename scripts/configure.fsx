@@ -2,7 +2,6 @@
 
 open System
 open System.IO
-open System.Linq
 
 #r "System.Configuration"
 #load "InfraLib/Misc.fs"
@@ -17,7 +16,7 @@ let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) =
         | Some currentCommand ->
             Console.Write (sprintf "checking for %s... " currentCommand)
             if not (Process.CommandWorksInShell currentCommand) then
-                Console.Error.WriteLine "not found"
+                Console.WriteLine "not found"
                 configCommandCheck (Seq.tail currentCommandNamesQueue) allCommands
             else
                 Console.WriteLine "found"
@@ -28,33 +27,31 @@ let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) =
             failwith "unreachable"
     configCommandCheck commandNamesByOrderOfPreference commandNamesByOrderOfPreference
 
-ConfigCommandCheck ["make"] |> ignore
-ConfigCommandCheck ["fsharpc"] |> ignore
-ConfigCommandCheck ["mono"] |> ignore
-
-// needed by NuGet.Restore.targets & the "update-servers" Makefile target
-ConfigCommandCheck ["curl"]
-
-let oldVersionOfMono =
-    // we need this check because Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) with no msbuild
-    let versionOfMonoWhereTheRuntimeBugWasFixed = "5.4"
-
+let buildTool =
     match Misc.GuessPlatform() with
-    | Misc.Platform.Windows ->
-        // not using Mono anyway
-        false
-    | Misc.Platform.Mac ->
-        // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
-        false
-    | Misc.Platform.Linux ->
-        let pkgConfig = "pkg-config"
-        ConfigCommandCheck [pkgConfig] |> ignore
-        let pkgConfigCmd = { Command = pkgConfig
-                             Arguments = sprintf "--atleast-version=%s mono" versionOfMonoWhereTheRuntimeBugWasFixed }
-        let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
-        processResult.ExitCode <> 0
+    | Misc.Platform.Linux | Misc.Platform.Mac ->
+        ConfigCommandCheck ["make"] |> ignore
+        ConfigCommandCheck ["fsharpc"] |> ignore
+        ConfigCommandCheck ["mono"] |> ignore
 
-let buildTool = ConfigCommandCheck ["msbuild"; "xbuild"]
+        // needed by NuGet.Restore.targets & the "update-servers" Makefile target
+        ConfigCommandCheck ["curl"]
+            |> ignore
+
+        ConfigCommandCheck [ "msbuild"; "xbuild" ]
+    | Misc.Platform.Windows ->
+        let programFiles = Environment.GetFolderPath Environment.SpecialFolder.ProgramFilesX86
+        let msbuildPathPrefix = Path.Combine(programFiles, "Microsoft Visual Studio", "2019")
+        let GetMsBuildPath vsEdition =
+            Path.Combine(msbuildPathPrefix, vsEdition, "MSBuild", "Current", "Bin", "MSBuild.exe")
+
+        // FIXME: we should use vscheck.exe
+        ConfigCommandCheck
+            [
+                GetMsBuildPath "Community"
+                GetMsBuildPath "Enterprise"
+            ]
+
 
 let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxArguments(), false, None))
 

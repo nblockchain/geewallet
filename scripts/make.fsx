@@ -46,7 +46,12 @@ let buildConfigFileName = "build.config"
 let buildConfigContents =
     let buildConfig = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, buildConfigFileName))
     if not (buildConfig.Exists) then
-        Console.Error.WriteLine "ERROR: configure hasn't been run yet, run ./configure.sh first"
+        let configureLaunch =
+            match Misc.GuessPlatform() with
+            | Misc.Platform.Windows -> ".\\configure.bat"
+            | _ -> "./configure.sh"
+        Console.Error.WriteLine (sprintf "ERROR: configure hasn't been run yet, run %s first"
+                                         configureLaunch)
         Environment.Exit 1
 
     let skipBlankLines line = not <| String.IsNullOrWhiteSpace line
@@ -80,9 +85,10 @@ exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
 """
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
+let nugetPackagesSubDirName = "packages"
 
 let PrintNugetVersion () =
-    let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
     if not (nugetExe.Exists) then
         false
     else
@@ -273,14 +279,42 @@ match maybeTarget with
     Console.WriteLine "Running tests..."
     Console.WriteLine ()
 
-    let nunitCommand = "nunit-console"
-    MakeCheckCommand nunitCommand
     let testAssembly = "GWallet.Backend.Tests"
     let testAssemblyPath = Path.Combine(__SOURCE_DIRECTORY__, "..", "src", testAssembly, "bin",
                                         testAssembly + ".dll")
     if not (File.Exists(testAssemblyPath)) then
         failwithf "File not found: %s" testAssemblyPath
-    let nunitRun = Process.Execute({ Command = nunitCommand; Arguments = testAssemblyPath },
+
+    let runnerCommand =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Linux ->
+            let nunitCommand = "nunit-console"
+            MakeCheckCommand nunitCommand
+
+            { Command = nunitCommand; Arguments = testAssemblyPath }
+        | _ ->
+            let nunitVersion = "2.7.1"
+            if not nugetExe.Exists then
+                MakeAll () |> ignore
+
+            let nugetInstallCommand =
+                {
+                    Command = nugetExe.FullName
+                    Arguments = sprintf "install NUnit.Runners -Version %s -OutputDirectory %s"
+                                        nunitVersion nugetPackagesSubDirName
+                }
+            Process.SafeExecute(nugetInstallCommand, Echo.All)
+                |> ignore
+
+            {
+                Command = Path.Combine(nugetPackagesSubDirName,
+                                       sprintf "NUnit.Runners.%s" nunitVersion,
+                                       "tools",
+                                       "nunit-console.exe")
+                Arguments = testAssemblyPath
+            }
+
+    let nunitRun = Process.Execute(runnerCommand,
                                    Echo.All)
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"

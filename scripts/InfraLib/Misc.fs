@@ -400,7 +400,7 @@ module Misc =
                 (Directory.EnumerateFiles (dir.FullName,
                                            "Common" + defaultAssemblyVersionFileName,
                                            SearchOption.AllDirectories)).SingleOrDefault()
-        
+
         if assemblyVersionFsFile = null then
             Console.Error.WriteLine ("Canonical AssemblyInfo not found in any subfolder (or found too many), cannot extract version number")
             Environment.Exit 1
@@ -442,7 +442,11 @@ module Misc =
         match args with
         | [] ->
             match prefixSet with
-            | None -> "/usr/local"
+            | None ->
+                match GuessPlatform() with
+                | Platform.Windows ->
+                    Environment.GetFolderPath Environment.SpecialFolder.ProgramFiles
+                | _ -> "/usr/local"
             | Some prefix -> prefix
         | head::tail ->
             if previousIsPrefixArg then
