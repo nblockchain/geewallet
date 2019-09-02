@@ -81,6 +81,7 @@ exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
+let nugetPackagesSubDirName = "packages"
 
 let PrintNugetVersion () =
     if not (nugetExe.Exists) then
@@ -251,12 +252,20 @@ match maybeTarget with
             if not nugetExe.Exists then
                 MakeAll () |> ignore
 
-            Process.SafeExecute({ Command = nugetExe.FullName
-                                  Arguments = sprintf "install NUnit.Runners -Version %s" nunitVersion }, Echo.All)
+            let nugetInstallCommand =
+                {
+                    Command = nugetExe.FullName
+                    Arguments = sprintf "install NUnit.Runners -Version %s -OutputDirectory %s"
+                                        nunitVersion nugetPackagesSubDirName
+                }
+            Process.SafeExecute(nugetInstallCommand, Echo.All)
                 |> ignore
 
             {
-                Command = Path.Combine(sprintf "NUnit.Runners.%s" nunitVersion, "tools", "nunit-console.exe")
+                Command = Path.Combine(nugetPackagesSubDirName,
+                                       sprintf "NUnit.Runners.%s" nunitVersion,
+                                       "tools",
+                                       "nunit-console.exe")
                 Arguments = testAssemblyPath
             }
 
