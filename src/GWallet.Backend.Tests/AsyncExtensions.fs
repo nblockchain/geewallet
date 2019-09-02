@@ -111,5 +111,32 @@ type AsyncExtensions() =
         Assert.That(stopWatch.Elapsed, Is.LessThan longTime, "time#6")
         stopWatch.Stop()
 
+    [<Test>]
+    member __.``basic test for WhenAnyAndAll``() =
+        let shortJobRes = 1
+        let shortTime = TimeSpan.FromSeconds 2.
+        let shortJob = async {
+            do! Async.Sleep (int shortTime.TotalMilliseconds)
+            return shortJobRes
+        }
 
+        let longJobRes = 2
+        let longTime = TimeSpan.FromSeconds 3.
+        let longJob = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            return longJobRes
+        }
+
+        let stopWatch = Stopwatch.StartNew()
+        let subJobs =
+            FSharpUtil.AsyncExtensions.WhenAnyAndAll [longJob; shortJob]
+            |> Async.RunSynchronously
+        Assert.That(stopWatch.Elapsed, Is.LessThan longTime)
+        Assert.That(stopWatch.Elapsed, Is.GreaterThan shortTime)
+        let results =
+            subJobs |> Async.RunSynchronously
+        Assert.That(results.Length, Is.EqualTo 2)
+        Assert.That(results.[0], Is.EqualTo longJobRes)
+        Assert.That(results.[1], Is.EqualTo shortJobRes)
+        stopWatch.Stop()
 

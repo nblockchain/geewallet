@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend
 
 open System
+open System.Threading
 open System.Runtime.ExceptionServices
 open Microsoft.FSharp.Reflection
 
@@ -72,6 +73,31 @@ module FSharpUtil =
                 | :? ResultWrapper<'T> as ex ->
                     return ex.Value
             }
+
+        // a mix between Async.WhenAny and Async.Choice
+        let WhenAnyAndAll<'T>(jobs: seq<Async<'T>>): Async<Async<array<'T>>> =
+           let waitHandle = new AutoResetEvent false
+           let wrap (job: Async<'T>) =
+               async {
+                   let! res = job
+                   try
+                       waitHandle.Set() |> ignore
+                   with
+                   | :? ObjectDisposedException ->
+                       ()
+                   return res
+               }
+           async {
+               let allJobsInParallel =
+                   jobs
+                       |> Seq.map wrap
+                       |> Async.Parallel
+                       |> Async.StartChild
+               let! allJobsStarted = allJobsInParallel
+               waitHandle.WaitOne() |> ignore
+               waitHandle.Dispose()
+               return allJobsStarted
+           }
 
     let rec private ListIntersectInternal list1 list2 offset acc currentIndex =
         match list1,list2 with
