@@ -1,7 +1,7 @@
 ﻿namespace GWallet.Backend
 
 open System
-open System.Threading
+open System.Threading.Tasks
 open System.Runtime.ExceptionServices
 open Microsoft.FSharp.Reflection
 
@@ -76,15 +76,11 @@ module FSharpUtil =
 
         // a mix between Async.WhenAny and Async.Choice
         let WhenAnyAndAll<'T>(jobs: seq<Async<'T>>): Async<Async<array<'T>>> =
-           let waitHandle = new AutoResetEvent false
+           let taskSource = TaskCompletionSource<unit>()
            let wrap (job: Async<'T>) =
                async {
                    let! res = job
-                   try
-                       waitHandle.Set() |> ignore
-                   with
-                   | :? ObjectDisposedException ->
-                       ()
+                   taskSource.TrySetResult() |> ignore
                    return res
                }
            async {
@@ -94,8 +90,7 @@ module FSharpUtil =
                        |> Async.Parallel
                        |> Async.StartChild
                let! allJobsStarted = allJobsInParallel
-               waitHandle.WaitOne() |> ignore
-               waitHandle.Dispose()
+               let! _ = Async.AwaitTask taskSource.Task
                return allJobsStarted
            }
 
