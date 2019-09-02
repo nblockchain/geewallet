@@ -80,9 +80,9 @@ exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
 """
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
 
 let PrintNugetVersion () =
-    let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
     if not (nugetExe.Exists) then
         false
     else
@@ -248,8 +248,6 @@ match maybeTarget with
             { Command = nunitCommand; Arguments = testAssemblyPath }
         | _ ->
             let nunitVersion = "2.7.1"
-            let nugetExe = Path.Combine(__SOURCE_DIRECTORY__, "..", ".nuget",
-                                        "nuget.exe") |> FileInfo
             if not nugetExe.Exists then
                 MakeAll () |> ignore
 
