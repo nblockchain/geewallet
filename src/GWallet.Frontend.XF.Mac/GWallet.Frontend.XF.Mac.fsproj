@@ -211,9 +211,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.fs" />
-    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
-      <Link>Properties\CommonAssemblyInfo.fs</Link>
-    </Compile>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json" />
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\AppIcon-16.png" />
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\AppIcon-32.png" />
@@ -231,10 +228,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj">
-      <Project>{D1D192E0-F226-40AD-8D81-687F7E6F7DAB}</Project>
-      <Name>GWallet.Backend.NetStandard</Name>
-    </ProjectReference>
     <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
       <Project>{85236682-6463-4209-B66C-E0643EF12B46}</Project>
       <Name>GWallet.Frontend.XF</Name>

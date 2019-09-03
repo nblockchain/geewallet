@@ -7,53 +7,9 @@ stages:
   - build
   - test
 
-stockmono_build:
-  image: ubuntu:18.04
-  stage: build
-  script:
-    # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
-    - mono --version
-
-    - time (./configure.sh && make && make install)
-    # so that we log the version of nuget for when it works
-    - make nuget
-
-stockmono_test:
-  image: ubuntu:18.04
-  stage: test
-  script:
-    # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
-
-    - time (apt-get install -y nunit-console &&
-            ./configure.sh &&
-            make &&
-            make check)
-
-stocknewmono_build:
-  image: ubuntu:19.04
-  stage: build
-  script:
-    # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
-    - mono --version
-
-    # fsharpi is broken in Ubuntu 19.04 ( https://github.com/fsharp/fsharp/issues/740 ) so
-    # we can install 'fsx' as a workaorund
-    - apt install -y git && git clone https://gitlab.com/knocte/fsx.git
-    - cd fsx && ./configure.sh && make install && cd ..
-
-    - ./configure.sh
-    # FIXME: compilation fails for now due to some Nuget's bug:https://github.com/NuGet/Home/issues/7202
-
 newmono_build:
   image: ubuntu:18.04
   stage: build
-  artifacts:
-    paths:
-      - bin/*.zip
-    expire_in: 1 week
   script:
     - ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -67,15 +23,3 @@ newmono_build:
     # so that we log the version of nuget for when it works
     - make nuget
 
-    - apt-get install -y zip
-    - make zip
-
-newmono_test:
-  image: ubuntu:18.04
-  stage: test
-  script:
-    - ./scripts/install_mono_from_microsoft_deb_packages.sh
-
-    - apt install -y nunit-console
-
-    - time (./configure.sh && make && make check)
