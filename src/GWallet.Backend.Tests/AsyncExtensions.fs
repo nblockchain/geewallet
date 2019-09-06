@@ -153,3 +153,87 @@ type AsyncExtensions() =
             subJobs |> Async.RunSynchronously
         Assert.That(asyncJobsPerformedCount, Is.EqualTo 2)
         Assert.That(stopWatch.Elapsed, Is.LessThan shortTime)
+
+    [<Test>]
+    member __.``AsyncParallel cancels all jobs if there's an exception in one'``() =
+        let shortJobRes = 1
+        let shortTime = TimeSpan.FromSeconds 2.
+        let shortJob = async {
+            do! Async.Sleep (int shortTime.TotalMilliseconds)
+            return failwith "pepe"
+        }
+
+        let longJobRes = 2
+        let mutable longJobFinished = false
+        let longTime = TimeSpan.FromSeconds 3.
+        let longJob = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return longJobRes
+        }
+
+        let result =
+            try
+                Async.Parallel [longJob; shortJob]
+                |> Async.RunSynchronously |> Some
+            with
+            | _ -> None
+
+        Assert.That(result, Is.EqualTo None)
+        Assert.That(longJobFinished, Is.EqualTo false, "#before")
+        Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
+        Assert.That(longJobFinished, Is.EqualTo false, "#after")
+
+    [<Test>]
+    member __.``AsyncChoice cancels slower jobs (all jobs that were not the fastest)``() =
+        let shortJobRes = 1
+        let shortTime = TimeSpan.FromSeconds 2.
+        let shortJob = async {
+            do! Async.Sleep (int shortTime.TotalMilliseconds)
+            return Some shortJobRes
+        }
+
+        let longJobRes = 2
+        let mutable longJobFinished = false
+        let longTime = TimeSpan.FromSeconds 3.
+        let longJob = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return Some longJobRes
+        }
+
+        let result =
+            Async.Choice [longJob; shortJob]
+            |> Async.RunSynchronously
+
+        Assert.That(result, Is.EqualTo (Some shortJobRes))
+        Assert.That(longJobFinished, Is.EqualTo false, "#before")
+        Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
+        Assert.That(longJobFinished, Is.EqualTo false, "#after")
+
+    [<Test>]
+    member __.``AsyncExtensions-WhenAny cancels slower jobs (all jobs that were not the fastest)``() =
+        let shortJobRes = 1
+        let shortTime = TimeSpan.FromSeconds 2.
+        let shortJob = async {
+            do! Async.Sleep (int shortTime.TotalMilliseconds)
+            return shortJobRes
+        }
+
+        let longJobRes = 2
+        let mutable longJobFinished = false
+        let longTime = TimeSpan.FromSeconds 3.
+        let longJob = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return longJobRes
+        }
+
+        let result =
+            FSharpUtil.AsyncExtensions.WhenAny [longJob; shortJob]
+            |> Async.RunSynchronously
+
+        Assert.That(result, Is.EqualTo shortJobRes)
+        Assert.That(longJobFinished, Is.EqualTo false, "#before")
+        Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
+        Assert.That(longJobFinished, Is.EqualTo false, "#after")
