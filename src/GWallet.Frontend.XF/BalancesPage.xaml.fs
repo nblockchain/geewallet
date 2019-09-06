@@ -209,6 +209,56 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> balanceRefreshCancelSources |> List.ofSeq :> seq<_>)
          and set value = lock lockObject (fun _ -> balanceRefreshCancelSources <- value)
 
+    member private this.CreateCurrencyBalanceFrame balanceSet currencyLogoImg classId =
+        let tapGestureRecognizer = TapGestureRecognizer()
+        tapGestureRecognizer.Tapped.Subscribe(fun _ ->
+            let receivePage = ReceivePage(balanceSet.Account, this, balanceSet.CryptoLabel, balanceSet.FiatLabel)
+            NavigationPage.SetHasNavigationBar(receivePage, false)
+            let navPage = NavigationPage receivePage
+
+            this.Navigation.PushAsync navPage
+                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+        ) |> ignore
+
+        let colorBoxWidth = 10.
+
+        let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
+                                      Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
+
+        stackLayout.Children.Add currencyLogoImg
+        stackLayout.Children.Add balanceSet.CryptoLabel
+        stackLayout.Children.Add balanceSet.FiatLabel
+
+        let colorBox = BoxView(Color = FrontendHelpers.GetCryptoColor balanceSet.Account.Currency)
+
+        let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
+        absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
+        absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
+
+        if Device.RuntimePlatform = Device.GTK then
+            //workaround about GTK ScrollView's scroll bar. Not sure if it's bug indeed.
+            absoluteLayout.Margin <- Thickness(absoluteLayout.Margin.Left, absoluteLayout.Margin.Top, 20., absoluteLayout.Margin.Bottom)
+            //workaround about GTK layouting. It ignores margins of parent layout. So, we have to duplicate them
+            stackLayout.Margin <- Thickness(stackLayout.Margin.Left, stackLayout.Margin.Top, 20., stackLayout.Margin.Bottom)
+
+        //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
+        if Device.RuntimePlatform = Device.macOS then
+            let bindImageSize bindableProperty =
+                let binding = Binding(Path = "Height", Source = balanceSet.CryptoLabel)
+                currencyLogoImg.SetBinding(bindableProperty, binding)
+
+            bindImageSize VisualElement.WidthRequestProperty
+            bindImageSize VisualElement.HeightRequestProperty
+
+
+        let frame = Frame(HasShadow = false,
+                          ClassId = classId,
+                          Content = absoluteLayout,
+                          Padding = Thickness(0.),
+                          BorderColor = Color.SeaShell)
+        frame.GestureRecognizers.Add tapGestureRecognizer
+        frame
+
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
         let activeCurrencyClassId,inactiveCurrencyClassId,activeChartView =
             if readOnly then
@@ -237,60 +287,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 activeCryptoBalance.IsVisible <- true
         else
             for balanceState in balances do
-                let tapGestureRecognizer = TapGestureRecognizer()
-                tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                    let receivePage =
-                        ReceivePage(balanceState.BalanceSet.Account, this,
-                                    balanceState.BalanceSet.CryptoLabel, balanceState.BalanceSet.FiatLabel)
-                    NavigationPage.SetHasNavigationBar(receivePage, false)
-                    let navPage = NavigationPage receivePage
-
-                    this.Navigation.PushAsync navPage
-                         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-                ) |> ignore
-
-                let colorBoxWidth = 10.
-
-                let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
-                                              Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
-
                 let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
-                let cryptoLabel = balanceState.BalanceSet.CryptoLabel
-                let fiatLabel = balanceState.BalanceSet.FiatLabel
-
-                stackLayout.Children.Add currencyLogoImg
-                stackLayout.Children.Add cryptoLabel
-                stackLayout.Children.Add fiatLabel
-
-                let colorBox = BoxView(Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency)
-
-                let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
-                absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
-                absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
-
-                if Device.RuntimePlatform = Device.GTK then
-                    //workaround about GTK ScrollView's scroll bar. Not sure if it's bug indeed.
-                    absoluteLayout.Margin <- Thickness(absoluteLayout.Margin.Left, absoluteLayout.Margin.Top, 20., absoluteLayout.Margin.Bottom)
-                    //workaround about GTK layouting. It ignores margins of parent layout. So, we have to duplicate them
-                    stackLayout.Margin <- Thickness(stackLayout.Margin.Left, stackLayout.Margin.Top, 20., stackLayout.Margin.Bottom)
-
-                //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
-                if Device.RuntimePlatform = Device.macOS then
-                    let bindImageSize bindableProperty =
-                        let binding = Binding(Path = "Height", Source = cryptoLabel)
-                        currencyLogoImg.SetBinding(bindableProperty, binding)
-
-                    bindImageSize VisualElement.WidthRequestProperty
-                    bindImageSize VisualElement.HeightRequestProperty
-
-
-                let frame = Frame(HasShadow = false,
-                                  ClassId = activeCurrencyClassId,
-                                  Content = absoluteLayout,
-                                  Padding = Thickness(0.),
-                                  BorderColor = Color.SeaShell)
-                frame.GestureRecognizers.Add tapGestureRecognizer
-
+                let frame =
+                    this.CreateCurrencyBalanceFrame balanceState.BalanceSet currencyLogoImg activeCurrencyClassId
                 contentLayout.Children.Add frame
 
         contentLayout.BatchCommit()
