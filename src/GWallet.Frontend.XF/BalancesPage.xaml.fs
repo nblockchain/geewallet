@@ -254,12 +254,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
                                               Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
 
-                let colour =
-                    if readOnly then
-                        "grey"
-                    else
-                        "red"
-
                 let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
                 let cryptoLabel = balanceState.BalanceSet.CryptoLabel
                 let fiatLabel = balanceState.BalanceSet.FiatLabel
