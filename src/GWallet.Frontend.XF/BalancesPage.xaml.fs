@@ -510,7 +510,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
         tapGestureRecognizer
 
-    member this.PopulateGrid () =
+    member this.PopulateGridInitially () =
 
         let tapper = this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances false
         this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances true |> ignore
@@ -566,7 +566,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             if startWithReadOnlyAccounts then
                 this.AssignColorLabels false
 
-            this.PopulateGrid ()
+            this.PopulateGridInitially ()
 
             this.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances totalFiatAmountLabel
             this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances totalReadOnlyFiatAmountLabel
