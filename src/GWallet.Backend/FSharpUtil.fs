@@ -76,23 +76,23 @@ module FSharpUtil =
 
         // a mix between Async.WhenAny and Async.Choice
         let WhenAnyAndAll<'T>(jobs: seq<Async<'T>>): Async<Async<array<'T>>> =
-           let taskSource = TaskCompletionSource<unit>()
-           let wrap (job: Async<'T>) =
-               async {
-                   let! res = job
-                   taskSource.TrySetResult() |> ignore
-                   return res
-               }
-           async {
-               let allJobsInParallel =
-                   jobs
-                       |> Seq.map wrap
-                       |> Async.Parallel
-                       |> Async.StartChild
-               let! allJobsStarted = allJobsInParallel
-               let! _ = Async.AwaitTask taskSource.Task
-               return allJobsStarted
-           }
+            let taskSource = TaskCompletionSource<unit>()
+            let wrap (job: Async<'T>) =
+                async {
+                    let! res = job
+                    taskSource.TrySetResult() |> ignore
+                    return res
+                }
+            async {
+                let allJobsInParallel =
+                    jobs
+                        |> Seq.map wrap
+                        |> Async.Parallel
+                        |> Async.StartChild
+                let! allJobsStarted = allJobsInParallel
+                let! _ = Async.AwaitTask taskSource.Task
+                return allJobsStarted
+            }
 
     let rec private ListIntersectInternal list1 list2 offset acc currentIndex =
         match list1,list2 with

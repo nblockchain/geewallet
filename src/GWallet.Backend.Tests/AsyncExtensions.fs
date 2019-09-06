@@ -237,3 +237,31 @@ type AsyncExtensions() =
         Assert.That(longJobFinished, Is.EqualTo false, "#before")
         Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
         Assert.That(longJobFinished, Is.EqualTo false, "#after")
+
+    [<Test>]
+    member __.``AsyncExtensions-WhenAnyAndAll doesn't cancel slower jobs``() =
+        let shortJobRes = 1
+        let shortTime = TimeSpan.FromSeconds 2.
+        let shortJob = async {
+            do! Async.Sleep (int shortTime.TotalMilliseconds)
+            return shortJobRes
+        }
+
+        let longJobRes = 2
+        let mutable longJobFinished = false
+        let longTime = TimeSpan.FromSeconds 3.
+        let longJob = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return longJobRes
+        }
+
+        let jobs =
+            FSharpUtil.AsyncExtensions.WhenAnyAndAll [longJob; shortJob]
+            |> Async.RunSynchronously
+        Assert.That(longJobFinished, Is.EqualTo false, "#before")
+        let results = jobs |> Async.RunSynchronously
+        Assert.That(results.[0], Is.EqualTo longJobRes)
+        Assert.That(results.[1], Is.EqualTo shortJobRes)
+        Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
+        Assert.That(longJobFinished, Is.EqualTo true, "#after")
