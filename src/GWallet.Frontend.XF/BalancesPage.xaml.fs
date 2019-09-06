@@ -209,17 +209,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> balanceRefreshCancelSources |> List.ofSeq :> seq<_>)
          and set value = lock lockObject (fun _ -> balanceRefreshCancelSources <- value)
 
-    member private this.CreateCurrencyBalanceFrame balanceSet currencyLogoImg classId =
-        let tapGestureRecognizer = TapGestureRecognizer()
-        tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-            let receivePage = ReceivePage(balanceSet.Account, this, balanceSet.CryptoLabel, balanceSet.FiatLabel)
-            NavigationPage.SetHasNavigationBar(receivePage, false)
-            let navPage = NavigationPage receivePage
-
-            this.Navigation.PushAsync navPage
-                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-        ) |> ignore
-
+    static member private CreateCurrencyBalanceFrame balanceSet currencyLogoImg classId =
         let colorBoxWidth = 10.
 
         let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
@@ -250,13 +240,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             bindImageSize VisualElement.WidthRequestProperty
             bindImageSize VisualElement.HeightRequestProperty
 
-
         let frame = Frame(HasShadow = false,
                           ClassId = classId,
                           Content = absoluteLayout,
                           Padding = Thickness(0.),
                           BorderColor = Color.SeaShell)
-        frame.GestureRecognizers.Add tapGestureRecognizer
         frame
 
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
@@ -288,8 +276,18 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         else
             for balanceState in balances do
                 let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
-                let frame =
-                    this.CreateCurrencyBalanceFrame balanceState.BalanceSet currencyLogoImg activeCurrencyClassId
+                let balanceSet = balanceState.BalanceSet
+                let frame = BalancesPage.CreateCurrencyBalanceFrame balanceSet currencyLogoImg activeCurrencyClassId
+                let tapGestureRecognizer = TapGestureRecognizer()
+                tapGestureRecognizer.Tapped.Subscribe(fun _ ->
+                    let receivePage = ReceivePage(balanceSet.Account, this, balanceSet.CryptoLabel, balanceSet.FiatLabel)
+                    NavigationPage.SetHasNavigationBar(receivePage, false)
+                    let navPage = NavigationPage receivePage
+
+                    this.Navigation.PushAsync navPage
+                         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                ) |> ignore
+                frame.GestureRecognizers.Add tapGestureRecognizer
                 contentLayout.Children.Add frame
 
         contentLayout.BatchCommit()
