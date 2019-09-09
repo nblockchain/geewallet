@@ -13,7 +13,7 @@ open ZXing.Net.Mobile.Forms
 open GWallet.Backend
 
 type PairingToPage(balancesPage: Page,
-                   normalAccountsAndBalances: seq<BalanceState>,
+                   normalAccountsBalanceSets: seq<BalanceSet>,
                    currencyImages: Map<Currency*bool,Image>,
                    newBalancesPageFunc: seq<BalanceState>*seq<BalanceState> -> Page) =
     inherit ContentPage()
@@ -95,8 +95,7 @@ type PairingToPage(balancesPage: Page,
                 FrontendHelpers.UpdateBalancesAsync readOnlyAccountsWithWidgets false ServerSelectionMode.Fast
 
             let _,normalAccountsBalancesJob =
-                FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balanceState ->
-                                                                                          balanceState.BalanceSet))
+                FrontendHelpers.UpdateBalancesAsync normalAccountsBalanceSets
                                                     true
                                                     ServerSelectionMode.Fast
 

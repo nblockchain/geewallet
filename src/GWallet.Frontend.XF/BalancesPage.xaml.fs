@@ -27,8 +27,8 @@ type TotalBalance =
         y + x
 
 type BalancesPage(state: FrontendHelpers.IGlobalAppState,
-                  normalAccountsAndBalances: seq<BalanceState>,
-                  readOnlyAccountsAndBalances: seq<BalanceState>,
+                  normalBalanceStates: seq<BalanceState>,
+                  readOnlyBalanceStates: seq<BalanceState>,
                   currencyImages: Map<Currency*bool,Image>,
                   startWithReadOnlyAccounts: bool)
                       as this =
@@ -36,6 +36,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
 
+    let normalAccountsBalanceSets = normalBalanceStates.Select(fun balState -> balState.BalanceSet)
+    let readOnlyAccountsBalanceSets = readOnlyBalanceStates.Select(fun balState -> balState.BalanceSet)
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
     let totalReadOnlyFiatAmountLabel = mainLayout.FindByName<Label> "totalReadOnlyFiatAmountLabel"
@@ -251,8 +253,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
         contentLayout.BatchCommit()
 
-    member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) totalFiatAmountLabel =
-        let fiatBalancesList = allFiatBalances |> List.ofSeq
+    member this.UpdateGlobalFiatBalanceSum (fiatBalancesList: List<MaybeCached<decimal>>) totalFiatAmountLabel =
         if fiatBalancesList.Any() then
             UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
 
@@ -272,6 +273,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let! resolvedBalances = balancesJob
                 let fiatBalances = resolvedBalances.Select(fun balanceState ->
                                                                      balanceState.FiatAmount)
+                                   |> List.ofSeq
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
                     RedrawDonutView readOnly resolvedBalances
@@ -293,8 +295,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let refreshMode = ServerSelectionMode.Analysis
 
         let readOnlyCancelSources,readOnlyBalancesJob =
-            FrontendHelpers.UpdateBalancesAsync (readOnlyAccountsAndBalances.Select(fun balanceState ->
-                                                                                        balanceState.BalanceSet))
+            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalanceSets
                                                 false refreshMode
 
         let readOnlyAccountsBalanceUpdate =
@@ -304,8 +305,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             if (not onlyReadOnlyAccounts) then
 
                 let normalCancelSources,normalBalancesJob =
-                    FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balState ->
-                                                                                              balState.BalanceSet))
+                    FrontendHelpers.UpdateBalancesAsync normalAccountsBalanceSets
                                                         false refreshMode
 
                 let normalAccountsBalanceUpdate =
@@ -384,9 +384,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             cancelSource.Cancel()
             cancelSource.Dispose()
 
-    member private this.ConfigureFiatAmountFrame (normalAccountsBalances: seq<BalanceState>)
-                                                 (readOnlyAccountsBalances: seq<BalanceState>)
-                                                 (readOnly: bool): TapGestureRecognizer =
+    member private this.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
         let totalCurrentFiatAmountFrameName,totalOtherFiatAmountFrameName =
             if readOnly then
                 "totalReadOnlyFiatAmountFrame","totalFiatAmountFrame"
@@ -414,7 +412,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
             let shouldNotOpenNewPage =
                 if switchingToReadOnly then
-                    readOnlyAccountsBalances.Any()
+                    readOnlyAccountsBalanceSets.Any()
                 else
                     true
 
@@ -427,15 +425,14 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     totalOtherFiatAmountFrame.IsVisible <- true
                     otherChartView.IsVisible <- true
                 )
-                let balancesToPopulate =
+                let balancesStatesToPopulate,balanceSetsToPopulate =
                     if switchingToReadOnly then
-                        readOnlyAccountsBalances
+                        readOnlyBalanceStates,readOnlyAccountsBalanceSets
                     else
-                        normalAccountsBalances
+                        normalBalanceStates,normalAccountsBalanceSets
                 this.AssignColorLabels switchingToReadOnly
-                this.PopulateBalances switchingToReadOnly
-                                      (balancesToPopulate.Select(fun balanceState -> balanceState.BalanceSet))
-                RedrawDonutView switchingToReadOnly balancesToPopulate
+                this.PopulateBalances switchingToReadOnly balanceSetsToPopulate
+                RedrawDonutView switchingToReadOnly balancesStatesToPopulate
             else
                 let coldStoragePage =
                     // FIXME: save IsConnected to cache at app startup, and if it has ever been connected to the
@@ -446,7 +443,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                             BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
                                          currencyImages, true) :> Page
                         )
-                        let page = PairingToPage(this, normalAccountsAndBalances, currencyImages, newBalancesPageFunc)
+                        let normalAccountsBalanceSets = normalAccountsBalanceSets
+                        let page = PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
                                    :> Page
                         NavigationPage.SetHasNavigationBar(page, false)
                         let navPage = NavigationPage page
@@ -471,11 +469,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     member this.PopulateGridInitially () =
 
-        let tapper = this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances false
-        this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances true |> ignore
+        let tapper = this.ConfigureFiatAmountFrame false
+        this.ConfigureFiatAmountFrame true |> ignore
 
-        this.PopulateBalances false (normalAccountsAndBalances.Select(fun balanceState -> balanceState.BalanceSet))
-        RedrawDonutView false normalAccountsAndBalances
+        this.PopulateBalances false normalAccountsBalanceSets
+        RedrawDonutView false normalBalanceStates
 
         if startWithReadOnlyAccounts then
             tapper.SendTapped null
@@ -485,15 +483,15 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             if readOnly then
                 let color = Color.DarkBlue
                 totalReadOnlyFiatAmountLabel.TextColor <- color
-                readOnlyAccountsAndBalances,color
+                readOnlyAccountsBalanceSets,color
             else
                 let color = Color.DarkRed
                 totalFiatAmountLabel.TextColor <- color
-                normalAccountsAndBalances,color
+                normalAccountsBalanceSets,color
 
-        for accountBalance in labels do
-            accountBalance.BalanceSet.Widgets.CryptoLabel.TextColor <- color
-            accountBalance.BalanceSet.Widgets.FiatLabel.TextColor <- color
+        for balanceSet in labels do
+            balanceSet.Widgets.CryptoLabel.TextColor <- color
+            balanceSet.Widgets.FiatLabel.TextColor <- color
 
     member private this.CancelBalanceRefreshJobs() =
         this.BalanceRefreshCancelSources
@@ -517,9 +515,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         footerLabel.GestureRecognizers.Add tapGestureRecognizer
 
         let allNormalAccountFiatBalances =
-            normalAccountsAndBalances.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
+            normalBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
         let allReadOnlyAccountFiatBalances =
-            readOnlyAccountsAndBalances.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
+            readOnlyBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
 
         Device.BeginInvokeOnMainThread(fun _ ->
             this.AssignColorLabels true
