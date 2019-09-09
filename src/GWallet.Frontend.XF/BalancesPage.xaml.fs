@@ -132,9 +132,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                             tail
                                             totalFiatAmountLabel
 
-    let normalCryptoBalanceClassId = "normalCryptoBalanceFrame"
-    let readonlyCryptoBalanceClassId = "readonlyCryptoBalanceFrame"
-
     let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
                                (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
         match elements with
@@ -216,10 +213,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceSet>) =
         let activeCurrencyClassId,inactiveCurrencyClassId =
-            if readOnly then
-                readonlyCryptoBalanceClassId,normalCryptoBalanceClassId
-            else
-                normalCryptoBalanceClassId,readonlyCryptoBalanceClassId
+            FrontendHelpers.GetActiveAndInactiveCurrencyClassIds readOnly
 
         let activeCryptoBalances = FindCryptoBalances activeCurrencyClassId 
                                                       contentLayout 
@@ -242,11 +236,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 activeCryptoBalance.IsVisible <- true
         else
             for balanceSet in balances do
-                let currencyLogoImg = currencyImages.[(balanceSet.Account.Currency,readOnly)]
-                let frame = FrontendHelpers.CreateCurrencyBalanceFrame balanceSet.Account.Currency
-                                                                       balanceSet.Widgets
-                                                                       currencyLogoImg
-                                                                       activeCurrencyClassId
                 let tapGestureRecognizer = TapGestureRecognizer()
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
                     let receivePage = ReceivePage(balanceSet.Account, this, balanceSet.Widgets)
@@ -256,6 +245,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     this.Navigation.PushAsync navPage
                          |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 ) |> ignore
+                let frame = balanceSet.Widgets.Frame
                 frame.GestureRecognizers.Add tapGestureRecognizer
                 contentLayout.Children.Add frame
 
@@ -456,7 +446,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                             BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
                                          currencyImages, true) :> Page
                         )
-                        let page = PairingToPage(this, normalAccountsAndBalances, newBalancesPageFunc) :> Page
+                        let page = PairingToPage(this, normalAccountsAndBalances, currencyImages, newBalancesPageFunc)
+                                   :> Page
                         NavigationPage.SetHasNavigationBar(page, false)
                         let navPage = NavigationPage page
                         NavigationPage.SetHasNavigationBar(navPage, false)

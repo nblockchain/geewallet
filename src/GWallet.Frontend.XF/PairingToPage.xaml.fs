@@ -14,6 +14,7 @@ open GWallet.Backend
 
 type PairingToPage(balancesPage: Page,
                    normalAccountsAndBalances: seq<BalanceState>,
+                   currencyImages: Map<Currency*bool,Image>,
                    newBalancesPageFunc: seq<BalanceState>*seq<BalanceState> -> Page) =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<PairingToPage>)
@@ -41,7 +42,7 @@ type PairingToPage(balancesPage: Page,
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = PairingToPage(DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
-                          Seq.empty,(fun (_,_) -> Page()))
+                          Seq.empty,Map.empty,(fun (_,_) -> Page()))
 
     member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
@@ -87,10 +88,11 @@ type PairingToPage(balancesPage: Page,
 
             let readOnlyAccounts = Account.GetAllActiveAccounts().OfType<ReadOnlyAccount>() |> List.ofSeq
                                    |> List.map (fun account -> account :> IAccount)
-            let readOnlyAccountsWithLabels = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
+            let readOnlyAccountsWithWidgets =
+                FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
 
             let _,readOnlyAccountsBalancesJob =
-                FrontendHelpers.UpdateBalancesAsync readOnlyAccountsWithLabels false ServerSelectionMode.Fast
+                FrontendHelpers.UpdateBalancesAsync readOnlyAccountsWithWidgets false ServerSelectionMode.Fast
 
             let _,normalAccountsBalancesJob =
                 FrontendHelpers.UpdateBalancesAsync (normalAccountsAndBalances.Select(fun balanceState ->

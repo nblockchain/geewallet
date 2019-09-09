@@ -44,10 +44,8 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
             for currency,readOnly in GetAllCurrencyCases() do
                 yield (currency,readOnly),(CreateImage currency readOnly)
         }
-    let PreLoadCurrencyImages(): Async<Map<Currency*bool,Image>> =
-        async {
-            return (GetAllImages() |> Map.ofSeq)
-        }
+    let PreLoadCurrencyImages(): Map<Currency*bool,Image> =
+        GetAllImages() |> Map.ofSeq
 
     let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
     let logoImg = Image(Source = logoImageSource, IsVisible = true)
@@ -79,20 +77,21 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
         else
             ShowLoadingText()
 
-        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts
+        let currencyImages = PreLoadCurrencyImages()
+
+        let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
         let _,allNormalAccountBalancesJob =
             FrontendHelpers.UpdateBalancesAsync normalAccountsBalances false ServerSelectionMode.Fast
 
-        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts
+        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
         let _,readOnlyAccountBalancesJob =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast
-        let preloadCurrencyImagesJob = PreLoadCurrencyImages()
+        let currencyImages = PreLoadCurrencyImages()
 
         let populateGrid = async {
-            let all3Jobs = FSharpUtil.AsyncExtensions.MixedParallel3 allNormalAccountBalancesJob
-                                                                     preloadCurrencyImagesJob
+            let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJob
                                                                      readOnlyAccountBalancesJob
-            let! allResolvedNormalAccountBalances,currencyImages,allResolvedReadOnlyBalances = all3Jobs
+            let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
 
             Device.BeginInvokeOnMainThread(fun _ ->
                 let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
