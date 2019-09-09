@@ -253,12 +253,49 @@ module FrontendHelpers =
 
         balanceLabel
 
-
     let private CreateLabelWidgetForAccount horizontalOptions =
         let label = Label(Text = "...",
                           VerticalOptions = LayoutOptions.Center,
                           HorizontalOptions = horizontalOptions)
         ApplyGtkWorkarounds label true
+
+    let CreateCurrencyBalanceFrame balanceSet currencyLogoImg classId =
+        let colorBoxWidth = 10.
+
+        let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
+                                      Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
+
+        stackLayout.Children.Add currencyLogoImg
+        stackLayout.Children.Add balanceSet.CryptoLabel
+        stackLayout.Children.Add balanceSet.FiatLabel
+
+        let colorBox = BoxView(Color = GetCryptoColor balanceSet.Account.Currency)
+
+        let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
+        absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
+        absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
+
+        if Device.RuntimePlatform = Device.GTK then
+            //workaround about GTK ScrollView's scroll bar. Not sure if it's bug indeed.
+            absoluteLayout.Margin <- Thickness(absoluteLayout.Margin.Left, absoluteLayout.Margin.Top, 20., absoluteLayout.Margin.Bottom)
+            //workaround about GTK layouting. It ignores margins of parent layout. So, we have to duplicate them
+            stackLayout.Margin <- Thickness(stackLayout.Margin.Left, stackLayout.Margin.Top, 20., stackLayout.Margin.Bottom)
+
+        //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
+        if Device.RuntimePlatform = Device.macOS then
+            let bindImageSize bindableProperty =
+                let binding = Binding(Path = "Height", Source = balanceSet.CryptoLabel)
+                currencyLogoImg.SetBinding(bindableProperty, binding)
+
+            bindImageSize VisualElement.WidthRequestProperty
+            bindImageSize VisualElement.HeightRequestProperty
+
+        let frame = Frame(HasShadow = false,
+                          ClassId = classId,
+                          Content = absoluteLayout,
+                          Padding = Thickness(0.),
+                          BorderColor = Color.SeaShell)
+        frame
 
     let private CreateWidgetsForAccount (): Label*Label =
         let accountBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.Start

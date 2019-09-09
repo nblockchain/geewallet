@@ -158,7 +158,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         | Fresh amount | NotFresh (Cached (amount,_)) ->
             amount
 
-    let RedrawDonutView (chartView: DonutChartView) (balances: seq<BalanceState>) =
+    let RedrawDonutView (readOnly: bool) (balances: seq<BalanceState>) =
+        let chartView =
+            if readOnly then
+                readonlyChartView
+            else
+                normalChartView
         let fullAmount = balances.Sum(fun b -> GetAmountOrDefault b.FiatAmount)
 
         let chartSourceList = 
@@ -209,50 +214,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> balanceRefreshCancelSources |> List.ofSeq :> seq<_>)
          and set value = lock lockObject (fun _ -> balanceRefreshCancelSources <- value)
 
-    static member private CreateCurrencyBalanceFrame balanceSet currencyLogoImg classId =
-        let colorBoxWidth = 10.
-
-        let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
-                                      Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
-
-        stackLayout.Children.Add currencyLogoImg
-        stackLayout.Children.Add balanceSet.CryptoLabel
-        stackLayout.Children.Add balanceSet.FiatLabel
-
-        let colorBox = BoxView(Color = FrontendHelpers.GetCryptoColor balanceSet.Account.Currency)
-
-        let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
-        absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
-        absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
-
-        if Device.RuntimePlatform = Device.GTK then
-            //workaround about GTK ScrollView's scroll bar. Not sure if it's bug indeed.
-            absoluteLayout.Margin <- Thickness(absoluteLayout.Margin.Left, absoluteLayout.Margin.Top, 20., absoluteLayout.Margin.Bottom)
-            //workaround about GTK layouting. It ignores margins of parent layout. So, we have to duplicate them
-            stackLayout.Margin <- Thickness(stackLayout.Margin.Left, stackLayout.Margin.Top, 20., stackLayout.Margin.Bottom)
-
-        //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
-        if Device.RuntimePlatform = Device.macOS then
-            let bindImageSize bindableProperty =
-                let binding = Binding(Path = "Height", Source = balanceSet.CryptoLabel)
-                currencyLogoImg.SetBinding(bindableProperty, binding)
-
-            bindImageSize VisualElement.WidthRequestProperty
-            bindImageSize VisualElement.HeightRequestProperty
-
-        let frame = Frame(HasShadow = false,
-                          ClassId = classId,
-                          Content = absoluteLayout,
-                          Padding = Thickness(0.),
-                          BorderColor = Color.SeaShell)
-        frame
-
-    member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
-        let activeCurrencyClassId,inactiveCurrencyClassId,activeChartView =
+    member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceSet>) =
+        let activeCurrencyClassId,inactiveCurrencyClassId =
             if readOnly then
-                readonlyCryptoBalanceClassId,normalCryptoBalanceClassId,readonlyChartView
+                readonlyCryptoBalanceClassId,normalCryptoBalanceClassId
             else
-                normalCryptoBalanceClassId,readonlyCryptoBalanceClassId,normalChartView
+                normalCryptoBalanceClassId,readonlyCryptoBalanceClassId
 
         let activeCryptoBalances = FindCryptoBalances activeCurrencyClassId 
                                                       contentLayout 
@@ -274,10 +241,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             for activeCryptoBalance in activeCryptoBalances do
                 activeCryptoBalance.IsVisible <- true
         else
-            for balanceState in balances do
-                let currencyLogoImg = currencyImages.[(balanceState.BalanceSet.Account.Currency,readOnly)]
-                let balanceSet = balanceState.BalanceSet
-                let frame = BalancesPage.CreateCurrencyBalanceFrame balanceSet currencyLogoImg activeCurrencyClassId
+            for balanceSet in balances do
+                let currencyLogoImg = currencyImages.[(balanceSet.Account.Currency,readOnly)]
+                let frame = FrontendHelpers.CreateCurrencyBalanceFrame balanceSet currencyLogoImg activeCurrencyClassId
                 let tapGestureRecognizer = TapGestureRecognizer()
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
                     let receivePage = ReceivePage(balanceSet.Account, this, balanceSet.CryptoLabel, balanceSet.FiatLabel)
@@ -291,7 +257,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 contentLayout.Children.Add frame
 
         contentLayout.BatchCommit()
-        RedrawDonutView activeChartView balances
 
     member this.UpdateGlobalFiatBalanceSum (allFiatBalances: seq<MaybeCached<decimal>>) totalFiatAmountLabel =
         let fiatBalancesList = allFiatBalances |> List.ofSeq
@@ -301,7 +266,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     member private this.UpdateGlobalBalance (state: FrontendHelpers.IGlobalAppState)
                                             (balancesJob: Async<array<BalanceState>>)
                                             fiatLabel
-                                            donutView
+                                            (readOnly: bool)
                                                 : Async<Option<bool>> =
         async {
             let _,cancelSource = this.LastRefreshBalancesStamp
@@ -316,7 +281,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                                      balanceState.FiatAmount)
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
-                    RedrawDonutView donutView resolvedBalances
+                    RedrawDonutView readOnly resolvedBalances
                 )
                 return resolvedBalances.Any(fun balanceState ->
 
@@ -340,7 +305,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                 false refreshMode
 
         let readOnlyAccountsBalanceUpdate =
-            this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel readonlyChartView
+            this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel true
 
         let allCancelSources,allBalanceUpdates =
             if (not onlyReadOnlyAccounts) then
@@ -351,7 +316,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                         false refreshMode
 
                 let normalAccountsBalanceUpdate =
-                    this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel normalChartView
+                    this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel false
 
                 let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
 
@@ -475,7 +440,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     else
                         normalAccountsBalances
                 this.AssignColorLabels switchingToReadOnly
-                this.PopulateBalances switchingToReadOnly balancesToPopulate
+                this.PopulateBalances switchingToReadOnly
+                                      (balancesToPopulate.Select(fun balanceState -> balanceState.BalanceSet))
+                RedrawDonutView switchingToReadOnly balancesToPopulate
             else
                 let coldStoragePage =
                     // FIXME: save IsConnected to cache at app startup, and if it has ever been connected to the
@@ -513,7 +480,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let tapper = this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances false
         this.ConfigureFiatAmountFrame normalAccountsAndBalances readOnlyAccountsAndBalances true |> ignore
 
-        this.PopulateBalances false normalAccountsAndBalances
+        this.PopulateBalances false (normalAccountsAndBalances.Select(fun balanceState -> balanceState.BalanceSet))
+        RedrawDonutView false normalAccountsAndBalances
 
         if startWithReadOnlyAccounts then
             tapper.SendTapped null
