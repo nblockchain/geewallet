@@ -243,10 +243,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         else
             for balanceSet in balances do
                 let currencyLogoImg = currencyImages.[(balanceSet.Account.Currency,readOnly)]
-                let frame = FrontendHelpers.CreateCurrencyBalanceFrame balanceSet currencyLogoImg activeCurrencyClassId
+                let frame = FrontendHelpers.CreateCurrencyBalanceFrame balanceSet.Account.Currency
+                                                                       balanceSet.Widgets
+                                                                       currencyLogoImg
+                                                                       activeCurrencyClassId
                 let tapGestureRecognizer = TapGestureRecognizer()
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                    let receivePage = ReceivePage(balanceSet.Account, this, balanceSet.CryptoLabel, balanceSet.FiatLabel)
+                    let receivePage = ReceivePage(balanceSet.Account, this, balanceSet.Widgets)
                     NavigationPage.SetHasNavigationBar(receivePage, false)
                     let navPage = NavigationPage receivePage
 
@@ -498,8 +501,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 normalAccountsAndBalances,color
 
         for accountBalance in labels do
-            accountBalance.BalanceSet.CryptoLabel.TextColor <- color
-            accountBalance.BalanceSet.FiatLabel.TextColor <- color
+            accountBalance.BalanceSet.Widgets.CryptoLabel.TextColor <- color
+            accountBalance.BalanceSet.Widgets.FiatLabel.TextColor <- color
 
     member private this.CancelBalanceRefreshJobs() =
         this.BalanceRefreshCancelSources

@@ -10,10 +10,15 @@ open ZXing.Mobile
 
 open GWallet.Backend
 
+type BalanceWidgets =
+    {
+        CryptoLabel: Label
+        FiatLabel: Label
+    }
+
 type BalanceSet = {
     Account: IAccount;
-    CryptoLabel: Label;
-    FiatLabel: Label;
+    Widgets: BalanceWidgets
 }
 
 type BalanceState = {
@@ -107,7 +112,10 @@ module FrontendHelpers =
             let! balance,imminentIncomingPayment =
                 Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode (Some cancelSource)
             let fiatAmount =
-                UpdateBalance balance balanceSet.Account.Currency balanceSet.CryptoLabel balanceSet.FiatLabel
+                UpdateBalance balance
+                              balanceSet.Account.Currency
+                              balanceSet.Widgets.CryptoLabel
+                              balanceSet.Widgets.FiatLabel
             return {
                 BalanceSet = balanceSet
                 FiatAmount = fiatAmount
@@ -127,8 +135,8 @@ module FrontendHelpers =
                     let fiatAmount =
                         UpdateBalance (NotFresh cachedBalance)
                                       balanceSet.Account.Currency
-                                      balanceSet.CryptoLabel
-                                      balanceSet.FiatLabel
+                                      balanceSet.Widgets.CryptoLabel
+                                      balanceSet.Widgets.FiatLabel
                     return {
                         BalanceSet = balanceSet
                         FiatAmount = fiatAmount
@@ -259,17 +267,17 @@ module FrontendHelpers =
                           HorizontalOptions = horizontalOptions)
         ApplyGtkWorkarounds label true
 
-    let CreateCurrencyBalanceFrame balanceSet currencyLogoImg classId =
+    let CreateCurrencyBalanceFrame currency (balanceWidgets: BalanceWidgets) currencyLogoImg classId =
         let colorBoxWidth = 10.
 
         let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
                                       Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
 
         stackLayout.Children.Add currencyLogoImg
-        stackLayout.Children.Add balanceSet.CryptoLabel
-        stackLayout.Children.Add balanceSet.FiatLabel
+        stackLayout.Children.Add balanceWidgets.CryptoLabel
+        stackLayout.Children.Add balanceWidgets.FiatLabel
 
-        let colorBox = BoxView(Color = GetCryptoColor balanceSet.Account.Currency)
+        let colorBox = BoxView(Color = GetCryptoColor currency)
 
         let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
         absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
@@ -284,7 +292,7 @@ module FrontendHelpers =
         //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
         if Device.RuntimePlatform = Device.macOS then
             let bindImageSize bindableProperty =
-                let binding = Binding(Path = "Height", Source = balanceSet.CryptoLabel)
+                let binding = Binding(Path = "Height", Source = balanceWidgets.CryptoLabel)
                 currencyLogoImg.SetBinding(bindableProperty, binding)
 
             bindImageSize VisualElement.WidthRequestProperty
@@ -297,19 +305,22 @@ module FrontendHelpers =
                           BorderColor = Color.SeaShell)
         frame
 
-    let private CreateWidgetsForAccount (): Label*Label =
+    let private CreateWidgetsForAccount (): BalanceWidgets =
         let accountBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.Start
         let fiatBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.EndAndExpand
-        accountBalanceLabel,fiatBalanceLabel
+
+        {
+            CryptoLabel = accountBalanceLabel
+            FiatLabel = fiatBalanceLabel
+        }
 
     let CreateWidgetsForAccounts(accounts: seq<IAccount>): List<BalanceSet> =
         seq {
             for account in accounts do
-                let cryptoLabel,fiatLabel = CreateWidgetsForAccount ()
+                let balanceWidgets = CreateWidgetsForAccount ()
                 yield {
                     Account = account;
-                    CryptoLabel = cryptoLabel;
-                    FiatLabel = fiatLabel;
+                    Widgets = balanceWidgets
                 }
         } |> List.ofSeq
 

@@ -16,8 +16,7 @@ open GWallet.Backend
 
 type ReceivePage(account: IAccount,
                  balancesPage: Page,
-                 cryptoBalanceLabelInBalancesPage: Label,
-                 fiatBalanceLabelInBalancesPage: Label) as this =
+                 balanceWidgetsFromBalancePage: BalanceWidgets) as this =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
@@ -32,7 +31,8 @@ type ReceivePage(account: IAccount,
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = ReceivePage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
-                        DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),null,null)
+                        DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
+                        { CryptoLabel = null; FiatLabel = null })
 
     member this.Init() =
         let balanceLabel = mainLayout.FindByName<Label>("balanceLabel")
@@ -47,8 +47,8 @@ type ReceivePage(account: IAccount,
         // (we need to update the balance page ASAP in case the user goes back to it after sending the transaction)
         FrontendHelpers.UpdateBalance (NotFresh accountBalance)
                                       account.Currency
-                                      cryptoBalanceLabelInBalancesPage
-                                      fiatBalanceLabelInBalancesPage
+                                      balanceWidgetsFromBalancePage.CryptoLabel
+                                      balanceWidgetsFromBalancePage.FiatLabel
             |> ignore
 
         balanceLabel.FontSize <- FrontendHelpers.BigFontSize
@@ -102,7 +102,7 @@ type ReceivePage(account: IAccount,
 
     member this.OnSendPaymentClicked(sender: Object, args: EventArgs) =
         let newReceivePageFunc = (fun _ ->
-            ReceivePage(account, balancesPage, cryptoBalanceLabelInBalancesPage, fiatBalanceLabelInBalancesPage) :> Page
+            ReceivePage(account, balancesPage, balanceWidgetsFromBalancePage) :> Page
         )
         let sendPage = SendPage(account, this, newReceivePageFunc)
 
