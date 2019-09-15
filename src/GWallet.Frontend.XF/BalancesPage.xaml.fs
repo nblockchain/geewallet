@@ -342,8 +342,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let prevRefreshTime,_ = this.LastRefreshBalancesStamp
         let cancelSource = new CancellationTokenSource()
         let cancellationToken = cancelSource.Token
+        // FIXME: should we dispose the previous cancellationSource before re-assigning a new one below?
         this.LastRefreshBalancesStamp <- prevRefreshTime,cancelSource
-
 
         let refreshesDiff = DateTime.UtcNow - prevRefreshTime
         let shiftedRefreshDiff =
@@ -372,6 +372,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         this.StartTimer()
                     with
                     | :? OperationCanceledException ->
+                        // FIXME: would this crash the app? because FrontendHelpers.MaybeCrash doesn't ignore
+                        //        TaskCanceledExceptions anymore!
                         raise <| TaskCanceledException()
 
                 } |> FrontendHelpers.DoubleCheckCompletionAsync
