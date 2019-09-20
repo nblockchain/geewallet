@@ -91,7 +91,7 @@ module Config =
 
     let internal GetConfigDirForThisProgram() =
         let configPath =
-            if not isWindows then
+            if (not isWindows) || Xamarin.Essentials.DeviceInfo.Platform <> Xamarin.Essentials.DevicePlatform.UWP then
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
             else //UWP
                 Xamarin.Essentials.FileSystem.AppDataDirectory
