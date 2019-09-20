@@ -10,7 +10,6 @@ open GWallet.Backend.UtxoCoin
 
 // TODO: move this to its own file
 [<TestFixture>]
-[<Ignore ("FIXME: this fails in Windows with 'Xamarin.Essentials.NotImplementedInReferenceAssemblyException : This functionality is not implemented in the portable version of this assembly. You should reference the NuGet package from your main application project in order to reference the platform-specific implementation.' The way to fix it is to extract a FileSystemConfig module from some FileSystem-related bits of Config module, and make it a singleton in the same way as MainCache() is done, in order to pass a special hand-crafted param from the tests when being tested, a-la DI")>]
 type ElectrumServerUnitTests() =
 
     [<Test>]
