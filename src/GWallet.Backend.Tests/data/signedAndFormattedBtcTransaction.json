@@ -1,6 +1,6 @@
 {
-  "Version": "0.4.2.122",
-  "TypeName": "GWallet.Backend.SignedTransaction`1[[GWallet.Backend.UtxoCoin.TransactionMetadata, GWallet.Backend, Version=0.4.2.122, Culture=neutral, PublicKeyToken=null]]",
+  "Version": "0.4.2.123",
+  "TypeName": "GWallet.Backend.SignedTransaction`1[[GWallet.Backend.UtxoCoin.TransactionMetadata, GWallet.Backend, Version=0.4.2.123, Culture=neutral, PublicKeyToken=null]]",
   "Value": {
     "TransactionInfo": {
       "Proposal": {
