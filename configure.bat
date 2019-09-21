@@ -2,6 +2,7 @@
 
 REM please keep this file in sync with make.bat
 
+SET BUILDTOOLS="%ProgramFiles(x86)%\Microsoft Visual Studio\2019\BuildTools\Common7\IDE\CommonExtensions\Microsoft\FSharp\fsi.exe"
 SET COMMUNITY="%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Community\Common7\IDE\CommonExtensions\Microsoft\FSharp\fsi.exe"
 SET ENTERPRISE="%ProgramFiles(x86)%\Microsoft Visual Studio\2019\Enterprise\Common7\IDE\CommonExtensions\Microsoft\FSharp\fsi.exe"
 SET FSXSCRIPT=scripts\configure.fsx
@@ -12,6 +13,10 @@ IF EXIST %ENTERPRISE% (
     IF EXIST %COMMUNITY% (
         %COMMUNITY% %FSXSCRIPT% %*
     ) ELSE (
-        ECHO fsi.exe not found, is F# installed?
+    	IF EXIST %BUILDTOOLS% (
+    	    %BUILDTOOLS% %FSXSCRIPT% %*
+    	) ELSE (
+    	    ECHO fsi.exe not found, is F# installed?
+    	)
     )
 )
