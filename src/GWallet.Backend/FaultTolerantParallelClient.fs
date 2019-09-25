@@ -316,7 +316,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             fun cancelledInternallyState ->
                 if cancelledInternallyState.Value.IsNone then
                     try
-                        source.Cancel()
+                        try
+                            source.Cancel()
+                        with
+                        | :? TaskCanceledException as ex ->
+                            raise <| InvalidOperationException("FTPC cancellation causes TCE", ex)
                         cancelledInternallyState.Value <- Some DateTime.UtcNow
                         source.Dispose()
                     with
