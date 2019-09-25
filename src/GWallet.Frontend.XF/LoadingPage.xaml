@@ -11,7 +11,8 @@
                HorizontalOptions="Center"
                IsVisible="false"
                FontAttributes="Bold" FontSize="Large" />
-        <Label Text="Loading..." x:Name="loadingLabel"
+        <!-- dots will be appended to Text -->
+        <Label Text="Loading" x:Name="loadingLabel"
                VerticalOptions="Center" HorizontalOptions="Center"
                IsVisible="false"
                Margin="40,40,40,40" />

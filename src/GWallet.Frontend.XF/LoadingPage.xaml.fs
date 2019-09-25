@@ -8,6 +8,10 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
+/// <param name="showLogo">
+/// true  if just the logo should be shown first, and title text and loading text after some seconds,
+/// false if title text and loading text should be shown immediatly.
+/// </param>
 type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this =
     inherit ContentPage()
 
@@ -16,6 +20,9 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
     let mainLayout = base.FindByName<StackLayout> "mainLayout"
     let titleLabel = mainLayout.FindByName<Label> "titleLabel"
     let loadingLabel = mainLayout.FindByName<Label> "loadingLabel"
+    let dotsMaxCount = 3
+    let loadingTextNoDots = loadingLabel.Text
+    let animLength = TimeSpan.FromMilliseconds 500.
 
     let allAccounts = Account.GetAllActiveAccounts()
     let normalAccounts = allAccounts.OfType<NormalAccount>() |> List.ofSeq
@@ -49,6 +56,22 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
 
     let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
     let logoImg = Image(Source = logoImageSource, IsVisible = true)
+
+    let mutable keepTimer = true
+
+    let UpdateDotsLabel() =
+        Device.BeginInvokeOnMainThread(fun _ ->
+            let currentCountPlusOne = loadingLabel.Text.Count(fun x -> x = '.') + 1
+            let dotsCount =
+                if currentCountPlusOne > dotsMaxCount then
+                    0
+                else
+                    currentCountPlusOne
+            let dotsSeq = Enumerable.Repeat('.', dotsCount)
+            loadingLabel.Text <- loadingTextNoDots + String(dotsSeq.ToArray())
+        )
+        keepTimer
+
     let ShowLoadingText() =
         Device.BeginInvokeOnMainThread(fun _ ->
             mainLayout.VerticalOptions <- LayoutOptions.Center
@@ -57,6 +80,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
             titleLabel.IsVisible <- true
             loadingLabel.IsVisible <- true
         )
+        Device.StartTimer(animLength, Func<bool> UpdateDotsLabel)
 
     do
         this.Init()
@@ -72,7 +96,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
             Device.StartTimer(TimeSpan.FromSeconds 8.0, fun _ ->
                 ShowLoadingText()
 
-                false
+                false // do not run timer again
             )
         else
             ShowLoadingText()
@@ -92,6 +116,8 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
             let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJob
                                                                      readOnlyAccountBalancesJob
             let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
+
+            keepTimer <- false
 
             Device.BeginInvokeOnMainThread(fun _ ->
                 let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
