@@ -95,6 +95,9 @@ module Misc =
     let FirstElementOf3Tuple (a, _, _) = a
     let SecondElementOf3Tuple (_, b, _) = b
 
+    let CrossPlatformStringSplitInLines(str: string): List<string> =
+        let sanitizedStr = str.Replace("\r\n", "\n")
+        List.ofSeq(sanitizedStr.Split([|"\n"|], StringSplitOptions.RemoveEmptyEntries))
     let SimpleStringSplit (str: string, separator: string): string list =
         List.ofSeq(str.Split([|separator|], StringSplitOptions.RemoveEmptyEntries))
 
