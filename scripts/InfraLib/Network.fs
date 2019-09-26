@@ -35,9 +35,11 @@ module Network =
                     firstProgressEvent <- false
                 )
 
-            webClient.DownloadProgressChanged.Subscribe onProgress |> ignore
-            let task = webClient.DownloadFileTaskAsync (uri, Path.GetFileName(uri.LocalPath))
-            task.Wait()
+            async {
+                webClient.DownloadProgressChanged.Subscribe onProgress |> ignore
+                let task = webClient.DownloadFileTaskAsync (uri, Path.GetFileName uri.LocalPath)
+                do! Async.AwaitTask task
+            } |> Async.RunSynchronously
         resultFile
 
     let DownloadFileWithWGet (uri: Uri): FileInfo =

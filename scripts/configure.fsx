@@ -50,6 +50,7 @@ let buildTool =
             [
                 GetMsBuildPath "Community"
                 GetMsBuildPath "Enterprise"
+                GetMsBuildPath "BuildTools"
             ]
 
 
