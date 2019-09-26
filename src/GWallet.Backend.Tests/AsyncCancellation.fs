@@ -10,7 +10,7 @@ open GWallet.Backend
 open NUnit.Framework
 
 [<TestFixture>]
-type AsyncCancellation() =
+type FaultTolerantParallelClientAsyncCancellation() =
 
     let dummy_connection_type = { Encrypted = false; Protocol = Http }
     let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId job =
