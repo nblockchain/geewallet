@@ -8,11 +8,11 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
-/// <param name="showLogo">
+/// <param name="showLogoFirst">
 /// true  if just the logo should be shown first, and title text and loading text after some seconds,
 /// false if title text and loading text should be shown immediatly.
 /// </param>
-type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this =
+type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as this =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
@@ -57,7 +57,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
     let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
     let logoImg = Image(Source = logoImageSource, IsVisible = true)
 
-    let mutable keepTimer = true
+    let mutable keepAnimationTimerActive = true
 
     let UpdateDotsLabel() =
         Device.BeginInvokeOnMainThread(fun _ ->
@@ -70,7 +70,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
             let dotsSeq = Enumerable.Repeat('.', dotsCount)
             loadingLabel.Text <- loadingTextNoDots + String(dotsSeq.ToArray())
         )
-        keepTimer
+        keepAnimationTimerActive
 
     let ShowLoadingText() =
         Device.BeginInvokeOnMainThread(fun _ ->
@@ -90,7 +90,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
 
     member this.Init (): unit =
 
-        if showLogo then
+        if showLogoFirst then
             mainLayout.Children.Add logoImg
 
             Device.StartTimer(TimeSpan.FromSeconds 8.0, fun _ ->
@@ -117,7 +117,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogo: bool) as this
                                                                      readOnlyAccountBalancesJob
             let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
 
-            keepTimer <- false
+            keepAnimationTimerActive <- false
 
             Device.BeginInvokeOnMainThread(fun _ ->
                 let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
