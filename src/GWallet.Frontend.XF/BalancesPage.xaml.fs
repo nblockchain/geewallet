@@ -374,7 +374,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     | :? OperationCanceledException ->
                         // FIXME: would this crash the app? because FrontendHelpers.MaybeCrash doesn't ignore
                         //        TaskCanceledExceptions anymore!
-                        raise <| TaskCanceledException()
+                        raise <| TaskCanceledException "Refresh aborted"
 
                 } |> FrontendHelpers.DoubleCheckCompletionAsync
             false
