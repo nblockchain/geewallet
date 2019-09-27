@@ -179,6 +179,10 @@ module Server =
                     raise <| ServerRestrictiveException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCodeNotPresentInTheBcl.FrozenSite) then
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
+
+            // weird "IOException: The server returned an invalid or unrecognized response." since Mono 6.4.x (vs16.3)
+            if (FSharpUtil.FindException<IOException> httpReqEx).IsSome then
+                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
         | _ ->
             ()
 
