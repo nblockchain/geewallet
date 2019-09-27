@@ -2,6 +2,7 @@
 
 open System
 open System.Linq
+open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
@@ -115,15 +116,28 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         let populateGrid = async {
             let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJob
                                                                      readOnlyAccountBalancesJob
-            let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
 
-            keepAnimationTimerActive <- false
+            try
+                let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
 
-            Device.BeginInvokeOnMainThread(fun _ ->
-                let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
-                                                currencyImages, false)
-                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
-            )
+                keepAnimationTimerActive <- false
+
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    try
+                        let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
+                                                        currencyImages, false)
+                        FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
+                    with
+                    | ex ->
+                        if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                            raise <| InvalidOperationException("Cancellation at first-balances page population", ex)
+                        reraise()
+                )
+            with
+            | ex ->
+                if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                    return raise <| InvalidOperationException("Cancellation at first-balances querying", ex)
+                return raise <| FSharpUtil.ReRaise ex
         }
         Async.StartAsTask populateGrid
             |> FrontendHelpers.DoubleCheckCompletion

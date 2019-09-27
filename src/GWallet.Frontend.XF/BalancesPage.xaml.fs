@@ -496,11 +496,15 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             balanceSet.Widgets.FiatLabel.TextColor <- color
 
     member private this.CancelBalanceRefreshJobs() =
-        this.BalanceRefreshCancelSources
-            |> Seq.map (fun cancelSource ->
-                            cancelSource.Cancel()
-                            cancelSource.Dispose())
-            |> ignore
+        try
+            this.BalanceRefreshCancelSources
+                |> Seq.map (fun cancelSource ->
+                                cancelSource.Cancel()
+                                cancelSource.Dispose())
+                |> ignore
+        with
+        | :? TaskCanceledException as ex ->
+            raise <| InvalidOperationException("Cancellation of balance refresh jobs causes TCE", ex)
         this.BalanceRefreshCancelSources <- Seq.empty
 
     member private this.Init () =
