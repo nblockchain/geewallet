@@ -122,9 +122,9 @@ let fullUnstableVersion,newFullStableVersion = Bump true
 GitCommit fullUnstableVersion newFullStableVersion
 GitTag newFullStableVersion
 
-Console.WriteLine (sprintf "Version bumped to %s, release binaries now and press key when you finish."
+Console.WriteLine (sprintf "Version bumped to %s, release binaries now and press any key when you finish."
                            (newFullStableVersion.ToString()))
-Console.Read() |> ignore
+Console.ReadKey true |> ignore
 
 Console.WriteLine "Post-bumping..."
 let fullStableVersion,newFullUnstableVersion = Bump false
