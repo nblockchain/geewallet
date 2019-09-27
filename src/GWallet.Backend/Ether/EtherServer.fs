@@ -129,7 +129,10 @@ module Server =
                 //  The date in the certificate is invalid or has expired"
                 raise <| ServerMisconfiguredException(exMsg, httpReqEx)
 
-        | None ->
+            // weird "IOException: The server returned an invalid or unrecognized response." since Mono 6.4.x (vs16.3)
+            if (FSharpUtil.FindException<IOException> httpReqEx).IsSome then
+                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+        | _ ->
             ()
 
     let MaybeRethrowRpcResponseException (ex: Exception): unit =

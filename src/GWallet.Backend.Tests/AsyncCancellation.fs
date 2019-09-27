@@ -10,7 +10,7 @@ open GWallet.Backend
 open NUnit.Framework
 
 [<TestFixture>]
-type AsyncCancellation() =
+type FaultTolerantParallelClientAsyncCancellation() =
 
     let dummy_connection_type = { Encrypted = false; Protocol = Http }
     let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId job =
@@ -370,6 +370,40 @@ type AsyncCancellation() =
         | _ -> ()
 
         Assert.That(stopWatch.Elapsed, Is.LessThan timeoutTime)
+
+    [<Test>]
+    member __.``cancellationSource is disposed after FaultTolerantParallelClient finishes executing``() =
+        let someLongTime = TimeSpan.FromSeconds 1.0
+
+        let externalCancellationSource = new CancellationTokenSource()
+
+        let mutable longFuncFinishedExecution = false
+        let job1 =
+            async { return 0 }
+        let job2 =
+            async { return 0 }
+
+        let allFuncs = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job1" job1
+                         serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job2" job2 ]
+        let number_of_parallel_jobs_allowed = uint32 allFuncs.Length
+        let NUMBER_OF_CONSISTENT_RESULTS = 2u
+
+        let consistencyCfg = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS |> Some
+        let settings =
+            {
+                FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyCfg with
+                    NumberOfParallelJobsAllowed = number_of_parallel_jobs_allowed
+            }
+
+        let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
+                         dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
+        let result = client.QueryWithCancellation externalCancellationSource settings allFuncs
+                         |> Async.RunSynchronously
+
+        Assert.That(result, Is.EqualTo 0)
+
+        Assert.Throws<ObjectDisposedException>(fun _ -> externalCancellationSource.Cancel())
+            |> ignore
 
 
 [<TestFixture>]
