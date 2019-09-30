@@ -117,6 +117,22 @@ let GitTag (newFullVersion: Version) =
     Process.SafeExecute (gitCreateTag,
                          Echo.Off) |> ignore
 
+let GitDiff () =
+
+    let gitDiff =
+        {
+            Command = "git"
+            Arguments = "diff"
+        }
+    let gitDiffProc = Process.SafeExecute (gitDiff,
+                                           Echo.Off)
+    if gitDiffProc.Output.StdOut.Length > 0 then
+        Console.Error.WriteLine "git status is not clean"
+        Environment.Exit 1
+
+
+GitDiff()
+
 Console.WriteLine "Bumping..."
 let fullUnstableVersion,newFullStableVersion = Bump true
 GitCommit fullUnstableVersion newFullStableVersion
