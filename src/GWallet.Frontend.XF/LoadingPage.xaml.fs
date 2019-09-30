@@ -107,15 +107,38 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
         let _,allNormalAccountBalancesJob =
             FrontendHelpers.UpdateBalancesAsync normalAccountsBalances false ServerSelectionMode.Fast
+        let allNormalAccountBalancesJobAugmented = async {
+            let! normalAccountBalances =
+                try
+                    allNormalAccountBalancesJob
+                with
+                | ex ->
+                    if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                        raise <| InvalidOperationException("Cancellation at normal-account first-query", ex)
+                    raise <| FSharpUtil.ReRaise ex
+            return normalAccountBalances
+        }
 
         let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
         let _,readOnlyAccountBalancesJob =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast
+        let readOnlyAccountBalancesJobAugmented = async {
+            let! readOnlyAccountBalances =
+                try
+                    readOnlyAccountBalancesJob
+                with
+                | ex ->
+                    if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                        raise <| InvalidOperationException("Cancellation at readonly-account first-query", ex)
+                    raise <| FSharpUtil.ReRaise ex
+            return readOnlyAccountBalances
+        }
+
         let currencyImages = PreLoadCurrencyImages()
 
         let populateGrid = async {
-            let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJob
-                                                                     readOnlyAccountBalancesJob
+            let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJobAugmented
+                                                                     readOnlyAccountBalancesJobAugmented
 
             try
                 let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
