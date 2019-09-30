@@ -140,10 +140,12 @@ module Server =
         match maybeRpcResponseEx with
         | Some rpcResponseEx ->
             if rpcResponseEx.RpcError <> null then
-                if rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode then
-                    if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
-                        raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
-                                                   (int RpcErrorCode.StatePruningNode), rpcResponseEx)
+                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNodeOrMissingTrieNode) then
+                    if (not (rpcResponseEx.RpcError.Message.Contains "pruning=archive")) &&
+                       (not (rpcResponseEx.RpcError.Message.Contains "missing trie node")) then
+                        raise <| Exception(
+                                     sprintf "Expecting 'pruning=archive' or 'missing trie node' in message of a %d code"
+                                                   (int RpcErrorCode.StatePruningNodeOrMissingTrieNode), rpcResponseEx)
                     else
                         raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                 if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
