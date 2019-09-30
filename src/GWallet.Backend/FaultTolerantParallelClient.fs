@@ -21,6 +21,9 @@ type private NoneAvailableException (message:string, lastException: Exception) =
 type private NotEnoughAvailableException (message:string, lastException: Exception) =
     inherit ServerUnavailabilityException (message, lastException)
 
+type UnexpectedTaskCanceledException(message: string, innerException) =
+    inherit TaskCanceledException (message, innerException)
+
 type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                    maxNumberOfConsistentResultsObtained: int,
                                    numberOfConsistentResultsRequired: uint32) =
@@ -133,7 +136,10 @@ type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
                                                      (ex.ToString()))
                     return Error specificInnerEx
                 | None ->
-                    return raise (FSharpUtil.ReRaise ex)
+                    if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                        return raise <| UnexpectedTaskCanceledException("Cancellation of subjob", ex)
+                    else
+                        return raise <| FSharpUtil.ReRaise ex
         }
 
 type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception>

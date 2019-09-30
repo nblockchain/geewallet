@@ -435,3 +435,41 @@ type ParallelizationAndOptimization() =
         stopWatch.Stop()
         Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
 
+    [<Test>]
+    member __.``extreme parallelization to try to catch a race condition``() =
+        let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 5u
+        let NUMBER_OF_CONSISTENT_RESULTS = 2u
+        let sleep = true
+
+        let consistencyCfg = SpecificNumberOfConsistentResponsesRequired NUMBER_OF_CONSISTENT_RESULTS |> Some
+        let settings =
+            {
+                FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyCfg with
+                    NumberOfParallelJobsAllowed = NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED
+            }
+
+        let createRunners (amount: uint32) (jobsPerRunner: uint32) = seq {
+            for i in 1..int amount do
+                let jobs = seq {
+                    for j in 1..int jobsPerRunner do
+                        let job = async {
+                            if sleep then
+                                do! Async.Sleep <| System.Random().Next(1, 3)
+                            let! token = Async.CancellationToken
+                            token.ThrowIfCancellationRequested()
+                            return j % 2
+                        }
+                        let fn = serverWithNoHistoryInfoBecauseIrrelevantToThisTest (Guid.NewGuid().ToString()) job
+                        yield fn
+                }
+                let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
+                                  dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
+                let runner = client.Query settings
+                                (Shuffler.Unsort jobs |> List.ofSeq)
+                yield runner
+        }
+
+
+        let allJobs = Async.Parallel (createRunners 10000u 30u)
+        allJobs |> Async.RunSynchronously |> ignore
+

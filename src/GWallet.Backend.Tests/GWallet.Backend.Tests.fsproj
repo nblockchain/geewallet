@@ -71,6 +71,7 @@
     <Compile Include="Formatting.fs" />
     <Compile Include="AsyncExtensions.fs" />
     <Compile Include="ServerReference.fs" />
+    <Compile Include="FSharpUtil.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
