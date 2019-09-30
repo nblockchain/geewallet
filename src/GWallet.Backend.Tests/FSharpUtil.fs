@@ -31,3 +31,19 @@ type FSharpUtilCoverage() =
         | Some ex ->
             Assert.That(Object.ReferenceEquals(ex, inheritedEx), Is.True)
             Assert.That(Object.ReferenceEquals(ex.InnerException, innerEx))
+
+    [<Test>]
+    member __.``flattens (AggregateEx)``() =
+        let innerEx1 = TaskCanceledException "bar" :> Exception
+        let innerEx2 = UnexpectedTaskCanceledException ("baz", null) :> Exception
+        let parent = AggregateException("foo", [|innerEx1; innerEx2|])
+        let sibling1Found = FSharpUtil.FindException<TaskCanceledException> parent
+        match sibling1Found with
+        | None -> failwith "should work"
+        | Some ex ->
+            Assert.That(Object.ReferenceEquals(ex, innerEx1), Is.True)
+        let sibling2Found = FSharpUtil.FindException<UnexpectedTaskCanceledException> parent
+        match sibling2Found with
+        | None -> failwith "should find sibling 2 too"
+        | Some ex ->
+            Assert.That(Object.ReferenceEquals(ex, innerEx2), Is.True)

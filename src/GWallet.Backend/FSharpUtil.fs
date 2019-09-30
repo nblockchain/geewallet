@@ -125,11 +125,23 @@ module FSharpUtil =
         ex
 
     let rec public FindException<'T when 'T:> Exception>(ex: Exception): Option<'T> =
+        let rec findExInSeq(sq: seq<Exception>) =
+            match Seq.tryHead sq with
+            | Some head ->
+                let found = FindException head
+                match found with
+                | Some ex -> Some ex
+                | None ->
+                    findExInSeq <| Seq.tail sq
+            | None ->
+                None
         if null = ex then
             None
         else
             match ex with
             | :? 'T as specificEx -> Some(specificEx)
+            | :? AggregateException as aggEx ->
+                findExInSeq aggEx.InnerExceptions
             | _ -> FindException<'T>(ex.InnerException)
 
 // http://stackoverflow.com/a/28466431/6503091
