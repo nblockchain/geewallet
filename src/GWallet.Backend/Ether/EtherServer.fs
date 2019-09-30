@@ -61,7 +61,7 @@ module Server =
 
     type RpcErrorCode =
         // "This request is not supported because your node is running with state pruning. Run with --pruning=archive."
-        | StatePruningNode = -32000
+        | StatePruningNodeOrMissingTrieNode = -32000
 
         // ambiguous or generic because I've seen same code applied to two different error messages already:
         // "Transaction with the same hash was already imported. (Transaction with the same hash was already imported.)"
@@ -69,7 +69,7 @@ module Server =
         // "There are too many transactions in the queue. Your transaction was dropped due to limit.
         //  Try increasing the fee. (There are too many transactions in the queue. Your transaction was dropped due to
         //  limit. Try increasing the fee.)"
-        | AmbiguousOrGenericError = -32010
+        | TransactionAlreadyImportedOrTooManyTransactionsInTheQueue = -32010
 
         | UnknownBlockNumber = -32602
         | GatewayTimeout = -32050
@@ -191,10 +191,12 @@ module Server =
         match maybeRpcResponseEx with
         | Some rpcResponseEx ->
             if (rpcResponseEx.RpcError <> null) then
-                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNode) then
-                    if not (rpcResponseEx.RpcError.Message.Contains("pruning=archive")) then
-                        raise <| Exception(sprintf "Expecting 'pruning=archive' in message of a %d code"
-                                                   (int RpcErrorCode.StatePruningNode), rpcResponseEx)
+                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNodeOrMissingTrieNode) then
+                    if (not (rpcResponseEx.RpcError.Message.Contains "pruning=archive")) &&
+                       (not (rpcResponseEx.RpcError.Message.Contains "missing trie node")) then
+                        raise <| Exception(
+                                     sprintf "Expecting 'pruning=archive' or 'missing trie node' in message of a %d code"
+                                                   (int RpcErrorCode.StatePruningNodeOrMissingTrieNode), rpcResponseEx)
                     else
                         raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                 if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
