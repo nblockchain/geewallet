@@ -11,7 +11,7 @@ type HttpStatusCodeNotPresentInTheBcl =
 
 type RpcErrorCode =
     // "This request is not supported because your node is running with state pruning. Run with --pruning=archive."
-    | StatePruningNode = -32000
+    | StatePruningNodeOrMissingTrieNode = -32000
 
     // ambiguous or generic because I've seen same code applied to two different error messages already:
     // "Transaction with the same hash was already imported. (Transaction with the same hash was already imported.)"
@@ -19,7 +19,7 @@ type RpcErrorCode =
     // "There are too many transactions in the queue. Your transaction was dropped due to limit.
     //  Try increasing the fee. (There are too many transactions in the queue. Your transaction was dropped due to
     //  limit. Try increasing the fee.)"
-    | AmbiguousOrGenericError = -32010
+    | TransactionAlreadyImportedOrTooManyTransactionsInTheQueue = -32010
 
     | UnknownBlockNumber = -32602
     | GatewayTimeout = -32050
