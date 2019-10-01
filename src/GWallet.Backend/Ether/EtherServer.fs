@@ -291,10 +291,10 @@ module Server =
 
     let private FaultTolerantParallelClientSettingsForBalanceCheck (currency: Currency)
                                                                    (mode: ServerSelectionMode)
-                                                                   (cacheMatchFunc: decimal->bool) =
+                                                                   (cacheOrInitialBalanceMatchFunc: decimal->bool) =
         let consistencyConfig =
             if mode = ServerSelectionMode.Fast then
-                Some (OneServerConsistentWithCacheOrTwoServers cacheMatchFunc)
+                Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
             else
                 None
         FaultTolerantParallelClientDefaultSettings currency mode consistencyConfig
@@ -425,10 +425,13 @@ module Server =
             return balance
         }
 
-    let private CachedBalanceMatch address currency someRetrievedBalance =
-        match Caching.Instance.TryRetrieveLastCompoundBalance address currency with
-        | None -> false
-        | Some balance -> someRetrievedBalance = balance
+    let private BalanceMatchWithCacheOrInitialBalance address currency someRetrievedBalance =
+        if Caching.Instance.FirstRun then
+            someRetrievedBalance = 0m
+        else
+            match Caching.Instance.TryRetrieveLastCompoundBalance address currency with
+            | None -> false
+            | Some balance -> someRetrievedBalance = balance
 
     let GetEtherBalance (currency: Currency)
                         (address: string)
@@ -464,7 +467,7 @@ module Server =
 
             return! query
                         (FaultTolerantParallelClientSettingsForBalanceCheck
-                            currency mode (CachedBalanceMatch address currency))
+                            currency mode (BalanceMatchWithCacheOrInitialBalance address currency))
                         web3Funcs
         }
 
@@ -521,7 +524,7 @@ module Server =
 
             return! query
                         (FaultTolerantParallelClientSettingsForBalanceCheck
-                            currency mode (CachedBalanceMatch address currency))
+                            currency mode (BalanceMatchWithCacheOrInitialBalance address currency))
                         web3Funcs
         }
 

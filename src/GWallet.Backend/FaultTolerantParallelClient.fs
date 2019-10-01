@@ -55,7 +55,7 @@ type internal ServerResult<'K,'R,'E when 'K: equality and 'K :> ICommunicationHi
 type ConsistencySettings<'R> =
 
     // fun passed represents if cached value matches or not
-    | OneServerConsistentWithCacheOrTwoServers of ('R->bool)
+    | OneServerConsistentWithCertainValueOrTwoServers of ('R->bool)
 
     | SpecificNumberOfConsistentResponsesRequired of uint32
     | AverageBetweenResponses of (uint32 * (List<'R> -> 'R))
@@ -242,7 +242,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              cancellationSource
             | Some (SpecificNumberOfConsistentResponsesRequired number) ->
                 return! returnWithConsistencyOf (Some number) ((fun _ -> false) |> Some)
-            | Some (OneServerConsistentWithCacheOrTwoServers cacheMatchFunc) ->
+            | Some (OneServerConsistentWithCertainValueOrTwoServers cacheMatchFunc) ->
                 return! returnWithConsistencyOf (Some 2u) (Some cacheMatchFunc)
             | None ->
                 if newRestOfTasks.Length = 0 then
@@ -364,7 +364,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 if (int minimumNumberOfResponses > numberOfParallelJobsAllowed) then
                     return raise(ArgumentException("numberOfParallelJobsAllowed should be equal or higher than minimumNumberOfResponses for the averageFunc",
                                                    "settings"))
-            | OneServerConsistentWithCacheOrTwoServers _ ->
+            | OneServerConsistentWithCertainValueOrTwoServers _ ->
                 ()
         | _ -> ()
 
@@ -428,11 +428,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             else
                 let totalNumberOfSuccesfulResultsObtained = executedServers.SuccessfulResults.Length
 
-                // HACK: we do this as a quick fix wrt new OneServerConsistentWithCacheOrTwoServers setting, but we should
+                // HACK: we do this as a quick fix wrt new OneServerConsistentWithCertainValueOrTwoServers setting, but we should
                 // (TODO) rather throw a specific overload of ResultInconsistencyException about this mode being used
                 let wrappedSettings =
                     match consistencyConfig with
-                    | Some (OneServerConsistentWithCacheOrTwoServers _) ->
+                    | Some (OneServerConsistentWithCertainValueOrTwoServers _) ->
                         Some (SpecificNumberOfConsistentResponsesRequired 2u)
                     | _ -> consistencyConfig
 

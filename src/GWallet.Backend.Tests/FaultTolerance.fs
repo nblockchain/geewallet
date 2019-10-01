@@ -351,7 +351,7 @@ type FaultTolerance() =
         let someBalanceMatchFunc someRetrievedBalance =
             someRetrievedBalance = someBalance
 
-        let consistencyConfig = OneServerConsistentWithCacheOrTwoServers someBalanceMatchFunc |> Some
+        let consistencyConfig = OneServerConsistentWithCertainValueOrTwoServers someBalanceMatchFunc |> Some
         let settings = defaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyConfig
 
         let otherBalance = 2.0m
@@ -389,7 +389,7 @@ type FaultTolerance() =
         let someBalanceMatchFunc someRetrievedBalance =
             someRetrievedBalance = someBalance
 
-        let consistencyConfig = OneServerConsistentWithCacheOrTwoServers someBalanceMatchFunc |> Some
+        let consistencyConfig = OneServerConsistentWithCertainValueOrTwoServers someBalanceMatchFunc |> Some
         let settings = defaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyConfig
 
         let newBalance = 2.0m
