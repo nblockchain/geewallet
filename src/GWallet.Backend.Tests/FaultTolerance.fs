@@ -32,7 +32,7 @@ type FaultTolerance() =
         Selective
             {
                 ServerSelectionMode = ServerSelectionMode.Fast
-                ReportUncancelledJobs = false
+                ReportUncanceledJobs = false
                 ConsistencyConfig = consistencyConfig
             }
 

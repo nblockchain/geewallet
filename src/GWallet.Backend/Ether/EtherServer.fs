@@ -276,7 +276,7 @@ module Server =
                     {
                         ServerSelectionMode = mode
                         ConsistencyConfig = consistencyConfig
-                        ReportUncancelledJobs = true
+                        ReportUncanceledJobs = true
                     }
         }
 
