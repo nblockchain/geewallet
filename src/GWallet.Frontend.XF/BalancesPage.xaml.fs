@@ -375,7 +375,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         raise <| TaskCanceledException("Refresh aborted", oce)
 
                 } |> FrontendHelpers.DoubleCheckCompletionAsync true
-            false
+
+            false // do not run timer again (the this.StartTimer call above will re-set it up)
         )
 
     member private this.StopTimer() =
