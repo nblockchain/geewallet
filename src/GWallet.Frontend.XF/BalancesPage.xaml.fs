@@ -376,7 +376,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         //        TaskCanceledExceptions anymore!
                         raise <| TaskCanceledException "Refresh aborted"
 
-                } |> FrontendHelpers.DoubleCheckCompletionAsync
+                } |> FrontendHelpers.DoubleCheckCompletionAsync true
             false
         )
 
@@ -536,7 +536,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances totalReadOnlyFiatAmountLabel
         )
 
-        this.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync
+        this.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync false
         this.StartTimer()
 
         state.Resumed.Add (fun _ -> this.StartTimer())

@@ -60,7 +60,7 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
                 Device.BeginInvokeOnMainThread(fun _ ->
                     FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage (state, false))
                 )
-            } |> FrontendHelpers.DoubleCheckCompletionAsync
+            } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnPasswordTextChanged(sender: Object, args: EventArgs) =
         MaybeEnableFinishButton()

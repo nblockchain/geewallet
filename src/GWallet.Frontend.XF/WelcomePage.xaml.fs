@@ -95,7 +95,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         dobDatePicker.MaximumDate <- DateTime.UtcNow.Date
 
         Caching.Instance.BootstrapServerStatsFromTrustedSource()
-            |> FrontendHelpers.DoubleCheckCompletionAsync
+            |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = WelcomePage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime())
@@ -117,7 +117,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                         FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this
                                                                             (WelcomePage2 (state, masterPrivKeyTask))
                     )
-                } |> FrontendHelpers.DoubleCheckCompletionAsync
+                } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
 
     member this.OnDobDateChanged (sender: Object, args: DateChangedEventArgs) =

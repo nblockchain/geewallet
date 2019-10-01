@@ -164,20 +164,17 @@ module FrontendHelpers =
             Seq.map fst sourcesAndJobs
         allCancelSources,parallelJobs
 
-    let private MaybeCrash (ex: Exception) =
+    let private MaybeCrash (canBeCancelled: bool) (ex: Exception) =
         if null = ex then
             ()
         else
             let shouldCrash =
-                true
-                (* with no brute force cancellation, we might not need to catch TaskCanceledException anymore?
-                if not BruteForceCancellationEnabled then
+                if not canBeCancelled then
                     true
                 elif (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
                     false
                 else
                     true
-                *)
             if shouldCrash then
                 Device.BeginInvokeOnMainThread(fun _ ->
                     raise ex
@@ -187,21 +184,21 @@ module FrontendHelpers =
     // & if there is, bring it to the main thread to fail fast, report to Sentry, etc, otherwise it gets ignored
     let DoubleCheckCompletion<'T> (task: Task<'T>) =
         task.ContinueWith(fun (t: Task<'T>) ->
-            MaybeCrash t.Exception
+            MaybeCrash false t.Exception
         , TaskContinuationOptions.OnlyOnFaulted) |> ignore
     let DoubleCheckCompletionNonGeneric (task: Task) =
         task.ContinueWith(fun (t: Task) ->
-            MaybeCrash t.Exception
+            MaybeCrash false t.Exception
         , TaskContinuationOptions.OnlyOnFaulted) |> ignore
 
-    let DoubleCheckCompletionAsync<'T> (work: Async<'T>): unit =
+    let DoubleCheckCompletionAsync<'T> (canBeCancelled: bool) (work: Async<'T>): unit =
         async {
             try
                 let! _ = work
                 ()
             with
             | ex ->
-                MaybeCrash ex
+                MaybeCrash canBeCancelled ex
             return ()
         } |> Async.Start
 
