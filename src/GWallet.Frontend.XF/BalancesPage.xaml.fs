@@ -371,10 +371,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         this.LastRefreshBalancesStamp <- DateTime.UtcNow,cancelSource
                         this.StartTimer()
                     with
-                    | :? OperationCanceledException ->
-                        // FIXME: would this crash the app? because FrontendHelpers.MaybeCrash doesn't ignore
-                        //        TaskCanceledExceptions anymore!
-                        raise <| TaskCanceledException "Refresh aborted"
+                    | :? OperationCanceledException as oce ->
+                        raise <| TaskCanceledException("Refresh aborted", oce)
 
                 } |> FrontendHelpers.DoubleCheckCompletionAsync true
             false
