@@ -74,7 +74,7 @@ module Account =
                     {
                         ServerSelectionMode = mode
                         ConsistencyConfig = consistencyConfig
-                        ReportUncancelledJobs = (not Config.NewUtxoTcpClientDisabled)
+                        ReportUncanceledJobs = (not Config.NewUtxoTcpClientDisabled)
                     }
         }
 
@@ -83,10 +83,10 @@ module Account =
                                                    (Some (SpecificNumberOfConsistentResponsesRequired 1u))
 
     let private FaultTolerantParallelClientSettingsForBalanceCheck (mode: ServerSelectionMode)
-                                                                   cacheMatchFunc =
+                                                                   cacheOrInitialBalanceMatchFunc =
         let consistencyConfig =
             if mode = ServerSelectionMode.Fast then
-                Some (OneServerConsistentWithCacheOrTwoServers cacheMatchFunc)
+                Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
             else
                 None
         FaultTolerantParallelClientDefaultSettings mode consistencyConfig
@@ -179,12 +179,18 @@ module Account =
         let amountInBtc = (Money.Satoshis amountToShowInSatoshis).ToUnit MoneyUnit.BTC
         (amountInBtc, imminentIncomingPayment)
 
-    let private CachedBalanceMatch address currency (someRetrievedBalance: BlockchainScripthahsGetBalanceInnerResult) =
-        match Caching.Instance.TryRetrieveLastCompoundBalance address currency with
-        | None -> false
-        | Some balance ->
-            let balanceFromServers,_ = BalanceToShow someRetrievedBalance
-            balanceFromServers = balance
+    let private BalanceMatchWithCacheOrInitialBalance address
+                                                      currency
+                                                      (someRetrievedBalance: BlockchainScripthahsGetBalanceInnerResult)
+                                                          : bool =
+        let balanceFromServers,_ = BalanceToShow someRetrievedBalance
+        if Caching.Instance.FirstRun then
+            balanceFromServers = 0m
+        else
+            match Caching.Instance.TryRetrieveLastCompoundBalance address currency with
+            | None -> false
+            | Some balance ->
+                balanceFromServers = balance
 
     let private GetBalances (account: IUtxoAccount)
                             (mode: ServerSelectionMode)
@@ -201,7 +207,7 @@ module Account =
         let balanceJob =
             query
                 (FaultTolerantParallelClientSettingsForBalanceCheck
-                    mode (CachedBalanceMatch account.PublicAddress account.Currency))
+                    mode (BalanceMatchWithCacheOrInitialBalance account.PublicAddress account.Currency))
                 (GetRandomizedFuncs account.Currency (ElectrumClient.GetBalance scriptHashHex))
         balanceJob
 

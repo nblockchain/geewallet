@@ -55,7 +55,7 @@ type internal ServerResult<'K,'R,'E when 'K: equality and 'K :> ICommunicationHi
 type ConsistencySettings<'R> =
 
     // fun passed represents if cached value matches or not
-    | OneServerConsistentWithCacheOrTwoServers of ('R->bool)
+    | OneServerConsistentWithCertainValueOrTwoServers of ('R->bool)
 
     | SpecificNumberOfConsistentResponsesRequired of uint32
     | AverageBetweenResponses of (uint32 * (List<'R> -> 'R))
@@ -67,7 +67,7 @@ type ServerSelectionMode =
 type ResultSelectionSettings<'R> =
     {
         ServerSelectionMode: ServerSelectionMode
-        ReportUncancelledJobs: bool
+        ReportUncanceledJobs: bool
         ConsistencyConfig: ConsistencySettings<'R>
     }
 
@@ -104,8 +104,8 @@ type MutableStateCapsule<'T>(initialState: 'T) =
 type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
     static member Run (server: Server<_,'Resource>)
                       (stopwatch: Stopwatch)
-                      (internallyCancelled: MutableStateCapsule<Option<DateTime>>)
-                      (shouldReportUncancelledJobs: bool)
+                      (internallyCanceled: MutableStateCapsule<Option<DateTime>>)
+                      (shouldReportUncanceledJobs: bool)
                           : Async<Result<'Resource,'Ex>> =
         async {
             try
@@ -118,15 +118,15 @@ type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
             | ex ->
 
                 // because if an exception happens roughly at the same time as cancellation, we don't care so much
-                let isLateEnoughToReportProblem (cancelledAt: Option<DateTime>) =
-                    match cancelledAt with
+                let isLateEnoughToReportProblem (canceledAt: Option<DateTime>) =
+                    match canceledAt with
                     | None -> false
                     | Some date ->
                         (date + TimeSpan.FromSeconds 1.) < DateTime.UtcNow
 
                 let report = Config.DebugLog &&
-                             shouldReportUncancelledJobs &&
-                             internallyCancelled.SafeDo(fun x -> isLateEnoughToReportProblem x.Value)
+                             shouldReportUncanceledJobs &&
+                             internallyCanceled.SafeDo(fun x -> isLateEnoughToReportProblem x.Value)
 
                 let maybeSpecificEx = FSharpUtil.FindException<'Ex> ex
                 match maybeSpecificEx with
@@ -242,7 +242,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              cancellationSource
             | Some (SpecificNumberOfConsistentResponsesRequired number) ->
                 return! returnWithConsistencyOf (Some number) ((fun _ -> false) |> Some)
-            | Some (OneServerConsistentWithCacheOrTwoServers cacheMatchFunc) ->
+            | Some (OneServerConsistentWithCertainValueOrTwoServers cacheMatchFunc) ->
                 return! returnWithConsistencyOf (Some 2u) (Some cacheMatchFunc)
             | None ->
                 if newRestOfTasks.Length = 0 then
@@ -286,14 +286,14 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                          failedFuncsSoFar
                          cancellationSource
 
-    let rec CreateAsyncJobFromFunc (shouldReportUncancelledJobs: bool)
-                                   (cancelledInternally: MutableStateCapsule<Option<DateTime>>)
+    let rec CreateAsyncJobFromFunc (shouldReportUncanceledJobs: bool)
+                                   (canceledInternally: MutableStateCapsule<Option<DateTime>>)
                                    (server: Server<'K,'R>)
                                        : Async<ServerResult<'K,'R,'E>> =
         async {
             let stopwatch = Stopwatch()
             stopwatch.Start()
-            let! runResult = Runner.Run server stopwatch cancelledInternally shouldReportUncancelledJobs
+            let! runResult = Runner.Run server stopwatch canceledInternally shouldReportUncanceledJobs
 
             match runResult with
             | Value result ->
@@ -317,17 +317,17 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
         }
 
     let CancelAndDispose (source: CancellationTokenSource)
-                         (cancelledInternally: MutableStateCapsule<Option<DateTime>>) =
-        cancelledInternally.SafeDo(
-            fun cancelledInternallyState ->
-                if cancelledInternallyState.Value.IsNone then
+                         (canceledInternally: MutableStateCapsule<Option<DateTime>>) =
+        canceledInternally.SafeDo(
+            fun canceledInternallyState ->
+                if canceledInternallyState.Value.IsNone then
                     try
                         try
                             source.Cancel()
                         with
                         | :? TaskCanceledException as ex ->
                             raise <| InvalidOperationException("FTPC cancellation causes TCE", ex)
-                        cancelledInternallyState.Value <- Some DateTime.UtcNow
+                        canceledInternallyState.Value <- Some DateTime.UtcNow
                         source.Dispose()
                     with
                     | :? ObjectDisposedException ->
@@ -343,7 +343,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                           (retries: uint32)
                           (retriesForInconsistency: uint32)
                           (cancellationSource: CancellationTokenSource)
-                          (cancelledInternally: MutableStateCapsule<Option<DateTime>>)
+                          (canceledInternally: MutableStateCapsule<Option<DateTime>>)
                               : Async<'R> = async {
         if not (funcs.Any()) then
             return raise(ArgumentException("number of funcs must be higher than zero",
@@ -364,7 +364,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 if (int minimumNumberOfResponses > numberOfParallelJobsAllowed) then
                     return raise(ArgumentException("numberOfParallelJobsAllowed should be equal or higher than minimumNumberOfResponses for the averageFunc",
                                                    "settings"))
-            | OneServerConsistentWithCacheOrTwoServers _ ->
+            | OneServerConsistentWithCertainValueOrTwoServers _ ->
                 ()
         | _ -> ()
 
@@ -374,19 +374,19 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             else
                 funcs |> Seq.ofList, Seq.empty
 
-        let shouldReportUncancelledJobs =
+        let shouldReportUncanceledJobs =
             match settings.ResultSelectionMode with
             | Exhaustive -> false
             | Selective subSettings ->
-                subSettings.ReportUncancelledJobs
+                subSettings.ReportUncanceledJobs
 
         let parallelJobs = int settings.NumberOfParallelJobsAllowed
 
         let firstJobsToLaunch = Seq.take parallelJobs funcs
-                                    |> Seq.map (CreateAsyncJobFromFunc shouldReportUncancelledJobs cancelledInternally)
+                                    |> Seq.map (CreateAsyncJobFromFunc shouldReportUncanceledJobs canceledInternally)
                                     |> List.ofSeq
         let jobsToLaunchLater = Seq.skip parallelJobs funcs
-                                    |> Seq.map (CreateAsyncJobFromFunc shouldReportUncancelledJobs cancelledInternally)
+                                    |> Seq.map (CreateAsyncJobFromFunc shouldReportUncanceledJobs canceledInternally)
                                     |> List.ofSeq
 
         let consistencyConfig =
@@ -401,10 +401,10 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                cancellationSource
         match result with
         | AverageResult averageResult ->
-            CancelAndDispose cancellationSource cancelledInternally
+            CancelAndDispose cancellationSource canceledInternally
             return averageResult
         | ConsistentResult consistentResult ->
-            CancelAndDispose cancellationSource cancelledInternally
+            CancelAndDispose cancellationSource canceledInternally
             return consistentResult
         | InconsistentOrNotEnoughResults executedServers ->
             let failedFuncs = executedServers.UnsuccessfulServers
@@ -412,7 +412,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             if executedServers.SuccessfulResults.Length = 0 then
                 if (retries = settings.NumberOfRetries) then
                     let firstEx = executedServers.UnsuccessfulServers.First().Failure
-                    CancelAndDispose cancellationSource cancelledInternally
+                    CancelAndDispose cancellationSource canceledInternally
                     return raise (NoneAvailableException("Not available", firstEx))
                 else
                     return! QueryInternalImplementation
@@ -424,15 +424,15 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                           (retries + 1u)
                                           retriesForInconsistency
                                           cancellationSource
-                                          cancelledInternally
+                                          canceledInternally
             else
                 let totalNumberOfSuccesfulResultsObtained = executedServers.SuccessfulResults.Length
 
-                // HACK: we do this as a quick fix wrt new OneServerConsistentWithCacheOrTwoServers setting, but we should
+                // HACK: we do this as a quick fix wrt new OneServerConsistentWithCertainValueOrTwoServers setting, but we should
                 // (TODO) rather throw a specific overload of ResultInconsistencyException about this mode being used
                 let wrappedSettings =
                     match consistencyConfig with
-                    | Some (OneServerConsistentWithCacheOrTwoServers _) ->
+                    | Some (OneServerConsistentWithCertainValueOrTwoServers _) ->
                         Some (SpecificNumberOfConsistentResponsesRequired 2u)
                     | _ -> consistencyConfig
 
@@ -444,7 +444,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                         return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
                     | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                         if (retriesForInconsistency = settings.NumberOfRetriesForInconsistency) then
-                            CancelAndDispose cancellationSource cancelledInternally
+                            CancelAndDispose cancellationSource canceledInternally
                             return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
                                                                        maxNumberOfConsistentResultsObtained,
                                                                        numberOfConsistentResponsesRequired))
@@ -458,11 +458,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                   retries
                                                   (retriesForInconsistency + 1u)
                                                   cancellationSource
-                                                  cancelledInternally
+                                                  canceledInternally
                 | Some(AverageBetweenResponses(minimumNumberOfResponses,averageFunc)) ->
                     if (retries = settings.NumberOfRetries) then
                         let firstEx = executedServers.UnsuccessfulServers.First().Failure
-                        CancelAndDispose cancellationSource cancelledInternally
+                        CancelAndDispose cancellationSource canceledInternally
                         return raise (NotEnoughAvailableException("resultsSoFar.Length != 0 but not enough to satisfy minimum number of results for averaging func", firstEx))
                     else
                         return! QueryInternalImplementation
@@ -474,7 +474,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                               (retries + 1u)
                                               retriesForInconsistency
                                               cancellationSource
-                                              cancelledInternally
+                                              canceledInternally
                 | _ ->
                     return failwith "wrapping settings didn't work?"
 
@@ -561,7 +561,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             | Some cancellationSource ->
                 cancellationSource
 
-        let cancelledInternally = MutableStateCapsule<Option<DateTime>> None
+        let canceledInternally = MutableStateCapsule<Option<DateTime>> None
 
         let initialServerCount = uint32 servers.Length
         let maybeSortedServers =
@@ -579,7 +579,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             0u
             0u
             effectiveCancellationSource
-            cancelledInternally
+            canceledInternally
 
     member self.QueryWithCancellation<'R when 'R : equality>
                     (cancellationTokenSource: CancellationTokenSource)

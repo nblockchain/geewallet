@@ -29,7 +29,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ _ -> ())
 
     [<Test>]
-    member __.``slower funcs get cancelled after consistent results have been gathered``() =
+    member __.``slower funcs get canceled after consistent results have been gathered``() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
         let mutable longFuncFinishedExecution = false
@@ -37,7 +37,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
             async { return 0 }
         let job2 =
             async { return 0 }
-        let longJobThatShouldBeCancelled = async {
+        let longJobThatShouldBeCanceled = async {
             do! Async.Sleep <| int someLongTime.TotalMilliseconds
             longFuncFinishedExecution <- true
             return 0
@@ -45,7 +45,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
         let allFuncs = [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job1" job1
                          serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job2" job2
-                         serverWithNoHistoryInfoBecauseIrrelevantToThisTest "longJob" longJobThatShouldBeCancelled ]
+                         serverWithNoHistoryInfoBecauseIrrelevantToThisTest "longJob" longJobThatShouldBeCanceled ]
         let number_of_parallel_jobs_allowed = uint32 allFuncs.Length
         let NUMBER_OF_CONSISTENT_RESULTS = 2u
 
@@ -69,7 +69,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
         Assert.That(longFuncFinishedExecution, Is.EqualTo false)
 
     [<Test>]
-    member __.``external cancellation source causes TaskCancelledException``() =
+    member __.``external cancellation source causes TaskCanceledException``() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
         let job1 = async {
@@ -119,7 +119,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
         Assert.That(result.IsNone, Is.True)
 
     [<Test>]
-    member __.``external cancellation source can come already cancelled``() =
+    member __.``external cancellation source can come already canceled``() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
         let externalCancellationSource = new CancellationTokenSource()
@@ -208,7 +208,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
 
     [<Test>]
-    member __.``external cancellation source can come already cancelled&disposed``() =
+    member __.``external cancellation source can come already canceled&disposed``() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
         let externalCancellationSource = new CancellationTokenSource()
@@ -281,7 +281,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
                 do! Async.Sleep <| int someLongTime.TotalMilliseconds
                 return 0
             }
-        let longJobThatShouldBeCancelled = async {
+        let longJobThatShouldBeCanceled = async {
             job2started <- true
             let! currentCancellationToken = Async.CancellationToken
             let task = SomeMethodAsync currentCancellationToken
@@ -291,7 +291,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
         let allFuncs = [
                            serverWithNoHistoryInfoBecauseIrrelevantToThisTest "job1" job1
-                           serverWithNoHistoryInfoBecauseIrrelevantToThisTest "longJob" longJobThatShouldBeCancelled
+                           serverWithNoHistoryInfoBecauseIrrelevantToThisTest "longJob" longJobThatShouldBeCanceled
                        ]
         let number_of_parallel_jobs_allowed = uint32 allFuncs.Length
         let NUMBER_OF_CONSISTENT_RESULTS = 2u
@@ -324,7 +324,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
             Assert.That(longFuncFinishedExecution, Is.EqualTo true, "propagation=false")
 
     [<Test>]
-    member self.``nested tasks of slower funcs get cancelled after consistent results have been gathered``() =
+    member self.``nested tasks of slower funcs get canceled after consistent results have been gathered``() =
         self.NestedTasksTest false
 
         self.NestedTasksTest true
@@ -366,7 +366,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
                 stopWatch.Stop()
 
         match result with
-        | Result.Value _ -> Assert.Fail "should have been cancelled"
+        | Result.Value _ -> Assert.Fail "should have been canceled"
         | _ -> ()
 
         Assert.That(stopWatch.Elapsed, Is.LessThan timeoutTime)
@@ -544,7 +544,7 @@ type DotNetAsyncCancellation() =
         Assert.That(task.IsFaulted, Is.EqualTo false)
         Assert.That(task.IsCanceled, Is.EqualTo false)
         cancelSource.Cancel()
-        Assert.That(newCount, Is.EqualTo 1, "cancelled properly, before waiting")
+        Assert.That(newCount, Is.EqualTo 1, "canceled properly, before waiting")
         Thread.Sleep(TimeSpan.FromSeconds 5.0)
         Assert.That(newCount, Is.EqualTo 11, "cancellation works this way partially too")
         Assert.That(task.Exception, Is.EqualTo null)
@@ -571,9 +571,9 @@ type DotNetAsyncCancellation() =
         // let the task start
         Thread.Sleep(TimeSpan.FromSeconds 1.0)
 
-        Assert.That(newCount, Is.EqualTo 1, "cancelled properly, before waiting")
+        Assert.That(newCount, Is.EqualTo 1, "canceled properly, before waiting")
         Thread.Sleep(TimeSpan.FromSeconds 3.0)
-        Assert.That(newCount, Is.EqualTo 11, "even if cancelled early, the task is still done, after waiting")
+        Assert.That(newCount, Is.EqualTo 11, "even if canceled early, the task is still done, after waiting")
         Assert.That(task.Exception, Is.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo false)
         Assert.That(task.IsCanceled, Is.EqualTo true)
@@ -596,7 +596,7 @@ type DotNetAsyncCancellation() =
 
         Thread.Sleep(TimeSpan.FromSeconds 3.0)
         Assert.That(newCount, Is.EqualTo 11,
-            "even if cancelled before getting the task, task is done but cancelled after that")
+            "even if canceled before getting the task, task is done but canceled after that")
         Assert.That(task.Exception, Is.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo false)
         Assert.That(task.IsCanceled, Is.EqualTo true)
@@ -615,9 +615,9 @@ type DotNetAsyncCancellation() =
         // let the task start
         Thread.Sleep(TimeSpan.FromSeconds 1.0)
 
-        Assert.That(newCount, Is.EqualTo 1, "cancelled properly, before waiting")
+        Assert.That(newCount, Is.EqualTo 1, "canceled properly, before waiting")
         Thread.Sleep(TimeSpan.FromSeconds 3.0)
-        Assert.That(newCount, Is.EqualTo 1, "cancelled with no awaitTask, it's properly cancelled too")
+        Assert.That(newCount, Is.EqualTo 1, "canceled with no awaitTask, it's properly canceled too")
         Assert.That(task.Exception, Is.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo false)
         Assert.That(task.IsCanceled, Is.EqualTo true)
@@ -650,9 +650,9 @@ type DotNetAsyncCancellation() =
         // let the task start
         Thread.Sleep(TimeSpan.FromSeconds 1.0)
 
-        Assert.That(newCount, Is.EqualTo 1, "not cancelled yet, before waiting")
+        Assert.That(newCount, Is.EqualTo 1, "not canceled yet, before waiting")
         Thread.Sleep(TimeSpan.FromSeconds 4.0)
-        Assert.That(newCount, Is.EqualTo 1111, "cancelled inside task doesn't really cancel!")
+        Assert.That(newCount, Is.EqualTo 1111, "canceled inside task doesn't really cancel!")
         Assert.That(task.Exception, Is.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo false)
         Assert.That(task.IsCanceled, Is.EqualTo true)
@@ -682,9 +682,9 @@ type DotNetAsyncCancellation() =
             newCount <- newCount + 1000
         }
         let task = Async.StartAsTask (asyncJob, ?cancellationToken = Some cancelSource.Token)
-        Assert.That(newCount, Is.EqualTo 1, "not cancelled yet, before waiting")
+        Assert.That(newCount, Is.EqualTo 1, "not canceled yet, before waiting")
         Thread.Sleep(TimeSpan.FromSeconds 6.0)
-        Assert.That(newCount, Is.EqualTo 111, "cancelled inside task and async.sleep after awaitTask does work partially")
+        Assert.That(newCount, Is.EqualTo 111, "canceled inside task and async.sleep after awaitTask does work partially")
         Assert.That(task.Exception, Is.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo false)
         Assert.That(task.IsCanceled, Is.EqualTo true)
@@ -717,9 +717,9 @@ type DotNetAsyncCancellation() =
         // let the task start
         Thread.Sleep(TimeSpan.FromSeconds 1.0)
 
-        Assert.That(newCount, Is.EqualTo 1, "not cancelled yet, before waiting")
+        Assert.That(newCount, Is.EqualTo 1, "not canceled yet, before waiting")
         Thread.Sleep(TimeSpan.FromSeconds 6.0)
-        Assert.That(newCount, Is.EqualTo 111, "cancelled inside task and async.sleep after awaitTask does work")
+        Assert.That(newCount, Is.EqualTo 111, "canceled inside task and async.sleep after awaitTask does work")
         Assert.That(task.Exception, Is.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo false)
         Assert.That(task.IsCanceled, Is.EqualTo true)
@@ -752,9 +752,9 @@ type DotNetAsyncCancellation() =
         // let the task start
         Thread.Sleep(TimeSpan.FromSeconds 1.0)
 
-        Assert.That(newCount, Is.EqualTo 1, "not cancelled yet, before waiting")
+        Assert.That(newCount, Is.EqualTo 1, "not canceled yet, before waiting")
         Thread.Sleep(TimeSpan.FromSeconds 6.0)
-        Assert.That(newCount, Is.EqualTo 11, "cancelled inside task propagating token does work")
+        Assert.That(newCount, Is.EqualTo 11, "canceled inside task propagating token does work")
         Assert.That(task.Exception, Is.Not.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo true)
         Assert.That(task.IsCanceled, Is.EqualTo false)
@@ -784,9 +784,9 @@ type DotNetAsyncCancellation() =
         // let the task start
         Thread.Sleep(TimeSpan.FromSeconds 1.0)
 
-        Assert.That(newCount, Is.EqualTo 1, "not cancelled yet, before waiting")
+        Assert.That(newCount, Is.EqualTo 1, "not canceled yet, before waiting")
         Thread.Sleep(TimeSpan.FromSeconds 7.0)
-        Assert.That(newCount, Is.EqualTo 11, "cancelled inside task propagating token does work")
+        Assert.That(newCount, Is.EqualTo 11, "canceled inside task propagating token does work")
         Assert.That(task.Exception, Is.Not.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo true)
         Assert.That(task.IsCanceled, Is.EqualTo false)
@@ -817,9 +817,9 @@ type DotNetAsyncCancellation() =
         // let the task start
         Thread.Sleep(TimeSpan.FromSeconds 1.0)
 
-        Assert.That(newCount, Is.EqualTo 1, "not cancelled yet, before waiting")
+        Assert.That(newCount, Is.EqualTo 1, "not canceled yet, before waiting")
         Thread.Sleep(TimeSpan.FromSeconds 9.0)
-        Assert.That(newCount, Is.EqualTo 11, "cancelled inside task propagating token does work")
+        Assert.That(newCount, Is.EqualTo 11, "canceled inside task propagating token does work")
         Assert.That(task.Exception, Is.Not.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo true)
         Assert.That(task.IsCanceled, Is.EqualTo false)

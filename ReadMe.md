@@ -85,6 +85,7 @@ This list is the (intended) order of preference for new features:
 - Decentralized naming resolution? (BNS/ENS/OpenCAP/...)
 - Tumblebit support?
 - Consider [Vitalik's 1wei wallet-funding idea](https://twitter.com/VitalikButerin/status/1103997378967810048) in case the community adopts it.
+- UI testing with Selenium+UnoPlatform (see https://www.prnewswire.com/news-releases/uno-platform-announces-version-2-0-of-cross-platform-development-platform-300921202.html).
 
 
 ## Anti-roadmap
