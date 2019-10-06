@@ -148,19 +148,19 @@
       <HintPath>..\..\packages\Xamarin.Essentials.1.0.0\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190225-092434\lib\net45\ZXing.Net.Mobile.Core.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\net45\ZXing.Net.Mobile.Core.dll</HintPath>
     </Reference>
     <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190225-092434\lib\net45\zxing.portable.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\net45\zxing.portable.dll</HintPath>
     </Reference>
     <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190225-092434\lib\net45\ZXingNetMobile.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\net45\ZXingNetMobile.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190225-092434\lib\net45\ZXing.Net.Mobile.Forms.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\net45\ZXing.Net.Mobile.Forms.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms.GTK">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190225-092434\lib\net45\ZXing.Net.Mobile.Forms.GTK.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\net45\ZXing.Net.Mobile.Forms.GTK.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
       <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
