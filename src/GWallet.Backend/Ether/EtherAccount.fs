@@ -60,11 +60,8 @@ module internal Account =
                 let! balance = GetBalance account mode balType cancelSourceOption
                 return Some balance
             with
-            | ex ->
-                if (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome then
-                    return None
-                else
-                    return raise (FSharpUtil.ReRaise ex)
+            | ex when (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome ->
+                return None
         }
 
     let internal GetShowableBalance (account: IAccount)

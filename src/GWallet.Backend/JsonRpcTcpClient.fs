@@ -37,14 +37,15 @@ type JsonRpcTcpClient (host: string, port: uint32) =
         | :? TimeoutException ->
             return raise(ServerCannotBeResolvedException(exceptionMsg))
         | ex ->
-            let socketException = FSharpUtil.FindException<SocketException>(ex)
-            if (socketException.IsNone) then
+            match FSharpUtil.FindException<SocketException> ex with
+            | None ->
                 return raise <| FSharpUtil.ReRaise ex
-            if (socketException.Value.ErrorCode = int SocketError.HostNotFound ||
-                socketException.Value.ErrorCode = int SocketError.NoData ||
-                socketException.Value.ErrorCode = int SocketError.TryAgain) then
-                return raise <| ServerCannotBeResolvedException(exceptionMsg, ex)
-            return raise <| UnhandledSocketException(socketException.Value.ErrorCode, ex)
+            | Some socketException ->
+                if socketException.ErrorCode = int SocketError.HostNotFound ||
+                   socketException.ErrorCode = int SocketError.NoData ||
+                   socketException.ErrorCode = int SocketError.TryAgain then
+                    return raise <| ServerCannotBeResolvedException(exceptionMsg, ex)
+                return raise <| UnhandledSocketException(socketException.ErrorCode, ex)
     }
 
     let rpcTcpClientInnerRequest =
@@ -79,8 +80,7 @@ type JsonRpcTcpClient (host: string, port: uint32) =
         | :? NotSupportedException as nse ->
             return raise <| ProtocolGlitchException(exceptionMsg, nse)
         | ex ->
-            let maybeWrappedSocketException = Networking.FindExceptionToRethrow ex exceptionMsg
-            match maybeWrappedSocketException with
+            match Networking.FindExceptionToRethrow ex exceptionMsg with
             | None ->
                 return raise <| FSharpUtil.ReRaise ex
             | Some rewrappedSocketException ->
