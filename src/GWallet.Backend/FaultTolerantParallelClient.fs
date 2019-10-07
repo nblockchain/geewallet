@@ -21,6 +21,7 @@ type private NoneAvailableException (message:string, lastException: Exception) =
 type private NotEnoughAvailableException (message:string, lastException: Exception) =
     inherit ServerUnavailabilityException (message, lastException)
 
+// TODO: remove this below once we finishing tracking down (fixing) https://gitlab.com/knocte/geewallet/issues/125
 type UnexpectedTaskCanceledException(message: string, innerException) =
     inherit TaskCanceledException (message, innerException)
 
@@ -137,6 +138,8 @@ type Runner<'Resource,'Ex when 'Resource: equality and 'Ex :> Exception> =
                     return Error specificInnerEx
                 | None ->
                     if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                        // TODO: remove this below once we finishing tracking down (fixing)
+                        //       https://gitlab.com/knocte/geewallet/issues/125
                         return raise <| UnexpectedTaskCanceledException("Cancellation of subjob", ex)
                     else
                         return raise <| FSharpUtil.ReRaise ex
@@ -169,6 +172,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                              (resultsSoFar: List<'R>)
                              (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                              (cancellationSource: CancellationTokenSource)
+                             (canceledInternally: MutableStateCapsule<Option<DateTime>>)
                                  : Async<FinalResult<'K,'T,'R,'E>> = async {
         if startedTasks = List.Empty then
             return
@@ -185,12 +189,20 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 startedTasks.Where(fun task -> not (Object.ReferenceEquals(task, fastestTask))) |> List.ofSeq
 
             let newResults,newFailedFuncs =
-                match fastestTask.Result with
-                | Failure unsuccessfulServer ->
-                    resultsSoFar,unsuccessfulServer::failedFuncsSoFar
-                | SuccessfulResult newResult ->
-                    newResult::resultsSoFar,failedFuncsSoFar
-
+                try
+                    match fastestTask.Result with
+                    | Failure unsuccessfulServer ->
+                        resultsSoFar,unsuccessfulServer::failedFuncsSoFar
+                    | SuccessfulResult newResult ->
+                        newResult::resultsSoFar,failedFuncsSoFar
+                with
+                | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome &&
+                           canceledInternally.SafeDo(fun x -> x.Value.IsNone) ->
+                        // TODO: remove this below once we finishing tracking down (fixing)
+                        //       https://gitlab.com/knocte/geewallet/issues/125
+                        raise <|
+                            InvalidOperationException("Somehow the job got canceled without being canceled internally",
+                                                      ex)
             let newRestOfTasks,newRestOfJobs =
                 match jobsToContinueWith with
                 | [] ->
@@ -210,6 +222,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newResults
                                              newFailedFuncs
                                              cancellationSource
+                                             canceledInternally
                 | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                     match minNumberOfConsistentResultsRequired,cacheMatchFunc with
                     | None, None ->
@@ -225,6 +238,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                      newResults
                                                      newFailedFuncs
                                                      cancellationSource
+                                                     canceledInternally
                     | _ -> return failwith "should be either both None or both Some!"
             }
 
@@ -240,6 +254,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newResults
                                              newFailedFuncs
                                              cancellationSource
+                                             canceledInternally
             | Some (SpecificNumberOfConsistentResponsesRequired number) ->
                 return! returnWithConsistencyOf (Some number) ((fun _ -> false) |> Some)
             | Some (OneServerConsistentWithCertainValueOrTwoServers cacheMatchFunc) ->
@@ -263,6 +278,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newResults
                                              newFailedFuncs
                                              cancellationSource
+                                             canceledInternally
     }
 
     // at the time of writing this, I only found a Task.WhenAny() equivalent function in the asyncF# world, called
@@ -275,6 +291,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                  (resultsSoFar: List<'R>)
                  (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R,'E>>)
                  (cancellationSource: CancellationTokenSource)
+                 (canceledInternally: MutableStateCapsule<Option<DateTime>>)
                      : Async<FinalResult<'K,'T,'R,'E>> =
         let initialServerCount = jobsToStart.Length + jobsToContinueWith.Length |> uint32
         let tasks = jobsToStart |> List.map (fun job -> LaunchAsyncJob job cancellationSource)
@@ -285,6 +302,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                          resultsSoFar
                          failedFuncsSoFar
                          cancellationSource
+                         canceledInternally
 
     let rec CreateAsyncJobFromFunc (shouldReportUncanceledJobs: bool)
                                    (canceledInternally: MutableStateCapsule<Option<DateTime>>)
@@ -325,7 +343,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                         try
                             source.Cancel()
                         with
-                        | :? TaskCanceledException as ex ->
+                        | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
+                            // TODO: remove this below once we finishing tracking down (fixing)
+                            //       https://gitlab.com/knocte/geewallet/issues/125
                             raise <| InvalidOperationException("FTPC cancellation causes TCE", ex)
                         canceledInternallyState.Value <- Some DateTime.UtcNow
                         source.Dispose()
@@ -399,6 +419,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                resultsSoFar
                                failedFuncsSoFar
                                cancellationSource
+                               canceledInternally
         match result with
         | AverageResult averageResult ->
             CancelAndDispose cancellationSource canceledInternally

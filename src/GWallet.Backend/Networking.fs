@@ -103,8 +103,7 @@ module Networking =
                 BuggyExceptionFromOldMonoVersion(newExceptionMsg, buggyEx) :> Exception |> Some
 
     let FindExceptionToRethrow (ex: Exception) (newExceptionMsg): Option<Exception> =
-        let maybeSocketException = FSharpUtil.FindException<SocketException> ex
-        match maybeSocketException with
+        match FSharpUtil.FindException<SocketException> ex with
         | None ->
             FindBuggyException ex newExceptionMsg
         | Some socketException ->
