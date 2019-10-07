@@ -45,21 +45,33 @@ let Bump(toStable: bool): Version*Version =
     let proc1 =
         {
             Command = replaceScript
-            Arguments = sprintf "%s %s"
+            Arguments = sprintf "--file=%s %s %s"
+                             "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
                              (fullVersion.ToString())
                              (newFullVersion.ToString())
         }
     Process.SafeExecute (proc1, Echo.Off) |> ignore
 
-    // to replace Android's versionCode attrib in AndroidManifest.xml
     let proc2 =
         {
             proc1 with
-                Arguments = sprintf "versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
-                             (androidVersion.ToString())
-                             (newVersion.ToString())
+                Arguments = sprintf "--file=%s %s %s"
+                                "src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml"
+                                (fullVersion.ToString())
+                                (newFullVersion.ToString())
         }
     Process.SafeExecute (proc2, Echo.Off) |> ignore
+
+    // to replace Android's versionCode attrib in AndroidManifest.xml
+    let proc3 =
+        {
+            proc1 with
+                Arguments = sprintf "--file=%s versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
+                                "src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml"
+                                (androidVersion.ToString())
+                                (newVersion.ToString())
+        }
+    Process.SafeExecute (proc3, Echo.Off) |> ignore
 
     fullVersion,newFullVersion
 
