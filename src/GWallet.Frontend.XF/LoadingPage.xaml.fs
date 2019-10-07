@@ -112,10 +112,10 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 let! normalAccountBalances = allNormalAccountBalancesJob
                 return normalAccountBalances
             with
-            | ex ->
-                if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
-                    return raise <| InvalidOperationException("Cancellation at normal-account first-query", ex)
-                return raise <| FSharpUtil.ReRaise ex
+            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
+                // TODO: remove this below once we finishing tracking down (fixing)
+                //       https://gitlab.com/knocte/geewallet/issues/125
+                return raise <| InvalidOperationException("Cancellation at normal-account first-query", ex)
         }
 
         let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
@@ -126,10 +126,10 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 let! readOnlyAccountBalances = readOnlyAccountBalancesJob
                 return readOnlyAccountBalances
             with
-            | ex ->
-                if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
-                    return raise <| InvalidOperationException("Cancellation at readonly-account first-query", ex)
-                return raise <| FSharpUtil.ReRaise ex
+            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
+                // TODO: remove this below once we finishing tracking down (fixing)
+                //       https://gitlab.com/knocte/geewallet/issues/125
+                return raise <| InvalidOperationException("Cancellation at readonly-account first-query", ex)
         }
 
         let currencyImages = PreLoadCurrencyImages()
@@ -149,16 +149,16 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                                                         currencyImages, false)
                         FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
                     with
-                    | ex ->
-                        if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
-                            raise <| InvalidOperationException("Cancellation at first-balances page population", ex)
-                        reraise()
+                    | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
+                        // TODO: remove this below once we finishing tracking down (fixing)
+                        //       https://gitlab.com/knocte/geewallet/issues/125
+                        raise <| InvalidOperationException("Cancellation at first-balances page population", ex)
                 )
             with
-            | ex ->
-                if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
-                    return raise <| InvalidOperationException("Cancellation at first-balances querying", ex)
-                return raise <| FSharpUtil.ReRaise ex
+            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
+                // TODO: remove this below once we finishing tracking down (fixing)
+                //       https://gitlab.com/knocte/geewallet/issues/125
+                return raise <| InvalidOperationException("Cancellation at first-balances querying", ex)
         }
         Async.StartAsTask populateGrid
             |> FrontendHelpers.DoubleCheckCompletion

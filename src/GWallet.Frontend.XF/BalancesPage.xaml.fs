@@ -333,9 +333,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 ) then
                     this.NoImminentIncomingPayment <- true
             with
-            | ex ->
-                if not (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
-                    raise <| FSharpUtil.ReRaise ex
+            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
+                ()
         }
 
     member private this.StartTimer(): unit =
@@ -502,7 +501,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                 cancelSource.Dispose())
                 |> ignore
         with
-        | :? TaskCanceledException as ex ->
+        // TODO: remove this below once we finishing tracking down (fixing)
+        //       https://gitlab.com/knocte/geewallet/issues/125
+        | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
             raise <| InvalidOperationException("Cancellation of balance refresh jobs causes TCE", ex)
         this.BalanceRefreshCancelSources <- Seq.empty
 
