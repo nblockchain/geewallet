@@ -39,7 +39,7 @@ type Serialization() =
                                MarshallingData.UnsignedBtcTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
+        Assert.That(json |> MarshallingData.Sanitize,
                     Is.EqualTo(MarshallingData.UnsignedBtcTransactionExampleInJson))
 
     [<Test>]
@@ -48,7 +48,7 @@ type Serialization() =
                                MarshallingData.UnsignedEtherTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
+        Assert.That(json |> MarshallingData.Sanitize,
                     Is.EqualTo(MarshallingData.UnsignedEtherTransactionExampleInJson))
 
     [<Test>]
@@ -56,7 +56,7 @@ type Serialization() =
         let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedBtcTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
+        Assert.That(json |> MarshallingData.Sanitize,
                     Is.EqualTo MarshallingData.SignedBtcTransactionExampleInJson)
 
     [<Test>]
@@ -64,7 +64,7 @@ type Serialization() =
         let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedEtherTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
+        Assert.That(json |> MarshallingData.Sanitize,
                     Is.EqualTo MarshallingData.SignedEtherTransactionExampleInJson)
 
     [<Test>]
@@ -73,7 +73,7 @@ type Serialization() =
                                MarshallingData.UnsignedDaiTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.RemoveJsonFormatting,
+        Assert.That(json |> MarshallingData.Sanitize,
                     Is.EqualTo(MarshallingData.UnsignedDaiTransactionExampleInJson))
 
     [<Test>]
@@ -81,5 +81,5 @@ type Serialization() =
         let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedDaiTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json|> MarshallingData.RemoveJsonFormatting,
+        Assert.That(json|> MarshallingData.Sanitize,
                     Is.EqualTo (MarshallingData.SignedDaiTransactionExampleInJson))

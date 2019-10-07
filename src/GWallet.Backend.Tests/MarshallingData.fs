@@ -4,18 +4,24 @@ open System
 open System.IO
 open System.Reflection
 
-open Newtonsoft.Json
-
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 open GWallet.Backend.Ether
 
 module MarshallingData =
 
-    let internal RemoveJsonFormatting (jsonContent: string): string =
+    let private version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+
+    let private RemoveJsonFormatting (jsonContent: string): string =
         jsonContent.Replace("\r", String.Empty)
                    .Replace("\n", String.Empty)
                    .Replace("\t", String.Empty)
+
+    let private InjectCurrentVersion (jsonContent: string): string =
+        jsonContent.Replace("{version}", version)
+
+    let internal Sanitize =
+        RemoveJsonFormatting >> InjectCurrentVersion
 
     let private ReadEmbeddedResource resourceName =
         let assembly = Assembly.GetExecutingAssembly()
@@ -23,15 +29,14 @@ module MarshallingData =
         if (stream = null) then
             failwithf "Embedded resource %s not found" resourceName
         use reader = new StreamReader(stream)
-        reader.ReadToEnd() |> RemoveJsonFormatting
+        reader.ReadToEnd()
+            |> Sanitize
 
     let UnsignedDaiTransactionExampleInJson =
         ReadEmbeddedResource "unsignedAndFormattedDaiTransaction.json"
 
     let SignedDaiTransactionExampleInJson =
         ReadEmbeddedResource "signedAndFormattedDaiTransaction.json"
-
-    let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
     let internal SomeDate = DateTime.Parse "2018-06-14T16:50:09.133411"
 
