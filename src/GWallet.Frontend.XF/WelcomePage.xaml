@@ -16,10 +16,18 @@
         <Entry x:Name="passphraseConfirmationEntry" IsPassword="true"
                Placeholder="Repeat your seed passphrase here"
                TextChanged="OnPassphraseTextChanged" />
-               
-        <DatePicker x:Name="dobDatePicker"
-                    Format="dd/MM/yyyy"
-                    DateSelected="OnDobDateChanged" />
+
+        <StackLayout Orientation="Horizontal">
+            <Label Text="Date of Birth (day/month/year):"
+                   FontSize="Medium"
+                   HorizontalOptions="Start"
+                   VerticalOptions="Center" />
+            <DatePicker x:Name="dobDatePicker"
+                        Format="dd/MM/yyyy"
+                        HorizontalOptions="End"
+                        VerticalOptions="Center"
+                        DateSelected="OnDobDateChanged" />
+        </StackLayout>
                
         <Entry x:Name="emailEntry" IsPassword="false"
                Placeholder="E-mail address"
