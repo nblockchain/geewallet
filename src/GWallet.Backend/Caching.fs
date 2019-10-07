@@ -306,6 +306,7 @@ module Caching =
         member this.ClearAll () =
             SaveNetworkDataToDisk CachedNetworkData.Empty
             SaveServerRankingsToDisk Map.empty
+                |> ignore
 #endif
 
         member self.SaveSnapshot(newDietCachedData: DietCache) =
