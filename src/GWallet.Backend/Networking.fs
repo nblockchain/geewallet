@@ -121,6 +121,11 @@ module Networking =
             elif socketException.ErrorCode = int SocketError.AddressFamilyNotSupported then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
 
+            // -1!?! WTF, mono bug in v6.4.0? see https://sentry.io/organizations/nblockchain/issues/1261821968/
+            elif socketException.ErrorCode = int SocketError.SocketError &&
+                 socketException.Message.Contains "mono-io-layer-error" then
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+
             elif socketException.ErrorCode = int SocketError.HostUnreachable then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
             elif socketException.ErrorCode = int SocketError.NetworkUnreachable then
