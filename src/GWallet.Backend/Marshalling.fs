@@ -19,8 +19,8 @@ type SerializationException(message:string, innerException: Exception) =
 type VersionMismatchDuringDeserializationException (message:string, innerException: Exception) =
     inherit DeserializationException (message, innerException)
 
-module VersionHelper =
-    let CurrentVersion ()=
+module internal VersionHelper =
+    let internal CURRENT_VERSION =
         Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
 type MarshallingWrapper<'T> =
@@ -32,7 +32,7 @@ type MarshallingWrapper<'T> =
     static member New value =
         {
             Value = value
-            Version = VersionHelper.CurrentVersion()
+            Version = VersionHelper.CURRENT_VERSION
             TypeName = typeof<'T>.FullName
         }
 
@@ -82,7 +82,7 @@ module Marshalling =
                                ContractResolver = RequireAllPropertiesContractResolver(),
                                DateTimeZoneHandling = DateTimeZoneHandling.Utc)
 
-    let private currentVersion = VersionHelper.CurrentVersion()
+    let private currentVersion = VersionHelper.CURRENT_VERSION
 
     let ExtractType(json: string): Type =
         let fullTypeName = (JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json).TypeName

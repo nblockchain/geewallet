@@ -1,7 +1,6 @@
 ﻿namespace GWallet.Backend
 
 open System
-open System.Reflection
 
 open SharpRaven
 open SharpRaven.Data
@@ -9,9 +8,7 @@ open SharpRaven.Data
 module Infrastructure =
 
     let private sentryUrl = "https://4d1c6170ee37412fab20f8c63a2ade24:fc5e2c50990e48929d190fc283513f87@sentry.io/187797"
-    let private appVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString()
-    let private appNameInSentry = "gwallet"
-    let private ravenClient = RavenClient(sentryUrl, Release = sprintf "%s@%s" appNameInSentry appVersion)
+    let private ravenClient = RavenClient(sentryUrl, Release = VersionHelper.CURRENT_VERSION)
 
     let internal ReportError (errorMessage: string) =
         ravenClient.Capture (SentryEvent (SentryMessage (errorMessage))) |> ignore
