@@ -22,14 +22,19 @@
             HeightRequest="10"
             >
             <Frame BackgroundColor="Transparent"
+                   BorderColor="Gray"
                    HorizontalOptions="FillAndExpand" />
             <Frame BackgroundColor="Transparent"
+                   BorderColor="Gray"
                    HorizontalOptions="FillAndExpand" />
             <Frame BackgroundColor="Transparent"
+                   BorderColor="Gray"
                    HorizontalOptions="FillAndExpand" />
             <Frame BackgroundColor="Transparent"
+                   BorderColor="Gray"
                    HorizontalOptions="FillAndExpand" />
             <Frame BackgroundColor="Transparent"
+                   BorderColor="Gray"
                    HorizontalOptions="FillAndExpand" />
         </StackLayout>
 
