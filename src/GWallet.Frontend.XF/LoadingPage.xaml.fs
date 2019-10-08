@@ -20,6 +20,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
 
     let mainLayout = base.FindByName<StackLayout> "mainLayout"
     let titleLabel = mainLayout.FindByName<Label> "titleLabel"
+    let progressBarLayout = base.FindByName<StackLayout> "progressBarLayout"
     let loadingLabel = mainLayout.FindByName<Label> "loadingLabel"
     let dotsMaxCount = 3
     let loadingTextNoDots = loadingLabel.Text
@@ -79,6 +80,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
             mainLayout.Padding <- Thickness(20.,0.,20.,50.)
             logoImg.IsVisible <- false
             titleLabel.IsVisible <- true
+            progressBarLayout.IsVisible <- true
             loadingLabel.IsVisible <- true
         )
         Device.StartTimer(animLength, Func<bool> UpdateDotsLabel)
@@ -105,8 +107,10 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         let currencyImages = PreLoadCurrencyImages()
 
         let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
-        let _,allNormalAccountBalancesJob =
-            FrontendHelpers.UpdateBalancesAsync normalAccountsBalances false ServerSelectionMode.Fast
+        let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
+                                                                                false
+                                                                                ServerSelectionMode.Fast
+                                                                                (Some progressBarLayout)
         let allNormalAccountBalancesJobAugmented = async {
             try
                 let! normalAccountBalances = allNormalAccountBalancesJob
@@ -120,7 +124,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
 
         let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
         let _,readOnlyAccountBalancesJob =
-            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast
+            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
         let readOnlyAccountBalancesJobAugmented = async {
             try
                 let! readOnlyAccountBalances = readOnlyAccountBalancesJob

@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Frontend.XF
 
 open System
+open System.Linq
 open System.Threading
 open System.Threading.Tasks
 
@@ -81,6 +82,14 @@ module FrontendHelpers =
                                                     defaultFiatCurrency
                                                     (MaybeReturnOutdatedMarkForOldDate time)
 
+    let internal GetCryptoColor(currency: Currency) =
+        match currency with
+        | Currency.BTC -> Color.FromRgb(245, 146, 47)
+        | Currency.DAI -> Color.FromRgb(254, 205, 83)
+        | Currency.ETC -> Color.FromRgb(14, 119, 52)
+        | Currency.ETH -> Color.FromRgb(130, 131, 132)
+        | Currency.LTC -> Color.FromRgb(54, 94, 155)
+
     let UpdateBalance (balance:MaybeCached<decimal>) currency (balanceLabel: Label) (fiatBalanceLabel: Label)
                           : MaybeCached<decimal> =
         let maybeBalanceAmount =
@@ -124,7 +133,10 @@ module FrontendHelpers =
             }
         }
 
-    let UpdateBalanceAsync (balanceSet: BalanceSet) (tryCachedFirst: bool) (mode: ServerSelectionMode)
+    let UpdateBalanceAsync (balanceSet: BalanceSet)
+                           (tryCachedFirst: bool)
+                           (mode: ServerSelectionMode)
+                           (maybeProgressBar: Option<StackLayout>)
                                : CancellationTokenSource*Async<BalanceState> =
         let cancelSource = new CancellationTokenSource()
         let job = async {
@@ -149,13 +161,33 @@ module FrontendHelpers =
             else
                 return! UpdateBalanceWithoutCacheAsync balanceSet mode cancelSource
         }
-        cancelSource,job
+        let fullJob =
+            match maybeProgressBar with
+            | None -> job
+            | Some progressBar ->
+                let UpdateProgressBar() =
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        let firstTransparentFrameFound =
+                            progressBar.Children.First(fun x -> x.BackgroundColor = Color.Transparent)
+                        firstTransparentFrameFound.BackgroundColor <- GetCryptoColor balanceSet.Account.Currency
+                    )
+                async {
+                    try
+                        let! jobResult = job
+                        return jobResult
+                    finally
+                        UpdateProgressBar()
+                }
+        cancelSource,fullJob
 
-    let UpdateBalancesAsync accountBalances (tryCacheFirst: bool) (mode: ServerSelectionMode)
+    let UpdateBalancesAsync accountBalances
+                            (tryCacheFirst: bool)
+                            (mode: ServerSelectionMode)
+                            (progressBar: Option<StackLayout>)
                                 : seq<CancellationTokenSource>*Async<array<BalanceState>> =
         let sourcesAndJobs = seq {
             for balanceSet in accountBalances do
-                let cancelSource,balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst mode
+                let cancelSource,balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst mode progressBar
                 yield cancelSource,balanceJob
         }
         let parallelJobs =
@@ -227,14 +259,6 @@ module FrontendHelpers =
                 button.IsEnabled <- true
             )
         ) |> DoubleCheckCompletionNonGeneric
-
-    let internal GetCryptoColor(currency: Currency) =
-        match currency with
-        | Currency.BTC -> Color.FromRgb(245, 146, 47)
-        | Currency.DAI -> Color.FromRgb(254, 205, 83)
-        | Currency.ETC -> Color.FromRgb(14, 119, 52)
-        | Currency.ETH -> Color.FromRgb(130, 131, 132)
-        | Currency.LTC -> Color.FromRgb(54, 94, 155)
 
     let internal ApplyGtkWorkaroundForFrameTransparentBackgroundColor (frame: Frame) =
         if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then

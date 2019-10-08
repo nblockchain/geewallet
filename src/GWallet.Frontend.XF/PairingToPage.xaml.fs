@@ -89,12 +89,13 @@ type PairingToPage(balancesPage: Page,
                 FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
 
             let _,readOnlyAccountsBalancesJob =
-                FrontendHelpers.UpdateBalancesAsync readOnlyAccountsWithWidgets false ServerSelectionMode.Fast
+                FrontendHelpers.UpdateBalancesAsync readOnlyAccountsWithWidgets false ServerSelectionMode.Fast None
 
             let _,normalAccountsBalancesJob =
                 FrontendHelpers.UpdateBalancesAsync normalAccountsBalanceSets
                                                     true
                                                     ServerSelectionMode.Fast
+                                                    None
 
             let allBalancesJob =
                 FSharpUtil.AsyncExtensions.MixedParallel2 normalAccountsBalancesJob readOnlyAccountsBalancesJob

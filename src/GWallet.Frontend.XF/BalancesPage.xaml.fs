@@ -299,6 +299,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let readOnlyCancelSources,readOnlyBalancesJob =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalanceSets
                                                 false refreshMode
+                                                None
 
         let readOnlyAccountsBalanceUpdate =
             this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel true
@@ -309,6 +310,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let normalCancelSources,normalBalancesJob =
                     FrontendHelpers.UpdateBalancesAsync normalAccountsBalanceSets
                                                         false refreshMode
+                                                        None
 
                 let normalAccountsBalanceUpdate =
                     this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel false
