@@ -54,8 +54,8 @@ module Account =
 
     let private NumberOfParallelJobsForMode mode =
         match mode with
-        | ServerSelectionMode.Fast -> 8u
-        | ServerSelectionMode.Analysis -> 5u
+        | ServerSelectionMode.Fast -> 3u
+        | ServerSelectionMode.Analysis -> 2u
 
     let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode)
                                                            maybeConsistencyConfig =
