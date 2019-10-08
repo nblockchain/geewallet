@@ -91,19 +91,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
 
-    member this.Init (): unit =
-
-        if showLogoFirst then
-            mainLayout.Children.Add logoImg
-
-            Device.StartTimer(TimeSpan.FromSeconds 8.0, fun _ ->
-                ShowLoadingText()
-
-                false // do not run timer again
-            )
-        else
-            ShowLoadingText()
-
+    member this.Transition(): unit =
         let currencyImages = PreLoadCurrencyImages()
 
         let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
@@ -168,4 +156,22 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
             |> FrontendHelpers.DoubleCheckCompletion
 
         ()
+
+    member this.Init (): unit =
+        if showLogoFirst then
+            Device.BeginInvokeOnMainThread(fun _ ->
+                mainLayout.Children.Add logoImg
+            )
+
+            this.Transition()
+
+            Device.StartTimer(TimeSpan.FromSeconds 8.0, fun _ ->
+                ShowLoadingText()
+
+                false // do not run timer again
+            )
+        else
+            ShowLoadingText()
+
+            this.Transition()
 
