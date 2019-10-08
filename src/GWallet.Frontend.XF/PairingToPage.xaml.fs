@@ -2,12 +2,9 @@
 
 open System
 open System.Linq
-open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
-open ZXing
-open ZXing.Mobile
 open ZXing.Net.Mobile.Forms
 
 open GWallet.Backend

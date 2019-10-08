@@ -1,7 +1,5 @@
 ﻿namespace GWallet.Frontend.XF
 
-open System
-
 open Xamarin.Forms
 
 type GlobalState() =

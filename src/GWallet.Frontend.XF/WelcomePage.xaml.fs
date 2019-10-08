@@ -2,7 +2,6 @@
 
 open System
 open System.Linq
-open System.Globalization
 open Plugin.Connectivity
 
 open Xamarin.Forms

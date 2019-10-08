@@ -1,18 +1,12 @@
 ﻿namespace GWallet.Frontend.XF
 
 open System
-open System.Linq
-open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 
 open Plugin.Clipboard
-open ZXing
 open ZXing.Net.Mobile.Forms
-open ZXing.Common
-
-open GWallet.Backend
 
 type PairingFromPage(previousPage: Page,
                      clipBoardButtonCaption: string,

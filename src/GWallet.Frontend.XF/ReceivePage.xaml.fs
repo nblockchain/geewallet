@@ -1,7 +1,6 @@
 ﻿namespace GWallet.Frontend.XF
 
 open System
-open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
