@@ -217,14 +217,16 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let activeCurrencyClassId,inactiveCurrencyClassId =
             FrontendHelpers.GetActiveAndInactiveCurrencyClassIds readOnly
 
+        let contentLayoutChildrenList = (contentLayout.Children |> List.ofSeq)
+
         let activeCryptoBalances = FindCryptoBalances activeCurrencyClassId 
                                                       contentLayout 
-                                                      (contentLayout.Children |> List.ofSeq) 
+                                                      contentLayoutChildrenList
                                                       List.Empty
 
         let inactiveCryptoBalances = FindCryptoBalances inactiveCurrencyClassId 
                                                         contentLayout 
-                                                        (contentLayout.Children |> List.ofSeq) 
+                                                        contentLayoutChildrenList
                                                         List.Empty
 
         contentLayout.BatchBegin()                      
