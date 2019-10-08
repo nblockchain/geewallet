@@ -19,7 +19,7 @@
                TextChanged="OnPassphraseTextChanged" />
 
         <StackLayout Orientation="Horizontal">
-            <Label Text="Date of Birth (day/month/year):"
+            <Label Text="Date of Birth (d/m/y):"
                    FontSize="Medium"
                    HorizontalOptions="Start"
                    VerticalOptions="Center" />
