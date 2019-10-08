@@ -164,12 +164,12 @@ module FrontendHelpers =
             Seq.map fst sourcesAndJobs
         allCancelSources,parallelJobs
 
-    let private MaybeCrash (canBeCancelled: bool) (ex: Exception) =
+    let private MaybeCrash (canBeCanceled: bool) (ex: Exception) =
         if null = ex then
             ()
         else
             let shouldCrash =
-                if not canBeCancelled then
+                if not canBeCanceled then
                     true
                 elif (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
                     false
@@ -191,14 +191,14 @@ module FrontendHelpers =
             MaybeCrash false t.Exception
         , TaskContinuationOptions.OnlyOnFaulted) |> ignore
 
-    let DoubleCheckCompletionAsync<'T> (canBeCancelled: bool) (work: Async<'T>): unit =
+    let DoubleCheckCompletionAsync<'T> (canBeCanceled: bool) (work: Async<'T>): unit =
         async {
             try
                 let! _ = work
                 ()
             with
             | ex ->
-                MaybeCrash canBeCancelled ex
+                MaybeCrash canBeCanceled ex
             return ()
         } |> Async.Start
 
