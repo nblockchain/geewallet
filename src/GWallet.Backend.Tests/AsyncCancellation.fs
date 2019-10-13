@@ -359,7 +359,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
                 with
                 | ex ->
                     if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
-                        Error ()
+                        Error ex
                     else
                         reraise()
             finally
