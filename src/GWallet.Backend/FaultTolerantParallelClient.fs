@@ -84,7 +84,7 @@ type FaultTolerantParallelClientSettings<'R> =
         ResultSelectionMode: ResultSelectionMode<'R>
     }
 
-type Result<'Val, 'Err> =
+type Result<'Val, 'Err when 'Err :> Exception> =
     | Error of 'Err
     | Value of 'Val
 
