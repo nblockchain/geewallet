@@ -101,7 +101,12 @@ or lack of Layer2 scaling).
 
 ## How to compile/install/use?
 
-The recommended way is to install the software system wide, like this:
+The easiest way to use for non-technical people is to install it from the Android AppStore:
+[![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.geewallet.android)
+
+Other platforms: coming soon.
+
+If you prefer to compile and run from your Linux command line:
 
 ```
 ./configure.sh --prefix=/usr
