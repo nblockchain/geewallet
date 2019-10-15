@@ -55,8 +55,8 @@ module Account =
 
     let private NumberOfParallelJobsForMode mode =
         match mode with
-        | ServerSelectionMode.Fast -> 8u
-        | ServerSelectionMode.Analysis -> 5u
+        | ServerSelectionMode.Fast -> 3u
+        | ServerSelectionMode.Analysis -> 2u
 
     let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode)
                                                            maybeConsistencyConfig =
@@ -69,6 +69,7 @@ module Account =
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            ExceptionHandler = Some (fun ex -> Infrastructure.ReportWarning ex)
             ResultSelectionMode =
                 Selective
                     {

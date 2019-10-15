@@ -305,7 +305,7 @@ let NormalStartWithNoParameters () =
             0
         with
         | ex ->
-            Infrastructure.Report ex
+            Infrastructure.ReportCrash ex
             1
 
     exitCode

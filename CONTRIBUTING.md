@@ -24,6 +24,8 @@ different things).
 (where it's possible; e.g. in match cases it's not possible), and `array<Foo>`
 over `Foo []`.
 * We prefer the generic notation `Foo<Bar>` rather than `Bar Foo`.
+* We prefer to not use shadowing practice, even if the F# compiler allows it
+(not to confuse shadowing with mutation, which is discouraged too anyway).
 * We prefer to write parenthesis only when strictly necessary (e.g. in F# they
 are not required for `if` clauses, unlike C#) or for readability purposes (e.g.
 when it's not clear what operator would be applied first by the order preference

@@ -49,6 +49,7 @@ type FaultTolerance() =
             NumberOfRetries = test_does_not_involve_retries
             NumberOfRetriesForInconsistency = test_does_not_involve_retries
             ResultSelectionMode = default_result_selection_mode_as_it_is_irrelevant_for_this_test consistencyConfig
+            ExceptionHandler = None
         }
 
     let defaultFaultTolerantParallelClient =
@@ -191,6 +192,34 @@ type FaultTolerance() =
                             |> ignore )
 
         Assert.That((FSharpUtil.FindException<SomeOtherException> ex).IsSome, Is.True)
+
+    [<Test>]
+    member __.``exception type not passed in doesn't bubble up if exception handler is specified'``() =
+        let someResult = 1
+        let aJob1 =
+            async { return raise SomeOtherException }
+        let aJob2 =
+            async { return someResult }
+        let aJob3 =
+            async { return raise SomeOtherException }
+        let func1,func2,func3 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob3" aJob3
+
+        let mutable exceptionHandlerCalled = false
+
+        let theResult =
+                (FaultTolerantParallelClient<ServerDetails, SomeException>
+                    dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
+                    .Query
+                        ({ defaultSettingsForNoConsistencyNoParallelismAndNoRetries None
+                            with ExceptionHandler = Some (fun _ -> exceptionHandlerCalled <- true)})
+                            [ func1; func2; func3 ]
+                                |> Async.RunSynchronously
+
+        Assert.That(theResult, Is.EqualTo someResult)
+
+        Assert.That(exceptionHandlerCalled, Is.EqualTo true)
 
     [<Test>]
     member __.``exception type passed in is ignored also if it's found in an innerException'``() =
@@ -1121,6 +1150,7 @@ type FaultTolerance() =
                 NumberOfRetries = test_does_not_involve_retries
                 NumberOfRetriesForInconsistency = test_does_not_involve_retries
                 ResultSelectionMode = ResultSelectionMode.Exhaustive
+                ExceptionHandler = None
             }
         let retrievedData1 = defaultFaultTolerantParallelClient.Query
                                 settings

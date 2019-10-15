@@ -6,6 +6,7 @@ open System.Net
 open System.Numerics
 open System.Linq
 open System.Threading
+open System.Threading.Tasks
 
 open Nethereum.Util
 open Nethereum.Hex.HexTypes
@@ -263,8 +264,8 @@ module Server =
 
     let private NumberOfParallelJobsForMode mode =
         match mode with
-        | ServerSelectionMode.Fast -> 5u
-        | ServerSelectionMode.Analysis -> 3u
+        | ServerSelectionMode.Fast -> 3u
+        | ServerSelectionMode.Analysis -> 2u
 
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
                                                          (mode: ServerSelectionMode)
@@ -279,6 +280,19 @@ module Server =
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            ExceptionHandler = Some
+                (
+                    fun ex ->
+                        let exToReport =
+                            if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                                // TODO: remove this below once we finishing tracking down (fixing)
+                                //       https://gitlab.com/knocte/geewallet/issues/125
+                                UnexpectedTaskCanceledException("Cancellation of subjob", ex) :> Exception
+                            else
+                                ex
+
+                        Infrastructure.ReportWarning exToReport
+                )
             ResultSelectionMode =
                 Selective
                     {
@@ -309,9 +323,6 @@ module Server =
 
     let private FaultTolerantParallelClientSettingsForBroadcast () =
         FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast None
-
-    let private NUMBER_OF_CONSISTENT_RESPONSES_TO_TRUST_ETH_SERVER_RESULTS = 2
-    let private NUMBER_OF_ALLOWED_PARALLEL_CLIENT_QUERY_JOBS = 3
 
     let private faultTolerantEtherClient =
         JsonRpcSharp.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
