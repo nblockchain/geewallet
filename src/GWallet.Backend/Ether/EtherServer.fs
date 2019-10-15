@@ -6,6 +6,7 @@ open System.Net
 open System.Numerics
 open System.Linq
 open System.Threading
+open System.Threading.Tasks
 
 open Nethereum.Util
 open Nethereum.Hex.HexTypes
@@ -271,6 +272,19 @@ module Server =
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            ExceptionHandler = Some
+                (
+                    fun ex ->
+                        let exToReport =
+                            if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                                // TODO: remove this below once we finishing tracking down (fixing)
+                                //       https://gitlab.com/knocte/geewallet/issues/125
+                                UnexpectedTaskCanceledException("Cancellation of subjob", ex) :> Exception
+                            else
+                                ex
+
+                        Infrastructure.ReportWarning exToReport
+                )
             ResultSelectionMode =
                 Selective
                     {

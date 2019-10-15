@@ -92,6 +92,8 @@ module ServerManager =
             NumberOfRetriesForInconsistency = 0u
 
             ResultSelectionMode = Exhaustive
+
+            ExceptionHandler = None
         }
 
     let private GetDummyBalanceAction (currency: Currency) servers =
