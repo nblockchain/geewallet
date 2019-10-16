@@ -902,3 +902,76 @@ type DotNetAsyncCancellation() =
         Assert.That(task.Exception, Is.EqualTo null)
         Assert.That(task.IsFaulted, Is.EqualTo false)
 
+    [<Test>]
+    member __.``cancel task after success doesn't affect it, result can still be retreived'``() =
+        use cancellationSource = new CancellationTokenSource()
+        let token = cancellationSource.Token
+        let SomeMethodAsync1(): Async<int> =
+            async {
+                do! Async.Sleep <| int (TimeSpan.FromSeconds 1.0).TotalMilliseconds
+                return 1
+            }
+        let task1 = Async.StartAsTask (SomeMethodAsync1(), ?cancellationToken = Some token)
+
+        let SomeMethodAsync2(): Async<int> =
+            async {
+                do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+                return 2
+            }
+        let task2 = Async.StartAsTask (SomeMethodAsync2())
+        let taskToGetTheFastestTask = Task.WhenAny([ task1; task2 ])
+        let fastestTask = taskToGetTheFastestTask.Result
+        Assert.That(Object.ReferenceEquals(task1, fastestTask), Is.EqualTo true)
+
+        cancellationSource.Cancel()
+        Assert.That(fastestTask.Result, Is.EqualTo 1)
+
+    [<Test>]
+    member __.``cancel fastest task still makes Task.WhenAny choose the fastest even if it was cancelled``() =
+        use cancellationSource = new CancellationTokenSource()
+        let token = cancellationSource.Token
+        let SomeMethodAsync1(): Async<int> =
+            async {
+                do! Async.Sleep <| int (TimeSpan.FromSeconds 1.0).TotalMilliseconds
+                return 1
+            }
+        let task1 = Async.StartAsTask (SomeMethodAsync1(), ?cancellationToken = Some token)
+
+        let SomeMethodAsync2(): Async<int> =
+            async {
+                do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+                return 2
+            }
+        let task2 = Async.StartAsTask (SomeMethodAsync2())
+        cancellationSource.Cancel()
+
+        let taskToGetTheFastestTask = Task.WhenAny([ task1; task2 ])
+        let fastestTask = taskToGetTheFastestTask.Result
+        Assert.That(Object.ReferenceEquals(task1, fastestTask), Is.EqualTo true)
+
+        let ex = Assert.Throws<AggregateException>(fun _ ->
+            Console.WriteLine fastestTask.Result
+        )
+        Assert.That((FSharpUtil.FindException<TaskCanceledException> ex).IsSome, Is.EqualTo true)
+
+    [<Test>]
+    member __.``check if we can query .IsCancellationRequested after cancelling and disposing``() =
+        let cancellationSource = new CancellationTokenSource()
+        let token = cancellationSource.Token
+        let SomeMethodAsync1(): Async<int> =
+            async {
+                do! Async.Sleep <| int (TimeSpan.FromSeconds 1.0).TotalMilliseconds
+                return 1
+            }
+        let task = Async.StartAsTask (SomeMethodAsync1(), ?cancellationToken = Some token)
+        cancellationSource.Cancel()
+
+        let ex = Assert.Throws<AggregateException>(fun _ ->
+            Console.WriteLine task.Result
+        )
+        Assert.That((FSharpUtil.FindException<TaskCanceledException> ex).IsSome, Is.EqualTo true)
+
+        Assert.That(cancellationSource.IsCancellationRequested, Is.EqualTo true)
+        cancellationSource.Dispose()
+        Assert.That(cancellationSource.IsCancellationRequested, Is.EqualTo true)
+

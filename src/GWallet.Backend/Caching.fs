@@ -584,11 +584,12 @@ module Caching =
                         return Some content
                     with
                     // should we specify HttpRequestException?
-                    | _ ->
+                    | ex ->
+                        Infrastructure.ReportWarning ex
                         return None
                 }
 
-            let targetBranch = "stable"
+            let targetBranch = "frontend"
             let username = "knocte"
             let projName = "geewallet"
             let githubBaseUrl,gitlabBaseUrl = "https://raw.githubusercontent.com","https://gitlab.com"

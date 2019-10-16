@@ -200,11 +200,14 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 with
                 | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome &&
                            canceledInternally.SafeDo(fun x -> x.Value.IsNone) ->
-                        // TODO: remove this below once we finishing tracking down (fixing)
-                        //       https://gitlab.com/knocte/geewallet/issues/125
-                        raise <|
-                            InvalidOperationException("Somehow the job got canceled without being canceled internally",
-                                                      ex)
+
+                    let cancellationRequested = cancellationSource.IsCancellationRequested
+                    let msg = sprintf "Somehow the job got canceled without being canceled internally (req?: %b)"
+                                      cancellationRequested
+
+                    // TODO: remove this below once we finishing tracking down (fixing)
+                    //       https://gitlab.com/knocte/geewallet/issues/125
+                    raise <| InvalidOperationException(msg, ex)
             let newRestOfTasks,newRestOfJobs =
                 match jobsToContinueWith with
                 | [] ->
