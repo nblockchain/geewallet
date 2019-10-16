@@ -77,12 +77,6 @@ let Bump(toStable: bool): Version*Version =
 
 
 let GitCommit (fullVersion: Version) (newFullVersion: Version) =
-    let gitAddJson =
-        {
-            Command = "git"
-            Arguments = "add src/GWallet.Backend.Tests/*.json"
-        }
-    Process.SafeExecute (gitAddJson, Echo.Off) |> ignore
     let gitAddCommonAssemblyInfo =
         {
             Command = "git"
