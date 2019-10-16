@@ -86,6 +86,15 @@ module Server =
             return result
     }
 
+    // we can possibly/hopefully remove this shitty method when this bug is fixed: https://github.com/dotnet/corefx/issues/20296
+    let MaybeRethrowShittyTaskCanceledExceptionComingFromHttpClient (ex: Exception): unit =
+        let maybeTaskCanceledEx = FSharpUtil.FindException<TaskCanceledException> ex
+        match maybeTaskCanceledEx with
+        | Some taskCanceledEx ->
+            raise <| ServerTimedOutException("Possibly the operation timed out...", taskCanceledEx)
+        | None ->
+            ()
+
     let MaybeRethrowWebException (ex: Exception): unit =
         let maybeWebEx = FSharpUtil.FindException<WebException> ex
         match maybeWebEx with
@@ -245,6 +254,8 @@ module Server =
             ()
 
     let private ReworkException (ex: Exception): unit =
+
+        MaybeRethrowShittyTaskCanceledExceptionComingFromHttpClient ex
 
         MaybeRethrowWebException ex
 
