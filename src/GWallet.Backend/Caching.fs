@@ -577,7 +577,8 @@ module Caching =
                         return Some content
                     with
                     // should we specify HttpRequestException?
-                    | _ ->
+                    | ex ->
+                        Infrastructure.ReportWarning ex
                         return None
                 }
 
