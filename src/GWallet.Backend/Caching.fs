@@ -581,7 +581,7 @@ module Caching =
                         return None
                 }
 
-            let targetBranch = "master"
+            let targetBranch = "frontend"
             let username = "knocte"
             let projName = "geewallet"
             let githubBaseUrl,gitlabBaseUrl = "https://raw.githubusercontent.com","https://gitlab.com"
