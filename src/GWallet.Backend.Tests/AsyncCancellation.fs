@@ -954,3 +954,24 @@ type DotNetAsyncCancellation() =
         )
         Assert.That((FSharpUtil.FindException<TaskCanceledException> ex).IsSome, Is.EqualTo true)
 
+    [<Test>]
+    member __.``check if we can query .IsCancellationRequested after cancelling and disposing``() =
+        let cancellationSource = new CancellationTokenSource()
+        let token = cancellationSource.Token
+        let SomeMethodAsync1(): Async<int> =
+            async {
+                do! Async.Sleep <| int (TimeSpan.FromSeconds 1.0).TotalMilliseconds
+                return 1
+            }
+        let task = Async.StartAsTask (SomeMethodAsync1(), ?cancellationToken = Some token)
+        cancellationSource.Cancel()
+
+        let ex = Assert.Throws<AggregateException>(fun _ ->
+            Console.WriteLine task.Result
+        )
+        Assert.That((FSharpUtil.FindException<TaskCanceledException> ex).IsSome, Is.EqualTo true)
+
+        Assert.That(cancellationSource.IsCancellationRequested, Is.EqualTo true)
+        cancellationSource.Dispose()
+        Assert.That(cancellationSource.IsCancellationRequested, Is.EqualTo true)
+
