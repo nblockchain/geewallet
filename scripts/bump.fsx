@@ -136,10 +136,34 @@ let GitDiff () =
         Console.Error.WriteLine "git status is not clean"
         Environment.Exit 1
 
+let RunUpdateServers () =
+    let updateServersCmd =
+        {
+            Command = "make"
+            Arguments = "update-servers"
+        }
+    Process.SafeExecute(updateServersCmd, Echo.OutputOnly) |> ignore
+    let gitAddJson =
+        {
+            Command = "git"
+            Arguments = "add src/GWallet.Backend/servers.json"
+        }
+    Process.SafeExecute (gitAddJson, Echo.Off) |> ignore
+
+    let commitMessage = sprintf "Backend: update servers.json (pre-bump)"
+    let gitCommit =
+        {
+            Command = "git"
+            Arguments = sprintf "commit -m \"%s\"" commitMessage
+        }
+    Process.SafeExecute (gitCommit, Echo.Off) |> ignore
+    GitDiff()
+
 
 GitDiff()
 
 Console.WriteLine "Bumping..."
+RunUpdateServers()
 let fullUnstableVersion,newFullStableVersion = Bump true
 GitCommit fullUnstableVersion newFullStableVersion
 GitTag newFullStableVersion
