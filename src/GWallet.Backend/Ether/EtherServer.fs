@@ -86,6 +86,48 @@ module Server =
             return result
     }
 
+    // we can possibly/hopefully remove this shitty method when this bug is fixed: https://github.com/dotnet/corefx/issues/20296
+    let MaybeRethrowShittyTaskCanceledExceptionComingFromHttpClient (ex: Exception): unit =
+        let maybeTaskCanceledEx = FSharpUtil.FindException<TaskCanceledException> ex
+        match maybeTaskCanceledEx with
+        | Some taskCanceledEx ->
+            raise <| ServerTimedOutException("Possibly the operation timed out...", taskCanceledEx)
+        | None ->
+            ()
+
+    let MaybeRethrowWebException (ex: Exception): unit =
+        let maybeWebEx = FSharpUtil.FindException<WebException> ex
+        match maybeWebEx with
+        | Some webEx ->
+
+            // TODO: send a warning in Sentry
+            if webEx.Status = WebExceptionStatus.UnknownError then
+                raise <| ServerUnreachableException(exMsg, webEx)
+
+            if webEx.Status = WebExceptionStatus.NameResolutionFailure then
+                raise <| ServerCannotBeResolvedException(exMsg, webEx)
+            if webEx.Status = WebExceptionStatus.ReceiveFailure then
+                raise <| ServerTimedOutException(exMsg, webEx)
+            if webEx.Status = WebExceptionStatus.ConnectFailure then
+                raise <| ServerUnreachableException(exMsg, webEx)
+
+            if webEx.Status = WebExceptionStatus.SecureChannelFailure then
+                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
+            if webEx.Status = WebExceptionStatus.RequestCanceled then
+                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
+            if webEx.Status = WebExceptionStatus.TrustFailure then
+                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
+
+            // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
+            if not Networking.Tls12Support then
+                if webEx.Status = WebExceptionStatus.SendFailure then
+                    raise <| ServerUnreachableException(exMsg, webEx)
+
+            raise <| UnhandledWebException(webEx.Status, webEx)
+
+        | None ->
+            ()
+
     let MaybeRethrowHttpRequestException (ex: Exception): unit =
         let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
         match maybeHttpReqEx with
@@ -220,47 +262,23 @@ module Server =
             ()
 
     let private ReworkException (ex: Exception): unit =
-        let maybeWebEx = FSharpUtil.FindException<WebException> ex
-        match maybeWebEx with
-        | Some webEx ->
 
-            // TODO: send a warning in Sentry
-            if webEx.Status = WebExceptionStatus.UnknownError then
-                raise <| ServerUnreachableException(exMsg, webEx)
+        MaybeRethrowShittyTaskCanceledExceptionComingFromHttpClient ex
 
-            if webEx.Status = WebExceptionStatus.NameResolutionFailure then
-                raise <| ServerCannotBeResolvedException(exMsg, webEx)
-            if webEx.Status = WebExceptionStatus.ReceiveFailure then
-                raise <| ServerTimedOutException(exMsg, webEx)
-            if webEx.Status = WebExceptionStatus.ConnectFailure then
-                raise <| ServerUnreachableException(exMsg, webEx)
+        MaybeRethrowWebException ex
 
-            if webEx.Status = WebExceptionStatus.SecureChannelFailure then
-                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
-            if webEx.Status = WebExceptionStatus.RequestCanceled then
-                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
-            if (webEx.Status = WebExceptionStatus.TrustFailure) then
-                raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
+        MaybeRethrowHttpRequestException ex
 
-            // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
-            if not Networking.Tls12Support then
-                if webEx.Status = WebExceptionStatus.SendFailure then
-                    raise <| ServerUnreachableException(exMsg, webEx)
+        MaybeRethrowRpcResponseException ex
 
-            raise <| UnhandledWebException(webEx.Status, webEx)
+        MaybeRethrowRpcClientTimeoutException ex
 
-        | None ->
-            MaybeRethrowHttpRequestException ex
+        MaybeRethrowNetworkingException ex
 
-            MaybeRethrowRpcResponseException ex
+        MaybeRethrowObjectDisposedException ex
 
-            MaybeRethrowRpcClientTimeoutException ex
+        MaybeRethrowSslException ex
 
-            MaybeRethrowNetworkingException ex
-
-            MaybeRethrowObjectDisposedException ex
-
-            MaybeRethrowSslException ex
 
     let private NumberOfParallelJobsForMode mode =
         match mode with
