@@ -166,7 +166,8 @@ let MakeCheckCommand (commandName: string) =
 
 let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): DirectoryInfo*FileInfo =
     let frontendProjName = frontend.GetProjectName()
-    let dir = Path.Combine ("src", frontendProjName, "bin", binaryConfig.ToString()) |> DirectoryInfo
+    let dir = Path.Combine (rootDir.FullName, "src", frontendProjName, "bin", binaryConfig.ToString())
+                  |> DirectoryInfo
     let mainExecFile = Path.Combine(dir.FullName, frontendProjName + ".exe") |> FileInfo
     dir,mainExecFile
 
