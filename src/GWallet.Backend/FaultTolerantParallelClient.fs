@@ -188,7 +188,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             let! fastestTask = Async.AwaitTask taskToWaitForFirstFinishedTask
 
             let restOfTasks =
-                startedTasks.Where(fun task -> not (Object.ReferenceEquals(task, fastestTask))) |> List.ofSeq
+                startedTasks.Where(fun task -> not (task = fastestTask)) |> List.ofSeq
 
             let newResults,newFailedFuncs =
                 try
