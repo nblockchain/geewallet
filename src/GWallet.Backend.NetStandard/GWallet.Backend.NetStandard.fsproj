@@ -114,6 +114,9 @@
     <Compile Include="..\GWallet.Backend\Formatting.fs">
       <Link>Formatting.fs</Link>
     </Compile>
+    <Compile Include="..\GWallet.Backend\ServerManager.fs">
+      <Link>ServerManager.fs</Link>
+    </Compile>
     <EmbeddedResource Include="..\GWallet.Backend\servers.json">
       <Link>servers.json</Link>
     </EmbeddedResource>
