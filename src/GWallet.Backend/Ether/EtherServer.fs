@@ -87,6 +87,8 @@ module Server =
     }
 
     // we can possibly/hopefully remove this shitty method when this bug is fixed: https://github.com/dotnet/corefx/issues/20296
+    // TODO: remove this function below once we finishing tracking down (fixing)
+    //       https://gitlab.com/knocte/geewallet/issues/125
     let MaybeRethrowShittyTaskCanceledExceptionComingFromHttpClient (ex: Exception): unit =
         let maybeTaskCanceledEx = FSharpUtil.FindException<TaskCanceledException> ex
         match maybeTaskCanceledEx with
@@ -311,6 +313,7 @@ module Server =
 
                         Infrastructure.ReportWarning exToReport
                 )
+            ExtraProtectionAgainstUnfoundedCancellations = true
             ResultSelectionMode =
                 Selective
                     {

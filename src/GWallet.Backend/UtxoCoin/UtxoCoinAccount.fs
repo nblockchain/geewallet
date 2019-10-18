@@ -70,6 +70,7 @@ module Account =
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             ExceptionHandler = Some (fun ex -> Infrastructure.ReportWarning ex)
+            ExtraProtectionAgainstUnfoundedCancellations = false
             ResultSelectionMode =
                 Selective
                     {

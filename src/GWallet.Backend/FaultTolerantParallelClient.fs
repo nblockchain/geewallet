@@ -83,6 +83,7 @@ type FaultTolerantParallelClientSettings<'R> =
         NumberOfRetriesForInconsistency: uint32;
         ResultSelectionMode: ResultSelectionMode<'R>
         ExceptionHandler: Option<Exception->unit>
+        ExtraProtectionAgainstUnfoundedCancellations: bool
     }
 
 type Result<'Val, 'Err when 'Err :> Exception> =
@@ -102,6 +103,27 @@ type MutableStateCapsule<'T>(initialState: 'T) =
     let lockObject = Object()
     member this.SafeDo (func: MutableStateUnsafeAccessor<'T>->'R): 'R =
         lock lockObject (fun _ -> func state)
+
+type internal ServerJob<'K,'R when 'K: equality and 'K :> ICommunicationHistory> =
+    {
+        Job: Async<ServerResult<'K,'R>>
+        Server: Server<'K,'R>
+    }
+
+type internal ServerTask<'K,'R when 'K: equality and 'K :> ICommunicationHistory> =
+    {
+        Task: Task<ServerResult<'K,'R>>
+        Server: Server<'K,'R>
+        CancellationTokenSource: CancellationTokenSource
+    }
+    with
+        static member WhenAny(tasks: seq<ServerTask<'K,'R>>) =
+            async {
+                let task = Task.WhenAny(tasks.Select(fun t -> t.Task))
+                let! fastestTask = Async.AwaitTask task
+                let correspondingTask = tasks.Single(fun t -> t.Task = fastestTask)
+                return correspondingTask
+            }
 
 type Runner<'Resource when 'Resource: equality> =
     static member Run<'K,'Ex when 'K: equality and 'K :> ICommunicationHistory and 'Ex :> Exception>
@@ -156,25 +178,34 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
     let MeasureConsistency (results: List<'R>) =
         results |> Seq.countBy id |> Seq.sortByDescending (fun (_,count: int) -> count) |> List.ofSeq
 
-    let LaunchAsyncJob (job: Async<ServerResult<'K,'R>>)
+    let LaunchAsyncJob (job: ServerJob<'K,'R>)
                        (cancellationSource: CancellationTokenSource)
-                           : Task<ServerResult<'K,'R>> =
+                           : ServerTask<'K,'R> =
         let token =
             try
                 cancellationSource.Token
             with
             | :? ObjectDisposedException as ex ->
                 raise <| TaskUnavailabilityException("cancellationTokenSource already disposed", ex)
-        Async.StartAsTask(job, ?cancellationToken = Some token)
+        let task = Async.StartAsTask(job.Job, ?cancellationToken = Some token)
+
+        let serverTask = {
+            Task = task
+            Server = job.Server
+            CancellationTokenSource = cancellationSource
+        }
+
+        serverTask
 
     let rec WhenSomeInternal (consistencySettings: Option<ConsistencySettings<'R>>)
                              (initialServerCount: uint32)
-                             (startedTasks: List<Task<ServerResult<'K,'R>>>)
-                             (jobsToContinueWith: List<Async<ServerResult<'K,'R>>>)
+                             (startedTasks: List<ServerTask<'K,'R>>)
+                             (jobsToContinueWith: List<ServerJob<'K,'R>>)
                              (resultsSoFar: List<'R>)
                              (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R>>)
                              (cancellationSource: CancellationTokenSource)
                              (canceledInternally: MutableStateCapsule<Option<DateTime>>)
+                             (extraProtectionAgainstUnfoundedCancellations: bool)
                                  : Async<FinalResult<'K,'T,'R>> = async {
         if startedTasks = List.Empty then
             return
@@ -184,15 +215,15 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                         UnsuccessfulServers = failedFuncsSoFar
                     }
         else
-            let taskToWaitForFirstFinishedTask = Task.WhenAny startedTasks
-            let! fastestTask = Async.AwaitTask taskToWaitForFirstFinishedTask
+            let jobToWaitForFirstFinishedTask = ServerTask.WhenAny startedTasks
+            let! fastestTask = jobToWaitForFirstFinishedTask
 
             let restOfTasks =
-                startedTasks.Where(fun task -> not (Object.ReferenceEquals(task, fastestTask))) |> List.ofSeq
+                startedTasks.Where(fun task -> not (task = fastestTask)) |> List.ofSeq
 
             let newResults,newFailedFuncs =
                 try
-                    match fastestTask.Result with
+                    match fastestTask.Task.Result with
                     | Failure unsuccessfulServer ->
                         resultsSoFar,unsuccessfulServer::failedFuncsSoFar
                     | SuccessfulResult newResult ->
@@ -201,13 +232,18 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome &&
                            canceledInternally.SafeDo(fun x -> x.Value.IsNone) ->
 
-                    let cancellationRequested = cancellationSource.IsCancellationRequested
-                    let msg = sprintf "Somehow the job got canceled without being canceled internally (req?: %b)"
-                                      cancellationRequested
+                    if not extraProtectionAgainstUnfoundedCancellations then
+                        let cancellationRequested = cancellationSource.IsCancellationRequested
+                        let msg = sprintf "Somehow the job got canceled without being canceled internally (req?: %b)"
+                                          cancellationRequested
 
-                    // TODO: remove this below once we finishing tracking down (fixing)
-                    //       https://gitlab.com/knocte/geewallet/issues/125
-                    raise <| InvalidOperationException(msg, ex)
+                        // TODO: remove this below once we finishing tracking down (fixing)
+                        //       https://gitlab.com/knocte/geewallet/issues/125
+                        raise <| InvalidOperationException(msg, ex)
+                    else
+                        let unsuccessfulServer = { Server = fastestTask.Server; Failure = ex }
+                        resultsSoFar,unsuccessfulServer::failedFuncsSoFar
+
             let newRestOfTasks,newRestOfJobs =
                 match jobsToContinueWith with
                 | [] ->
@@ -228,6 +264,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newFailedFuncs
                                              cancellationSource
                                              canceledInternally
+                                             extraProtectionAgainstUnfoundedCancellations
                 | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                     match minNumberOfConsistentResultsRequired,cacheMatchFunc with
                     | None, None ->
@@ -244,6 +281,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                      newFailedFuncs
                                                      cancellationSource
                                                      canceledInternally
+                                                     extraProtectionAgainstUnfoundedCancellations
                     | _ -> return failwith "should be either both None or both Some!"
             }
 
@@ -260,6 +298,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newFailedFuncs
                                              cancellationSource
                                              canceledInternally
+                                             extraProtectionAgainstUnfoundedCancellations
             | Some (SpecificNumberOfConsistentResponsesRequired number) ->
                 return! returnWithConsistencyOf (Some number) ((fun _ -> false) |> Some)
             | Some (OneServerConsistentWithCertainValueOrTwoServers cacheMatchFunc) ->
@@ -284,6 +323,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newFailedFuncs
                                              cancellationSource
                                              canceledInternally
+                                             extraProtectionAgainstUnfoundedCancellations
     }
 
     // at the time of writing this, I only found a Task.WhenAny() equivalent function in the asyncF# world, called
@@ -291,12 +331,13 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
     // it (and I couldn't just consume it and call it a day, I had to modify it to be "WhenSome" instead of "WhenAny",
     // as in when N>1), so I decided to write my own, using Tasks to make sure I would not spawn duplicate jobs
     let WhenSome (consistencySettings: Option<ConsistencySettings<'R>>)
-                 (jobsToStart: List<Async<ServerResult<'K,'R>>>)
-                 (jobsToContinueWith: List<Async<ServerResult<'K,'R>>>)
+                 (jobsToStart: List<ServerJob<'K,'R>>)
+                 (jobsToContinueWith: List<ServerJob<'K,'R>>)
                  (resultsSoFar: List<'R>)
                  (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R>>)
                  (cancellationSource: CancellationTokenSource)
                  (canceledInternally: MutableStateCapsule<Option<DateTime>>)
+                 (extraProtectionAgainstUnfoundedCancellations: bool)
                      : Async<FinalResult<'K,'T,'R>> =
         let initialServerCount = jobsToStart.Length + jobsToContinueWith.Length |> uint32
         let tasks = jobsToStart |> List.map (fun job -> LaunchAsyncJob job cancellationSource)
@@ -308,13 +349,14 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                          failedFuncsSoFar
                          cancellationSource
                          canceledInternally
+                         extraProtectionAgainstUnfoundedCancellations
 
     let rec CreateAsyncJobFromFunc (shouldReportUncanceledJobs: bool)
                                    (canceledInternally: MutableStateCapsule<Option<DateTime>>)
                                    (exceptionHanlder: Option<Exception->unit>)
                                    (server: Server<'K,'R>)
-                                       : Async<ServerResult<'K,'R>> =
-        async {
+                                       : ServerJob<'K,'R> =
+        let job = async {
             let stopwatch = Stopwatch()
             stopwatch.Start()
 
@@ -341,6 +383,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                             Failure = ex
                         }
         }
+
+        { Job = job; Server = server }
 
     let CancelAndDispose (source: CancellationTokenSource)
                          (canceledInternally: MutableStateCapsule<Option<DateTime>>) =
@@ -430,6 +474,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                failedFuncsSoFar
                                cancellationSource
                                canceledInternally
+                               settings.ExtraProtectionAgainstUnfoundedCancellations
         match result with
         | AverageResult averageResult ->
             CancelAndDispose cancellationSource canceledInternally

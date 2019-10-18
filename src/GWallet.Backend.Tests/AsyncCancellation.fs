@@ -97,7 +97,6 @@ type FaultTolerantParallelClientAsyncCancellation() =
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
         let externalCancellationSource = new CancellationTokenSource()
-        externalCancellationSource.Cancel()
         let task = client.QueryWithCancellation externalCancellationSource settings allFuncs
                        |> Async.StartAsTask
 
@@ -921,7 +920,7 @@ type DotNetAsyncCancellation() =
         let task2 = Async.StartAsTask (SomeMethodAsync2())
         let taskToGetTheFastestTask = Task.WhenAny([ task1; task2 ])
         let fastestTask = taskToGetTheFastestTask.Result
-        Assert.That(Object.ReferenceEquals(task1, fastestTask), Is.EqualTo true)
+        Assert.That(task1, Is.EqualTo fastestTask)
 
         cancellationSource.Cancel()
         Assert.That(fastestTask.Result, Is.EqualTo 1)
@@ -947,7 +946,7 @@ type DotNetAsyncCancellation() =
 
         let taskToGetTheFastestTask = Task.WhenAny([ task1; task2 ])
         let fastestTask = taskToGetTheFastestTask.Result
-        Assert.That(Object.ReferenceEquals(task1, fastestTask), Is.EqualTo true)
+        Assert.That(task1, Is.EqualTo fastestTask)
 
         let ex = Assert.Throws<AggregateException>(fun _ ->
             Console.WriteLine fastestTask.Result
