@@ -50,6 +50,7 @@ type FaultTolerance() =
             NumberOfRetriesForInconsistency = test_does_not_involve_retries
             ResultSelectionMode = default_result_selection_mode_as_it_is_irrelevant_for_this_test consistencyConfig
             ExceptionHandler = None
+            ExtraProtectionAgainstUnfoundedCancellations = true
         }
 
     let defaultFaultTolerantParallelClient =
@@ -1151,6 +1152,7 @@ type FaultTolerance() =
                 NumberOfRetriesForInconsistency = test_does_not_involve_retries
                 ResultSelectionMode = ResultSelectionMode.Exhaustive
                 ExceptionHandler = None
+                ExtraProtectionAgainstUnfoundedCancellations = true
             }
         let retrievedData1 = defaultFaultTolerantParallelClient.Query
                                 settings

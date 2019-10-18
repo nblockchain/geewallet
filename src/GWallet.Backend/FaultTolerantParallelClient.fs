@@ -83,6 +83,7 @@ type FaultTolerantParallelClientSettings<'R> =
         NumberOfRetriesForInconsistency: uint32;
         ResultSelectionMode: ResultSelectionMode<'R>
         ExceptionHandler: Option<Exception->unit>
+        ExtraProtectionAgainstUnfoundedCancellations: bool
     }
 
 type Result<'Val, 'Err when 'Err :> Exception> =
@@ -204,6 +205,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                              (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R>>)
                              (cancellationSource: CancellationTokenSource)
                              (canceledInternally: MutableStateCapsule<Option<DateTime>>)
+                             (extraProtectionAgainstUnfoundedCancellations: bool)
                                  : Async<FinalResult<'K,'T,'R>> = async {
         if startedTasks = List.Empty then
             return
@@ -230,13 +232,18 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome &&
                            canceledInternally.SafeDo(fun x -> x.Value.IsNone) ->
 
-                    let cancellationRequested = cancellationSource.IsCancellationRequested
-                    let msg = sprintf "Somehow the job got canceled without being canceled internally (req?: %b)"
-                                      cancellationRequested
+                    if not extraProtectionAgainstUnfoundedCancellations then
+                        let cancellationRequested = cancellationSource.IsCancellationRequested
+                        let msg = sprintf "Somehow the job got canceled without being canceled internally (req?: %b)"
+                                          cancellationRequested
 
-                    // TODO: remove this below once we finishing tracking down (fixing)
-                    //       https://gitlab.com/knocte/geewallet/issues/125
-                    raise <| InvalidOperationException(msg, ex)
+                        // TODO: remove this below once we finishing tracking down (fixing)
+                        //       https://gitlab.com/knocte/geewallet/issues/125
+                        raise <| InvalidOperationException(msg, ex)
+                    else
+                        let unsuccessfulServer = { Server = fastestTask.Server; Failure = ex }
+                        resultsSoFar,unsuccessfulServer::failedFuncsSoFar
+
             let newRestOfTasks,newRestOfJobs =
                 match jobsToContinueWith with
                 | [] ->
@@ -257,6 +264,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newFailedFuncs
                                              cancellationSource
                                              canceledInternally
+                                             extraProtectionAgainstUnfoundedCancellations
                 | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                     match minNumberOfConsistentResultsRequired,cacheMatchFunc with
                     | None, None ->
@@ -273,6 +281,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                      newFailedFuncs
                                                      cancellationSource
                                                      canceledInternally
+                                                     extraProtectionAgainstUnfoundedCancellations
                     | _ -> return failwith "should be either both None or both Some!"
             }
 
@@ -289,6 +298,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newFailedFuncs
                                              cancellationSource
                                              canceledInternally
+                                             extraProtectionAgainstUnfoundedCancellations
             | Some (SpecificNumberOfConsistentResponsesRequired number) ->
                 return! returnWithConsistencyOf (Some number) ((fun _ -> false) |> Some)
             | Some (OneServerConsistentWithCertainValueOrTwoServers cacheMatchFunc) ->
@@ -313,6 +323,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newFailedFuncs
                                              cancellationSource
                                              canceledInternally
+                                             extraProtectionAgainstUnfoundedCancellations
     }
 
     // at the time of writing this, I only found a Task.WhenAny() equivalent function in the asyncF# world, called
@@ -326,6 +337,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                  (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R>>)
                  (cancellationSource: CancellationTokenSource)
                  (canceledInternally: MutableStateCapsule<Option<DateTime>>)
+                 (extraProtectionAgainstUnfoundedCancellations: bool)
                      : Async<FinalResult<'K,'T,'R>> =
         let initialServerCount = jobsToStart.Length + jobsToContinueWith.Length |> uint32
         let tasks = jobsToStart |> List.map (fun job -> LaunchAsyncJob job cancellationSource)
@@ -337,6 +349,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                          failedFuncsSoFar
                          cancellationSource
                          canceledInternally
+                         extraProtectionAgainstUnfoundedCancellations
 
     let rec CreateAsyncJobFromFunc (shouldReportUncanceledJobs: bool)
                                    (canceledInternally: MutableStateCapsule<Option<DateTime>>)
@@ -461,6 +474,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                failedFuncsSoFar
                                cancellationSource
                                canceledInternally
+                               settings.ExtraProtectionAgainstUnfoundedCancellations
         match result with
         | AverageResult averageResult ->
             CancelAndDispose cancellationSource canceledInternally
