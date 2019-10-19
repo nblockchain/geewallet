@@ -83,6 +83,9 @@ type FaultTolerantParallelClientSettings<'R> =
         NumberOfRetriesForInconsistency: uint32;
         ResultSelectionMode: ResultSelectionMode<'R>
         ExceptionHandler: Option<Exception->unit>
+
+        // TODO: remove this below once we finishing tracking down (fixing)
+        //       https://gitlab.com/knocte/geewallet/issues/125
         ExtraProtectionAgainstUnfoundedCancellations: bool
     }
 
@@ -241,6 +244,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                         //       https://gitlab.com/knocte/geewallet/issues/125
                         raise <| InvalidOperationException(msg, ex)
                     else
+                        Infrastructure.ReportWarning ex
                         let unsuccessfulServer = { Server = fastestTask.Server; Failure = ex }
                         resultsSoFar,unsuccessfulServer::failedFuncsSoFar
 
