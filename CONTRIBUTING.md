@@ -168,4 +168,4 @@ Some other items that haven't been prioritized include (likely only intelligible
   * Frontend.XF: show balances as soon as the first confirmed balance is retreived, and put an in-progress animated gif in the currency rows that are still being queried (this way you will easily tell as well which currencies have low server availability, which might push the user to turn some of them off in the settings).
   * Backend.Config.DEFAULT_NETWORK_TIMEOUT: see comment above this setting, to couple it with FaultTolerantParalellClient (or create two timeout settings, see 091b151ff4a37ca74a312609f173d5fe589ac623 ).
   * Improve stats.json feeding by 1) collecting new stats at bump.fsx time; 2) disable cancellation in non-FAST mode for this dev-env collection. 
-
+- Use this logo for BTC when lightning support is merged: https://www.reddit.com/r/Bitcoin/comments/dklkyo/released_this_logo_for_public_use_at_lighting/
