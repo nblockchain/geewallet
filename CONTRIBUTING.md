@@ -126,6 +126,13 @@ https://gitlab.com/knocte/gweeallet
 (don't mix changes that have different concerns in the same commit). Don't
 forget to include all explanations and reasonings in the commit messages,
 instead of just leaving them as part of the MergeRequest description.
+* Push each commit separately (instead of sending more than 1 commit in a
+single push), so that we can have a CI status for each commit in the MR. This
+is a best practice because it will make sure that the build is not broken in
+between commits (if this happens, future developers may have a hard time when
+trying to bisect bugs). If you have already pushed your commits to the remote
+in one push, this can be undone by using this technique:
+https://stackoverflow.com/a/3230241/544947
 * Git commit messages should follow this style:
 
 ```
