@@ -24,7 +24,6 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     let loadingLabel = mainLayout.FindByName<Label> "loadingLabel"
     let dotsMaxCount = 3
     let loadingTextNoDots = loadingLabel.Text
-    let animLength = TimeSpan.FromMilliseconds 500.
 
     let allAccounts = Account.GetAllActiveAccounts()
     let normalAccounts = allAccounts.OfType<NormalAccount>() |> List.ofSeq
@@ -83,8 +82,9 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
             progressBarLayout.IsVisible <- true
             loadingLabel.IsVisible <- true
         )
-        Device.StartTimer(animLength, Func<bool> UpdateDotsLabel)
 
+        let dotsAnimationLength = TimeSpan.FromMilliseconds 500.
+        Device.StartTimer(dotsAnimationLength, Func<bool> UpdateDotsLabel)
     do
         this.Init()
 
