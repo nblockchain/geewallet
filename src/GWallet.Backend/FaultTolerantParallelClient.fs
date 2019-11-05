@@ -235,17 +235,20 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome &&
                            canceledInternally.SafeDo(fun x -> x.Value.IsNone) ->
 
-                    if not extraProtectionAgainstUnfoundedCancellations then
+                    let ioe =
                         let cancellationRequested = cancellationSource.IsCancellationRequested
                         let msg = sprintf "Somehow the job got canceled without being canceled internally (req?: %b)"
                                           cancellationRequested
 
                         // TODO: remove this below once we finishing tracking down (fixing)
                         //       https://gitlab.com/knocte/geewallet/issues/125
-                        raise <| InvalidOperationException(msg, ex)
+                        InvalidOperationException(msg, ex)
+
+                    if not extraProtectionAgainstUnfoundedCancellations then
+                        raise ioe
                     else
-                        Infrastructure.ReportWarning ex
-                        let unsuccessfulServer = { Server = fastestTask.Server; Failure = ex }
+                        Infrastructure.ReportWarning ioe
+                        let unsuccessfulServer = { Server = fastestTask.Server; Failure = ioe }
                         resultsSoFar,unsuccessfulServer::failedFuncsSoFar
 
             let newRestOfTasks,newRestOfJobs =

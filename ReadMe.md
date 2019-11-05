@@ -14,6 +14,7 @@ geewallet is a minimalistic and pragmatist crossplatform lightweight opensource 
 
 [![Balances mobile-page screenshot](https://raw.githubusercontent.com/knocte/geewallet/master/img/screenshots/maciosandroid-balances.png)](https://raw.githubusercontent.com/knocte/geewallet/master/img/screenshots/maciosandroid-balances.png)
 
+
 ## Principles
 
 This is a wallet that prioritizes convenience & security over privacy. Examples:
@@ -29,6 +30,7 @@ In the development side of things, we advocate for simplicity:
 1. We will always be standing in the shoulders of giants, which means that we should not reinvent the wheel, thus we have a complete commitment to opensource as way of evolving the product and achieving the maximum level of security/auditability; unlike other multi-currency wallets (cough... Jaxx ...cough).
 2. We will try to only add new features to the UX/UI that can be supported by all currencies that we support, and we will prioritize new features (Layer2: micropayments) over support for new currencies (no shitcoins thanks).
 3. Thanks to our usage of Xamarin.Forms toolkit, our frontends are based on a single codebase, instead of having to repeat logic for each platform.
+
 
 ## Features
 
