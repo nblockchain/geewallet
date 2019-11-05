@@ -115,12 +115,16 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         scanPage.add_OnScanResult(fun (result:ZXing.Result) ->
             scanPage.IsScanning <- false
             Device.BeginInvokeOnMainThread(fun _ ->
+                // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
+                //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
                 let task = this.Navigation.PopModalAsync()
                 transactionEntry.Text <- result.Text
                 task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
         Device.BeginInvokeOnMainThread(fun _ ->
+            // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
+            //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
             this.Navigation.PushModalAsync scanPage
                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         )
@@ -136,6 +140,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             scanPage.IsScanning <- false
 
             Device.BeginInvokeOnMainThread(fun _ ->
+                // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
+                //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
                 let task = this.Navigation.PopModalAsync()
 
                 let address,maybeAmount =
@@ -163,6 +169,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
+        // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
+        //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
         this.Navigation.PushModalAsync scanPage
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
