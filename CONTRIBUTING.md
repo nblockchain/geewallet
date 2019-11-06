@@ -131,8 +131,8 @@ single push), so that we can have a CI status for each commit in the MR. This
 is a best practice because it will make sure that the build is not broken in
 between commits (if this happens, future developers may have a hard time when
 trying to bisect bugs). If you have already pushed your commits to the remote
-in one push, this can be undone by using this technique:
-https://stackoverflow.com/a/3230241/544947
+in one push, this can be re-done by using the `scripts/gitpush.fsx` script,
+or this technique manually: https://stackoverflow.com/a/3230241/544947
 * Git commit messages should follow this style:
 
 ```
