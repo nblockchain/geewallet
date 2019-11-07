@@ -48,11 +48,10 @@ module Account =
         }
 
     let mutable wiped = false
-    let private WipeConfig(allCurrencies: seq<Currency>) =
+    let private WipeConfig () =
 #if DEBUG
         if not wiped then
-            for currency in allCurrencies do
-                Config.Wipe currency
+            Config.Wipe ()
             wiped <- true
 #else
         ()
@@ -63,7 +62,7 @@ module Account =
 
 // uncomment this block below, manually, if when testing you need to go back to test the WelcomePage.xaml
 #if FALSE
-        WipeConfig allCurrencies
+        WipeConfig ()
         Caching.Instance.ClearAll()
         failwith "OK, all accounts and cache is clear, you can disable this code block again"
 #endif

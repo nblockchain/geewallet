@@ -153,7 +153,7 @@ module Config =
             Content = fun _ -> File.ReadAllText newAccountFile.FullName
         }
 
-    let internal Wipe(currency: Currency): unit =
+    let internal Wipe () =
         let configDirForAccounts = GetConfigDirForAccounts()
         Directory.Delete(configDirForAccounts.FullName, true) |> ignore
 
