@@ -152,8 +152,11 @@ module UserInteraction =
 
     let rec AskPassword(repeat: bool): string =
         Console.WriteLine()
+        if repeat then
+            Console.Write "Write the password to unlock your account (when making payments) in this device: "
+        else
+            Console.Write "Write the password to unlock your account: "
 
-        Console.Write("Write the password to unlock your account (when making payments) in this device: ")
         let password = ConsoleReadPasswordLine()
         if not repeat then
             password
