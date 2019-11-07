@@ -7,7 +7,7 @@ open System.Globalization
 
 open GWallet.Backend
 
-type internal Options =
+type internal Operations =
     | Exit               = 0
     | Refresh            = 1
     | CreateAccounts     = 2
@@ -17,6 +17,7 @@ type internal Options =
     | BroadcastPayment   = 6
     | ArchiveAccount     = 7
     | PairToWatchWallet  = 8
+    | Options            = 9
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -51,30 +52,31 @@ module UserInteraction =
 
         ConsoleReadPasswordLineInternal(String.Empty)
 
-    exception NoOptionFound
+    exception NoOperationFound
 
-    let rec FindMatchingOption<'T> (optIntroduced, allOptions: List<'T*int>): 'T =
-        match Int32.TryParse(optIntroduced) with
-        | false, _ -> raise NoOptionFound
-        | true, optionParsed ->
-            match allOptions with
-            | [] -> raise NoOptionFound
+    let rec FindMatchingOperation<'T> operationIntroduced (allOperations: List<'T*int>): 'T =
+        match Int32.TryParse operationIntroduced with
+        | false, _ -> raise NoOperationFound
+        | true, operationParsed ->
+            match allOperations with
+            | [] -> raise NoOperationFound
             | (head,i)::tail ->
-                if (i = optionParsed) then
+                if i = operationParsed then
                     head
                 else
-                    FindMatchingOption(optIntroduced, tail)
+                    FindMatchingOperation operationIntroduced tail
 
-    let internal OptionAvailable (option: Options) (numAccounts: int) =
+    let internal OperationAvailable (operation: Operations) (numAccounts: int) =
         let noAccounts = numAccounts = 0
-        match option with
-        | Options.SendPayment
-        | Options.SignOffPayment
-        | Options.ArchiveAccount
-        | Options.PairToWatchWallet
+        match operation with
+        | Operations.SendPayment
+        | Operations.SignOffPayment
+        | Operations.ArchiveAccount
+        | Operations.PairToWatchWallet
+        | Operations.Options
             ->
                 not noAccounts
-        | Options.CreateAccounts -> noAccounts
+        | Operations.CreateAccounts -> noAccounts
         | _ -> true
 
     let rec internal AskFileNameToLoad (askText: string): FileInfo =
@@ -89,66 +91,89 @@ module UserInteraction =
             Presentation.Error "File not found, try again."
             AskFileNameToLoad askText
 
-    let rec internal AskOption(numAccounts: int): Options =
-        Console.WriteLine("Available options:")
+    let rec internal AskOperation (numAccounts: int): Operations =
+        Console.WriteLine "Available operations:"
 
         // TODO: move these 2 lines below to FSharpUtil?
-        let allOptions = Enum.GetValues(typeof<Options>).Cast<Options>() |> List.ofSeq
+        let allOperations = (Enum.GetValues typeof<Operations>).Cast<Operations>() |> List.ofSeq
 
-        let allOptionsAvailable =
+        let allOperationsAvailable =
             seq {
-                for option in allOptions do
-                    if OptionAvailable option numAccounts then
+                for operation in allOperations do
+                    if OperationAvailable operation numAccounts then
                         Console.WriteLine(sprintf "%d: %s"
-                                              (int option)
-                                              (Presentation.ConvertPascalCaseToSentence (option.ToString())))
-                        yield option, int option
+                                              (int operation)
+                                              (Presentation.ConvertPascalCaseToSentence (operation.ToString())))
+                        yield operation, int operation
             } |> List.ofSeq
-        Console.Write("Choose option to perform: ")
-        let optIntroduced = System.Console.ReadLine()
+        Console.Write "Choose operation to perform: "
+        let operationIntroduced = Console.ReadLine()
         try
-            FindMatchingOption(optIntroduced, allOptionsAvailable)
+            FindMatchingOperation operationIntroduced allOperationsAvailable
         with
-        | :? NoOptionFound -> AskOption(numAccounts)
+        | :? NoOperationFound -> AskOperation numAccounts
 
-    let rec private AskDob(): DateTime =
+    let rec private AskDob (repeat: bool): DateTime =
         let format = "dd/MM/yyyy"
         Console.Write(sprintf "Write your date of birth (format '%s'): " format)
         let dob = Console.ReadLine()
         match (DateTime.TryParseExact(dob, format, CultureInfo.InvariantCulture, DateTimeStyles.None)) with
         | false,_ ->
             Presentation.Error "Incorrect date or date format, please try again."
-            AskDob()
+            AskDob repeat
         | true,parsedDateTime ->
-            parsedDateTime
+            if repeat then
+                let dob2 = Console.ReadLine()
+                if dob2 <> dob then
+                    Presentation.Error "Dates don't match, please try again."
+                    AskDob repeat
+                else
+                    parsedDateTime
+            else
+                parsedDateTime
 
-    let rec private AskEmail(): string =
-        Console.Write("Write your e-mail address (that you'll never forget): ")
+    let rec private AskEmail (repeat: bool): string =
+        if repeat then
+            Console.Write "Write your e-mail address (that you'll never forget): "
+        else
+            Console.Write "Write your e-mail address: "
+
         let email = Console.ReadLine()
-        Console.Write("Repeat it: ")
-        let email2 = Console.ReadLine()
-        if (email <> email2) then
-            Presentation.Error "E-mail addresses are not the same, please try again."
-            AskEmail()
-        else
+        if not repeat then
             email
-
-    let rec AskBrainSeed(): string*DateTime*string =
-        Console.WriteLine()
-
-        Console.Write("Write a seed passphrase (for disaster recovery) for your new wallet: ")
-        let passphrase = ConsoleReadPasswordLine()
-
-        Console.Write("Repeat the seed passphrase: ")
-        let passphrase2 = ConsoleReadPasswordLine()
-        if (passphrase <> passphrase2) then
-            Presentation.Error "Passphrases are not the same, please try again."
-            AskBrainSeed ()
         else
-            let dob = AskDob()
-            let email = AskEmail()
-            passphrase,dob,email
+            Console.Write "Repeat it: "
+            let email2 = Console.ReadLine()
+            if email <> email2 then
+                Presentation.Error "E-mail addresses are not the same, please try again."
+                AskEmail repeat
+            else
+                email
 
+    let rec private AskPassPhrase (repeat: bool): string =
+        if repeat then
+            Console.Write "Write a seed passphrase (for disaster recovery) for your new wallet: "
+        else
+            Console.Write "Write the seed passphrase: "
+
+        let passphrase1 = ConsoleReadPasswordLine()
+        if not repeat then
+            passphrase1
+        else
+            Console.Write "Repeat the seed passphrase: "
+            let passphrase2 = ConsoleReadPasswordLine()
+            if passphrase1 <> passphrase2 then
+                Presentation.Error "Passphrases are not the same, please try again."
+                AskPassPhrase repeat
+            else
+                passphrase1
+
+    let rec AskBrainSeed (repeat: bool): string*DateTime*string =
+        Console.WriteLine()
+        let passphrase = AskPassPhrase repeat
+        let dob = AskDob repeat
+        let email = AskEmail repeat
+        passphrase,dob,email
 
     let rec AskPassword(repeat: bool): string =
         Console.WriteLine()

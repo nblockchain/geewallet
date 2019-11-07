@@ -145,6 +145,10 @@ module Config =
             Content = fun _ -> File.ReadAllText newAccountFile.FullName
         }
 
+    let public Wipe (): unit =
+        let configDirForAccounts = GetConfigDirForAccounts()
+        Directory.Delete(configDirForAccounts.FullName, true) |> ignore
+
     // we don't expose this as public because we don't want to allow removing archived accounts
     let private RemoveAccount (account: BaseAccount): unit =
         let configFile = GetFile (account:>IAccount).Currency account

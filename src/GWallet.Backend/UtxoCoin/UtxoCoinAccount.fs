@@ -446,6 +446,9 @@ module Account =
         let rawTransaction = signedTransaction.ToHex()
         rawTransaction
 
+    let CheckValidPassword (account: NormalAccount) (password: string) =
+        GetPrivateKey account password |> ignore
+
     let private BroadcastRawTransaction currency (rawTx: string): Async<string> =
         let job = ElectrumClient.BroadcastTransaction rawTx
         let newTxIdJob =

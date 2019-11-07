@@ -302,6 +302,11 @@ module Caching =
                                                         address
                                                         newCache))
 
+        member this.ClearAll () =
+            SaveNetworkDataToDisk CachedNetworkData.Empty
+            SaveServerRankingsToDisk Map.empty
+                |> ignore
+
         member self.SaveSnapshot(newDietCachedData: DietCache) =
             let newCachedData = CachedNetworkData.FromDietCache newDietCachedData
             lock cacheFiles.CachedNetworkData (fun _ ->
