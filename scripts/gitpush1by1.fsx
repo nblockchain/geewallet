@@ -38,6 +38,7 @@ let GetRemotes () =
 
 let FindUnpushedCommits (lastCommitHashInRemote: string) =
     let rec findUnpushedCommits commitsFoundSoFar currentSkipCount =
+        Console.WriteLine "Walking tree..."
         let currentHash = Process.SafeExecute({ Command = "git";
                                                 Arguments = sprintf "log -1 --skip=%i --format=format:%%H"
                                                                     currentSkipCount },
@@ -88,21 +89,24 @@ if not (GetRemotes().Any(fun currentRemote -> currentRemote = remote)) then
     Environment.Exit 4
 
 let currentBranch = Git.GetCurrentBranch()
-match maybeNumberOfCommits with
-| None ->
-    let lastCommitHashOfCurrentBranchInRemote = GetLastCommitFromRemoteBranch remote currentBranch
-    let commitsToPush = FindUnpushedCommits lastCommitHashOfCurrentBranchInRemote
-    if commitsToPush.Length = 0 then
-        Console.Error.WriteLine (sprintf "Current branch '%s' in remote '%s' is already up to date. Force push by specifying number of commits as 2nd argument?"
-                                         currentBranch remote)
-    else
-        Console.WriteLine (sprintf "Detected a delta of %i commits between local branch '%s' and the one in remote '%s', to be pushed one by one. Press any key to continue or CTRL+C to abort."
-                                   commitsToPush.Length currentBranch remote)
-        Console.ReadKey true |> ignore
-        for commit in commitsToPush do
-            GitSpecificPush remote commit currentBranch
+let commitsToBePushed =
+    match maybeNumberOfCommits with
+    | None ->
+        let lastCommitHashOfCurrentBranchInRemote = GetLastCommitFromRemoteBranch remote currentBranch
+        let commitsToPush = FindUnpushedCommits lastCommitHashOfCurrentBranchInRemote
+        if commitsToPush.Length = 0 then
+            Console.Error.WriteLine (sprintf "Current branch '%s' in remote '%s' is already up to date. Force push by specifying number of commits as 2nd argument?"
+                                             currentBranch remote)
+            Environment.Exit 5
+            failwith "Unreachable"
+        else
+            Console.WriteLine (sprintf "Detected a delta of %i commits between local branch '%s' and the one in remote '%s', to be pushed one by one. Press any key to continue or CTRL+C to abort."
+                                       commitsToPush.Length currentBranch remote)
+            Console.ReadKey true |> ignore
+            Console.WriteLine "Pushing..."
+            commitsToPush
+    | Some numberOfCommits ->
+        GetLastCommits numberOfCommits
 
-| Some numberOfCommits ->
-    let commitsToPush = GetLastCommits numberOfCommits
-    for commit in commitsToPush do
-        GitSpecificPush remote commit currentBranch
+for commit in commitsToBePushed do
+    GitSpecificPush remote commit currentBranch
