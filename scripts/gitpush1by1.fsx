@@ -19,11 +19,11 @@ let GitSpecificPush (remoteName: string) (commitSha: string) (remoteBranchName: 
         }
     Process.SafeExecute (gitPush, Echo.OutputOnly) |> ignore
 
-let GetLastCommitFromRemoteBranch (remoteName: string) (remoteBranch: string) =
+let GetLastNthCommitFromRemoteBranch (remoteName: string) (remoteBranch: string) (n: uint32) =
     let gitShow =
         {
             Command = "git"
-            Arguments = sprintf "show %s/%s --no-patch" remoteName remoteBranch
+            Arguments = sprintf "show %s/%s~%i --no-patch" remoteName remoteBranch n
         }
     let gitShowProc = Process.SafeExecute(gitShow, Echo.Off)
     let firstLine = (Misc.CrossPlatformStringSplitInLines gitShowProc.Output.StdOut).First()
@@ -92,7 +92,7 @@ let currentBranch = Git.GetCurrentBranch()
 let commitsToBePushed =
     match maybeNumberOfCommits with
     | None ->
-        let lastCommitHashOfCurrentBranchInRemote = GetLastCommitFromRemoteBranch remote currentBranch
+        let lastCommitHashOfCurrentBranchInRemote = GetLastNthCommitFromRemoteBranch remote currentBranch 0u
         let commitsToPush = FindUnpushedCommits lastCommitHashOfCurrentBranchInRemote
         if commitsToPush.Length = 0 then
             Console.Error.WriteLine (sprintf "Current branch '%s' in remote '%s' is already up to date. Force push by specifying number of commits as 2nd argument?"
