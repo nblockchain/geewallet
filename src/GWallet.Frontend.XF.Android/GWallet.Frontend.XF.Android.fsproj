@@ -10,7 +10,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>GWallet.Frontend.XF.Android</RootNamespace>
     <AssemblyName>GWallet.Frontend.XF.Android</AssemblyName>
-    <TargetFrameworkVersion>v8.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v9.0</TargetFrameworkVersion>
     <AndroidApplication>True</AndroidApplication>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidResgenClass>Resource</AndroidResgenClass>
