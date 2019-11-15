@@ -221,12 +221,71 @@ let PairToWatchWallet() =
 
     UserInteraction.PressAnyKeyToContinue()
 
-let rec PerformOptions(numAccounts: int) =
-    match UserInteraction.AskOption(numAccounts) with
-    | Options.Exit -> exit 0
-    | Options.CreateAccounts ->
+type private GenericWalletOption =
+    | Cancel
+    | TestPaymentPassword
+    | TestSeedPassphrase
+    | WipeWallet
+
+let rec TestPaymentPassword () =
+    let password = UserInteraction.AskPassword false
+    let passwordChecksOnAllAccounts = Account.CheckValidPassword password |> Async.RunSynchronously
+    if not (passwordChecksOnAllAccounts.All(fun x -> x = true)) then
+        Console.WriteLine "Try again."
+        TestPaymentPassword ()
+
+let rec TestSeedPassphrase(): unit =
+    let passphrase,dob,email = UserInteraction.AskBrainSeed false
+    let check = Account.CheckValidSeed passphrase dob email |> Async.RunSynchronously
+    if not check then
+        Console.WriteLine "Try again."
+        TestSeedPassphrase()
+
+let WipeWallet() =
+    Console.WriteLine "If you want to remove accounts, the recommended way is to archive them, not wipe the whole wallet."
+    Console.Write "Are you ABSOLUTELY SURE about this? If yes, write 'YES' in uppercase: "
+    let sure = Console.ReadLine ()
+    if sure = "YES" then
+        Account.WipeAll()
+    else
+        ()
+
+let WalletOptions(): unit =
+    let rec AskWalletOption(): GenericWalletOption =
+        Console.WriteLine "0. Cancel, go back"
+        Console.WriteLine "1. Check you still remember your payment password"
+        Console.WriteLine "2. Check you still remember your seed passphrase"
+        Console.WriteLine "3. Wipe your current wallet, in order to start from scratch"
+        Console.Write "Choose an option from the ones above: "
+        let optIntroduced = Console.ReadLine ()
+        match UInt32.TryParse optIntroduced with
+        | false, _ -> AskWalletOption()
+        | true, optionParsed ->
+            match optionParsed with
+            | 0u -> GenericWalletOption.Cancel
+            | 1u -> GenericWalletOption.TestPaymentPassword
+            | 2u -> GenericWalletOption.TestSeedPassphrase
+            | 3u -> GenericWalletOption.WipeWallet
+            | _ -> AskWalletOption()
+
+    let walletOption = AskWalletOption()
+    match walletOption with
+    | GenericWalletOption.TestPaymentPassword ->
+        TestPaymentPassword()
+        Console.WriteLine "Success!"
+    | GenericWalletOption.TestSeedPassphrase ->
+        TestSeedPassphrase()
+        Console.WriteLine "Success!"
+    | GenericWalletOption.WipeWallet ->
+        WipeWallet()
+    | _ -> ()
+
+let rec PerformOperation (numAccounts: int) =
+    match UserInteraction.AskOperation numAccounts with
+    | Operations.Exit -> exit 0
+    | Operations.CreateAccounts ->
         let bootstrapTask = Caching.Instance.BootstrapServerStatsFromTrustedSource() |> Async.StartAsTask
-        let passphrase,dob,email = UserInteraction.AskBrainSeed()
+        let passphrase,dob,email = UserInteraction.AskBrainSeed true
         if null <> bootstrapTask.Exception then
             raise bootstrapTask.Exception
         let masterPrivateKeyTask =
@@ -236,20 +295,22 @@ let rec PerformOptions(numAccounts: int) =
         Async.RunSynchronously (Account.CreateAllAccounts masterPrivateKeyTask password)
         Console.WriteLine("Accounts created")
         UserInteraction.PressAnyKeyToContinue()
-    | Options.Refresh -> ()
-    | Options.SendPayment ->
+    | Operations.Refresh -> ()
+    | Operations.SendPayment ->
         SendPayment()
-    | Options.AddReadonlyAccounts ->
+    | Operations.AddReadonlyAccounts ->
         AddReadOnlyAccounts()
             |> Async.RunSynchronously
-    | Options.SignOffPayment ->
+    | Operations.SignOffPayment ->
         SignOffPayment()
-    | Options.BroadcastPayment ->
+    | Operations.BroadcastPayment ->
         BroadcastPayment()
-    | Options.ArchiveAccount ->
+    | Operations.ArchiveAccount ->
         ArchiveAccount()
-    | Options.PairToWatchWallet ->
+    | Operations.PairToWatchWallet ->
         PairToWatchWallet()
+    | Operations.Options ->
+        WalletOptions()
     | _ -> failwith "Unreachable"
 
 let rec GetAccountOfSameCurrency currency =
@@ -287,11 +348,12 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
 
     not (archivedAccountsInNeedOfAction.Any())
 
+
 let rec ProgramMainLoop() =
     let accounts = Account.GetAllActiveAccounts()
     UserInteraction.DisplayAccountStatuses(WhichAccount.All(accounts))
     if CheckArchivedAccountsAreEmpty() then
-        PerformOptions(accounts.Count())
+        PerformOperation (accounts.Count())
     ProgramMainLoop()
 
 

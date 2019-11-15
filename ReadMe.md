@@ -20,7 +20,7 @@ geewallet is a minimalistic and pragmatist crossplatform lightweight opensource 
 This is a wallet that prioritizes convenience & security over privacy. Examples:
 
 1. Convenience: it is a lightweight/thin wallet (you don't need to download whole blockchains to use it, unlike with fullnode wallets).
-2. Convenience over privacy (I): it's a wallet that can handle multiple cryptocurrencies, so its UX needs to be as generic as possible to accomodate them, therefore only contains minimal currency-specific features. For example, given that the concept of "change-addresses" doesn't exist in the Ethereum world (a concept initially thought to help privacy in the bitcoin world, but which doesn't achieve much of it in the end), then it is not used even when sending bitcoin, to avoid cluttering the UI/UX with currency-specific features/complexities. We will still be investigating the support of more robust privacy features such as the ones provided by TumbleBit or ConfidentialTransactions.
+2. Convenience over privacy (I): it's a wallet that can handle multiple cryptocurrencies, so its UX needs to be as generic as possible to accomodate them, therefore only contains minimal currency-specific features. For example, given that the concept of "change-addresses" doesn't exist in the Ethereum world (a concept initially thought to help privacy in the bitcoin world, but which doesn't achieve much of it in the end), then it is not used even when sending bitcoin, to avoid cluttering the UI/UX with currency-specific features/complexities (e.g. see https://twitter.com/NicolasDorier/status/1195181085702774784 ). We will still be investigating the support of more robust privacy features such as the ones provided by TumbleBit or ConfidentialTransactions.
 3. Convenience over privacy (II): servers from other wallets' infrastructure is reused (e.g. Electrum's Stratum protocol), however TLS communication is still unsupported (this only hinders privacy but doesn't pose any security risk).
 4. Security (I): it's a desktop/mobile wallet, not an online/web wallet like others (e.g. web wallets are easy targets: https://twitter.com/myetherwallet/status/988830652526092288 ).
 5. Security (II): it has cold-storage support (you can run it in off-line mode and import/export transactions in JSON files), but not hardware wallet support. Remember, cold storage is not the same as 'hardware wallet'. This is a software wallet, but which works in air-gapped devices (computers/smartphones) thanks to its cold-storage support, which means that it's safer than hardware wallets (after all, bugs and security issues are constantly being found on hardware wallets, e.g.: https://saleemrashid.com/2018/03/20/breaking-ledger-security-model/).
@@ -126,7 +126,8 @@ Special thanks to all the [contributors](https://gitlab.com/knocte/geewallet/gra
 - @juanfranblanco: Nethereum
 - @nicolasdorier, @joemphilips: NBitcoin
 - @redth, @EBrown8534, @mierzynskim: ZXing.Net.Mobile, ZXing.Net.Xamarin
-- JsonRpcSharp: @ardave, @martz2804, @jerry40, @mierzynskim, @winstongubantes and again @juanfranblanco
+- Xamarin.Forms: @mfkl, @stanbav, @AndreiMisiukevich
+- JsonRpcSharp: @ardave, @mfkl, @jerry40, @mierzynskim, @winstongubantes and again @juanfranblanco
 - ...and all the Xamarin/Mono/.NetCore community in general, of course
 
 If you want to become part of this distributed team of brave disruptarians, check our [CONTRIBUTING guideline](CONTRIBUTING.md) first, and start coding!

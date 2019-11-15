@@ -302,12 +302,10 @@ module Caching =
                                                         address
                                                         newCache))
 
-#if DEBUG
         member this.ClearAll () =
             SaveNetworkDataToDisk CachedNetworkData.Empty
             SaveServerRankingsToDisk Map.empty
                 |> ignore
-#endif
 
         member self.SaveSnapshot(newDietCachedData: DietCache) =
             let newCachedData = CachedNetworkData.FromDietCache newDietCachedData

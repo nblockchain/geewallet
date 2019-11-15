@@ -285,6 +285,29 @@ module Account =
 
         | _ -> failwith "fee type unknown"
 
+    let CheckValidPassword (password: string) =
+        let checkJobs =
+            seq {
+                for account in GetAllActiveAccounts().OfType<NormalAccount>() do
+                    yield async {
+                        if (account :> IAccount).Currency.IsEtherBased() then
+                            try
+                                Ether.Account.CheckValidPassword account password
+                                return true
+                            with
+                            | :? InvalidPassword ->
+                                return false
+                        else
+                            try
+                                UtxoCoin.Account.CheckValidPassword account password
+                                return true
+                            with
+                            | :? InvalidPassword ->
+                                return false
+                    }
+            }
+        Async.Parallel checkJobs
+
     let private CreateArchivedAccount (currency: Currency) (unencryptedPrivateKey: string): ArchivedAccount =
         let fromUnencryptedPrivateKeyToPublicAddressFunc =
             if currency.IsUtxo() then
@@ -539,9 +562,8 @@ module Account =
             return privateKeyBytes
         }
 
-    let CreateAllAccounts (masterPrivateKeyTask: Task<array<byte>>) (encryptionPassword: string): Async<unit> = async {
-
-        let! privateKeyBytes = Async.AwaitTask masterPrivateKeyTask
+    let CreateAllConceptAccounts (privateKeyBytes: array<byte>) (encryptionPassword: string)
+                                     : Async<seq<ConceptAccount>> = async {
         let ethCurrencies,etherAccounts = CreateEtherNormalAccounts encryptionPassword privateKeyBytes
         let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (ethCurrencies.Contains currency))
 
@@ -557,10 +579,41 @@ module Account =
         let createAllAccountsJob = Async.Parallel allAccounts
 
         let! allCreatedConceptAccounts = createAllAccountsJob
-        for accountGroup in allCreatedConceptAccounts do
-            for conceptAccount in accountGroup do
-                CreateNormalAccount conceptAccount |> ignore
+        let allConceptAccounts =
+            seq {
+                for accountGroup in allCreatedConceptAccounts do
+                    for conceptAccount in accountGroup do
+                        yield conceptAccount
+            }
+        return allConceptAccounts
     }
+
+    let CreateAllAccounts (masterPrivateKeyTask: Task<array<byte>>) (encryptionPassword: string): Async<unit> = async {
+        let! privateKeyBytes = Async.AwaitTask masterPrivateKeyTask
+        let! allConceptAccounts = CreateAllConceptAccounts privateKeyBytes encryptionPassword
+        for conceptAccount in allConceptAccounts do
+            CreateNormalAccount conceptAccount |> ignore
+    }
+
+    let CheckValidSeed (passphrase: string)
+                       (dobPartOfSalt: DateTime)
+                       (emailPartOfSalt: string) =
+        async {
+            let! masterPrivateKey = GenerateMasterPrivateKey passphrase dobPartOfSalt emailPartOfSalt
+            let! allConceptAccounts = CreateAllConceptAccounts masterPrivateKey (Guid.NewGuid().ToString())
+            return allConceptAccounts.All(fun conceptAccount ->
+                GetAllActiveAccounts().Any(fun account ->
+                    let publicAddressOfConceptAccount =
+                        conceptAccount.ExtractPublicAddressFromConfigFileFunc conceptAccount.FileRepresentation
+                    let publicAddressMatches = (account.PublicAddress = publicAddressOfConceptAccount)
+                    publicAddressMatches
+                )
+            )
+        }
+
+    let WipeAll() =
+        Config.Wipe()
+        Caching.Instance.ClearAll()
 
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
