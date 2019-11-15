@@ -32,6 +32,7 @@
 
         <Entry x:Name="coldStorageAddresses"
                TextChanged="OnEntryTextChanged"
+               IsSpellCheckEnabled="false"
                 />
 
         <Button x:Name="pairButton"

@@ -63,6 +63,7 @@
 
         <Entry x:Name="destinationAddressEntry"
                TextChanged="OnEntryTextChanged"
+               IsSpellCheckEnabled="false"
                 />
 
         <StackLayout Orientation="Horizontal"
