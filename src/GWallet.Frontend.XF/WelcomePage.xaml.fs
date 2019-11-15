@@ -22,7 +22,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     let dobDatePicker = mainLayout.FindByName<DatePicker> "dobDatePicker"
     let nextButton = mainLayout.FindByName<Button> "nextButton"
 
-    let MaybeEnableCreateButton() =
+    let MaybeEnableNextButton () =
         let isEnabled = passphraseEntry.Text <> null && passphraseEntry.Text.Length > 0 &&
                         passphraseConfirmationEntry.Text <> null && passphraseConfirmationEntry.Text.Length > 0 &&
                         emailEntry.Text <> null && emailEntry.Text.Length > 0 &&
@@ -120,11 +120,11 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
 
     member this.OnDobDateChanged (sender: Object, args: DateChangedEventArgs) =
-        MaybeEnableCreateButton()
+        MaybeEnableNextButton ()
 
     member this.OnEmailTextChanged(sender: Object, args: EventArgs) =
-        MaybeEnableCreateButton()
+        MaybeEnableNextButton ()
 
     member this.OnPassphraseTextChanged(sender: Object, args: EventArgs) =
-        MaybeEnableCreateButton()
+        MaybeEnableNextButton ()
 
