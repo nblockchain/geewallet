@@ -171,6 +171,8 @@ module Server =
             // TODO: maybe in these cases below, blacklist the server somehow if it keeps giving this error:
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Forbidden) then
                 raise <| ServerMisconfiguredException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Unauthorized) then
+                raise <| ServerMisconfiguredException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.MethodNotAllowed) then
                 raise <| ServerMisconfiguredException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.InternalServerError) then
