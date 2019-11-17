@@ -64,7 +64,6 @@
         <Entry x:Name="destinationAddressEntry"
                TextChanged="OnEntryTextChanged"
                IsSpellCheckEnabled="false"
-               IsTextPredictionEnabled="false"
                 />
 
         <StackLayout Orientation="Horizontal"

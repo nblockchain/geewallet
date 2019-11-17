@@ -33,7 +33,6 @@
         <Entry x:Name="coldStorageAddresses"
                TextChanged="OnEntryTextChanged"
                IsSpellCheckEnabled="false"
-               IsTextPredictionEnabled="false"
                 />
 
         <Button x:Name="pairButton"
