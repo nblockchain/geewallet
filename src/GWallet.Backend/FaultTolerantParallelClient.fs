@@ -463,12 +463,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
 
         let launchFunc = CreateAsyncJobFromFunc shouldReportUncanceledJobs canceledInternally settings.ExceptionHandler
 
-        let firstJobsToLaunch = Seq.take parallelJobs funcs
-                                    |> Seq.map launchFunc
-                                    |> List.ofSeq
-        let jobsToLaunchLater = Seq.skip parallelJobs funcs
-                                    |> Seq.map launchFunc
-                                    |> List.ofSeq
+        let jobs = funcs
+                   |> Seq.map launchFunc
+                   |> List.ofSeq
+        let firstJobsToLaunch = List.take parallelJobs jobs
+        let jobsToLaunchLater = List.skip parallelJobs jobs
 
         let consistencyConfig =
             match settings.ResultSelectionMode with
