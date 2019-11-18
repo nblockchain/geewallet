@@ -239,7 +239,6 @@ type Runner<'Resource when 'Resource: equality> =
 
 exception AlreadyCanceled
 
-// TODO: should be IDisposable?
 type CustomCancelSource() =
 
     let canceled = Event<unit>()
@@ -248,6 +247,8 @@ type CustomCancelSource() =
 
     member this.Cancel() =
         lock lockObj (fun _ ->
+            if canceledAlready then
+                raise <| ObjectDisposedException "Already canceled/disposed"
             canceledAlready <- true
         )
         canceled.Trigger()
@@ -260,6 +261,15 @@ type CustomCancelSource() =
                     raise AlreadyCanceled
                 canceled.Publish
             )
+
+    interface IDisposable with
+        member this.Dispose() =
+            try
+                this.Cancel()
+            with
+            | :? ObjectDisposedException ->
+                ()
+            // TODO: cleanup also subscribed handlers? see https://stackoverflow.com/q/58912910/544947
 
 
 type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception>
@@ -749,16 +759,24 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             | Selective selSettings ->
                 SortServers servers selSettings.ServerSelectionMode
 
-        QueryInternalImplementation
-            settings
-            initialServerCount
-            maybeSortedServers
-            List.Empty
-            List.Empty
-            0u
-            0u
-            cancellationTokenSourceOption
-            None
+        let job = QueryInternalImplementation
+                      settings
+                      initialServerCount
+                      maybeSortedServers
+                      List.Empty
+                      List.Empty
+                      0u
+                      0u
+                      cancellationTokenSourceOption
+                      None
+        async {
+            let! res = job
+            match cancellationTokenSourceOption with
+            | None -> ()
+            | Some cancelSource ->
+                (cancelSource:>IDisposable).Dispose()
+            return res
+        }
 
     member self.QueryWithCancellation<'R when 'R : equality>
                     (cancellationTokenSource: CustomCancelSource)
