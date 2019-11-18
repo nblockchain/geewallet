@@ -116,7 +116,9 @@ module FrontendHelpers =
         )
         fiatAmount
 
-    let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet) (mode: ServerSelectionMode) (cancelSource: CancellationTokenSource)
+    let UpdateBalanceWithoutCacheAsync (balanceSet: BalanceSet)
+                                       (mode: ServerSelectionMode)
+                                       (cancelSource: CustomCancelSource)
                                            : Async<BalanceState> =
         async {
             let! balance,imminentIncomingPayment =
@@ -137,8 +139,8 @@ module FrontendHelpers =
                            (tryCachedFirst: bool)
                            (mode: ServerSelectionMode)
                            (maybeProgressBar: Option<StackLayout>)
-                               : CancellationTokenSource*Async<BalanceState> =
-        let cancelSource = new CancellationTokenSource()
+                               : CustomCancelSource*Async<BalanceState> =
+        let cancelSource = new CustomCancelSource()
         let job = async {
             if tryCachedFirst then
                 let cachedBalance = Caching.Instance.RetrieveLastCompoundBalance balanceSet.Account.PublicAddress
@@ -184,7 +186,7 @@ module FrontendHelpers =
                             (tryCacheFirst: bool)
                             (mode: ServerSelectionMode)
                             (progressBar: Option<StackLayout>)
-                                : seq<CancellationTokenSource>*Async<array<BalanceState>> =
+                                : seq<CustomCancelSource>*Async<array<BalanceState>> =
         let sourcesAndJobs = seq {
             for balanceSet in accountBalances do
                 let cancelSource,balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst mode progressBar

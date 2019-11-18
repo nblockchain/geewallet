@@ -502,7 +502,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             this.BalanceRefreshCancelSources
                 |> Seq.map (fun cancelSource ->
                                 cancelSource.Cancel()
-                                cancelSource.Dispose())
+                                //TODO: dispose? now with CustomCancelSource it's not actually needed
+                           )
                 |> ignore
         with
         // TODO: remove this below once we finishing tracking down (fixing)
