@@ -237,6 +237,8 @@ type Runner<'Resource when 'Resource: equality> =
         startedTasks,jobsToLaunchLater
 
 
+exception AlreadyCanceled
+
 // TODO: should be IDisposable?
 type CustomCancelSource() =
 
@@ -252,10 +254,12 @@ type CustomCancelSource() =
 
     [<CLIEvent>]
     member this.Canceled
-        with get() = canceled.Publish
-
-    member this.CanceledAlready
-        with get() = canceledAlready
+        with get() =
+            lock lockObj (fun _ ->
+                if canceledAlready then
+                    raise AlreadyCanceled
+                canceled.Publish
+            )
 
 
 type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception>
@@ -517,11 +521,13 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     match cancellationSource with
                     | None -> ()
                     | Some customCancelSource ->
-                        if customCancelSource.CanceledAlready then
+                        try
+                            customCancelSource.Canceled.Add(fun _ ->
+                                CancelAndDispose cancelState
+                            )
+                        with
+                        | AlreadyCanceled ->
                             raise <| TaskCanceledException "Found canceled when about subscribe to cancellation"
-                        customCancelSource.Canceled.Add(fun _ ->
-                            CancelAndDispose cancelState
-                        )
                 tasks,jobsToLaunchLater
 
         let job = WhenSomeInternal consistencyConfig
