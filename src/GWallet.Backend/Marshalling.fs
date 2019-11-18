@@ -96,7 +96,7 @@ module Marshalling =
         let fullTypeName = typeInfo.TypeName
         Type.GetType(fullTypeName)
 
-    let Deserialize<'T>(json: string): 'T =
+    let DeserializeCustom<'T>(json: string, settings: JsonSerializerSettings): 'T =
         if (json = null) then
             raise (ArgumentNullException("json"))
         if (String.IsNullOrWhiteSpace(json)) then
@@ -104,7 +104,7 @@ module Marshalling =
 
         let deserialized =
             try
-                JsonConvert.DeserializeObject<MarshallingWrapper<'T>>(json, DefaultSettings)
+                JsonConvert.DeserializeObject<MarshallingWrapper<'T>>(json, settings)
             with
             | ex ->
                 let versionJsonTag = "\"Version\":\""
@@ -127,18 +127,24 @@ module Marshalling =
                                                       json)
         deserialized.Value
 
-    let private SerializeInternal<'T>(value: 'T): string =
+    let Deserialize<'T>(json: string): 'T =
+        DeserializeCustom(json, DefaultSettings)
+
+    let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings): string =
         JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
                                     DefaultFormatting,
-                                    DefaultSettings)
+                                    settings)
 
-    let Serialize<'T>(value: 'T): string =
+    let SerializeCustom<'T>(value: 'T, settings: JsonSerializerSettings): string =
         try
-            SerializeInternal value
+            SerializeInternal value settings
         with
         | exn ->
             raise(SerializationException(sprintf "Could not serialize object of type '%s' and value '%A'"
                                                   (typeof<'T>.FullName) value, exn))
+
+    let Serialize<'T>(value: 'T): string =
+        SerializeCustom(value, DefaultSettings)
 
     type CompressionOrDecompressionException(msg: string, innerException: Exception) =
         inherit Exception(msg, innerException)
@@ -168,3 +174,5 @@ module Marshalling =
         with
         | ex ->
             raise(CompressionOrDecompressionException("Could not compress", ex))
+
+

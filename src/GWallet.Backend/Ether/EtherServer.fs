@@ -479,7 +479,7 @@ module Server =
                         (address: string)
                         (balType: BalanceType)
                         (mode: ServerSelectionMode)
-                        (cancelSourceOption: Option<CancellationTokenSource>)
+                        (cancelSourceOption: Option<CustomCancelSource>)
                                      : Async<decimal> =
         async {
             let web3Funcs =
@@ -539,7 +539,7 @@ module Server =
                         (address: string)
                         (balType: BalanceType)
                         (mode: ServerSelectionMode)
-                        (cancelSourceOption: Option<CancellationTokenSource>)
+                        (cancelSourceOption: Option<CustomCancelSource>)
                             : Async<decimal> =
         async {
             let web3Funcs =

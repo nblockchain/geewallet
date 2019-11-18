@@ -244,3 +244,10 @@ type Deserialization() =
                     Is.EqualTo 5)
         Assert.That(deserializedSignedTrans.TransactionInfo.Cache.UsdPrice.Count,
                     Is.EqualTo(5))
+
+    [<Test>]
+    member __.``can roundtrip currency``() =
+        let c = Currency.BTC
+        let serialized = Marshalling.Serialize c
+        let deserialized = Marshalling.Deserialize<Currency> serialized
+        Assert.That(c, Is.EqualTo deserialized)

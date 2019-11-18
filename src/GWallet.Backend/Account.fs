@@ -10,7 +10,7 @@ module Account =
 
     let private GetShowableBalanceAndImminentPaymentInternal (account: IAccount)
                                                              (mode: ServerSelectionMode)
-                                                             (cancelSourceOption: Option<CancellationTokenSource>)
+                                                             (cancelSourceOption: Option<CustomCancelSource>)
                                                                  : Async<Option<decimal*Option<bool>>> =
         match account with
         | :? UtxoCoin.IUtxoAccount as utxoAccount ->
@@ -26,7 +26,7 @@ module Account =
 
     let GetShowableBalanceAndImminentIncomingPayment (account: IAccount)
                                                      (mode: ServerSelectionMode)
-                                                     (cancelSourceOption: Option<CancellationTokenSource>)
+                                                     (cancelSourceOption: Option<CustomCancelSource>)
                                                          : Async<MaybeCached<decimal>*Option<bool>> =
         async {
             if Config.NoNetworkBalanceForDebuggingPurposes then
@@ -116,7 +116,7 @@ module Account =
                 EtherPublicAddress = etherPublicAddress
             }
 
-    let GetArchivedAccountsWithPositiveBalance (cancelSourceOption: Option<CancellationTokenSource>)
+    let GetArchivedAccountsWithPositiveBalance (cancelSourceOption: Option<CustomCancelSource>)
                                                    : Async<seq<ArchivedAccount*decimal>> =
         let asyncJobs = seq<Async<ArchivedAccount*Option<decimal>>> {
             let allCurrencies = Currency.GetAll()

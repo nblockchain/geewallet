@@ -195,7 +195,7 @@ type FaultTolerance() =
         Assert.That((FSharpUtil.FindException<SomeOtherException> ex).IsSome, Is.True)
 
     [<Test>]
-    member __.``exception type not passed in doesn't bubble up if exception handler is specified'``() =
+    member __.``exception type not passed in doesn't bubble up if exception handler is specified``() =
         let someResult = 1
         let aJob1 =
             async { return raise SomeOtherException }
