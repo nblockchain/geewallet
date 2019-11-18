@@ -241,13 +241,21 @@ type Runner<'Resource when 'Resource: equality> =
 type CustomCancelSource() =
 
     let canceled = Event<unit>()
+    let mutable canceledAlready = false
+    let lockObj = Object()
 
     member this.Cancel() =
+        lock lockObj (fun _ ->
+            canceledAlready <- true
+        )
         canceled.Trigger()
 
     [<CLIEvent>]
     member this.Canceled
         with get() = canceled.Publish
+
+    member this.CanceledAlready
+        with get() = canceledAlready
 
 
 type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicationHistory and 'E :> Exception>
@@ -509,6 +517,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     match cancellationSource with
                     | None -> ()
                     | Some customCancelSource ->
+                        if customCancelSource.CanceledAlready then
+                            raise <| TaskCanceledException "Found canceled when about subscribe to cancellation"
                         customCancelSource.Canceled.Add(fun _ ->
                             CancelAndDispose cancelState
                         )
