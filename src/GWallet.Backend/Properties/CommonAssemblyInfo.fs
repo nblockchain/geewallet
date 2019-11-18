@@ -18,8 +18,8 @@ open System.Reflection
 // by using the '*' as shown below:
 // [<assembly: AssemblyVersion("1.0.*")>]
 
-[<assembly: AssemblyVersion("0.4.2.160")>]
-[<assembly: AssemblyFileVersion("0.4.2.160")>]
+[<assembly: AssemblyVersion("0.4.2.161")>]
+[<assembly: AssemblyFileVersion("0.4.2.161")>]
 
 do
     ()
