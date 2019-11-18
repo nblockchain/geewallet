@@ -447,12 +447,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 ()
         | _ -> ()
 
-        let funcsToRunInParallel,restOfFuncs =
-            if (howManyFuncs > settings.NumberOfParallelJobsAllowed) then
-                funcs |> Seq.take numberOfParallelJobsAllowed, funcs |> Seq.skip numberOfParallelJobsAllowed
-            else
-                funcs |> Seq.ofList, Seq.empty
-
         let shouldReportUncanceledJobs =
             match settings.ResultSelectionMode with
             | Exhaustive -> false
