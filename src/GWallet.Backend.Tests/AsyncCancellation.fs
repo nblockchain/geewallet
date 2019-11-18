@@ -161,13 +161,13 @@ type FaultTolerantParallelClientAsyncCancellation() =
         // to make sure the exception happened
         Assert.That(result.IsNone, Is.True)
 
-(*
+
     [<Test>]
     member __.``external cancellation source can come already disposed``() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
         let externalCancellationSource = new CustomCancelSource()
-        externalCancellationSource.Dispose()
+        (externalCancellationSource:>IDisposable).Dispose()
 
         let job1 = async {
             return 1
@@ -198,14 +198,13 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
             with
             | ex ->
-                let resException = FSharpUtil.FindException<ResourceUnavailabilityException> ex
+                let resException = FSharpUtil.FindException<TaskCanceledException> ex
                 let exDetails = ex.ToString()
                 Assert.That(resException.IsSome, Is.True, exDetails)
                 None
 
         // to make sure the exception happened
         Assert.That(result.IsNone, Is.True)
-        *)
 
 
     [<Test>]
@@ -214,7 +213,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
         let externalCancellationSource = new CustomCancelSource()
         externalCancellationSource.Cancel()
-        //externalCancellationSource.Dispose()
+        (externalCancellationSource:>IDisposable).Dispose()
 
         let job1 = async {
             return 1
@@ -245,7 +244,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
             with
             | ex ->
-                let resException = FSharpUtil.FindException<ResourceUnavailabilityException> ex
+                let resException = FSharpUtil.FindException<TaskCanceledException> ex
                 let exDetails = ex.ToString()
                 Assert.That(resException.IsSome, Is.True, exDetails)
                 None
