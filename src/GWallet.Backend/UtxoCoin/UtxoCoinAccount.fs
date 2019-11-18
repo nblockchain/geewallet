@@ -194,7 +194,7 @@ module Account =
 
     let private GetBalances (account: IUtxoAccount)
                             (mode: ServerSelectionMode)
-                            (cancelSourceOption: Option<CancellationTokenSource>)
+                            (cancelSourceOption: Option<CustomCancelSource>)
                                 : Async<BlockchainScripthahsGetBalanceInnerResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
@@ -213,7 +213,7 @@ module Account =
 
     let private GetBalancesFromServer (account: IUtxoAccount)
                                       (mode: ServerSelectionMode)
-                                      (cancelSourceOption: Option<CancellationTokenSource>)
+                                      (cancelSourceOption: Option<CustomCancelSource>)
                                          : Async<Option<BlockchainScripthahsGetBalanceInnerResult>> =
         async {
             try
@@ -226,7 +226,7 @@ module Account =
 
     let internal GetShowableBalance (account: IUtxoAccount)
                                     (mode: ServerSelectionMode)
-                                    (cancelSourceOption: Option<CancellationTokenSource>)
+                                    (cancelSourceOption: Option<CustomCancelSource>)
                                         : Async<Option<decimal>> =
         async {
             let! maybeBalances = GetBalancesFromServer account mode cancelSourceOption

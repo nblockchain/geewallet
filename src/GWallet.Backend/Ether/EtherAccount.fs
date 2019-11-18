@@ -38,7 +38,7 @@ module internal Account =
     let private GetBalance (account: IAccount)
                            (mode: ServerSelectionMode)
                            (balType: BalanceType)
-                           (cancelSourceOption: Option<CancellationTokenSource>)
+                           (cancelSourceOption: Option<CustomCancelSource>)
                                = async {
         let! balance =
             if (account.Currency.IsEther()) then
@@ -53,7 +53,7 @@ module internal Account =
     let private GetBalanceFromServer (account: IAccount)
                                      (balType: BalanceType)
                                      (mode: ServerSelectionMode)
-                                     (cancelSourceOption: Option<CancellationTokenSource>)
+                                     (cancelSourceOption: Option<CustomCancelSource>)
                                          : Async<Option<decimal>> =
         async {
             try
@@ -66,7 +66,7 @@ module internal Account =
 
     let internal GetShowableBalance (account: IAccount)
                                     (mode: ServerSelectionMode)
-                                    (cancelSourceOption: Option<CancellationTokenSource>)
+                                    (cancelSourceOption: Option<CustomCancelSource>)
                                         : Async<Option<decimal>> =
         let getBalanceWithoutCaching(maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>)
                 : Async<Option<decimal>> =
