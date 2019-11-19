@@ -215,15 +215,14 @@ type Runner<'Resource when 'Resource: equality> =
 
         { Job = job; Server = server }
 
-    static member LaunchJobs<'K,'Ex when 'K: equality and 'K :> ICommunicationHistory and 'Ex :> Exception>
+    static member CreateJobs<'K,'Ex when 'K: equality and 'K :> ICommunicationHistory and 'Ex :> Exception>
                              (shouldReportUncanceledJobs: bool)
                              (parallelJobs: uint32)
                              (exceptionHandler: Option<Exception->unit>)
                              (updateServerFunc: ('K->bool)->HistoryFact->unit)
-                             (launchAsyncJobFunc: ServerJob<'K,'Resource> -> ServerTask<'K,'Resource>)
                              (funcs: List<Server<'K,'Resource>>)
                              (cancelState: ClientCancelState)
-                                 : List<ServerTask<'K,'Resource>>*List<ServerJob<'K,'Resource>> =
+                                 : List<ServerJob<'K,'Resource>>*List<ServerJob<'K,'Resource>> =
         let launchFunc = Runner.CreateAsyncJobFromFunc<'K,'Ex> shouldReportUncanceledJobs
                                                                exceptionHandler
                                                                cancelState
@@ -233,8 +232,7 @@ type Runner<'Resource when 'Resource: equality> =
                    |> List.ofSeq
         let firstJobsToLaunch = List.take (int parallelJobs) jobs
         let jobsToLaunchLater = List.skip (int parallelJobs) jobs
-        let startedTasks = firstJobsToLaunch |> List.map (fun job -> launchAsyncJobFunc job)
-        startedTasks,jobsToLaunchLater
+        firstJobsToLaunch,jobsToLaunchLater
 
 
 exception AlreadyCanceled
@@ -504,29 +502,23 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 ClientCancelState (Alive List.empty),true
             | Some cancelState -> cancelState,false
 
-        let maybeTasks = cancelState.SafeDo(fun state ->
-            let resultingTasks =
-                match state.Value with
-                | Canceled _ -> None
-                | Alive currentList ->
-                    let tasks,jobsToLaunchLater = Runner<'R>.LaunchJobs<'K,'E> shouldReportUncanceledJobs
-                                                                               settings.NumberOfParallelJobsAllowed
-                                                                               settings.ExceptionHandler
-                                                                               updateServer
-                                                                               LaunchAsyncJob
-                                                                               funcs
-                                                                               cancelState
-                    let newCancelSources = tasks |> List.map (fun task -> task.CancellationTokenSource)
-                    state.Value <- Alive (List.append currentList newCancelSources)
-                    Some (tasks,jobsToLaunchLater)
-            resultingTasks
+        let maybeJobs = cancelState.SafeDo(fun state ->
+            match state.Value with
+            | Canceled _ -> None
+            | Alive currentList ->
+                Some <| Runner<'R>.CreateJobs<'K,'E> shouldReportUncanceledJobs
+                                                     settings.NumberOfParallelJobsAllowed
+                                                     settings.ExceptionHandler
+                                                     updateServer
+                                                     funcs
+                                                     cancelState
         )
 
-        let tasks,jobsToLaunchLater =
-            match maybeTasks with
+        let startedTasks,jobsToLaunchLater =
+            match maybeJobs with
             | None ->
                 raise <| TaskCanceledException "Found canceled when about to launch more jobs"
-            | Some (tasks,jobsToLaunchLater) ->
+            | Some (firstJobsToLaunch,jobsToLaunchLater) ->
                 if initialized then
                     match cancellationSource with
                     | None -> ()
@@ -538,11 +530,21 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                         with
                         | AlreadyCanceled ->
                             raise <| TaskCanceledException "Found canceled when about subscribe to cancellation"
-                tasks,jobsToLaunchLater
+
+                cancelState.SafeDo (fun state ->
+                    match state.Value with
+                    | Canceled _ ->
+                        raise <| TaskCanceledException "Found canceled when about to launch more tasks"
+                    | Alive currentList ->
+                        let startedTasks = firstJobsToLaunch |> List.map (fun job -> LaunchAsyncJob job)
+                        let newCancelSources = startedTasks |> List.map (fun task -> task.CancellationTokenSource)
+                        state.Value <- Alive (List.append currentList newCancelSources)
+                        startedTasks,jobsToLaunchLater
+                )
 
         let job = WhenSomeInternal consistencyConfig
                          initialServerCount
-                         tasks
+                         startedTasks
                          jobsToLaunchLater
                          resultsSoFar
                          failedFuncsSoFar
