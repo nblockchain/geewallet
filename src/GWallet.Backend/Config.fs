@@ -86,7 +86,7 @@ module Config =
     //        round of failures has happened, as in, all servers failed
     let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 30.0
 
-    let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = 2u
+    let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = 3u
 
     let internal GetConfigDirForThisProgram() =
         let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
