@@ -130,27 +130,15 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
             let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJobAugmented
                                                                      readOnlyAccountBalancesJobAugmented
 
-            try
-                let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
+            let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
 
-                keepAnimationTimerActive <- false
+            keepAnimationTimerActive <- false
 
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    try
-                        let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
-                                                        currencyImages, false)
-                        FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
-                    with
-                    | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
-                        // TODO: remove this below once we finishing tracking down (fixing)
-                        //       https://gitlab.com/knocte/geewallet/issues/125
-                        raise <| InvalidOperationException("Cancellation at first-balances page population", ex)
-                )
-            with
-            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
-                // TODO: remove this below once we finishing tracking down (fixing)
-                //       https://gitlab.com/knocte/geewallet/issues/125
-                return raise <| InvalidOperationException("Cancellation at first-balances querying", ex)
+            Device.BeginInvokeOnMainThread(fun _ ->
+                    let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
+                                                    currencyImages, false)
+                    FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
+            )
         }
         Async.StartAsTask populateGrid
             |> FrontendHelpers.DoubleCheckCompletion
