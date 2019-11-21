@@ -2619,6 +2619,31 @@
       },
       {
         "ServerInfo": {
+          "NetworkPath": "main-rpc.linkpool.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:16.5459887",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-20T20:23:59.882745Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "api.myetherapi.com/eth",
           "ConnectionType": {
             "Encrypted": true,
