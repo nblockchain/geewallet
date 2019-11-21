@@ -1,11 +1,11 @@
 {
-  "Version": "0.4.2.159",
-  "TypeName": "Microsoft.FSharp.Collections.FSharpMap`2[[GWallet.Backend.Currency, GWallet.Backend, Version=0.4.2.159, Culture=neutral, PublicKeyToken=null],[System.Collections.Generic.IEnumerable`1[[GWallet.Backend.ServerDetails, GWallet.Backend, Version=0.4.2.159, Culture=neutral, PublicKeyToken=null]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]",
+  "Version": "0.4.2.163",
+  "TypeName": "Microsoft.FSharp.Collections.FSharpMap`2[[GWallet.Backend.Currency, GWallet.Backend, Version=0.4.2.163, Culture=neutral, PublicKeyToken=null],[System.Collections.Generic.IEnumerable`1[[GWallet.Backend.ServerDetails, GWallet.Backend, Version=0.4.2.163, Culture=neutral, PublicKeyToken=null]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]",
   "Value": {
     "BTC": [
       {
         "ServerInfo": {
-          "NetworkPath": "185.64.116.15",
+          "NetworkPath": "fortress.qtornado.com",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -21,12 +21,40 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:01.4644263",
+                "TimeSpan": "00:00:01.4848717",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:25:24.138249Z"
+              "Item2": "2019-11-21T13:29:18.147619Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "electrum.jochen-hoenicke.de",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:02.0331939",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:20.631501Z"
             }
           ]
         }
@@ -49,96 +77,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:01.5429573",
+                "TimeSpan": "00:00:02.1739841",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:53.923282Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "electrumx.ml",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:01.6518111",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:52.440047Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "52.1.56.181",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:01.7565429",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:52.647374Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "oneweek.duckdns.org",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:01.7704730",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:52.362989Z"
+              "Item2": "2019-11-21T13:29:21.706937Z"
             }
           ]
         }
@@ -173,7 +117,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "electrum-server.ninja",
+          "NetworkPath": "us.electrum.be",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -189,19 +133,19 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:02.5695741",
+                "TimeSpan": "00:00:02.7530557",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:55.231127Z"
+              "Item2": "2019-11-21T13:29:16.647712Z"
             }
           ]
         }
       },
       {
         "ServerInfo": {
-          "NetworkPath": "electrum.emzy.de",
+          "NetworkPath": "kirsche.emzy.de",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -217,12 +161,68 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:03.7846389",
+                "TimeSpan": "00:00:02.9114238",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:25:30.778103Z"
+              "Item2": "2019-11-21T13:29:19.515448Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "52.1.56.181",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:04.3899528",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:16.300782Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.64.116.15",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:05.6514431",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:15.767255Z"
             }
           ]
         }
@@ -257,7 +257,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "fortress.qtornado.com",
+          "NetworkPath": "electrum.emzy.de",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -273,68 +273,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:10.9662341",
+                "TimeSpan": "00:00:11.1812162",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:50.572764Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "electrum.jochen-hoenicke.de",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50003
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:11.2302953",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:50.774757Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "us.electrum.be",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:11.2871709",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:50.876151Z"
+              "Item2": "2019-11-21T13:29:18.581773Z"
             }
           ]
         }
@@ -369,6 +313,62 @@
       },
       {
         "ServerInfo": {
+          "NetworkPath": "electrumx.ml",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:13.5275402",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:10.025154Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "oneweek.duckdns.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:13.5275059",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:10.01135Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "e2.keff.org",
           "ConnectionType": {
             "Encrypted": false,
@@ -397,7 +397,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "kirsche.emzy.de",
+          "NetworkPath": "electrum-server.ninja",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -413,12 +413,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:14.3440423",
+                "TimeSpan": "00:00:14.5365372",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-07T13:42:20.467064Z"
+              "Item2": "2019-11-21T13:29:11.074426Z"
             }
           ]
         }
@@ -2102,62 +2102,6 @@
     "LTC": [
       {
         "ServerInfo": {
-          "NetworkPath": "electrum-ltc.bysh.me",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:01.3260825",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:51.898919Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "electrum.leblancnet.us",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50003
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:01.8926821",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:51.381782Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
           "NetworkPath": "node.ispol.sk",
           "ConnectionType": {
             "Encrypted": false,
@@ -2186,34 +2130,6 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "backup.electrum-ltc.org",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:10.9659645",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:50.554872Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
           "NetworkPath": "ltc.rentonisk.com",
           "ConnectionType": {
             "Encrypted": false,
@@ -2230,12 +2146,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:11.3693678",
+                "TimeSpan": "00:00:05.1771473",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:50.898671Z"
+              "Item2": "2019-11-21T13:29:16.251856Z"
             }
           ]
         }
@@ -2258,12 +2174,96 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:11.5738303",
+                "TimeSpan": "00:00:09.7442008",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:51.103134Z"
+              "Item2": "2019-11-21T13:29:17.12988Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "backup.electrum-ltc.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:14.5181187",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:11.057479Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "electrum.leblancnet.us",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:14.5550440",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:11.037703Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "electrum-ltc.bysh.me",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:18.3867918",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:14.908041Z"
             }
           ]
         }
@@ -2494,7 +2494,7 @@
     "ETH": [
       {
         "ServerInfo": {
-          "NetworkPath": "mainnet.infura.io/mew",
+          "NetworkPath": "etc-gethhh.0xinfra.com",
           "ConnectionType": {
             "Encrypted": true,
             "Protocol": {
@@ -2507,12 +2507,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.4428392",
+                "TimeSpan": "00:00:00.5569764",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:50.116834Z"
+              "Item2": "2019-08-22T17:48:03.6989Z"
             }
           ]
         }
@@ -2544,7 +2544,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "cloudflare-eth.com/",
+          "NetworkPath": "mainnet.infura.io/mew",
           "ConnectionType": {
             "Encrypted": true,
             "Protocol": {
@@ -2557,37 +2557,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:10.0565860",
+                "TimeSpan": "00:00:02.3213296",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:49.655353Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:10.1075800",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:49.673952Z"
+              "Item2": "2019-11-21T13:29:09.49158Z"
             }
           ]
         }
@@ -2607,12 +2582,37 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:10.1407402",
+                "TimeSpan": "00:00:04.8828076",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:49.688668Z"
+              "Item2": "2019-11-21T13:29:14.422711Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "cloudflare-eth.com/",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:06.0685164",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:15.593459Z"
             }
           ]
         }
@@ -2632,12 +2632,37 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:16.5459887",
+                "TimeSpan": "00:00:13.0090777",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-20T20:23:59.882745Z"
+              "Item2": "2019-11-21T13:29:09.507601Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:13.5085318",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:09.978887Z"
             }
           ]
         }
@@ -2795,87 +2820,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.3500788",
+                "TimeSpan": "00:00:04.7917488",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:49.991209Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "www.ethercluster.com/etc",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:10.0354146",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:49.624527Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "etc-geth.0xinfra.com",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:10.0891182",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:49.640858Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "ethereumclassic.network",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:10.1559659",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2019-11-18T14:24:49.729485Z"
+              "Item2": "2019-11-21T13:29:13.894531Z"
             }
           ]
         }
@@ -2895,12 +2845,87 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:10.4143195",
+                "TimeSpan": "00:00:12.5508269",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2019-11-18T14:24:50.007112Z"
+              "Item2": "2019-11-21T13:29:09.085447Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "ethereumclassic.network",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:12.5589385",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:09.112533Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "etc-geth.0xinfra.com",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:12.5893050",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:09.099646Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "www.ethercluster.com/etc",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:12.6015825",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-11-21T13:29:09.072035Z"
             }
           ]
         }
