@@ -23,6 +23,7 @@ type RpcErrorCode =
 
     | UnknownBlockNumber = -32602
     | GatewayTimeout = -32050
+    | EmptyResponse = -32042
 
 
 type ServerCannotBeResolvedException =
