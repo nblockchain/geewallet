@@ -235,12 +235,13 @@ type Runner<'Resource when 'Resource: equality> =
         firstJobsToLaunch,jobsToLaunchLater
 
 
-exception AlreadyCanceled
+exception AlreadyCanceled of string
 
 type CustomCancelSource() =
 
     let canceled = Event<unit>()
     let mutable canceledAlready = false
+    let mutable stackTraceWhenCancel = String.Empty
     let lockObj = Object()
 
     member this.Cancel() =
@@ -248,6 +249,7 @@ type CustomCancelSource() =
             if canceledAlready then
                 raise <| ObjectDisposedException "Already canceled/disposed"
             canceledAlready <- true
+            stackTraceWhenCancel <- Environment.StackTrace
         )
         canceled.Trigger()
 
@@ -256,7 +258,7 @@ type CustomCancelSource() =
         with get() =
             lock lockObj (fun _ ->
                 if canceledAlready then
-                    raise AlreadyCanceled
+                    raise <| AlreadyCanceled stackTraceWhenCancel
                 canceled.Publish
             )
 
@@ -528,9 +530,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                 CancelAndDispose cancelState
                             )
                         with
-                        | AlreadyCanceled ->
-                            raise <| TaskCanceledException "Found canceled when about subscribe to cancellation"
-
+                        | AlreadyCanceled cancelStackTrace ->
+                            raise <| TaskCanceledException(
+                                         sprintf "Found canceled when about subscribe to cancellation [ss: %s]"
+                                                 cancelStackTrace
+                                     )
                 cancelState.SafeDo (fun state ->
                     match state.Value with
                     | Canceled _ ->
