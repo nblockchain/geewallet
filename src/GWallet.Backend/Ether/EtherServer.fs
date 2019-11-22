@@ -191,7 +191,7 @@ module Server =
                     raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                 if rpcResponseEx.RpcError.Code = int RpcErrorCode.GatewayTimeout then
                     raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                raise <| Exception(sprintf "RpcResponseException with RpcError Code %d and Message %s (%s)"
+                raise <| Exception(sprintf "RpcResponseException with RpcError Code <%d> and Message '%s' (%s)"
                                          rpcResponseEx.RpcError.Code
                                          rpcResponseEx.RpcError.Message
                                          rpcResponseEx.Message,
