@@ -241,6 +241,8 @@ type CustomCancelSource() =
 
     let canceled = Event<unit>()
     let mutable canceledAlready = false
+    // TODO: remove this field below once we finishing tracking down (fixing)
+    //       https://gitlab.com/knocte/geewallet/issues/125
     let mutable stackTraceWhenCancel = String.Empty
     let lockObj = Object()
 
@@ -486,8 +488,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                  (resultsSoFar: List<'R>)
                  (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R>>)
                  (cancellationSource: Option<CustomCancelSource>)
-                 (cancelStateOption: Option<ClientCancelState>)
-                     : ClientCancelState*Async<FinalResult<'K,'T,'R>> =
+                     : Async<FinalResult<'K,'T,'R>> =
 
         let initialServerCount = funcs.Length |> uint32
         let parallelJobs = int settings.NumberOfParallelJobsAllowed
@@ -498,11 +499,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             | Selective subSettings ->
                 subSettings.ReportUncanceledJobs
 
-        let cancelState,initialized =
-            match cancelStateOption with
-            | None ->
-                ClientCancelState (Alive List.empty),true
-            | Some cancelState -> cancelState,false
+        let cancelState = ClientCancelState (Alive List.empty)
 
         let maybeJobs = cancelState.SafeDo(fun state ->
             match state.Value with
@@ -521,20 +518,19 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             | None ->
                 raise <| TaskCanceledException "Found canceled when about to launch more jobs"
             | Some (firstJobsToLaunch,jobsToLaunchLater) ->
-                if initialized then
-                    match cancellationSource with
-                    | None -> ()
-                    | Some customCancelSource ->
-                        try
-                            customCancelSource.Canceled.Add(fun _ ->
-                                CancelAndDispose cancelState
-                            )
-                        with
-                        | AlreadyCanceled cancelStackTrace ->
-                            raise <| TaskCanceledException(
-                                         sprintf "Found canceled when about subscribe to cancellation [ss: %s]"
-                                                 cancelStackTrace
-                                     )
+                match cancellationSource with
+                | None -> ()
+                | Some customCancelSource ->
+                    try
+                        customCancelSource.Canceled.Add(fun _ ->
+                            CancelAndDispose cancelState
+                        )
+                    with
+                    | AlreadyCanceled cancelStackTrace ->
+                        raise <| TaskCanceledException(
+                                     sprintf "Found canceled when about subscribe to cancellation [ss: %s]"
+                                             cancelStackTrace
+                                 )
                 cancelState.SafeDo (fun state ->
                     match state.Value with
                     | Canceled _ ->
@@ -555,7 +551,15 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                          cancellationSource
                          cancelState
                          settings.ExtraProtectionAgainstUnfoundedCancellations
-        cancelState,job
+        let jobWithCancellation =
+            async {
+                try
+                    let! res = job
+                    return res
+                finally
+                    CancelAndDispose cancelState
+            }
+        jobWithCancellation
 
     let rec QueryInternalImplementation
                           (settings: FaultTolerantParallelClientSettings<'R>)
@@ -566,7 +570,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                           (retries: uint32)
                           (retriesForInconsistency: uint32)
                           (cancellationSource: Option<CustomCancelSource>)
-                          (cancelState: Option<ClientCancelState>)
                               : Async<'R> = async {
         if not (funcs.Any()) then
             return raise(ArgumentException("number of funcs must be higher than zero",
@@ -595,20 +598,17 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             match settings.ResultSelectionMode with
             | Exhaustive -> None
             | Selective subSettings -> Some subSettings.ConsistencyConfig
-        let newCancelState,job = WhenSome settings
+        let job = WhenSome settings
                                           consistencyConfig
                                           funcs
                                           resultsSoFar
                                           failedFuncsSoFar
                                           cancellationSource
-                                          cancelState
         let! result = job
         match result with
         | AverageResult averageResult ->
-            CancelAndDispose newCancelState
             return averageResult
         | ConsistentResult consistentResult ->
-            CancelAndDispose newCancelState
             return consistentResult
         | InconsistentOrNotEnoughResults executedServers ->
             let failedFuncs = executedServers.UnsuccessfulServers
@@ -616,7 +616,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             if executedServers.SuccessfulResults.Length = 0 then
                 if (retries = settings.NumberOfRetries) then
                     let firstEx = executedServers.UnsuccessfulServers.First().Failure
-                    CancelAndDispose newCancelState
                     return raise (NoneAvailableException("Not available", firstEx))
                 else
                     return! QueryInternalImplementation
@@ -628,7 +627,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                           (retries + 1u)
                                           retriesForInconsistency
                                           cancellationSource
-                                          (Some newCancelState)
             else
                 let totalNumberOfSuccesfulResultsObtained = executedServers.SuccessfulResults.Length
 
@@ -648,7 +646,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                         return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
                     | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                         if (retriesForInconsistency = settings.NumberOfRetriesForInconsistency) then
-                            CancelAndDispose newCancelState
                             return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
                                                                        maxNumberOfConsistentResultsObtained,
                                                                        numberOfConsistentResponsesRequired))
@@ -662,11 +659,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                   retries
                                                   (retriesForInconsistency + 1u)
                                                   cancellationSource
-                                                  (Some newCancelState)
                 | Some(AverageBetweenResponses(minimumNumberOfResponses,averageFunc)) ->
                     if (retries = settings.NumberOfRetries) then
                         let firstEx = executedServers.UnsuccessfulServers.First().Failure
-                        CancelAndDispose newCancelState
                         return raise (NotEnoughAvailableException("resultsSoFar.Length != 0 but not enough to satisfy minimum number of results for averaging func", firstEx))
                     else
                         return! QueryInternalImplementation
@@ -678,7 +673,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                               (retries + 1u)
                                               retriesForInconsistency
                                               cancellationSource
-                                              (Some newCancelState)
                 | _ ->
                     return failwith "wrapping settings didn't work?"
 
@@ -774,7 +768,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                       0u
                       0u
                       cancellationTokenSourceOption
-                      None
         async {
             try
                 let! res = job
