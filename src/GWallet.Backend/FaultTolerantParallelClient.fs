@@ -488,7 +488,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                  (resultsSoFar: List<'R>)
                  (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R>>)
                  (cancellationSource: Option<CustomCancelSource>)
-                     : ClientCancelState*Async<FinalResult<'K,'T,'R>> =
+                     : Async<FinalResult<'K,'T,'R>> =
 
         let initialServerCount = funcs.Length |> uint32
         let parallelJobs = int settings.NumberOfParallelJobsAllowed
@@ -551,7 +551,15 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                          cancellationSource
                          cancelState
                          settings.ExtraProtectionAgainstUnfoundedCancellations
-        cancelState,job
+        let jobWithCancellation =
+            async {
+                try
+                    let! res = job
+                    return res
+                finally
+                    CancelAndDispose cancelState
+            }
+        jobWithCancellation
 
     let rec QueryInternalImplementation
                           (settings: FaultTolerantParallelClientSettings<'R>)
@@ -590,7 +598,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             match settings.ResultSelectionMode with
             | Exhaustive -> None
             | Selective subSettings -> Some subSettings.ConsistencyConfig
-        let newCancelState,job = WhenSome settings
+        let job = WhenSome settings
                                           consistencyConfig
                                           funcs
                                           resultsSoFar
@@ -599,10 +607,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
         let! result = job
         match result with
         | AverageResult averageResult ->
-            CancelAndDispose newCancelState
             return averageResult
         | ConsistentResult consistentResult ->
-            CancelAndDispose newCancelState
             return consistentResult
         | InconsistentOrNotEnoughResults executedServers ->
             let failedFuncs = executedServers.UnsuccessfulServers
@@ -610,7 +616,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             if executedServers.SuccessfulResults.Length = 0 then
                 if (retries = settings.NumberOfRetries) then
                     let firstEx = executedServers.UnsuccessfulServers.First().Failure
-                    CancelAndDispose newCancelState
                     return raise (NoneAvailableException("Not available", firstEx))
                 else
                     return! QueryInternalImplementation
@@ -641,7 +646,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                         return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
                     | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                         if (retriesForInconsistency = settings.NumberOfRetriesForInconsistency) then
-                            CancelAndDispose newCancelState
                             return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
                                                                        maxNumberOfConsistentResultsObtained,
                                                                        numberOfConsistentResponsesRequired))
@@ -658,7 +662,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 | Some(AverageBetweenResponses(minimumNumberOfResponses,averageFunc)) ->
                     if (retries = settings.NumberOfRetries) then
                         let firstEx = executedServers.UnsuccessfulServers.First().Failure
-                        CancelAndDispose newCancelState
                         return raise (NotEnoughAvailableException("resultsSoFar.Length != 0 but not enough to satisfy minimum number of results for averaging func", firstEx))
                     else
                         return! QueryInternalImplementation
