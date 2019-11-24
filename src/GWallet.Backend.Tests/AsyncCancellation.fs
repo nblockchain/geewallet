@@ -69,7 +69,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
         Assert.That(longFuncFinishedExecution, Is.EqualTo false)
 
     [<Test>]
-    member __.``external cancellation source causes TaskCanceledException``() =
+    member __.``quick cancellation from external cancellation source on long jobs causes TaskCanceledException``() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
         let job1 = async {
@@ -372,7 +372,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
         Assert.That(stopWatch.Elapsed, Is.LessThan timeoutTime)
 
     [<Test>]
-    member __.``cancellationSource is disposed after FaultTolerantParallelClient finishes executing``() =
+    member __.``cancellationSource is *NOT* disposed after FaultTolerantParallelClient finishes executing``() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
         let externalCancellationSource = new CustomCancelSource()
@@ -402,8 +402,8 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
         Assert.That(result, Is.EqualTo 0)
 
-        Assert.Throws<ObjectDisposedException>(fun _ -> externalCancellationSource.Cancel())
-            |> ignore
+        // doesn't throw ObjectDisposedException
+        externalCancellationSource.Cancel()
 
 
 [<TestFixture>]
