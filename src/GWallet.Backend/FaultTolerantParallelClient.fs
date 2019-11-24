@@ -778,17 +778,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
         async {
             try
                 let! res = job
-                try
-                    match cancellationTokenSourceOption with
-                    | None -> ()
-                    | Some cancelSource ->
-                        (cancelSource:>IDisposable).Dispose()
-                    return res
-                with
-                | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
-                    // TODO: remove this below once we finishing tracking down (fixing)
-                    //       https://gitlab.com/knocte/geewallet/issues/125
-                    return raise <| InvalidOperationException("Canceled while cleaning up FTPC", ex)
+                return res
             with
             | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
                 // TODO: remove this below once we finishing tracking down (fixing)
