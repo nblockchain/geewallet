@@ -599,11 +599,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             | Exhaustive -> None
             | Selective subSettings -> Some subSettings.ConsistencyConfig
         let job = WhenSome settings
-                                          consistencyConfig
-                                          funcs
-                                          resultsSoFar
-                                          failedFuncsSoFar
-                                          cancellationSource
+                           consistencyConfig
+                           funcs
+                           resultsSoFar
+                           failedFuncsSoFar
+                           cancellationSource
         let! result = job
         match result with
         | AverageResult averageResult ->
