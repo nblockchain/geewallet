@@ -164,22 +164,25 @@ module FrontendHelpers =
                 return! UpdateBalanceWithoutCacheAsync balanceSet mode cancelSource
         }
         let fullJob =
-            match maybeProgressBar with
-            | None -> job
-            | Some progressBar ->
-                let UpdateProgressBar() =
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        let firstTransparentFrameFound =
-                            progressBar.Children.First(fun x -> x.BackgroundColor = Color.Transparent)
-                        firstTransparentFrameFound.BackgroundColor <- GetCryptoColor balanceSet.Account.Currency
-                    )
-                async {
-                    try
-                        let! jobResult = job
-                        return jobResult
-                    finally
-                        UpdateProgressBar()
-                }
+            let UpdateProgressBar (progressBar: StackLayout) =
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    let firstTransparentFrameFound =
+                        progressBar.Children.First(fun x -> x.BackgroundColor = Color.Transparent)
+                    firstTransparentFrameFound.BackgroundColor <- GetCryptoColor balanceSet.Account.Currency
+                )
+            async {
+                try
+                    let! jobResult = job
+                    return jobResult
+
+                finally
+                    match maybeProgressBar with
+                    | Some progressBar ->
+                        UpdateProgressBar progressBar
+                    | None -> ()
+
+                    (cancelSource:>IDisposable).Dispose()
+            }
         cancelSource,fullJob
 
     let UpdateBalancesAsync accountBalances
