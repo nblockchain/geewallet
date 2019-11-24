@@ -235,16 +235,23 @@ type Runner<'Resource when 'Resource: equality> =
         firstJobsToLaunch,jobsToLaunchLater
 
 
-exception AlreadyCanceled of string
+exception AlreadyCanceled of string*int
 
 type CustomCancelSource() =
 
     let canceled = Event<unit>()
     let mutable canceledAlready = false
-    // TODO: remove this field below once we finishing tracking down (fixing)
+    let lockObj = Object()
+
+    // TODO: remove these things below once we finishing tracking down (fixing)
     //       https://gitlab.com/knocte/geewallet/issues/125
     let mutable stackTraceWhenCancel = String.Empty
-    let lockObj = Object()
+    let mutable used = 0
+    member this.IncrementUsed() =
+        lock lockObj (fun _ ->
+            used <- used + 1
+        )
+    // </TODO>
 
     member this.Cancel() =
         lock lockObj (fun _ ->
@@ -260,7 +267,7 @@ type CustomCancelSource() =
         with get() =
             lock lockObj (fun _ ->
                 if canceledAlready then
-                    raise <| AlreadyCanceled stackTraceWhenCancel
+                    raise <| AlreadyCanceled (stackTraceWhenCancel,used)
                 canceled.Publish
             )
 
@@ -526,10 +533,10 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                             CancelAndDispose cancelState
                         )
                     with
-                    | AlreadyCanceled cancelStackTrace ->
+                    | AlreadyCanceled (cancelStackTrace,used) ->
                         raise <| TaskCanceledException(
-                                     sprintf "Found canceled when about subscribe to cancellation [ss: %s]"
-                                             cancelStackTrace
+                                     sprintf "Found canceled when about to subscribe to cancellation (u:%i) <<ss: %s>>"
+                                             used cancelStackTrace
                                  )
                 cancelState.SafeDo (fun state ->
                     match state.Value with
@@ -794,6 +801,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     (settings: FaultTolerantParallelClientSettings<'R>)
                     (servers: List<Server<'K,'R>>)
                         : Async<'R> =
+        cancellationTokenSource.IncrementUsed()
         self.QueryInternal<'R> settings servers (Some cancellationTokenSource)
 
     member self.Query<'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)
