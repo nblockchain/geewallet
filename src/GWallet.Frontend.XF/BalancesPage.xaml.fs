@@ -44,8 +44,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let totalFiatAmountFrame = mainLayout.FindByName<Frame> "totalFiatAmountFrame"
     let totalReadOnlyFiatAmountFrame = mainLayout.FindByName<Frame> "totalReadOnlyFiatAmountFrame"
     let contentLayout = base.FindByName<StackLayout> "contentLayout"
-    let normalChartView = base.FindByName<DonutChartView> "normalChartView"
-    let readonlyChartView = base.FindByName<DonutChartView> "readonlyChartView"
+    let normalChartView = base.FindByName<CircleChartView> "normalChartView"
+    let readonlyChartView = base.FindByName<CircleChartView> "readonlyChartView"
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
@@ -408,8 +408,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             mainLayout.FindByName<Frame> totalOtherFiatAmountFrameName
 
         let currentChartView,otherChartView =
-            mainLayout.FindByName<DonutChartView> currentChartViewName,
-            mainLayout.FindByName<DonutChartView> otherChartViewName
+            mainLayout.FindByName<CircleChartView> currentChartViewName,
+            mainLayout.FindByName<CircleChartView> otherChartViewName
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Add(fun _ ->

@@ -82,7 +82,7 @@
     </Compile>
     <Compile Include="FrontendHelpers.fs" />
     <Compile Include="GlobalState.fs" />
-    <Compile Include="Controls\DonutChartView.fs" />
+    <Compile Include="Controls\CircleChartView.fs" />
     <Compile Include="PairingFromPage.xaml.fs">
       <DependentUpon>PairingFromPage.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -130,5 +130,6 @@
     <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="0.10.0-date20191006-0346.git-18fb927" />
     <PackageReference Include="SkiaSharp" Version="1.68.0" />
     <PackageReference Include="Xamarin.Essentials" Version="1.0.0" />
+    <PackageReference Include="SkiaSharp.Views.Forms" Version="1.68.0" />
   </ItemGroup>
 </Project>

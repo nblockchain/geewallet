@@ -14,7 +14,7 @@ type SegmentInfo =
         Percentage: float
     }
 
-type DonutChartView () =
+type CircleChartView () =
     inherit Image () 
 
     let svgMainImagePattern = @"<?xml version=""1.0"" encoding=""utf-8""?>
@@ -116,19 +116,19 @@ type DonutChartView () =
             
     static let segmentsSourceProperty =
         BindableProperty.Create("SegmentsSource",
-                                typeof<seq<SegmentInfo>>, typeof<DonutChartView>, null) 
+                                typeof<seq<SegmentInfo>>, typeof<CircleChartView>, null) 
     static let separatorPercentageProperty =
         BindableProperty.Create("SeparatorPercentage",
-                                typeof<float>, typeof<DonutChartView>, 0.)
+                                typeof<float>, typeof<CircleChartView>, 0.)
     static let centerCirclePercentageProperty =
         BindableProperty.Create("CenterCirclePercentage",
-                                typeof<float>, typeof<DonutChartView>, 0.5)
+                                typeof<float>, typeof<CircleChartView>, 0.5)
     static let separatorColorProperty =
         BindableProperty.Create("SeparatorColor",
-                                typeof<Color>, typeof<DonutChartView>, Color.Transparent)
+                                typeof<Color>, typeof<CircleChartView>, Color.Transparent)
     static let defaultImageSourceProperty =
         BindableProperty.Create("DefaultImageSource",
-                                typeof<ImageSource>, typeof<DonutChartView>, null)
+                                typeof<ImageSource>, typeof<CircleChartView>, null)
 
     static member SegmentsSourceProperty = segmentsSourceProperty
     static member SeparatorPercentageProperty = separatorPercentageProperty
@@ -156,6 +156,131 @@ type DonutChartView () =
         with get () = self.GetValue defaultImageSourceProperty :?> ImageSource
         and set (value: ImageSource) = self.SetValue(defaultImageSourceProperty, value)
 
+    member self.DrawPieFallback width height (items: seq<SegmentInfo>) =
+        let imageInfo = SKImageInfo(int width, int height)
+        use surface = SKSurface.Create imageInfo
+
+        surface.Canvas.Clear SKColors.Empty
+        let center = SKPoint(float32 width / float32 2, float32 height / float32 2)
+        let radius = Math.Min(float32 width / float32 2, float32 height / float32 2)
+                        // add some padding, otherwise it hits the limits of the square
+                        - float32 5
+        let rect = SKRect(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius)
+        let mutable startAngle = float32 0.
+
+        let total = items.Sum(fun i -> i.Percentage) |> float32
+        for item in items do
+            let sweepAngle = float32 360. * float32 item.Percentage / total
+
+            use path = new SKPath ()
+            let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
+            use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color)
+            path.MoveTo center
+            path.ArcTo(rect, startAngle, sweepAngle, false)
+            path.Close()
+
+            surface.Canvas.Save() |> ignore
+            surface.Canvas.DrawPath(path, fillPaint)
+            surface.Canvas.Restore()
+
+            startAngle <- startAngle + sweepAngle
+
+        surface.Canvas.Flush()
+        surface.Canvas.Save() |> ignore
+
+        use image = surface.Snapshot()
+        let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
+        self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
+
+    member self.DrawDonutOrLogo (width: float) (height: float) (items: seq<SegmentInfo>) =
+        // FIXME: rework this workaround when we upgrade to an XF version where this bug is fixed:
+        // https://github.com/xamarin/Xamarin.Forms/issues/8652 (to still detect 0.0 but send sentry warning)
+        let defaultScaleFactor = 2.0
+        let platformScaleFactor = Device.Info.ScalingFactor
+        let scaleFactor =
+            if platformScaleFactor <= 0.0 then
+                defaultScaleFactor
+            else
+                platformScaleFactor
+
+        let size = int(Math.Floor(Math.Min(width, height) * scaleFactor))
+        let halfSize =
+            if size / 2 % 2 = 0 then
+                size / 2
+            else
+                size / 2 - 1
+
+        let itemsCount = items.Count()
+        if itemsCount = 0 then
+            self.Source <- self.DefaultImageSource
+        else
+            let separatorsTotalPercentage = 
+                if itemsCount > 1 then 
+                    float(itemsCount) * self.SeparatorPercentage 
+                else 
+                    0.
+
+            let segmentsTotalPercentage = 1. - separatorsTotalPercentage
+
+            let segmentsToDraw = 
+                if itemsCount = 1 then
+                    let item = items.First()
+                    let segment = { 
+                        Color = item.Color
+                        Percentage = item.Percentage * segmentsTotalPercentage
+                    }
+                    segment::List.Empty
+                else
+                    items
+                        |> Seq.map (fun i -> 
+                               let separator = { 
+                                   Color = self.SeparatorColor
+                                   Percentage = self.SeparatorPercentage
+                               } 
+                               let segment = { 
+                                   Color = i.Color
+                                   Percentage = i.Percentage * segmentsTotalPercentage
+                               }
+                               [separator; segment]
+                            )
+                        |> List.concat
+
+            let innerRadius = int(float(halfSize) * self.CenterCirclePercentage)
+            let startY = int((1. - self.CenterCirclePercentage) * float(halfSize))
+            let segmentsBuilder = PrepareSegmentsSvgBuilder segmentsToDraw 0. startY halfSize innerRadius
+
+            let centerCiclerSvg = 
+                if self.SeparatorColor.A > 0. then
+                    String.Format(svgCirclePattern,
+                                  halfSize,
+                                  float(halfSize) * self.CenterCirclePercentage,
+                                  GetHexColor self.SeparatorColor)
+                 else
+                     String.Empty
+
+            let fullSvg = String.Format(svgMainImagePattern, size, segmentsBuilder, centerCiclerSvg)
+            let svgHolder = SkiaSharp.Extended.Svg.SKSvg()
+
+            use stream = new MemoryStream(Encoding.UTF8.GetBytes fullSvg)
+            svgHolder.Load stream |> ignore
+
+            let canvasSize = svgHolder.CanvasSize
+            let cullRect = svgHolder.Picture.CullRect
+
+            use bitmap = new SKBitmap(int canvasSize.Width, int canvasSize.Height)
+            use canvas = new SKCanvas(bitmap)
+            let canvasMin = Math.Min(canvasSize.Width, canvasSize.Height)
+            let svgMax = Math.Max(cullRect.Width, cullRect.Height)
+            let scale = canvasMin / svgMax
+            let matrix = SKMatrix.MakeScale(scale, scale)
+            canvas.Clear SKColor.Empty
+            canvas.DrawPicture(svgHolder.Picture, ref matrix)
+            canvas.Flush()
+            canvas.Save() |> ignore
+            use image = SKImage.FromBitmap bitmap
+            let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)       
+            self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
+
     member self.Draw () =
         let width = 
             if base.WidthRequest > 0. then 
@@ -173,99 +298,17 @@ type DonutChartView () =
            not base.IsVisible then
             ()
         else
-            // FIXME: rework this workaround when we upgrade to an XF version where this bug is fixed:
-            // https://github.com/xamarin/Xamarin.Forms/issues/8652 (to still detect 0.0 but send sentry warning)
-            let defaultScaleFactor = 2.0
-            let platformScaleFactor = Device.Info.ScalingFactor
-            let scaleFactor =
-                if platformScaleFactor <= 0.0 then
-                    defaultScaleFactor
-                else
-                    platformScaleFactor
-
-            let size = int(Math.Floor(Math.Min(width, height) * scaleFactor))
-            let halfSize =
-                if size / 2 % 2 = 0 then
-                    size / 2
-                else
-                    size / 2 - 1
-
             let nonZeroItems = 
                 if self.SegmentsSource <> null then
                     self.SegmentsSource.Where(fun s -> s.Percentage > 0.)
                 else
                     Seq.empty<SegmentInfo>
 
-            let itemsCount = nonZeroItems.Count()
-            if itemsCount = 0 then
-                self.Source <- self.DefaultImageSource
+            if nonZeroItems.Count() > 0 && Device.RuntimePlatform = Device.Android then
+                self.DrawPieFallback width height nonZeroItems
             else
-                let separatorsTotalPercentage = 
-                    if itemsCount > 1 then 
-                        float(itemsCount) * self.SeparatorPercentage 
-                    else 
-                        0.
+                self.DrawDonutOrLogo width height nonZeroItems
 
-                let segmentsTotalPercentage = 1. - separatorsTotalPercentage
-
-                let segmentsToDraw = 
-                    if itemsCount = 1 then
-                        let item = nonZeroItems.First()
-                        let segment = { 
-                            Color = item.Color
-                            Percentage = item.Percentage * segmentsTotalPercentage
-                        }
-                        segment::List.Empty
-                    else
-                        nonZeroItems
-                            |> Seq.map (fun i -> 
-                                   let separator = { 
-                                       Color = self.SeparatorColor
-                                       Percentage = self.SeparatorPercentage
-                                   } 
-                                   let segment = { 
-                                       Color = i.Color
-                                       Percentage = i.Percentage * segmentsTotalPercentage
-                                   }
-                                   [separator; segment]
-                                )
-                            |> List.concat
-
-                let innerRadius = int(float(halfSize) * self.CenterCirclePercentage)
-                let startY = int((1. - self.CenterCirclePercentage) * float(halfSize))
-                let segmentsBuilder = PrepareSegmentsSvgBuilder segmentsToDraw 0. startY halfSize innerRadius
-
-                let centerCiclerSvg = 
-                    if self.SeparatorColor.A > 0. then
-                        String.Format(svgCirclePattern,
-                                      halfSize,
-                                      float(halfSize) * self.CenterCirclePercentage,
-                                      GetHexColor self.SeparatorColor)
-                     else
-                         String.Empty
-
-                let fullSvg = String.Format(svgMainImagePattern, size, segmentsBuilder, centerCiclerSvg)
-                let svgHolder = SkiaSharp.Extended.Svg.SKSvg()
-
-                use stream = new MemoryStream(Encoding.UTF8.GetBytes fullSvg)
-                svgHolder.Load stream |> ignore
-
-                let canvasSize = svgHolder.CanvasSize
-                let cullRect = svgHolder.Picture.CullRect
-
-                use bitmap = new SKBitmap(int canvasSize.Width, int canvasSize.Height)
-                use canvas = new SKCanvas(bitmap)
-                let canvasMin = Math.Min(canvasSize.Width, canvasSize.Height)
-                let svgMax = Math.Max(cullRect.Width, cullRect.Height)
-                let scale = canvasMin / svgMax
-                let matrix = SKMatrix.MakeScale(scale, scale)
-                canvas.Clear SKColor.Empty
-                canvas.DrawPicture(svgHolder.Picture, ref matrix)
-                canvas.Flush()
-                canvas.Save() |> ignore
-                use image = SKImage.FromBitmap bitmap
-                let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)       
-                self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
 
     override self.OnPropertyChanged(propertyName: string) =
         base.OnPropertyChanged(propertyName)
@@ -274,9 +317,9 @@ type DonutChartView () =
            propertyName = VisualElement.HeightRequestProperty.PropertyName || 
            propertyName = VisualElement.WidthRequestProperty.PropertyName || 
            propertyName = VisualElement.IsVisibleProperty.PropertyName ||
-           propertyName = DonutChartView.SegmentsSourceProperty.PropertyName ||
-           propertyName = DonutChartView.SeparatorPercentageProperty.PropertyName ||
-           propertyName = DonutChartView.CenterCirclePercentageProperty.PropertyName ||
-           propertyName = DonutChartView.SeparatorColorProperty.PropertyName || 
-           propertyName = DonutChartView.DefaultImageSourceProperty.PropertyName then
+           propertyName = CircleChartView.SegmentsSourceProperty.PropertyName ||
+           propertyName = CircleChartView.SeparatorPercentageProperty.PropertyName ||
+           propertyName = CircleChartView.CenterCirclePercentageProperty.PropertyName ||
+           propertyName = CircleChartView.SeparatorColorProperty.PropertyName || 
+           propertyName = CircleChartView.DefaultImageSourceProperty.PropertyName then
             self.Draw()

@@ -61,12 +61,12 @@
                 </StackLayout>
             </Frame>
 
-            <controls:DonutChartView x:Name="normalChartView"
+            <controls:CircleChartView x:Name="normalChartView"
                                      Aspect="AspectFit"
                                      HorizontalOptions="FillAndExpand"
                                      VerticalOptions="FillAndExpand"/>
             
-            <controls:DonutChartView x:Name="readonlyChartView"
+            <controls:CircleChartView x:Name="readonlyChartView"
                                      IsVisible="False"
                                      Aspect="AspectFit"
                                      HorizontalOptions="FillAndExpand"
