@@ -515,12 +515,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     member private this.Init () =
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
-        FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalFiatAmountFrame
-        FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalReadOnlyFiatAmountFrame
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-            Device.OpenUri (Uri "http://www.geewallet.com")
+            Uri "http://www.geewallet.com"
+                |> Xamarin.Essentials.Launcher.OpenAsync
+                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         ) |> ignore
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
         footerLabel.GestureRecognizers.Add tapGestureRecognizer

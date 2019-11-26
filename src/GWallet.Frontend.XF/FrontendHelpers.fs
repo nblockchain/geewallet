@@ -31,8 +31,6 @@ type BalanceState = {
 
 module FrontendHelpers =
 
-    let private enableGtkWorkarounds = true
-
     type IGlobalAppState =
         [<CLIEvent>]
         abstract member Resumed: IEvent<unit> with get
@@ -265,34 +263,11 @@ module FrontendHelpers =
             )
         ) |> DoubleCheckCompletionNonGeneric
 
-    let internal ApplyGtkWorkaroundForFrameTransparentBackgroundColor (frame: Frame) =
-        if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then
-            let ubuntu1804DefaultColor = "F2F1F0"
-
-            // this is just most popular distro's default colour, we should rather just fix the upstream bug:
-            // https://github.com/xamarin/Xamarin.Forms/issues/4700
-            frame.BackgroundColor <- Color.FromHex ubuntu1804DefaultColor
-            frame.BorderColor <- Color.FromHex ubuntu1804DefaultColor
-
-    let internal ApplyGtkWorkarounds (balanceLabel: Label) (adjustSize: bool) =
-        // workaround to small default fonts in GTK (compared to other toolkits) so FIXME: file bug about this
-        if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) && adjustSize then
-            balanceLabel.FontSize <- MagicGtkNumber
-
-        if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then
-            // workaround about Labels not putting a decent default left&top margin in GTK so FIXME: file bug about this
-            balanceLabel.TranslationY <- MagicGtkNumber
-            balanceLabel.TranslationX <- MagicGtkNumber
-            // workaround about Labels is not centered vertically inside layout
-            balanceLabel.VerticalOptions <- LayoutOptions.FillAndExpand
-
-        balanceLabel
-
     let private CreateLabelWidgetForAccount horizontalOptions =
         let label = Label(Text = "...",
                           VerticalOptions = LayoutOptions.Center,
                           HorizontalOptions = horizontalOptions)
-        ApplyGtkWorkarounds label true
+        label
 
     let private normalCryptoBalanceClassId = "normalCryptoBalanceFrame"
     let private readonlyCryptoBalanceClassId = "readonlyCryptoBalanceFrame"
@@ -317,12 +292,6 @@ module FrontendHelpers =
         let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
         absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
         absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
-
-        if Device.RuntimePlatform = Device.GTK then
-            //workaround about GTK ScrollView's scroll bar. Not sure if it's bug indeed.
-            absoluteLayout.Margin <- Thickness(absoluteLayout.Margin.Left, absoluteLayout.Margin.Top, 20., absoluteLayout.Margin.Bottom)
-            //workaround about GTK layouting. It ignores margins of parent layout. So, we have to duplicate them
-            stackLayout.Margin <- Thickness(stackLayout.Margin.Left, stackLayout.Margin.Top, 20., stackLayout.Margin.Bottom)
 
         //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
         if Device.RuntimePlatform = Device.macOS then

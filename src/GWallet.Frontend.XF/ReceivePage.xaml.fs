@@ -67,7 +67,9 @@ type ReceivePage(account: IAccount,
 
         let transactionHistoryButton = Button(Text = "View transaction history...")
         transactionHistoryButton.Clicked.Subscribe(fun _ ->
-            Device.OpenUri (BlockExplorer.GetTransactionHistory account)
+            BlockExplorer.GetTransactionHistory account
+                |> Xamarin.Essentials.Launcher.OpenAsync
+                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         ) |> ignore
         mainLayout.Children.Add(transactionHistoryButton)
 

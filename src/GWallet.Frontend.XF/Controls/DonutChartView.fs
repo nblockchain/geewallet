@@ -173,7 +173,16 @@ type DonutChartView () =
            not base.IsVisible then
             ()
         else
-            let scaleFactor = Device.Info.ScalingFactor
+            // FIXME: rework this workaround when we upgrade to an XF version where this bug is fixed:
+            // https://github.com/xamarin/Xamarin.Forms/issues/8652 (to still detect 0.0 but send sentry warning)
+            let defaultScaleFactor = 2.0
+            let platformScaleFactor = Device.Info.ScalingFactor
+            let scaleFactor =
+                if platformScaleFactor <= 0.0 then
+                    defaultScaleFactor
+                else
+                    platformScaleFactor
+
             let size = int(Math.Floor(Math.Min(width, height) * scaleFactor))
             let halfSize =
                 if size / 2 % 2 = 0 then
