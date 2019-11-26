@@ -12,7 +12,7 @@ stockmono_build:
   stage: build
   script:
     # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
     - time (./configure.sh && make && make install)
@@ -24,7 +24,7 @@ stockmono_test:
   stage: test
   script:
     # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
 
     - time (apt-get install -y nunit-console &&
             ./configure.sh &&
@@ -36,7 +36,7 @@ stocknewmono_build:
   stage: build
   script:
     # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y nuget mono-complete mono-xbuild fsharp
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
     # fsharpi is broken in Ubuntu 19.04 ( https://github.com/fsharp/fsharp/issues/740 ) so
