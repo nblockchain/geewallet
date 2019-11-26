@@ -230,9 +230,10 @@ type Runner<'Resource when 'Resource: equality> =
         let jobs = funcs
                    |> Seq.map launchFunc
                    |> List.ofSeq
-        let firstJobsToLaunch = List.take (int parallelJobs) jobs
-        let jobsToLaunchLater = List.skip (int parallelJobs) jobs
-        firstJobsToLaunch,jobsToLaunchLater
+        if parallelJobs < uint32 jobs.Length then
+            List.splitAt (int parallelJobs) jobs
+        else
+            jobs,List.empty
 
 
 exception AlreadyCanceled of string*int
