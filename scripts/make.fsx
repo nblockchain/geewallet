@@ -138,7 +138,8 @@ let JustBuild binaryConfig: Frontend*FileInfo =
                 // somehow, msbuild doesn't restore the dependencies of the GTK frontend (Xamarin.Forms in particular)
                 // when targetting the LINUX_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
                 let nugetWorkaroundArgs =
-                    sprintf ".nuget/nuget.exe restore src/%s/%s.fsproj -SolutionDirectory ." GTK_FRONTEND GTK_FRONTEND
+                    sprintf "%s restore src/%s/%s.fsproj -SolutionDirectory ."
+                            nugetExe.FullName GTK_FRONTEND GTK_FRONTEND
                 Process.Execute({ Command = "mono"; Arguments = nugetWorkaroundArgs }, Echo.All) |> ignore
 
                 BuildSolution "msbuild" LINUX_SOLUTION_FILE binaryConfig "/t:Restore"
