@@ -157,6 +157,9 @@ type CircleChartView () =
         and set (value: ImageSource) = self.SetValue(defaultImageSourceProperty, value)
 
     member self.DrawPieFallback width height (items: seq<SegmentInfo>) =
+        if not (items.Any()) then
+            failwith "chart data should not be empty to draw a pie"
+
         let imageInfo = SKImageInfo(int width, int height)
         use surface = SKSurface.Create imageInfo
 
@@ -192,7 +195,7 @@ type CircleChartView () =
         let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
         self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
 
-    member self.DrawDonutOrLogo (width: float) (height: float) (items: seq<SegmentInfo>) =
+    member self.DrawDonut (width: float) (height: float) (items: seq<SegmentInfo>) =
         // FIXME: rework this workaround when we upgrade to an XF version where this bug is fixed:
         // https://github.com/xamarin/Xamarin.Forms/issues/8652 (to still detect 0.0 but send sentry warning)
         let defaultScaleFactor = 2.0
@@ -211,8 +214,8 @@ type CircleChartView () =
                 size / 2 - 1
 
         let itemsCount = items.Count()
-        if itemsCount = 0 then
-            self.Source <- self.DefaultImageSource
+        if itemsCount <= 0 then
+            failwith "chart data should  not be empty to draw a donut"
         else
             let separatorsTotalPercentage = 
                 if itemsCount > 1 then 
@@ -304,10 +307,13 @@ type CircleChartView () =
                 else
                     Seq.empty<SegmentInfo>
 
-            if nonZeroItems.Count() > 0 && Device.RuntimePlatform = Device.Android then
-                self.DrawPieFallback width height nonZeroItems
+            if nonZeroItems.Any() then
+                if Device.RuntimePlatform = Device.Android then
+                    self.DrawPieFallback width height nonZeroItems
+                else
+                    self.DrawDonut width height nonZeroItems
             else
-                self.DrawDonutOrLogo width height nonZeroItems
+                self.Source <- self.DefaultImageSource
 
 
     override self.OnPropertyChanged(propertyName: string) =
