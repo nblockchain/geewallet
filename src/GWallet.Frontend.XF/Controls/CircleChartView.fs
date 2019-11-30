@@ -180,7 +180,7 @@ type CircleChartView () =
 
             use path = new SKPath ()
             let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
-            use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color)
+            use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color, IsAntialias = true)
             path.MoveTo center
             path.ArcTo(rect, startAngle, sweepAngle, false)
             path.Close()
