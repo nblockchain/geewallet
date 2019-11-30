@@ -156,11 +156,13 @@ type CircleChartView () =
         with get () = self.GetValue defaultImageSourceProperty :?> ImageSource
         and set (value: ImageSource) = self.SetValue(defaultImageSourceProperty, value)
 
-    member self.DrawPieFallback width height (items: seq<SegmentInfo>) =
+    member self.DrawPieFallback (width: float) (height: float) (items: seq<SegmentInfo>) =
         if not (items.Any()) then
             failwith "chart data should not be empty to draw a pie"
 
-        let imageInfo = SKImageInfo(int width, int height)
+        let defaultScaleFactor = 5.f
+        let imageInfo = SKImageInfo(int width * int defaultScaleFactor, int height * int defaultScaleFactor)
+
         use surface = SKSurface.Create imageInfo
 
         surface.Canvas.Clear SKColors.Empty
@@ -183,6 +185,7 @@ type CircleChartView () =
             path.Close()
 
             surface.Canvas.Save() |> ignore
+            surface.Canvas.Scale(defaultScaleFactor, defaultScaleFactor)
             surface.Canvas.DrawPath(path, fillPaint)
             surface.Canvas.Restore()
 
