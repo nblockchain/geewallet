@@ -166,16 +166,17 @@ type CircleChartView () =
         use surface = SKSurface.Create imageInfo
 
         surface.Canvas.Clear SKColors.Empty
-        let center = SKPoint(float32 width / float32 2, float32 height / float32 2)
-        let radius = Math.Min(float32 width / float32 2, float32 height / float32 2)
+        let center = SKPoint(float32 width / 2.f, float32 height / 2.f)
+        let radius = Math.Min(float32 width / 2.f, float32 height / 2.f)
                         // add some padding, otherwise it hits the limits of the square
-                        - float32 5
+                        - 5.f
+
         let rect = SKRect(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius)
-        let mutable startAngle = float32 0.
+        let mutable startAngle = 0.f
 
         let total = items.Sum(fun i -> i.Percentage) |> float32
         for item in items do
-            let sweepAngle = float32 360. * float32 item.Percentage / total
+            let sweepAngle = 360.f * float32 item.Percentage / total
 
             use path = new SKPath ()
             let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
