@@ -199,6 +199,9 @@ type CircleChartView () =
         self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
 
     member self.DrawDonut (width: float) (height: float) (items: seq<SegmentInfo>) =
+        if not (items.Any()) then
+            failwith "chart data should not be empty to draw a donut"
+
         // FIXME: rework this workaround when we upgrade to an XF version where this bug is fixed:
         // https://github.com/xamarin/Xamarin.Forms/issues/8652 (to still detect 0.0 but send sentry warning)
         let defaultScaleFactor = 2.0
@@ -217,75 +220,72 @@ type CircleChartView () =
                 size / 2 - 1
 
         let itemsCount = items.Count()
-        if itemsCount <= 0 then
-            failwith "chart data should  not be empty to draw a donut"
-        else
-            let separatorsTotalPercentage = 
-                if itemsCount > 1 then 
-                    float(itemsCount) * self.SeparatorPercentage 
-                else 
-                    0.
+        let separatorsTotalPercentage =
+            if itemsCount > 1 then
+                float(itemsCount) * self.SeparatorPercentage
+            else
+                0.
 
-            let segmentsTotalPercentage = 1. - separatorsTotalPercentage
+        let segmentsTotalPercentage = 1. - separatorsTotalPercentage
 
-            let segmentsToDraw = 
-                if itemsCount = 1 then
-                    let item = items.First()
-                    let segment = { 
-                        Color = item.Color
-                        Percentage = item.Percentage * segmentsTotalPercentage
-                    }
-                    segment::List.Empty
-                else
-                    items
-                        |> Seq.map (fun i -> 
-                               let separator = { 
-                                   Color = self.SeparatorColor
-                                   Percentage = self.SeparatorPercentage
-                               } 
-                               let segment = { 
-                                   Color = i.Color
-                                   Percentage = i.Percentage * segmentsTotalPercentage
-                               }
-                               [separator; segment]
-                            )
-                        |> List.concat
+        let segmentsToDraw =
+            if itemsCount = 1 then
+                let item = items.First()
+                let segment = {
+                    Color = item.Color
+                    Percentage = item.Percentage * segmentsTotalPercentage
+                }
+                segment::List.Empty
+            else
+                items
+                    |> Seq.map (fun i ->
+                           let separator = {
+                               Color = self.SeparatorColor
+                               Percentage = self.SeparatorPercentage
+                           }
+                           let segment = {
+                               Color = i.Color
+                               Percentage = i.Percentage * segmentsTotalPercentage
+                           }
+                           [separator; segment]
+                        )
+                    |> List.concat
 
-            let innerRadius = int(float(halfSize) * self.CenterCirclePercentage)
-            let startY = int((1. - self.CenterCirclePercentage) * float(halfSize))
-            let segmentsBuilder = PrepareSegmentsSvgBuilder segmentsToDraw 0. startY halfSize innerRadius
+        let innerRadius = int(float(halfSize) * self.CenterCirclePercentage)
+        let startY = int((1. - self.CenterCirclePercentage) * float(halfSize))
+        let segmentsBuilder = PrepareSegmentsSvgBuilder segmentsToDraw 0. startY halfSize innerRadius
 
-            let centerCiclerSvg = 
-                if self.SeparatorColor.A > 0. then
-                    String.Format(svgCirclePattern,
-                                  halfSize,
-                                  float(halfSize) * self.CenterCirclePercentage,
-                                  GetHexColor self.SeparatorColor)
-                 else
-                     String.Empty
+        let centerCiclerSvg =
+            if self.SeparatorColor.A > 0. then
+                String.Format(svgCirclePattern,
+                              halfSize,
+                              float(halfSize) * self.CenterCirclePercentage,
+                              GetHexColor self.SeparatorColor)
+             else
+                 String.Empty
 
-            let fullSvg = String.Format(svgMainImagePattern, size, segmentsBuilder, centerCiclerSvg)
-            let svgHolder = SkiaSharp.Extended.Svg.SKSvg()
+        let fullSvg = String.Format(svgMainImagePattern, size, segmentsBuilder, centerCiclerSvg)
+        let svgHolder = SkiaSharp.Extended.Svg.SKSvg()
 
-            use stream = new MemoryStream(Encoding.UTF8.GetBytes fullSvg)
-            svgHolder.Load stream |> ignore
+        use stream = new MemoryStream(Encoding.UTF8.GetBytes fullSvg)
+        svgHolder.Load stream |> ignore
 
-            let canvasSize = svgHolder.CanvasSize
-            let cullRect = svgHolder.Picture.CullRect
+        let canvasSize = svgHolder.CanvasSize
+        let cullRect = svgHolder.Picture.CullRect
 
-            use bitmap = new SKBitmap(int canvasSize.Width, int canvasSize.Height)
-            use canvas = new SKCanvas(bitmap)
-            let canvasMin = Math.Min(canvasSize.Width, canvasSize.Height)
-            let svgMax = Math.Max(cullRect.Width, cullRect.Height)
-            let scale = canvasMin / svgMax
-            let matrix = SKMatrix.MakeScale(scale, scale)
-            canvas.Clear SKColor.Empty
-            canvas.DrawPicture(svgHolder.Picture, ref matrix)
-            canvas.Flush()
-            canvas.Save() |> ignore
-            use image = SKImage.FromBitmap bitmap
-            let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)       
-            self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
+        use bitmap = new SKBitmap(int canvasSize.Width, int canvasSize.Height)
+        use canvas = new SKCanvas(bitmap)
+        let canvasMin = Math.Min(canvasSize.Width, canvasSize.Height)
+        let svgMax = Math.Max(cullRect.Width, cullRect.Height)
+        let scale = canvasMin / svgMax
+        let matrix = SKMatrix.MakeScale(scale, scale)
+        canvas.Clear SKColor.Empty
+        canvas.DrawPicture(svgHolder.Picture, ref matrix)
+        canvas.Flush()
+        canvas.Save() |> ignore
+        use image = SKImage.FromBitmap bitmap
+        let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
+        self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
 
     member self.Draw () =
         let width = 
