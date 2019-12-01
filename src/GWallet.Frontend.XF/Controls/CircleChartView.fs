@@ -166,31 +166,39 @@ type CircleChartView () =
         use surface = SKSurface.Create imageInfo
 
         surface.Canvas.Clear SKColors.Empty
-        let center = SKPoint(float32 width / 2.f, float32 height / 2.f)
-        let radius = Math.Min(float32 width / 2.f, float32 height / 2.f)
+        let halfWidth = float32 width / 2.f
+        let halfHeight = float32 height / 2.f
+        let center = SKPoint(halfWidth, halfHeight)
+        let radius = Math.Min(halfWidth, halfHeight)
                         // add some padding, otherwise it hits the limits of the square
                         - 5.f
 
-        let rect = SKRect(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius)
-        let mutable startAngle = 0.f
-
         let total = items.Sum(fun i -> i.Percentage) |> float32
-        for item in items do
-            let sweepAngle = 360.f * float32 item.Percentage / total
-
-            use path = new SKPath ()
+        if items.Count() = 1 then
+            let item = items.Single()
             let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
             use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color, IsAntialias = true)
-            path.MoveTo center
-            path.ArcTo(rect, startAngle, sweepAngle, false)
-            path.Close()
-
-            surface.Canvas.Save() |> ignore
             surface.Canvas.Scale(defaultScaleFactor, defaultScaleFactor)
-            surface.Canvas.DrawPath(path, fillPaint)
-            surface.Canvas.Restore()
+            surface.Canvas.DrawCircle(center.X, center.Y, radius, fillPaint)
+        else
+            let rect = SKRect(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius)
+            let mutable startAngle = 0.f
+            for item in items do
+                let sweepAngle = 360.f * float32 item.Percentage / total
 
-            startAngle <- startAngle + sweepAngle
+                use path = new SKPath ()
+                let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
+                use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color, IsAntialias = true)
+                path.MoveTo center
+                path.ArcTo(rect, startAngle, sweepAngle, false)
+                path.Close()
+
+                surface.Canvas.Save() |> ignore
+                surface.Canvas.Scale(defaultScaleFactor, defaultScaleFactor)
+                surface.Canvas.DrawPath(path, fillPaint)
+                surface.Canvas.Restore()
+
+                startAngle <- startAngle + sweepAngle
 
         surface.Canvas.Flush()
         surface.Canvas.Save() |> ignore
