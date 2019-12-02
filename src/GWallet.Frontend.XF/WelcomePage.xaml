@@ -20,7 +20,7 @@
 
         <StackLayout Orientation="Horizontal">
             <Label Text="Date of Birth (d/m/y):"
-                   FontSize="Medium"
+                   FontSize="Small"
                    HorizontalOptions="Start"
                    VerticalOptions="Center" />
             <DatePicker x:Name="dobDatePicker"
