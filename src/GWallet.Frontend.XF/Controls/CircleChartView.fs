@@ -317,9 +317,8 @@ type CircleChartView () =
             ()
         else
             // WORKAROUND for Android issue about chart resizing to too big after coming back from ReceivePage
-            // TODO: report this as a bug to Xamarin.Forms! (in iOS it doesn't happen)
+            // TODO: report this as a bug to Xamarin.Forms or SkiaSharp!
             let workaroundLaunched =
-                if Device.RuntimePlatform = Device.Android then
                     let widthWorkaroundLaunched =
                         match firstWidth with
                         | Some w ->
@@ -345,8 +344,6 @@ type CircleChartView () =
                             false
 
                     widthWorkaroundLaunched || heightWorkaroundLaunched
-                else
-                    false
             // </WORKAROUND>
 
             if not workaroundLaunched then
