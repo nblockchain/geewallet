@@ -39,6 +39,7 @@ This list is the (intended) order of preference for new features:
 - Xamarin.Forms frontends (in progress, see the 'frontend' branch)...
 - Support for payment-channels & state-channels (in BTC/LTC via lightning, and in ETH/ETC/DAI via Raiden)
 - snap packaging.
+- Automatic reminders for Seed/password checks to make sure user has not forgotten them (see https://twitter.com/takinbo/status/1201529679519330305 ).
 - Decentralized currency exchange? (e.g. eth2dai.com)
 - NFC support.
 - Tizen frontend (no QR scanning due to missing camera in most Tizen watches, but could use NFC).
