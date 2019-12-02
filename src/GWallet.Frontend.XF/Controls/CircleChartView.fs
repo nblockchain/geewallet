@@ -29,6 +29,9 @@ type CircleChartView () =
     let degree180 = 180.
     let degree90 = 90.
 
+    let mutable firstWidth = None
+    let mutable firstHeight = None
+
     let BuildColorPart(part: float): int =
         int(part * 255.)
 
@@ -313,19 +316,53 @@ type CircleChartView () =
            not base.IsVisible then
             ()
         else
-            let nonZeroItems = 
-                if self.SegmentsSource <> null then
-                    self.SegmentsSource.Where(fun s -> s.Percentage > 0.)
-                else
-                    Seq.empty<SegmentInfo>
-
-            if nonZeroItems.Any() then
+            // WORKAROUND for Android issue about chart resizing to too big after coming back from ReceivePage
+            // TODO: report this as a bug to Xamarin.Forms! (in iOS it doesn't happen)
+            let workaroundLaunched =
                 if Device.RuntimePlatform = Device.Android then
-                    self.DrawPieFallback width height nonZeroItems
+                    let widthWorkaroundLaunched =
+                        match firstWidth with
+                        | Some w ->
+                            if base.Width > 0. && base.Width <> w then
+                                self.WidthRequest <- w
+                                true
+                            else
+                                false
+                        | None ->
+                            firstWidth <- Some width
+                            false
+
+                    let heightWorkaroundLaunched =
+                        match firstHeight with
+                        | Some h ->
+                            if base.Height > 0. && base.Height <> h then
+                                self.HeightRequest <- h
+                                true
+                            else
+                                false
+                        | None ->
+                            firstHeight <- Some height
+                            false
+
+                    widthWorkaroundLaunched || heightWorkaroundLaunched
                 else
-                    self.DrawDonut width height nonZeroItems
-            else
-                self.Source <- self.DefaultImageSource
+                    false
+            // </WORKAROUND>
+
+            if not workaroundLaunched then
+                let nonZeroItems =
+                    if self.SegmentsSource <> null then
+                        self.SegmentsSource.Where(fun s -> s.Percentage > 0.)
+                    else
+                        Seq.empty<SegmentInfo>
+
+                if nonZeroItems.Any() then
+                    if Device.RuntimePlatform = Device.Android then
+                        self.DrawPieFallback width height nonZeroItems
+                    else
+                        self.DrawDonut width height nonZeroItems
+                else
+                    self.Source <- self.DefaultImageSource
 
 
     override self.OnPropertyChanged(propertyName: string) =
