@@ -19,6 +19,7 @@ type FaultTolerance() =
 
     let one_consistent_result_because_this_test_doesnt_test_consistency = 1u
     let not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1u
+    let two_because_its_larger_than_the_length_of_the_server_list_which_has_one_elem = 2u
     let test_does_not_involve_retries = 0u
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ _ -> ())
 
@@ -1174,6 +1175,32 @@ type FaultTolerance() =
         Assert.That(retrievedData2, Is.EqualTo someResult)
         Assert.That(aJob1Called, Is.EqualTo true)
         Assert.That(aJob2Called, Is.EqualTo true)
+
+    [<Test>]
+    member __.``low server count does not cause exception``() =
+        let someResult = 1
+        let mutable singleJobCalled = false
+        let singleJob =
+            async { singleJobCalled <- true; return someResult }
+        let func1 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "singleJob" singleJob
+
+        let settings =
+            {
+                NumberOfParallelJobsAllowed = two_because_its_larger_than_the_length_of_the_server_list_which_has_one_elem
+                NumberOfRetries = test_does_not_involve_retries
+                NumberOfRetriesForInconsistency = test_does_not_involve_retries
+                ResultSelectionMode = ResultSelectionMode.Exhaustive
+                ExceptionHandler = None
+                ExtraProtectionAgainstUnfoundedCancellations = false
+            }
+        // test that it doesn't throw
+        let retrievedData = defaultFaultTolerantParallelClient.Query
+                                settings
+                                [ func1 ]
+                                    |> Async.RunSynchronously
+
+        Assert.That(singleJobCalled, Is.EqualTo true)
+        Assert.That(retrievedData, Is.EqualTo someResult)
 
     member private __.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyConfig =
         defaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyConfig
