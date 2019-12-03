@@ -40,6 +40,16 @@ module FrontendHelpers =
     type IAugmentablePayPage =
         abstract member AddTransactionScanner: unit -> unit
 
+    let IsDesktop() =
+        match Device.RuntimePlatform with
+        | Device.Android | Device.iOS ->
+            false
+        | Device.macOS | Device.GTK | Device.UWP | Device.WPF ->
+            true
+        | _ ->
+            // TODO: report a sentry warning
+            false
+
     let internal BigFontSize = 22.
 
     let internal MediumFontSize = 20.

@@ -8,6 +8,8 @@ open System.IO
 open Xamarin.Forms
 open SkiaSharp
 
+open GWallet.Frontend.XF
+
 type SegmentInfo = 
     {
         Color: Color
@@ -166,32 +168,37 @@ type CircleChartView () =
         // WORKAROUND for Android issue about chart resizing to too big after coming back from ReceivePage
         // TODO: report this as a bug to Xamarin.Forms or SkiaSharp!
         let workaroundLaunched =
-            let widthWorkaroundLaunched =
-                match firstWidth with
-                | None ->
-                    firstWidth <- Some width
-                    false
-                | Some w ->
-                    if base.Width > 0. && base.Width <> w then
-                        self.WidthRequest <- w
-                        true
-                    else
+            // because in platforms where you can resize the app, this workaround makes a mess
+            // (and I've only reproduced the bug anyway with iOS&Android)
+            if FrontendHelpers.IsDesktop() then
+                false
+            else
+                let widthWorkaroundLaunched =
+                    match firstWidth with
+                    | None ->
+                        firstWidth <- Some width
                         false
+                    | Some w ->
+                        if base.Width > 0. && base.Width <> w then
+                            self.WidthRequest <- w
+                            true
+                        else
+                            false
 
-            let heightWorkaroundLaunched =
-                match firstHeight with
-                | None ->
-                    firstHeight <- Some height
-                    false
-                | Some h ->
-                    if base.Height > 0. && base.Height <> h then
-                        self.HeightRequest <- h
-                        true
-                    else
+                let heightWorkaroundLaunched =
+                    match firstHeight with
+                    | None ->
+                        firstHeight <- Some height
                         false
+                    | Some h ->
+                        if base.Height > 0. && base.Height <> h then
+                            self.HeightRequest <- h
+                            true
+                        else
+                            false
 
-            widthWorkaroundLaunched || heightWorkaroundLaunched
-        // </WORKAROUND>
+                widthWorkaroundLaunched || heightWorkaroundLaunched
+        // </WORKAROUND>*)
 
         if not workaroundLaunched then
 
