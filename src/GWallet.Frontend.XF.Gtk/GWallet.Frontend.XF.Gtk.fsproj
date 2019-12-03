@@ -265,7 +265,10 @@
     <!-- workaround for https://github.com/dotnet/corefx/issues/19914 / https://bugzilla.xamarin.com/show_bug.cgi?id=60315 -->
     <Delete Files="bin\$(Configuration)\System.Net.Http.dll" />
 
-    <!-- workaround for https://github.com/mono/SkiaSharp/issues/794 -->
+    <!-- workaround for https://github.com/mono/SkiaSharp/issues/794
+         (NOTE: the bug above is fixed in 1.68.1 but we can't upgrade to that version because of this other bug:
+         https://github.com/mono/SkiaSharp/issues/1047 )
+     -->
     <Copy SourceFiles="..\..\packages\SkiaSharp.NativeAssets.Linux.1.68.0\runtimes\linux-x64\native\libSkiaSharp.so" DestinationFiles="bin\$(Configuration)\libSkiaSharp.so" />
 
   </Target>
