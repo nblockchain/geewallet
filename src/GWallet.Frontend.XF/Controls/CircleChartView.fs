@@ -163,52 +163,84 @@ type CircleChartView () =
         if not (items.Any()) then
             failwith "chart data should not be empty to draw a pie"
 
-        let defaultScaleFactor = 5.f
-        let imageInfo = SKImageInfo(int width * int defaultScaleFactor, int height * int defaultScaleFactor)
+        // WORKAROUND for Android issue about chart resizing to too big after coming back from ReceivePage
+        // TODO: report this as a bug to Xamarin.Forms or SkiaSharp!
+        let workaroundLaunched =
+            let widthWorkaroundLaunched =
+                match firstWidth with
+                | None ->
+                    firstWidth <- Some width
+                    false
+                | Some w ->
+                    if base.Width > 0. && base.Width <> w then
+                        self.WidthRequest <- w
+                        true
+                    else
+                        false
 
-        use surface = SKSurface.Create imageInfo
+            let heightWorkaroundLaunched =
+                match firstHeight with
+                | None ->
+                    firstHeight <- Some height
+                    false
+                | Some h ->
+                    if base.Height > 0. && base.Height <> h then
+                        self.HeightRequest <- h
+                        true
+                    else
+                        false
 
-        surface.Canvas.Clear SKColors.Empty
-        let halfWidth = float32 width / 2.f
-        let halfHeight = float32 height / 2.f
-        let center = SKPoint(halfWidth, halfHeight)
-        let radius = Math.Min(halfWidth, halfHeight)
-                        // add some padding, otherwise it hits the limits of the square
-                        - 5.f
+            widthWorkaroundLaunched || heightWorkaroundLaunched
+        // </WORKAROUND>
 
-        let total = items.Sum(fun i -> i.Percentage) |> float32
-        if items.Count() = 1 then
-            let item = items.Single()
-            let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
-            use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color, IsAntialias = true)
-            surface.Canvas.Scale(defaultScaleFactor, defaultScaleFactor)
-            surface.Canvas.DrawCircle(center.X, center.Y, radius, fillPaint)
-        else
-            let rect = SKRect(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius)
-            let mutable startAngle = 0.f
-            for item in items do
-                let sweepAngle = 360.f * float32 item.Percentage / total
+        if not workaroundLaunched then
 
-                use path = new SKPath ()
+            let defaultScaleFactor = 5.f
+            let imageInfo = SKImageInfo(int width * int defaultScaleFactor, int height * int defaultScaleFactor)
+
+            use surface = SKSurface.Create imageInfo
+
+            surface.Canvas.Clear SKColors.Empty
+            let halfWidth = float32 width / 2.f
+            let halfHeight = float32 height / 2.f
+            let center = SKPoint(halfWidth, halfHeight)
+            let radius = Math.Min(halfWidth, halfHeight)
+                            // add some padding, otherwise it hits the limits of the square
+                            - 5.f
+
+            let total = items.Sum(fun i -> i.Percentage) |> float32
+            if items.Count() = 1 then
+                let item = items.Single()
                 let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
                 use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color, IsAntialias = true)
-                path.MoveTo center
-                path.ArcTo(rect, startAngle, sweepAngle, false)
-                path.Close()
-
-                surface.Canvas.Save() |> ignore
                 surface.Canvas.Scale(defaultScaleFactor, defaultScaleFactor)
-                surface.Canvas.DrawPath(path, fillPaint)
-                surface.Canvas.Restore()
+                surface.Canvas.DrawCircle(center.X, center.Y, radius, fillPaint)
+            else
+                let rect = SKRect(center.X - radius, center.Y - radius, center.X + radius, center.Y + radius)
+                let mutable startAngle = 0.f
+                for item in items do
+                    let sweepAngle = 360.f * float32 item.Percentage / total
 
-                startAngle <- startAngle + sweepAngle
+                    use path = new SKPath ()
+                    let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
+                    use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color, IsAntialias = true)
+                    path.MoveTo center
+                    path.ArcTo(rect, startAngle, sweepAngle, false)
+                    path.Close()
 
-        surface.Canvas.Flush()
-        surface.Canvas.Save() |> ignore
+                    surface.Canvas.Save() |> ignore
+                    surface.Canvas.Scale(defaultScaleFactor, defaultScaleFactor)
+                    surface.Canvas.DrawPath(path, fillPaint)
+                    surface.Canvas.Restore()
 
-        use image = surface.Snapshot()
-        let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
-        self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
+                    startAngle <- startAngle + sweepAngle
+
+            surface.Canvas.Flush()
+            surface.Canvas.Save() |> ignore
+
+            use image = surface.Snapshot()
+            let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
+            self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
 
     member self.DrawDonut (width: float) (height: float) (items: seq<SegmentInfo>) =
         if not (items.Any()) then
@@ -316,50 +348,19 @@ type CircleChartView () =
            not base.IsVisible then
             ()
         else
-            // WORKAROUND for Android issue about chart resizing to too big after coming back from ReceivePage
-            // TODO: report this as a bug to Xamarin.Forms or SkiaSharp!
-            let workaroundLaunched =
-                    let widthWorkaroundLaunched =
-                        match firstWidth with
-                        | Some w ->
-                            if base.Width > 0. && base.Width <> w then
-                                self.WidthRequest <- w
-                                true
-                            else
-                                false
-                        | None ->
-                            firstWidth <- Some width
-                            false
-
-                    let heightWorkaroundLaunched =
-                        match firstHeight with
-                        | Some h ->
-                            if base.Height > 0. && base.Height <> h then
-                                self.HeightRequest <- h
-                                true
-                            else
-                                false
-                        | None ->
-                            firstHeight <- Some height
-                            false
-
-                    widthWorkaroundLaunched || heightWorkaroundLaunched
-            // </WORKAROUND>
-
-            if not workaroundLaunched then
-                let nonZeroItems =
-                    if self.SegmentsSource <> null then
-                        self.SegmentsSource.Where(fun s -> s.Percentage > 0.)
-                    else
-                        Seq.empty<SegmentInfo>
-
-                if nonZeroItems.Any() then
-                    if Device.RuntimePlatform = Device.Android then
-                        self.DrawPieFallback width height nonZeroItems
-                    else
-                        self.DrawDonut width height nonZeroItems
+            let nonZeroItems =
+                if self.SegmentsSource <> null then
+                    self.SegmentsSource.Where(fun s -> s.Percentage > 0.)
                 else
-                    self.Source <- self.DefaultImageSource
+                    Seq.empty<SegmentInfo>
+
+            if nonZeroItems.Any() then
+                if Device.RuntimePlatform = Device.Android then
+                    self.DrawPieFallback width height nonZeroItems
+                else
+                    self.DrawDonut width height nonZeroItems
+            else
+                self.Source <- self.DefaultImageSource
 
 
     override self.OnPropertyChanged(propertyName: string) =
