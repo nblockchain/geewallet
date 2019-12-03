@@ -21,7 +21,13 @@ module Infrastructure =
         ReportInner sentryEvent
 #endif
 
-    let private Report (ex: Exception) (errorLevel: ErrorLevel) =
+    let private Report (ex: Exception)
+#if DEBUG
+                       (_         : ErrorLevel)
+#else
+                       (errorLevel: ErrorLevel)
+#endif
+                       =
 
         // TODO: log this in a file (log4net?), as well as printing to the console, before sending to sentry
         Console.Error.WriteLine ex
@@ -39,7 +45,7 @@ module Infrastructure =
     let ReportCrash (ex: Exception) =
         Report ex ErrorLevel.Fatal
 
-    let private OnUnhandledException (sender: obj) (args: UnhandledExceptionEventArgs) =
+    let private OnUnhandledException (_: obj) (args: UnhandledExceptionEventArgs) =
         ReportCrash (args.ExceptionObject :?> Exception)
 
     let public SetupSentryHook () =

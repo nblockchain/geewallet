@@ -119,8 +119,6 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
     [<Test>]
     member __.``external cancellation source can come already canceled``() =
-        let someLongTime = TimeSpan.FromSeconds 1.0
-
         let externalCancellationSource = new CustomCancelSource()
         externalCancellationSource.Cancel()
 
@@ -164,8 +162,6 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
     [<Test>]
     member __.``external cancellation source can come already disposed``() =
-        let someLongTime = TimeSpan.FromSeconds 1.0
-
         let externalCancellationSource = new CustomCancelSource()
         (externalCancellationSource:>IDisposable).Dispose()
 
@@ -209,8 +205,6 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
     [<Test>]
     member __.``external cancellation source can come already canceled&disposed``() =
-        let someLongTime = TimeSpan.FromSeconds 1.0
-
         let externalCancellationSource = new CustomCancelSource()
         externalCancellationSource.Cancel()
         (externalCancellationSource:>IDisposable).Dispose()
@@ -305,8 +299,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
         let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-        let task = client.QueryWithCancellation cancelSource settings allFuncs
-                         |> Async.StartAsTask
+        client.QueryWithCancellation cancelSource settings allFuncs |> Async.StartAsTask |> ignore
 
         Assert.That(longFuncFinishedExecution, Is.EqualTo false)
         Thread.Sleep someShortTime
@@ -373,11 +366,8 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
     [<Test>]
     member __.``cancellationSource is *NOT* disposed after FaultTolerantParallelClient finishes executing``() =
-        let someLongTime = TimeSpan.FromSeconds 1.0
-
         let externalCancellationSource = new CustomCancelSource()
 
-        let mutable longFuncFinishedExecution = false
         let job1 =
             async { return 0 }
         let job2 =
@@ -871,20 +861,6 @@ type DotNetAsyncCancellation() =
         Async.RunSynchronously rootAsyncJob2
 
         use cancelSource = new CancellationTokenSource()
-        let nestedAsyncJobWhenLaunchedWithASource (parentCancelToken: CancellationToken) =
-            async {
-                let! currentCancelToken = Async.CancellationToken
-                Assert.That(currentCancelToken, Is.Not.EqualTo CancellationToken.None, "!=None3")
-                Assert.That(currentCancelToken.GetHashCode(), Is.EqualTo (parentCancelToken.GetHashCode()), "hashcode3")
-                //Assert.That(Object.ReferenceEquals(currentCancelToken, parentCancelToken), Is.EqualTo true, "obj.ref=3")
-                Assert.That(currentCancelToken, Is.EqualTo parentCancelToken, "equality3")
-
-                Assert.That(cancelSource.Token, Is.Not.EqualTo CancellationToken.None, "!=None4")
-                Assert.That(currentCancelToken.GetHashCode(), Is.EqualTo (cancelSource.Token.GetHashCode()), "hashcode4")
-                //Assert.That(Object.ReferenceEquals(currentCancelToken, parentCancelToken), Is.EqualTo true, "obj.ref=4")
-                Assert.That(currentCancelToken, Is.EqualTo cancelSource.Token, "equality4")
-                return someRandomNumber
-            }
         let rootAsyncJob3 =
             async {
                 let! currentRootCancelToken = Async.CancellationToken

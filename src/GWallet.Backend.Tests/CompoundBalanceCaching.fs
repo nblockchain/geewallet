@@ -189,7 +189,6 @@ type CompoundBalanceCaching() =
                                            "x"
                                            firstTransactionAmount
                                            zero_fee_because_this_test_does_not_involve_fees
-            let cachedBalance = cache.RetrieveAndUpdateLastCompoundBalance someAddress someCurrency someBalance
             let secondTransactionAmount = 2m
             cache.StoreOutgoingTransaction someAddress
                                            someCurrency

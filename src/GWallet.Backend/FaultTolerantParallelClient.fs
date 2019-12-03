@@ -499,7 +499,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                      : Async<FinalResult<'K,'T,'R>> =
 
         let initialServerCount = funcs.Length |> uint32
-        let parallelJobs = int settings.NumberOfParallelJobsAllowed
 
         let shouldReportUncanceledJobs =
             match settings.ResultSelectionMode with
@@ -512,7 +511,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
         let maybeJobs = cancelState.SafeDo(fun state ->
             match state.Value with
             | Canceled _ -> None
-            | Alive currentList ->
+            | Alive _ ->
                 Some <| Runner<'R>.CreateJobs<'K,'E> shouldReportUncanceledJobs
                                                      settings.NumberOfParallelJobsAllowed
                                                      settings.ExceptionHandler
@@ -594,7 +593,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 if (howManyFuncs < numberOfConsistentResponsesRequired) then
                     return raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
                                                    "funcs"))
-            | AverageBetweenResponses(minimumNumberOfResponses,averageFunc) ->
+            | AverageBetweenResponses(minimumNumberOfResponses,_) ->
                 if (int minimumNumberOfResponses > numberOfParallelJobsAllowed) then
                     return raise(ArgumentException("numberOfParallelJobsAllowed should be equal or higher than minimumNumberOfResponses for the averageFunc",
                                                    "settings"))
@@ -652,7 +651,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     match resultsOrderedByCount with
                     | [] ->
                         return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
-                    | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
+                    | (_,maxNumberOfConsistentResultsObtained)::_ ->
                         if (retriesForInconsistency = settings.NumberOfRetriesForInconsistency) then
                             return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
                                                                        maxNumberOfConsistentResultsObtained,
@@ -667,7 +666,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                   retries
                                                   (retriesForInconsistency + 1u)
                                                   cancellationSource
-                | Some(AverageBetweenResponses(minimumNumberOfResponses,averageFunc)) ->
+                | Some(AverageBetweenResponses _) ->
                     if (retries = settings.NumberOfRetries) then
                         let firstEx = executedServers.UnsuccessfulServers.First().Failure
                         return raise (NotEnoughAvailableException("resultsSoFar.Length != 0 but not enough to satisfy minimum number of results for averaging func", firstEx))

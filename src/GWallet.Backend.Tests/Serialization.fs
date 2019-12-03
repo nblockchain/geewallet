@@ -8,8 +8,6 @@ open GWallet.Backend
 
 [<TestFixture>]
 type Serialization() =
-    let version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
-
     [<Test>]
     member __.``basic caching export does not fail``() =
         let json = Marshalling.Serialize MarshallingData.EmptyCachingDataExample
