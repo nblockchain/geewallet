@@ -206,7 +206,8 @@ type CircleChartView () =
             let imageInfo = SKImageInfo(int width * int defaultScaleFactor, int height * int defaultScaleFactor)
 
             use surface = SKSurface.Create imageInfo
-
+            if surface = null then
+                failwithf "Strangely enough, surface created was null (w: %f, h: %f)" width height
             surface.Canvas.Clear SKColors.Empty
             let halfWidth = float32 width / 2.f
             let halfHeight = float32 height / 2.f
@@ -362,6 +363,8 @@ type CircleChartView () =
                     Seq.empty<SegmentInfo>
 
             if nonZeroItems.Any() then
+                // let's be careful about enabling the Pie for all platforms in the future (instead of Android
+                // exclusively) because there are bugs in macOS & GTK...
                 if Device.RuntimePlatform = Device.Android then
                     self.DrawPieFallback width height nonZeroItems
                 else
