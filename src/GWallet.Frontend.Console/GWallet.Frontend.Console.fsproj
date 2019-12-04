@@ -14,6 +14,10 @@
     <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
     <Name>GWallet.Frontend.Console</Name>
     <TargetFrameworkProfile />
+    <OtherFlags>
+        /warnon:1182
+        /warnon:3218
+    </OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

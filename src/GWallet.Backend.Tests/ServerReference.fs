@@ -315,7 +315,6 @@ type ServerReference() =
 
     [<Test>]
     member __.``serialization is JSON based (for readability and consistency with rest of wallet)``() =
-        let now = DateTime.UtcNow
         let serverWithSomeRecentConnection =
             {
                 ServerInfo =
@@ -533,7 +532,6 @@ type ServerReference() =
 
     [<Test>]
     member __.``non-duplicate servers are not removed``() =
-        let sameRandomHostname = "xfoihror3uo3wmio"
         let serverA =
             {
                 ServerInfo =
@@ -575,7 +573,7 @@ type ServerReference() =
         let serverRankingB =
             Map.empty.Add (dummy_currency_because_irrelevant_for_this_test, seq { yield serverB })
         let mergedServerRanking = ServerRegistry.Merge serverRankingA serverRankingB
-        ((ServerRegistry.Merge serverRankingA serverRankingB).TryFind dummy_currency_because_irrelevant_for_this_test)
+        (mergedServerRanking.TryFind dummy_currency_because_irrelevant_for_this_test)
             .Value
             |> List.ofSeq
 

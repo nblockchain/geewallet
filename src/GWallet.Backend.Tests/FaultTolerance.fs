@@ -303,7 +303,6 @@ type FaultTolerance() =
     member __.``consistency precondition > 0``() =
         let consistencyCfg = SpecificNumberOfConsistentResponsesRequired 0u |> Some
         let invalidSettings = defaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyCfg
-        let dummyArg = ()
         let dummyServers =
             [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "dummyServerName" (async { return () }) ]
         Assert.Throws<ArgumentException>(fun _ ->
@@ -402,10 +401,6 @@ type FaultTolerance() =
         let client = FaultTolerantParallelClient<ServerDetails, SomeSpecificException>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
-        let consistencyGuardClient =
-            FaultTolerantParallelClient<ServerDetails, SomeSpecificException>
-                dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-
         let retrievedData =
             client
                 .Query settings
@@ -443,10 +438,6 @@ type FaultTolerance() =
 
         let client = FaultTolerantParallelClient<ServerDetails, SomeSpecificException>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-
-        let consistencyGuardClient =
-            FaultTolerantParallelClient<ServerDetails, SomeSpecificException>
-                dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
         let retrievedData =
             client
@@ -859,8 +850,6 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``ordering: leaves one third of servers queried for faulty ones in analysis(non-fast) mode``() =
-        let someResult1 = 1
-        let someResult2 = 2
         let someResult3 = 3
         let someResult4 = 4
         let server1 = {
@@ -955,9 +944,6 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``ordering: leaves every 4th position for a non-best server in analysis(non-fast) mode``() =
-        let someResult1 = 1
-        let someResult2 = 2
-        let someResult3 = 3
         let someResult4 = 4
         let someResult5 = 5
         let server1 = {
@@ -1073,7 +1059,6 @@ type FaultTolerance() =
         let func = serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId aJob
 
         let mutable someFlag = false
-        let mutable someTimeStamp = None
         let saveServerLastStat (isServer: ServerDetails->bool) (historyFact: HistoryFact): unit =
             Assert.That(isServer func.Details, Is.EqualTo true)
             match historyFact.Fault with
@@ -1106,7 +1091,6 @@ type FaultTolerance() =
 
         let mutable someNonFailingCounter = 0
         let mutable someTotalCounter = 0
-        let mutable someTimeStamp = None
         let lockObj = Object()
         let saveServerLastStat (isServer: ServerDetails->bool) (historyFact: HistoryFact): unit =
             lock lockObj (fun _ ->

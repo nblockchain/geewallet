@@ -24,7 +24,7 @@ module Shuffler =
                     let randomizedRest = Unsort tail |> List.ofSeq
                     match randomizedRest with
                     | [] -> failwith "should have fallen under previous 'if' case"
-                    | randomizedHead::randomizedTail ->
+                    | randomizedHead::_ ->
                         let newRest = head::(ListRemove tail randomizedHead)
                         RandomizeInternal newRest offset (randomizedHead::acc) nextIndex
 

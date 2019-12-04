@@ -150,7 +150,7 @@ module Caching =
                 let newCachedBalance = newMap.[address]
                 let newAcc = accumulator.Add(address, newCachedBalance)
                 MergeRatesInternal oldMap newMap tail newAcc
-            | Some(balance,time) ->
+            | Some(_,time) ->
                 let newBalance,newTime = newMap.[address]
                 let newAcc =
                     if (newTime > time) then
@@ -187,7 +187,7 @@ module Caching =
                     let newAccBalances = accBalancesForThisCurrency.Add(address, newCachedBalance)
                     let newAcc = accumulator.Add(currency, newAccBalances)
                     MergeBalancesInternal oldMap newMap tail newAcc
-                | Some(balance,time) ->
+                | Some(_,time) ->
                     let newBalance,newTime = newMap.[currency].[address]
                     let newAcc =
                         if (newTime > time) then
@@ -273,7 +273,7 @@ module Caching =
                 | None -> 0m
                 | Some someMap ->
                     Map.toSeq someMap |>
-                        Seq.sumBy (fun (txId,(txAmount,txDate)) ->
+                        Seq.sumBy (fun (_,(txAmount,txDate)) ->
                                         // FIXME: develop some kind of cache cleanup to remove these expired txs?
                                         if (now < txDate + unconfTxExpirationSpan) then
                                             txAmount
@@ -284,7 +284,7 @@ module Caching =
         let rec RemoveRangeFromMap (map: Map<'K,'V>) (list: List<'K*'V>) =
             match list with
             | [] -> map
-            | (key,value)::tail -> RemoveRangeFromMap (map.Remove key) tail
+            | (key,_)::tail -> RemoveRangeFromMap (map.Remove key) tail
 
         let GatherDebuggingInfo (previousBalance) (currency) (address) (newCache) =
             let json1 = Marshalling.Serialize previousBalance
@@ -421,7 +421,7 @@ module Caching =
                                     let allCombinationsOfTransactions = MapCombinations addressTransactions
                                     let newAddressTransactions =
                                         match List.tryFind (fun combination ->
-                                                               let txSumAmount = List.sumBy (fun (txId,(txAmount,_)) ->
+                                                               let txSumAmount = List.sumBy (fun (_,(txAmount,_)) ->
                                                                                                  txAmount) combination
                                                                previousCachedBalance - txSumAmount = newBalance
                                                            ) allCombinationsOfTransactions with

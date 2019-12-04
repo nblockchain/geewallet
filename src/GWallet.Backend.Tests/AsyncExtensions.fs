@@ -149,14 +149,12 @@ type AsyncExtensions() =
 
         // the below is to make sure that the jobs don't get executed a second time!
         let stopWatch = Stopwatch.StartNew()
-        let results2 =
-            subJobs |> Async.RunSynchronously
+        subJobs |> Async.RunSynchronously |> ignore
         Assert.That(asyncJobsPerformedCount, Is.EqualTo 2)
         Assert.That(stopWatch.Elapsed, Is.LessThan shortTime)
 
     [<Test>]
     member __.``AsyncParallel cancels all jobs if there's an exception in one'``() =
-        let shortJobRes = 1
         let shortTime = TimeSpan.FromSeconds 2.
         let shortJob = async {
             do! Async.Sleep (int shortTime.TotalMilliseconds)

@@ -177,7 +177,7 @@ module internal Account =
             | DAI -> ETH
             | _ -> failwithf "Unknown token %A" account.Currency
 
-        let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee baseCurrency account amount destination
+        let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination
         if (tokenTransferFee.Value > BigInteger(Int64.MaxValue)) then
             failwithf "Serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
                       (tokenTransferFee.Value.ToString())

@@ -7,7 +7,6 @@ open GWallet.Backend
 open GWallet.Frontend.Console
 
 let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
-    let baseAccount = account :> IAccount
     let password = UserInteraction.AskPassword false
     try
         let txIdUri =
@@ -89,7 +88,7 @@ let SignOffPayment() =
                 failwith "More than one normal account matching address and currency? Please report this issue."
 
             match account with
-            | :? ReadOnlyAccount as readOnlyAccount ->
+            | :? ReadOnlyAccount ->
                 failwith "Previous account filtering should have discarded readonly accounts already. Please report this issue"
             | :? NormalAccount as normalAccount ->
                 Console.WriteLine ("Importing external data...")
@@ -118,7 +117,7 @@ let SendPaymentOfSpecificAmount (account: IAccount)
                                 (transactionMetadata: IBlockchainFeeInfo)
                                 (destination: string) =
     match account with
-    | :? ReadOnlyAccount as readOnlyAccount ->
+    | :? ReadOnlyAccount ->
         Console.WriteLine("Cannot send payments from readonly accounts.")
         Console.Write("Introduce a file name to save the unsigned transaction: ")
         let filePath = Console.ReadLine()

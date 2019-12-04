@@ -202,8 +202,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
         let! resObj = self.Request<ServerVersionResult> json
 
-        // e.g. "ElectrumX 1.4.3"
-        let serverNameAndVersion = resObj.Result.[0]
+        // resObj.Result.[0] is e.g. "ElectrumX 1.4.3"
         // e.g. "1.1"
         let serverProtocolVersion = resObj.Result.[1]
 
