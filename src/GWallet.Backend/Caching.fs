@@ -100,17 +100,21 @@ module Caching =
             match LoadFromDiskInner file with
             | None -> None
             | Some json ->
-                let deserializedJson = ImportFromJson json
-                Some deserializedJson
+                try
+                    let deserializedJson = ImportFromJson json
+                    Some deserializedJson
+                with
+                | :? VersionMismatchDuringDeserializationException ->
+                    Console.Error.WriteLine droppedCachedMsgWarning
+                    None
+                | :? DeserializationException ->
+                    // FIXME: report a warning to sentry here...
+                    Console.Error.WriteLine "Warning: cleaning incompatible cache data found"
+                    if Config.DebugLog then
+                        Console.Error.WriteLine (sprintf "JSON content: <<<%s>>>" json)
+                    None
         with
         | :? FileNotFoundException -> None
-        | :? VersionMismatchDuringDeserializationException ->
-            Console.Error.WriteLine droppedCachedMsgWarning
-            None
-        | :? DeserializationException ->
-            // FIXME: report a warning to sentry here...
-            Console.Error.WriteLine("Warning: cleaning incompatible cache data found")
-            None
 
     // this weird thing could happen because the previous version of GWallet didn't have a new element
     // FIXME: we should save each Map<> into its own file
