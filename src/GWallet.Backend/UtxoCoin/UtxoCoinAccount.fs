@@ -331,7 +331,7 @@ module Account =
         let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
 
         let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
-        let utxosToUse,totalValueOfInputs =
+        let utxosToUse,_ =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis List.Empty
 
         let asyncInputs =
@@ -346,7 +346,6 @@ module Account =
                         let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
                         let txOut = transaction.Outputs.[utxo.OutputIndex]
                         // should suggest a ToHex() method to NBitcoin's TxOut type?
-                        let valueInSatoshis = txOut.Value
                         let destination = txOut.ScriptPubKey.ToHex()
                         let ret = {
                             TransactionHash = transaction.GetHash().ToString();
@@ -406,7 +405,6 @@ module Account =
                                               (privateKey: Key) =
 
         let btcMinerFee = txMetadata.Fee
-        let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
 
         let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs destination amount
 

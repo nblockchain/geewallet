@@ -19,6 +19,7 @@ type FaultTolerance() =
 
     let one_consistent_result_because_this_test_doesnt_test_consistency = 1u
     let not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1u
+    let two_because_its_larger_than_the_length_of_the_server_list_which_has_one_elem = 2u
     let test_does_not_involve_retries = 0u
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ _ -> ())
 
@@ -302,7 +303,6 @@ type FaultTolerance() =
     member __.``consistency precondition > 0``() =
         let consistencyCfg = SpecificNumberOfConsistentResponsesRequired 0u |> Some
         let invalidSettings = defaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyCfg
-        let dummyArg = ()
         let dummyServers =
             [ serverWithNoHistoryInfoBecauseIrrelevantToThisTest "dummyServerName" (async { return () }) ]
         Assert.Throws<ArgumentException>(fun _ ->
@@ -401,10 +401,6 @@ type FaultTolerance() =
         let client = FaultTolerantParallelClient<ServerDetails, SomeSpecificException>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
-        let consistencyGuardClient =
-            FaultTolerantParallelClient<ServerDetails, SomeSpecificException>
-                dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-
         let retrievedData =
             client
                 .Query settings
@@ -442,10 +438,6 @@ type FaultTolerance() =
 
         let client = FaultTolerantParallelClient<ServerDetails, SomeSpecificException>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-
-        let consistencyGuardClient =
-            FaultTolerantParallelClient<ServerDetails, SomeSpecificException>
-                dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
 
         let retrievedData =
             client
@@ -858,8 +850,6 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``ordering: leaves one third of servers queried for faulty ones in analysis(non-fast) mode``() =
-        let someResult1 = 1
-        let someResult2 = 2
         let someResult3 = 3
         let someResult4 = 4
         let server1 = {
@@ -954,9 +944,6 @@ type FaultTolerance() =
 
     [<Test>]
     member __.``ordering: leaves every 4th position for a non-best server in analysis(non-fast) mode``() =
-        let someResult1 = 1
-        let someResult2 = 2
-        let someResult3 = 3
         let someResult4 = 4
         let someResult5 = 5
         let server1 = {
@@ -1072,7 +1059,6 @@ type FaultTolerance() =
         let func = serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId aJob
 
         let mutable someFlag = false
-        let mutable someTimeStamp = None
         let saveServerLastStat (isServer: ServerDetails->bool) (historyFact: HistoryFact): unit =
             Assert.That(isServer func.Details, Is.EqualTo true)
             match historyFact.Fault with
@@ -1105,7 +1091,6 @@ type FaultTolerance() =
 
         let mutable someNonFailingCounter = 0
         let mutable someTotalCounter = 0
-        let mutable someTimeStamp = None
         let lockObj = Object()
         let saveServerLastStat (isServer: ServerDetails->bool) (historyFact: HistoryFact): unit =
             lock lockObj (fun _ ->
@@ -1174,6 +1159,32 @@ type FaultTolerance() =
         Assert.That(retrievedData2, Is.EqualTo someResult)
         Assert.That(aJob1Called, Is.EqualTo true)
         Assert.That(aJob2Called, Is.EqualTo true)
+
+    [<Test>]
+    member __.``low server count does not cause exception``() =
+        let someResult = 1
+        let mutable singleJobCalled = false
+        let singleJob =
+            async { singleJobCalled <- true; return someResult }
+        let func1 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "singleJob" singleJob
+
+        let settings =
+            {
+                NumberOfParallelJobsAllowed = two_because_its_larger_than_the_length_of_the_server_list_which_has_one_elem
+                NumberOfRetries = test_does_not_involve_retries
+                NumberOfRetriesForInconsistency = test_does_not_involve_retries
+                ResultSelectionMode = ResultSelectionMode.Exhaustive
+                ExceptionHandler = None
+                ExtraProtectionAgainstUnfoundedCancellations = false
+            }
+        // test that it doesn't throw
+        let retrievedData = defaultFaultTolerantParallelClient.Query
+                                settings
+                                [ func1 ]
+                                    |> Async.RunSynchronously
+
+        Assert.That(singleJobCalled, Is.EqualTo true)
+        Assert.That(retrievedData, Is.EqualTo someResult)
 
     member private __.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyConfig =
         defaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyConfig

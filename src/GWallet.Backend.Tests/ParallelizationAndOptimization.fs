@@ -32,13 +32,6 @@ type ParallelizationAndOptimization() =
 
     let dummy_date_for_cache = DateTime.Now
 
-    // yes, the default one is the fast one because it's the one with no filters, just sorting
-    let default_mode_as_it_is_irrelevant_for_this_test = ServerSelectionMode.Fast
-
-    let some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test =
-        Fault { Exception = { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
-                LastSuccessfulCommunication = None }
-
     [<Test>]
     member __.``calls both funcs (because it launches them in parallel)``() =
         let NUMBER_OF_PARALLEL_JOBS_TO_BE_TESTED = 2u
@@ -290,7 +283,6 @@ type ParallelizationAndOptimization() =
 
     [<Test>]
     member __.``ordering: servers lacking history come always first in analysis(non-fast) mode``() =
-        let someResult1 = 1
         let someResult2 = 2
         let someResult3 = 3
         let server1 = {
@@ -449,7 +441,7 @@ type ParallelizationAndOptimization() =
             }
 
         let createRunners (amount: uint32) (jobsPerRunner: uint32) = seq {
-            for i in 1..int amount do
+            for _ in 1..int amount do
                 let jobs = seq {
                     for j in 1..int jobsPerRunner do
                         let job = async {

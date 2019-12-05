@@ -230,7 +230,7 @@ module Server =
     let MaybeRethrowObjectDisposedException (ex: Exception): unit =
         let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
         match maybeRpcUnknownEx with
-        | Some rpcUnknownEx ->
+        | Some _ ->
             let maybeObjectDisposedEx = FSharpUtil.FindException<ObjectDisposedException> ex
             match maybeObjectDisposedEx with
             | Some objectDisposedEx ->
@@ -245,7 +245,7 @@ module Server =
     let MaybeRethrowSslException (ex: Exception): unit =
         let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
         match maybeRpcUnknownEx with
-        | Some rpcUnknownEx ->
+        | Some _ ->
             let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
             match maybeHttpReqEx with
             | Some httpReqEx ->
@@ -327,7 +327,7 @@ module Server =
                     }
         }
 
-    let private FaultTolerantParallelClientDefaultSettings (currency: Currency) (mode: ServerSelectionMode) =
+    let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode) =
         let numberOfConsistentResponsesRequired =
             if not Networking.Tls12Support then
                 1u
@@ -336,15 +336,14 @@ module Server =
         FaultTolerantParallelClientInnerSettings numberOfConsistentResponsesRequired
                                                  mode
 
-    let private FaultTolerantParallelClientSettingsForBalanceCheck (currency: Currency)
-                                                                   (mode: ServerSelectionMode)
+    let private FaultTolerantParallelClientSettingsForBalanceCheck (mode: ServerSelectionMode)
                                                                    (cacheOrInitialBalanceMatchFunc: decimal->bool) =
         let consistencyConfig =
             if mode = ServerSelectionMode.Fast then
                 Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
             else
                 None
-        FaultTolerantParallelClientDefaultSettings currency mode consistencyConfig
+        FaultTolerantParallelClientDefaultSettings mode consistencyConfig
 
     let private FaultTolerantParallelClientSettingsForBroadcast () =
         FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast None
@@ -422,7 +421,7 @@ module Server =
                         }
                 GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency ServerSelectionMode.Fast None)
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
                 web3Funcs
         }
 
@@ -511,7 +510,7 @@ module Server =
 
             return! query
                         (FaultTolerantParallelClientSettingsForBalanceCheck
-                            currency mode (BalanceMatchWithCacheOrInitialBalance address currency))
+                            mode (BalanceMatchWithCacheOrInitialBalance address currency))
                         web3Funcs
         }
 
@@ -568,11 +567,11 @@ module Server =
 
             return! query
                         (FaultTolerantParallelClientSettingsForBalanceCheck
-                            currency mode (BalanceMatchWithCacheOrInitialBalance address currency))
+                            mode (BalanceMatchWithCacheOrInitialBalance address currency))
                         web3Funcs
         }
 
-    let EstimateTokenTransferFee (baseCurrency: Currency) (account: IAccount) (amount: decimal) destination
+    let EstimateTokenTransferFee (account: IAccount) (amount: decimal) destination
                                      : Async<HexBigInteger> =
         async {
             let web3Funcs =
@@ -590,7 +589,7 @@ module Server =
                     }
                 GetRandomizedFuncs account.Currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientDefaultSettings baseCurrency ServerSelectionMode.Fast None)
+                        (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
                         web3Funcs
         }
 
@@ -614,7 +613,7 @@ module Server =
             let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings
-                            currency ServerSelectionMode.Fast
+                            ServerSelectionMode.Fast
                             (Some (AverageBetweenResponses (minResponsesRequired, AverageGasPrice))))
                         web3Funcs
 
@@ -669,7 +668,7 @@ module Server =
                     }
                 GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings currency ServerSelectionMode.Fast None)
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
                 web3Funcs
         }
 
@@ -693,7 +692,7 @@ module Server =
                         }
                 GetRandomizedFuncs baseCurrency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings baseCurrency ServerSelectionMode.Fast None)
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
                 web3Funcs
         }
 
