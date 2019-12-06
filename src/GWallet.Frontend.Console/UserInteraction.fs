@@ -123,6 +123,7 @@ module UserInteraction =
             AskDob repeat
         | true,parsedDateTime ->
             if repeat then
+                Console.Write "Repeat it: "
                 let dob2 = Console.ReadLine()
                 if dob2 <> dob then
                     Presentation.Error "Dates don't match, please try again."
