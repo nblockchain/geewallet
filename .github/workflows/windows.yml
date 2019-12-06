@@ -19,10 +19,10 @@ jobs:
       shell: cmd
       run: configure.bat && make.bat && make.bat check
 
-  windows_tests_integration:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v1
-    - name: Run a one-line script
-      shell: cmd
-      run: configure.bat && make.bat && make.bat update-servers
+#  windows_tests_integration:
+#    runs-on: windows-latest
+#    steps:
+#    - uses: actions/checkout@v1
+#    - name: Run a one-line script
+#      shell: cmd
+#      run: configure.bat && make.bat && make.bat update-servers
