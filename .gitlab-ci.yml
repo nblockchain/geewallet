@@ -5,7 +5,8 @@ before_script:
 
 stages:
   - build
-  - test
+  - unit_tests
+  - integration_tests
 
 stockmono_build:
   image: ubuntu:18.04
@@ -19,9 +20,9 @@ stockmono_build:
     # so that we log the version of nuget for when it works
     - make nuget
 
-stockmono_test:
+stockmono_test_unit:
   image: ubuntu:18.04
-  stage: test
+  stage: unit_tests
   script:
     # https://askubuntu.com/a/1013396
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
@@ -64,13 +65,34 @@ newmono_build:
     - apt-get install -y zip
     - make zip
 
-newmono_test:
+newmono_test_unit:
   image: ubuntu:18.04
-  stage: test
+  stage: unit_tests
   script:
     - ./scripts/install_mono_from_microsoft_deb_packages.sh
 
     - apt install -y nunit-console
 
     - time (./configure.sh && make && make check)
+
+stockmono_test_integration:
+  image: ubuntu:18.04
+  stage: integration_tests
+  script:
+    # https://askubuntu.com/a/1013396
+    - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
+
+    - ./configure.sh &&
+      make &&
+      make update-servers
+
+newmono_test_integration:
+  image: ubuntu:18.04
+  stage: integration_tests
+  script:
+    - ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    - ./configure.sh &&
+      make &&
+      make update-servers
 
