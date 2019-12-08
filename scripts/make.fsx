@@ -273,6 +273,14 @@ match maybeTarget with
                                    Echo.All)
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
+        try
+            let xml = File.ReadAllText "TestResult.xml"
+            Console.WriteLine "XML result:"
+            Console.WriteLine "```"
+            Console.WriteLine xml
+            Console.WriteLine "```"
+        with
+        | _ -> ()
         Environment.Exit 1
 
 | Some("install") ->
