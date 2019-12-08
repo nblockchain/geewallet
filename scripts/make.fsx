@@ -247,7 +247,7 @@ match maybeTarget with
             MakeCheckCommand nunitCommand
 
             { Command = nunitCommand; Arguments = testAssembly.FullName }
-        | _ ->
+        | Misc.Platform.Mac ->
             let nunitVersion = "2.7.1"
             if not nugetExe.Exists then
                 MakeAll () |> ignore
@@ -266,6 +266,28 @@ match maybeTarget with
                                        sprintf "NUnit.Runners.%s" nunitVersion,
                                        "tools",
                                        "nunit-console.exe")
+                Arguments = testAssembly.FullName
+            }
+
+        | Misc.Platform.Windows ->
+            let nunitVersion = "3.10.0"
+            if not nugetExe.Exists then
+                MakeAll () |> ignore
+
+            let nugetInstallCommand =
+                {
+                    Command = nugetExe.FullName
+                    Arguments = sprintf "install NUnit.Console -Version %s -OutputDirectory %s"
+                                        nunitVersion nugetPackagesSubDirName
+                }
+            Process.SafeExecute(nugetInstallCommand, Echo.All)
+                |> ignore
+
+            {
+                Command = Path.Combine(nugetPackagesSubDirName,
+                                       sprintf "NUnit.ConsoleRunner.%s" nunitVersion,
+                                       "tools",
+                                       "nunit3-console.exe")
                 Arguments = testAssembly.FullName
             }
 
