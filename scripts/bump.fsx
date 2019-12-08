@@ -137,9 +137,15 @@ let GitDiff () =
         Environment.Exit 1
 
 let RunUpdateServers () =
+    let makeCommand =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Windows ->
+            "make.bat"
+        | _ ->
+            "make"
     let updateServersCmd =
         {
-            Command = "make"
+            Command = makeCommand
             Arguments = "update-servers"
         }
     Process.SafeExecute(updateServersCmd, Echo.OutputOnly) |> ignore
