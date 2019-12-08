@@ -9,11 +9,12 @@ open System.IO
 open FSX.Infrastructure
 open Process
 
+let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+
 let IsStableRevision revision =
     (int revision % 2) = 0
 
 let Bump(toStable: bool): Version*Version =
-    let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
     let fullVersion = Misc.GetCurrentVersion(rootDir)
     let androidVersion = fullVersion.MinorRevision
 
@@ -41,11 +42,25 @@ let Bump(toStable: bool): Version*Version =
                                        newVersion)
             full,newVersion
 
-    let replaceScript = Path.Combine(__SOURCE_DIRECTORY__, "replace.fsx")
+    let replaceScript = Path.Combine(rootDir.FullName, "scripts", "replace.fsx")
+    let baseReplaceCommand =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Windows ->
+            {
+                Command = Path.Combine(rootDir.FullName, "scripts", "fsi.bat")
+                Arguments = replaceScript
+            }
+        | _ ->
+            {
+                Command = replaceScript
+                Arguments = String.Empty
+            }
+
     let proc1 =
         {
-            Command = replaceScript
-            Arguments = sprintf "--file=%s %s %s"
+            baseReplaceCommand with
+                Arguments = sprintf "%s --file=%s %s %s"
+                             baseReplaceCommand.Arguments
                              "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
                              (fullVersion.ToString())
                              (newFullVersion.ToString())
@@ -54,8 +69,9 @@ let Bump(toStable: bool): Version*Version =
 
     let proc2 =
         {
-            proc1 with
-                Arguments = sprintf "--file=%s %s %s"
+            baseReplaceCommand with
+                Arguments = sprintf "%s --file=%s %s %s"
+                                baseReplaceCommand.Arguments
                                 "src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml"
                                 (fullVersion.ToString())
                                 (newFullVersion.ToString())
@@ -65,8 +81,9 @@ let Bump(toStable: bool): Version*Version =
     // to replace Android's versionCode attrib in AndroidManifest.xml
     let proc3 =
         {
-            proc1 with
-                Arguments = sprintf "--file=%s versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
+            baseReplaceCommand with
+                Arguments = sprintf "%s --file=%s versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
+                                baseReplaceCommand.Arguments
                                 "src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml"
                                 (androidVersion.ToString())
                                 (newVersion.ToString())
