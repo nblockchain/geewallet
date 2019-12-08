@@ -281,11 +281,11 @@ match maybeTarget with
     Console.WriteLine "Running tests..."
     Console.WriteLine ()
 
-    let testAssembly = "GWallet.Backend.Tests"
-    let testAssemblyPath = Path.Combine(__SOURCE_DIRECTORY__, "..", "src", testAssembly, "bin",
-                                        testAssembly + ".dll")
-    if not (File.Exists(testAssemblyPath)) then
-        failwithf "File not found: %s" testAssemblyPath
+    let testAssemblyName = "GWallet.Backend.Tests"
+    let testAssembly = Path.Combine(rootDir.FullName, "src", testAssemblyName, "bin",
+                                    testAssemblyName + ".dll") |> FileInfo
+    if not testAssembly.Exists then
+        failwithf "File not found: %s" testAssembly.FullName
 
     let runnerCommand =
         match Misc.GuessPlatform() with
@@ -293,7 +293,7 @@ match maybeTarget with
             let nunitCommand = "nunit-console"
             MakeCheckCommand nunitCommand
 
-            { Command = nunitCommand; Arguments = testAssemblyPath }
+            { Command = nunitCommand; Arguments = testAssembly.FullName }
         | _ ->
             let nunitVersion = "2.7.1"
             if not nugetExe.Exists then
@@ -313,7 +313,7 @@ match maybeTarget with
                                        sprintf "NUnit.Runners.%s" nunitVersion,
                                        "tools",
                                        "nunit-console.exe")
-                Arguments = testAssemblyPath
+                Arguments = testAssembly.FullName
             }
 
     let nunitRun = Process.Execute(runnerCommand,
