@@ -124,8 +124,6 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 return raise <| InvalidOperationException("Cancellation at readonly-account first-query", ex)
         }
 
-        let currencyImages = PreLoadCurrencyImages()
-
         let populateGrid = async {
             let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJobAugmented
                                                                      readOnlyAccountBalancesJobAugmented
