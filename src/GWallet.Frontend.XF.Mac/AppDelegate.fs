@@ -25,8 +25,6 @@ type AppDelegate () =
     override this.DidFinishLaunching(notification: NSNotification) =
         Forms.Init()
 
-        ZXing.Net.Mobile.Forms.macOS.Platform.Init()
-
         this.LoadApplication(new GWallet.Frontend.XF.App())
 
         base.DidFinishLaunching(notification)
