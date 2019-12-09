@@ -26,9 +26,5 @@
 	<string>NSApplication</string>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/AppIcon.appiconset</string>
-
-	<!-- workaround for https://github.com/xamarin/Xamarin.Forms/issues/3777 -->
-	<key>NSRequiresAquaSystemAppearance</key>
-	<string>True</string>
 </dict>
 </plist>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:GWallet.Frontend.XF"
+             x:Class="GWallet.Frontend.XF.SinglePage">
+    <StackLayout x:Name="mainLayout" VerticalOptions="Center">
+        <Label Text="if you can read this text, the bug didn't happen now"
+               x:Name="theLabel" />
+    </StackLayout>
+</ContentPage>
