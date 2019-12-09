@@ -92,9 +92,6 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\iOS\Xamarin.iOS.FSharp.targets" />
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.fs" />
-    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
-      <Link>Properties\CommonAssemblyInfo.fs</Link>
-    </Compile>
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\Contents.json">
       <Visible>false</Visible>
     </ImageAsset>
@@ -169,32 +166,11 @@
     <Reference Include="Common.Logging.Core">
       <HintPath>..\..\packages\Common.Logging.Core.3.4.1\lib\netstandard1.0\Common.Logging.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Plugin.Clipboard.Abstractions">
-      <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.2.1\lib\Xamarin.iOS10\Plugin.Clipboard.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Plugin.Clipboard">
-      <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.2.1\lib\Xamarin.iOS10\Plugin.Clipboard.dll</HintPath>
-    </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.2\lib\netstandard2.0\BouncyCastle.Crypto.dll</HintPath>
-    </Reference>
-    <Reference Include="Xamarin.SimplePing.iOS">
-      <HintPath>..\..\packages\Xamarin.SimplePing.1.4.0\lib\XamariniOS10\Xamarin.SimplePing.iOS.dll</HintPath>
-    </Reference>
-    <Reference Include="Plugin.Connectivity.Abstractions">
-      <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\Xamarin.iOS10\Plugin.Connectivity.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="Plugin.Connectivity">
-      <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\Xamarin.iOS10\Plugin.Connectivity.dll</HintPath>
-    </Reference>
     <Reference Include="System.Configuration.ConfigurationManager">
       <HintPath>..\..\packages\System.Configuration.ConfigurationManager.4.4.0\lib\netstandard2.0\System.Configuration.ConfigurationManager.dll</HintPath>
-    </Reference>
-    <Reference Include="SharpRaven">
-      <HintPath>..\..\packages\SharpRaven.2.4.0\lib\netstandard2.0\SharpRaven.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
       <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.0\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
@@ -208,106 +184,24 @@
     <Reference Include="System.Buffers">
       <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
     </Reference>
-    <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.4.1.1.80\lib\netstandard2.0\NBitcoin.dll</HintPath>
-    </Reference>
-    <Reference Include="NBitcoin.Altcoins">
-      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.35\lib\netstandard2.0\NBitcoin.Altcoins.dll</HintPath>
-    </Reference>
     <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
       <Project>{85236682-6463-4209-B66C-E0643EF12B46}</Project>
       <Name>GWallet.Frontend.XF</Name>
     </ProjectReference>
-    <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj">
-      <Project>{D1D192E0-F226-40AD-8D81-687F7E6F7DAB}</Project>
-      <Name>GWallet.Backend.NetStandard</Name>
-    </ProjectReference>
-    <Reference Include="FSharp.Data">
-      <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\netstandard2.0\FSharp.Data.dll</HintPath>
-    </Reference>
     <Reference Include="System.IO.Pipelines">
       <HintPath>..\..\packages\System.IO.Pipelines.4.5.3\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\ZXing.Net.Mobile.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\zxing.portable.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\ZXingNetMobile.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\ZXing.Net.Mobile.Forms.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms.iOS">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\ZXing.Net.Mobile.Forms.iOS.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.5.3\lib\netstandard1.6\FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Xamarin.Essentials">
-      <HintPath>..\..\packages\Xamarin.Essentials.1.0.0\lib\xamarinios10\Xamarin.Essentials.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
       <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.Client">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\netstandard2.0\JsonRpcSharp.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.IpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\netstandard2.0\JsonRpcSharp.IpcClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.RpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\netstandard2.0\JsonRpcSharp.RpcClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.TcpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\netstandard2.0\JsonRpcSharp.TcpClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.WebSocketClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Accounts">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.StandardTokenEIP20">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
     </Reference>
     <Reference Include="SkiaSharp">
       <HintPath>..\..\packages\SkiaSharp.1.68.0\lib\Xamarin.iOS\SkiaSharp.dll</HintPath>
     </Reference>
     <Reference Include="SkiaSharp.Extended.Svg">
       <HintPath>..\..\packages\SkiaSharp.Svg.1.60.0\lib\netstandard2.0\SkiaSharp.Extended.Svg.dll</HintPath>
-    </Reference>
-    <Reference Include="HtmlAgilityPack">
-      <HintPath>..\..\packages\HtmlAgilityPack.1.11.9\lib\netstandard2.0\HtmlAgilityPack.dll</HintPath>
     </Reference>
     <Reference Include="SkiaSharp.Views.iOS">
       <HintPath>..\..\packages\SkiaSharp.Views.1.68.0\lib\Xamarin.iOS\SkiaSharp.Views.iOS.dll</HintPath>
