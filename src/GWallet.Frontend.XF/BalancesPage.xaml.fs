@@ -157,7 +157,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         | Fresh amount | NotFresh (Cached (amount,_)) ->
             amount
 
-    let RedrawDonutView (readOnly: bool) (balances: seq<BalanceState>) =
+    let RedrawCircleView (readOnly: bool) (balances: seq<BalanceState>) =
         let chartView =
             if readOnly then
                 readonlyChartView
@@ -278,7 +278,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                    |> List.ofSeq
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
-                    RedrawDonutView readOnly resolvedBalances
+                    RedrawCircleView readOnly resolvedBalances
                 )
                 return resolvedBalances.Any(fun balanceState ->
 
@@ -436,7 +436,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         normalBalanceStates,normalAccountsBalanceSets
                 this.AssignColorLabels switchingToReadOnly
                 this.PopulateBalances switchingToReadOnly balanceSetsToPopulate
-                RedrawDonutView switchingToReadOnly balancesStatesToPopulate
+                RedrawCircleView switchingToReadOnly balancesStatesToPopulate
             else
                 let coldStoragePage =
                     // FIXME: save IsConnected to cache at app startup, and if it has ever been connected to the
@@ -477,7 +477,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         this.ConfigureFiatAmountFrame true |> ignore
 
         this.PopulateBalances false normalAccountsBalanceSets
-        RedrawDonutView false normalBalanceStates
+        RedrawCircleView false normalBalanceStates
 
         if startWithReadOnlyAccounts then
             tapper.SendTapped null
