@@ -302,7 +302,19 @@ module Account =
                 failwithf "Not enough funds (needed: %s, got so far: %s)"
                           (amount.ToString()) (soFarInSatoshis.ToString())
             | utxoInfo::tail ->
-                let newAcc = utxoInfo::acc
+                let newAcc =
+                    // Avoid querying for zero-value UTXOs, which would make many unnecessary parallel
+                    // connections to Electrum servers. (there's no need to use/consolidate zero-value UTXOs)
+
+                    // This can be triggered on e.g. RegTest (by mining to Geewallet directly)
+                    // because the block subsidy falls quickly. (it will be 0 after 7000 blocks)
+
+                    // Zero-value OP_RETURN outputs are valid and standard:
+                    // https://bitcoin.stackexchange.com/a/57103
+                    if utxoInfo.Value > 0L then
+                        utxoInfo::acc
+                    else
+                        acc
 
                 let newSoFar = soFarInSatoshis + utxoInfo.Value
                 if (newSoFar < amount) then
@@ -334,6 +346,7 @@ module Account =
 
         let asyncInputs =
             seq {
+                // TODO: Use JSON-RPC batching here
                 for utxo in utxosToUse do
                     yield async {
                         let job = ElectrumClient.GetBlockchainTransaction utxo.TransactionId
