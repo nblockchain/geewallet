@@ -251,14 +251,9 @@ module FrontendHelpers =
         Device.BeginInvokeOnMainThread(fun _ ->
             NavigationPage.SetHasNavigationBar(newPage, false)
 
-            //workaround for https://github.com/xamarin/Xamarin.Forms/issues/4030 FIXME: remove it when bug is fixed
-            if Device.RuntimePlatform = Device.macOS then
-                currentPage.Navigation.PushAsync newPage
-                    |> DoubleCheckCompletionNonGeneric
-            else
-                currentPage.Navigation.InsertPageBefore(newPage, currentPage)
-                currentPage.Navigation.PopAsync()
-                    |> DoubleCheckCompletion
+            currentPage.Navigation.InsertPageBefore(newPage, currentPage)
+            currentPage.Navigation.PopAsync()
+                |> DoubleCheckCompletion
         )
 
     let ChangeTextAndChangeBack (button: Button) (newText: string) =
