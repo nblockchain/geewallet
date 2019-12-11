@@ -89,7 +89,7 @@ type ReceivePage(account: IAccount,
             paymentButton.IsEnabled <- true
             transactionHistoryButton.IsEnabled <- false
 
-        // FIXME: report this Xamarin.Forms Mac backend bug (no back button in navigation pages!, so below <workaround>)
+        // FIXME: remove this workaround below when https://github.com/xamarin/Xamarin.Forms/issues/8843 gets fixed
         if (Device.RuntimePlatform <> Device.macOS) then () else
 
         let backButton = Button(Text = "< Go back")
