@@ -54,10 +54,7 @@
     <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
   </Target>
 
-  <!-- workaround to issue https://github.com/dotnet/corefx/issues/19914 ,
-       along with the binding redirect in the App.config file -->
   <Target Name="AfterBuild">
-    <Delete Files="bin\$(Configuration)\System.Net.Http.dll" />
   </Target>
 
   <ItemGroup>
