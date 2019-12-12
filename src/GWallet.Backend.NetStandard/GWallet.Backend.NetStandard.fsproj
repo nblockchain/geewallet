@@ -120,18 +120,18 @@
     <EmbeddedResource Include="..\GWallet.Backend\servers.json">
       <Link>servers.json</Link>
     </EmbeddedResource>
-    <PackageReference Include="NBitcoin" Version="4.1.1.80" />
+    <PackageReference Include="NBitcoin" Version="4.2.8" />
     <PackageReference Include="FSharp.Data" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.2" />
     <PackageReference Include="SharpRaven" Version="2.4.0" />
     <PackageReference Include="System.Buffers" Version="4.5.0" />
     <PackageReference Include="System.IO.Pipelines" Version="4.5.3" />
-    <PackageReference Include="NBitcoin.Altcoins" Version="1.0.1.35" />
+    <PackageReference Include="NBitcoin.Altcoins" Version="1.0.3" />
     <PackageReference Include="Xamarin.Essentials" Version="1.0.0" />
     <PackageReference Include="FSharp.Core" Version="4.5.3" />
-    <PackageReference Include="Nethereum" Version="0.10.0-date20191002-0144.git-0942abf" />
-    <PackageReference Include="JsonRpcSharp" Version="0.10.0-date20190924-0104.git-030f3a3" />
+    <PackageReference Include="Nethereum" Version="0.10.0-date20191211-1241.git-be6d117" />
+    <PackageReference Include="JsonRpcSharp" Version="0.10.0-date20191211-1221.git-469146b" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.9" />
   </ItemGroup>
   <ItemGroup>

@@ -62,9 +62,7 @@
     <Reference Include="Common.Logging.Core">
       <HintPath>..\..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
     </Reference>
-    <Reference Include="System.Net.Http">
-      <HintPath>..\..\packages\System.Net.Http.4.3.3\lib\net46\System.Net.Http.dll</HintPath>
-    </Reference>
+    <Reference Include="System.Net.Http" />
     <Reference Include="Plugin.Clipboard.Abstractions">
       <HintPath>..\..\packages\Xamarin.Plugins.Clipboard.2.2.1\lib\net461\Plugin.Clipboard.Abstractions.dll</HintPath>
     </Reference>
@@ -109,10 +107,10 @@
       <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.4.1.1.80\lib\net461\NBitcoin.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.4.2.8\lib\net461\NBitcoin.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin.Altcoins">
-      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.1.35\lib\net461\NBitcoin.Altcoins.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.3\lib\net452\NBitcoin.Altcoins.dll</HintPath>
     </Reference>
     <Reference Include="Plugin.Connectivity.Abstractions">
       <HintPath>..\..\packages\Xam.Plugin.Connectivity.4.0.0.190-beta\lib\net45\Plugin.Connectivity.Abstractions.dll</HintPath>
@@ -172,52 +170,52 @@
       <HintPath>..\..\packages\System.Net.WebSockets.Client.4.3.2\lib\net46\System.Net.WebSockets.Client.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.Client">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\net46\JsonRpcSharp.Client.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20191211-1221.git-469146b\lib\net46\JsonRpcSharp.Client.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.IpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\net46\JsonRpcSharp.IpcClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20191211-1221.git-469146b\lib\net46\JsonRpcSharp.IpcClient.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.RpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\net46\JsonRpcSharp.RpcClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20191211-1221.git-469146b\lib\net46\JsonRpcSharp.RpcClient.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.TcpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\net46\JsonRpcSharp.TcpClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20191211-1221.git-469146b\lib\net46\JsonRpcSharp.TcpClient.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.WebSocketClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20190924-0104.git-030f3a3\lib\net46\JsonRpcSharp.WebSocketClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.10.0-date20191211-1221.git-469146b\lib\net46\JsonRpcSharp.WebSocketClient.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.ABI.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.ABI.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Accounts">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.Accounts.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.Accounts.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.Contracts.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.Contracts.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.Hex.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.Hex.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.KeyStore.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.KeyStore.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.RLP.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.RLP.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.RPC.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.RPC.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.Signer.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.Signer.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.StandardTokenEIP20">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.StandardTokenEIP20.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.Util.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.Util.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.0.10.0-date20191002-0144.git-0942abf\lib\net46\Nethereum.Web3.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.Web3.dll</HintPath>
     </Reference>
     <Reference Include="SkiaSharp">
       <HintPath>..\..\packages\SkiaSharp.1.68.0\lib\net45\SkiaSharp.dll</HintPath>
@@ -244,7 +242,6 @@
     <None Include="packages.config" />
     <None Include="webkit-sharp.dll.config" />
     <None Include="OpenTK.dll.config" />
-    <None Include="App.config" />
     <Content Include="..\..\logo.png">
       <Link>logo.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -261,9 +258,6 @@
   <Import Project="$(FSharpTargetsPath)" />
 
   <Target Name="AfterBuild">
-
-    <!-- workaround for https://github.com/dotnet/corefx/issues/19914 / https://bugzilla.xamarin.com/show_bug.cgi?id=60315 -->
-    <Delete Files="bin\$(Configuration)\System.Net.Http.dll" />
 
     <!-- workaround for https://github.com/mono/SkiaSharp/issues/794
          (NOTE: the bug above is fixed in 1.68.1 but we can't upgrade to that version because of this other bug:
