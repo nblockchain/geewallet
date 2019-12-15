@@ -86,17 +86,6 @@ module Server =
             return result
     }
 
-    // we can possibly/hopefully remove this shitty method when this bug is fixed: https://github.com/dotnet/corefx/issues/20296
-    // TODO: remove this function below once we finishing tracking down (fixing)
-    //       https://gitlab.com/knocte/geewallet/issues/125
-    let MaybeRethrowShittyTaskCanceledExceptionComingFromHttpClient (ex: Exception): unit =
-        let maybeTaskCanceledEx = FSharpUtil.FindException<TaskCanceledException> ex
-        match maybeTaskCanceledEx with
-        | Some taskCanceledEx ->
-            raise <| ServerTimedOutException("Possibly the operation timed out...", taskCanceledEx)
-        | None ->
-            ()
-
     let MaybeRethrowWebException (ex: Exception): unit =
         let maybeWebEx = FSharpUtil.FindException<WebException> ex
         match maybeWebEx with
@@ -261,8 +250,6 @@ module Server =
 
     let private ReworkException (ex: Exception): unit =
 
-        MaybeRethrowShittyTaskCanceledExceptionComingFromHttpClient ex
-
         MaybeRethrowWebException ex
 
         MaybeRethrowHttpRequestException ex
@@ -299,17 +286,8 @@ module Server =
             ExceptionHandler = Some
                 (
                     fun ex ->
-                        let exToReport =
-                            if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
-                                // TODO: remove this below once we finishing tracking down (fixing)
-                                //       https://gitlab.com/knocte/geewallet/issues/125
-                                UnexpectedTaskCanceledException("Cancellation of subjob", ex) :> Exception
-                            else
-                                ex
-
-                        Infrastructure.ReportWarning exToReport
+                        Infrastructure.ReportWarning ex
                 )
-            ExtraProtectionAgainstUnfoundedCancellations = true
             ResultSelectionMode =
                 Selective
                     {

@@ -7,6 +7,9 @@ open NUnit.Framework
 
 open GWallet.Backend
 
+type UnexpectedTaskCanceledException(message: string, innerException) =
+    inherit TaskCanceledException (message, innerException)
+
 [<TestFixture>]
 type FSharpUtilCoverage() =
 
