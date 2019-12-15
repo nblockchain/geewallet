@@ -100,10 +100,10 @@ module ServerRegistry =
                         | None,_ -> serverInMap
                         | _,None -> server
                         | Some (_, lastComm),Some (_, lastCommInMap) ->
-                                if lastComm > lastCommInMap then
-                                    server
-                                else
-                                    serverInMap
+                            if lastComm > lastCommInMap then
+                                server
+                            else
+                                serverInMap
                     let newMap = serversMap.Remove serverToAppend.ServerInfo.NetworkPath
                     Seq.append (seq { yield serverToAppend }) (removeDupesInternal tail newMap)
 
