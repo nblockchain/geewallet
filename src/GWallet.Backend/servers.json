@@ -2892,6 +2892,31 @@
     "ETC": [
       {
         "ServerInfo": {
+          "NetworkPath": "www.ethereumclassic.network",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:11.1643119",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2019-12-15T10:44:24.173324Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "ethereumclassic.network",
           "ConnectionType": {
             "Encrypted": true,
