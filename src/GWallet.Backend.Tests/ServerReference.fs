@@ -31,6 +31,16 @@ type ServerReference() =
             TimeSpan = timeSpan
         },dummy_now) |> Some
 
+    let CreateFaultyHistoryInfo (lastSuccessfulCommunication: DateTime) =
+        ({
+            // exception info irrelevant for this test
+            Status = Fault { Exception = { TypeFullName = "SomeNamespace.SomeException" ; Message = "argh" }
+                             LastSuccessfulCommunication = None }
+
+            //irrelevant for this test
+            TimeSpan = TimeSpan.Zero
+        },lastSuccessfulCommunication) |> Some
+
     let CreateFaultyHistoryInfoWithSpan(timeSpan: TimeSpan) =
         ({
             //irrelevant for this test
@@ -681,3 +691,41 @@ type ServerReference() =
             | _ -> Assert.Fail "both deserialized and merged should have status since both servers inserted had it #1"
         | _ ->
             Assert.Fail "both deserialized and merged should have some history since no server stored had None on it #2"
+
+    [<Test>]
+    member self.``when removing duplicate servers, the ones with history and most up to date, stay (IV)``() =
+        let olderDate = dummy_now - TimeSpan.FromDays 1.0
+        let sameRandomHostname = "xfoihror3uo3wmio"
+        let serverA =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateFaultyHistoryInfo dummy_now
+            }
+        let serverB =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = sameRandomHostname
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = CreateHistoryInfoWithLsc olderDate
+            }
+        let deserializedServers = self.SerializeAndDeserialize serverA serverB
+        let mergedServers = self.Merge serverA serverB
+
+        Assert.That(deserializedServers.Length, Is.EqualTo 1)
+        Assert.That(mergedServers.Length, Is.EqualTo 1)
+        match deserializedServers.[0].CommunicationHistory,mergedServers.[0].CommunicationHistory with
+        | Some (dHistory, dLastComm), Some (mHistory, mLastComm) ->
+            match dHistory.Status,mHistory.Status with
+            | Fault _,Fault _ ->
+                Assert.That(dLastComm, Is.EqualTo dummy_now)
+                Assert.That(mLastComm, Is.EqualTo dummy_now)
+            | _ -> Assert.Fail "both deserialized and merged should have Fault"
+        | _ ->
+            Assert.Fail "both deserialized and merged should have some history since no server stored had None on it #2"
+

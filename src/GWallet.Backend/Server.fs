@@ -99,14 +99,7 @@ module ServerRegistry =
                         match server.CommunicationHistory,serverInMap.CommunicationHistory with
                         | None,_ -> serverInMap
                         | _,None -> server
-                        | Some (commHistory,lastComm),Some (commHistoryInMap,lastCommInMap) ->
-                            match commHistory.Status,commHistoryInMap.Status with
-                            | Fault _,_ -> serverInMap
-                            | _,Fault _ -> server
-                            | Success,Success
-                            | Success,Fault _
-                            | Fault _,Success
-                            | Fault _,Fault _ ->
+                        | Some (_, lastComm),Some (_, lastCommInMap) ->
                                 if lastComm > lastCommInMap then
                                     server
                                 else
