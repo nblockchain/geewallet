@@ -122,7 +122,7 @@
     </Compile>
     <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
-    <PackageReference Include="FSharp.Core" Version="4.7.0" />
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="SkiaSharp.Svg" Version="1.60.0" />
     <PackageReference Include="Xamarin.Forms" Version="4.3.0.991211" />
     <PackageReference Include="Xam.Plugin.Connectivity" Version="4.0.0.190-beta" />
