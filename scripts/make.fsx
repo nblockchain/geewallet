@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Linq
 open System.Diagnostics
 
 #r "System.Configuration"
@@ -169,7 +170,7 @@ let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): Directo
     let frontendProjName = frontend.GetProjectName()
     let dir = Path.Combine (rootDir.FullName, "src", frontendProjName, "bin", binaryConfig.ToString())
                   |> DirectoryInfo
-    let mainExecFile = Path.Combine(dir.FullName, frontendProjName + ".exe") |> FileInfo
+    let mainExecFile = dir.GetFiles("*.exe", SearchOption.TopDirectoryOnly).Single()
     dir,mainExecFile
 
 let GetPathToBackend () =
