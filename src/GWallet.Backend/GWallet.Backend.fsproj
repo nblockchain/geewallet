@@ -262,6 +262,9 @@
     <Reference Include="DotNetLightning.Core">
       <HintPath>..\..\packages\DotNetLightning.1.1.0-date20191215-0237.git-40ca32a\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
     </Reference>
+    <Reference Include="netstandard">
+      <HintPath>..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\ref\netstandard.dll</HintPath>
+    </Reference>
     <Reference Include="netstandard" />
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
