@@ -15,6 +15,12 @@ type Currency =
         Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(typeof<Currency>)
             |> Array.map (fun info -> info.Name)
     static member GetAll(): seq<Currency> =
+        try
+            let n = DotNetLightning.Utils.Extensions.ToHexString(null)
+            System.Console.WriteLine(n)
+        with
+        | _ ->
+            ()
         FSharpUtil.GetAllElementsFromDiscriminatedUnion<Currency>()
 
     static member Parse(currencyString: string): Currency =
