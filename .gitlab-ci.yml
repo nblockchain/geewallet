@@ -15,6 +15,7 @@ stockmono_build:
     # https://askubuntu.com/a/1013396
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
+    - find /usr/lib | grep netstandard
 
     - time (./configure.sh && make && make install)
     # so that we log the version of nuget for when it works
