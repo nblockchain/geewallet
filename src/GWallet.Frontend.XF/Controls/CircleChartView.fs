@@ -118,6 +118,19 @@ type CircleChartView () =
         let segmentsBuilder = StringBuilder()
         prepareSegmentsSvgBuilderInner segmentsToDraw rotation startY radius innerRadius segmentsBuilder
         segmentsBuilder
+
+    let ConvertXamFormsColorToSKColor (color: Xamarin.Forms.Color) =
+        (* original C# source from https://github.com/mono/SkiaSharp/blob/master/source/SkiaSharp.Views.Forms/SkiaSharp.Views.Forms.Shared/Extensions.cs#L63-L66
+        public static SKColor ToSKColor(this Color color)
+        {
+            return new SKColor((byte)(color.R * 255), (byte)(color.G * 255), (byte)(color.B * 255), (byte)(color.A * 255));
+        }
+        *)
+        let newR = color.R * 255. |> byte
+        let newG = color.G * 255. |> byte
+        let newB = color.B * 255. |> byte
+        let newA = color.A * 255. |> byte
+        SKColor(newR, newG, newB, newA)
             
     static let segmentsSourceProperty =
         BindableProperty.Create("SegmentsSource",
@@ -219,7 +232,7 @@ type CircleChartView () =
             let total = items.Sum(fun i -> i.Percentage) |> float32
             if items.Count() = 1 then
                 let item = items.Single()
-                let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
+                let color = ConvertXamFormsColorToSKColor item.Color
                 use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color, IsAntialias = true)
                 surface.Canvas.Scale(defaultScaleFactor, defaultScaleFactor)
                 surface.Canvas.DrawCircle(center.X, center.Y, radius, fillPaint)
@@ -230,7 +243,7 @@ type CircleChartView () =
                     let sweepAngle = 360.f * float32 item.Percentage / total
 
                     use path = new SKPath ()
-                    let color = SkiaSharp.Views.Forms.Extensions.ToSKColor item.Color
+                    let color = ConvertXamFormsColorToSKColor item.Color
                     use fillPaint = new SKPaint (Style = SKPaintStyle.Fill, Color = color, IsAntialias = true)
                     path.MoveTo center
                     path.ArcTo(rect, startAngle, sweepAngle, false)
