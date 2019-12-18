@@ -83,7 +83,7 @@
     </Reference>
     <Reference Include="System.Configuration" />
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
-      <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.0\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.2\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Forms.Core">
       <HintPath>..\..\packages\Xamarin.Forms.4.3.0.991211\lib\netstandard2.0\Xamarin.Forms.Core.dll</HintPath>
@@ -122,7 +122,7 @@
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\net45\FSharp.Data.dll</HintPath>
     </Reference>
     <Reference Include="System.Memory">
-      <HintPath>..\..\packages\System.Memory.4.5.1\lib\netstandard2.0\System.Memory.dll</HintPath>
+      <HintPath>..\..\packages\System.Memory.4.5.3\lib\netstandard2.0\System.Memory.dll</HintPath>
     </Reference>
     <Reference Include="System.Threading.Tasks.Extensions">
       <HintPath>..\..\packages\System.Threading.Tasks.Extensions.4.5.1\lib\netstandard2.0\System.Threading.Tasks.Extensions.dll</HintPath>
@@ -218,7 +218,7 @@
       <HintPath>..\..\packages\Nethereum.0.10.0-date20191211-1241.git-be6d117\lib\net46\Nethereum.Web3.dll</HintPath>
     </Reference>
     <Reference Include="SkiaSharp">
-      <HintPath>..\..\packages\SkiaSharp.1.68.0\lib\net45\SkiaSharp.dll</HintPath>
+      <HintPath>..\..\packages\SkiaSharp.1.68.1\lib\net45\SkiaSharp.dll</HintPath>
     </Reference>
     <Reference Include="SkiaSharp.Extended.Svg">
       <HintPath>..\..\packages\SkiaSharp.Svg.1.60.0\lib\netstandard2.0\SkiaSharp.Extended.Svg.dll</HintPath>
@@ -255,14 +255,8 @@
   <Import Project="$(FSharpTargetsPath)" />
 
   <Target Name="AfterBuild">
-
-    <!-- workaround for https://github.com/mono/SkiaSharp/issues/794
-         (NOTE: the bug above is fixed in 1.68.1 but we can't upgrade to that version because of this other bug:
-         https://github.com/mono/SkiaSharp/issues/1047 )
-     -->
-    <Copy SourceFiles="..\..\packages\SkiaSharp.NativeAssets.Linux.1.68.0\runtimes\linux-x64\native\libSkiaSharp.so" DestinationFiles="bin\$(Configuration)\libSkiaSharp.so" />
-
   </Target>
-  <Import Project="..\..\packages\SkiaSharp.1.68.0\build\net45\SkiaSharp.targets" Condition="Exists('..\..\packages\SkiaSharp.1.68.0\build\net45\SkiaSharp.targets')" />
   <Import Project="..\..\packages\Xamarin.Forms.4.3.0.991211\build\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.4.3.0.991211\build\Xamarin.Forms.targets')" />
+  <Import Project="..\..\packages\SkiaSharp.1.68.1\build\net45\SkiaSharp.targets" Condition="Exists('..\..\packages\SkiaSharp.1.68.1\build\net45\SkiaSharp.targets')" />
+  <Import Project="..\..\packages\SkiaSharp.NativeAssets.Linux.1.68.1\build\net45\SkiaSharp.NativeAssets.Linux.targets" Condition="Exists('..\..\packages\SkiaSharp.NativeAssets.Linux.1.68.1\build\net45\SkiaSharp.NativeAssets.Linux.targets')" />
 </Project>
