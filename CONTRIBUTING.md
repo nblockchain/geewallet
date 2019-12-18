@@ -105,6 +105,8 @@ the namespace "Foo.Bar"), or: in a project called "Foo", but in a subdirectory
 called "Bar" (and be named "Baz" under the namespace "Foo.Bar").
 * We prefer records over tuples, especially when being part of other type
 structures.
+* As a naming convention, variables with `Async<'T>` type should be suffixed
+with `Job`, and variables with `Task<'T>` should be suffixed with `Task`.
 * When adding NUnit tests, don't use `[<Test>]let Foo` and naked `module Bar`
 syntax, but `[<Test>]member __.Foo` and `[<TestFixture>]type Bar()` (note the
 parenthesis, as it's an important bit), otherwise the tests might not run in
