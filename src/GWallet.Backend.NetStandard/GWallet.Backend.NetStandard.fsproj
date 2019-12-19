@@ -129,7 +129,7 @@
     <PackageReference Include="System.IO.Pipelines" Version="4.5.3" />
     <PackageReference Include="NBitcoin.Altcoins" Version="1.0.3" />
     <PackageReference Include="Xamarin.Essentials" Version="1.0.0" />
-    <PackageReference Include="FSharp.Core" Version="4.7.0" />
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Nethereum" Version="0.10.0-date20191211-1241.git-be6d117" />
     <PackageReference Include="JsonRpcSharp" Version="0.10.0-date20191211-1221.git-469146b" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.9" />
