@@ -140,7 +140,8 @@ type CircleChartView () =
                                 typeof<float>, typeof<CircleChartView>, 0.)
     static let centerCirclePercentageProperty =
         BindableProperty.Create("CenterCirclePercentage",
-                                typeof<float>, typeof<CircleChartView>, 0.5)
+                                // NOTE: if this below has a value higher than 0 (and less than 1) it'll be back a donut
+                                typeof<float>, typeof<CircleChartView>, 0.)
     static let separatorColorProperty =
         BindableProperty.Create("SeparatorColor",
                                 typeof<Color>, typeof<CircleChartView>, Color.Transparent)
@@ -174,7 +175,7 @@ type CircleChartView () =
         with get () = self.GetValue defaultImageSourceProperty :?> ImageSource
         and set (value: ImageSource) = self.SetValue(defaultImageSourceProperty, value)
 
-    member self.DrawPieFallback (width: float) (height: float) (items: seq<SegmentInfo>) =
+    member self.DrawSkiaPieFallback (width: float) (height: float) (items: seq<SegmentInfo>) =
         if not (items.Any()) then
             failwith "chart data should not be empty to draw a pie"
 
@@ -263,9 +264,9 @@ type CircleChartView () =
             let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
             self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
 
-    member self.DrawDonut (width: float) (height: float) (items: seq<SegmentInfo>) =
+    member self.DrawSvgBasedPie (width: float) (height: float) (items: seq<SegmentInfo>) =
         if not (items.Any()) then
-            failwith "chart data should not be empty to draw a donut"
+            failwith "chart data should not be empty to draw the SVG-based chart"
 
         // FIXME: rework this workaround when we upgrade to an XF version where this bug is fixed:
         // https://github.com/xamarin/Xamarin.Forms/issues/8652 (to still detect 0.0 but send sentry warning)
@@ -379,9 +380,9 @@ type CircleChartView () =
                 // let's be careful about enabling the Pie for all platforms in the future (instead of Android
                 // exclusively) because there are bugs in macOS & GTK...
                 if Device.RuntimePlatform = Device.Android then
-                    self.DrawPieFallback width height nonZeroItems
+                    self.DrawSkiaPieFallback width height nonZeroItems
                 else
-                    self.DrawDonut width height nonZeroItems
+                    self.DrawSvgBasedPie width height nonZeroItems
             else
                 self.Source <- self.DefaultImageSource
 
