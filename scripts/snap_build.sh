@@ -11,6 +11,6 @@ make
 make install
 
 #this below is to prevent the possible error "Failed to reuse files from previous run: The 'pull' step of 'gwallet' is out of date: The source has changed on disk."
-snapcraft clean gwallet -s pull
+#snapcraft clean gwallet -s pull
 
-snapcraft
+snapcraft --destructive-mode

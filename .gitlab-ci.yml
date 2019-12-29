@@ -103,7 +103,15 @@ stockmono_package:
   script:
     - apt install -y sudo
 
-    - ./scripts/install_snapcraft.sh
+    - ./scripts/install_snapcraft_dockerless.sh
+    # finish installation of snapcraft
+    - export SNAP=/snap/snapcraft/current
+    - export SNAP_NAME=snapcraft
+    - export SNAP_ARCH=amd64
+    - export PATH="/snap/bin:$PATH"
+
+    - /snap/bin/snapcraft --version
+
     - ./scripts/snap_build.sh
 
   artifacts:
