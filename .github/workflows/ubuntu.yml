@@ -9,9 +9,6 @@ jobs:
     - uses: actions/checkout@v1
     - name: Generate snap package
       run: |
-        sudo apt install -y fsharp
-        ./scripts/downgradeMono.fsx
-
         ./scripts/install_snapcraft.sh
         sudo ./scripts/snap_build.sh
 
