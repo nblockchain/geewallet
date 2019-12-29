@@ -79,7 +79,7 @@ or lack of Layer2 scaling).
 The recommended way is to install the software system wide, like this:
 
 ```
-./configure.sh --prefix=/usr
+./configure.sh --prefix=/usr/local
 make
 sudo make install
 ```
