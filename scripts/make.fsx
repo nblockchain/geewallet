@@ -74,7 +74,7 @@ let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(__SOURCE_DIRECTOR
                                                                 "bin",
                                                                 binaryConfig.ToString()))
 
-let wrapperScript = """#!/bin/sh
+let wrapperScript = """#!/usr/bin/env bash
 set -euxo pipefail
 
 exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
