@@ -79,6 +79,15 @@ let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(rootDir.FullName,
 let wrapperScript = """#!/usr/bin/env bash
 set -euo pipefail
 
+if [[ $SNAP ]]; then
+    PKG_DIR=$SNAP/usr
+    export MONO_PATH=$PKG_DIR/lib/mono/4.5
+    export MONO_CONFIG=$SNAP/etc/mono/config
+    export MONO_CFG_DIR=$SNAP/etc
+    export MONO_REGISTRY_PATH=~/.mono/registry
+    export MONO_GAC_PREFIX=$PKG_DIR/lib/mono/gac/
+fi
+
 DIR_OF_THIS_SCRIPT=$(dirname "$(realpath "$0")")
 FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
 exec mono "$FRONTEND_PATH" "$@"

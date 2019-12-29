@@ -10,6 +10,10 @@ description: |
 grade: devel # must be 'stable' to release into candidate/stable channels
 confinement: strict
 
+layout:
+  /usr/share/.mono:
+    symlink: $SNAP/etc/mono/certstore
+
 apps:
   gwallet:
     command: bin/gwallet
@@ -20,3 +24,10 @@ parts:
     plugin: dump
     source: ./staging
     stage-packages: [mono-complete]
+
+  certs:
+    plugin: dump
+    source: /etc/mono
+    organize:
+      certstore: etc/mono/certstore
+
