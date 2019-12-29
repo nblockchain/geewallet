@@ -1,0 +1,23 @@
+name: ubuntu
+
+on: [push]
+
+jobs:
+  ubuntu-snap-build:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Generate snap package
+      run: |
+        sudo apt install -y fsharp
+        ./scripts/downgradeMono.fsx
+
+        ./scripts/install_snapcraft.sh
+        sudo ./scripts/snap_build.sh
+
+    - name: Upload snap package as artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: snap
+        path: gwallet_0.3.1.0_amd64.snap
+
