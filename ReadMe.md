@@ -89,7 +89,7 @@ Or simply by installing the snap package. You can grab it from the artifacts of 
 After downloading and decompressing the artifacts, you have to use the command line:
 
 ```
-snap install --dangerous --classic gwallet*.snap
+snap install --dangerous gwallet*.snap
 ```
 
 After installing using snap or manually, you can call `gwallet` directly.

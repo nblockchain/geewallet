@@ -8,13 +8,15 @@ description: |
   cryptocurrencies in the same application with ease & peace of mind.
 
 grade: devel # must be 'stable' to release into candidate/stable channels
-confinement: classic # use 'strict' once you have the right plugs and slots
+confinement: strict
 
 apps:
   gwallet:
     command: bin/gwallet
+    plugs: [network]
 
 parts:
   gwallet:
     plugin: dump
     source: ./staging
+    stage-packages: [mono-complete]
