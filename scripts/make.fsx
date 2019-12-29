@@ -29,9 +29,12 @@ let rec private GatherTarget (args: string list, targetSet: Option<string>): Opt
             failwith "only one target can be passed to make"
         GatherTarget (tail, Some (head))
 
+let scriptsDir = __SOURCE_DIRECTORY__ |> DirectoryInfo
+let rootDir = Path.Combine(scriptsDir.FullName, "..") |> DirectoryInfo
+
 let buildConfigFileName = "build.config"
 let buildConfigContents =
-    let buildConfig = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, buildConfigFileName))
+    let buildConfig = FileInfo (Path.Combine (scriptsDir.FullName, buildConfigFileName))
     if not (buildConfig.Exists) then
         let configureLaunch =
             match Misc.GuessPlatform() with
@@ -66,13 +69,12 @@ let prefix = buildConfigContents |> GetOrExplain "Prefix"
 let libInstallDir = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
 let binInstallDir = DirectoryInfo (Path.Combine (prefix, "bin"))
 
-let launcherScriptFile = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", UNIX_NAME))
-let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__,
-                                                                "..",
-                                                                "src",
-                                                                DEFAULT_FRONTEND,
-                                                                "bin",
-                                                                binaryConfig.ToString()))
+let launcherScriptFile = Path.Combine (scriptsDir.FullName, "bin", UNIX_NAME) |> FileInfo
+let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(rootDir.FullName,
+                                                               "src",
+                                                               DEFAULT_FRONTEND,
+                                                               "bin",
+                                                               binaryConfig.ToString()))
 
 let wrapperScript = """#!/usr/bin/env bash
 set -euxo pipefail
@@ -80,7 +82,6 @@ set -euxo pipefail
 exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
 """
 
-let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
 let nugetPackagesSubDirName = "packages"
 
