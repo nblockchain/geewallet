@@ -76,7 +76,7 @@ or lack of Layer2 scaling).
 
 ## How to compile/install/use?
 
-The recommended way is to install the software system wide, like this:
+There are two ways to install; the manual way by cloning and compiling it yourself:
 
 ```
 ./configure.sh --prefix=/usr/local
@@ -84,7 +84,13 @@ make
 sudo make install
 ```
 
-After that you can call `gwallet` directly.
+Or simply by installing the snap package:
+
+```
+snap install --edge gwallet
+```
+
+After installing using snap or manually, you can call `gwallet` directly.
 
 
 ## Thanks

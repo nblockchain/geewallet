@@ -79,7 +79,18 @@ let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(rootDir.FullName,
 let wrapperScript = """#!/usr/bin/env bash
 set -euo pipefail
 
-exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
+if [[ $SNAP ]]; then
+    PKG_DIR=$SNAP/usr
+    export MONO_PATH=$PKG_DIR/lib/mono/4.5
+    export MONO_CONFIG=$SNAP/etc/mono/config
+    export MONO_CFG_DIR=$SNAP/etc
+    export MONO_REGISTRY_PATH=~/.mono/registry
+    export MONO_GAC_PREFIX=$PKG_DIR/lib/mono/gac/
+fi
+
+DIR_OF_THIS_SCRIPT=$(dirname "$(realpath "$0")")
+FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
+exec mono "$FRONTEND_PATH" "$@"
 """
 
 let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
@@ -117,7 +128,7 @@ let JustBuild binaryConfig =
 
     Directory.CreateDirectory(launcherScriptFile.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
-        wrapperScript.Replace("$TARGET_DIR", libPrefixDir.FullName)
+        wrapperScript.Replace("$UNIX_NAME", UNIX_NAME)
                      .Replace("$GWALLET_PROJECT", DEFAULT_FRONTEND)
     File.WriteAllText (launcherScriptFile.FullName, wrapperScriptWithPaths)
 
