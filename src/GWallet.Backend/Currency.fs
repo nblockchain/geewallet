@@ -10,6 +10,7 @@ type Currency =
     | LTC
     | ETH
     | ETC
+    | SAI
     | DAI
     static member ToStrings() =
         Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(typeof<Currency>)
@@ -23,7 +24,7 @@ type Currency =
     member self.IsEther() =
         self = Currency.ETC || self = Currency.ETH
     member self.IsEthToken() =
-        self = Currency.DAI
+        self = Currency.DAI || self = Currency.SAI
     member self.IsEtherBased() =
         self.IsEther() || self.IsEthToken()
     member self.IsUtxo() =

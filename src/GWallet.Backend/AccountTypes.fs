@@ -23,6 +23,12 @@ type AccountKind =
     | Normal
     | ReadOnly
     | Archived
+    static member All() =
+        seq {
+            yield Normal
+            yield ReadOnly
+            yield Archived
+        }
 
 type IAccount =
     abstract member Currency: Currency with get
