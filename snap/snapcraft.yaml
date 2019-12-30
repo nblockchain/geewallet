@@ -23,7 +23,7 @@ parts:
   gwallet:
     plugin: dump
     source: ./staging
-    stage-packages: [mono-complete]
+    stage-packages: [mono-devel]
 
   certs:
     plugin: dump
