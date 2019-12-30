@@ -46,6 +46,8 @@ module Account =
         }
 
     let GetAllActiveAccounts(): seq<IAccount> =
+        Config.RenameDaiAccountsToSai()
+
         seq {
             let allCurrencies = Currency.GetAll()
 
@@ -488,12 +490,13 @@ module Account =
 
     let CreateEtherNormalAccounts (password: string) (seed: array<byte>)
                                   : seq<Currency>*Async<List<ConceptAccount>> =
-        let etherCurrencies = Currency.GetAll().Where(fun currency -> currency.IsEtherBased())
+        let etherCurrenciesWhichAreNotTokens =
+            Currency.GetAll().Where(fun currency -> currency.IsEtherBased() && not (currency.IsEthToken()))
         let etherAccounts = async {
             let! virtualFile, fromEncPrivKeyToPublicAddressFunc =
                 CreateConceptEtherAccountInternal password seed
             return seq {
-                for etherCurrency in etherCurrencies do
+                for etherCurrency in etherCurrenciesWhichAreNotTokens do
                     yield {
                               Currency = etherCurrency;
                               FileRepresentation = virtualFile
@@ -501,7 +504,7 @@ module Account =
                           }
             } |> List.ofSeq
         }
-        etherCurrencies,etherAccounts
+        etherCurrenciesWhichAreNotTokens,etherAccounts
 
     let CreateNormalAccount (conceptAccount: ConceptAccount): NormalAccount =
         let newAccountFile = Config.AddAccount conceptAccount AccountKind.Normal

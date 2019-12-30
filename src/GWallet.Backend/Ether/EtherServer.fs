@@ -515,7 +515,7 @@ module Server =
             let! blockForConfirmationReference = GetBlockToCheckForConfirmedBalance web3
             let balanceOfFunctionMsg = BalanceOfFunction(Owner = publicAddress)
 
-            let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
+            let contractHandler = web3.Eth.GetContractHandler TokenManager.SAI_CONTRACT_ADDRESS
             if (contractHandler = null) then
                 failwith "contractHandler somehow is null"
 
@@ -569,7 +569,7 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
-                    let contractHandler = web3.Eth.GetContractHandler(TokenManager.DAI_CONTRACT_ADDRESS)
+                    let contractHandler = web3.Eth.GetContractHandler TokenManager.SAI_CONTRACT_ADDRESS
                     let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
                     let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                                To = destination,

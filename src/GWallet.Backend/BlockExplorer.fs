@@ -21,8 +21,10 @@ module BlockExplorer =
               | Currency.ETC ->
                   // the only one? minergate.com seems to only show blocks, not addresses
                   "https://gastracker.io/addr/"
+              | Currency.SAI ->
+                  sprintf "https://etherscan.io/token/%s?a=" Ether.TokenManager.SAI_CONTRACT_ADDRESS
               | Currency.DAI ->
-                  sprintf "https://etherscan.io/token/%s?a=" Ether.TokenManager.DAI_CONTRACT_ADDRESS
+                  raise <| NotImplementedException()
         Uri(baseUrl + account.PublicAddress)
 
     let GetTransaction (currency: Currency) (txHash: string): Uri =
@@ -36,6 +38,6 @@ module BlockExplorer =
                   "https://etherscan.io/tx/"
               | Currency.ETC ->
                   "https://gastracker.io/tx/"
-              | Currency.DAI ->
+              | Currency.DAI | Currency.SAI ->
                   "https://etherscan.io/tx/"
         Uri(baseUrl + txHash)

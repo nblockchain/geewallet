@@ -9,9 +9,9 @@ open Nethereum.StandardTokenEIP20.ContractDefinition
 
 module TokenManager =
 
-    let internal DAI_CONTRACT_ADDRESS = "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359"
+    let internal SAI_CONTRACT_ADDRESS = "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359"
     type DaiContract(web3) =
-        inherit StandardTokenService(web3, DAI_CONTRACT_ADDRESS)
+        inherit StandardTokenService(web3, SAI_CONTRACT_ADDRESS)
 
         member self.ComposeInputDataForTransferTransaction (origin: string,
                                                             destination: string,
@@ -29,7 +29,7 @@ module TokenManager =
                                                                               tokenValue)
             if (transactionInput = null) then
                 failwith "Assertion failed: transaction input should not be null"
-            if (transactionInput.To <> DAI_CONTRACT_ADDRESS) then
+            if transactionInput.To <> SAI_CONTRACT_ADDRESS then
                 failwith "Assertion failed: transactionInput's TO property should be equal to DAI's contract address"
             if not (transactionInput.Gas.Value.Equals(gasLimit)) then
                 failwith "Assertion failed: transactionInput's GAS property should be equal to passed GasLimit parameter"

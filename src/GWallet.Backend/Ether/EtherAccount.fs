@@ -282,7 +282,7 @@ module internal Account =
 
         signer.SignTransaction (privKeyInBytes,
                                 chain,
-                                TokenManager.DAI_CONTRACT_ADDRESS,
+                                TokenManager.SAI_CONTRACT_ADDRESS,
                                 etherValue,
                                 nonce,
                                 gasPrice,
