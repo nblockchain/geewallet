@@ -84,12 +84,10 @@ make
 sudo make install
 ```
 
-Or simply by installing the snap package. You can grab it from the artifacts of our CI build by clicking on the icon on the right-top corner in the following page: https://gitlab.com/knocte/geewallet/pipelines?ref=master
-
-After downloading and decompressing the artifacts, you have to use the command line:
+Or simply by installing the snap package:
 
 ```
-snap install --dangerous gwallet*.snap
+snap install --edge gwallet
 ```
 
 After installing using snap or manually, you can call `gwallet` directly.

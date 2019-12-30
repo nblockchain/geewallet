@@ -97,25 +97,26 @@ newmono_test_integration:
       make &&
       make update-servers
 
-stockmono_package:
-  image: ubuntu:18.04
-  stage: package
-  script:
-    - ./scripts/install_mono_from_microsoft_deb_packages.sh
-
-    - apt install -y sudo
-    - ./scripts/install_snapcraft_dockerless.sh
-    # finish installation of snapcraft
-    - export SNAP=/snap/snapcraft/current
-    - export SNAP_NAME=snapcraft
-    - export SNAP_ARCH=amd64
-    - export PATH="/snap/bin:$PATH"
-
-    - /snap/bin/snapcraft --version
-
-    - ./scripts/snap_build.sh
-
-  artifacts:
-    paths:
-      - gwallet*.snap
-    expire_in: 50days
+# snap package generation is not working with GitLabCI; TODO: report bug
+#stockmono_package:
+#  image: ubuntu:18.04
+#  stage: package
+#  script:
+#    - ./scripts/install_mono_from_microsoft_deb_packages.sh
+#
+#    - apt install -y sudo
+#    - ./scripts/install_snapcraft_dockerless.sh
+#    # finish installation of snapcraft
+#    - export SNAP=/snap/snapcraft/current
+#    - export SNAP_NAME=snapcraft
+#    - export SNAP_ARCH=amd64
+#    - export PATH="/snap/bin:$PATH"
+#
+#    - /snap/bin/snapcraft --version
+#
+#    - ./scripts/snap_build.sh
+#
+#  artifacts:
+#    paths:
+#      - gwallet*.snap
+#    expire_in: 50days
