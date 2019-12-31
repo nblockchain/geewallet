@@ -69,27 +69,27 @@ let Bump(toStable: bool): Version*Version =
 
     for file in filesToBumpFullVersion do
         let proc =
-          {
-            baseReplaceCommand with
-                Arguments = sprintf "%s --file=%s %s %s"
-                             baseReplaceCommand.Arguments
-                             file
-                             (fullVersion.ToString())
-                             (newFullVersion.ToString())
-          }
+            {
+                baseReplaceCommand with
+                    Arguments = sprintf "%s --file=%s %s %s"
+                                    baseReplaceCommand.Arguments
+                                    file
+                                   (fullVersion.ToString())
+                                   (newFullVersion.ToString())
+            }
         Process.SafeExecute (proc, Echo.Off) |> ignore
 
 
     for file in filesToBumpFullVersion do
         let proc =
-          {
-            baseReplaceCommand with
-                Arguments = sprintf "%s --file=%s versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
-                                baseReplaceCommand.Arguments
-                                file
-                                (androidVersion.ToString())
-                                (newVersion.ToString())
-          }
+            {
+                baseReplaceCommand with
+                    Arguments = sprintf "%s --file=%s versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
+                                    baseReplaceCommand.Arguments
+                                    file
+                                    (androidVersion.ToString())
+                                    (newVersion.ToString())
+            }
         Process.SafeExecute (proc, Echo.Off) |> ignore
 
     fullVersion,newFullVersion
@@ -98,10 +98,10 @@ let Bump(toStable: bool): Version*Version =
 let GitCommit (fullVersion: Version) (newFullVersion: Version) =
     for file in filesToBumpFullVersion do
         let gitAdd =
-          {
-            Command = "git"
-            Arguments = sprintf "add %s" file
-          }
+            {
+                Command = "git"
+                Arguments = sprintf "add %s" file
+            }
         Process.SafeExecute (gitAdd, Echo.Off) |> ignore
 
     let commitMessage = sprintf "Bump version: %s -> %s" (fullVersion.ToString()) (newFullVersion.ToString())
