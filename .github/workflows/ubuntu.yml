@@ -1,6 +1,9 @@
 name: ubuntu
 
-on: [push]
+on:
+  push:
+    tags:
+    - '*'
 
 jobs:
   ubuntu-snap-build:
@@ -18,3 +21,18 @@ jobs:
         name: snap
         path: gwallet_0.3.1.1_amd64.snap
 
+  ubuntu-snap-upload:
+    needs: ubuntu-snap-build
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Download artifact from previous job
+      uses: actions/download-artifact@v1
+      with:
+        name: snap
+    - name: Upload snap package to Snap Store
+      env:
+        SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
+      run: |
+        ./scripts/install_snapcraft.sh
+        ./scripts/snap_release.sh
