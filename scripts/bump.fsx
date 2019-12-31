@@ -31,6 +31,8 @@ let suppliedVersion =
     else
         None
 
+let isReleaseManual = false
+
 let filesToBumpMinorRevision: seq<string> =
     [
     ] :> seq<string>
@@ -199,9 +201,12 @@ let fullUnstableVersion,newFullStableVersion = Bump true
 GitCommit fullUnstableVersion newFullStableVersion
 GitTag newFullStableVersion
 
-Console.WriteLine (sprintf "Version bumped to %s, release binaries now and press any key when you finish."
+Console.WriteLine (sprintf "Version bumped to %s."
                            (newFullStableVersion.ToString()))
-Console.ReadKey true |> ignore
+
+if isReleaseManual then
+    Console.WriteLine "Release binaries now and press any key when you finish."
+    Console.ReadKey true |> ignore
 
 Console.WriteLine "Post-bumping..."
 let fullStableVersion,newFullUnstableVersion = Bump false
