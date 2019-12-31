@@ -14,6 +14,17 @@ let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let IsStableRevision revision =
     (int revision % 2) = 0
 
+let filesToBumpMinorRevision: seq<string> =
+    [
+        // to replace Android's versionCode attrib in AndroidManifest.xml
+        "src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml"
+    ] :> seq<string>
+
+let filesToBumpFullVersion: seq<string> =
+    Seq.append filesToBumpMinorRevision [
+        "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
+    ]
+
 let Bump(toStable: bool): Version*Version =
     let fullVersion = Misc.GetCurrentVersion(rootDir)
     let androidVersion = fullVersion.MinorRevision
@@ -56,56 +67,42 @@ let Bump(toStable: bool): Version*Version =
                 Arguments = String.Empty
             }
 
-    let proc1 =
-        {
+    for file in filesToBumpFullVersion do
+        let proc =
+          {
             baseReplaceCommand with
                 Arguments = sprintf "%s --file=%s %s %s"
                              baseReplaceCommand.Arguments
-                             "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
+                             file
                              (fullVersion.ToString())
                              (newFullVersion.ToString())
-        }
-    Process.SafeExecute (proc1, Echo.Off) |> ignore
+          }
+        Process.SafeExecute (proc, Echo.Off) |> ignore
 
-    let proc2 =
-        {
-            baseReplaceCommand with
-                Arguments = sprintf "%s --file=%s %s %s"
-                                baseReplaceCommand.Arguments
-                                "src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml"
-                                (fullVersion.ToString())
-                                (newFullVersion.ToString())
-        }
-    Process.SafeExecute (proc2, Echo.Off) |> ignore
 
-    // to replace Android's versionCode attrib in AndroidManifest.xml
-    let proc3 =
-        {
+    for file in filesToBumpFullVersion do
+        let proc =
+          {
             baseReplaceCommand with
                 Arguments = sprintf "%s --file=%s versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
                                 baseReplaceCommand.Arguments
-                                "src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml"
+                                file
                                 (androidVersion.ToString())
                                 (newVersion.ToString())
-        }
-    Process.SafeExecute (proc3, Echo.Off) |> ignore
+          }
+        Process.SafeExecute (proc, Echo.Off) |> ignore
 
     fullVersion,newFullVersion
 
 
 let GitCommit (fullVersion: Version) (newFullVersion: Version) =
-    let gitAddCommonAssemblyInfo =
-        {
+    for file in filesToBumpFullVersion do
+        let gitAdd =
+          {
             Command = "git"
-            Arguments = "add src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
-        }
-    Process.SafeExecute (gitAddCommonAssemblyInfo, Echo.Off) |> ignore
-    let gitAddAndroidManifest =
-        {
-            Command = "git"
-            Arguments = "add src/GWallet.Frontend.XF.Android/Properties/AndroidManifest.xml"
-        }
-    Process.SafeExecute (gitAddAndroidManifest, Echo.Off) |> ignore
+            Arguments = sprintf "add %s" file
+          }
+        Process.SafeExecute (gitAdd, Echo.Off) |> ignore
 
     let commitMessage = sprintf "Bump version: %s -> %s" (fullVersion.ToString()) (newFullVersion.ToString())
     let finalCommitMessage =
