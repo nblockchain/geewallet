@@ -14,6 +14,23 @@ let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let IsStableRevision revision =
     (int revision % 2) = 0
 
+let args = Misc.FsxArguments()
+let suppliedVersion =
+    if args.Length > 0 then
+        if args.Length > 1 then
+            Console.Error.WriteLine "Only one argument supported, not more"
+            Environment.Exit 1
+            failwith "Unreachable"
+        else
+            let full = Version(args.Head)
+            if not (IsStableRevision full.MinorRevision) then
+                Console.Error.WriteLine "Revision (last number) should be an even (stable) number"
+                Environment.Exit 2
+                failwith "Unreachable"
+            Some full
+    else
+        None
+
 let filesToBumpMinorRevision: seq<string> =
     [
     ] :> seq<string>
@@ -35,16 +52,10 @@ let Bump(toStable: bool): Version*Version =
         failwith "sanity check failed, post-bump should happen in a stable version"
 
     let newFullVersion,newVersion =
-        let args = Misc.FsxArguments()
-        if args.Length > 0 then
-            if args.Length > 1 then
-                Console.Error.WriteLine "Only one argument supported, not more"
-                Environment.Exit 1
-                failwith "Unreachable"
-            else
-                let full = Version(args.Head)
-                full,full.MinorRevision
-        else
+        match suppliedVersion,toStable with
+        | (Some full),true ->
+            full,full.MinorRevision
+        | _ ->
             let newVersion = androidVersion + 1s
             let full = Version(sprintf "%i.%i.%i.%i"
                                        fullVersion.Major
