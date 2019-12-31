@@ -77,7 +77,7 @@ let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(rootDir.FullName,
                                                                binaryConfig.ToString()))
 
 let wrapperScript = """#!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 
 if [[ $SNAP ]]; then
     PKG_DIR=$SNAP/usr
