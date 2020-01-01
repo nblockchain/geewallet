@@ -83,8 +83,6 @@ let prefix = buildConfigContents |> GetOrExplain "Prefix"
 let libPrefixDir = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
 let binPrefixDir = DirectoryInfo (Path.Combine (prefix, "bin"))
 
-let launcherScriptFile = Path.Combine (scriptsDir.FullName, "bin", UNIX_NAME) |> FileInfo
-
 let wrapperScript = """#!/usr/bin/env bash
 set -eo pipefail
 
@@ -341,7 +339,7 @@ match maybeTarget with
 
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
-    let frontend,launcherScript = JustBuild buildConfig
+    let frontend,launcherScriptFile = JustBuild buildConfig
 
     let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(rootDir.FullName,
                                                                    "src",
