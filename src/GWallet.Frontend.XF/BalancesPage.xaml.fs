@@ -498,18 +498,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             balanceSet.Widgets.FiatLabel.TextColor <- color
 
     member private this.CancelBalanceRefreshJobs() =
-        try
-            this.BalanceRefreshCancelSources
+        this.BalanceRefreshCancelSources
                 |> Seq.map (fun cancelSource ->
                                 cancelSource.Cancel()
                                 //TODO: dispose? now with CustomCancelSource it's not actually needed
                            )
                 |> ignore
-        with
-        // TODO: remove this below once we finishing tracking down (fixing)
-        //       https://gitlab.com/knocte/geewallet/issues/125
-        | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
-            raise <| InvalidOperationException("Cancellation of balance refresh jobs causes TCE", ex)
         this.BalanceRefreshCancelSources <- Seq.empty
 
     member private this.Init () =

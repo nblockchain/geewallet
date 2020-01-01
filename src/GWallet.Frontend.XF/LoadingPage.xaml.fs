@@ -100,28 +100,16 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                                                                                 ServerSelectionMode.Fast
                                                                                 (Some progressBarLayout)
         let allNormalAccountBalancesJobAugmented = async {
-            try
                 let! normalAccountBalances = allNormalAccountBalancesJob
                 return normalAccountBalances
-            with
-            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
-                // TODO: remove this below once we finishing tracking down (fixing)
-                //       https://gitlab.com/knocte/geewallet/issues/125
-                return raise <| InvalidOperationException("Cancellation at normal-account first-query", ex)
         }
 
         let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
         let _,readOnlyAccountBalancesJob =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
         let readOnlyAccountBalancesJobAugmented = async {
-            try
                 let! readOnlyAccountBalances = readOnlyAccountBalancesJob
                 return readOnlyAccountBalances
-            with
-            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
-                // TODO: remove this below once we finishing tracking down (fixing)
-                //       https://gitlab.com/knocte/geewallet/issues/125
-                return raise <| InvalidOperationException("Cancellation at readonly-account first-query", ex)
         }
 
         let populateGrid = async {
