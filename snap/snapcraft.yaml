@@ -16,14 +16,21 @@ layout:
 
 apps:
   gwallet:
-    command: bin/gwallet
-    plugs: [network]
+    command: desktop-launch $SNAP/bin/gwallet-gtk
+    plugs:
+      - network
+      - desktop
+      - desktop-legacy
+      - wayland
+      - unity7
 
 parts:
   gwallet:
     plugin: dump
     source: ./staging
-    stage-packages: [mono-devel]
+    stage-packages:
+      - mono-devel
+      - libgtk2.0-cil
 
   certs:
     plugin: dump
@@ -31,3 +38,27 @@ parts:
     organize:
       certstore: etc/mono/certstore
 
+  gtk2:
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: gtk
+    plugin: make
+    make-parameters: ["FLAVOR=gtk2"]
+    build-packages:
+      - libgtk2.0-dev
+    stage-packages:
+      - libxkbcommon0  # XKB_CONFIG_ROOT
+      - ttf-ubuntu-font-family
+      - dmz-cursor-theme
+      - light-themes
+      - adwaita-icon-theme
+      - gnome-themes-standard
+      - shared-mime-info
+      - libgtk2.0-0
+      - libgdk-pixbuf2.0-0
+      - libglib2.0-bin
+      - libgtk2.0-bin
+      - unity-gtk2-module
+      - libappindicator1
+      - locales-all
+      - ibus-gtk
+      - libibus-1.0-5
