@@ -93,7 +93,7 @@ set -eo pipefail
 
 if [[ $SNAP ]]; then
     PKG_DIR=$SNAP/usr
-    export MONO_PATH=$PKG_DIR/lib/mono/4.5
+    export MONO_PATH=$PKG_DIR/lib/mono/4.5:$PKG_DIR/lib/cli/gtk-sharp-2.0:$PKG_DIR/lib/cli/glib-sharp-2.0:$PKG_DIR/lib/cli/atk-sharp-2.0:$PKG_DIR/lib/cli/gdk-sharp-2.0:$PKG_DIR/lib/cli/pango-sharp-2.0:$MONO_PATH
     export MONO_CONFIG=$SNAP/etc/mono/config
     export MONO_CFG_DIR=$SNAP/etc
     export MONO_REGISTRY_PATH=~/.mono/registry
