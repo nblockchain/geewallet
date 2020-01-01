@@ -26,6 +26,11 @@ type Frontend =
         match self with
         | Console -> CONSOLE_FRONTEND
         | Gtk -> GTK_FRONTEND
+    member self.GetExecutableName() =
+        match self with
+        | Console -> CONSOLE_FRONTEND
+        // TODO: change to use UNIX_NAME when we make the switch from gwallet to geewallet
+        | Gtk -> "geewallet"
     override self.ToString() =
         sprintf "%A" self
 
@@ -171,7 +176,7 @@ let JustBuild binaryConfig: Frontend*FileInfo =
     Directory.CreateDirectory(launcherScriptFile.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
         wrapperScript.Replace("$UNIX_NAME", UNIX_NAME)
-                     .Replace("$GWALLET_PROJECT", frontend.GetProjectName())
+                     .Replace("$GWALLET_PROJECT", frontend.GetExecutableName())
     File.WriteAllText (launcherScriptFile.FullName, wrapperScriptWithPaths)
     frontend,launcherScriptFile
 
