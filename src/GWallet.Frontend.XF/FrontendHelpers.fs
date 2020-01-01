@@ -98,7 +98,8 @@ module FrontendHelpers =
         | Currency.ETH -> Color.FromRgb(130, 131, 132)
         | Currency.LTC -> Color.FromRgb(54, 94, 155)
 
-    let UpdateBalance (balance:MaybeCached<decimal>) currency (balanceLabel: Label) (fiatBalanceLabel: Label)
+    let UpdateBalance (balance: MaybeCached<decimal>) currency
+                      (maybeFrame: Option<Frame>) (balanceLabel: Label) (fiatBalanceLabel: Label)
                           : MaybeCached<decimal> =
         let maybeBalanceAmount =
             match balance with
@@ -107,6 +108,12 @@ module FrontendHelpers =
             | NotFresh(Cached(amount,_)) ->
                 Some amount
             | Fresh(amount) ->
+                match maybeFrame, currency, amount with
+                | Some frame, Currency.SAI, 0m ->
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        frame.IsVisible <- false
+                    )
+                | _ -> ()
                 Some amount
         let balanceAmountStr,fiatAmount,fiatAmountStr =
             match maybeBalanceAmount with
@@ -134,6 +141,7 @@ module FrontendHelpers =
             let fiatAmount =
                 UpdateBalance balance
                               balanceSet.Account.Currency
+                              (Some balanceSet.Widgets.Frame)
                               balanceSet.Widgets.CryptoLabel
                               balanceSet.Widgets.FiatLabel
             return {
@@ -158,6 +166,7 @@ module FrontendHelpers =
                     let fiatAmount =
                         UpdateBalance (NotFresh cachedBalance)
                                       balanceSet.Account.Currency
+                                      (Some balanceSet.Widgets.Frame)
                                       balanceSet.Widgets.CryptoLabel
                                       balanceSet.Widgets.FiatLabel
                     return {

@@ -39,13 +39,14 @@ type ReceivePage(account: IAccount,
 
         let accountBalance =
             Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
-        FrontendHelpers.UpdateBalance (NotFresh accountBalance) account.Currency balanceLabel fiatBalanceLabel
+        FrontendHelpers.UpdateBalance (NotFresh accountBalance) account.Currency None balanceLabel fiatBalanceLabel
             |> ignore
 
         // this below is for the case when a new ReceivePage() instance is suddenly created after sending a transaction
         // (we need to update the balance page ASAP in case the user goes back to it after sending the transaction)
         FrontendHelpers.UpdateBalance (NotFresh accountBalance)
                                       account.Currency
+                                      (Some balanceWidgetsFromBalancePage.Frame)
                                       balanceWidgetsFromBalancePage.CryptoLabel
                                       balanceWidgetsFromBalancePage.FiatLabel
             |> ignore
