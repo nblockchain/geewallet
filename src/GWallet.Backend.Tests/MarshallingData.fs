@@ -32,11 +32,11 @@ module MarshallingData =
         reader.ReadToEnd()
             |> Sanitize
 
-    let UnsignedDaiTransactionExampleInJson =
-        ReadEmbeddedResource "unsignedAndFormattedDaiTransaction.json"
+    let UnsignedSaiTransactionExampleInJson =
+        ReadEmbeddedResource "unsignedAndFormattedSaiTransaction.json"
 
-    let SignedDaiTransactionExampleInJson =
-        ReadEmbeddedResource "signedAndFormattedDaiTransaction.json"
+    let SignedSaiTransactionExampleInJson =
+        ReadEmbeddedResource "signedAndFormattedSaiTransaction.json"
 
     let internal SomeDate = DateTime.Parse "2018-06-14T16:50:09.133411"
 
@@ -114,13 +114,13 @@ module MarshallingData =
           (Currency.LTC.ToString(), 173.592m);
           (Currency.ETH.ToString(), 691.52m);
           (Currency.ETC.ToString(), 19.8644m);
-          (Currency.DAI.ToString(), 1.00376m); ]
+          (Currency.SAI.ToString(), 1.00376m) ]
             |> Map.ofSeq
 
     let private realAddressesSample =
         Map.empty.Add("3Buz1evVsQeHtDfQAmwfAKQsUzAt3f4TuR",[Currency.BTC.ToString()])
                  .Add("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E",[Currency.ETH.ToString();
-                                                                    Currency.DAI.ToString();
+                                                                    Currency.SAI.ToString()
                                                                     Currency.ETC.ToString()])
                  .Add("MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm",[Currency.LTC.ToString()])
 
@@ -128,7 +128,7 @@ module MarshallingData =
         Map.empty.Add(Currency.BTC.ToString(), 0.0m)
                  .Add(Currency.ETH.ToString(), 7.08m)
                  .Add(Currency.ETC.ToString(), 8.0m)
-                 .Add(Currency.DAI.ToString(), 1.0m)
+                 .Add(Currency.SAI.ToString(), 1.0m)
                  .Add(Currency.LTC.ToString(), 0.0m)
 
     let private realCachingDataExample =
@@ -171,36 +171,36 @@ module MarshallingData =
             Metadata = someEtherTxMetadata;
         }
 
-    let private someEtherMinerFeeForDaiTransfer = Ether.MinerFee(37298L,
+    let private someEtherMinerFeeForSaiTransfer = Ether.MinerFee(37298L,
                                                                  3343750000L,
                                                                  SomeDate,
                                                                  Currency.ETH)
-    let private someDaiTxMetadata =
+    let private someSaiTxMetadata =
         {
-            Fee = someEtherMinerFeeForDaiTransfer;
+            Fee = someEtherMinerFeeForSaiTransfer
             TransactionCount = int64 7;
         }
-    let private someUnsignedDaiTransactionProposal =
+    let private someUnsignedSaiTransactionProposal =
         {
             OriginAddress = "0xba766d6d13E2Cc921Bf6e896319D32502af9e37E";
-            Amount = TransferAmount(1m, 7.08m, Currency.DAI);
+            Amount = TransferAmount(1m, 7.08m, Currency.SAI)
             DestinationAddress = "0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b";
         }
-    let UnsignedDaiTransactionExample =
+    let UnsignedSaiTransactionExample =
         {
-            Proposal = someUnsignedDaiTransactionProposal;
+            Proposal = someUnsignedSaiTransactionProposal
             Cache = realCachingDataExample;
-            Metadata = someDaiTxMetadata;
+            Metadata = someSaiTxMetadata
         }
-    let someDaiTransactionInfo =
+    let someSaiTransactionInfo =
         {
-            Proposal = someUnsignedDaiTransactionProposal;
+            Proposal = someUnsignedSaiTransactionProposal
             Cache = realCachingDataExample;
-            Metadata = someDaiTxMetadata;
+            Metadata = someSaiTxMetadata
         }
-    let SignedDaiTransactionExample =
+    let SignedSaiTransactionExample =
         {
-            TransactionInfo = someDaiTransactionInfo;
+            TransactionInfo = someSaiTransactionInfo
             RawTransaction = "f8a80784c74d93708291b29489d24a6b4ccb1b6faa2625fe562bdd9a2326035980b844a9059cbb000000000000000000000000db0381b1a380d8db2724a9ca2d33e0c6c044be3b0000000000000000000000000000000000000000000000000de0b6b3a764000026a072cdeb03affd5977c76366efbc1405fbb4fa997ce72c1e4554ba9ec5ef772ddca069d522ea304efebd2537330870bc1ca9e9a6fe3eb5f8d8f66c1b82d9fc27a4bf";
         }
 
