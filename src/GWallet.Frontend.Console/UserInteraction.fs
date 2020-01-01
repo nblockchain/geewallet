@@ -205,7 +205,7 @@ module UserInteraction =
                 (balance * usdValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
                 (time |> Formatting.ShowSaneDate)
 
-    let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
+    let private DisplayAccountStatusInner accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
         let maybeReadOnly =
             match account with
             | :? ReadOnlyAccount -> "(READ-ONLY)"
@@ -236,6 +236,13 @@ module UserInteraction =
             Console.WriteLine(status)
 
         Console.WriteLine (sprintf "History -> %s" ((BlockExplorer.GetTransactionHistory account).ToString()))
+
+    let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
+        match account.Currency, maybeBalance with
+        | Currency.SAI, Fresh 0m | Currency.DAI, Fresh 0m ->
+            ()
+        | _ ->
+            DisplayAccountStatusInner accountNumber account maybeBalance
 
     let private GetAccountBalances (accounts: seq<IAccount>): Async<array<IAccount*MaybeCached<decimal>>> =
         let getAccountBalance(account: IAccount): Async<IAccount*MaybeCached<decimal>> =
@@ -309,7 +316,10 @@ module UserInteraction =
                                 let cryptoValue = Formatting.DecimalAmountRounding CurrencyType.Crypto onlineBalance
                                 let total = sprintf "Total %A: %s (%s)" currency cryptoValue fiatValue
                                 yield Some(onlineBalance * usdValue)
-                                Console.WriteLine (total)
+                                if onlineBalance = 0m && currency.IsEthToken() then
+                                    ()
+                                else
+                                    Console.WriteLine total
                 } |> List.ofSeq
             if (usdTotals.Any(fun maybeUsdTotal -> maybeUsdTotal.IsNone)) then
                 None

@@ -174,7 +174,7 @@ module internal Account =
 
         let baseCurrency =
             match account.Currency with
-            | DAI -> ETH
+            | DAI | SAI -> ETH
             | _ -> failwithf "Unknown token %A" account.Currency
 
         let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination

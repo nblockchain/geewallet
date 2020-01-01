@@ -490,13 +490,15 @@ module Account =
 
     let CreateEtherNormalAccounts (password: string) (seed: array<byte>)
                                   : seq<Currency>*Async<List<ConceptAccount>> =
-        let etherCurrenciesWhichAreNotTokens =
-            Currency.GetAll().Where(fun currency -> currency.IsEtherBased() && not (currency.IsEthToken()))
+        let etherCurrencies =
+            // we create SAI account (even though we don't show it anymore if it has zero balance) just in case the user
+            // used it before when we had support for it (and since we don't support DAI yet, we filter it here)
+            Currency.GetAll().Where(fun currency -> currency.IsEtherBased() && not (currency = Currency.DAI))
         let etherAccounts = async {
             let! virtualFile, fromEncPrivKeyToPublicAddressFunc =
                 CreateConceptEtherAccountInternal password seed
             return seq {
-                for etherCurrency in etherCurrenciesWhichAreNotTokens do
+                for etherCurrency in etherCurrencies do
                     yield {
                               Currency = etherCurrency;
                               FileRepresentation = virtualFile
@@ -504,7 +506,7 @@ module Account =
                           }
             } |> List.ofSeq
         }
-        etherCurrenciesWhichAreNotTokens,etherAccounts
+        etherCurrencies,etherAccounts
 
     let CreateNormalAccount (conceptAccount: ConceptAccount): NormalAccount =
         let newAccountFile = Config.AddAccount conceptAccount AccountKind.Normal
