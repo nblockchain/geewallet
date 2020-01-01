@@ -100,16 +100,16 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                                                                                 ServerSelectionMode.Fast
                                                                                 (Some progressBarLayout)
         let allNormalAccountBalancesJobAugmented = async {
-                let! normalAccountBalances = allNormalAccountBalancesJob
-                return normalAccountBalances
+            let! normalAccountBalances = allNormalAccountBalancesJob
+            return normalAccountBalances
         }
 
         let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
         let _,readOnlyAccountBalancesJob =
             FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
         let readOnlyAccountBalancesJobAugmented = async {
-                let! readOnlyAccountBalances = readOnlyAccountBalancesJob
-                return readOnlyAccountBalances
+            let! readOnlyAccountBalances = readOnlyAccountBalancesJob
+            return readOnlyAccountBalances
         }
 
         let populateGrid = async {
@@ -121,9 +121,9 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
             keepAnimationTimerActive <- false
 
             Device.BeginInvokeOnMainThread(fun _ ->
-                    let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
-                                                    currencyImages, false)
-                    FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
+                let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
+                                                currencyImages, false)
+                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
             )
         }
         Async.StartAsTask populateGrid

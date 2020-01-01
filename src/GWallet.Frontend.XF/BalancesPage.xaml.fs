@@ -499,11 +499,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     member private this.CancelBalanceRefreshJobs() =
         this.BalanceRefreshCancelSources
-                |> Seq.map (fun cancelSource ->
-                                cancelSource.Cancel()
-                                //TODO: dispose? now with CustomCancelSource it's not actually needed
-                           )
-                |> ignore
+            |> Seq.map (fun cancelSource ->
+                            cancelSource.Cancel()
+                            //TODO: dispose? now with CustomCancelSource it's not actually needed
+                       )
+            |> ignore
         this.BalanceRefreshCancelSources <- Seq.empty
 
     member private this.Init () =
