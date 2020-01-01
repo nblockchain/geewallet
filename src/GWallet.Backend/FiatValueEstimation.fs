@@ -38,6 +38,8 @@ module FiatValueEstimation =
             | Currency.ETH -> "ethereum"
             | Currency.ETC -> "ethereum-classic"
             | Currency.DAI -> "dai"
+            // the API is not returning anything for "sai" :(
+            | Currency.SAI -> "dai"
 
         try
             webClient.DownloadString(sprintf "https://api.coinmarketcap.com/v1/ticker/%s/" tickerName)

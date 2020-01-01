@@ -9,7 +9,7 @@ geewallet is a minimalistic and pragmatist crossplatform lightweight opensource 
 | Branch            | Description                                                            | CI status (build & test suite)                                                                                                                                                |
 | ----------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | stable (v0.2.x)   | Console frontend, currencies: ETC&ETH+DAI(ERC20), BTC&LTC (SegWit+RBF) | Linux: [![Linux CI pipeline status badge](https://gitlab.com/knocte/geewallet/badges/stable/pipeline.svg)](https://gitlab.com/knocte/geewallet/commits/stable)      |
-| master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | Linux: [![Linux CI pipeline status badge](https://gitlab.com/knocte/geewallet/badges/master/pipeline.svg)](https://gitlab.com/knocte/geewallet/commits/master) <br/>macOS: [![macOS CI pipeline status badge](https://github.com/knocte/geewallet/workflows/macOS/badge.svg)](https://github.com/knocte/geewallet/actions) <br/>Windows: [![Windows CI pipeline status badge](https://github.com/knocte/geewallet/workflows/windows/badge.svg)](https://github.com/knocte/geewallet/actions) |
+| master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | Linux: [![Linux CI pipeline status badge](https://gitlab.com/knocte/geewallet/badges/master/pipeline.svg)](https://gitlab.com/knocte/geewallet/commits/master) <br/>macOS: [![macOS CI pipeline status badge](https://github.com/knocte/geewallet/workflows/macOS/badge.svg)](https://github.com/knocte/geewallet/commits/master) <br/>Windows: [![Windows CI pipeline status badge](https://github.com/knocte/geewallet/workflows/windows/badge.svg)](https://github.com/knocte/geewallet/commits/master) |
 | frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | Linux: [![Linux CI pipeline status badge](https://gitlab.com/knocte/geewallet/badges/frontend/pipeline.svg)](https://gitlab.com/knocte/geewallet/commits/frontend)  |
 
 [![Balances mobile-page screenshot](https://raw.githubusercontent.com/knocte/geewallet/master/img/screenshots/maciosandroid-balances.png)](https://raw.githubusercontent.com/knocte/geewallet/master/img/screenshots/maciosandroid-balances.png)
@@ -110,15 +110,21 @@ The easiest way to use for non-technical people is to install it from the Androi
 
 Other platforms: coming soon.
 
-If you prefer to compile and run from your Linux command line:
+If you're an advanced Linux user, you could run the command-line version of it by installing it from the snap store:
 
 ```
-./configure.sh --prefix=/usr
+snap install --edge gwallet
+```
+
+Or cloning and compiling it yourself:
+
+```
+./configure.sh --prefix=/usr/local
 make
 sudo make install
 ```
 
-After that you can call `gwallet` directly.
+After installing manually or via snap, you can call `gwallet` directly.
 
 
 ## Thanks

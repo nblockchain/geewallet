@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euxo pipefail
 
 BUILD_CONFIG="./scripts/build.config"
 if [ ! -f "$BUILD_CONFIG" ]; then

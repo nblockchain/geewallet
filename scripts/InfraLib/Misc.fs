@@ -122,6 +122,20 @@ module Misc =
     let private IsPathEqual(a: string, b: string) =
         a.Equals(b, StringComparison.InvariantCultureIgnoreCase)
 
+    let ApplyLineChangesOverTextFile (fromFile: FileInfo) (toFile: FileInfo) (change: string->Option<string>): unit =
+        if not fromFile.Exists then
+            failwithf "File %s doesn't exist" fromFile.FullName
+        if toFile.Exists then
+            failwithf "File %s already exists" toFile.FullName
+
+        use writeStream = new StreamWriter(toFile.FullName)
+        for line in File.ReadLines fromFile.FullName do
+            match change line with
+            | None ->
+                ()
+            | Some lineChanged ->
+                writeStream.WriteLine lineChanged
+
     let private CopyToOverwrite(from: FileInfo, toPath: string, overwrite: bool) =
         try
             if (overwrite) then

@@ -181,7 +181,7 @@ module internal Account =
 
         let baseCurrency =
             match account.Currency with
-            | DAI -> ETH
+            | DAI | SAI -> ETH
             | _ -> failwithf "Unknown token %A" account.Currency
 
         let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination
@@ -289,7 +289,7 @@ module internal Account =
 
         signer.SignTransaction (privKeyInBytes,
                                 chain,
-                                TokenManager.DAI_CONTRACT_ADDRESS,
+                                TokenManager.SAI_CONTRACT_ADDRESS,
                                 etherValue,
                                 nonce,
                                 gasPrice,

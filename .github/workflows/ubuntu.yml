@@ -1,0 +1,38 @@
+name: ubuntu
+
+on:
+  push:
+    tags:
+    - '*'
+
+jobs:
+  ubuntu-snap-build:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Generate snap package
+      run: |
+        ./scripts/install_snapcraft.sh
+        sudo ./scripts/snap_build.sh
+
+    - name: Upload snap package as artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: snap
+        path: gwallet_0.4.2.187_amd64.snap
+
+  ubuntu-snap-upload:
+    needs: ubuntu-snap-build
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Download artifact from previous job
+      uses: actions/download-artifact@v1
+      with:
+        name: snap
+    - name: Upload snap package to Snap Store
+      env:
+        SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
+      run: |
+        ./scripts/install_snapcraft.sh
+        ./scripts/snap_release.sh

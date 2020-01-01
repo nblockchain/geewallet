@@ -105,6 +105,8 @@ the namespace "Foo.Bar"), or: in a project called "Foo", but in a subdirectory
 called "Bar" (and be named "Baz" under the namespace "Foo.Bar").
 * We prefer records over tuples, especially when being part of other type
 structures.
+* As a naming convention, variables with `Async<'T>` type should be suffixed
+with `Job`, and variables with `Task<'T>` should be suffixed with `Task`.
 * When adding NUnit tests, don't use `[<Test>]let Foo` and naked `module Bar`
 syntax, but `[<Test>]member __.Foo` and `[<TestFixture>]type Bar()` (note the
 parenthesis, as it's an important bit), otherwise the tests might not run in
@@ -176,3 +178,4 @@ Some other items that haven't been prioritized include (likely only intelligible
   * Backend.Config.DEFAULT_NETWORK_TIMEOUT: see comment above this setting, to couple it with FaultTolerantParalellClient (or create two timeout settings, see 091b151ff4a37ca74a312609f173d5fe589ac623 ).
   * Improve stats.json feeding by 1) collecting new stats at bump.fsx time; 2) disable cancellation in non-FAST mode for this dev-env collection. 
 - Use this logo for BTC when lightning support is merged: https://www.reddit.com/r/Bitcoin/comments/dklkyo/released_this_logo_for_public_use_at_lighting/
+- Migrate from Nethereum to Nethermind, especially if Light Client Support is implemented: https://gitcoin.co/issue/NethermindEth/nethermind/32/3818 (https://github.com/NethermindEth/nethermind/issues/32)

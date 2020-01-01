@@ -3,6 +3,7 @@ namespace FSX.Infrastructure
 
 open System
 open System.IO
+open System.Net
 open System.Linq
 
 open Process
@@ -188,6 +189,56 @@ module Unix =
 
         Console.WriteLine("Installing {0}...", package.Name)
         Sudo(String.Format("dpkg --install {0}", package.FullName)) |> ignore
+
+    let AptUpdate () =
+        Sudo("apt update")
+
+    let PurgeAptPackage (packageName: string) =
+        if IsAptPackageInstalled packageName <> AptPackage.Missing then
+            Sudo(sprintf "apt -y purge %s" packageName) |> ignore
+
+    let GetAllPackageNamesFromAptSource (aptSourceFile: FileInfo): seq<string> =
+        if not (Process.CommandWorksInShell "dpkg") then
+            Console.Error.WriteLine "This script is only for debian-based distros, aborting."
+            Environment.Exit 3
+
+        let aptSourceContents = File.ReadAllText aptSourceFile.FullName
+        let aptSourceElements = aptSourceContents.Split([|' '|], StringSplitOptions.RemoveEmptyEntries)
+        if aptSourceElements.Length <> 4 then
+            failwithf "Only apt sources with one repository are supported"
+        let url = aptSourceElements.[1].Trim()
+        let dist = aptSourceElements.[2].Trim()
+        let name = aptSourceElements.[3].Trim()
+
+        let cmd = { Command = "dpkg"; Arguments = "--print-architecture" }
+        let arch = Process.SafeExecute(cmd, Echo.Off).Output.StdOut.Trim()
+
+        let textToFind = sprintf "%s/binary-%s/Packages" name arch
+        let uri = sprintf "%s/dists/%s/Release" url dist
+        use webClient = new WebClient()
+        let metadata = webClient.DownloadString uri
+        if not (metadata.Contains textToFind) then
+            failwithf "metadata '%s' not found in '%s'" textToFind metadata
+
+        let uri = sprintf "%s/dists/%s/%s" url dist textToFind
+        let pkgMetadata = webClient.DownloadString uri
+        seq {
+            use reader = new StringReader(pkgMetadata)
+            let mutable line = String.Empty
+            while line <> null do
+                let tag = "Package: "
+                if line.Trim().StartsWith tag then
+                    yield line.Trim().Substring tag.Length
+                line <- reader.ReadLine()
+        }
+
+    let PurgeAllPackagesFromAptSource (aptSourceFile: FileInfo) =
+        for pkg in GetAllPackageNamesFromAptSource aptSourceFile do
+            PurgeAptPackage pkg
+
+    let InstallAllPackagesFromAptSource (aptSourceFile: FileInfo) =
+        for pkg in GetAllPackageNamesFromAptSource aptSourceFile do
+            InstallAptPackageIfNotAlreadyInstalled pkg
 
     let OctalPermissions (fileOrDir: FileSystemInfo): int =
         let cmd = { Command = "stat"; Arguments = String.Format("-c \"%a\" {0}", fileOrDir.FullName) }

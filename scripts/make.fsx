@@ -43,9 +43,12 @@ let rec private GatherTarget (args: string list, targetSet: Option<string>): Opt
             failwith "only one target can be passed to make"
         GatherTarget (tail, Some (head))
 
+let scriptsDir = __SOURCE_DIRECTORY__ |> DirectoryInfo
+let rootDir = Path.Combine(scriptsDir.FullName, "..") |> DirectoryInfo
+
 let buildConfigFileName = "build.config"
 let buildConfigContents =
-    let buildConfig = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, buildConfigFileName))
+    let buildConfig = FileInfo (Path.Combine (scriptsDir.FullName, buildConfigFileName))
     if not (buildConfig.Exists) then
         let configureLaunch =
             match Misc.GuessPlatform() with
@@ -77,15 +80,28 @@ let GetOrExplain key map =
                           buildConfigFileName key
 
 let prefix = buildConfigContents |> GetOrExplain "Prefix"
-let libInstallDir = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
-let binInstallDir = DirectoryInfo (Path.Combine (prefix, "bin"))
+let libPrefixDir = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
+let binPrefixDir = DirectoryInfo (Path.Combine (prefix, "bin"))
 
-let wrapperScript = """#!/bin/sh
-set -e
-exec mono "$TARGET_DIR/$GWALLET_PROJECT.exe" "$@"
+let launcherScriptFile = Path.Combine (scriptsDir.FullName, "bin", UNIX_NAME) |> FileInfo
+
+let wrapperScript = """#!/usr/bin/env bash
+set -eo pipefail
+
+if [[ $SNAP ]]; then
+    PKG_DIR=$SNAP/usr
+    export MONO_PATH=$PKG_DIR/lib/mono/4.5
+    export MONO_CONFIG=$SNAP/etc/mono/config
+    export MONO_CFG_DIR=$SNAP/etc
+    export MONO_REGISTRY_PATH=~/.mono/registry
+    export MONO_GAC_PREFIX=$PKG_DIR/lib/mono/gac/
+fi
+
+DIR_OF_THIS_SCRIPT=$(dirname "$(realpath "$0")")
+FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
+exec mono "$FRONTEND_PATH" "$@"
 """
 
-let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
 let nugetPackagesSubDirName = "packages"
 
@@ -156,7 +172,7 @@ let JustBuild binaryConfig: Frontend*FileInfo =
     let launcherScriptFile = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", scriptName))
     Directory.CreateDirectory(launcherScriptFile.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
-        wrapperScript.Replace("$TARGET_DIR", libInstallDir.FullName)
+        wrapperScript.Replace("$UNIX_NAME", UNIX_NAME)
                      .Replace("$GWALLET_PROJECT", frontend.GetProjectName())
     File.WriteAllText (launcherScriptFile.FullName, wrapperScriptWithPaths)
     frontend,launcherScriptFile
@@ -327,25 +343,36 @@ match maybeTarget with
     let buildConfig = BinaryConfig.Release
     let frontend,launcherScript = JustBuild buildConfig
 
-    let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(__SOURCE_DIRECTORY__,
-                                                                   "..",
+    let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(rootDir.FullName,
                                                                    "src",
                                                                    frontend.GetProjectName(),
                                                                    "bin",
                                                                    binaryConfig.ToString()))
 
 
+    let destDirUpperCase = Environment.GetEnvironmentVariable "DESTDIR"
+    let destDirLowerCase = Environment.GetEnvironmentVariable "DestDir"
+    let destDir =
+        if not (String.IsNullOrEmpty destDirUpperCase) then
+            destDirUpperCase |> DirectoryInfo
+        elif not (String.IsNullOrEmpty destDirLowerCase) then
+            destDirLowerCase |> DirectoryInfo
+        else
+            prefix |> DirectoryInfo
+
+    let libDestDir = Path.Combine(destDir.FullName, "lib", UNIX_NAME) |> DirectoryInfo
+    let binDestDir = Path.Combine(destDir.FullName, "bin") |> DirectoryInfo
+
     Console.WriteLine "Installing..."
     Console.WriteLine ()
+    Misc.CopyDirectoryRecursively (mainBinariesDir buildConfig, libDestDir, [])
 
-    Misc.CopyDirectoryRecursively (mainBinariesDir buildConfig, libInstallDir, [])
-
-    let finalLauncherScriptInPrefix = FileInfo (Path.Combine(binInstallDir.FullName, launcherScript.Name))
-    if not (Directory.Exists(finalLauncherScriptInPrefix.Directory.FullName)) then
-        Directory.CreateDirectory(finalLauncherScriptInPrefix.Directory.FullName) |> ignore
-    File.Copy(launcherScript.FullName, finalLauncherScriptInPrefix.FullName, true)
-    if Process.Execute({ Command = "chmod"; Arguments = sprintf "ugo+x %s" finalLauncherScriptInPrefix.FullName },
-                       Echo.Off).ExitCode <> 0 then
+    let finalLauncherScriptInDestDir = Path.Combine(binDestDir.FullName, launcherScriptFile.Name) |> FileInfo
+    if not (Directory.Exists(finalLauncherScriptInDestDir.Directory.FullName)) then
+        Directory.CreateDirectory(finalLauncherScriptInDestDir.Directory.FullName) |> ignore
+    File.Copy(launcherScriptFile.FullName, finalLauncherScriptInDestDir.FullName, true)
+    if Process.Execute({ Command = "chmod"; Arguments = sprintf "ugo+x %s" finalLauncherScriptInDestDir.FullName },
+                        Echo.Off).ExitCode <> 0 then
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->

@@ -94,7 +94,6 @@ module ServerManager =
             ResultSelectionMode = Exhaustive
 
             ExceptionHandler = None
-            ExtraProtectionAgainstUnfoundedCancellations = false
         }
 
     let private GetDummyBalanceAction (currency: Currency) servers =

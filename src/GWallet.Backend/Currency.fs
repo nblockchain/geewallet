@@ -10,6 +10,7 @@ type Currency =
     | LTC
     | ETH
     | ETC
+    | SAI
     | DAI
     static member ToStrings() =
         Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(typeof<Currency>)
@@ -23,7 +24,7 @@ type Currency =
     member self.IsEther() =
         self = Currency.ETC || self = Currency.ETH
     member self.IsEthToken() =
-        self = Currency.DAI
+        self = Currency.DAI || self = Currency.SAI
     member self.IsEtherBased() =
         self.IsEther() || self.IsEthToken()
     member self.IsUtxo() =
@@ -34,7 +35,7 @@ type Currency =
             8
         elif self.IsEther() then
             18
-        elif self = Currency.DAI then
+        elif self = Currency.SAI then
             18
         else
             failwithf "Unable to determine decimal places for %A" self

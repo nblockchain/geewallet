@@ -66,18 +66,18 @@ type Serialization() =
                     Is.EqualTo MarshallingData.SignedEtherTransactionExampleInJson)
 
     [<Test>]
-    member __.``unsigned DAI transaction export``() =
+    member __.``unsigned SAI transaction export``() =
         let json = Account.ExportUnsignedTransactionToJson
-                               MarshallingData.UnsignedDaiTransactionExample
+                               MarshallingData.UnsignedSaiTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json |> MarshallingData.Sanitize,
-                    Is.EqualTo(MarshallingData.UnsignedDaiTransactionExampleInJson))
+                    Is.EqualTo MarshallingData.UnsignedSaiTransactionExampleInJson)
 
     [<Test>]
-    member __.``signed DAI transaction export``() =
-        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedDaiTransactionExample
+    member __.``signed SAI transaction export``() =
+        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedSaiTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json|> MarshallingData.Sanitize,
-                    Is.EqualTo (MarshallingData.SignedDaiTransactionExampleInJson))
+                    Is.EqualTo MarshallingData.SignedSaiTransactionExampleInJson)

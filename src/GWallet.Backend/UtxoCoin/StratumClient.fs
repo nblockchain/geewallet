@@ -202,6 +202,12 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
         let! resObj = self.Request<ServerVersionResult> json
 
+        if Object.ReferenceEquals (resObj, null) then
+            failwith "resObj is null?"
+
+        if Object.ReferenceEquals (resObj.Result, null) then
+            failwith "resObj.Result is null?"
+
         // resObj.Result.[0] is e.g. "ElectrumX 1.4.3"
         // e.g. "1.1"
         let serverProtocolVersion = resObj.Result.[1]

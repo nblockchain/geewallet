@@ -21,10 +21,6 @@ type private NoneAvailableException (message:string, lastException: Exception) =
 type private NotEnoughAvailableException (message:string, lastException: Exception) =
     inherit ServerUnavailabilityException (message, lastException)
 
-// TODO: remove this below once we finishing tracking down (fixing) https://gitlab.com/knocte/geewallet/issues/125
-type UnexpectedTaskCanceledException(message: string, innerException) =
-    inherit TaskCanceledException (message, innerException)
-
 type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                    maxNumberOfConsistentResultsObtained: int,
                                    numberOfConsistentResultsRequired: uint32) =
@@ -83,10 +79,6 @@ type FaultTolerantParallelClientSettings<'R> =
         NumberOfRetriesForInconsistency: uint32;
         ResultSelectionMode: ResultSelectionMode<'R>
         ExceptionHandler: Option<Exception->unit>
-
-        // TODO: remove this below once we finishing tracking down (fixing)
-        //       https://gitlab.com/knocte/geewallet/issues/125
-        ExtraProtectionAgainstUnfoundedCancellations: bool
     }
 
 type Result<'Val, 'Err when 'Err :> Exception> =
@@ -236,7 +228,7 @@ type Runner<'Resource when 'Resource: equality> =
             jobs,List.empty
 
 
-exception AlreadyCanceled of string*int
+exception AlreadyCanceled
 
 type CustomCancelSource() =
 
@@ -244,22 +236,11 @@ type CustomCancelSource() =
     let mutable canceledAlready = false
     let lockObj = Object()
 
-    // TODO: remove these things below once we finishing tracking down (fixing)
-    //       https://gitlab.com/knocte/geewallet/issues/125
-    let mutable stackTraceWhenCancel = String.Empty
-    let mutable used = 0
-    member this.IncrementUsed() =
-        lock lockObj (fun _ ->
-            used <- used + 1
-        )
-    // </TODO>
-
     member this.Cancel() =
         lock lockObj (fun _ ->
             if canceledAlready then
                 raise <| ObjectDisposedException "Already canceled/disposed"
             canceledAlready <- true
-            stackTraceWhenCancel <- Environment.StackTrace
         )
         canceled.Trigger()
 
@@ -268,7 +249,7 @@ type CustomCancelSource() =
         with get() =
             lock lockObj (fun _ ->
                 if canceledAlready then
-                    raise <| AlreadyCanceled (stackTraceWhenCancel,used)
+                    raise <| AlreadyCanceled
                 canceled.Publish
             )
 
@@ -318,7 +299,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                              (failedFuncsSoFar: List<UnsuccessfulServer<'K,'R>>)
                              (cancellationSource: Option<CustomCancelSource>)
                              (cancelState: ClientCancelState)
-                             (extraProtectionAgainstUnfoundedCancellations: bool)
                                  : Async<FinalResult<'K,'T,'R>> = async {
         if startedTasks = List.Empty then
             return
@@ -335,33 +315,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 startedTasks.Where(fun task -> not (task = fastestTask)) |> List.ofSeq
 
             let newResults,newFailedFuncs =
-                try
-                    match fastestTask.Task.Result with
-                    | Failure unsuccessfulServer ->
-                        resultsSoFar,unsuccessfulServer::failedFuncsSoFar
-                    | SuccessfulResult newResult ->
-                        newResult::resultsSoFar,failedFuncsSoFar
-                with
-                | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome &&
-                           cancelState.SafeDo(fun state -> match state.Value with
-                                                           | Alive _ -> true
-                                                           | Canceled _ -> false) ->
-
-                    let ioe =
-                        let cancellationRequested = fastestTask.CancellationTokenSource.IsCancellationRequested
-                        let msg = sprintf "Somehow the job got canceled without being canceled internally (req?: %b)"
-                                          cancellationRequested
-
-                        // TODO: remove this below once we finishing tracking down (fixing)
-                        //       https://gitlab.com/knocte/geewallet/issues/125
-                        InvalidOperationException(msg, ex)
-
-                    if not extraProtectionAgainstUnfoundedCancellations then
-                        raise ioe
-                    else
-                        Infrastructure.ReportWarning ioe
-                        let unsuccessfulServer = { Server = fastestTask.Server; Failure = ioe }
-                        resultsSoFar,unsuccessfulServer::failedFuncsSoFar
+                match fastestTask.Task.Result with
+                | Failure unsuccessfulServer ->
+                    resultsSoFar,unsuccessfulServer::failedFuncsSoFar
+                | SuccessfulResult newResult ->
+                    newResult::resultsSoFar,failedFuncsSoFar
 
             fastestTask.CancellationTokenSource.Dispose()
 
@@ -399,7 +357,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newFailedFuncs
                                              cancellationSource
                                              cancelState
-                                             extraProtectionAgainstUnfoundedCancellations
                 | (mostConsistentResult,maxNumberOfConsistentResultsObtained)::_ ->
                     match minNumberOfConsistentResultsRequired,cacheMatchFunc with
                     | None, None ->
@@ -416,7 +373,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                      newFailedFuncs
                                                      cancellationSource
                                                      cancelState
-                                                     extraProtectionAgainstUnfoundedCancellations
                     | _ -> return failwith "should be either both None or both Some!"
             }
 
@@ -433,7 +389,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newFailedFuncs
                                              cancellationSource
                                              cancelState
-                                             extraProtectionAgainstUnfoundedCancellations
             | Some (SpecificNumberOfConsistentResponsesRequired number) ->
                 return! returnWithConsistencyOf (Some number) ((fun _ -> false) |> Some)
             | Some (OneServerConsistentWithCertainValueOrTwoServers cacheMatchFunc) ->
@@ -458,7 +413,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              newFailedFuncs
                                              cancellationSource
                                              cancelState
-                                             extraProtectionAgainstUnfoundedCancellations
     }
 
     let CancelAndDispose (cancelState: ClientCancelState) =
@@ -470,14 +424,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 | Alive cancelSources ->
                     for cancelSource in cancelSources do
                         try
-                            try
-                                cancelSource.Cancel ()
-                            with
-                            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
-                                // TODO: remove this below once we finishing tracking down (fixing)
-                                //       https://gitlab.com/knocte/geewallet/issues/125
-                                raise <| InvalidOperationException("FTPC cancellation causes TCE", ex)
-
+                            cancelSource.Cancel ()
                             cancelSource.Dispose ()
                         with
                         | :? ObjectDisposedException ->
@@ -533,10 +480,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                             CancelAndDispose cancelState
                         )
                     with
-                    | AlreadyCanceled (cancelStackTrace,used) ->
+                    | AlreadyCanceled ->
                         raise <| TaskCanceledException(
-                                     sprintf "Found canceled when about to subscribe to cancellation (u:%i) <<ss: %s>>"
-                                             used cancelStackTrace
+                                     sprintf "Found canceled when about to subscribe to cancellation"
                                  )
                 cancelState.SafeDo (fun state ->
                     match state.Value with
@@ -557,7 +503,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                          failedFuncsSoFar
                          cancellationSource
                          cancelState
-                         settings.ExtraProtectionAgainstUnfoundedCancellations
         let jobWithCancellation =
             async {
                 try
@@ -776,14 +721,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                       0u
                       cancellationTokenSourceOption
         async {
-            try
-                let! res = job
-                return res
-            with
-            | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
-                // TODO: remove this below once we finishing tracking down (fixing)
-                //       https://gitlab.com/knocte/geewallet/issues/125
-                return raise <| InvalidOperationException("Canceled while performing FTPC work", ex)
+            let! res = job
+            return res
         }
 
     member self.QueryWithCancellation<'R when 'R : equality>
@@ -791,7 +730,6 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     (settings: FaultTolerantParallelClientSettings<'R>)
                     (servers: List<Server<'K,'R>>)
                         : Async<'R> =
-        cancellationTokenSource.IncrementUsed()
         self.QueryInternal<'R> settings servers (Some cancellationTokenSource)
 
     member self.Query<'R when 'R : equality> (settings: FaultTolerantParallelClientSettings<'R>)

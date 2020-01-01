@@ -58,6 +58,8 @@ module Account =
 #endif
 
     let GetAllActiveAccounts(): List<IAccount> =
+        Config.RenameDaiAccountsToSai()
+
         let allCurrencies = Currency.GetAll()
 
 // uncomment this block below, manually, if when testing you need to go back to test the WelcomePage.xaml
@@ -534,7 +536,10 @@ module Account =
 
     let CreateEtherNormalAccounts (password: string) (seed: array<byte>)
                                   : seq<Currency>*Async<List<ConceptAccount>> =
-        let etherCurrencies = Currency.GetAll().Where(fun currency -> currency.IsEtherBased())
+        let etherCurrencies =
+            // we create SAI account (even though we don't show it anymore if it has zero balance) just in case the user
+            // used it before when we had support for it (and since we don't support DAI yet, we filter it here)
+            Currency.GetAll().Where(fun currency -> currency.IsEtherBased() && not (currency = Currency.DAI))
         let etherAccounts = async {
             let! virtualFile, fromEncPrivKeyToPublicAddressFunc =
                 CreateConceptEtherAccountInternal password seed

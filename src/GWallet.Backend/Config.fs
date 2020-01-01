@@ -127,6 +127,14 @@ module Config =
             configDir.Create()
         configDir
 
+    let RenameDaiAccountsToSai() =
+        for accountKind in (AccountKind.All()) do
+            let daiConfigDir = GetConfigDir Currency.DAI accountKind
+            for originalAccountFilePath in Directory.GetFiles daiConfigDir.FullName do
+                let saiConfigDir = GetConfigDir Currency.SAI accountKind
+                let newPath = originalAccountFilePath.Replace(daiConfigDir.FullName, saiConfigDir.FullName)
+                File.Move(originalAccountFilePath, newPath)
+
     let GetAccountFiles (currencies: seq<Currency>) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {
             for currency in currencies do
