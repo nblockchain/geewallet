@@ -169,7 +169,7 @@ let JustBuild binaryConfig: Frontend*FileInfo =
             Frontend.Console
 
     let scriptName = sprintf "%s-%s" UNIX_NAME (frontend.ToString().ToLower())
-    let launcherScriptFile = FileInfo (Path.Combine (__SOURCE_DIRECTORY__, "bin", scriptName))
+    let launcherScriptFile = Path.Combine (scriptsDir.FullName, "bin", scriptName) |> FileInfo
     Directory.CreateDirectory(launcherScriptFile.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
         wrapperScript.Replace("$UNIX_NAME", UNIX_NAME)
