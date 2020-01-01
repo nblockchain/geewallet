@@ -13,6 +13,8 @@ confinement: strict
 layout:
   /usr/share/.mono:
     symlink: $SNAP/etc/mono/certstore
+  /usr/lib/cli:
+    symlink: $SNAP/usr/lib/cli
 
 apps:
   gwallet:
