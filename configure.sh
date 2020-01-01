@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 REPL_CHECK_MSG="checking for a working F# REPL..."
 FSX_CHECK_MSG="checking for fsx..."
