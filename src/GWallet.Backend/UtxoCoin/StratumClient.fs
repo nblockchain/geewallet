@@ -119,7 +119,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
                                     Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
 
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
-    member private self.Request<'R> (jsonRequest: string): Async<'R> = async {
+    member private self.Request<'R> (jsonRequest: string): Async<'R*string> = async {
         let! rawResponse = jsonRpcClient.Request jsonRequest
         if String.IsNullOrEmpty rawResponse then
             return raise <|
@@ -127,7 +127,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
                     sprintf "Server '%s' returned a null/empty JSON response to the request '%s'"
                             jsonRpcClient.Host jsonRequest)
         try
-            return StratumClient.Deserialize<'R> rawResponse
+            return (StratumClient.Deserialize<'R> rawResponse, rawResponse)
         with
         | :? ElectrumServerReturningErrorInJsonResponseException as ex ->
             if ex.ErrorCode = int RpcErrorCode.InternalError then
@@ -177,7 +177,10 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         }
         let json = Serialize obj
 
-        self.Request<BlockchainScripthashGetBalanceResult> json
+        async {
+            let! resObj,_ = self.Request<BlockchainScripthashGetBalanceResult> json
+            return resObj
+        }
 
     static member private CreateVersion(versionStr: string): Version =
         let correctedVersion =
@@ -200,13 +203,13 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         //  (sprintf "{ \"id\": 0, \"method\": \"server.version\", \"params\": [ \"%s\", \"%s\" ] }"
         //      CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION)
         let json = Serialize obj
-        let! resObj = self.Request<ServerVersionResult> json
+        let! resObj, rawResponse = self.Request<ServerVersionResult> json
 
         if Object.ReferenceEquals (resObj, null) then
-            failwith "resObj is null?"
+            failwithf "resObj is null? raw response was %s" rawResponse
 
         if Object.ReferenceEquals (resObj.Result, null) then
-            failwith "resObj.Result is null?"
+            failwithf "resObj.Result is null? raw response was %s" rawResponse
 
         // resObj.Result.[0] is e.g. "ElectrumX 1.4.3"
         // e.g. "1.1"
@@ -222,8 +225,10 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             Params = [address]
         }
         let json = Serialize obj
-        let resObj = self.Request<BlockchainScripthashListUnspentResult> json
-        resObj
+        async {
+            let! resObj,_ = self.Request<BlockchainScripthashListUnspentResult> json
+            return resObj
+        }
 
     member self.BlockchainTransactionGet txHash: Async<BlockchainTransactionGetResult> =
         let obj = {
@@ -232,8 +237,10 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             Params = [txHash]
         }
         let json = Serialize obj
-
-        self.Request<BlockchainTransactionGetResult> json
+        async {
+            let! resObj,_ = self.Request<BlockchainTransactionGetResult> json
+            return resObj
+        }
 
     member self.BlockchainEstimateFee (numBlocksTarget: int): Async<BlockchainEstimateFeeResult> =
         let obj = {
@@ -243,7 +250,10 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         }
         let json = Serialize obj
 
-        self.Request<BlockchainEstimateFeeResult> json
+        async {
+            let! resObj,_ = self.Request<BlockchainEstimateFeeResult> json
+            return resObj
+        }
 
     member self.BlockchainTransactionBroadcast txInHex: Async<BlockchainTransactionBroadcastResult> =
         let obj = {
@@ -253,4 +263,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         }
         let json = Serialize obj
 
-        self.Request<BlockchainTransactionBroadcastResult> json
+        async {
+            let! resObj,_ = self.Request<BlockchainTransactionBroadcastResult> json
+            return resObj
+        }

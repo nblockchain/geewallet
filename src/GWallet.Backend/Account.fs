@@ -535,8 +535,8 @@ module Account =
         }
 
     let CreateEtherNormalAccounts (password: string) (seed: array<byte>)
-                                  : seq<Currency>*Async<List<ConceptAccount>> =
-        let etherCurrencies =
+                                      : Async<List<ConceptAccount>> =
+        let supportedEtherCurrencies =
             // we create SAI account (even though we don't show it anymore if it has zero balance) just in case the user
             // used it before when we had support for it (and since we don't support DAI yet, we filter it here)
             Currency.GetAll().Where(fun currency -> currency.IsEtherBased() && not (currency = Currency.DAI))
@@ -544,7 +544,7 @@ module Account =
             let! virtualFile, fromEncPrivKeyToPublicAddressFunc =
                 CreateConceptEtherAccountInternal password seed
             return seq {
-                for etherCurrency in etherCurrencies do
+                for etherCurrency in supportedEtherCurrencies do
                     yield {
                               Currency = etherCurrency;
                               FileRepresentation = virtualFile
@@ -552,7 +552,7 @@ module Account =
                           }
             } |> List.ofSeq
         }
-        etherCurrencies,etherAccounts
+        etherAccounts
 
     let CreateNormalAccount (conceptAccount: ConceptAccount): NormalAccount =
         let newAccountFile = Config.AddAccount conceptAccount AccountKind.Normal
@@ -569,8 +569,8 @@ module Account =
 
     let CreateAllConceptAccounts (privateKeyBytes: array<byte>) (encryptionPassword: string)
                                      : Async<seq<ConceptAccount>> = async {
-        let ethCurrencies,etherAccounts = CreateEtherNormalAccounts encryptionPassword privateKeyBytes
-        let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (ethCurrencies.Contains currency))
+        let etherAccounts = CreateEtherNormalAccounts encryptionPassword privateKeyBytes
+        let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (currency.IsEtherBased()))
 
         let nonEtherAccounts: List<Async<List<ConceptAccount>>> =
             seq {
