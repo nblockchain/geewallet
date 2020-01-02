@@ -22,7 +22,12 @@ module Main =
         use window = new FormsWindow()
         window.LoadApplication(app)
         window.SetApplicationTitle "geewallet"
-        window.SetApplicationIcon "logo.png"
+        let snapEnvVar = Environment.GetEnvironmentVariable "SNAP"
+        let logoFileName = "logo.png"
+        if not (String.IsNullOrEmpty snapEnvVar) then
+            window.SetApplicationIcon (sprintf "%s/lib/gwallet/%s" (snapEnvVar.TrimEnd('/')) logoFileName)
+        else
+            window.SetApplicationIcon logoFileName
         window.Show()
         Gtk.Application.Run()
         0
