@@ -524,7 +524,7 @@ module Account =
     let CreateAllConceptAccounts (privateKeyBytes: array<byte>) (encryptionPassword: string)
                                      : Async<seq<ConceptAccount>> = async {
         let ethCurrencies,etherAccounts = CreateEtherNormalAccounts encryptionPassword privateKeyBytes
-        let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (ethCurrencies.Contains currency))
+        let nonEthCurrencies = Currency.GetAll().Where(fun currency -> currency.IsUtxo())
 
         let nonEtherAccounts: List<Async<List<ConceptAccount>>> =
             seq {
