@@ -78,7 +78,7 @@ let repoInfo = Git.GetRepoInfo()
 
 Console.WriteLine()
 Console.WriteLine(sprintf
-                      "\tConfiguration summary for gwallet %s %s"
+                      "\tConfiguration summary for geewallet %s %s"
                       (version.ToString()) repoInfo)
 Console.WriteLine()
 Console.WriteLine(sprintf

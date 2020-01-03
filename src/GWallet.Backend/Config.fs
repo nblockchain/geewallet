@@ -98,6 +98,7 @@ module Config =
             else //UWP
                 Xamarin.Essentials.FileSystem.AppDataDirectory
 
+        // TODO: rename to "geewallet", following a similar approach as DAI->SAI rename
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
         if not configDir.Exists then
             configDir.Create()

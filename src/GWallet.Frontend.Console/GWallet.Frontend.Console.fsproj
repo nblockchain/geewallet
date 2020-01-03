@@ -67,7 +67,7 @@
     <Compile Include="UserInteraction.fs" />
     <Compile Include="Program.fs" />
     <Content Include="packages.config" />
-    <Content Include="gwallet.bat">
+    <Content Include="geewallet.bat">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

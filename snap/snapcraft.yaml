@@ -1,4 +1,4 @@
-name: gwallet
+name: geewallet
 base: core18 # the base snap is the execution environment for this snap
 version: '0.4.2.187' # just for humans, typically '1.2+git' or '1.3.2'
 summary: minimalistic cryptocurrency brainwallet # 79 char long summary
@@ -17,8 +17,8 @@ layout:
     symlink: $SNAP/usr/lib/cli
 
 apps:
-  gwallet:
-    command: desktop-launch $SNAP/bin/gwallet-gtk
+  geewallet:
+    command: desktop-launch $SNAP/bin/geewallet-gtk
     plugs:
       - network
       - desktop
@@ -27,7 +27,7 @@ apps:
       - unity7
 
 parts:
-  gwallet:
+  geewallet:
     plugin: dump
     source: ./staging
     stage-packages:

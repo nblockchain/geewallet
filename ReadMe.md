@@ -51,7 +51,7 @@ Comparing our product to other wallets in terms of features, we would want to hi
 | status.im      | No             | **Yes**    | No           | No         | **Yes**              |
 | Edge           | **Yes**        | **Yes**?   | No           | No         | No                   |
 | WarpWallet     | No             | **Yes**    | No           | **Yes**    | No                   |
-| <img src="https://raw.githubusercontent.com/knocte/gwallet/frontend/img/markdown/geewallet.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/gwallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/gwallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/gwallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/gwallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/gwallet/frontend/img/markdown/Yes.svg?sanitize=true" /> |
+| <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/geewallet.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> |
 
 *=With truly crossplatform we mean Mobile (both Android & iPhone) & Desktop (main OSs: Linux, macOS & Windows)
 
@@ -108,15 +108,17 @@ or lack of Layer2 scaling).
 The easiest way to use for non-technical people is to install it from the Android AppStore:
 [![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.geewallet.android)
 
+Or if you use Ubuntu Linux, install it via the Snap Store, this way:
+
+```
+snap install --edge geewallet
+```
+
+(For the command-line client, use the name `gwallet` instead of `geewallet`.)
+
 Other platforms: coming soon.
 
-If you're an advanced Linux user, you could run the command-line version of it by installing it from the snap store:
-
-```
-snap install --edge gwallet
-```
-
-Or cloning and compiling it yourself:
+If you're an advanced user, you could clone it and compile it yourself this way (in macOS or Linux):
 
 ```
 ./configure.sh --prefix=/usr/local
@@ -124,7 +126,12 @@ make
 sudo make install
 ```
 
-After installing manually or via snap, you can call `gwallet` directly.
+Or this way if you're on Windows:
+
+```
+configure.bat
+make.bat
+```
 
 
 ## Thanks

@@ -25,7 +25,7 @@ module Main =
         let snapEnvVar = Environment.GetEnvironmentVariable "SNAP"
         let logoFileName = "logo.png"
         if not (String.IsNullOrEmpty snapEnvVar) then
-            window.SetApplicationIcon (sprintf "%s/lib/gwallet/%s" (snapEnvVar.TrimEnd('/')) logoFileName)
+            window.SetApplicationIcon (sprintf "%s/lib/geewallet/%s" (snapEnvVar.TrimEnd('/')) logoFileName)
         else
             window.SetApplicationIcon logoFileName
         window.Show()

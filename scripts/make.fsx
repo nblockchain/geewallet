@@ -12,7 +12,7 @@ open System.Diagnostics
 open FSX.Infrastructure
 open Process
 
-let UNIX_NAME = "gwallet"
+let UNIX_NAME = "geewallet"
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
@@ -29,8 +29,7 @@ type Frontend =
     member self.GetExecutableName() =
         match self with
         | Console -> CONSOLE_FRONTEND
-        // TODO: change to use UNIX_NAME when we make the switch from gwallet to geewallet
-        | Gtk -> "geewallet"
+        | Gtk -> UNIX_NAME
     override self.ToString() =
         sprintf "%A" self
 
