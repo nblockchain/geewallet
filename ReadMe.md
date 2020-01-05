@@ -34,7 +34,7 @@ Comparing our product to other wallets in terms of features, we would want to hi
 | status.im      | No             | **Yes**    | No           | No         | **Yes**              |
 | Edge           | **Yes**        | **Yes**?   | No           | No         | No                   |
 | WarpWallet     | No             | **Yes**    | No           | **Yes**    | No                   |
-| <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/geewallet.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> | <img src="https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/Yes.svg?sanitize=true" /> |
+| ![](https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/geewallet.svg?sanitize=true) | **YES** | **YES** | **YES** | **YES** | **YES** |
 
 *=With truly crossplatform we mean Mobile (both Android & iPhone) & Desktop (main OSs: Linux, macOS & Windows)
 
