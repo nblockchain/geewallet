@@ -7,7 +7,7 @@ description: |
   lightweight brainwallet for people that want to hold the most important
   cryptocurrencies in the same application with ease & peace of mind.
 
-grade: devel # must be 'stable' to release into candidate/stable channels
+grade: stable
 confinement: strict
 
 layout:
