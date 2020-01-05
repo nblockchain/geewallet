@@ -8,7 +8,7 @@ geewallet is a minimalistic and pragmatist crossplatform lightweight opensource 
 
 | Branch            | Description                                                            | CI status (build & test suite)                                                                                                                                                |
 | ----------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| stable (v0.2.x)   | Console frontend, currencies: ETC&ETH+DAI(ERC20), BTC&LTC (SegWit+RBF) | Linux: [![Linux CI pipeline status badge](https://gitlab.com/knocte/geewallet/badges/stable/pipeline.svg)](https://gitlab.com/knocte/geewallet/commits/stable)      |
+| stable (v0.2.x)   | Console frontend. Currencies supported: BTC, LTC, ETC, ETH             | Linux: [![Linux CI pipeline status badge](https://gitlab.com/knocte/geewallet/badges/stable/pipeline.svg)](https://gitlab.com/knocte/geewallet/commits/stable)      |
 | master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | Linux: [![Linux CI pipeline status badge](https://gitlab.com/knocte/geewallet/badges/master/pipeline.svg)](https://gitlab.com/knocte/geewallet/commits/master) <br/>macOS: [![macOS CI pipeline status badge](https://github.com/knocte/geewallet/workflows/macOS/badge.svg)](https://github.com/knocte/geewallet/commits/master) <br/>Windows: [![Windows CI pipeline status badge](https://github.com/knocte/geewallet/workflows/windows/badge.svg)](https://github.com/knocte/geewallet/commits/master) |
 | frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | Linux: [![Linux CI pipeline status badge](https://gitlab.com/knocte/geewallet/badges/frontend/pipeline.svg)](https://gitlab.com/knocte/geewallet/commits/frontend)  |
 
@@ -66,8 +66,8 @@ In the development side of things, we advocate for simplicity:
 This list is the (intended) order of preference for new features:
 
 - Xamarin.Forms frontends (in progress, see the 'frontend' branch)...
+- Switch from SegWit to native-SegWit (Bech32).
 - Support for payment-channels & state-channels (in BTC/LTC via lightning, and in ETH/ETC/DAI via Raiden)
-- snap packaging.
 - Automatic reminders for Seed/password checks to make sure user has not forgotten them (see https://twitter.com/takinbo/status/1201529679519330305 ).
 - Decentralized currency exchange? (e.g. eth2dai.com)
 - NFC support.
@@ -82,7 +82,7 @@ This list is the (intended) order of preference for new features:
 - Threshold signatures.
 - Use deniable encryption to allow for a duress password/passphrase/pin.
 - ETH gas station (to pay for token transactions with token value instead of ETH).
-- Fee selection for custom priority.
+- Fee selection for custom priority (so that our RBF support becomes actually useful).
 - Multi-sig support?
 - Crosschain atomic swaps (via [comit network](https://github.com/comit-network/comit-rs)? more info [here](https://blog.coblox.tech/2018/06/23/connect-all-the-blockchains.html) and [here](https://blog.coblox.tech/2018/12/12/erc20-lightning-and-COMIT.html)).
 - Decentralized naming resolution? (BNS/ENS/OpenCAP/...)
