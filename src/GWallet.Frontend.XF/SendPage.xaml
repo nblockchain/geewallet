@@ -87,7 +87,7 @@
                     <OnPlatform x:TypeArguments="x:Double">
                         <On Platform="iOS">15</On>
                         <On Platform="Android">36</On>
-                        <On Platform="GTK">25</On>
+                        <On Platform="GTK">36</On>
                     </OnPlatform>
                 </Button.HeightRequest>
             </Button>
