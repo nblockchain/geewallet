@@ -108,13 +108,17 @@ or lack of Layer2 scaling).
 The easiest way to use for non-technical people is to install it from the Android AppStore:
 [![Get it on Google Play](https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png)](https://play.google.com/store/apps/details?id=com.geewallet.android)
 
-Or if you use Ubuntu Linux, install it via the Snap Store, this way:
+Or if you use Linux, from the Snap Store:
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/geewallet)
+
+To install via the command-line in (Ubuntu) Linux, do it this way::
 
 ```
 snap install geewallet
 ```
 
 (For the command-line client, use the name `gwallet` instead of `geewallet`.)
+
 
 Other platforms: coming soon.
 
