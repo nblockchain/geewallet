@@ -111,7 +111,7 @@ The easiest way to use for non-technical people is to install it from the Androi
 Or if you use Ubuntu Linux, install it via the Snap Store, this way:
 
 ```
-snap install --candidate geewallet
+snap install geewallet
 ```
 
 (For the command-line client, use the name `gwallet` instead of `geewallet`.)
