@@ -13,11 +13,6 @@ module Main =
         Gtk.Application.Init()
         Forms.Init()
 
-        // TODO: detect Windows/UWP too
-        if GWallet.Backend.Config.IsMacPlatform() then
-            failwith "The GTK frontend is only officially supported for the Linux OS"
-
-        ZXing.Net.Mobile.Forms.GTK.Platform.Init()
         let app = GWallet.Frontend.XF.App()
         use window = new FormsWindow()
         window.LoadApplication(app)

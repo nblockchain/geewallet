@@ -71,15 +71,6 @@ let lines =
 let path = Path.Combine(__SOURCE_DIRECTORY__, "build.config")
 File.AppendAllLines(path, lines |> Array.ofSeq)
 
-let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
-let version = Misc.GetCurrentVersion(rootDir)
-
-let repoInfo = Git.GetRepoInfo()
-
-Console.WriteLine()
-Console.WriteLine(sprintf
-                      "\tConfiguration summary for geewallet %s %s"
-                      (version.ToString()) repoInfo)
 Console.WriteLine()
 Console.WriteLine(sprintf
                       "\t* Installation prefix: %s"
