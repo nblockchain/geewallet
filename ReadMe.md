@@ -78,7 +78,6 @@ This list is the (intended) order of preference for new features:
 - In mobile, allow usage when camera permissions have not been granted, by letting the user redirect him to his camera app and take a picture (see https://youtu.be/k1Ssz1dvcpk?t=63).
 - Use of 'bits' instead of BTC as default unit.
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
-- MimbleWimble(Grin) support.
 - Threshold signatures.
 - Use deniable encryption to allow for a duress password/passphrase/pin.
 - ETH gas station (to pay for token transactions with token value instead of ETH).
@@ -90,6 +89,7 @@ This list is the (intended) order of preference for new features:
 - Tumblebit support?
 - Consider [Vitalik's 1wei wallet-funding idea](https://twitter.com/VitalikButerin/status/1103997378967810048) in case the community adopts it.
 - UI testing with Selenium+UnoPlatform (see https://www.prnewswire.com/news-releases/uno-platform-announces-version-2-0-of-cross-platform-development-platform-300921202.html).
+- MimbleWimble(Grin) support.
 
 
 ## Anti-roadmap
