@@ -10,7 +10,7 @@ if ! which fsharpi >/dev/null 2>&1; then
     if ! which fsx >/dev/null 2>&1; then
         echo "$FSX_CHECK_MSG" $'not found\n'
 
-        echo "$1" $'failed, please install "fsharpi" or "fsx" first'
+        echo "$0" $'failed, please install "fsharpi" or "fsx" first'
         exit 1
     else
         echo "$FSX_CHECK_MSG" $'found'
@@ -23,7 +23,7 @@ else
         if ! which fsx >/dev/null 2>&1; then
             echo "$FSX_CHECK_MSG" $'not found\n'
 
-            echo "$1" $'failed, please install "fsx" first'
+            echo "$0" $'failed, please install "fsx" first'
             exit 1
         else
             echo "$FSX_CHECK_MSG" $'found'
