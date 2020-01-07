@@ -273,7 +273,11 @@ type CircleChartView () =
         let defaultScaleFactor = 2.0
         let platformScaleFactor = Device.Info.ScalingFactor
         let scaleFactor =
-            if platformScaleFactor <= 0.0 then
+            // somehow, even with a scaleFactor higher than zero, this gives problems when resizing on macOS
+            // TODO: report this bug in the Xamarin.Forms issue tracker
+            if Device.RuntimePlatform = Device.macOS then
+                1.0
+            elif platformScaleFactor <= 0.0 then
                 defaultScaleFactor
             else
                 platformScaleFactor
