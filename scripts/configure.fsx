@@ -81,7 +81,7 @@ let targetsFileToGenerate =
     else
         targetsFileToExecuteNugetBeforeBuild.Replace("{MaybeOverride}", String.Empty)
 
-File.WriteAllText(Path.Combine(rootDir.FullName, "before.gwallet.sln.targets"),
+File.WriteAllText(Path.Combine(rootDir.FullName, "before.gwallet.core.sln.targets"),
                   targetsFileToGenerate)
 
 let buildTool =
