@@ -107,8 +107,7 @@ type public ElectrumServerReturningInternalErrorException(message: string, code:
                                                           originalRequest: string, originalResponse: string) =
     inherit ElectrumServerReturningErrorException(message, code, originalRequest, originalResponse)
 
-// FIXME: we should actually fix this bug in JsonRpcSharp (https://github.com/nblockchain/JsonRpcSharp/issues/9) and
-//        send a warning to Sentry, not just hide it under the rug
+// TODO: send a warning to sentry when this exception happens
 type FlakyJsonRpcSharpClientException (message: string) =
     inherit CommunicationUnsuccessfulException(message)
 
@@ -121,11 +120,16 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R*string> = async {
         let! rawResponse = jsonRpcClient.Request jsonRequest
+
+
+        // FIXME: we should actually fix this bug in JsonRpcSharp (https://github.com/nblockchain/JsonRpcSharp/issues/9)
         if String.IsNullOrEmpty rawResponse then
             return raise <|
                 FlakyJsonRpcSharpClientException(
                     sprintf "Server '%s' returned a null/empty JSON response to the request '%s'"
                             jsonRpcClient.Host jsonRequest)
+
+
         try
             return (StratumClient.Deserialize<'R> rawResponse, rawResponse)
         with
@@ -209,7 +213,12 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             failwithf "resObj is null? raw response was %s" rawResponse
 
         if Object.ReferenceEquals (resObj.Result, null) then
-            failwithf "resObj.Result is null? raw response was %s" rawResponse
+            if rawResponse.Replace("\r\n", "\n").Replace("\n", " ").Trim() =
+                      json.Replace("\r\n", "\n").Replace("\n", " ").Trim() then
+                // FIXME: remove this HACK when we upgrade JsonRpcSharp with this work: https://gitlab.com/nblockchain/TcpEchoSharp/merge_requests/1
+                raise <| FlakyJsonRpcSharpClientException("resObj.Result was null because the response was the request(!?)")
+            else
+                failwithf "resObj.Result is null? raw response was %s" rawResponse
 
         // resObj.Result.[0] is e.g. "ElectrumX 1.4.3"
         // e.g. "1.1"

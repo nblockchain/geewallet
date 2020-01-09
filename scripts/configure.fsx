@@ -27,12 +27,68 @@ let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) =
             failwith "unreachable"
     configCommandCheck commandNamesByOrderOfPreference commandNamesByOrderOfPreference
 
+
+let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+
+let initialConfigFile,oldVersionOfMono =
+    match Misc.GuessPlatform() with
+    | Misc.Platform.Windows ->
+        // not using Mono anyway
+        Map.empty,false
+
+    | Misc.Platform.Mac ->
+        ConfigCommandCheck ["mono"] |> ignore
+
+        // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
+        Map.empty,false
+
+    | Misc.Platform.Linux ->
+        ConfigCommandCheck ["mono"] |> ignore
+
+        let pkgConfig = "pkg-config"
+        ConfigCommandCheck [pkgConfig] |> ignore
+        let pkgConfigCmd = { Command = pkgConfig
+                             Arguments = sprintf "--modversion mono" }
+        let processResult = Process.Execute(pkgConfigCmd, Echo.Off)
+        if processResult.ExitCode <> 0 then
+            failwith "Mono was found but not detected by pkg-config?"
+
+        let monoVersion = processResult.Output.StdOut.Trim()
+
+        let versionOfMonoWhereArrayEmptyIsPresent = Version("5.8.1.0")
+        let currentMonoVersion = Version(monoVersion)
+        let oldVersionOfMono =
+            1 = versionOfMonoWhereArrayEmptyIsPresent.CompareTo currentMonoVersion
+        Map.empty.Add("MonoPkgConfigVersion", monoVersion),oldVersionOfMono
+
+let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  {MaybeOverride}
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), NuGet.Restore.targets))\NuGet.Restore.targets"
+          Condition=" '$(NuGetRestoreImported)' != 'true' " />
+</Project>
+"""
+
+let nugetOverride = """<PropertyGroup>
+    <!-- workaround for https://github.com/NuGet/Home/issues/6790 to override default
+         Nuget URL specified in NuGet.Restore.targets file -->
+    <NuGetUrl>https://dist.nuget.org/win-x86-commandline/v4.5.1/nuget.exe</NuGetUrl>
+  </PropertyGroup>
+"""
+let targetsFileToGenerate =
+    if oldVersionOfMono then
+        targetsFileToExecuteNugetBeforeBuild.Replace("{MaybeOverride}", nugetOverride)
+    else
+        targetsFileToExecuteNugetBeforeBuild.Replace("{MaybeOverride}", String.Empty)
+
+File.WriteAllText(Path.Combine(rootDir.FullName, "before.gwallet.sln.targets"),
+                  targetsFileToGenerate)
+
 let buildTool =
     match Misc.GuessPlatform() with
     | Misc.Platform.Linux | Misc.Platform.Mac ->
         ConfigCommandCheck ["make"] |> ignore
         ConfigCommandCheck ["fsharpc"] |> ignore
-        ConfigCommandCheck ["mono"] |> ignore
 
         // needed by NuGet.Restore.targets & the "update-servers" Makefile target
         ConfigCommandCheck ["curl"]
@@ -64,14 +120,13 @@ let lines =
     let toConfigFileLine (keyValuePair: System.Collections.Generic.KeyValuePair<string,string>) =
         sprintf "%s=%s" keyValuePair.Key keyValuePair.Value
 
-    Map.empty.Add("Prefix", prefix.FullName)
-             .Add("BuildTool", buildTool)
+    initialConfigFile.Add("Prefix", prefix.FullName)
+                     .Add("BuildTool", buildTool)
     |> Seq.map toConfigFileLine
 
 let path = Path.Combine(__SOURCE_DIRECTORY__, "build.config")
 File.AppendAllLines(path, lines |> Array.ofSeq)
 
-let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let version = Misc.GetCurrentVersion(rootDir)
 
 let repoInfo = Git.GetRepoInfo()
