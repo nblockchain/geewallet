@@ -136,25 +136,15 @@ let MakeAll() =
     buildConfig
 
 let RunFrontend (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
+    let monoVersion = Map.tryFind "MonoPkgConfigVersion" buildConfigContents
     let oldVersionOfMono =
-        let versionOfMonoWhereRunningExesDirectlyIsSupported = "5.16"
-
-        match Misc.GuessPlatform() with
-        | Misc.Platform.Windows ->
-            // not using Mono anyway
+        match monoVersion with
+        | None ->
             false
-        | Misc.Platform.Mac ->
-            // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
-            false
-        | Misc.Platform.Linux ->
-            let pkgConfig = "pkg-config"
-            if not (Process.CommandWorksInShell pkgConfig) then
-                failwithf "'%s' was uninstalled after ./configure.sh was invoked?" pkgConfig
-            let pkgConfigCmd = { Command = pkgConfig
-                                 Arguments = sprintf "--atleast-version=%s mono"
-                                                 versionOfMonoWhereRunningExesDirectlyIsSupported }
-            let processResult = Process.Execute(pkgConfigCmd, Echo.OutputOnly)
-            processResult.ExitCode <> 0
+        | Some version ->
+            let versionOfMonoWhereRunningExesDirectlyIsSupported = Version("5.16")
+            let currentMonoVersion = Version(version)
+            1 = versionOfMonoWhereRunningExesDirectlyIsSupported.CompareTo currentMonoVersion
 
     let pathToFrontend = Path.Combine(GetPathToFrontendBinariesDir buildConfig, DEFAULT_FRONTEND + ".exe")
 
