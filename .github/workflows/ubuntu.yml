@@ -7,7 +7,7 @@ on:
 
 jobs:
   ubuntu-snap-build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-19.10
     steps:
     - uses: actions/checkout@v1
     - name: Generate snap package
@@ -23,7 +23,7 @@ jobs:
 
   ubuntu-snap-upload:
     needs: ubuntu-snap-build
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-19.10
     steps:
     - uses: actions/checkout@v1
     - name: Download artifact from previous job
@@ -35,4 +35,4 @@ jobs:
         SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
       run: |
         ./scripts/install_snapcraft.sh
-        ./scripts/snap_release.sh
+#        ./scripts/snap_release.sh
