@@ -1,9 +1,6 @@
 name: ubuntu
 
-on:
-  push:
-    tags:
-    - '*'
+on: [push]
 
 jobs:
   ubuntu-snap-build:
