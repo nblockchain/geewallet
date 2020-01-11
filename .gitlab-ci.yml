@@ -4,10 +4,10 @@ before_script:
   - apt-get install -y curl
 
 stages:
+  - package
   - build
   - unit_tests
   - integration_tests
-  - package
 
 stockmono_build:
   image: ubuntu:18.04
