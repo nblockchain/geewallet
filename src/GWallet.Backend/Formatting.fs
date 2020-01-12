@@ -29,8 +29,13 @@ module Formatting =
                         2
                 numberOfDecimals,sprintf "#,0.%s" (String('#', numberOfDecimals))
 
-        Math.Round(amount, amountOfDecimalsToShow)
-            .ToString formattingStrategy
+        let rounded = Math.Round(amount, amountOfDecimalsToShow)
+
+        if rounded = 0m && amount > 0m then
+            let tiny = 1m / decimal (pown 10 amountOfDecimalsToShow)
+            tiny.ToString formattingStrategy
+        else
+            rounded.ToString formattingStrategy
 
     let DecimalAmountTruncating (currencyType: CurrencyType) (amount: decimal) (maxAmount: decimal)
                                     : string =
@@ -39,7 +44,7 @@ module Formatting =
             | CurrencyType.Fiat -> 2
             | CurrencyType.Crypto -> 5
         // https://stackoverflow.com/a/25451689/544947
-        let truncated = amount - (amount % (1m / decimal(Math.Pow(10., float amountOfDecimalsToShow))))
+        let truncated = amount - (amount % (1m / decimal (pown 10 amountOfDecimalsToShow)))
         if (truncated > maxAmount) then
             failwithf "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
 
