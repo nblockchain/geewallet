@@ -215,9 +215,12 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     | "USD" ->
                         match cachedBalanceAtPageCreation with
                         | Cached(cachedBalance,_) ->
-                            Formatting.DecimalAmountTruncating CurrencyType.Fiat
+                            if decimalAmountTyped <= cachedBalance then
+                                Formatting.DecimalAmountTruncating CurrencyType.Fiat
                                                                         (rate * decimalAmountTyped)
                                                                         (cachedBalance * rate)
+                            else
+                                Formatting.DecimalAmountRounding CurrencyType.Fiat (rate * decimalAmountTyped)
                         | _ ->
                             failwith "if no balance was available(offline?), currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
                     | _ ->
