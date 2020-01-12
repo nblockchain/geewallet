@@ -21,8 +21,13 @@ module Formatting =
                 let fiveDecimals = 5
                 fiveDecimals,sprintf "#,0.%s" (String('#', fiveDecimals))
 
-        Math.Round(amount, amountOfDecimalsToShow)
-            .ToString formattingStrategy
+        let rounded = Math.Round(amount, amountOfDecimalsToShow)
+
+        if rounded = 0m && amount > 0m then
+            let tiny = 1m / decimal (10.f ** float32 amountOfDecimalsToShow)
+            tiny.ToString formattingStrategy
+        else
+            rounded.ToString formattingStrategy
 
     let DecimalAmountTruncating (currencyType: CurrencyType) (amount: decimal) (maxAmount: decimal)
                                     : string =
