@@ -19,5 +19,5 @@ fi
 
 snapcraft login --with snapcraft.login
 
-# we can only do 'edge' for now because the 'stable' channel might require stable grade
-snapcraft push snap/*.snap --release=edge
+# the 'stable' and 'candidate' channels require 'stable' grade in the yaml
+snapcraft push snap/*.snap --release=beta
