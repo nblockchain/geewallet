@@ -49,6 +49,10 @@ type Formatting() =
         let formattedAmount = Formatting.DecimalAmountRounding CurrencyType.Fiat someVerySmallUsdDecimalAmount
         Assert.That(formattedAmount, Is.EqualTo "0.01")
 
+        let someVerySmallBtcDecimalAmount = 0.00000001m
+        let formattedAmount = Formatting.DecimalAmountRounding CurrencyType.Crypto someVerySmallBtcDecimalAmount
+        Assert.That(formattedAmount, Is.EqualTo "0.00001")
+
     [<Test>]
     member __.``trailing zeros always with fiat``() =
         let someUsdDecimalAmount1 = 2m
