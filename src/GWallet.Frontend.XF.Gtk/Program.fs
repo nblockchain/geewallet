@@ -13,7 +13,7 @@ module Main =
         Gtk.Application.Init()
         Forms.Init()
 
-        let app = GWallet.Frontend.XF.App()
+        let app = GWallet.Frontend.XF.CS.App()
         use window = new FormsWindow()
         window.LoadApplication(app)
         window.SetApplicationTitle "geewallet"

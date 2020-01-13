@@ -30,4 +30,4 @@ type MainActivity() =
 
         Xamarin.Forms.Forms.Init (this, bundle)
 
-        this.LoadApplication (new GWallet.Frontend.XF.App ())
+        this.LoadApplication (new GWallet.Frontend.XF.CS.App ())
