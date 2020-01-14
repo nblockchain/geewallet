@@ -36,16 +36,8 @@ type CircleChartView () =
         self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
 
     member self.Draw () =
-        let width = 
-            if base.WidthRequest > 0. then 
-                base.WidthRequest 
-            else 
-                base.Width
-        let height = 
-            if base.HeightRequest > 0. then
-                base.HeightRequest 
-            else 
-                base.Height
+        let width = base.Width
+        let height = base.Height
 
         if width <= 0. || 
            height <= 0. || 
@@ -59,7 +51,5 @@ type CircleChartView () =
         base.OnPropertyChanged(propertyName)
         if propertyName = VisualElement.HeightProperty.PropertyName ||
            propertyName = VisualElement.WidthProperty.PropertyName ||
-           propertyName = VisualElement.HeightRequestProperty.PropertyName || 
-           propertyName = VisualElement.WidthRequestProperty.PropertyName || 
            propertyName = VisualElement.IsVisibleProperty.PropertyName then
             self.Draw()
