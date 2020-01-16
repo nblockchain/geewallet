@@ -191,20 +191,28 @@ module Account =
             return [ btc ]
     }
 
-    let EstimateFee (account: IAccount) (amount: TransferAmount) destination: Async<IBlockchainFeeInfo> =
+    let EstimateFee (account: IAccount) (amount: TransferAmount) destination (mode: int): Async<IBlockchainFeeInfo*TimeSpan> =
         async {
             match account with
             | :? UtxoCoin.IUtxoAccount as utxoAccount ->
                 if not (account.Currency.IsUtxo()) then
                     failwithf "Currency %A not Utxo-type but account is? report this bug (estimatefee)" account.Currency
-                let! fee = UtxoCoin.Account.EstimateFee utxoAccount amount destination
-                return fee :> IBlockchainFeeInfo
+                let! fee,ts =
+                    match mode with
+                    | 1 ->
+                        UtxoCoin.Account.EstimateFee1 utxoAccount amount destination
+                    | 2 ->
+                        UtxoCoin.Account.EstimateFee2 utxoAccount amount destination
+                    | 3 ->
+                        UtxoCoin.Account.EstimateFee3 utxoAccount amount destination
+                    | _ -> failwith "bad mode"
+                return (fee :> IBlockchainFeeInfo),ts
             | _ ->
                 if not (account.Currency.IsEtherBased()) then
                     failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (estimatefee)"
                         account.Currency
                 let! fee = Ether.Account.EstimateFee account amount destination
-                return fee :> IBlockchainFeeInfo
+                return (fee :> IBlockchainFeeInfo),TimeSpan.Zero
         }
 
     let private SaveOutgoingTransactionInCache transactionProposal (fee: IBlockchainFeeInfo) txId =

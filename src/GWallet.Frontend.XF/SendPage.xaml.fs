@@ -59,7 +59,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     let allBalanceButton = mainLayout.FindByName<Button> "allBalance"
     let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
     let passwordLabel = mainLayout.FindByName<Label> "passwordLabel"
-    let sendOrSignButton = mainLayout.FindByName<Button> "sendOrSignButton"
+    let sendOrSignButton1 = mainLayout.FindByName<Button> "sendOrSignButton1"
+    let sendOrSignButton2 = mainLayout.FindByName<Button> "sendOrSignButton2"
+    let sendOrSignButton3 = mainLayout.FindByName<Button> "sendOrSignButton3"
     let cancelButton = mainLayout.FindByName<Button> "cancelButton"
     do
         let accountCurrency = account.Currency.ToString()
@@ -74,7 +76,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
             destinationScanQrCodeButton.IsVisible <- true
 
-        sendOrSignButton.Text <- sendCaption
+        sendOrSignButton1.Text <- sendCaption + "1"
+        sendOrSignButton2.Text <- sendCaption + "2"
+        sendOrSignButton3.Text <- sendCaption + "3"
         match account with
         | :? ReadOnlyAccount ->
             Device.BeginInvokeOnMainThread(fun _ ->
@@ -436,7 +440,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     )
                     Device.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Default
-                        sendOrSignButton.IsEnabled <- true
+                        sendOrSignButton1.IsEnabled <- true
+                        sendOrSignButton2.IsEnabled <- true
+                        sendOrSignButton3.IsEnabled <- true
                     )
         ()
 
@@ -450,7 +456,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             match Decimal.TryParse(amountToSend.Text) with
             | false,_ ->
                 amountToSend.TextColor <- Color.Red
-                sendOrSignButton.IsEnabled <- false
+                sendOrSignButton1.IsEnabled <- false
+                sendOrSignButton2.IsEnabled <- false
+                sendOrSignButton3.IsEnabled <- false
                 equivalentAmount.Text <- String.Empty
                 false
             | true,amount ->
@@ -507,7 +515,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                           (not (String.IsNullOrEmpty destinationAddressEntry.Text)) &&
                                           (not (this.IsPasswordUnfilledAndNeeded mainLayout))
             Device.BeginInvokeOnMainThread(fun _ ->
-                sendOrSignButton.IsEnabled <- sendOrSignButtonEnabled
+                sendOrSignButton1.IsEnabled <- sendOrSignButtonEnabled
+                sendOrSignButton2.IsEnabled <- sendOrSignButtonEnabled
+                sendOrSignButton3.IsEnabled <- sendOrSignButtonEnabled
             )
 
     member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
@@ -526,12 +536,12 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
 
         let newSendOrSignButtonCaption =
-            if sendOrSignButton.Text = sendCaption || sendOrSignButton.Text = sendWipCaption then
+            if sendOrSignButton1.Text = sendCaption || sendOrSignButton1.Text = sendWipCaption then
                 if enabled then
                     sendCaption
                 else
                     sendWipCaption
-            elif sendOrSignButton.Text = broadcastCaption || sendOrSignButton.Text = broadcastWipCaption then
+            elif sendOrSignButton1.Text = broadcastCaption || sendOrSignButton1.Text = broadcastWipCaption then
                 if enabled then
                     broadcastCaption
                 else
@@ -543,7 +553,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     signWipCaption
 
         Device.BeginInvokeOnMainThread(fun _ ->
-            sendOrSignButton.IsEnabled <- enabled
+            sendOrSignButton1.IsEnabled <- enabled
+            sendOrSignButton2.IsEnabled <- enabled
+            sendOrSignButton3.IsEnabled <- enabled
             cancelButton.IsEnabled <- enabled
             transactionScanQrCodeButton.IsEnabled <- enabled
             destinationScanQrCodeButton.IsEnabled <- enabled
@@ -553,7 +565,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             amountToSendEntry.IsEnabled <- enabled
             passwordEntry.IsEnabled <- enabled
             transactionEntry.IsEnabled <- enabled
-            sendOrSignButton.Text <- newSendOrSignButtonCaption
+            sendOrSignButton1.Text <- newSendOrSignButtonCaption
+            sendOrSignButton2.Text <- newSendOrSignButtonCaption
+            sendOrSignButton3.Text <- newSendOrSignButtonCaption
         )
 
         this.AdjustWidgetsStateAccordingToConnectivity()
@@ -638,13 +652,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         else
             this.ToggleInputWidgetsEnabledOrDisabled true
 
-    member private this.ShowFeeAndSend (maybeTxMetadataWithFeeEstimation: Option<IBlockchainFeeInfo>,
+    member private this.ShowFeeAndSend (maybeTxMetadataWithFeeEstimation: Option<IBlockchainFeeInfo*TimeSpan>,
                                         transferAmount: TransferAmount,
                                         destinationAddress: string) =
         match maybeTxMetadataWithFeeEstimation with
         // FIXME: should maybe do () in the caller of ShowFeeAndSend() -> change param from Option<IBFI> to just IBFI
         | None -> ()
-        | Some txMetadataWithFeeEstimation ->
+        | Some (txMetadataWithFeeEstimation, ts) ->
             let feeCurrency = txMetadataWithFeeEstimation.Currency
             let usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
             match usdRateForCurrency with
@@ -658,7 +672,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let feeInFiatValueStr = sprintf "~ %s USD"
                                                 (Formatting.DecimalAmountRounding CurrencyType.Fiat feeInFiatValue)
 
-                let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s (%s)"
+                let feeAskMsg = sprintf "(%s)Estimated fee for this transaction would be: %s %s (%s)"
+                                      (ts.ToString())
                                       (Formatting.DecimalAmountRounding CurrencyType.Crypto feeInCrypto)
                                       (txMetadataWithFeeEstimation.Currency.ToString())
                                       feeInFiatValueStr
@@ -707,7 +722,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         Async.StartAsTask broadcastJob
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
-    member this.OnSendOrSignButtonClicked(sender: Object, args: EventArgs): unit =
+    member this.OnSendOrSignButtonClicked(mode: int): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
         let destinationAddress = destinationAddressEntry.Text
@@ -769,7 +784,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                             if (validatedDestinationAddress <> someTransactionProposal.Proposal.DestinationAddress) then
                                 failwith "Destination's entry should have been disabled (readonly), but somehow it wasn't because it ended up being different than the transaction proposal"
 
-                            this.ShowFeeAndSend(Some someTransactionProposal.Metadata,
+                            this.ShowFeeAndSend(Some (someTransactionProposal.Metadata,TimeSpan.Zero),
                                                 someTransactionProposal.Proposal.Amount,
                                                 validatedDestinationAddress)
 
@@ -783,7 +798,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                             let maybeTxMetadataWithFeeEstimationAsync = async {
                                 try
                                     let! txMetadataWithFeeEstimation =
-                                        Account.EstimateFee account transferAmount validatedDestinationAddress
+                                        Account.EstimateFee account transferAmount validatedDestinationAddress mode
                                     return Some txMetadataWithFeeEstimation
                                 with
                                 | :? InsufficientBalanceForFee ->
@@ -801,6 +816,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 }    |> Async.StartAsTask
                      |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
+    member this.OnSendOrSignButtonClicked1(sender: Object, args: EventArgs): unit =
+        this.OnSendOrSignButtonClicked 1
+    member this.OnSendOrSignButtonClicked2(sender: Object, args: EventArgs): unit =
+        this.OnSendOrSignButtonClicked 2
+    member this.OnSendOrSignButtonClicked3(sender: Object, args: EventArgs): unit =
+        this.OnSendOrSignButtonClicked 3
+
     interface FrontendHelpers.IAugmentablePayPage with
         member this.AddTransactionScanner() =
             Device.BeginInvokeOnMainThread(fun _ ->
@@ -815,10 +837,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 destinationAddressEntry.IsEnabled <- false
                 amountToSendEntry.IsEnabled <- false
 
-                if sendOrSignButton.Text = sendWipCaption then
+                if sendOrSignButton1.Text = sendWipCaption then
                     transactionLabel.Text <- "Signed transaction:"
-                    sendOrSignButton.Text <- broadcastCaption
+                    sendOrSignButton1.Text <- broadcastCaption
                     cancelButton.IsEnabled <- true
                 else
-                    sendOrSignButton.Text <- signCaption
+                    sendOrSignButton1.Text <- signCaption
             )

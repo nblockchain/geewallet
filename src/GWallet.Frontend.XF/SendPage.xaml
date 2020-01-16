@@ -114,11 +114,21 @@
                IsPassword="true"
                TextChanged="OnEntryTextChanged" />
 
-        <Button x:Name="sendOrSignButton"
+        <Button x:Name="sendOrSignButton1"
                 Text="..."
                 IsEnabled="false"
                 HorizontalOptions="Center"
-                Clicked="OnSendOrSignButtonClicked"/>
+                Clicked="OnSendOrSignButtonClicked1"/>
+        <Button x:Name="sendOrSignButton2"
+                Text="..."
+                IsEnabled="false"
+                HorizontalOptions="Center"
+                Clicked="OnSendOrSignButtonClicked2"/>
+        <Button x:Name="sendOrSignButton3"
+                Text="..."
+                IsEnabled="false"
+                HorizontalOptions="Center"
+                Clicked="OnSendOrSignButtonClicked3"/>
         <Button x:Name="cancelButton"
                 Text="Cancel"
                 IsEnabled="true"

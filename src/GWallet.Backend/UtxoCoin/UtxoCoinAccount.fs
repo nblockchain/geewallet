@@ -290,8 +290,8 @@ module Account =
             Value: Int64;
         }
 
-    let EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
-                        : Async<TransactionMetadata> = async {
+    let EstimateFee1 (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
+                        : Async<TransactionMetadata*TimeSpan> = async {
         let rec addInputsUntilAmount (utxos: List<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount
@@ -325,6 +325,8 @@ module Account =
 
         let job = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
                   |> ElectrumClient.GetUnspentTransactionOutputs
+        let stopwatch = System.Diagnostics.Stopwatch()
+        stopwatch.Start()
         let! utxos =
             faultTolerantElectrumClient.Query
                 (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
@@ -369,7 +371,7 @@ module Account =
                     }
             }
         let! inputs = Async.Parallel asyncInputs
-
+        stopwatch.Stop()
         let transactionDraftInputs = inputs |> List.ofArray
 
         let averageFee (feesFromDifferentServers: List<decimal>): decimal =
@@ -407,7 +409,287 @@ module Account =
         let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
         let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.UtcNow, account.Currency)
 
-        return { Inputs = transactionDraftInputs; Fee = minerFee }
+        return { Inputs = transactionDraftInputs; Fee = minerFee },stopwatch.Elapsed
+    }
+
+    let EstimateFee2 (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
+                        : Async<TransactionMetadata*TimeSpan> =
+        let GetBlockchainTransactions (allUtxos: seq<UnspentTransactionOutputInfo>) (stratumServer: Async<StratumClient>)
+                : Async<Map<UnspentTransactionOutputInfo,string>> =
+            let GetBlockchainTransaction txHash (stratumClient: StratumClient): Async<string> = async {
+                let! blockchainTransactionResult = stratumClient.BlockchainTransactionGet txHash
+                return blockchainTransactionResult.Result
+            }
+            async {
+                let! stratumClient = stratumServer
+                let rec GetBlockchainTransactionsInner pendingUtxos resultsSoFar = async {
+                    match Seq.tryHead pendingUtxos with
+                    | None -> return resultsSoFar
+                    | Some head ->
+                        let! rawTrans = GetBlockchainTransaction head.TransactionId stratumClient
+                        return! GetBlockchainTransactionsInner (Seq.tail pendingUtxos)
+                                                               (Map.add head rawTrans resultsSoFar)
+                }
+                return! GetBlockchainTransactionsInner allUtxos Map.empty
+            }
+        async {
+        let rec addInputsUntilAmount (utxos: List<UnspentTransactionOutputInfo>)
+                                      soFarInSatoshis
+                                      amount
+                                     (acc: List<UnspentTransactionOutputInfo>)
+                                     : List<UnspentTransactionOutputInfo>*int64 =
+            match utxos with
+            | [] ->
+                // should `raise InsufficientFunds` instead?
+                failwithf "Not enough funds (needed: %s, got so far: %s)"
+                          (amount.ToString()) (soFarInSatoshis.ToString())
+            | utxoInfo::tail ->
+                let newAcc =
+                    // Avoid querying for zero-value UTXOs, which would make many unnecessary parallel
+                    // connections to Electrum servers. (there's no need to use/consolidate zero-value UTXOs)
+
+                    // This can be triggered on e.g. RegTest (by mining to Geewallet directly)
+                    // because the block subsidy falls quickly. (it will be 0 after 7000 blocks)
+
+                    // Zero-value OP_RETURN outputs are valid and standard:
+                    // https://bitcoin.stackexchange.com/a/57103
+                    if utxoInfo.Value > 0L then
+                        utxoInfo::acc
+                    else
+                        acc
+
+                let newSoFar = soFarInSatoshis + utxoInfo.Value
+                if (newSoFar < amount) then
+                    addInputsUntilAmount tail newSoFar amount newAcc
+                else
+                    newAcc,newSoFar
+
+        let job = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
+                  |> ElectrumClient.GetUnspentTransactionOutputs
+        let stopwatch = System.Diagnostics.Stopwatch()
+        stopwatch.Start()
+        let! utxos =
+            faultTolerantElectrumClient.Query
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
+                (GetRandomizedFuncs account.Currency job)
+
+        if not (utxos.Any()) then
+            failwith "No UTXOs found!"
+        let possibleInputs =
+            seq {
+                for utxo in utxos do
+                    yield { TransactionId = utxo.TxHash; OutputIndex = utxo.TxPos; Value = utxo.Value }
+            }
+
+        // first ones are the smallest ones
+        let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
+
+        let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
+        let utxosToUse,_ =
+            addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis List.Empty
+
+        Console.WriteLine( "_______________utxos:"+utxosToUse.Count().ToString())
+        let job = GetBlockchainTransactions utxosToUse
+        let! utxosWithTheirRawTransactions =
+            faultTolerantElectrumClient.Query
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
+                (GetRandomizedFuncs account.Currency job)
+        stopwatch.Stop()
+        Console.WriteLine("it took "+stopwatch.Elapsed.ToString())
+
+        let transactionDraftInputs =
+            seq {
+                for KeyValue(utxo, transRaw) in utxosWithTheirRawTransactions do
+                    let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
+                    let txOut = transaction.Outputs.[utxo.OutputIndex]
+                    // should suggest a ToHex() method to NBitcoin's TxOut type?
+                    let destination = txOut.ScriptPubKey.ToHex()
+                    let ret = {
+                        TransactionHash = transaction.GetHash().ToString()
+                        OutputIndex = utxo.OutputIndex
+                        ValueInSatoshis = txOut.Value.Satoshi
+                        DestinationInHex = destination
+                    }
+                    yield ret
+            } |> List.ofSeq
+
+        let averageFee (feesFromDifferentServers: List<decimal>): decimal =
+            let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
+            avg
+
+        let minResponsesRequired = 3u
+
+        //querying for 1 will always return -1 surprisingly...
+        let estimateFeeJob = ElectrumClient.EstimateFee 2
+
+        let! btcPerKiloByteForFastTrans =
+            faultTolerantElectrumClient.Query
+                (FaultTolerantParallelClientDefaultSettings
+                    ServerSelectionMode.Fast
+                    (Some (AverageBetweenResponses (minResponsesRequired, averageFee))))
+
+                (GetRandomizedFuncs account.Currency estimateFeeJob)
+
+        let feeRate =
+            try
+                Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC) |> FeeRate
+            with
+            | ex ->
+                // we need more info in case this bug shows again: https://gitlab.com/DiginexGlobal/geewallet/issues/43
+                raise <| Exception(sprintf "Could not create fee rate from %s btc per KB"
+                                           (btcPerKiloByteForFastTrans.ToString()), ex)
+
+        let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
+                                                                     transactionDraftInputs
+                                                                     destination
+                                                                     amount
+        let estimatedMinerFee = transactionBuilder.EstimateFees feeRate
+
+        let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
+        let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.UtcNow, account.Currency)
+
+        return { Inputs = transactionDraftInputs; Fee = minerFee },stopwatch.Elapsed
+    }
+
+    let EstimateFee3 (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
+                        : Async<TransactionMetadata*TimeSpan> =
+        let rec addInputsUntilAmount (utxos: List<UnspentTransactionOutputInfo>)
+                                      soFarInSatoshis
+                                      amount
+                                     (acc: List<UnspentTransactionOutputInfo>)
+                                     : List<UnspentTransactionOutputInfo>*int64 =
+            match utxos with
+            | [] ->
+                // should `raise InsufficientFunds` instead?
+                failwithf "Not enough funds (needed: %s, got so far: %s)"
+                          (amount.ToString()) (soFarInSatoshis.ToString())
+            | utxoInfo::tail ->
+                let newAcc =
+                    // Avoid querying for zero-value UTXOs, which would make many unnecessary parallel
+                    // connections to Electrum servers. (there's no need to use/consolidate zero-value UTXOs)
+
+                    // This can be triggered on e.g. RegTest (by mining to Geewallet directly)
+                    // because the block subsidy falls quickly. (it will be 0 after 7000 blocks)
+
+                    // Zero-value OP_RETURN outputs are valid and standard:
+                    // https://bitcoin.stackexchange.com/a/57103
+                    if utxoInfo.Value > 0L then
+                        utxoInfo::acc
+                    else
+                        acc
+
+                let newSoFar = soFarInSatoshis + utxoInfo.Value
+                if (newSoFar < amount) then
+                    addInputsUntilAmount tail newSoFar amount newAcc
+                else
+                    newAcc,newSoFar
+        let GetBlockchainTransactions (stratumServer: Async<StratumClient>)
+                : Async<Map<UnspentTransactionOutputInfo,string>> =
+            let GetBlockchainTransaction txHash (stratumClient: StratumClient): Async<string> = async {
+                let! blockchainTransactionResult = stratumClient.BlockchainTransactionGet txHash
+                return blockchainTransactionResult.Result
+            }
+            let GetUnspentTransactionOutputs scriptHash (stratumClient: StratumClient) = async {
+                let! unspentListResult = stratumClient.BlockchainScripthashListUnspent scriptHash
+                return unspentListResult.Result
+            }
+            let GetUtxosToUse (utxos: array<_>) =
+                let possibleInputs =
+                    seq {
+                        for utxo in utxos do
+                            yield { TransactionId = utxo.TxHash; OutputIndex = utxo.TxPos; Value = utxo.Value }
+                    }
+
+                // first ones are the smallest ones
+                let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
+
+                let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
+                let utxosToUse,_ =
+                    addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis List.Empty
+                utxosToUse
+            let scriptHash = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
+            async {
+                let! stratumClient = stratumServer
+                let! utxos = GetUnspentTransactionOutputs scriptHash stratumClient
+                let allUtxosToUse = GetUtxosToUse utxos
+
+                Console.WriteLine( "_______________utxos:"+allUtxosToUse.Count().ToString())
+                let rec GetBlockchainTransactionsInner pendingUtxos resultsSoFar = async {
+                    match Seq.tryHead pendingUtxos with
+                    | None -> return resultsSoFar
+                    | Some head ->
+                        let! rawTrans = GetBlockchainTransaction head.TransactionId stratumClient
+                        return! GetBlockchainTransactionsInner (Seq.tail pendingUtxos)
+                                                               (Map.add head rawTrans resultsSoFar)
+                }
+                return! GetBlockchainTransactionsInner allUtxosToUse Map.empty
+            }
+        async {
+
+
+        let stopwatch = System.Diagnostics.Stopwatch()
+        stopwatch.Start()
+
+        let job = GetBlockchainTransactions
+        let! utxosWithTheirRawTransactions =
+            faultTolerantElectrumClient.Query
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
+                (GetRandomizedFuncs account.Currency job)
+        stopwatch.Stop()
+        Console.WriteLine("it took "+stopwatch.Elapsed.ToString())
+
+        let transactionDraftInputs =
+            seq {
+                for KeyValue(utxo, transRaw) in utxosWithTheirRawTransactions do
+                    let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
+                    let txOut = transaction.Outputs.[utxo.OutputIndex]
+                    // should suggest a ToHex() method to NBitcoin's TxOut type?
+                    let destination = txOut.ScriptPubKey.ToHex()
+                    let ret = {
+                        TransactionHash = transaction.GetHash().ToString()
+                        OutputIndex = utxo.OutputIndex
+                        ValueInSatoshis = txOut.Value.Satoshi
+                        DestinationInHex = destination
+                    }
+                    yield ret
+            } |> List.ofSeq
+
+        let averageFee (feesFromDifferentServers: List<decimal>): decimal =
+            let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
+            avg
+
+        let minResponsesRequired = 3u
+
+        //querying for 1 will always return -1 surprisingly...
+        let estimateFeeJob = ElectrumClient.EstimateFee 2
+
+        let! btcPerKiloByteForFastTrans =
+            faultTolerantElectrumClient.Query
+                (FaultTolerantParallelClientDefaultSettings
+                    ServerSelectionMode.Fast
+                    (Some (AverageBetweenResponses (minResponsesRequired, averageFee))))
+
+                (GetRandomizedFuncs account.Currency estimateFeeJob)
+
+        let feeRate =
+            try
+                Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC) |> FeeRate
+            with
+            | ex ->
+                // we need more info in case this bug shows again: https://gitlab.com/DiginexGlobal/geewallet/issues/43
+                raise <| Exception(sprintf "Could not create fee rate from %s btc per KB"
+                                           (btcPerKiloByteForFastTrans.ToString()), ex)
+
+        let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
+                                                                     transactionDraftInputs
+                                                                     destination
+                                                                     amount
+        let estimatedMinerFee = transactionBuilder.EstimateFees feeRate
+
+        let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
+        let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.UtcNow, account.Currency)
+
+        return { Inputs = transactionDraftInputs; Fee = minerFee },stopwatch.Elapsed
     }
 
     let private SignTransactionWithPrivateKey (account: IUtxoAccount)
