@@ -5,7 +5,6 @@
 
 open System
 open System.Security
-open System.Threading
 open System.Linq
 
 open NBitcoin
@@ -53,48 +52,6 @@ type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
 
 module Account =
 
-    let private NumberOfParallelJobsForMode mode =
-        match mode with
-        | ServerSelectionMode.Fast -> 3u
-        | ServerSelectionMode.Analysis -> 2u
-
-    let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode)
-                                                           maybeConsistencyConfig =
-        let consistencyConfig =
-            match maybeConsistencyConfig with
-            | None -> SpecificNumberOfConsistentResponsesRequired 2u
-            | Some specificConsistencyConfig -> specificConsistencyConfig
-
-        {
-            NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
-            NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
-            NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
-            ExceptionHandler = Some (fun ex -> Infrastructure.ReportWarning ex)
-            ResultSelectionMode =
-                Selective
-                    {
-                        ServerSelectionMode = mode
-                        ConsistencyConfig = consistencyConfig
-                        ReportUncanceledJobs = (not Config.NewUtxoTcpClientDisabled)
-                    }
-        }
-
-    let private FaultTolerantParallelClientSettingsForBroadcast() =
-        FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast
-                                                   (Some (SpecificNumberOfConsistentResponsesRequired 1u))
-
-    let private FaultTolerantParallelClientSettingsForBalanceCheck (mode: ServerSelectionMode)
-                                                                   cacheOrInitialBalanceMatchFunc =
-        let consistencyConfig =
-            if mode = ServerSelectionMode.Fast then
-                Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
-            else
-                None
-        FaultTolerantParallelClientDefaultSettings mode consistencyConfig
-
-    let private faultTolerantElectrumClient =
-        FaultTolerantParallelClient<ServerDetails,ServerDiscardedException> Caching.Instance.SaveServerLastStat
-
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
             failwithf "Assertion failed: currency %A should be UTXO-type" currency
@@ -130,46 +87,6 @@ module Account =
         let privateKey = Key.Parse(privateKey, GetNetwork currency)
         GetPublicAddressFromPublicKey currency privateKey.PubKey
 
-    // FIXME: seems there's some code duplication between this function and EtherServer.fs's GetServerFuncs function
-    //        and room for simplification to not pass a new ad-hoc delegate?
-    let GetServerFuncs<'R> (electrumClientFunc: Async<StratumClient>->Async<'R>)
-                           (electrumServers: seq<ServerDetails>)
-                               : seq<Server<ServerDetails,'R>> =
-
-        let ElectrumServerToRetrievalFunc (server: ServerDetails)
-                                          (electrumClientFunc: Async<StratumClient>->Async<'R>)
-                                              : Async<'R> = async {
-            try
-                let stratumClient = ElectrumClient.StratumServer server
-                return! electrumClientFunc stratumClient
-
-            // NOTE: try to make this 'with' block be in sync with the one in EtherServer:GetWeb3Funcs()
-            with
-            | :? CommunicationUnsuccessfulException as ex ->
-                let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
-                return raise <| ServerDiscardedException(msg, ex)
-            | ex ->
-                return raise <| Exception(sprintf "Some problem when connecting to %s" server.ServerInfo.NetworkPath, ex)
-        }
-        let ElectrumServerToGenericServer (electrumClientFunc: Async<StratumClient>->Async<'R>)
-                                          (electrumServer: ServerDetails)
-                                              : Server<ServerDetails,'R> =
-            { Details = electrumServer
-              Retrieval = ElectrumServerToRetrievalFunc electrumServer electrumClientFunc }
-
-        let serverFuncs =
-            Seq.map (ElectrumServerToGenericServer electrumClientFunc)
-                     electrumServers
-        serverFuncs
-
-    let private GetRandomizedFuncs<'R> (currency: Currency)
-                                       (electrumClientFunc: Async<StratumClient>->Async<'R>)
-                                              : List<Server<ServerDetails,'R>> =
-
-        let electrumServers = ElectrumServerSeedList.Randomize currency
-        GetServerFuncs electrumClientFunc electrumServers
-            |> List.ofSeq
-
     let private BalanceToShow (balances: BlockchainScripthahsGetBalanceInnerResult) =
         let unconfirmedPlusConfirmed = balances.Unconfirmed + balances.Confirmed
         let amountToShowInSatoshis,imminentIncomingPayment =
@@ -199,18 +116,10 @@ module Account =
                                 : Async<BlockchainScripthahsGetBalanceInnerResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
-        let query =
-            match cancelSourceOption with
-            | None ->
-                faultTolerantElectrumClient.Query
-            | Some cancelSource ->
-                faultTolerantElectrumClient.QueryWithCancellation cancelSource
-        let balanceJob =
-            query
-                (FaultTolerantParallelClientSettingsForBalanceCheck
-                    mode (BalanceMatchWithCacheOrInitialBalance account.PublicAddress account.Currency))
-                (GetRandomizedFuncs account.Currency (ElectrumClient.GetBalance scriptHashHex))
-        balanceJob
+        let querySettings =
+            QuerySettings.Balance(mode,(BalanceMatchWithCacheOrInitialBalance account.PublicAddress account.Currency))
+        let balanceJob = ElectrumClient.GetBalance scriptHashHex
+        Server.Query account.Currency querySettings balanceJob cancelSourceOption
 
     let private GetBalancesFromServer (account: IUtxoAccount)
                                       (mode: ServerSelectionMode)
@@ -325,10 +234,7 @@ module Account =
 
         let job = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
                   |> ElectrumClient.GetUnspentTransactionOutputs
-        let! utxos =
-            faultTolerantElectrumClient.Query
-                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
-                (GetRandomizedFuncs account.Currency job)
+        let! utxos = Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
 
         if not (utxos.Any()) then
             failwith "No UTXOs found!"
@@ -352,9 +258,7 @@ module Account =
                     yield async {
                         let job = ElectrumClient.GetBlockchainTransaction utxo.TransactionId
                         let! transRaw =
-                            faultTolerantElectrumClient.Query
-                                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast None)
-                                (GetRandomizedFuncs account.Currency job)
+                            Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
                         let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
                         let txOut = transaction.Outputs.[utxo.OutputIndex]
                         // should suggest a ToHex() method to NBitcoin's TxOut type?
@@ -376,18 +280,10 @@ module Account =
             let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
             avg
 
-        let minResponsesRequired = 3u
-
         //querying for 1 will always return -1 surprisingly...
         let estimateFeeJob = ElectrumClient.EstimateFee 2
-
         let! btcPerKiloByteForFastTrans =
-            faultTolerantElectrumClient.Query
-                (FaultTolerantParallelClientDefaultSettings
-                    ServerSelectionMode.Fast
-                    (Some (AverageBetweenResponses (minResponsesRequired, averageFee))))
-
-                (GetRandomizedFuncs account.Currency estimateFeeJob)
+            Server.Query account.Currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob None
 
         let feeRate =
             try
@@ -463,11 +359,7 @@ module Account =
 
     let private BroadcastRawTransaction currency (rawTx: string): Async<string> =
         let job = ElectrumClient.BroadcastTransaction rawTx
-        let newTxIdJob =
-            faultTolerantElectrumClient.Query
-                (FaultTolerantParallelClientSettingsForBroadcast ())
-                (GetRandomizedFuncs currency job)
-        newTxIdJob
+        Server.Query currency QuerySettings.Broadcast job None
 
     let BroadcastTransaction currency (transaction: SignedTransaction<_>) =
         // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
