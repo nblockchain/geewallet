@@ -118,7 +118,7 @@ module ServerManager =
                         let! bal = UtxoCoin.ElectrumClient.GetBalance scriptHash electrumServer
                         return bal.Confirmed |> decimal
                     }
-                UtxoCoin.Account.GetServerFuncs utxoFunc servers |> Some
+                UtxoCoin.Server.GetServerFuncs utxoFunc servers |> Some
 
             elif currency.IsEther() then
                 let ETH_GENESISBLOCK_ADDRESS = "0x0000000000000000000000000000000000000000"
