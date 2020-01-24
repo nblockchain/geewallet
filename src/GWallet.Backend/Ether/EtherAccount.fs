@@ -163,7 +163,7 @@ module internal Account =
         let feeValue = ethMinerFee.CalculateAbsoluteValue()
         if (amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&
             feeValue > (amount.BalanceAtTheMomentOfSending - amount.ValueToSend)) then
-            raise (InsufficientBalanceForFee feeValue)
+            raise <| InsufficientBalanceForFee (Some feeValue)
 
         return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
     }

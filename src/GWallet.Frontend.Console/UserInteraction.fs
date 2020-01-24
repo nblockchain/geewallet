@@ -562,13 +562,20 @@ module UserInteraction =
             else
                 None
         with
-        | InsufficientBalanceForFee feeValue ->
+        | InsufficientBalanceForFee maybeFeeValue ->
             // TODO: show fiat value in this error msg below?
-            Presentation.Error (
-                sprintf
-                    "Estimated fee is too high (%M) for the remaining balance, use a different account or a different amount."
-                    feeValue
-            )
+            let errMsg =
+                match maybeFeeValue with
+                | Some feeValue ->
+                    sprintf "Estimated fee is too high (%M) for the remaining balance, use a different account or a different amount."
+                            feeValue
+                | None ->
+                    "Not enough balance to cover the estimated fee for this transaction plus the amount to be sent, use a different account or a different amount."
+            Presentation.Error errMsg
+
+            // TODO: instead of "press any key to continue...", it should ask amount again
+            PressAnyKeyToContinue()
+
             None
 
     let rec AskAccount(): IAccount =

@@ -402,13 +402,18 @@ module Account =
                                                                      initiallyUsedInputs
                                                                      destination
                                                                      amount
-        let! estimatedMinerFee,allUsedInputs =
-            EstimateFees transactionBuilder feeRate account initiallyUsedInputs unusedInputs
 
-        let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
-        let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.UtcNow, account.Currency)
+        try
+            let! estimatedMinerFee,allUsedInputs =
+                EstimateFees transactionBuilder feeRate account initiallyUsedInputs unusedInputs
 
-        return { Inputs = allUsedInputs; Fee = minerFee }
+            let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
+            let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.UtcNow, account.Currency)
+
+            return { Inputs = allUsedInputs; Fee = minerFee }
+        with
+        | :? NBitcoin.NotEnoughFundsException ->
+            return raise <| InsufficientBalanceForFee None
     }
 
     let private SignTransactionWithPrivateKey (account: IUtxoAccount)
