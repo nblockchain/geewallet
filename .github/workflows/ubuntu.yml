@@ -19,7 +19,7 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: snap
-        path: geewallet_0.4.2.192_amd64.snap
+        path: geewallet_0.4.2.193_amd64.snap
 
   ubuntu-snap-upload:
     needs: ubuntu-snap-build
