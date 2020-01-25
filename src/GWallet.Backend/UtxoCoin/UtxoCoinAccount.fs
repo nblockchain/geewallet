@@ -147,29 +147,20 @@ module Account =
                 return None
         }
 
+    let private ConvertToICoin (account: IUtxoAccount) (inputOutpointInfo: TransactionInputOutpointInfo): ICoin =
+        let txHash = uint256 inputOutpointInfo.TransactionHash
+        let scriptPubKeyInBytes = NBitcoin.DataEncoders.Encoders.Hex.DecodeData inputOutpointInfo.DestinationInHex
+        let scriptPubKey = Script(scriptPubKeyInBytes)
+        let coin =
+            Coin(txHash, uint32 inputOutpointInfo.OutputIndex, Money(inputOutpointInfo.ValueInSatoshis), scriptPubKey)
+        coin.ToScriptCoin account.PublicKey.WitHash.ScriptPubKey :> ICoin
+
     let private CreateTransactionAndCoinsToBeSigned (account: IUtxoAccount)
                                                     (transactionInputs: List<TransactionInputOutpointInfo>)
                                                     (destination: string)
                                                     (amount: TransferAmount)
                                                         : TransactionBuilder =
-        let coins =
-            seq {
-                for input in transactionInputs do
-                    let txHash = uint256(input.TransactionHash)
-
-                    let scriptPubKeyInBytes = NBitcoin.DataEncoders.Encoders.Hex.DecodeData input.DestinationInHex
-                    let scriptPubKey = Script(scriptPubKeyInBytes)
-
-                    let coin = Coin(txHash,
-
-                                    uint32 input.OutputIndex,
-
-                                    Money(input.ValueInSatoshis),
-                                    scriptPubKey)
-
-                    let scriptCoin = coin.ToScriptCoin(account.PublicKey.WitHash.ScriptPubKey)
-                    yield scriptCoin :> ICoin
-            } |> List.ofSeq
+        let coins = List.map (ConvertToICoin account) transactionInputs
 
         let transactionBuilder = (GetNetwork account.Currency).CreateTransactionBuilder()
         transactionBuilder.AddCoins coins |> ignore
@@ -199,13 +190,54 @@ module Account =
             Value: Int64;
         }
 
+    let private ConvertToInputOutpointInfo currency (utxo: UnspentTransactionOutputInfo)
+                                               : Async<TransactionInputOutpointInfo> =
+        async {
+            let job = ElectrumClient.GetBlockchainTransaction utxo.TransactionId
+            let! transRaw =
+                Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+            let transaction = Transaction.Parse(transRaw, GetNetwork currency)
+            let txOut = transaction.Outputs.[utxo.OutputIndex]
+            // should suggest a ToHex() method to NBitcoin's TxOut type?
+            let destination = txOut.ScriptPubKey.ToHex()
+            let ret = {
+                TransactionHash = transaction.GetHash().ToString();
+                OutputIndex = utxo.OutputIndex;
+                ValueInSatoshis = txOut.Value.Satoshi;
+                DestinationInHex = destination;
+            }
+            return ret
+        }
+
+    let rec private EstimateFees (txBuilder: TransactionBuilder)
+                                 (feeRate: FeeRate)
+                                 (account: IUtxoAccount)
+                                 (usedInputsSoFar: List<TransactionInputOutpointInfo>)
+                                 (unusedUtxos: List<UnspentTransactionOutputInfo>)
+                                     : Async<Money*List<TransactionInputOutpointInfo>> =
+        async {
+            try
+                let fees = txBuilder.EstimateFees feeRate
+                return fees,usedInputsSoFar
+            with
+            | :? NBitcoin.NotEnoughFundsException as ex ->
+                match unusedUtxos with
+                | [] -> return raise <| FSharpUtil.ReRaise ex
+                | head::tail ->
+                    let! newInput = head |> ConvertToInputOutpointInfo account.Currency
+                    let newCoin = newInput |> ConvertToICoin account
+                    let newTxBuilder = txBuilder.AddCoins [newCoin]
+                    let newInputs = newInput::usedInputsSoFar
+                    return! EstimateFees newTxBuilder feeRate account newInputs tail
+        }
+
     let EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
                         : Async<TransactionMetadata> = async {
         let rec addInputsUntilAmount (utxos: List<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount
                                      (acc: List<UnspentTransactionOutputInfo>)
-                                     : List<UnspentTransactionOutputInfo>*int64 =
+                                         : List<UnspentTransactionOutputInfo>*List<UnspentTransactionOutputInfo> =
             match utxos with
             | [] ->
                 // should `raise InsufficientFunds` instead?
@@ -230,7 +262,7 @@ module Account =
                 if (newSoFar < amount) then
                     addInputsUntilAmount tail newSoFar amount newAcc
                 else
-                    newAcc,newSoFar
+                    newAcc,tail
 
         let job = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
                   |> ElectrumClient.GetUnspentTransactionOutputs
@@ -248,33 +280,13 @@ module Account =
         let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
 
         let amountInSatoshis = Money(amount.ValueToSend, MoneyUnit.BTC).Satoshi
-        let utxosToUse,_ =
+        let utxosToUse,unusedInputs =
             addInputsUntilAmount inputsOrderedByAmount 0L amountInSatoshis List.Empty
 
-        let asyncInputs =
-            seq {
-                // TODO: Use JSON-RPC batching here
-                for utxo in utxosToUse do
-                    yield async {
-                        let job = ElectrumClient.GetBlockchainTransaction utxo.TransactionId
-                        let! transRaw =
-                            Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
-                        let transaction = Transaction.Parse(transRaw, GetNetwork amount.Currency)
-                        let txOut = transaction.Outputs.[utxo.OutputIndex]
-                        // should suggest a ToHex() method to NBitcoin's TxOut type?
-                        let destination = txOut.ScriptPubKey.ToHex()
-                        let ret = {
-                            TransactionHash = transaction.GetHash().ToString();
-                            OutputIndex = utxo.OutputIndex;
-                            ValueInSatoshis = txOut.Value.Satoshi;
-                            DestinationInHex = destination;
-                        }
-                        return ret
-                    }
-            }
+        let asyncInputs = List.map (ConvertToInputOutpointInfo account.Currency) utxosToUse
         let! inputs = Async.Parallel asyncInputs
 
-        let transactionDraftInputs = inputs |> List.ofArray
+        let initiallyUsedInputs = inputs |> List.ofArray
 
         let averageFee (feesFromDifferentServers: List<decimal>): decimal =
             let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
@@ -295,15 +307,21 @@ module Account =
                                            (btcPerKiloByteForFastTrans.ToString()), ex)
 
         let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
-                                                                     transactionDraftInputs
+                                                                     initiallyUsedInputs
                                                                      destination
                                                                      amount
-        let estimatedMinerFee = transactionBuilder.EstimateFees feeRate
 
-        let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
-        let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.UtcNow, account.Currency)
+        try
+            let! estimatedMinerFee,allUsedInputs =
+                EstimateFees transactionBuilder feeRate account initiallyUsedInputs unusedInputs
 
-        return { Inputs = transactionDraftInputs; Fee = minerFee }
+            let estimatedMinerFeeInSatoshis = estimatedMinerFee.Satoshi
+            let minerFee = MinerFee(estimatedMinerFeeInSatoshis, DateTime.UtcNow, account.Currency)
+
+            return { Inputs = allUsedInputs; Fee = minerFee }
+        with
+        | :? NBitcoin.NotEnoughFundsException ->
+            return raise <| InsufficientBalanceForFee None
     }
 
     let private SignTransactionWithPrivateKey (account: IUtxoAccount)
