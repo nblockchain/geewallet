@@ -1,9 +1,7 @@
 ﻿namespace GWallet.Backend.UtxoCoin
 
 open System
-open System.IO
 open System.Net
-open System.Reflection
 
 open FSharp.Data
 open FSharp.Data.JsonExtensions

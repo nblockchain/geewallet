@@ -5,7 +5,6 @@
 
 open System
 open System.Numerics
-open System.Threading
 open System.Threading.Tasks
 
 open Nethereum.Signer

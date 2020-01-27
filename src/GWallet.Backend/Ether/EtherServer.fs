@@ -5,8 +5,6 @@ open System.IO
 open System.Net
 open System.Numerics
 open System.Linq
-open System.Threading
-open System.Threading.Tasks
 
 open Nethereum.Util
 open Nethereum.Hex.HexTypes
