@@ -37,7 +37,7 @@ module Server =
                     {
                         ServerSelectionMode = mode
                         ConsistencyConfig = consistencyConfig
-                        ReportUncanceledJobs = (not Config.NewUtxoTcpClientDisabled)
+                        ReportUncanceledJobs = (not Config.LegacyUtxoTcpClientEnabled)
                     }
         }
 

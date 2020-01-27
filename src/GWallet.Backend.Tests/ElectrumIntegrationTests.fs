@@ -175,7 +175,7 @@ type ElectrumIntegrationTests() =
     member __.``configuration is correct for this client``() =
         let shouldUseLegacyClient =
             if Config.IsMacPlatform() then
-                true
+                false
             elif Environment.OSVersion.Platform = PlatformID.Unix then
                 match Config.GetMonoVersion() with
                 | None ->
@@ -189,7 +189,7 @@ type ElectrumIntegrationTests() =
             else
                 false
 
-        Assert.That(Config.NewUtxoTcpClientDisabled, Is.EqualTo shouldUseLegacyClient)
+        Assert.That(Config.LegacyUtxoTcpClientEnabled, Is.EqualTo shouldUseLegacyClient)
 
     [<Test>]
     member __.``can connect (just check balance) to some electrum BTC servers``() =

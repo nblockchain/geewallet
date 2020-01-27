@@ -26,7 +26,7 @@ module JsonRpcSharpOld =
 
         let DEFAULT_TIMEOUT_FOR_FIRST_DATA_AVAILABLE_SIGNAL_TO_HAPPEN = Config.DEFAULT_NETWORK_TIMEOUT
         let DEFAULT_TIMEOUT_FOR_SUBSEQUENT_DATA_AVAILABLE_SIGNAL_TO_HAPPEN = TimeSpan.FromMilliseconds(500.0)
-        let DEFAULT_TIME_TO_WAIT_BETWEEN_DATA_GAPS = TimeSpan.FromMilliseconds(1.0)
+        let DEFAULT_TIME_TO_WAIT_BETWEEN_DATA_GAPS = Config.DEFAULT_NETWORK_CONNECT_TIMEOUT
         let rec ReadInternal (stream: NetworkStream) acc (initTime: DateTime): string =
             let timeIsUp (): bool =
                 if (List.Empty = acc) then
