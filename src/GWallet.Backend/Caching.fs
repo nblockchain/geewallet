@@ -5,7 +5,6 @@ open System.IO
 open System.Linq
 open System.Net.Http
 
-
 type CachedNetworkData =
     {
         UsdPrice: Map<Currency,CachedValue<decimal>>;

@@ -72,17 +72,17 @@ module Config =
                 simpleVersion |> Some
 
     // TODO: make the tests instantiate Legacy or nonLegacyTcpClient themselves and test both from them
-    let NewUtxoTcpClientDisabled =
-        //in macOS, even if using Mono >5.18.0.240 (e.g. 6.6.0.155 at the time of writing), we still get hangs
-        IsMacPlatform() ||
-
+    let LegacyUtxoTcpClientEnabled =
         //we need this check because older versions of Mono (such as 5.16, or Ubuntu 18.04 LTS's version: 4.6.2)
         //don't work with the new TCP client, only the legacy one works
-        (Option.exists (fun monoVersion -> monoVersion < Version("5.18.0.240")) (GetMonoVersion()))
+        match GetMonoVersion() with
+        | None -> false
+        | Some monoVersion -> monoVersion < Version("5.18.0.240")
 
     // FIXME: make FaultTolerantParallelClient accept funcs that receive this as an arg, maybe 2x-ing it when a full
     //        round of failures has happened, as in, all servers failed
     let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 30.0
+    let internal DEFAULT_NETWORK_CONNECT_TIMEOUT = TimeSpan.FromSeconds 5.0
 
     let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = 3u
 

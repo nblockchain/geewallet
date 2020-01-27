@@ -4,7 +4,6 @@ open System
 open System.IO
 open System.Linq
 open System.Net
-open System.Reflection
 
 open FSharp.Data
 open FSharp.Data.JsonExtensions

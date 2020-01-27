@@ -81,10 +81,6 @@ type FaultTolerantParallelClientSettings<'R> =
         ExceptionHandler: Option<Exception->unit>
     }
 
-type Result<'Val, 'Err when 'Err :> Exception> =
-    | Error of 'Err
-    | Value of 'Val
-
 type MutableStateUnsafeAccessor<'T>(initialState: 'T) =
     let mutable state = initialState
     member this.Value

@@ -5,8 +5,6 @@ open System.IO
 open System.Net
 open System.Numerics
 open System.Linq
-open System.Threading
-open System.Threading.Tasks
 
 open Nethereum.Util
 open Nethereum.Hex.HexTypes
@@ -41,6 +39,13 @@ module Web3ServerSeedList =
     // TODO: add the one from https://etcchain.com/api/ too
     // FIXME: the below one doesn't seem to work; we should include it anyway and make the algorithm discard it at runtime
     //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
+
+    // these 2 only support simple balance requests
+    //  (unconfirmed, because can't do getCurrentBlock requests)
+    //  (non-tokens, because it only replies to balance queries):
+    //    ETH: https://blockscout.com/eth/mainnet/api/eth_rpc
+    //    ETC: https://blockscout.com/etc/mainnet/api/eth_rpc
+    //      (more info: https://blockscout.com/etc/mainnet/eth_rpc_api_docs and https://blockscout.com/eth/mainnet/eth_rpc_api_docs)
     // --------------------------------------------------------------------------------------
 
     let private GetEtherServers (currency: Currency): List<ServerDetails> =

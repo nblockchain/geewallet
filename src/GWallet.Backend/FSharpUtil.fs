@@ -5,6 +5,10 @@ open System.Threading.Tasks
 open System.Runtime.ExceptionServices
 open Microsoft.FSharp.Reflection
 
+type Result<'Val, 'Err when 'Err :> Exception> =
+    | Error of 'Err
+    | Value of 'Val
+
 module FSharpUtil =
 
     type internal ResultWrapper<'T>(value : 'T) =
@@ -53,25 +57,20 @@ module FSharpUtil =
 
         // like Async.Choice, but with no need for Option<T> types
         let WhenAny<'T>(jobs: seq<Async<'T>>): Async<'T> =
-            let wrap job =
+            let wrap (job: Async<'T>): Async<Option<'T>> =
                 async {
                     let! res = job
-                    return! RaiseResult <| ResultWrapper res
+                    return Some res
                 }
 
             async {
-                try
-                    do!
-                        jobs
-                        |> Seq.map wrap
-                        |> Async.Parallel
-                        |> Async.Ignore
-
-                    // unreachable
-                    return failwith "No successful result?"
-                with
-                | :? ResultWrapper<'T> as ex ->
-                    return ex.Value
+                let wrappedJobs = jobs |> Seq.map wrap
+                let! combinedRes = Async.Choice wrappedJobs
+                match combinedRes with
+                | Some x ->
+                    return x
+                | None ->
+                    return failwith "unreachable"
             }
 
         // a mix between Async.WhenAny and Async.Choice
@@ -108,13 +107,29 @@ module FSharpUtil =
     let ListIntersect<'T> (list1: List<'T>) (list2: List<'T>) (offset: uint32): List<'T> =
         ListIntersectInternal list1 list2 offset [] 1
 
-    let WithTimeout (timeSpan: TimeSpan) (operation: Async<'R>): Async<Option<'R>> = async {
-        let! child = Async.StartChild (operation, int timeSpan.TotalMilliseconds)
-        try
-            let! result = child
-            return Some result
-        with :? TimeoutException ->
-            return None
+    let WithTimeout (timeSpan: TimeSpan) (job: Async<'R>): Async<Option<'R>> = async {
+        let read = async {
+            let! value = job
+            return value |> Value |> Some
+        }
+
+        let delay = async {
+            let total = int timeSpan.TotalMilliseconds
+            do! Async.Sleep total
+            return Some (Error(TimeoutException()))
+        }
+
+        let! dummyOption = Async.Choice([read; delay])
+        match dummyOption with
+        | Some theResult ->
+            match theResult with
+            | Value r ->
+                return Some r
+            | Error _ ->
+                return None
+        | None ->
+            // none of the jobs passed to Async.Choice returns None
+            return failwith "unreachable"
     }
 
     // FIXME: we should not need this workaround anymore when this gets addressed:
