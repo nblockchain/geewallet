@@ -274,8 +274,9 @@ type CircleChartView () =
         let platformScaleFactor = Device.Info.ScalingFactor
         let scaleFactor =
             // somehow, even with a scaleFactor higher than zero, this gives problems when resizing on macOS
+            // (and on UWP you don't even need to resize to see the circle grow indefinitely)
             // TODO: report this bug in the Xamarin.Forms issue tracker
-            if Device.RuntimePlatform = Device.macOS then
+            if Device.RuntimePlatform = Device.macOS || Device.RuntimePlatform = Device.UWP then
                 1.0
             elif platformScaleFactor <= 0.0 then
                 defaultScaleFactor
