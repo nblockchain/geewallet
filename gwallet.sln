@@ -23,7 +23,7 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Backend.NetStandard
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.Mac", "src\GWallet.Frontend.XF.Mac\GWallet.Frontend.XF.Mac.fsproj", "{9E020D62-9160-49AC-A9CD-476CADAE0B87}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GWallet.Frontend.XamForms.UWP", "src\GWallet.Frontend.XamForms.UWP\GWallet.Frontend.XamForms.UWP.csproj", "{DD7B4A7D-02E7-4DF7-9894-25743BDEC0C0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GWallet.Frontend.XF.UWP", "src\GWallet.Frontend.XF.UWP\GWallet.Frontend.XF.UWP.csproj", "{DD7B4A7D-02E7-4DF7-9894-25743BDEC0C0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{C90A30F5-1423-44B2-A8D4-ED5FEDD4E36F}"
 	ProjectSection(SolutionItems) = preProject
