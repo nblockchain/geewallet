@@ -32,7 +32,7 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="GWallet.Frontend.XamForms.UWP.App">
       <uap:VisualElements
-        DisplayName="GWallet.Frontend.XamForms.UWP"
+        DisplayName="geewallet"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png"
         Description="GWallet.Frontend.XamForms.UWP"
