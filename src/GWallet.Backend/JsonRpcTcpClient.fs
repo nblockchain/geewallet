@@ -13,6 +13,10 @@ type ServerCannotBeResolvedException =
     new(message) = { inherit CommunicationUnsuccessfulException(message) }
     new(message:string, innerException: Exception) = { inherit CommunicationUnsuccessfulException(message, innerException) }
 
+type ServerNameResolvedToInvalidAddressException(message: string) =
+    inherit CommunicationUnsuccessfulException (message)
+
+
 type NonAbstractTcpClient(resolveHostJob, port, timeout) =
     inherit JsonRpcSharp.TcpClient.JsonRpcClient(resolveHostJob, port, timeout)
 
@@ -32,7 +36,12 @@ type JsonRpcTcpClient (host: string, port: uint32) =
             match maybeTimedOutipAddress with
             | Some ipAddressOption ->
                 match ipAddressOption with
-                | Some ipAddress -> return ipAddress
+                | Some ipAddress ->
+                    if ipAddress.ToString().StartsWith("127.0.0.") then
+                        let msg = sprintf "Server '%s' resolved to localhost IP '%s'" host (ipAddress.ToString())
+                        return raise <| ServerNameResolvedToInvalidAddressException (msg)
+                    else
+                        return ipAddress
                 | None   -> return raise <| ServerCannotBeResolvedException
                                                 (sprintf "DNS host entry lookup resulted in no records for %s" host)
             | None -> return raise <| TimeoutException (sprintf "Timed out connecting to %s:%i" host port)
