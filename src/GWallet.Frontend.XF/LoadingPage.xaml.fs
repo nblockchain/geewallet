@@ -143,7 +143,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
 
             this.Transition()
 
-            Device.StartTimer(TimeSpan.FromSeconds 8.0, fun _ ->
+            Device.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
                 ShowLoadingText()
 
                 false // do not run timer again
