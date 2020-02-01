@@ -578,13 +578,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             let compressedTransaction = Account.SerializeSignedTransaction signedTransaction true
             let pairSignedTransactionPage =
                 PairingFromPage(this, "Copy signed transaction to the clipboard", compressedTransaction, None)
-            NavigationPage.SetHasNavigationBar(pairSignedTransactionPage, false)
-            let navPairPage = NavigationPage pairSignedTransactionPage
-            NavigationPage.SetHasNavigationBar(navPairPage, false)
-            Device.BeginInvokeOnMainThread(fun _ ->
-                this.Navigation.PushAsync navPairPage
-                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-            )
+            FrontendHelpers.SwitchToNewPage this pairSignedTransactionPage false
 
     member private this.AnswerToFee (account: IAccount) (txInfo: TransactionInfo) (positiveFeeAnswer: bool): unit =
         if positiveFeeAnswer then
@@ -621,13 +615,15 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                         "Copy proposal to the clipboard",
                                         compressedTxProposal,
                                         Some ("Next step", this:>FrontendHelpers.IAugmentablePayPage))
-                    let navPairPage = NavigationPage pairTransactionProposalPage
+
                     do! Async.AwaitTask displayTask
                     do! Async.SwitchToContext mainThreadSynchContext
+
+                    // TODO: should switch the below somehow to use FrontendHelpers.SwitchToNewPage:
                     NavigationPage.SetHasNavigationBar(pairTransactionProposalPage, false)
+                    let navPairPage = NavigationPage pairTransactionProposalPage
                     NavigationPage.SetHasNavigationBar(navPairPage, false)
-                    let! _ = Async.AwaitTask (this.Navigation.PushAsync navPairPage)
-                    return ()
+                    do! Async.AwaitTask (this.Navigation.PushAsync navPairPage)
                 }
                 Device.BeginInvokeOnMainThread(fun _ ->
                     showWarningAndGoForward |> Async.StartImmediate

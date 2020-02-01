@@ -256,6 +256,16 @@ module FrontendHelpers =
             return ()
         } |> Async.Start
 
+    let SwitchToNewPage (currentPage: Page) (newPage: Page) (navBar: bool): unit =
+        NavigationPage.SetHasNavigationBar(newPage, false)
+        let navPage = NavigationPage newPage
+        NavigationPage.SetHasNavigationBar(navPage, navBar)
+
+        Device.BeginInvokeOnMainThread(fun _ ->
+            currentPage.Navigation.PushAsync navPage
+                |> DoubleCheckCompletionNonGeneric
+        )
+
     let SwitchToNewPageDiscardingCurrentOne (currentPage: Page) (newPage: Page): unit =
         Device.BeginInvokeOnMainThread(fun _ ->
             NavigationPage.SetHasNavigationBar(newPage, false)

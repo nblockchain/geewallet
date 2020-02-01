@@ -243,11 +243,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let tapGestureRecognizer = TapGestureRecognizer()
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
                     let receivePage = ReceivePage(balanceSet.Account, this, balanceSet.Widgets)
-                    NavigationPage.SetHasNavigationBar(receivePage, false)
-                    let navPage = NavigationPage receivePage
-
-                    this.Navigation.PushAsync navPage
-                         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                    FrontendHelpers.SwitchToNewPage this receivePage true
                 ) |> ignore
                 let frame = balanceSet.Widgets.Frame
                 frame.GestureRecognizers.Add tapGestureRecognizer
@@ -438,7 +434,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 this.PopulateBalances switchingToReadOnly balanceSetsToPopulate
                 RedrawCircleView switchingToReadOnly balancesStatesToPopulate
             else
-                let coldStoragePage =
                     // FIXME: save IsConnected to cache at app startup, and if it has ever been connected to the
                     // internet, already consider it non-cold storage
                     use crossConnectivityInstance = CrossConnectivity.Current
@@ -449,11 +444,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         )
                         let normalAccountsBalanceSets = normalAccountsBalanceSets
                         let page = PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
-                                   :> Page
-                        NavigationPage.SetHasNavigationBar(page, false)
-                        let navPage = NavigationPage page
-                        NavigationPage.SetHasNavigationBar(navPage, false)
-                        navPage :> Page
+                        FrontendHelpers.SwitchToNewPage this page false
                     else
                         match Account.GetNormalAccountsPairingInfoForWatchWallet() with
                         | None ->
@@ -461,12 +452,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         | Some walletInfo ->
                             let walletInfoJson = Marshalling.Serialize walletInfo
                             let page = PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
-                            NavigationPage.SetHasNavigationBar(page, false)
-                            let navPage = NavigationPage page
-                            navPage :> Page
+                            FrontendHelpers.SwitchToNewPage this page true
 
-                this.Navigation.PushAsync coldStoragePage
-                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         ) |> ignore
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
         tapGestureRecognizer

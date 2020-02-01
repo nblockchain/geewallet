@@ -115,12 +115,7 @@ type ReceivePage(account: IAccount,
         else
             failwith "Initialization of ReceivePage() didn't happen?"
 
-        NavigationPage.SetHasNavigationBar(sendPage, false)
-        let navSendPage = NavigationPage sendPage
-        NavigationPage.SetHasNavigationBar(navSendPage, false)
-
-        this.Navigation.PushAsync navSendPage
-            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+        FrontendHelpers.SwitchToNewPage this sendPage false
 
     member this.OnCopyToClipboardClicked(sender: Object, args: EventArgs) =
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
