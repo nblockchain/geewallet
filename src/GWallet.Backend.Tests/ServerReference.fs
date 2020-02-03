@@ -729,3 +729,33 @@ type ServerReference() =
         | _ ->
             Assert.Fail "both deserialized and merged should have some history since no server stored had None on it #2"
 
+    [<Test>]
+    member __.``blacklisted servers are removed``() =
+        let serverA =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = "foo"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = None
+            }
+        let serverB =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = "some.serverwithablacklistedname.blockscout.yes"
+                        ConnectionType = some_connection_type_irrelevant_for_this_test
+                    }
+                CommunicationHistory = None
+            }
+
+        let servers = Map.empty.Add
+                                (dummy_currency_because_irrelevant_for_this_test, seq { yield serverA; yield serverB })
+        let serverDetails = ServerRegistry.Serialize servers
+        let deserializedServers =
+            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
+                |> List.ofSeq
+
+        Assert.That(deserializedServers.Length, Is.EqualTo 1)
+
