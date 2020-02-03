@@ -408,41 +408,41 @@ module Caching =
                     },previousBalance
 
                 let newCachedValueWithNewBalanceAndMaybeLessTransactions =
-                    match previousBalance with
-                    | None ->
-                        newCachedValueWithNewBalance
-                    | Some (previousCachedBalance,_) ->
-                        if newBalance <> previousCachedBalance && previousCachedBalance > newBalance then
-                            match newCachedValueWithNewBalance.OutgoingTransactions.TryFind currency with
-                            | None ->
-                                newCachedValueWithNewBalance
-                            | Some currencyAddresses ->
-                                match currencyAddresses.TryFind address with
+                    let maybeNewValue =
+                        FSharpUtil.option {
+                            let! previousCachedBalance,_ = previousBalance
+                            do!
+                                if newBalance <> previousCachedBalance && previousCachedBalance > newBalance then
+                                    Some ()
+                                else
+                                    None
+                            let! currencyAddresses = newCachedValueWithNewBalance.OutgoingTransactions.TryFind currency
+                            let! addressTransactions = currencyAddresses.TryFind address
+                            let allCombinationsOfTransactions = MapCombinations addressTransactions
+                            let newAddressTransactions =
+                                match List.tryFind (fun combination ->
+                                                       let txSumAmount = List.sumBy (fun (_,(txAmount,_)) ->
+                                                                                         txAmount) combination
+                                                       previousCachedBalance - txSumAmount = newBalance
+                                                   ) allCombinationsOfTransactions with
                                 | None ->
-                                    newCachedValueWithNewBalance
-                                | Some addressTransactions ->
-                                    let allCombinationsOfTransactions = MapCombinations addressTransactions
-                                    let newAddressTransactions =
-                                        match List.tryFind (fun combination ->
-                                                               let txSumAmount = List.sumBy (fun (_,(txAmount,_)) ->
-                                                                                                 txAmount) combination
-                                                               previousCachedBalance - txSumAmount = newBalance
-                                                           ) allCombinationsOfTransactions with
-                                        | None ->
-                                            addressTransactions
-                                        | Some combination ->
-                                            RemoveRangeFromMap addressTransactions combination
-                                    let newOutgoingTransactions =
-                                        newCachedValueWithNewBalance
-                                            .OutgoingTransactions.Add(currency,
-                                                                      currencyAddresses.Add(address,
-                                                                                            newAddressTransactions))
-                                    {
-                                        newCachedValueWithNewBalance with
-                                            OutgoingTransactions = newOutgoingTransactions
-                                    }
-                        else
-                            newCachedValueWithNewBalance
+                                    addressTransactions
+                                | Some combination ->
+                                    RemoveRangeFromMap addressTransactions combination
+                            let newOutgoingTransactions =
+                                newCachedValueWithNewBalance
+                                    .OutgoingTransactions.Add(currency,
+                                                              currencyAddresses.Add(address,
+                                                                                    newAddressTransactions))
+                            return
+                                {
+                                    newCachedValueWithNewBalance with
+                                        OutgoingTransactions = newOutgoingTransactions
+                                }
+                        }
+                    match maybeNewValue with
+                    | None -> newCachedValueWithNewBalance
+                    | Some x -> x
 
                 sessionCachedNetworkData <- newCachedValueWithNewBalanceAndMaybeLessTransactions
 

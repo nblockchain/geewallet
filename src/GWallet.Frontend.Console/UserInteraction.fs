@@ -484,9 +484,10 @@ module UserInteraction =
             None
 
     let private AskParticularFiatAmountWithRate cryptoCurrency usdValue time: Option<decimal> =
-        match AskParticularUsdAmount cryptoCurrency usdValue time with
-        | None -> None
-        | Some(usdAmount) -> Some(usdAmount / usdValue)
+        FSharpUtil.option {
+            let! usdAmount = AskParticularUsdAmount cryptoCurrency usdValue time
+            return usdAmount / usdValue
+        }
 
     exception InsufficientBalance
     let rec internal AskAmount (account: IAccount): Option<TransferAmount> =
