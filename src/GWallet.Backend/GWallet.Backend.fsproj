@@ -16,6 +16,7 @@
     <OtherFlags>
         /warnon:1182
         /warnon:3218
+        /warnon:0193
     </OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">

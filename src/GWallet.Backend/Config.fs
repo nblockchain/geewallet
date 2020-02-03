@@ -51,25 +51,17 @@ module Config =
             false
 
     let GetMonoVersion(): Option<Version> =
-        let maybeMonoRuntime = Type.GetType "Mono.Runtime" |> Option.ofObj
-        match maybeMonoRuntime with
-
-        // this would happen in MS.NET (e.g. UWP/WPF)
-        | None -> None
-
-        | Some monoRuntime ->
-            let maybeDisplayName =
+        FSharpUtil.option {
+            // this gives None on MS.NET (e.g. UWP/WPF)
+            let! monoRuntime = Type.GetType "Mono.Runtime" |> Option.ofObj
+            // this gives None on Mono Android/iOS/macOS
+            let! displayName =
                 monoRuntime.GetMethod("GetDisplayName", BindingFlags.NonPublic ||| BindingFlags.Static) |> Option.ofObj
-
-            match maybeDisplayName with
-            // this would happen in Mono Android/iOS/macOS
-            | None -> None
-
-            | Some displayName ->
                 // example: 5.12.0.309 (2018-02/39d89a335c8 Thu Sep 27 06:54:53 EDT 2018)
-                let fullVersion = displayName.Invoke(null, null) :?> string
-                let simpleVersion = fullVersion.Substring(0, fullVersion.IndexOf(' ')) |> Version
-                simpleVersion |> Some
+            let fullVersion = displayName.Invoke(null, null) :?> string
+            let simpleVersion = fullVersion.Substring(0, fullVersion.IndexOf(' ')) |> Version
+            return simpleVersion
+        }
 
     // TODO: make the tests instantiate Legacy or nonLegacyTcpClient themselves and test both from them
     let LegacyUtxoTcpClientEnabled =

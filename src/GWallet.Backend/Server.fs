@@ -110,6 +110,16 @@ module ServerRegistry =
         removeDupesInternal servers
                             (servers |> Seq.map (fun server -> server.ServerInfo.NetworkPath,server) |> Map.ofSeq)
 
+    // as these servers can only serve very limited set of queries (e.g. only balance?) their stats are skewed and
+    // they create exception when being queried for advanced ones (e.g. latest block)
+    let internal RemoveBlackListed (servers: seq<ServerDetails>) =
+        Seq.filter (fun server -> not (server.ServerInfo.NetworkPath.Contains "blockscout")) servers
+
+    let RemoveCruft (servers: seq<ServerDetails>): seq<ServerDetails> =
+        servers
+            |> RemoveBlackListed
+            |> RemoveDupes
+
     let internal Sort (servers: seq<ServerDetails>): seq<ServerDetails> =
         Seq.sortByDescending (fun server ->
                                   let invertOrder (timeSpan: TimeSpan): int =
@@ -132,7 +142,7 @@ module ServerRegistry =
         let rearrangedServers =
             servers
             |> Map.toSeq
-            |> Seq.map (fun (currency, servers) -> currency, servers |> RemoveDupes |> Sort)
+            |> Seq.map (fun (currency, servers) -> currency, servers |> RemoveCruft |> Sort)
             |> Map.ofSeq
         Marshalling.Serialize rearrangedServers
 
@@ -159,7 +169,7 @@ module ServerRegistry =
                     | None -> Seq.empty
                     | Some servers ->
                         servers
-                yield currency,((Seq.append allServersFrom1 allServersFrom2) |> RemoveDupes |> Sort)
+                yield currency,((Seq.append allServersFrom1 allServersFrom2) |> RemoveCruft |> Sort)
         } |> Map.ofSeq
 
     let private ServersRankingBaseline =
