@@ -436,23 +436,23 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             else
                     // FIXME: save IsConnected to cache at app startup, and if it has ever been connected to the
                     // internet, already consider it non-cold storage
-                    use crossConnectivityInstance = CrossConnectivity.Current
-                    if crossConnectivityInstance.IsConnected then
-                        let newBalancesPageFunc = (fun (normalAccountsAndBalances,readOnlyAccountsAndBalances) ->
-                            BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
-                                         currencyImages, true) :> Page
-                        )
-                        let normalAccountsBalanceSets = normalAccountsBalanceSets
-                        let page = PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
-                        FrontendHelpers.SwitchToNewPage this page false
-                    else
-                        match Account.GetNormalAccountsPairingInfoForWatchWallet() with
-                        | None ->
-                            failwith "Should have ether and utxo accounts if running from the XF Frontend"
-                        | Some walletInfo ->
-                            let walletInfoJson = Marshalling.Serialize walletInfo
-                            let page = PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
-                            FrontendHelpers.SwitchToNewPage this page true
+                use crossConnectivityInstance = CrossConnectivity.Current
+                if crossConnectivityInstance.IsConnected then
+                    let newBalancesPageFunc = (fun (normalAccountsAndBalances,readOnlyAccountsAndBalances) ->
+                        BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
+                                     currencyImages, true) :> Page
+                    )
+                    let normalAccountsBalanceSets = normalAccountsBalanceSets
+                    let page = PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
+                    FrontendHelpers.SwitchToNewPage this page false
+                else
+                    match Account.GetNormalAccountsPairingInfoForWatchWallet() with
+                    | None ->
+                        failwith "Should have ether and utxo accounts if running from the XF Frontend"
+                    | Some walletInfo ->
+                        let walletInfoJson = Marshalling.Serialize walletInfo
+                        let page = PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
+                        FrontendHelpers.SwitchToNewPage this page true
 
         ) |> ignore
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
