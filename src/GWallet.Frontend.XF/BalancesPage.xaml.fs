@@ -7,9 +7,9 @@ open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
-open Plugin.Connectivity
-open GWallet.Frontend.XF.Controls
+open Xamarin.Essentials
 
+open GWallet.Frontend.XF.Controls
 open GWallet.Backend
 
 
@@ -416,8 +416,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 else
                     true
 
-            if not CrossConnectivity.IsSupported then
-                failwith "cross connectivity plugin not supported for this platform?"
             if shouldNotOpenNewPage then
                 Device.BeginInvokeOnMainThread(fun _ ->
                     totalCurrentFiatAmountFrame.IsVisible <- false
@@ -434,10 +432,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 this.PopulateBalances switchingToReadOnly balanceSetsToPopulate
                 RedrawCircleView switchingToReadOnly balancesStatesToPopulate
             else
-                    // FIXME: save IsConnected to cache at app startup, and if it has ever been connected to the
-                    // internet, already consider it non-cold storage
-                use crossConnectivityInstance = CrossConnectivity.Current
-                if crossConnectivityInstance.IsConnected then
+                // FIXME: save currentConnectivityInstance to cache at app startup, and if it has ever been connected to
+                // the internet, already consider it non-cold storage
+                let currentConnectivityInstance = Connectivity.NetworkAccess
+                if currentConnectivityInstance = NetworkAccess.Internet then
                     let newBalancesPageFunc = (fun (normalAccountsAndBalances,readOnlyAccountsAndBalances) ->
                         BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
                                      currencyImages, true) :> Page

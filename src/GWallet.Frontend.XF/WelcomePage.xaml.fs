@@ -2,10 +2,10 @@
 
 open System
 open System.Linq
-open Plugin.Connectivity
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
+open Xamarin.Essentials
 
 open GWallet.Backend
 
@@ -42,8 +42,8 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                                                                     c = '!' ||
                                                                     c = ''')
         let IsColdStorageMode() =
-            use conn = CrossConnectivity.Current
-            not conn.IsConnected
+            let currentConnectivityInstance = Connectivity.NetworkAccess
+            currentConnectivityInstance <> NetworkAccess.Internet
 
         let AllWordsInPassphraseExistInDictionaries(passphrase: string): bool =
             let words = passphrase.Split([|","; "."; " "; "-"; "_"|], StringSplitOptions.RemoveEmptyEntries)

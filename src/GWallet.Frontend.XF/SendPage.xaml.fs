@@ -5,9 +5,9 @@ open System.Linq
 open System.Threading
 open System.Threading.Tasks
 
-open Plugin.Connectivity
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
+open Xamarin.Essentials
 open ZXing.Net.Mobile.Forms
 
 open GWallet.Backend
@@ -82,11 +82,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 passwordLabel.IsVisible <- false
             )
         | _ ->
-            if not CrossConnectivity.IsSupported then
-                failwith "cross connectivity plugin not supported for this platform?"
-
-            use crossConnectivityInstance = CrossConnectivity.Current
-            if not crossConnectivityInstance.IsConnected then
+            let currentConnectivityInstance = Connectivity.NetworkAccess
+            if currentConnectivityInstance <> NetworkAccess.Internet then
                 lock lockObject (fun _ ->
                     transaction <- (ColdStorageMode None)
                 )
@@ -99,8 +96,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                      DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),(fun _ -> Page()))
 
     member private this.AdjustWidgetsStateAccordingToConnectivity() =
-        use crossConnectivityInstance = CrossConnectivity.Current
-        if not crossConnectivityInstance.IsConnected then
+        let currentConnectivityInstance = Connectivity.NetworkAccess
+        if currentConnectivityInstance <> NetworkAccess.Internet then
             Device.BeginInvokeOnMainThread(fun _ ->
                 currencySelectorPicker.IsEnabled <- false
                 amountToSendEntry.IsEnabled <- false

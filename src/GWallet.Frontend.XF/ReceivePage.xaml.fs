@@ -4,9 +4,7 @@ open System
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
-
-open Plugin.Clipboard
-open Plugin.Connectivity
+open Xamarin.Essentials
 open ZXing
 open ZXing.Net.Mobile.Forms
 open ZXing.Common
@@ -74,11 +72,8 @@ type ReceivePage(account: IAccount,
         ) |> ignore
         mainLayout.Children.Add(transactionHistoryButton)
 
-        if not CrossConnectivity.IsSupported then
-            failwith "cross connectivity plugin not supported for this platform?"
-
-        use crossConnectivityInstance = CrossConnectivity.Current
-        if crossConnectivityInstance.IsConnected then
+        let currentConnectivityInstance = Connectivity.NetworkAccess
+        if currentConnectivityInstance = NetworkAccess.Internet then
             paymentButton.Text <- paymentCaption
             match accountBalance with
             | Cached(amount,_) ->
@@ -121,5 +116,5 @@ type ReceivePage(account: IAccount,
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
         FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
 
-        CrossClipboard.Current.SetText account.PublicAddress
-        ()
+        Clipboard.SetTextAsync account.PublicAddress
+            |> FrontendHelpers.DoubleCheckCompletionNonGeneric

@@ -120,15 +120,13 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <PackageReference Include="Xamarin.Plugins.Clipboard" Version="2.2.1" />
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="SkiaSharp.Svg" Version="1.60.0" />
     <PackageReference Include="Xamarin.Forms" Version="4.3.0.991211" />
-    <PackageReference Include="Xam.Plugin.Connectivity" Version="4.0.0.190-beta" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="0.10.0-date20191006-0346.git-18fb927" />
     <PackageReference Include="SkiaSharp" Version="1.68.1" />
-    <PackageReference Include="Xamarin.Essentials" Version="1.0.0" />
+    <PackageReference Include="DotNetEssentials" Version="1.3.1-date20200206-0515.git-cdb9624" />
   </ItemGroup>
 </Project>

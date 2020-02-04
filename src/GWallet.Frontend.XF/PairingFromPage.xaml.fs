@@ -4,8 +4,8 @@ open System
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
+open Xamarin.Essentials
 
-open Plugin.Clipboard
 open ZXing.Net.Mobile.Forms
 
 type PairingFromPage(previousPage: Page,
@@ -57,8 +57,8 @@ type PairingFromPage(previousPage: Page,
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
         FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
 
-        CrossClipboard.Current.SetText qrCodeContents
-        ()
+        Clipboard.SetTextAsync qrCodeContents
+            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     member this.OnNextStepClicked(sender: Object, args: EventArgs) =
         match nextButtonCaptionAndSendPage with
