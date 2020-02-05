@@ -20,28 +20,28 @@ type ServerVersionResult =
         Result: array<string>;
     }
 
-type BlockchainScripthahsGetBalanceInnerResult =
+type BlockchainScriptHashGetBalanceInnerResult =
     {
         Confirmed: Int64;
         Unconfirmed: Int64;
     }
-type BlockchainScripthashGetBalanceResult =
+type BlockchainScriptHashGetBalanceResult =
     {
         Id: int;
-        Result: BlockchainScripthahsGetBalanceInnerResult;
+        Result: BlockchainScriptHashGetBalanceInnerResult
     }
 
-type BlockchainScripthashListUnspentInnerResult =
+type BlockchainScriptHashListUnspentInnerResult =
     {
         TxHash: string;
         TxPos: int;
         Value: Int64;
         Height: Int64;
     }
-type BlockchainScripthashListUnspentResult =
+type BlockchainScriptHashListUnspentResult =
     {
         Id: int;
-        Result: array<BlockchainScripthashListUnspentInnerResult>;
+        Result: array<BlockchainScriptHashListUnspentInnerResult>
     }
 
 type BlockchainTransactionGetResult =
@@ -165,7 +165,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         deserializedValue
 
-    member self.BlockchainScripthashGetBalance address: Async<BlockchainScripthashGetBalanceResult> =
+    member self.BlockchainScriptHashGetBalance address: Async<BlockchainScriptHashGetBalanceResult> =
         let obj = {
             Id = 0;
             Method = "blockchain.scripthash.get_balance";
@@ -174,7 +174,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
 
         async {
-            let! resObj,_ = self.Request<BlockchainScripthashGetBalanceResult> json
+            let! resObj,_ = self.Request<BlockchainScriptHashGetBalanceResult> json
             return resObj
         }
 
@@ -214,7 +214,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         return StratumClient.CreateVersion(serverProtocolVersion)
     }
 
-    member self.BlockchainScripthashListUnspent address: Async<BlockchainScripthashListUnspentResult> =
+    member self.BlockchainScriptHashListUnspent address: Async<BlockchainScriptHashListUnspentResult> =
         let obj = {
             Id = 0;
             Method = "blockchain.scripthash.listunspent";
@@ -222,7 +222,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         }
         let json = Serialize obj
         async {
-            let! resObj,_ = self.Request<BlockchainScripthashListUnspentResult> json
+            let! resObj,_ = self.Request<BlockchainScriptHashListUnspentResult> json
             return resObj
         }
 

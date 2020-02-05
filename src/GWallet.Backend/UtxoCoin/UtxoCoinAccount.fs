@@ -86,7 +86,7 @@ module Account =
         let privateKey = Key.Parse(privateKey, GetNetwork currency)
         GetPublicAddressFromPublicKey currency privateKey.PubKey
 
-    let private BalanceToShow (balances: BlockchainScripthahsGetBalanceInnerResult) =
+    let private BalanceToShow (balances: BlockchainScriptHashGetBalanceInnerResult) =
         let unconfirmedPlusConfirmed = balances.Unconfirmed + balances.Confirmed
         let amountToShowInSatoshis =
             if unconfirmedPlusConfirmed < balances.Confirmed then
@@ -98,7 +98,7 @@ module Account =
 
     let private BalanceMatchWithCacheOrInitialBalance address
                                                       currency
-                                                      (someRetrievedBalance: BlockchainScripthahsGetBalanceInnerResult)
+                                                      (someRetrievedBalance: BlockchainScriptHashGetBalanceInnerResult)
                                                           : bool =
         if Caching.Instance.FirstRun then
             BalanceToShow someRetrievedBalance = 0m
@@ -111,7 +111,7 @@ module Account =
     let private GetBalances (account: IUtxoAccount)
                             (mode: ServerSelectionMode)
                             (cancelSourceOption: Option<CustomCancelSource>)
-                                : Async<BlockchainScripthahsGetBalanceInnerResult> =
+                                : Async<BlockchainScriptHashGetBalanceInnerResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
         let querySettings =
@@ -122,7 +122,7 @@ module Account =
     let private GetBalancesFromServer (account: IUtxoAccount)
                                       (mode: ServerSelectionMode)
                                       (cancelSourceOption: Option<CustomCancelSource>)
-                                         : Async<Option<BlockchainScripthahsGetBalanceInnerResult>> =
+                                         : Async<Option<BlockchainScriptHashGetBalanceInnerResult>> =
         async {
             try
                 let! balances = GetBalances account mode cancelSourceOption
