@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="..\..\packages\Xamarin.Forms.4.3.0.991211\build\Xamarin.Forms.props" Condition="Exists('..\..\packages\Xamarin.Forms.4.3.0.991211\build\Xamarin.Forms.props')" />
+  <Import Project="..\..\packages\Xamarin.Forms.4.5.0.266-pre3\build\Xamarin.Forms.props" Condition="Exists('..\..\packages\Xamarin.Forms.4.5.0.266-pre3\build\Xamarin.Forms.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -80,22 +80,22 @@
       <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.2\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Forms.Core">
-      <HintPath>..\..\packages\Xamarin.Forms.4.3.0.991211\lib\netstandard2.0\Xamarin.Forms.Core.dll</HintPath>
+      <HintPath>..\..\packages\Xamarin.Forms.4.5.0.266-pre3\lib\netstandard2.0\Xamarin.Forms.Core.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Forms.Platform">
-      <HintPath>..\..\packages\Xamarin.Forms.4.3.0.991211\lib\netstandard2.0\Xamarin.Forms.Platform.dll</HintPath>
+      <HintPath>..\..\packages\Xamarin.Forms.4.5.0.266-pre3\lib\netstandard2.0\Xamarin.Forms.Platform.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Forms.Xaml">
-      <HintPath>..\..\packages\Xamarin.Forms.4.3.0.991211\lib\netstandard2.0\Xamarin.Forms.Xaml.dll</HintPath>
+      <HintPath>..\..\packages\Xamarin.Forms.4.5.0.266-pre3\lib\netstandard2.0\Xamarin.Forms.Xaml.dll</HintPath>
     </Reference>
     <Reference Include="OpenTK">
       <HintPath>..\..\packages\OpenTK.3.0.1\lib\net20\OpenTK.dll</HintPath>
     </Reference>
     <Reference Include="webkit-sharp">
-      <HintPath>..\..\packages\Xamarin.Forms.Platform.GTK.4.3.0.991211\lib\net45\webkit-sharp.dll</HintPath>
+      <HintPath>..\..\packages\Xamarin.Forms.Platform.GTK.4.5.0.266-pre3\lib\net45\webkit-sharp.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Forms.Platform.GTK">
-      <HintPath>..\..\packages\Xamarin.Forms.Platform.GTK.4.3.0.991211\lib\net45\Xamarin.Forms.Platform.GTK.dll</HintPath>
+      <HintPath>..\..\packages\Xamarin.Forms.Platform.GTK.4.5.0.266-pre3\lib\net45\Xamarin.Forms.Platform.GTK.dll</HintPath>
     </Reference>
     <Reference Include="System.Buffers">
       <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
@@ -225,7 +225,6 @@
     </Compile>
     <Compile Include="Program.fs" />
     <None Include="packages.config" />
-    <None Include="webkit-sharp.dll.config" />
     <None Include="OpenTK.dll.config" />
     <Content Include="..\..\logo.png">
       <Link>logo.png</Link>
@@ -239,12 +238,13 @@
       <Project>{D1D192E0-F226-40AD-8D81-687F7E6F7DAB}</Project>
       <Name>GWallet.Backend.NetStandard</Name>
     </ProjectReference>
+    <None Include="webkit-sharp.dll.config" />
   </ItemGroup>
   <Import Project="$(FSharpTargetsPath)" />
 
   <Target Name="AfterBuild">
   </Target>
-  <Import Project="..\..\packages\Xamarin.Forms.4.3.0.991211\build\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.4.3.0.991211\build\Xamarin.Forms.targets')" />
   <Import Project="..\..\packages\SkiaSharp.1.68.1\build\net45\SkiaSharp.targets" Condition="Exists('..\..\packages\SkiaSharp.1.68.1\build\net45\SkiaSharp.targets')" />
   <Import Project="..\..\packages\SkiaSharp.NativeAssets.Linux.1.68.1\build\net45\SkiaSharp.NativeAssets.Linux.targets" Condition="Exists('..\..\packages\SkiaSharp.NativeAssets.Linux.1.68.1\build\net45\SkiaSharp.NativeAssets.Linux.targets')" />
+  <Import Project="..\..\packages\Xamarin.Forms.4.5.0.266-pre3\build\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.4.5.0.266-pre3\build\Xamarin.Forms.targets')" />
 </Project>
