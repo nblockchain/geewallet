@@ -66,13 +66,13 @@ module ElectrumClient =
         //    [ see https://www.youtube.com/watch?v=hjYCXOyDy7Y&feature=youtu.be&t=1171 for more information ]
         // * -> although that would be fixing only half of the problem, we also need proof of completeness
         let! stratumClient = stratumServer
-        let! balanceResult = stratumClient.BlockchainScripthashGetBalance scriptHash
+        let! balanceResult = stratumClient.BlockchainScriptHashGetBalance scriptHash
         return balanceResult.Result
     }
 
     let GetUnspentTransactionOutputs scriptHash (stratumServer: Async<StratumClient>) = async {
         let! stratumClient = stratumServer
-        let! unspentListResult = stratumClient.BlockchainScripthashListUnspent scriptHash
+        let! unspentListResult = stratumClient.BlockchainScriptHashListUnspent scriptHash
         return unspentListResult.Result
     }
 

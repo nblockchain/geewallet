@@ -591,20 +591,26 @@ module Caching =
                 }
 
             let targetBranch = "frontend"
-            let username = "knocte"
+            let orgName1 = "nblockchain"
+            let orgName2 = "World"
             let projName = "geewallet"
-            let githubBaseUrl,gitlabBaseUrl = "https://raw.githubusercontent.com","https://gitlab.com"
+            let ghBaseUrl,glBaseUrl,gnomeBaseUrl =
+                "https://raw.githubusercontent.com","https://gitlab.com","https://gitlab.gnome.org"
             let pathToFile = sprintf "src/GWallet.Backend/%s" ServerRegistry.ServersEmbeddedResourceFileName
 
-            let knocteGitHub =
+            let gitHub =
                 sprintf "%s/%s/%s/%s/%s"
-                        githubBaseUrl username projName targetBranch pathToFile
+                        ghBaseUrl orgName1 projName targetBranch pathToFile
 
-            let knocteGitLab =
+            let gitLab =
                 sprintf "%s/%s/%s/raw/%s/%s"
-                        gitlabBaseUrl username projName targetBranch pathToFile
+                        glBaseUrl orgName1 projName targetBranch pathToFile
 
-            let allUrls = [ knocteGitHub; knocteGitLab ]
+            let gnomeGitLab =
+                sprintf "%s/%s/%s/raw/%s/%s"
+                        gnomeBaseUrl orgName2 projName targetBranch pathToFile
+
+            let allUrls = [ gitHub; gitLab; gnomeGitLab ]
             let allJobs =
                 allUrls |> Seq.map downloadFile
 

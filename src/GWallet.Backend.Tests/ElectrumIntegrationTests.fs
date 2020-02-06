@@ -92,7 +92,7 @@ type ElectrumIntegrationTests() =
 
         }
 
-    let BalanceAssertion (balance: BlockchainScripthahsGetBalanceInnerResult) =
+    let BalanceAssertion (balance: BlockchainScriptHashGetBalanceInnerResult) =
         // if these ancient addresses get withdrawals it would be interesting in the crypto space...
         // so let's make the test check a balance like this which is unlikely to change
         Assert.That(balance.Confirmed, Is.Not.LessThan 998292)
@@ -157,7 +157,7 @@ type ElectrumIntegrationTests() =
             (fun server -> rebelBtcServerHostnames.Any(fun rebel -> server.ServerInfo.NetworkPath = rebel))
             ElectrumServerSeedList.DefaultBtcList
 
-    let UtxosAssertion (utxos: array<BlockchainScripthashListUnspentInnerResult>) =
+    let UtxosAssertion (utxos: array<BlockchainScriptHashListUnspentInnerResult>) =
         // if these ancient addresses get withdrawals it would be interesting in the crypto space...
         // so let's make the test check a balance like this which is unlikely to change
         Assert.That(utxos.Length, Is.GreaterThan 1)
