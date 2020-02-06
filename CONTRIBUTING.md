@@ -122,8 +122,8 @@ and which one is the exceptional one).
 # Workflow best practices
 
 * If you want to contribute a change to this project, you should create a
-MergeRequest in gitlab (not a PullRequest in github). The repo in gitlab is in:
-https://gitlab.com/knocte/gweeallet
+MergeRequest in GNOME's gitlab (not a PullRequest in github). This repo is:
+https://gitlab.gnome.org/World/geewallet
 * When contributing a MergeRequest, separate your commits in units of work
 (don't mix changes that have different concerns in the same commit). Don't
 forget to include all explanations and reasonings in the commit messages,
@@ -145,7 +145,7 @@ the change that is not self-explanatory). Don't hesitate to be very verbose
 here, adding any references you may need, in this way[1], or even @nicknames of
 people that helped. Manually crop your lines to not be longer than 80 chars.
 
-Fixes https://gitlab.com/knocte/geewallet/issues/45
+Fixes https://gitlab.gnome.org/World/geewallet/issues/45
 
 [1] http://foo.bar/baz
 ```
@@ -162,7 +162,7 @@ automatically).
 
 # Dev Roadmap
 
-Our priority list is [the Kanban view of our issue/task list](https://gitlab.com/knocte/geewallet/boards).
+Our priority list is [the Kanban view of our issue/task list](https://gitlab.gnome.org/World/geewallet/-/boards).
 
 Some other items that haven't been prioritized include (likely only intelligible if you're already a contributor):
 - Switch to use https://github.com/madelson/MedallionShell in Infra.fs (we might want to use paket instead of nuget for this, as it's friendlier to .fsx scripts, see https://cockneycoder.wordpress.com/2017/08/07/getting-started-with-paket-part-1/, or wait for https://github.com/Microsoft/visualfsharp/pull/5850).
