@@ -111,7 +111,7 @@ The easiest way to use for non-technical people is to install it from the Androi
 Or if you use Linux, from the Snap Store:
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/geewallet)
 
-To install via the command-line in (Ubuntu) Linux, do it this way::
+To install via the command-line in (Ubuntu) Linux, do it this way:
 
 ```
 snap install geewallet
@@ -145,8 +145,8 @@ Special thanks to all the [contributors](https://gitlab.com/knocte/geewallet/gra
 - @juanfranblanco: Nethereum
 - @nicolasdorier, @joemphilips: NBitcoin
 - @redth, @EBrown8534, @mierzynskim: ZXing.Net.Mobile, ZXing.Net.Xamarin
-- Xamarin.Forms: @mfkl, @stanbav, @AndreiMisiukevich
-- JsonRpcSharp: @ardave, @mfkl, @jerry40, @mierzynskim, @winstongubantes and again @juanfranblanco
+- Xamarin.Forms: @mfkl, @stanbav, @AndreiMisiukevich, @melimion, @z3ut
+- JsonRpcSharp: @lukethenuke, @mfkl, @jerry40, @mierzynskim, @winstongubantes and again @juanfranblanco
 - ...and all the Xamarin/Mono/.NetCore community in general, of course
 
 If you want to become part of this distributed team of brave disruptarians, check our [CONTRIBUTING guideline](CONTRIBUTING.md) first, and start coding!
