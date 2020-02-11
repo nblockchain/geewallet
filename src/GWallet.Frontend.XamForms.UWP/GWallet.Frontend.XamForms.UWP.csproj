@@ -131,7 +131,7 @@
       <Version>6.0.4</Version>
     </PackageReference>
     <PackageReference Include="Xamarin.Forms">
-      <Version>4.3.0.991211</Version>
+      <Version>4.5.0.266-pre3</Version>
     </PackageReference>
     <PackageReference Include="SkiaSharp">
       <Version>1.68.0</Version>
