@@ -19,11 +19,7 @@ type BalancesPage()
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Subscribe(fun _ ->
             let receivePage = ReceivePage()
-            NavigationPage.SetHasNavigationBar(receivePage, false)
-            let navPage = NavigationPage receivePage
-
-            this.Navigation.PushAsync navPage
-                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            FrontendHelpers.SwitchToNewPage this receivePage true
         ) |> ignore
         label.GestureRecognizers.Add tapGestureRecognizer
 
