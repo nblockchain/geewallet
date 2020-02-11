@@ -86,7 +86,7 @@
     </Compile>
     <PackageReference Include="FSharp.Core" Version="4.5.3" />
     <PackageReference Include="SkiaSharp.Svg" Version="1.60.0" />
-    <PackageReference Include="Xamarin.Forms" Version="4.4.0.991640" />
+    <PackageReference Include="Xamarin.Forms" Version="4.5.0.142-pre1" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="SkiaSharp" Version="1.68.0" />
     <PackageReference Include="SkiaSharp.Views.Forms" Version="1.68.0" />
