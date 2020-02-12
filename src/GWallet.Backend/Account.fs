@@ -58,6 +58,9 @@ module Account =
 
     let GetShowableBalanceAndImminentPayment (account: IAccount): Async<MaybeCached<decimal>*bool> =
         async {
+            if Config.NoNetworkBalanceForDebuggingPurposes then
+                return Fresh 1m,false
+            else
             let! maybeBalanceAndImminentPayment = GetShowableBalanceAndImminentPaymentInternal account
             match maybeBalanceAndImminentPayment with
             | None ->

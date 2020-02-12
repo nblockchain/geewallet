@@ -20,6 +20,8 @@ module internal Config =
         false
 #endif
 
+    let internal NoNetworkBalanceForDebuggingPurposes = true
+
     let GetMonoVersion(): Option<Version> =
         let maybeMonoRuntime = Type.GetType "Mono.Runtime" |> Option.ofObj
         match maybeMonoRuntime with
