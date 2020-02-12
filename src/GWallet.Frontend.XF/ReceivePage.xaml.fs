@@ -10,6 +10,13 @@ type ReceivePage() =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
+    let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let theLabel = mainLayout.FindByName<Label> "theLabel"
+    do
+        Device.BeginInvokeOnMainThread(fun _ ->
+            // workaround for bug https://github.com/xamarin/Xamarin.Forms/issues/9526
+            theLabel.TextColor <- Color.Black
+        )
 
     member this.OnSendPaymentClicked(sender: Object, args: EventArgs) =
         ()

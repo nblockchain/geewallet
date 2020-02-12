@@ -27,4 +27,7 @@ type BalancesPage()
     member private this.Init () =
         Device.BeginInvokeOnMainThread(fun _ ->
             this.UpdateLabel theLabel
+
+            // workaround for bug https://github.com/xamarin/Xamarin.Forms/issues/9526
+            theLabel.TextColor <- Color.Black
         )
