@@ -25,6 +25,9 @@ type PairingToPage(balancesPage: Page,
         if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
             scanQrCodeButton.IsVisible <- true
 
+        FrontendHelpers.ApplyMacWorkaroundAgainstInvisibleLabels mainLayout
+
+
     let GuessCurrenciesOfAddress (address: string): Async<List<Currency>> = async {
         try
             return! Account.ValidateUnknownCurrencyAddress address

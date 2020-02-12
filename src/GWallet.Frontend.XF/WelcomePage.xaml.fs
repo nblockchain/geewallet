@@ -22,6 +22,9 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     let dobDatePicker = mainLayout.FindByName<DatePicker> "dobDatePicker"
     let nextButton = mainLayout.FindByName<Button> "nextButton"
 
+    do
+        FrontendHelpers.ApplyMacWorkaroundAgainstInvisibleLabels mainLayout
+
     let MaybeEnableNextButton () =
         let isEnabled = passphraseEntry.Text <> null && passphraseEntry.Text.Length > 0 &&
                         passphraseConfirmationEntry.Text <> null && passphraseConfirmationEntry.Text.Length > 0 &&

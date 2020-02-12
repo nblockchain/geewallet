@@ -31,6 +31,9 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     let readOnlyAccounts = allAccounts.OfType<ReadOnlyAccount>() |> List.ofSeq
                            |> List.map (fun account -> account :> IAccount)
 
+    do
+        FrontendHelpers.ApplyMacWorkaroundAgainstInvisibleLabels mainLayout
+
     let CreateImage (currency: Currency) (readOnly: bool) =
         let colour =
             if readOnly then

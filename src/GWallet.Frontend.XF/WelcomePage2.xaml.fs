@@ -19,6 +19,9 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
     let passwordConfirmation = mainLayout.FindByName<Entry> "passwordEntryConfirmation"
     let finishButton = mainLayout.FindByName<Button> "finishButton"
 
+    do
+        FrontendHelpers.ApplyMacWorkaroundAgainstInvisibleLabels mainLayout
+
     let MaybeEnableFinishButton() =
 
         if password.Text <> null && password.Text.Length > 0 &&

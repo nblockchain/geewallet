@@ -19,6 +19,9 @@ type PairingFromPage(previousPage: Page,
     do
         this.Init()
 
+        FrontendHelpers.ApplyMacWorkaroundAgainstInvisibleLabels mainLayout
+
+
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = PairingFromPage(DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
                             String.Empty,String.Empty,None)

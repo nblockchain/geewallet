@@ -51,6 +51,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
     let timerStartDelay = TimeSpan.FromMilliseconds 500.
 
+    do
+        FrontendHelpers.ApplyMacWorkaroundAgainstInvisibleLabels mainLayout
+
     // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
     let UpdateGlobalFiatBalanceLabel (balance: MaybeCached<TotalBalance>) (totalFiatAmountLabel: Label) =
         let strBalance =
