@@ -61,12 +61,6 @@ type ReceivePage(account: IAccount,
                                             BarcodeOptions = encodingOptions)
         mainLayout.Children.Add(barCode)
 
-        let transactionHistoryButton = Button(Text = "View transaction history...")
-        transactionHistoryButton.Clicked.Subscribe(fun _ ->
-            Device.OpenUri (BlockExplorer.GetTransactionHistory account)
-        ) |> ignore
-        mainLayout.Children.Add(transactionHistoryButton)
-
         if not CrossConnectivity.IsSupported then
             failwith "cross connectivity plugin not supported for this platform?"
 
@@ -82,7 +76,6 @@ type ReceivePage(account: IAccount,
         else
             paymentButton.Text <- "Signoff Payment Offline"
             paymentButton.IsEnabled <- true
-            transactionHistoryButton.IsEnabled <- false
 
         // FIXME: report this Xamarin.Forms Mac backend bug (no back button in navigation pages!, so below <workaround>)
         if (Device.RuntimePlatform <> Device.macOS) then () else

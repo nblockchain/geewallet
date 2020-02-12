@@ -409,18 +409,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             accountBalance.BalanceSet.FiatLabel.TextColor <- color
 
     member private this.Init () =
-        FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalFiatAmountFrame
-        FrontendHelpers.ApplyGtkWorkaroundForFrameTransparentBackgroundColor totalReadOnlyFiatAmountFrame
-        FrontendHelpers.ApplyGtkWorkarounds totalFiatAmountLabel false
-        FrontendHelpers.ApplyGtkWorkarounds totalReadOnlyFiatAmountLabel false
-
-        let tapGestureRecognizer = TapGestureRecognizer()
-        tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-            Device.OpenUri (Uri "https://www.diginex.com")
-        ) |> ignore
-        let footerLabel = mainLayout.FindByName<Label> "footerLabel"
-        footerLabel.GestureRecognizers.Add tapGestureRecognizer
-
         let allNormalAccountFiatBalances =
             normalAccountsAndBalances.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
         let allReadOnlyAccountFiatBalances =

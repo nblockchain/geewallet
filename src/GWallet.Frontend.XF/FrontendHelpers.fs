@@ -222,25 +222,6 @@ module FrontendHelpers =
             )
         ) |> DoubleCheckCompletionNonGeneric
 
-    let internal ApplyGtkWorkaroundForFrameTransparentBackgroundColor (frame: Frame) =
-        if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then
-            let ubuntu1804DefaultColor = "F2F1F0"
-
-            // this is just most popular distro's default colour, we should rather just fix the upstream bug:
-            // https://github.com/xamarin/Xamarin.Forms/issues/4700
-            frame.BackgroundColor <- Color.FromHex ubuntu1804DefaultColor
-            frame.BorderColor <- Color.FromHex ubuntu1804DefaultColor
-
-    let internal ApplyGtkWorkarounds (balanceLabel: Label) (adjustSize: bool) =
-        // workaround to small default fonts in GTK (compared to other toolkits) so FIXME: file bug about this
-        if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) && adjustSize then
-            balanceLabel.FontSize <- MagicGtkNumber
-
-        if enableGtkWorkarounds && (Device.RuntimePlatform = Device.GTK) then
-            // workaround about Labels not putting a decent default left&top margin in GTK so FIXME: file bug about this
-            balanceLabel.TranslationY <- MagicGtkNumber
-            balanceLabel.TranslationX <- MagicGtkNumber
-
     let private CreateWidgetsForAccount (): Label*Label =
         let accountBalanceLabel = Label(Text = "...",
                                         VerticalOptions = LayoutOptions.Center,
@@ -248,9 +229,6 @@ module FrontendHelpers =
         let fiatBalanceLabel = Label(Text = "...",
                                      VerticalOptions = LayoutOptions.Center,
                                      HorizontalOptions = LayoutOptions.EndAndExpand)
-
-        ApplyGtkWorkarounds accountBalanceLabel true
-        ApplyGtkWorkarounds fiatBalanceLabel true
 
         accountBalanceLabel,fiatBalanceLabel
 
