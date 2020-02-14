@@ -96,7 +96,7 @@ let SignOffPayment() =
 
                 Console.WriteLine ("Account to use when signing off this transaction:")
                 Console.WriteLine ()
-                UserInteraction.DisplayAccountStatuses (WhichAccount.MatchingWith(account)) |> ignore
+                UserInteraction.DisplayAccountStatuses <| WhichAccount.MatchingWith account
                 Console.WriteLine()
 
                 Presentation.ShowTransactionData unsignedTransaction
