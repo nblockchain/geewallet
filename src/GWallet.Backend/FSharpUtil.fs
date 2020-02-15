@@ -170,6 +170,7 @@ module FSharpUtil =
         |> Seq.map GetUnionCaseInfoAndInstance<'T>
 
     type OptionBuilder() =
+        // see https://github.com/dsyme/fsharp-presentations/blob/master/design-notes/ces-compared.md#overview-of-f-computation-expressions
         member x.Bind (v,f) = Option.bind f v
         member x.Return v = Some v
         member x.ReturnFrom o = o
