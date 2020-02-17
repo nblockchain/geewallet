@@ -45,6 +45,37 @@ let filesToBumpFullVersion: seq<string> =
         "snap/snapcraft.yaml"
         ".github/workflows/ubuntu.yml"
     ]
+let gitLabCiYml = ".gitlab-ci.yml"
+let filesToGitAdd: seq<string> =
+    Seq.append filesToBumpFullVersion [
+        gitLabCiYml
+    ]
+
+let Replace file fromStr toStr =
+    let replaceScript = Path.Combine(rootDir.FullName, "scripts", "replace.fsx")
+    let baseReplaceCommand =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Windows ->
+            {
+                Command = Path.Combine(rootDir.FullName, "scripts", "fsi.bat")
+                Arguments = replaceScript
+            }
+        | _ ->
+            {
+                Command = replaceScript
+                Arguments = String.Empty
+            }
+    let proc =
+        {
+            baseReplaceCommand with
+                Arguments = sprintf "%s --file=%s %s %s"
+                                baseReplaceCommand.Arguments
+                                file
+                                fromStr
+                                toStr
+        }
+    Process.SafeExecute (proc, Echo.Off) |> ignore
+
 
 let Bump(toStable: bool): Version*Version =
     let fullVersion = Misc.GetCurrentVersion(rootDir)
@@ -68,50 +99,27 @@ let Bump(toStable: bool): Version*Version =
                                        newVersion)
             full,newVersion
 
-    let replaceScript = Path.Combine(rootDir.FullName, "scripts", "replace.fsx")
-    let baseReplaceCommand =
-        match Misc.GuessPlatform() with
-        | Misc.Platform.Windows ->
-            {
-                Command = Path.Combine(rootDir.FullName, "scripts", "fsi.bat")
-                Arguments = replaceScript
-            }
-        | _ ->
-            {
-                Command = replaceScript
-                Arguments = String.Empty
-            }
+    let expiryFrom,expiryTo =
+        if toStable then
+            "50days","50years"
+        else
+            "50years","50days"
+
+    Replace gitLabCiYml expiryFrom expiryTo
 
     for file in filesToBumpFullVersion do
-        let proc =
-            {
-                baseReplaceCommand with
-                    Arguments = sprintf "%s --file=%s %s %s"
-                                    baseReplaceCommand.Arguments
-                                    file
-                                   (fullVersion.ToString())
-                                   (newFullVersion.ToString())
-            }
-        Process.SafeExecute (proc, Echo.Off) |> ignore
-
+        Replace file (fullVersion.ToString()) (newFullVersion.ToString())
 
     for file in filesToBumpFullVersion do
-        let proc =
-            {
-                baseReplaceCommand with
-                    Arguments = sprintf "%s --file=%s versionCode=\\\"%s\\\" versionCode=\\\"%s\\\""
-                                    baseReplaceCommand.Arguments
-                                    file
-                                    (androidVersion.ToString())
-                                    (newVersion.ToString())
-            }
-        Process.SafeExecute (proc, Echo.Off) |> ignore
+        Replace file
+                (sprintf "versionCode=\\\"%s\\\"" (androidVersion.ToString()))
+                (sprintf "versionCode=\\\"%s\\\"" (newVersion.ToString()))
 
     fullVersion,newFullVersion
 
 
 let GitCommit (fullVersion: Version) (newFullVersion: Version) =
-    for file in filesToBumpFullVersion do
+    for file in filesToGitAdd do
         let gitAdd =
             {
                 Command = "git"
