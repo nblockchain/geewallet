@@ -43,6 +43,11 @@ let filesToBumpFullVersion: seq<string> =
         "snap/snapcraft.yaml"
         ".github/workflows/ubuntu.yml"
     ]
+let gitLabCiYml = ".gitlab-ci.yml"
+let filesToGitAdd: seq<string> =
+    Seq.append filesToBumpFullVersion [
+        gitLabCiYml
+    ]
 
 let Bump(toStable: bool): Version*Version =
     let fullVersion = Misc.GetCurrentVersion(rootDir)
@@ -80,6 +85,24 @@ let Bump(toStable: bool): Version*Version =
                 Arguments = String.Empty
             }
 
+
+    let expiryFrom,expiryTo =
+        if toStable then
+            "50days","50years"
+        else
+            "50years","50days"
+    let proc =
+        {
+            baseReplaceCommand with
+                Arguments = sprintf "%s --file=%s %s %s"
+                                baseReplaceCommand.Arguments
+                                gitLabCiYml
+                                expiryFrom
+                                expiryTo
+        }
+    Process.SafeExecute (proc, Echo.Off) |> ignore
+
+
     for file in filesToBumpFullVersion do
         let proc =
             {
@@ -109,7 +132,7 @@ let Bump(toStable: bool): Version*Version =
 
 
 let GitCommit (fullVersion: Version) (newFullVersion: Version) =
-    for file in filesToBumpFullVersion do
+    for file in filesToGitAdd do
         let gitAdd =
             {
                 Command = "git"

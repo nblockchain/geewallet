@@ -55,7 +55,7 @@ newmono_build:
   artifacts:
     paths:
       - bin/*.zip
-    expire_in: 1 week
+    expire_in: 50days
   script:
     - ./scripts/install_mono_from_microsoft_deb_packages.sh
 
