@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="0.4.2.199" package="com.geewallet.android" android:versionCode="199">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="0.4.2.200" package="com.geewallet.android" android:versionCode="200">
 	<uses-sdk android:minSdkVersion="15" android:targetSdkVersion="28" />
 	<uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.CAMERA" />
