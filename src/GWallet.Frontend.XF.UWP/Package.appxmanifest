@@ -7,15 +7,15 @@
   IgnorableNamespaces="uap mp">
 
   <Identity
-    Name="b65948c1-83e2-46aa-9702-85fe2d49f117"
-    Publisher="CN=andres"
-    Version="1.0.0.0" />
+    Name="10509AndresG.Aragoneses.geewallet"
+    Publisher="CN=849618F6-D64D-4552-88E2-1B8766BCD10A"
+    Version="1.0.3.0" />
 
-  <mp:PhoneIdentity PhoneProductId="b65948c1-83e2-46aa-9702-85fe2d49f117" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="b1e8a5f8-5846-4c4c-a375-78e18581c3fe" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>GWallet.Frontend.XamForms.UWP</DisplayName>
-    <PublisherDisplayName>andres</PublisherDisplayName>
+    <DisplayName>geewallet</DisplayName>
+    <PublisherDisplayName>Andres G. Aragoneses</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
