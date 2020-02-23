@@ -131,10 +131,18 @@
     <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_32x32.png">
       <Visible>false</Visible>
     </ImageAsset>
-    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_172x172.png" />
-    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_512x512.png" />
-    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_256x256.png" />
-    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo.png" />
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_172x172.png">
+      <Visible>false</Visible>
+    </ImageAsset>
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_512x512.png">
+      <Visible>false</Visible>
+    </ImageAsset>
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo_256x256.png">
+      <Visible>false</Visible>
+    </ImageAsset>
+    <ImageAsset Include="Assets.xcassets\AppIcon.appiconset\logo.png">
+      <Visible>false</Visible>
+    </ImageAsset>
     <ImageAsset Include="Assets.xcassets\Contents.json">
       <Visible>false</Visible>
     </ImageAsset>
