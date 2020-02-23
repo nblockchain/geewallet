@@ -455,7 +455,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         let page = PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
                         FrontendHelpers.SwitchToNewPage this page true
 
-        ) |> ignore
+        )
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
         tapGestureRecognizer
 
