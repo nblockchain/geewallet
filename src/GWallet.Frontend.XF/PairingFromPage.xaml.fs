@@ -45,7 +45,8 @@ type PairingFromPage(previousPage: Page,
         | None -> ()
 
         // FIXME: remove this workaround below when https://github.com/xamarin/Xamarin.Forms/issues/8843 gets fixed
-        if (Device.RuntimePlatform <> Device.macOS) then () else
+        // TODO: file the UWP bug too
+        if Device.RuntimePlatform <> Device.macOS && Device.RuntimePlatform <> Device.UWP then () else
 
         let backButton = Button(Text = "< Go back")
         backButton.Clicked.Subscribe(fun _ ->
@@ -54,7 +55,7 @@ type PairingFromPage(previousPage: Page,
             )
         ) |> ignore
         mainLayout.Children.Add(backButton)
-        //</workaround>
+        //</workaround> (NOTE: this also exists in ReceivePage.xaml.fs)
 
     member this.OnCopyToClipboardClicked(sender: Object, args: EventArgs) =
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")

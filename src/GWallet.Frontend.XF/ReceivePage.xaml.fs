@@ -88,7 +88,8 @@ type ReceivePage(account: IAccount,
             transactionHistoryButton.IsEnabled <- false
 
         // FIXME: remove this workaround below when https://github.com/xamarin/Xamarin.Forms/issues/8843 gets fixed
-        if (Device.RuntimePlatform <> Device.macOS) then () else
+        // TODO: file the UWP bug too
+        if Device.RuntimePlatform <> Device.macOS && Device.RuntimePlatform <> Device.UWP then () else
 
         let backButton = Button(Text = "< Go back")
         backButton.Clicked.Subscribe(fun _ ->
@@ -97,7 +98,7 @@ type ReceivePage(account: IAccount,
             )
         ) |> ignore
         mainLayout.Children.Add(backButton)
-        //</workaround>
+        //</workaround> (NOTE: this also exists in PairingFromPage.xaml.fs)
 
     member this.OnSendPaymentClicked(sender: Object, args: EventArgs) =
         let newReceivePageFunc = (fun _ ->
