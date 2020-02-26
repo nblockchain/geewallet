@@ -115,10 +115,8 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                         Account.GenerateMasterPrivateKey passphraseEntry.Text dateTime (emailEntry.Text.ToLower())
                             |> Async.StartAsTask
 
-                    Device.BeginInvokeOnMainThread(fun _ ->
-                        FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this
-                                                                            (WelcomePage2 (state, masterPrivKeyTask))
-                    )
+                    FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this
+                                                                        (WelcomePage2 (state, masterPrivKeyTask))
                 } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
 

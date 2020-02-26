@@ -56,9 +56,7 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
 
             async {
                 do! Account.CreateAllAccounts masterPrivateKeyGenerationTask password.Text
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage (state, false))
-                )
+                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage (state, false))
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnPasswordTextChanged(sender: Object, args: EventArgs) =
