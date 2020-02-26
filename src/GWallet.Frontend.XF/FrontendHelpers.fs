@@ -190,14 +190,14 @@ module FrontendHelpers =
             async {
                 try
                     let! jobResult = job
-                    return jobResult
 
-                finally
                     match maybeProgressBar with
                     | Some progressBar ->
                         UpdateProgressBar progressBar
                     | None -> ()
 
+                    return jobResult
+                finally
                     (cancelSource:>IDisposable).Dispose()
             }
         cancelSource,fullJob
