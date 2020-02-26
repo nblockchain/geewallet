@@ -14,7 +14,7 @@ type UnexpectedTaskCanceledException(message: string, innerException) =
 type FSharpUtilCoverage() =
 
     [<Test>]
-    member __.``basic test``() =
+    member __.``find exception: basic test``() =
         let innerEx = TaskCanceledException "bar"
         let wrapperEx = Exception("foo", innerEx)
         let childFound = FSharpUtil.FindException<TaskCanceledException> wrapperEx
@@ -25,7 +25,7 @@ type FSharpUtilCoverage() =
             Assert.That(Object.ReferenceEquals(ex.InnerException, null))
 
     [<Test>]
-    member __.``it works with inherited classes (UnexpectedTaskCanceledException is child of TaskCanceledException)``() =
+    member __.``find exception: it works with inherited classes (UnexpectedTaskCanceledException is child of TaskCanceledException)``() =
         let innerEx = TaskCanceledException "bar"
         let inheritedEx = UnexpectedTaskCanceledException("foo", innerEx)
         let parentFound = FSharpUtil.FindException<TaskCanceledException> inheritedEx
@@ -36,7 +36,7 @@ type FSharpUtilCoverage() =
             Assert.That(Object.ReferenceEquals(ex.InnerException, innerEx))
 
     [<Test>]
-    member __.``flattens (AggregateEx)``() =
+    member __.``find exception: flattens (AggregateEx)``() =
         let innerEx1 = TaskCanceledException "bar" :> Exception
         let innerEx2 = UnexpectedTaskCanceledException ("baz", null) :> Exception
         let parent = AggregateException("foo", [|innerEx1; innerEx2|])
