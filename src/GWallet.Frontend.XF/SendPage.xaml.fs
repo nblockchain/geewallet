@@ -685,7 +685,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             let! _ = Async.AwaitTask (this.Navigation.PopAsync())
             return ()
         }
-        let broadcastJob = async {
+        async {
             try
                 let! _ = Account.BroadcastTransaction signedTransaction
                 Device.BeginInvokeOnMainThread(fun _ ->
@@ -698,9 +698,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             | :? InsufficientFunds ->
                 let errMsg = "Insufficient funds."
                 this.ShowWarningAndEnableFormWidgetsAgain errMsg
-        }
-        Async.StartAsTask broadcastJob
-            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+        } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnSendOrSignButtonClicked(sender: Object, args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
@@ -793,8 +791,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                             this.ShowFeeAndSend(maybeTxMetadataWithFeeEstimation,
                                                 transferAmount,
                                                 validatedDestinationAddress)
-                }    |> Async.StartAsTask
-                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+                } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     interface FrontendHelpers.IAugmentablePayPage with
         member this.AddTransactionScanner() =

@@ -119,7 +119,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
             return readOnlyAccountBalances
         }
 
-        let populateGrid = async {
+        async {
             let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJobAugmented
                                                                      readOnlyAccountBalancesJobAugmented
 
@@ -131,8 +131,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                                             currencyImages, false)
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
         }
-        Async.StartAsTask populateGrid
-            |> FrontendHelpers.DoubleCheckCompletion
+            |> FrontendHelpers.DoubleCheckCompletionAsync false
 
         ()
 

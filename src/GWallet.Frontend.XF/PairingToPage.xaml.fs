@@ -122,7 +122,6 @@ type PairingToPage(balancesPage: Page,
 
                 this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
             )
-        } |> Async.StartAsTask
-          |> FrontendHelpers.DoubleCheckCompletion
+        } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
 
