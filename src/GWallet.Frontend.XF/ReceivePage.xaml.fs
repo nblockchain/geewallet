@@ -26,8 +26,6 @@ type ReceivePage(account: IAccount,
     do
         this.Init()
 
-        FrontendHelpers.ApplyMacWorkaroundAgainstInvisibleLabels mainLayout
-
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = ReceivePage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
                         DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),

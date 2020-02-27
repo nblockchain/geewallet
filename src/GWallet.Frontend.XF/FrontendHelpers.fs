@@ -287,27 +287,10 @@ module FrontendHelpers =
             )
         ) |> DoubleCheckCompletionNonGeneric
 
-    let internal ApplyMacWorkaroundAgainstInvisibleText (label: Label) =
-        if Device.RuntimePlatform = Device.macOS then
-            // workaround for this Xamarin.Forms bug: https://github.com/xamarin/Xamarin.Forms/issues/9526
-            label.TextColor <- Color.Black
-
-    let rec internal ApplyMacWorkaroundAgainstInvisibleLabels (layout: Layout) =
-        if Device.RuntimePlatform = Device.macOS then
-            for child in layout.Children do
-                match child with
-                | :? Label as label ->
-                    ApplyMacWorkaroundAgainstInvisibleText label
-                | :? Layout as innerLayout ->
-                    ApplyMacWorkaroundAgainstInvisibleLabels innerLayout
-                | _ ->
-                    ()
-
     let private CreateLabelWidgetForAccount horizontalOptions =
         let label = Label(Text = "...",
                           VerticalOptions = LayoutOptions.Center,
                           HorizontalOptions = horizontalOptions)
-        ApplyMacWorkaroundAgainstInvisibleText label
         label
 
     let private normalCryptoBalanceClassId = "normalCryptoBalanceFrame"
