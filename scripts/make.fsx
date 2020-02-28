@@ -100,7 +100,12 @@ let PrintNugetVersion () =
     if not (nugetExe.Exists) then
         false
     else
-        let nugetProc = Process.Execute ({ Command = "mono"; Arguments = nugetExe.FullName }, Echo.Off)
+        let nugetCmd =
+            match Misc.GuessPlatform() with
+            | Misc.Platform.Windows ->
+                { Command = nugetExe.FullName; Arguments = String.Empty }
+            | _ -> { Command = "mono"; Arguments = nugetExe.FullName }
+        let nugetProc = Process.Execute (nugetCmd, Echo.Off)
         Console.WriteLine nugetProc.Output.StdOut
         if nugetProc.ExitCode = 0 then
             true
