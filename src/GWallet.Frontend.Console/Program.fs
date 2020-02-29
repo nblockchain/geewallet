@@ -96,7 +96,9 @@ let SignOffPayment() =
 
                 Console.WriteLine ("Account to use when signing off this transaction:")
                 Console.WriteLine ()
-                UserInteraction.DisplayAccountStatuses <| WhichAccount.MatchingWith account
+                let linesJob = UserInteraction.DisplayAccountStatuses <| WhichAccount.MatchingWith account
+                for line in Async.RunSynchronously linesJob do
+                    Console.WriteLine line
                 Console.WriteLine()
 
                 Presentation.ShowTransactionData unsignedTransaction
@@ -350,7 +352,15 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
 
 let rec ProgramMainLoop() =
     let accounts = Account.GetAllActiveAccounts()
-    UserInteraction.DisplayAccountStatuses(WhichAccount.All(accounts))
+
+    Console.WriteLine ()
+    Console.WriteLine "*** STATUS ***"
+    let lines =
+        UserInteraction.DisplayAccountStatuses(WhichAccount.All(accounts))
+            |> Async.RunSynchronously
+    Console.WriteLine (String.concat Environment.NewLine lines)
+    Console.WriteLine ()
+
     if CheckArchivedAccountsAreEmpty() then
         PerformOperation (accounts.Count())
     ProgramMainLoop()

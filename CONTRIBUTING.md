@@ -117,6 +117,9 @@ developer to use a type-less style of catching an exception, plus the
 discriminated union used for its result is quite unreadable (`Choice1Of2`
 and `Choice2Of2` don't give any clue about which one is the successful case
 and which one is the exceptional one).
+* Do not use `System.ParamArray` (for variable number of arguments) as it's
+easy to shoot yourself in the foot, and is not idiomatic F# (it was meant for
+C#). More info: https://sidburn.github.io/blog/2017/03/13/variable-arguments
 
 
 # Workflow best practices
