@@ -205,42 +205,44 @@ module UserInteraction =
                 (balance * usdValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
                 (time |> Formatting.ShowSaneDate)
 
-    let private DisplayAccountStatusInner accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
-        let maybeReadOnly =
-            match account with
-            | :? ReadOnlyAccount -> "(READ-ONLY)"
-            | _ -> String.Empty
+    let DisplayAccountStatusInner accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): seq<string> =
+        seq {
+            let maybeReadOnly =
+                match account with
+                | :? ReadOnlyAccount -> "(READ-ONLY)"
+                | _ -> String.Empty
 
-        let accountInfo = sprintf "Account %d: %s%sCurrency=[%A] Address=[%s]"
-                                accountNumber maybeReadOnly Environment.NewLine
-                                account.Currency
-                                account.PublicAddress
-        Console.WriteLine(accountInfo)
+            let accountInfo = sprintf "Account %d: %s%sCurrency=[%A] Address=[%s]"
+                                    accountNumber maybeReadOnly Environment.NewLine
+                                    account.Currency
+                                    account.PublicAddress
+            yield accountInfo
 
-        let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
+            let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
 
-        match maybeBalance with
-        | NotFresh(NotAvailable) ->
-            Console.WriteLine("Unknown balance (Network unreachable... off-line?)")
-        | NotFresh(Cached(balance,time)) ->
-            let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
-                                (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
-                                (time |> Formatting.ShowSaneDate)
-                                Environment.NewLine
-                                (BalanceInUsdString balance maybeUsdValue)
-            Console.WriteLine(status)
-        | Fresh(balance) ->
-            let status = sprintf "Balance=[%s] %s"
-                                (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
-                                (BalanceInUsdString balance maybeUsdValue)
-            Console.WriteLine(status)
+            match maybeBalance with
+            | NotFresh(NotAvailable) ->
+                yield "Unknown balance (Network unreachable... off-line?)"
+            | NotFresh(Cached(balance,time)) ->
+                let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
+                                    (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
+                                    (time |> Formatting.ShowSaneDate)
+                                    Environment.NewLine
+                                    (BalanceInUsdString balance maybeUsdValue)
+                yield status
+            | Fresh(balance) ->
+                let status = sprintf "Balance=[%s] %s"
+                                    (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
+                                    (BalanceInUsdString balance maybeUsdValue)
+                yield status
 
-        Console.WriteLine (sprintf "History -> %s" ((BlockExplorer.GetTransactionHistory account).ToString()))
+            yield sprintf "History -> %s\n" ((BlockExplorer.GetTransactionHistory account).ToString())
+        }
 
-    let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): unit =
+    let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): seq<string> =
         match account.Currency, maybeBalance with
         | Currency.SAI, Fresh 0m | Currency.DAI, Fresh 0m ->
-            ()
+            Seq.empty
         | _ ->
             DisplayAccountStatusInner accountNumber account maybeBalance
 
@@ -266,14 +268,13 @@ module UserInteraction =
         let accountAndBalancesToBeQueried = accounts |> Seq.map GetAccountBalanceInner
         Async.Parallel accountAndBalancesToBeQueried
 
-    let DisplayAccountStatuses(whichAccount: WhichAccount) =
+    let DisplayAccountStatuses(whichAccount: WhichAccount): Async<seq<string>> =
         let rec displayAllAndSumBalance (accounts: seq<IAccount*MaybeCached<decimal>>)
                                          currentIndex
                                         (currentSumMap: Map<Currency,Option<decimal>>)
-                                        : Map<Currency,Option<decimal>> =
+                                        : seq<string> * Map<Currency,Option<decimal>> =
             let account,maybeBalance = accounts.ElementAt(currentIndex)
-            DisplayAccountStatus (currentIndex+1) account maybeBalance
-            Console.WriteLine ()
+            let status = DisplayAccountStatus (currentIndex+1) account maybeBalance
 
             let balanceToSum: Option<decimal> =
                 match maybeBalance with
@@ -304,11 +305,15 @@ module UserInteraction =
             let newAcc = Map.add account.Currency newBalanceForCurrency maybeCleanedUpMapForReplacement
 
             if (currentIndex < accounts.Count() - 1) then
-                displayAllAndSumBalance accounts (currentIndex + 1) newAcc
+                let otherStatuses, acc = displayAllAndSumBalance accounts (currentIndex + 1) newAcc
+                seq {
+                    yield! status
+                    yield! otherStatuses
+                }, acc
             else
-                newAcc
+                status, newAcc
 
-        let rec displayTotalAndSumFiatBalance (currenciesToBalances: Map<Currency,Option<decimal>>): Option<decimal> =
+        let rec displayTotalAndSumFiatBalance (currenciesToBalances: Map<Currency,Option<decimal>>): Option<decimal> * seq<string> =
             let usdTotals =
                 seq {
                     for KeyValue(currency, balance) in currenciesToBalances do
@@ -317,56 +322,70 @@ module UserInteraction =
                         | Some(onlineBalance) ->
                             let maybeUsdValue = FiatValueEstimation.UsdValue currency
                             match maybeUsdValue with
-                            | NotFresh(NotAvailable) -> yield None
+                            | NotFresh(NotAvailable) -> yield None, None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
                                 let fiatValue = BalanceInUsdString onlineBalance maybeUsdValue
                                 let cryptoValue = Formatting.DecimalAmountRounding CurrencyType.Crypto onlineBalance
                                 let total = sprintf "Total %A: %s (%s)" currency cryptoValue fiatValue
-                                yield Some(onlineBalance * usdValue)
-                                if onlineBalance = 0m && currency.IsEthToken() then
-                                    ()
-                                else
-                                    Console.WriteLine total
+                                yield Some(onlineBalance * usdValue), Some total
                 } |> List.ofSeq
-            if (usdTotals.Any(fun maybeUsdTotal -> maybeUsdTotal.IsNone)) then
-                None
+            let onlyValues = Seq.map fst usdTotals
+            let totals: seq<string> = Seq.map snd usdTotals |> Seq.choose id
+            if onlyValues.Any(fun maybeUsdTotal -> maybeUsdTotal.IsNone) then
+                None, totals
             else
-                Some(usdTotals.Sum(fun maybeUsdTotal -> maybeUsdTotal.Value))
+                Some(onlyValues.Sum(fun maybeUsdTotal -> maybeUsdTotal.Value)), totals
 
         match whichAccount with
         | WhichAccount.All(accounts) ->
-            Console.WriteLine ()
-            Console.WriteLine "*** STATUS ***"
 
             if (accounts.Any()) then
-                let accountsWithBalances = GetAccountBalances accounts |> Async.RunSynchronously
-                let currencyTotals = displayAllAndSumBalance accountsWithBalances 0 Map.empty
+                async {
+                    let! accountsWithBalances = GetAccountBalances accounts
+                    let statuses, currencyTotals = displayAllAndSumBalance accountsWithBalances 0 Map.empty
 
-                let maybeTotalInUsd = displayTotalAndSumFiatBalance currencyTotals
-                match maybeTotalInUsd with
-                | None -> ()
-                | Some(totalInUsd) ->
-                    Console.WriteLine()
-                    Console.WriteLine(sprintf "Total estimated value in USD: %s"
-                                          (Formatting.DecimalAmountRounding CurrencyType.Fiat totalInUsd))
+                    let maybeTotalInUsd, totals = displayTotalAndSumFiatBalance currencyTotals
+                    return
+                        seq {
+                            yield!
+                                match maybeTotalInUsd with
+                                | None -> statuses
+                                | Some(totalInUsd) ->
+                                    seq {
+                                        yield! statuses
+                                        yield! totals
+                                        yield sprintf "Total estimated value in USD: %s"
+                                                      (Formatting.DecimalAmountRounding CurrencyType.Fiat totalInUsd)
+                                    }
+                        }
+                }
             else
-                Console.WriteLine("No accounts have been created so far.")
-            Console.WriteLine()
+                async {
+                    return seq {
+                        yield "No accounts have been created so far."
+                    }
+                }
 
         | MatchingWith(account) ->
-            let allAccounts =  Account.GetAllActiveAccounts()
-            let matchFilter = (fun (acc:IAccount) -> acc.PublicAddress = account.PublicAddress &&
-                                                     acc.Currency = account.Currency &&
-                                                     acc :? NormalAccount)
-            let accountsMatching = allAccounts.Where(matchFilter)
-            if (accountsMatching.Count() <> 1) then
-                failwithf "account %s(%A) not found in config, or more than one with same public address?"
-                          account.PublicAddress account.Currency
-            for i = 0 to allAccounts.Count() - 1 do
-                let iterAccount = allAccounts.ElementAt(i)
-                if (matchFilter (iterAccount)) then
-                    let balance = GetAccountBalance iterAccount |> Async.RunSynchronously
-                    DisplayAccountStatus (i+1) iterAccount balance
+            async {
+                let allAccounts =  Account.GetAllActiveAccounts()
+                let matchFilter = (fun (acc:IAccount) -> acc.PublicAddress = account.PublicAddress &&
+                                                         acc.Currency = account.Currency &&
+                                                         acc :? NormalAccount)
+                let accountsMatching = allAccounts.Where matchFilter
+                if accountsMatching.Count() <> 1 then
+                    failwithf "account %s(%A) not found in config, or more than one with same public address?"
+                              account.PublicAddress account.Currency
+                let account = accountsMatching.Single()
+                let! balance = GetAccountBalance account
+                return seq {
+                    // this loop is just to find the number of the account
+                    for i = 0 to allAccounts.Count() - 1 do
+                        let iterAccount = allAccounts.ElementAt i
+                        if matchFilter iterAccount then
+                            yield! DisplayAccountStatus (i+1) iterAccount balance
+                }
+            }
 
     let rec AskYesNo (question: string): bool =
         Console.Write (sprintf "%s (Y/N): " question)
