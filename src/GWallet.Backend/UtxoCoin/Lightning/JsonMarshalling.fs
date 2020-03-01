@@ -56,7 +56,7 @@ module JsonMarshalling =
     type CommitmentSpecConverter() =
         inherit JsonConverter<CommitmentSpec>()
 
-        override this.ReadJson(reader: JsonReader, objectType: Type, existingValue: CommitmentSpec, hasExistingValue: bool, serializer: JsonSerializer) =
+        override this.ReadJson(reader: JsonReader, _: Type, _: CommitmentSpec, _: bool, serializer: JsonSerializer) =
             let serializedCommitmentSpec = serializer.Deserialize<SerializedCommitmentSpec> reader
             {
                 CommitmentSpec.HTLCs = serializedCommitmentSpec.HTLCs
@@ -78,7 +78,7 @@ module JsonMarshalling =
     type IPAddressJsonConverter() =
         inherit JsonConverter<IPAddress>()
 
-        override this.ReadJson(reader: JsonReader, objectType: Type, existingValue: IPAddress, hasExistingValue: bool, serializer: JsonSerializer) =
+        override this.ReadJson(reader: JsonReader, _: Type, _: IPAddress, _: bool, serializer: JsonSerializer) =
             let serializedIPAddress = serializer.Deserialize<string> reader
             IPAddress.Parse serializedIPAddress
 
@@ -88,7 +88,7 @@ module JsonMarshalling =
     type IPEndPointJsonConverter() =
         inherit JsonConverter<IPEndPoint>()
 
-        override this.ReadJson(reader: JsonReader, objectType: Type, existingValue: IPEndPoint, hasExistingValue: bool, serializer: JsonSerializer) =
+        override this.ReadJson(reader: JsonReader, _: Type, _: IPEndPoint, _: bool, serializer: JsonSerializer) =
             assert (reader.TokenType = JsonToken.StartArray)
             reader.Read() |> ignore
             let ip = serializer.Deserialize<IPAddress> reader
@@ -107,7 +107,7 @@ module JsonMarshalling =
     type CommitmentsJsonConverter() =
         inherit JsonConverter<Commitments>()
 
-        override this.ReadJson(reader: JsonReader, objectType: Type, existingValue: Commitments, hasExistingValue: bool, serializer: JsonSerializer) =
+        override this.ReadJson(reader: JsonReader, _: Type, _: Commitments, _: bool, serializer: JsonSerializer) =
             let serializedCommitments = serializer.Deserialize<SerializedCommitments> reader
             let commitments: Commitments = {
                 RemotePerCommitmentSecrets = serializedCommitments.RemotePerCommitmentSecrets
