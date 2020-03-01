@@ -45,7 +45,7 @@ module Lightning =
 
     type FeeEstimator() =
         interface IFeeEstimator with
-            member __.GetEstSatPer1000Weight(confirmationTarget: ConfirmationTarget) =
+            member __.GetEstSatPer1000Weight(_: ConfirmationTarget) =
                 feeRatePerKiloWeightForAllConfirmationTargets
 
     let rec ReadExactAsync (stream: NetworkStream) (numberBytesToRead: int): Async<array<byte>> =
@@ -159,7 +159,7 @@ module Lightning =
             return sentPeer
         }
 
-    let ConnectAndHandshake ({ Account = account; NodeIdForResponder = nodeIdForResponder; KeyRepo = keyRepo }: ChannelEnvironment)
+    let ConnectAndHandshake ({ Account = _; NodeIdForResponder = nodeIdForResponder; KeyRepo = keyRepo }: ChannelEnvironment)
                             (channelCounterpartyIP: IPEndPoint)
                                 : Async<Connection> =
         async {
@@ -180,7 +180,7 @@ module Lightning =
             let! res = ReadAsync keyRepo sentAct1Peer stream
             let actThree, receivedAct2Peer =
                 match Peer.executeCommand sentAct1Peer res with
-                | Ok (ActTwoProcessed ((actThree, _nodeId), newPeerChannelEncryptor) as evt::[]) ->
+                | Ok (ActTwoProcessed ((actThree, _nodeId), _) as evt::[]) ->
                     let peer = Peer.applyEvent sentAct1Peer evt
                     actThree, peer
                 | Ok _ ->
@@ -203,7 +203,7 @@ module Lightning =
             let! res = ReadAsync keyRepo sentInitPeer stream
             return
                 match Peer.executeCommand sentInitPeer res with
-                | Ok (ReceivedInit (newInit, newPeerChannelEncryptor) as evt::[]) ->
+                | Ok (ReceivedInit (newInit, _) as evt::[]) ->
                     let peer = Peer.applyEvent sentInitPeer evt
                     { Init = newInit; Peer = peer; Client = client }
                 | Ok _ ->
@@ -252,7 +252,7 @@ module Lightning =
                          (balance: decimal)
                          (temporaryChannelId: ChannelId)
                              : Async<AcceptChannel * Channel * Peer> =
-        let fundingTxProvider (dest: IDestination, amount: Money, feeRate: FeeRatePerKw) =
+        let fundingTxProvider (dest: IDestination, amount: Money, _: FeeRatePerKw) =
             let transferAmount = TransferAmount (amount.ToDecimal MoneyUnit.BTC, balance, Currency.BTC)
             Debug.Assert (
                              (transferAmount.ValueToSend = channelCapacity.ValueToSend),
@@ -291,7 +291,7 @@ module Lightning =
 
         let openChanMsg, sentOpenChan =
             match Channel.executeCommand initialChan chanCmd with
-            | Ok (NewOutboundChannelStarted (openChanMsg, waitForAcceptChanData) as evt::[]) ->
+            | Ok (NewOutboundChannelStarted (openChanMsg, _) as evt::[]) ->
                 let chan = Channel.applyEvent initialChan evt
                 openChanMsg, chan
             | Ok evtList ->
@@ -324,7 +324,7 @@ module Lightning =
         async {
             let fundingCreated, receivedAcceptChannelChan =
                 match Channel.executeCommand sentOpenChan (ApplyAcceptChannel acceptChannel) with
-                | Ok (ChannelEvent.WeAcceptedAcceptChannel(fundingCreated, waitforFundingSignedData) as evt::[]) ->
+                | Ok (ChannelEvent.WeAcceptedAcceptChannel(fundingCreated, _) as evt::[]) ->
                     let chan = Channel.applyEvent sentOpenChan evt
                     fundingCreated, chan
                 | Ok evtList ->
@@ -335,7 +335,7 @@ module Lightning =
             let! sentFundingCreatedPeer = Send fundingCreated receivedOpenChanReplyPeer stream
 
             DebugLogger "Receiving funding_created..."
-            let! receivedFundingCreatedReplyPeer, chanMsg = ReadUntilChannelMessage (keyRepo, sentFundingCreatedPeer, stream)
+            let! _, chanMsg = ReadUntilChannelMessage (keyRepo, sentFundingCreatedPeer, stream)
 
             let fundingSigned =
                 match chanMsg with
@@ -348,7 +348,7 @@ module Lightning =
             let chanEvents = Channel.executeCommand receivedAcceptChannelChan chanCmd
             let chan, finalizedTx =
                 match chanEvents with
-                | Ok (ChannelEvent.WeAcceptedFundingSigned (finalizedTx, nextState) as evt::[]) ->
+                | Ok (ChannelEvent.WeAcceptedFundingSigned (finalizedTx, _) as evt::[]) ->
                     let chan = Channel.applyEvent receivedAcceptChannelChan evt
                     chan, finalizedTx
                 | Ok evt ->
@@ -404,7 +404,7 @@ module Lightning =
         | NotReady of NotReadyReason
         | DeepEnough of ChannelCommand
 
-    let MaybeChannelMessageFromConfirmationCountAndHistoryAndChannel (txIdHex: string)
+    let MaybeChannelMessageFromConfirmationCountAndHistoryAndChannel (_: string)
                                                                      (confirmationCount: BlockHeight)
                                                                      (absoluteBlockHeight: BlockHeight)
                                                                      (minSafeDepth: BlockHeight)
@@ -526,11 +526,11 @@ module Lightning =
                     let! receivedChannelReestablishPeer, chanMsg = ReadUntilChannelMessage (keyRepo, sentFundingLockedPeer, connection.Client.GetStream())
                     let! fundingLocked =
                         match chanMsg with
-                        | :? ChannelReestablish as channelReestablish ->
+                        | :? ChannelReestablish ->
                             async {
                                 // TODO: validate channel_reestablish
                                 DebugLogger "Received channel_reestablish, now receiving funding_locked..."
-                                let! receivedFundingLockedPeer, chanMsg = ReadUntilChannelMessage (keyRepo, receivedChannelReestablishPeer, connection.Client.GetStream())
+                                let! _, chanMsg = ReadUntilChannelMessage (keyRepo, receivedChannelReestablishPeer, connection.Client.GetStream())
                                 return
                                     match chanMsg with
                                     | :? FundingLocked as fundingLocked ->
@@ -615,7 +615,7 @@ module Lightning =
             let! res = ReadAsync keyRepo receivedAct3Peer stream
             let connection: Connection =
                 match Peer.executeCommand receivedAct3Peer res with
-                | Ok (ReceivedInit (newInit, newPeerChannelEncryptor) as evt::[]) ->
+                | Ok (ReceivedInit (newInit, _) as evt::[]) ->
                     let peer = Peer.applyEvent receivedAct3Peer evt
                     { Init = newInit; Peer = peer; Client = client }
                 | Ok _ ->
@@ -649,7 +649,7 @@ module Lightning =
                     ChannelKeys = channelKeys
                 }
             let chanCmd = ChannelCommand.CreateInbound initFundee
-            let fundingTxProvider (dest: IDestination, amount: Money, feeRate: FeeRatePerKw) =
+            let fundingTxProvider (_: IDestination, _: Money, _: FeeRatePerKw) =
                 failwith "not funding channel, so unreachable"
             DebugLogger "Creating Channel..."
             let initialChan: Channel = CreateChannel
@@ -663,7 +663,7 @@ module Lightning =
 
             let inboundStartedChan =
                 match Channel.executeCommand initialChan chanCmd with
-                | Ok (NewInboundChannelStarted (waitForOpenChannelData) as evt::[]) ->
+                | Ok (NewInboundChannelStarted _ as evt::[]) ->
                     Channel.applyEvent initialChan evt
                 | Ok evtList ->
                     failwith <| SPrintF1 "event was not a single NewInboundChannelStarted, it was: %A" evtList
@@ -708,7 +708,7 @@ module Lightning =
                 | Error channelError ->
                     failwith <| SPrintF1 "could not apply funding_created: %s" (channelError.ToString())
 
-            let! sentFundingSignedPeer = Send fundingSigned receivedFundingCreatedPeer stream
+            let! _ = Send fundingSigned receivedFundingCreatedPeer stream
 
             let fileName = GetNewChannelFilename()
             let remoteIp = client.Client.RemoteEndPoint :?> IPEndPoint
