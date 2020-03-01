@@ -12,7 +12,7 @@ type Request =
     {
         Id: int;
         Method: string;
-        Params: seq<obj>;
+        Params: obj
     }
 
 type ServerVersionResult =
@@ -45,10 +45,34 @@ type BlockchainScriptHashListUnspentResult =
         Result: array<BlockchainScriptHashListUnspentInnerResult>
     }
 
+type BlockchainScriptHashHistoryInnerResult =
+    {
+        TxHash: string
+        Height: uint32
+    }
+
+type BlockchainScriptHashHistoryResult =
+    {
+        Id: int
+        Result: List<BlockchainScriptHashHistoryInnerResult>
+    }
+
 type BlockchainTransactionGetResult =
     {
         Id: int;
         Result: string;
+    }
+
+type VerboseResult =
+    {
+        Locktime: int
+        Confirmations: int // can be -1 too when only in mempool!
+    }
+
+type BlockchainTransactionGetVerboseResult =
+    {
+        Id: int
+        Result: VerboseResult
     }
 
 type BlockchainEstimateFeeResult =
@@ -61,6 +85,18 @@ type BlockchainTransactionBroadcastResult =
     {
         Id: int;
         Result: string;
+    }
+
+type BlockchainHeadersSubscribeInnerResult =
+    {
+        Height: int
+        Hex: string
+    }
+
+type BlockchainHeadersSubscribeResult =
+    {
+        Id: int
+        Result: BlockchainHeadersSubscribeInnerResult
     }
 
 type ErrorInnerResult =
@@ -227,6 +263,18 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             return resObj
         }
 
+    member self.BlockchainScriptHashHistory scriptHash: Async<BlockchainScriptHashHistoryResult> =
+        let obj = {
+            Id = 0
+            Method = "blockchain.scripthash.get_history"
+            Params = [scriptHash]
+        }
+        let json = Serialize obj
+        async {
+            let! resObj,_ = self.Request<BlockchainScriptHashHistoryResult> json
+            return resObj
+        }
+
     member self.BlockchainTransactionGet txHash: Async<BlockchainTransactionGetResult> =
         let obj = {
             Id = 0;
@@ -236,6 +284,18 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
         async {
             let! resObj,_ = self.Request<BlockchainTransactionGetResult> json
+            return resObj
+        }
+
+    member self.BlockchainTransactionGetVerbose (txHash: string): Async<BlockchainTransactionGetVerboseResult> =
+        let obj = {
+            Id = 0
+            Method = "blockchain.transaction.get"
+            Params = Map.ofList ["tx_hash", txHash :> obj; "verbose", true :> obj]
+        }
+        let json = Serialize obj
+        async {
+            let! resObj,_ = self.Request<BlockchainTransactionGetVerboseResult> json
             return resObj
         }
 
@@ -262,5 +322,18 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         async {
             let! resObj,_ = self.Request<BlockchainTransactionBroadcastResult> json
+            return resObj
+        }
+
+    member self.BlockchainHeadersSubscribe (): Async<BlockchainHeadersSubscribeResult> =
+        let obj = {
+            Id = 0
+            Method = "blockchain.headers.subscribe"
+            Params = []
+        }
+        let json = Serialize obj
+
+        async {
+            let! resObj,_ = self.Request<BlockchainHeadersSubscribeResult> json
             return resObj
         }

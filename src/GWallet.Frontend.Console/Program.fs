@@ -4,7 +4,11 @@ open System.Linq
 open System.Text.RegularExpressions
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
+open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Frontend.Console
+
+let random = Org.BouncyCastle.Security.SecureRandom () :> Random
 
 let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
@@ -281,6 +285,96 @@ let WalletOptions(): unit =
         WipeWallet()
     | _ -> ()
 
+type ChannelCreationDetails =
+    {
+        Seed: NBitcoin.uint256
+        AcceptChannel: DotNetLightning.Serialize.Msgs.AcceptChannel
+        Channel: DotNetLightning.Channel.Channel
+        Connection: Lightning.Connection
+        Password: Ref<string>
+    }
+
+let AskChannelFee (account: UtxoCoin.NormalUtxoAccount)
+                  (channelCapacity: TransferAmount)
+                  (balance: decimal)
+                  (channelCounterpartyIP: System.Net.IPEndPoint)
+                  (channelCounterpartyPubKey: NBitcoin.PubKey)
+                      : Async<Option<ChannelCreationDetails>> =
+    let witScriptIdLength = 32
+    // this dummy address is only used for fee estimation
+    let nullScriptId = NBitcoin.WitScriptId (Array.zeroCreate witScriptIdLength)
+    let dummyAddr = NBitcoin.BitcoinWitScriptAddress (nullScriptId, Config.BitcoinNet)
+
+    DebugLogger "Calling EstimateFee..."
+    let metadata =
+        try
+            UtxoCoin.Account.EstimateFeeForDestination
+                 account channelCapacity dummyAddr
+                 |> Async.RunSynchronously
+        with
+        | InsufficientBalanceForFee _ ->
+            failwith "Estimated fee is too high for the remaining balance, \
+                      use a different account or a different amount."
+    Presentation.ShowFee Currency.BTC metadata
+
+    let channelKeysSeed, keyRepo, temporaryChannelId = Lightning.GetSeedAndRepo random
+    let channelEnvironment: Lightning.ChannelEnvironment =
+        {
+            Account = account
+            NodeIdForResponder = DotNetLightning.Utils.Primitives.NodeId channelCounterpartyPubKey
+            KeyRepo = keyRepo
+        }
+    async {
+        let! connectionBeforeAcceptChannel =
+            Lightning.ConnectAndHandshake channelEnvironment channelCounterpartyIP
+        let passwordRef = ref "DotNetLightning shouldn't ask for password until later when user has
+                               confirmed the funding transaction fee. So this is a placeholder."
+        let! acceptChannel, chan, peer =
+            Lightning.GetAcceptChannel
+                channelEnvironment
+                connectionBeforeAcceptChannel
+                channelCapacity
+                metadata
+                (fun _ -> !passwordRef)
+                balance
+                temporaryChannelId
+        let connectionWithNewPeer = { connectionBeforeAcceptChannel with Peer = peer }
+        printfn
+            "Opening a channel with this party will require %d confirmations (~%d minutes)"
+            acceptChannel.MinimumDepth.Value
+            (acceptChannel.MinimumDepth.Value * 10u)
+        let accept = UserInteraction.AskYesNo "Do you accept?"
+        return
+            if accept then
+                Some
+                    {
+                        ChannelCreationDetails.Seed = channelKeysSeed
+                        AcceptChannel = acceptChannel
+                        Channel = chan
+                        Connection = connectionWithNewPeer
+                        Password = passwordRef
+                    }
+            else
+                connectionWithNewPeer.Client.Dispose()
+                None
+    }
+
+let OptionFromMaybeCachedBalance (balance: MaybeCached<decimal>): Option<decimal> =
+    match balance with
+    | NotFresh NotAvailable ->
+        Presentation.Error "Can't open channel while offline."
+        None
+    | Fresh balance | NotFresh (Cached(balance, _)) ->
+        Some balance
+
+// Alternative concise definition: http://www.fssnip.net/5Y/title/Repeat-until
+let rec RetryOptionFunctionUntilSome (functionToRetry: unit -> Option<'T>): 'T =
+    let returnedValue: Option<'T> = functionToRetry ()
+    match returnedValue with
+    | Some x -> x
+    | None ->
+        RetryOptionFunctionUntilSome functionToRetry
+
 let rec PerformOperation (numAccounts: int) =
     match UserInteraction.AskOperation numAccounts with
     | Operations.Exit -> exit 0
@@ -312,6 +406,70 @@ let rec PerformOperation (numAccounts: int) =
         PairToWatchWallet()
     | Operations.Options ->
         WalletOptions()
+    | Operations.OpenChannel ->
+        let btcAccount = Account
+                             .GetAllActiveAccounts()
+                             .OfType<UtxoCoin.NormalUtxoAccount>()
+                             .Single(fun account -> (account :> IAccount).Currency = Currency.BTC)
+        let balance = Account.GetShowableBalance
+                             btcAccount ServerSelectionMode.Fast None
+                             |> Async.RunSynchronously
+        let maybeChannelCreationDetails =
+            FSharpUtil.option {
+                let! balance = OptionFromMaybeCachedBalance balance
+                let! channelCapacity = UserInteraction.AskAmount btcAccount
+                let! ipEndpoint, pubKey = UserInteraction.AskChannelCounterpartyConnectionDetails()
+                DebugLogger "Getting channel fee..."
+                let! channelCreationDetails =
+                    AskChannelFee
+                        btcAccount
+                        channelCapacity
+                        balance
+                        ipEndpoint
+                        pubKey
+                        |> Async.RunSynchronously
+                return ipEndpoint, channelCreationDetails
+            }
+        match maybeChannelCreationDetails with
+        | Some (ipEndpoint, details) ->
+            DebugLogger "Opening channel..."
+            let txId =
+                let attempt (): Option<string> =
+                    let password = UserInteraction.AskPassword false
+                    // Password is a reference, it is also inside details.Channel,
+                    // so while it looks unused, it is indeed used.
+                    details.Password := password
+                    try
+                        let txId =
+                            Lightning.ContinueFromAcceptChannelAndSave
+                                btcAccount
+                                details.Seed
+                                ipEndpoint
+                                details.AcceptChannel
+                                details.Channel
+                                (details.Connection.Client.GetStream())
+                                details.Connection.Peer
+                                |> Async.RunSynchronously
+                        details.Connection.Client.Dispose()
+                        Some txId
+                    with
+                    | :? InvalidPassword ->
+                        printfn "Invalid password, try again."
+                        None
+                RetryOptionFunctionUntilSome attempt
+            let uri = BlockExplorer.GetTransaction Currency.BTC txId
+            printfn "A funding transaction was broadcast: %A" uri
+            UserInteraction.PressAnyKeyToContinue()
+        | None ->
+            // Error message printed already
+            UserInteraction.PressAnyKeyToContinue()
+
+    | Operations.AcceptChannel ->
+        let btcAccount = Account
+                             .GetAllActiveAccounts()
+                             .OfType<UtxoCoin.NormalUtxoAccount>()
+                             .Single(fun account -> (account :> IAccount).Currency = Currency.BTC)
+        Lightning.AcceptTheirChannel random btcAccount |> Async.RunSynchronously
     | _ -> failwith "Unreachable"
 
 let rec GetAccountOfSameCurrency currency =
@@ -349,15 +507,55 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
 
     not (archivedAccountsInNeedOfAction.Any())
 
+let private NotReadyReasonToString (reason: Lightning.NotReadyReason): string =
+    match reason with
+    | Lightning.NotReadyReason.NeedMoreConfirmations (currentConfirmations, neededConfirmations) ->
+        sprintf "%d out of %d confirmations" currentConfirmations.Value neededConfirmations.Value
+    | Lightning.NotReadyReason.TooOld confirmationsCount ->
+        sprintf "channel too old, it has %d confirmations and should already have been opened completely" confirmationsCount.Value
+
+let private CheckChannelStatus (path: string, channelFileId: int): Async<seq<string>> =
+    async {
+        let! channelStatus = Lightning.LoadChannelAndCheckChannelMessage path
+        return
+            match channelStatus with
+            | Lightning.ChannelStatus.UnusableChannelWithReason (txIdHex, notReadyReason) ->
+                let reasonString = NotReadyReasonToString notReadyReason
+                let msg =
+                    sprintf
+                        "Channel %d opening in progress (%s): %s\n"
+                        channelFileId reasonString txIdHex
+                seq { yield msg }
+            | Lightning.ChannelStatus.UsableChannel _ ->
+                seq { yield sprintf "Channel %d is open.\n" channelFileId }
+    }
+
+let private CheckChannelStatuses(): Async<seq<string>> =
+    async {
+        let jobs = Lightning.ListSavedChannels () |> Seq.map CheckChannelStatus
+        let! statuses = Async.Parallel jobs
+        return Seq.collect id statuses
+    }
 
 let rec ProgramMainLoop() =
     let accounts = Account.GetAllActiveAccounts()
 
     Console.WriteLine ()
     Console.WriteLine "*** STATUS ***"
-    let lines =
-        UserInteraction.DisplayAccountStatuses(WhichAccount.All(accounts))
-            |> Async.RunSynchronously
+    let statusAndChannelJob =
+        seq {
+            yield UserInteraction.DisplayAccountStatuses(WhichAccount.All accounts)
+            yield CheckChannelStatuses()
+        } |> Async.Parallel
+    let results = Async.RunSynchronously statusAndChannelJob
+    let accountStatuses: seq<string> = results.[0]
+    let channelStatuses: seq<string> = results.[1]
+    let lines: seq<string> =
+        seq {
+            yield! accountStatuses
+            yield Environment.NewLine
+            yield! channelStatuses
+        }
     Console.WriteLine (String.concat Environment.NewLine lines)
     Console.WriteLine ()
 
