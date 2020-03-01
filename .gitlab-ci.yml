@@ -10,7 +10,7 @@ stages:
   - package
 
 stockmono_build:
-  image: ubuntu:18.04
+  image: ubuntu:20.04
   stage: build
   script:
     # https://askubuntu.com/a/1013396
@@ -22,7 +22,7 @@ stockmono_build:
     - make nuget
 
 stockmono_test_unit:
-  image: ubuntu:18.04
+  image: ubuntu:20.04
   stage: unit_tests
   script:
     # https://askubuntu.com/a/1013396
@@ -32,22 +32,6 @@ stockmono_test_unit:
             ./configure.sh &&
             make &&
             make check)
-
-stocknewmono_build:
-  image: ubuntu:19.04
-  stage: build
-  script:
-    # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
-    - mono --version
-
-    # fsharpi is broken in Ubuntu 19.04 ( https://github.com/fsharp/fsharp/issues/740 ) so
-    # we can install 'fsx' as a workaorund
-    - apt install -y git && git clone https://gitlab.com/knocte/fsx.git
-    - cd fsx && ./configure.sh && make install && cd ..
-
-    - ./configure.sh
-    # FIXME: compilation fails for now due to some Nuget's bug:https://github.com/NuGet/Home/issues/7202
 
 newmono_build:
   image: ubuntu:18.04
