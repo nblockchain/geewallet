@@ -191,7 +191,7 @@ module Lightning =
             Debug.Assert((bolt08ActThreeLength = actThree.Length), SPrintF1 "act3 has wrong length (not %i)" bolt08ActThreeLength)
             do! stream.WriteAsync(actThree, 0, actThree.Length) |> Async.AwaitTask
 
-            let plainInit =
+            let plainInit: Init =
                 {
                     GlobalFeatures = GlobalFeatures.Flags [||]
                     LocalFeatures = localFeatures
