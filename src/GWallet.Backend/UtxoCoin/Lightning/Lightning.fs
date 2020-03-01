@@ -190,7 +190,7 @@ module Lightning =
             Debug.Assert((bolt08ActThreeLength = actThree.Length), sprintf "act3 has wrong length (not %d)" bolt08ActThreeLength)
             do! stream.WriteAsync(actThree, 0, actThree.Length) |> Async.AwaitTask
 
-            let plainInit =
+            let plainInit: Init =
                 {
                     GlobalFeatures = GlobalFeatures.Flags [||]
                     LocalFeatures = localFeatures
@@ -621,7 +621,7 @@ module Lightning =
                     failwith "not one good ReceivedInit event"
                 | Error peerError ->
                     failwithf "couldn't parse init: %s" (peerError.ToString())
-            let plainInit =
+            let plainInit: Init =
                 {
                     GlobalFeatures = GlobalFeatures.Flags [||]
                     LocalFeatures = localFeatures
