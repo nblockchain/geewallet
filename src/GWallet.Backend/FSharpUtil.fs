@@ -11,6 +11,14 @@ type Result<'Val, 'Err when 'Err :> Exception> =
 
 module FSharpUtil =
 
+#if DEBUG
+    let DebugLogger (msg: string): unit =
+        printfn "%s" msg
+#else
+    let DebugLogger (_: string): unit =
+        ()
+#endif
+
     type internal ResultWrapper<'T>(value : 'T) =
 
         // hack?
