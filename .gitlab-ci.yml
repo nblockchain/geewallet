@@ -41,11 +41,7 @@ stocknewmono_build:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt install -y make
-    # fsharpi is broken in Ubuntu 19.04/19.10/20.04 ( https://github.com/fsharp/fsharp/issues/740 ) so
-    # we can install 'fsx' as a workaorund
-    - apt install -y git && git clone https://gitlab.com/knocte/fsx.git
-    - cd fsx && ./configure.sh && make install && cd ..
+    - apt install -y make git
 
     - ./configure.sh
     - make
@@ -59,11 +55,7 @@ stocknewmono_test_unit:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt install -y make
-    # fsharpi is broken in Ubuntu 19.04/19.10/20.04 ( https://github.com/fsharp/fsharp/issues/740 ) so
-    # we can install 'fsx' as a workaorund
-    - apt install -y git && git clone https://gitlab.com/knocte/fsx.git
-    - cd fsx && ./configure.sh && make install && cd ..
+    - apt install -y make git
 
     - apt-get install -y nunit-console
     - ./configure.sh
@@ -78,11 +70,7 @@ stocknewmono_test_integration:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt install -y make
-    # fsharpi is broken in Ubuntu 19.04/19.10/20.04 ( https://github.com/fsharp/fsharp/issues/740 ) so
-    # we can install 'fsx' as a workaorund
-    - apt install -y git && git clone https://gitlab.com/knocte/fsx.git
-    - cd fsx && ./configure.sh && make install && cd ..
+    - apt install -y make git
 
     - ./configure.sh
     - make
