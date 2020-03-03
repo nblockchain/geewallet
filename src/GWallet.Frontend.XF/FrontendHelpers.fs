@@ -232,7 +232,16 @@ module FrontendHelpers =
             if shouldCrash then
                 Device.BeginInvokeOnMainThread(fun _ ->
                     raise ex
+                    // this is just in case the raise(throw) doesn't really tear down the program:
+                    Console.Error.WriteLine("FATAL PROBLEM: " + ex.ToString())
+                    Console.Error.WriteLine "MANUAL FORCED SHUTDOWN NOW"
+                    Device.PlatformServices.QuitApplication()
                 )
+                raise ex
+                // this is just in case the raise(throw) doesn't really tear down the program:
+                Console.Error.WriteLine("FATAL PROBLEM: " + ex.ToString())
+                Console.Error.WriteLine "MANUAL FORCED SHUTDOWN NOW"
+                Device.PlatformServices.QuitApplication()
 
     // when running Task<unit> or Task<T> where we want to ignore the T, we should still make sure there is no exception,
     // & if there is, bring it to the main thread to fail fast, report to Sentry, etc, otherwise it gets ignored
