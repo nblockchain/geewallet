@@ -30,12 +30,12 @@ else
                     echo "$0" $'failed, please install "git" (to populate submodule) or "fsx" first'
                     exit 1
                 fi
+                echo "Populating sub-fsx module..."
                 git submodule update --init
             fi
 
             # fsharpi is broken in Ubuntu 19.04/19.10/20.04 ( https://github.com/fsharp/fsharp/issues/740 )
             BIN_DIR="`pwd`/bin/fsx"
-            echo "Populating sub-fsx module..."
             mkdir -p $BIN_DIR
             cd scripts/fsx && ./configure.sh --prefix=$BIN_DIR && make install && cd ../..
             RUNNER="$BIN_DIR/bin/fsx"
