@@ -355,7 +355,7 @@ module UserInteraction =
                                     seq {
                                         yield! statuses
                                         yield! totals
-                                        yield Environment.NewLine
+                                        yield String.Empty // this ends up being simply an Environment.NewLine
                                         yield sprintf "Total estimated value in USD: %s"
                                                       (Formatting.DecimalAmountRounding CurrencyType.Fiat totalInUsd)
                                     }
