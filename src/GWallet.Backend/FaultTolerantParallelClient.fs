@@ -155,7 +155,7 @@ type Runner<'Resource when 'Resource: equality> =
                 match maybeSpecificEx with
                 | Some specificInnerEx ->
                     if report then
-                        Console.Error.WriteLine (sprintf "Cancellation fault warning: %s"
+                        Infrastructure.LogError (sprintf "Cancellation fault warning: %s"
                                                      (ex.ToString()))
                     return Error (specificInnerEx :> Exception)
                 | None ->
@@ -392,13 +392,11 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             | None ->
                 if newRestOfTasks.Length = 0 then
 
-                    if Config.DebugLog then
-                        Console.WriteLine "100% done (for this currency)"
+                    Infrastructure.LogDebug "100% done (for this currency)"
                     return! returnWithConsistencyOf None None
 
                 else
-                    if Config.DebugLog then
-                        Console.WriteLine(sprintf "%f%% done (for this currency)"
+                    Infrastructure.LogDebug (sprintf "%f%% done (for this currency)"
                             (100.*(float (newFailedFuncs.Length+newResults.Length))/(float initialServerCount)))
 
                     return! WhenSomeInternal consistencySettings

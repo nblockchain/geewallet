@@ -104,13 +104,12 @@ module Caching =
                     Some deserializedJson
                 with
                 | :? VersionMismatchDuringDeserializationException ->
-                    Console.Error.WriteLine droppedCachedMsgWarning
+                    Infrastructure.LogError droppedCachedMsgWarning
                     None
                 | :? DeserializationException ->
                     // FIXME: report a warning to sentry here...
-                    Console.Error.WriteLine "Warning: cleaning incompatible cache data found"
-                    if Config.DebugLog then
-                        Console.Error.WriteLine (sprintf "JSON content: <<<%s>>>" json)
+                    Infrastructure.LogError "Warning: cleaning incompatible cache data found"
+                    Infrastructure.LogDebug (sprintf "JSON content: <<<%s>>>" json)
                     None
         with
         | :? FileNotFoundException -> None
@@ -128,7 +127,7 @@ module Caching =
                 true,CachedNetworkData.Empty
             | Some networkData ->
                 if WeirdNullCheckToDetectVersionConflicts networkData.OutgoingTransactions then
-                    Console.Error.WriteLine droppedCachedMsgWarning
+                    Infrastructure.LogError droppedCachedMsgWarning
                     true,CachedNetworkData.Empty
                 else
                     false,networkData
@@ -254,7 +253,7 @@ module Caching =
             for KeyValue(currency,servers) in mergedAndSaved do
                 for server in servers do
                     if server.CommunicationHistory.IsNone then
-                        Console.Error.WriteLine (sprintf "WARNING: no history stats about %A server %s"
+                        Infrastructure.LogError (sprintf "WARNING: no history stats about %A server %s"
                                                          currency server.ServerInfo.NetworkPath)
             mergedServers
 
@@ -576,7 +575,7 @@ module Caching =
                         if isSuccess then
                             return content
                         else
-                            Console.Error.WriteLine ("WARNING: error trying to retrieve server stats: " + content)
+                            Infrastructure.LogError ("WARNING: error trying to retrieve server stats: " + content)
                             return failwith content
                     }
                 async {
@@ -618,7 +617,7 @@ module Caching =
                 let! maybeLastServerStatsInJson = Async.Choice allJobs
                 match maybeLastServerStatsInJson with
                 | None ->
-                    Console.Error.WriteLine "WARNING: Couldn't reach a trusted server to retrieve server stats to bootstrap cache, running in offline mode?"
+                    Infrastructure.LogError "WARNING: Couldn't reach a trusted server to retrieve server stats to bootstrap cache, running in offline mode?"
                 | Some lastServerStatsInJson ->
                     let lastServerStats = ImportFromJson<ServerRanking> lastServerStatsInJson
                     lock cacheFiles.ServerStats (fun _ ->

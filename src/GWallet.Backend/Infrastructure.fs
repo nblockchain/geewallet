@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend
 
 open System
+open System.Diagnostics
 
 open SharpRaven
 open SharpRaven.Data
@@ -12,6 +13,18 @@ module Infrastructure =
 
     let private ReportInner (sentryEvent: SentryEvent) =
         ravenClient.Capture sentryEvent |> ignore
+
+    let LogInfo (log: string) =
+        Console.WriteLine log
+        Debug.WriteLine log
+
+    let LogError (log: string) =
+        Console.Error.WriteLine log
+        Debug.WriteLine log
+
+    let LogDebug (log: string) =
+        if Config.DebugLog then
+            LogInfo log
 
     let internal ReportError (errorMessage: string) =
 #if DEBUG

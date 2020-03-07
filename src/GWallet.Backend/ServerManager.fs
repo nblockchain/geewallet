@@ -7,7 +7,7 @@ open System.Linq
 module ServerManager =
 
     let UpdateServersFile () =
-        Console.WriteLine "INPUT:"
+        Infrastructure.LogInfo "INPUT:"
         let baseLineServers = Config.ExtractEmbeddedResourceFileContents ServerRegistry.ServersEmbeddedResourceFileName
                               |> ServerRegistry.Deserialize
 
@@ -55,15 +55,15 @@ module ServerManager =
                             |> Seq.append baseLineLtcServers
 
         for KeyValue(currency,servers) in baseLineServers do
-            Console.WriteLine (sprintf "%i %A servers from baseline JSON file" (servers.Count()) currency)
+            Infrastructure.LogInfo (sprintf "%i %A servers from baseline JSON file" (servers.Count()) currency)
 
             match currency with
             | Currency.BTC ->
-                Console.WriteLine (sprintf "%i BTC servers from electrum repository" (electrumBtcServers.Count()))
-                Console.WriteLine (sprintf "%i BTC servers from bitcoin-eye" (eyeBtcServers.Count()))
+                Infrastructure.LogInfo (sprintf "%i BTC servers from electrum repository" (electrumBtcServers.Count()))
+                Infrastructure.LogInfo (sprintf "%i BTC servers from bitcoin-eye" (eyeBtcServers.Count()))
             | Currency.LTC ->
-                Console.WriteLine (sprintf "%i LTC servers from electrum repository" (electrumLtcServers.Count()))
-                Console.WriteLine (sprintf "%i LTC servers from bitcoin-eye" (eyeLtcServers.Count()))
+                Infrastructure.LogInfo (sprintf "%i LTC servers from electrum repository" (electrumLtcServers.Count()))
+                Infrastructure.LogInfo (sprintf "%i LTC servers from bitcoin-eye" (eyeLtcServers.Count()))
             | _ ->
                 ()
 
@@ -74,10 +74,10 @@ module ServerManager =
         let allServersJson = ServerRegistry.Serialize allCurrenciesServers
         File.WriteAllText(ServerRegistry.ServersEmbeddedResourceFileName, allServersJson)
 
-        Console.WriteLine "OUTPUT:"
+        Infrastructure.LogInfo "OUTPUT:"
         let filteredOutServers = ServerRegistry.Deserialize allServersJson
         for KeyValue(currency,servers) in filteredOutServers do
-            Console.WriteLine (sprintf "%i %A servers total" (servers.Count()) currency)
+            Infrastructure.LogInfo (sprintf "%i %A servers total" (servers.Count()) currency)
 
     let private tester =
         FaultTolerantParallelClient<ServerDetails,CommunicationUnsuccessfulException>
