@@ -236,7 +236,8 @@ module UserInteraction =
                                     (BalanceInUsdString balance maybeUsdValue)
                 yield status
 
-            yield sprintf "History -> %s\n" ((BlockExplorer.GetTransactionHistory account).ToString())
+            yield sprintf "History -> %s%s" ((BlockExplorer.GetTransactionHistory account).ToString())
+                                            Environment.NewLine
         }
 
     let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): seq<string> =
@@ -354,6 +355,7 @@ module UserInteraction =
                                     seq {
                                         yield! statuses
                                         yield! totals
+                                        yield Environment.NewLine
                                         yield sprintf "Total estimated value in USD: %s"
                                                       (Formatting.DecimalAmountRounding CurrencyType.Fiat totalInUsd)
                                     }
