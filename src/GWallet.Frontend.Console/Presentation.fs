@@ -19,7 +19,7 @@ module Presentation =
     let ShowFee (transactionCurrency: Currency) (estimatedFee: IBlockchainFeeInfo) =
         let currency = estimatedFee.Currency
         let estimatedFeeInUsd =
-            match FiatValueEstimation.UsdValue(currency) with
+            match FiatValueEstimation.UsdValue(currency) |> Async.RunSynchronously with
             | Fresh(usdValue) ->
                 sprintf "(~%s USD)"
                     (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
@@ -45,6 +45,7 @@ module Presentation =
 
     let ShowTransactionData<'T when 'T:> IBlockchainFeeInfo> (trans: UnsignedTransaction<'T>) =
         let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Amount.Currency)
+                            |> Async.RunSynchronously
         let maybeEstimatedAmountInUsd: Option<string> =
             match maybeUsdPrice with
             | Fresh(usdPrice) ->

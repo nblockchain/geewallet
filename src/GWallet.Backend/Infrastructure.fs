@@ -13,13 +13,16 @@ module Infrastructure =
     let private ReportInner (sentryEvent: SentryEvent) =
         ravenClient.Capture sentryEvent |> ignore
 
-    let internal ReportError (errorMessage: string) =
+    let internal ReportMessage (message: string) (errorLevel: ErrorLevel) =
 #if DEBUG
-        failwith errorMessage
+        failwith message
 #else
-        let sentryEvent =  SentryEvent(SentryMessage errorMessage, Level = ErrorLevel.Error)
+        let sentryEvent =  SentryEvent(SentryMessage message, Level = errorLevel)
         ReportInner sentryEvent
 #endif
+
+    let internal ReportError (errorMessage: string) =
+        ReportMessage errorMessage ErrorLevel.Error
 
     let private Report (ex: Exception) (errorLevel: ErrorLevel) =
 
@@ -35,6 +38,9 @@ module Infrastructure =
 
     let ReportWarning (ex: Exception) =
         Report ex ErrorLevel.Warning
+
+    let ReportWarningMessage (warning: string) =
+        ReportMessage warning ErrorLevel.Warning
 
     let ReportCrash (ex: Exception) =
         Report ex ErrorLevel.Fatal
