@@ -206,7 +206,11 @@ module UserInteraction =
                 (balance * usdValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
                 (time |> Formatting.ShowSaneDate)
 
-    let DisplayAccountStatusInner accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): seq<string> =
+    let private DisplayAccountStatusInner accountNumber
+                                          (account: IAccount)
+                                          (maybeBalance: MaybeCached<decimal>)
+                                           maybeUsdValue
+                                               : seq<string> =
         seq {
             let maybeReadOnly =
                 match account with
@@ -218,8 +222,6 @@ module UserInteraction =
                                     account.Currency
                                     account.PublicAddress
             yield accountInfo
-
-            let maybeUsdValue = FiatValueEstimation.UsdValue account.Currency
 
             match maybeBalance with
             | NotFresh(NotAvailable) ->
@@ -237,17 +239,21 @@ module UserInteraction =
                                     (BalanceInUsdString balance maybeUsdValue)
                 yield status
 
-            yield sprintf "History -> %s\n" ((BlockExplorer.GetTransactionHistory account).ToString())
+            yield sprintf "History -> %s%s" ((BlockExplorer.GetTransactionHistory account).ToString())
+                                            Environment.NewLine
         }
 
-    let DisplayAccountStatus accountNumber (account: IAccount) (maybeBalance: MaybeCached<decimal>): seq<string> =
+    let DisplayAccountStatus accountNumber (account: IAccount)
+                                           (maybeBalance: MaybeCached<decimal>)
+                                            maybeUsdValue
+                                                : seq<string> =
         match account.Currency, maybeBalance with
         | Currency.SAI, Fresh 0m | Currency.DAI, Fresh 0m ->
             Seq.empty
         | _ ->
-            DisplayAccountStatusInner accountNumber account maybeBalance
+            DisplayAccountStatusInner accountNumber account maybeBalance maybeUsdValue
 
-    let private GetAccountBalanceInner (account: IAccount): Async<IAccount*MaybeCached<decimal>> =
+    let private GetAccountBalanceInner (account: IAccount): Async<IAccount*MaybeCached<decimal>*MaybeCached<decimal>> =
         async {
                 // The console frontend cannot really take much advantage of the Fast|Analysis distinction here (as
                 // opposed to the other frontends) because it doesn't have automatic balance refresh (it's this
@@ -255,27 +261,30 @@ module UserInteraction =
                 // frontend would never re-discover slow/failing servers or even ones with no history
             let mode = ServerSelectionMode.Analysis
 
-            let! balance,_ = Account.GetShowableBalanceAndImminentIncomingPayment account mode None
-            return (account,balance)
+            let balanceJob = Account.GetShowableBalanceAndImminentIncomingPayment account mode None
+            let usdValueJob = FiatValueEstimation.UsdValue account.Currency
+            let! balance,usdValue = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdValueJob
+            return (account,balance,usdValue)
         }
 
-    let private GetAccountBalance (account: IAccount): Async<MaybeCached<decimal>> =
+    let private GetAccountBalance (account: IAccount): Async<MaybeCached<decimal>*MaybeCached<decimal>> =
         async {
-            let! (_, balance) = GetAccountBalanceInner account
-            return balance
+            let! (_, balance, maybeUsdValue) = GetAccountBalanceInner account
+            return (balance, maybeUsdValue)
         }
 
-    let private GetAccountBalances (accounts: seq<IAccount>): Async<array<IAccount*MaybeCached<decimal>>> =
+    let private GetAccountBalances (accounts: seq<IAccount>)
+                                       : Async<array<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>> =
         let accountAndBalancesToBeQueried = accounts |> Seq.map GetAccountBalanceInner
         Async.Parallel accountAndBalancesToBeQueried
 
     let DisplayAccountStatuses(whichAccount: WhichAccount): Async<seq<string>> =
-        let rec displayAllAndSumBalance (accounts: seq<IAccount*MaybeCached<decimal>>)
+        let rec displayAllAndSumBalance (accounts: seq<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>)
                                          currentIndex
-                                        (currentSumMap: Map<Currency,Option<decimal>>)
-                                        : seq<string> * Map<Currency,Option<decimal>> =
-            let account,maybeBalance = accounts.ElementAt(currentIndex)
-            let status = DisplayAccountStatus (currentIndex+1) account maybeBalance
+                                        (currentSumMap: Map<Currency,Option<decimal*MaybeCached<decimal>>>)
+                                        : seq<string> * Map<Currency,Option<decimal*MaybeCached<decimal>>> =
+            let account,maybeBalance,maybeUsdValue = accounts.ElementAt currentIndex
+            let status = DisplayAccountStatus (currentIndex+1) account maybeBalance maybeUsdValue
 
             let balanceToSum: Option<decimal> =
                 match maybeBalance with
@@ -283,18 +292,18 @@ module UserInteraction =
                 | NotFresh(Cached(balance,_)) -> Some(balance)
                 | _ -> None
 
-            let newBalanceForCurrency: Option<decimal> =
+            let newBalanceForCurrency =
                 match balanceToSum with
                 | None -> None
                 | Some(thisBalance) ->
                     match Map.tryFind account.Currency currentSumMap with
                     | None ->
-                        Some(thisBalance)
+                        Some(thisBalance,maybeUsdValue)
                     | Some(None) ->
                         // there was a previous error, so we want to keep the total balance as N/A
                         None
-                    | Some(Some(sumSoFar)) ->
-                        Some(sumSoFar+thisBalance)
+                    | Some(Some(sumSoFar,_)) ->
+                        Some(sumSoFar+thisBalance,maybeUsdValue)
 
             let maybeCleanedUpMapForReplacement =
                 match Map.containsKey account.Currency currentSumMap with
@@ -314,14 +323,14 @@ module UserInteraction =
             else
                 status, newAcc
 
-        let rec displayTotalAndSumFiatBalance (currenciesToBalances: Map<Currency,Option<decimal>>): Option<decimal> * seq<string> =
+        let rec displayTotalAndSumFiatBalance (currenciesToBalances: Map<Currency,Option<decimal*MaybeCached<decimal>>>)
+                                                  : Option<decimal> * seq<string> =
             let usdTotals =
                 seq {
                     for KeyValue(currency, balance) in currenciesToBalances do
                         match balance with
                         | None -> ()
-                        | Some(onlineBalance) ->
-                            let maybeUsdValue = FiatValueEstimation.UsdValue currency
+                        | Some(onlineBalance, maybeUsdValue) ->
                             match maybeUsdValue with
                             | NotFresh(NotAvailable) -> yield None, None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
@@ -355,6 +364,7 @@ module UserInteraction =
                                     seq {
                                         yield! statuses
                                         yield! totals
+                                        yield String.Empty // this ends up being simply an Environment.NewLine
                                         yield sprintf "Total estimated value in USD: %s"
                                                       (Formatting.DecimalAmountRounding CurrencyType.Fiat totalInUsd)
                                     }
@@ -378,13 +388,13 @@ module UserInteraction =
                     failwithf "account %s(%A) not found in config, or more than one with same public address?"
                               account.PublicAddress account.Currency
                 let account = accountsMatching.Single()
-                let! balance = GetAccountBalance account
+                let! balance,maybeUsdValue = GetAccountBalance account
                 return seq {
                     // this loop is just to find the number of the account
                     for i = 0 to allAccounts.Count() - 1 do
                         let iterAccount = allAccounts.ElementAt i
                         if matchFilter iterAccount then
-                            yield! DisplayAccountStatus (i+1) iterAccount balance
+                            yield! DisplayAccountStatus (i+1) iterAccount balance maybeUsdValue
                 }
             }
 
@@ -530,7 +540,7 @@ module UserInteraction =
                         raise InsufficientBalance
                     TransferAmount(specificCryptoAmount, currentBalance, account.Currency) |> Some
                 | AmountOption.ApproxEquivalentFiatAmount ->
-                    match FiatValueEstimation.UsdValue account.Currency with
+                    match FiatValueEstimation.UsdValue account.Currency |> Async.RunSynchronously with
                     | NotFresh(NotAvailable) ->
                         Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
                         AskAmount account

@@ -438,7 +438,7 @@ module Server =
             let! blockForConfirmationReference = GetBlockToCheckForConfirmedBalance web3
 (*
             if (Config.DebugLog) then
-                Console.Error.WriteLine (sprintf "Last block number and last confirmed block number: %s: %s"
+                Infrastructure.LogError (sprintf "Last block number and last confirmed block number: %s: %s"
                                                  (latestBlock.Value.ToString()) (blockForConfirmationReference.BlockNumber.Value.ToString()))
 *)
 
