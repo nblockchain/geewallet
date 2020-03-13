@@ -26,13 +26,22 @@ module Infrastructure =
         if Config.DebugLog then
             LogInfo log
 
-    let internal ReportError (errorMessage: string) =
+    let internal ReportMessage (message: string)
 #if DEBUG
-        failwith errorMessage
+                               (_         : ErrorLevel)
 #else
-        let sentryEvent =  SentryEvent(SentryMessage errorMessage, Level = ErrorLevel.Error)
+                               (errorLevel: ErrorLevel)
+#endif
+                           =
+#if DEBUG
+        failwith message
+#else
+        let sentryEvent =  SentryEvent(SentryMessage message, Level = errorLevel)
         ReportInner sentryEvent
 #endif
+
+    let internal ReportError (errorMessage: string) =
+        ReportMessage errorMessage ErrorLevel.Error
 
     let private Report (ex: Exception)
 #if DEBUG
@@ -54,6 +63,9 @@ module Infrastructure =
 
     let ReportWarning (ex: Exception) =
         Report ex ErrorLevel.Warning
+
+    let ReportWarningMessage (warning: string) =
+        ReportMessage warning ErrorLevel.Warning
 
     let ReportCrash (ex: Exception) =
         Report ex ErrorLevel.Fatal

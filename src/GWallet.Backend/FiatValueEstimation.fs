@@ -8,75 +8,124 @@ open FSharp.Data
 module FiatValueEstimation =
     let private PERIOD_TO_CONSIDER_PRICE_STILL_FRESH = TimeSpan.FromMinutes 2.0
 
-    type CoinMarketCapJsonProvider = JsonProvider<"""
-[
+    type CoinCapProvider = JsonProvider<"""
     {
-        "id": "ethereum-classic",
-        "name": "Ethereum Classic",
-        "symbol": "ETC",
-        "rank": "7",
-        "price_usd": "6.53227",
-        "price_btc": "0.00371428",
-        "24h_volume_usd": "30538600.0",
-        "market_cap_usd": "598575475.0",
-        "available_supply": "91633609.0",
-        "total_supply": "91633609.0",
-        "percent_change_1h": "-1.82",
-        "percent_change_24h": "2.45",
-        "percent_change_7d": "-6.04",
-        "last_updated": "1494822573"
+      "data": {
+        "id": "bitcoin",
+        "symbol": "BTC",
+        "currencySymbol": "x",
+        "type": "crypto",
+        "rateUsd": "6444.3132749056076909"
+      },
+      "timestamp": 1536347871542
     }
-]
     """>
 
-    let private RetrieveOnlineInternal currency: Option<string> =
+    type PriceProvider =
+        | CoinCap
+        | CoinGecko
+
+    let private QueryOnlineInternal currency (provider: PriceProvider): Async<Option<string*string>> = async {
         use webClient = new WebClient()
         let tickerName =
-            match currency with
-            | Currency.BTC -> "bitcoin"
-            | Currency.LTC -> "litecoin"
-            | Currency.ETH -> "ethereum"
-            | Currency.ETC -> "ethereum-classic"
-            | Currency.DAI -> "dai"
-            // the API is not returning anything for "sai" :(
-            | Currency.SAI -> "dai"
+            match currency,provider with
+            | Currency.BTC,_ -> "bitcoin"
+            | Currency.LTC,_ -> "litecoin"
+            | Currency.ETH,_ -> "ethereum"
+            | Currency.ETC,_ -> "ethereum-classic"
+            | Currency.DAI,_ -> "dai"
+            // the API of CoinCap is not returning anything for "sai" even if the API from coingecko does
+            | Currency.SAI,PriceProvider.CoinCap -> "dai"
+            | Currency.SAI,_ -> "sai"
 
         try
-            webClient.DownloadString(sprintf "https://api.coinmarketcap.com/v1/ticker/%s/" tickerName)
-                |> Some
+            let baseUrl =
+                match provider with
+                | PriceProvider.CoinCap ->
+                    sprintf "https://api.coincap.io/v2/rates/%s" tickerName
+                | PriceProvider.CoinGecko ->
+                    sprintf "https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd" tickerName
+            let uri = Uri baseUrl
+            let task = webClient.DownloadStringTaskAsync uri
+            let! res = Async.AwaitTask task
+            return Some (tickerName,res)
         with
-        | :? WebException -> None
+        | :? WebException ->
+            return None
+    }
 
-    let private ParseJsonStoringInCache currency (json: string) =
-        let ticker = CoinMarketCapJsonProvider.Parse(json)
-        if (ticker.Length <> 1) then
-            failwith ("Unexpected length of json main array: " + json)
+    let private QueryCoinCap currency = async {
+        let! maybeJson = QueryOnlineInternal currency PriceProvider.CoinCap
+        match maybeJson with
+        | None -> return None
+        | Some (_, json) ->
+            try
+                let tickerObj = CoinCapProvider.Parse json
+                return Some tickerObj.Data.RateUsd
+            with
+            | ex ->
+                if currency = ETC then
+                    // interestingly this can throw in CoinCap because retreiving ethereum-classic doesn't work...
+                    return None
+                else
+                    return raise <| FSharpUtil.ReRaise ex
+    }
 
-        let usdPrice = ticker.[0].PriceUsd
-        let result = usdPrice
-        Caching.Instance.StoreLastFiatUsdPrice(currency, usdPrice)
-        result
+    let private QueryCoinGecko currency = async {
+        let! maybeJson = QueryOnlineInternal currency PriceProvider.CoinGecko
+        match maybeJson with
+        | None -> return None
+        | Some (ticker, json) ->
+            // try to parse this as an example: {"bitcoin":{"usd":7952.29}}
+            let parsedJsonObj = FSharp.Data.JsonValue.Parse json
+            let usdPrice =
+                match parsedJsonObj.TryGetProperty ticker with
+                | None -> failwithf "Could not pre-parse %s" json
+                | Some innerObj ->
+                    match innerObj.TryGetProperty "usd" with
+                    | None -> failwithf "Could not parse %s" json
+                    | Some value -> value.AsDecimal()
+            return Some usdPrice
+    }
 
-    let private RetrieveOnline currency: Option<decimal> =
-        match RetrieveOnlineInternal currency with
-        | None -> None
-        | Some json ->
-            Some (ParseJsonStoringInCache currency json)
+    let private RetrieveOnline currency = async {
+        let coinGeckoJob = QueryCoinGecko currency
+        let coinCapJob = QueryCoinCap currency
+        let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 coinGeckoJob coinCapJob
+        let! maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap = bothJobs
+        if maybeUsdPriceFromCoinCap.IsSome && currency = Currency.ETC then
+            Infrastructure.ReportWarningMessage "Currency ETC can now be queried from CoinCap provider?"
+        match maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap with
+        | None, None -> return None
+        | Some usdPriceFromCoinGecko, None ->
+            Caching.Instance.StoreLastFiatUsdPrice(currency, usdPriceFromCoinGecko)
+            return Some usdPriceFromCoinGecko
+        | None, Some usdPriceFromCoinCap ->
+            Caching.Instance.StoreLastFiatUsdPrice(currency, usdPriceFromCoinCap)
+            return Some usdPriceFromCoinCap
+        | Some usdPriceFromCoinGecko, Some usdPriceFromCoinCap ->
+            let average = (usdPriceFromCoinGecko + usdPriceFromCoinCap) / 2m
+            Caching.Instance.StoreLastFiatUsdPrice(currency, average)
+            return Some average
+    }
 
-    let UsdValue(currency: Currency): MaybeCached<decimal> =
+    let UsdValue(currency: Currency): Async<MaybeCached<decimal>> = async {
         let maybeUsdPrice = Caching.Instance.RetrieveLastKnownUsdPrice currency
         match maybeUsdPrice with
         | NotAvailable ->
-            match RetrieveOnline currency with
-            | None -> NotFresh NotAvailable
-            | Some value -> Fresh value
+            let! maybeOnlineUsdPrice = RetrieveOnline currency
+            match maybeOnlineUsdPrice with
+            | None -> return NotFresh NotAvailable
+            | Some value -> return Fresh value
         | Cached(someValue,someDate) ->
             if (someDate + PERIOD_TO_CONSIDER_PRICE_STILL_FRESH) > DateTime.UtcNow then
-                Fresh someValue
+                return Fresh someValue
             else
-                match RetrieveOnline currency with
+                let! maybeOnlineUsdPrice = RetrieveOnline currency
+                match maybeOnlineUsdPrice with
                 | None ->
-                    NotFresh (Cached(someValue,someDate))
+                    return NotFresh (Cached(someValue,someDate))
                 | Some freshValue ->
-                    Fresh freshValue
+                    return Fresh freshValue
+    }
 
