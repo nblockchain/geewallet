@@ -184,21 +184,21 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             failwith "if no balance was available(offline?), allBalance button should have been disabled"
         | Cached(cachedBalance,_) ->
             async {
-            let! usdRate = Async.AwaitTask usdRateTask
-            let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
+                let! usdRate = Async.AwaitTask usdRateTask
+                let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
 
-            let allBalanceAmount =
-                match currencySelectorPicker.SelectedItem.ToString() with
-                | "USD" ->
-                    match usdRate with
-                    | Fresh rate | NotFresh(Cached(rate,_)) ->
-                        cachedBalance * rate
-                    | NotFresh NotAvailable ->
-                        failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
-                | _ -> cachedBalance
-            Device.BeginInvokeOnMainThread(fun _ ->
-            amountToSend.Text <- allBalanceAmount.ToString()
-            )
+                let allBalanceAmount =
+                    match currencySelectorPicker.SelectedItem.ToString() with
+                    | "USD" ->
+                        match usdRate with
+                        | Fresh rate | NotFresh(Cached(rate,_)) ->
+                            cachedBalance * rate
+                        | NotFresh NotAvailable ->
+                            failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                    | _ -> cachedBalance
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    amountToSend.Text <- allBalanceAmount.ToString()
+                )
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnCurrencySelectorTextChanged(sender: Object, args: EventArgs): unit =
@@ -210,30 +210,30 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             ()
         | true,decimalAmountTyped ->
             async {
-            let! usdRate = Async.AwaitTask usdRateTask
-            match usdRate with
-            | NotFresh NotAvailable ->
-                failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
-            | Fresh rate | NotFresh(Cached(rate,_)) ->
+                let! usdRate = Async.AwaitTask usdRateTask
+                match usdRate with
+                | NotFresh NotAvailable ->
+                    failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                | Fresh rate | NotFresh(Cached(rate,_)) ->
 
-                //FIXME: maybe only use ShowDecimalForHumans if amount in textbox is not allbalance?
-                let convertedAmount =
-                    // we choose the WithMax overload because we don't want to surpass current allBalance & be red
-                    match currencySelectorPicker.SelectedItem.ToString() with
-                    | "USD" ->
-                        match cachedBalanceAtPageCreation with
-                        | Cached(cachedBalance,_) ->
-                            if decimalAmountTyped <= cachedBalance then
-                                Formatting.DecimalAmountTruncating CurrencyType.Fiat
-                                                                        (rate * decimalAmountTyped)
-                                                                        (cachedBalance * rate)
-                            else
-                                Formatting.DecimalAmountRounding CurrencyType.Fiat (rate * decimalAmountTyped)
+                    //FIXME: maybe only use ShowDecimalForHumans if amount in textbox is not allbalance?
+                    let convertedAmount =
+                        // we choose the WithMax overload because we don't want to surpass current allBalance & be red
+                        match currencySelectorPicker.SelectedItem.ToString() with
+                        | "USD" ->
+                            match cachedBalanceAtPageCreation with
+                            | Cached(cachedBalance,_) ->
+                                if decimalAmountTyped <= cachedBalance then
+                                    Formatting.DecimalAmountTruncating CurrencyType.Fiat
+                                                                            (rate * decimalAmountTyped)
+                                                                            (cachedBalance * rate)
+                                else
+                                    Formatting.DecimalAmountRounding CurrencyType.Fiat (rate * decimalAmountTyped)
+                            | _ ->
+                                failwith "if no balance was available(offline?), currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
                         | _ ->
-                            failwith "if no balance was available(offline?), currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
-                    | _ ->
-                        Formatting.DecimalAmountRounding CurrencyType.Crypto (decimalAmountTyped / rate)
-                currentAmountTypedEntry.Text <- convertedAmount
+                            Formatting.DecimalAmountRounding CurrencyType.Crypto (decimalAmountTyped / rate)
+                    currentAmountTypedEntry.Text <- convertedAmount
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member private this.ShowWarningAndEnableFormWidgetsAgain (msg: string) =
@@ -464,47 +464,47 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 async { return false }
             | true,amount ->
                 async {
-                let! usdRate = Async.AwaitTask usdRateTask
-                let lastCachedBalance: decimal =
-                    match GetCachedBalance() with
-                    | Cached(lastCachedBalance,_) ->
-                        lastCachedBalance
-                    | _ ->
-                        failwith "there should be a cached balance (either by being online, or because of importing a cache snapshot) at the point of changing the amount or destination address (respectively, by the user, or by importing a tx proposal)"
+                    let! usdRate = Async.AwaitTask usdRateTask
+                    let lastCachedBalance: decimal =
+                        match GetCachedBalance() with
+                        | Cached(lastCachedBalance,_) ->
+                            lastCachedBalance
+                        | _ ->
+                            failwith "there should be a cached balance (either by being online, or because of importing a cache snapshot) at the point of changing the amount or destination address (respectively, by the user, or by importing a tx proposal)"
 
-                let allBalanceInSelectedCurrency =
-                    match currencySelectorPicker.SelectedItem.ToString() with
-                    | "USD" ->
+                    let allBalanceInSelectedCurrency =
+                        match currencySelectorPicker.SelectedItem.ToString() with
+                        | "USD" ->
+                            match usdRate with
+                            | NotFresh NotAvailable ->
+                                failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                            | NotFresh(Cached(rate,_)) | Fresh rate ->
+                                lastCachedBalance * rate
+                        | _ -> lastCachedBalance
+
+                    if (amount <= 0.0m || amount > allBalanceInSelectedCurrency) then
+                        amountToSend.TextColor <- Color.Red
+                        if (amount > 0.0m) then
+                            equivalentAmount.Text <- "(Not enough funds)"
+                        return false
+                    else
+                        amountToSend.TextColor <- Color.Default
+
                         match usdRate with
                         | NotFresh NotAvailable ->
-                            failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                            return true
                         | NotFresh(Cached(rate,_)) | Fresh rate ->
-                            lastCachedBalance * rate
-                    | _ -> lastCachedBalance
-
-                if (amount <= 0.0m || amount > allBalanceInSelectedCurrency) then
-                    amountToSend.TextColor <- Color.Red
-                    if (amount > 0.0m) then
-                        equivalentAmount.Text <- "(Not enough funds)"
-                    return false
-                else
-                    amountToSend.TextColor <- Color.Default
-
-                    match usdRate with
-                    | NotFresh NotAvailable ->
-                        return true
-                    | NotFresh(Cached(rate,_)) | Fresh rate ->
-                        let eqAmount,otherCurrency =
-                            match currencySelectorPicker.SelectedItem.ToString() with
-                            | "USD" ->
-                                Formatting.DecimalAmountRounding CurrencyType.Crypto (amount / rate),
-                                    account.Currency.ToString()
-                            | _ ->
-                                Formatting.DecimalAmountRounding CurrencyType.Fiat (rate * amount),
-                                    "USD"
-                        let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
-                        equivalentAmount.Text <- usdAmount
-                        return true
+                            let eqAmount,otherCurrency =
+                                match currencySelectorPicker.SelectedItem.ToString() with
+                                | "USD" ->
+                                    Formatting.DecimalAmountRounding CurrencyType.Crypto (amount / rate),
+                                        account.Currency.ToString()
+                                | _ ->
+                                    Formatting.DecimalAmountRounding CurrencyType.Fiat (rate * amount),
+                                        "USD"
+                            let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
+                            equivalentAmount.Text <- usdAmount
+                            return true
                 }
 
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
@@ -658,34 +658,34 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             let feeCurrency = txMetadataWithFeeEstimation.Currency
 
             async {
-            let! usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
-            match usdRateForCurrency with
-            | NotFresh NotAvailable ->
-                let msg = "Internet connection not available at the moment, try again later"
-                this.ShowWarningAndEnableFormWidgetsAgain msg
-            | Fresh someUsdValue | NotFresh (Cached(someUsdValue,_)) ->
+                let! usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
+                match usdRateForCurrency with
+                | NotFresh NotAvailable ->
+                    let msg = "Internet connection not available at the moment, try again later"
+                    this.ShowWarningAndEnableFormWidgetsAgain msg
+                | Fresh someUsdValue | NotFresh (Cached(someUsdValue,_)) ->
 
-                let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
-                let feeInFiatValue = someUsdValue * feeInCrypto
-                let feeInFiatValueStr = sprintf "~ %s USD"
-                                                (Formatting.DecimalAmountRounding CurrencyType.Fiat feeInFiatValue)
+                    let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
+                    let feeInFiatValue = someUsdValue * feeInCrypto
+                    let feeInFiatValueStr = sprintf "~ %s USD"
+                                                    (Formatting.DecimalAmountRounding CurrencyType.Fiat feeInFiatValue)
 
-                let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s (%s)"
-                                      (Formatting.DecimalAmountRounding CurrencyType.Crypto feeInCrypto)
-                                      (txMetadataWithFeeEstimation.Currency.ToString())
-                                      feeInFiatValueStr
-                let showFee = async {
-                    let! answerToFee = Async.AwaitTask (this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel"))
+                    let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s (%s)"
+                                          (Formatting.DecimalAmountRounding CurrencyType.Crypto feeInCrypto)
+                                          (txMetadataWithFeeEstimation.Currency.ToString())
+                                          feeInFiatValueStr
+                    let showFee = async {
+                        let! answerToFee = Async.AwaitTask (this.DisplayAlert("Alert", feeAskMsg, "OK", "Cancel"))
 
-                    let txInfo = { Metadata = txMetadataWithFeeEstimation;
-                                   Amount = transferAmount;
-                                   Destination = destinationAddress; }
+                        let txInfo = { Metadata = txMetadataWithFeeEstimation;
+                                       Amount = transferAmount;
+                                       Destination = destinationAddress; }
 
-                    this.AnswerToFee account txInfo answerToFee
-                }
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    Async.StartImmediate showFee
-                )
+                        this.AnswerToFee account txInfo answerToFee
+                    }
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        Async.StartImmediate showFee
+                    )
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member private this.BroadcastTransaction (signedTransaction): unit =
