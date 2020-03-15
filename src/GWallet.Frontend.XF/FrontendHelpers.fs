@@ -27,6 +27,7 @@ type BalanceState = {
     BalanceSet: BalanceSet;
     FiatAmount: MaybeCached<decimal>;
     ImminentIncomingPayment: Option<bool>;
+    UsdRate: MaybeCached<decimal>
 }
 
 module FrontendHelpers =
@@ -98,7 +99,7 @@ module FrontendHelpers =
         | Currency.ETH -> Color.FromRgb(130, 131, 132)
         | Currency.LTC -> Color.FromRgb(54, 94, 155)
 
-    let UpdateBalance (balance: MaybeCached<decimal>) currency
+    let UpdateBalance (balance: MaybeCached<decimal>) currency usdRate
                       (maybeFrame: Option<Frame>) (balanceLabel: Label) (fiatBalanceLabel: Label)
                           : MaybeCached<decimal> =
         let maybeBalanceAmount =
@@ -122,7 +123,6 @@ module FrontendHelpers =
             | Some balanceAmount ->
                 let cryptoAmount = Formatting.DecimalAmountRounding CurrencyType.Crypto balanceAmount
                 let cryptoAmountStr = sprintf "%A %s" currency cryptoAmount
-                let usdRate = FiatValueEstimation.UsdValue currency
                 let fiatAmount,fiatAmountStr = BalanceInUsdString balanceAmount usdRate
                 cryptoAmountStr,fiatAmount,fiatAmountStr
         Device.BeginInvokeOnMainThread(fun _ ->
@@ -136,11 +136,18 @@ module FrontendHelpers =
                                        (cancelSource: CustomCancelSource)
                                            : Async<BalanceState> =
         async {
-            let! balance,imminentIncomingPayment =
+            let balanceJob =
                 Account.GetShowableBalanceAndImminentIncomingPayment balanceSet.Account mode (Some cancelSource)
+            let usdRateJob = FiatValueEstimation.UsdValue balanceSet.Account.Currency
+
+            let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdRateJob
+            let! bothResults = bothJobs
+            let (balance,imminentIncomingPayment),usdRate = bothResults
+
             let fiatAmount =
                 UpdateBalance balance
                               balanceSet.Account.Currency
+                              usdRate
                               (Some balanceSet.Widgets.Frame)
                               balanceSet.Widgets.CryptoLabel
                               balanceSet.Widgets.FiatLabel
@@ -148,6 +155,7 @@ module FrontendHelpers =
                 BalanceSet = balanceSet
                 FiatAmount = fiatAmount
                 ImminentIncomingPayment = imminentIncomingPayment
+                UsdRate = usdRate
             }
         }
 
@@ -163,9 +171,11 @@ module FrontendHelpers =
                                                                                  balanceSet.Account.Currency
                 match cachedBalance with
                 | Cached _ ->
+                    let! usdRate = FiatValueEstimation.UsdValue balanceSet.Account.Currency
                     let fiatAmount =
                         UpdateBalance (NotFresh cachedBalance)
                                       balanceSet.Account.Currency
+                                      usdRate
                                       (Some balanceSet.Widgets.Frame)
                                       balanceSet.Widgets.CryptoLabel
                                       balanceSet.Widgets.FiatLabel
@@ -173,6 +183,7 @@ module FrontendHelpers =
                         BalanceSet = balanceSet
                         FiatAmount = fiatAmount
                         ImminentIncomingPayment = None
+                        UsdRate = usdRate
                     }
                 | _ ->
                     // FIXME: probably we can only load confirmed balances in this case (no need to check unconfirmed)

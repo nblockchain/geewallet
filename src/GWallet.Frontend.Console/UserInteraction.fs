@@ -263,7 +263,7 @@ module UserInteraction =
 
             let balanceJob = Account.GetShowableBalanceAndImminentIncomingPayment account mode None
             let usdValueJob = FiatValueEstimation.UsdValue account.Currency
-            let! balance,usdValue = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdValueJob
+            let! (balance,_),usdValue = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdValueJob
             return (account,balance,usdValue)
         }
 

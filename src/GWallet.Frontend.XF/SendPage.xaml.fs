@@ -34,7 +34,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         // FIXME: should make sure to get the unconfirmed balance
         Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
 
-    let usdRateAtPageCreation = FiatValueEstimation.UsdValue account.Currency
     let cachedBalanceAtPageCreation = GetCachedBalance()
 
     let sendCaption = "Send"
@@ -61,15 +60,23 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     let passwordLabel = mainLayout.FindByName<Label> "passwordLabel"
     let sendOrSignButton = mainLayout.FindByName<Button> "sendOrSignButton"
     let cancelButton = mainLayout.FindByName<Button> "cancelButton"
+    let usdRateTask =
+        async {
+            let! usdRate = FiatValueEstimation.UsdValue account.Currency
+            match usdRate with
+            | Fresh _ ->
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    currencySelectorPicker.IsEnabled <- true
+                )
+            | _ ->
+                ()
+            return usdRate
+        } |> Async.StartImmediateAsTask
     do
         let accountCurrency = account.Currency.ToString()
         currencySelectorPicker.Items.Add "USD"
         currencySelectorPicker.Items.Add accountCurrency
         currencySelectorPicker.SelectedItem <- accountCurrency
-        match usdRateAtPageCreation with
-        | NotFresh NotAvailable ->
-            currencySelectorPicker.IsEnabled <- false
-        | _ -> ()
 
         if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
             destinationScanQrCodeButton.IsVisible <- true
@@ -173,9 +180,11 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     member this.OnAllBalanceButtonClicked(sender: Object, args: EventArgs): unit =
         match cachedBalanceAtPageCreation with
+        | NotAvailable ->
+            failwith "if no balance was available(offline?), allBalance button should have been disabled"
         | Cached(cachedBalance,_) ->
-            let usdRate = FiatValueEstimation.UsdValue account.Currency
-            let mainLayout = base.FindByName<StackLayout>("mainLayout")
+            async {
+            let! usdRate = Async.AwaitTask usdRateTask
             let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
 
             let allBalanceAmount =
@@ -187,9 +196,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     | NotFresh NotAvailable ->
                         failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
                 | _ -> cachedBalance
+            Device.BeginInvokeOnMainThread(fun _ ->
             amountToSend.Text <- allBalanceAmount.ToString()
-        | _ ->
-            failwith "if no balance was available(offline?), allBalance button should have been disabled"
+            )
+            } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnCurrencySelectorTextChanged(sender: Object, args: EventArgs): unit =
 
@@ -199,7 +209,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         | false,_ ->
             ()
         | true,decimalAmountTyped ->
-            let usdRate = FiatValueEstimation.UsdValue account.Currency
+            async {
+            let! usdRate = Async.AwaitTask usdRateTask
             match usdRate with
             | NotFresh NotAvailable ->
                 failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
@@ -223,6 +234,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     | _ ->
                         Formatting.DecimalAmountRounding CurrencyType.Crypto (decimalAmountTyped / rate)
                 currentAmountTypedEntry.Text <- convertedAmount
+            } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member private this.ShowWarningAndEnableFormWidgetsAgain (msg: string) =
         let showAndEnableJob = async {
@@ -437,10 +449,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     )
         ()
 
-    member private this.UpdateEquivalentFiatLabel (): bool =
+    member private __.UpdateEquivalentFiatLabel (): Async<bool> =
         let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
         if amountToSend = null || String.IsNullOrWhiteSpace amountToSend.Text then
-            false
+            async { return false }
         else
             let equivalentAmount = mainLayout.FindByName<Label> "equivalentAmountInAlternativeCurrency"
             // FIXME: marking as red should not even mark button as disabled but give the reason in Alert?
@@ -449,9 +461,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 amountToSend.TextColor <- Color.Red
                 sendOrSignButton.IsEnabled <- false
                 equivalentAmount.Text <- String.Empty
-                false
+                async { return false }
             | true,amount ->
-                let usdRate = FiatValueEstimation.UsdValue account.Currency
+                async {
+                let! usdRate = Async.AwaitTask usdRateTask
                 let lastCachedBalance: decimal =
                     match GetCachedBalance() with
                     | Cached(lastCachedBalance,_) ->
@@ -473,13 +486,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     amountToSend.TextColor <- Color.Red
                     if (amount > 0.0m) then
                         equivalentAmount.Text <- "(Not enough funds)"
-                    false
+                    return false
                 else
                     amountToSend.TextColor <- Color.Default
 
                     match usdRate with
                     | NotFresh NotAvailable ->
-                        true
+                        return true
                     | NotFresh(Cached(rate,_)) | Fresh rate ->
                         let eqAmount,otherCurrency =
                             match currencySelectorPicker.SelectedItem.ToString() with
@@ -491,7 +504,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                     "USD"
                         let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
                         equivalentAmount.Text <- usdAmount
-                        true
+                        return true
+                }
 
     member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
@@ -499,13 +513,16 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             //page not yet ready
             ()
         else
-            let sendOrSignButtonEnabled = this.UpdateEquivalentFiatLabel() &&
+            async {
+            let! sendOrSignButtonEnabledForNow = this.UpdateEquivalentFiatLabel()
+            let sendOrSignButtonEnabled = sendOrSignButtonEnabledForNow &&
                                           destinationAddressEntry <> null &&
                                           (not (String.IsNullOrEmpty destinationAddressEntry.Text)) &&
                                           (not (this.IsPasswordUnfilledAndNeeded mainLayout))
             Device.BeginInvokeOnMainThread(fun _ ->
                 sendOrSignButton.IsEnabled <- sendOrSignButtonEnabled
             )
+            } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
         Device.BeginInvokeOnMainThread(fun _ ->
@@ -639,7 +656,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         | None -> ()
         | Some txMetadataWithFeeEstimation ->
             let feeCurrency = txMetadataWithFeeEstimation.Currency
-            let usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
+
+            async {
+            let! usdRateForCurrency = FiatValueEstimation.UsdValue feeCurrency
             match usdRateForCurrency with
             | NotFresh NotAvailable ->
                 let msg = "Internet connection not available at the moment, try again later"
@@ -667,6 +686,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 Device.BeginInvokeOnMainThread(fun _ ->
                     Async.StartImmediate showFee
                 )
+            } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member private this.BroadcastTransaction (signedTransaction): unit =
         let afterSuccessfullBroadcastJob = async {
@@ -712,35 +732,32 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 this.DisplayAlert("Alert", "Amount should be positive", "OK")
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             else
-
-                let amountInAccountCurrency =
-                    match currencySelectorPicker.SelectedItem.ToString() with
-                    | "USD" ->
-
-                        // FIXME: we should probably just grab the amount from the equivalentAmountInAlternativeCurrency
-                        // label to prevent rate difference from the moment the amount was written until the "Send"
-                        // button was pressed
-                        let usdRate = FiatValueEstimation.UsdValue account.Currency
-
-                        match usdRate with
-                        | Fresh rate | NotFresh(Cached(rate,_)) ->
-                            amount / rate
-                        | NotFresh NotAvailable ->
-                            failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
-                    | _ -> amount
-
-                let currency = account.Currency
-
-                let transferAmount =
-                    match GetCachedBalance() with
-                    | Cached(lastCachedBalance,_) ->
-                        TransferAmount(amountInAccountCurrency, lastCachedBalance, currency)
-                    | _ ->
-                        failwith "there should be a cached balance (either by being online, or because of importing a cache snapshot) at the point of clicking the send button"
-
-                this.ToggleInputWidgetsEnabledOrDisabled false
-
                 async {
+                    // FIXME: consider making sure we grab same amount from the equivalentAmountInAlternativeCurrency
+                    // label to prevent rate difference from the moment the amount was written until the "Send"
+                    // button was pressed
+                    let! usdRate = Async.AwaitTask usdRateTask
+                    let amountInAccountCurrency =
+                        match currencySelectorPicker.SelectedItem.ToString() with
+                        | "USD" ->
+                            match usdRate with
+                            | Fresh rate | NotFresh(Cached(rate,_)) ->
+                                amount / rate
+                            | NotFresh NotAvailable ->
+                                failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
+                        | _ -> amount
+
+                    let currency = account.Currency
+
+                    let transferAmount =
+                        match GetCachedBalance() with
+                        | Cached(lastCachedBalance,_) ->
+                            TransferAmount(amountInAccountCurrency, lastCachedBalance, currency)
+                        | _ ->
+                            failwith "there should be a cached balance (either by being online, or because of importing a cache snapshot) at the point of clicking the send button"
+
+                    this.ToggleInputWidgetsEnabledOrDisabled false
+
                     let! maybeValidatedAddress = this.ValidateAddress currency destinationAddress
                     match maybeValidatedAddress with
                     | None -> this.ToggleInputWidgetsEnabledOrDisabled true

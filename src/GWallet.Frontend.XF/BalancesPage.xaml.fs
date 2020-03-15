@@ -213,7 +213,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         with get() = lock lockObject (fun _ -> balanceRefreshCancelSources |> List.ofSeq :> seq<_>)
          and set value = lock lockObject (fun _ -> balanceRefreshCancelSources <- value)
 
-    member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceSet>) =
+    member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
         let activeCurrencyClassId,inactiveCurrencyClassId =
             FrontendHelpers.GetActiveAndInactiveCurrencyClassIds readOnly
 
@@ -239,10 +239,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             for activeCryptoBalance in activeCryptoBalances do
                 activeCryptoBalance.IsVisible <- true
         else
-            for balanceSet in balances do
+            for balanceState in balances do
+                let balanceSet = balanceState.BalanceSet
                 let tapGestureRecognizer = TapGestureRecognizer()
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                    let receivePage = ReceivePage(balanceSet.Account, this, balanceSet.Widgets)
+                    let receivePage = ReceivePage(balanceSet.Account, balanceState.UsdRate, this, balanceSet.Widgets)
                     FrontendHelpers.SwitchToNewPage this receivePage true
                 ) |> ignore
                 let frame = balanceSet.Widgets.Frame
@@ -423,13 +424,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     totalOtherFiatAmountFrame.IsVisible <- true
                     otherChartView.IsVisible <- true
                 )
-                let balancesStatesToPopulate,balanceSetsToPopulate =
+                let balancesStatesToPopulate =
                     if switchingToReadOnly then
-                        readOnlyBalanceStates,readOnlyAccountsBalanceSets
+                        readOnlyBalanceStates
                     else
-                        normalBalanceStates,normalAccountsBalanceSets
+                        normalBalanceStates
                 this.AssignColorLabels switchingToReadOnly
-                this.PopulateBalances switchingToReadOnly balanceSetsToPopulate
+                this.PopulateBalances switchingToReadOnly balancesStatesToPopulate
                 RedrawCircleView switchingToReadOnly balancesStatesToPopulate
             else
                 // FIXME: save currentConnectivityInstance to cache at app startup, and if it has ever been connected to
@@ -461,7 +462,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let tapper = this.ConfigureFiatAmountFrame false
         this.ConfigureFiatAmountFrame true |> ignore
 
-        this.PopulateBalances false normalAccountsBalanceSets
+        this.PopulateBalances false normalBalanceStates
         RedrawCircleView false normalBalanceStates
 
         if startWithReadOnlyAccounts then
