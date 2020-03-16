@@ -306,19 +306,19 @@
       <HintPath>..\..\packages\Zlib.Portable.1.11.0\lib\portable-net4+sl5+wp8+win8+wpa81+MonoTouch+MonoAndroid\Zlib.Portable.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXing.Net.Mobile.Core.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\MonoAndroid71\ZXing.Net.Mobile.Core.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms.Android">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.Android.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\MonoAndroid71\ZXing.Net.Mobile.Forms.Android.dll</HintPath>
     </Reference>
     <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\MonoAndroid71\zxing.portable.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\MonoAndroid71\zxing.portable.dll</HintPath>
     </Reference>
     <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.99.0-CI-20190124-111350\lib\MonoAndroid71\ZXingNetMobile.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\MonoAndroid71\ZXingNetMobile.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
