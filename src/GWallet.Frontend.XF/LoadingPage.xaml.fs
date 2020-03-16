@@ -124,9 +124,11 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
 
             keepAnimationTimerActive <- false
 
-            let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
-                                            currencyImages, false)
-            FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
+            Device.BeginInvokeOnMainThread(fun _ ->
+                let balancesPage = BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
+                                                currencyImages, false)
+                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
+            )
         }
             |> FrontendHelpers.DoubleCheckCompletionAsync false
 
