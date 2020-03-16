@@ -237,14 +237,20 @@ module Server =
         | None ->
             ()
 
-    // this could be a mono 6.0.x bug (see https://gitlab.gnome.org/World/geewallet/issues/121)
-    let MaybeRethrowSslException (ex: Exception): unit =
+    let MaybeRethrowSslOrUwpDomainResolutionException (ex: Exception): unit =
         let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
         match maybeRpcUnknownEx with
         | Some _ ->
             let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
             match maybeHttpReqEx with
             | Some httpReqEx ->
+
+                // FIXME: report this UWP bug (see commit message for full stacktrace)
+                if Xamarin.Essentials.DeviceInfo.Platform.Equals Xamarin.Essentials.DevicePlatform.UWP &&
+                   httpReqEx.InnerException <> null && httpReqEx.InnerException.GetType() = typeof<Exception> then
+                    raise <| ServerCannotBeResolvedException(httpReqEx.InnerException.Message, ex)
+
+                // this could be a mono 6.0.x bug (see https://gitlab.gnome.org/World/geewallet/issues/121)
                 if httpReqEx.Message.Contains "SSL" then
                     let maybeIOEx = FSharpUtil.FindException<IOException> ex
                     match maybeIOEx with
@@ -277,7 +283,7 @@ module Server =
 
         MaybeRethrowObjectDisposedException ex
 
-        MaybeRethrowSslException ex
+        MaybeRethrowSslOrUwpDomainResolutionException ex
 
 
     let private NumberOfParallelJobsForMode mode =
