@@ -17,7 +17,11 @@ stockmono_build:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - time (./configure.sh && make && make install)
+    - ./configure.sh
+    - make sanitycheck
+    - make strict
+    - make
+    - make install
     # so that we log the version of nuget for when it works
     - make nuget
 
@@ -44,6 +48,8 @@ stocknewmono_build:
     - apt install -y make git
 
     - ./configure.sh
+    - make sanitycheck
+    - make strict
     - make
     - make install
 
@@ -86,7 +92,11 @@ newmono_build:
   script:
     - ./scripts/install_mono_from_microsoft_deb_packages.sh
 
-    - time (./configure.sh && make && make install)
+    - ./configure.sh
+    - make sanitycheck
+    - make strict
+    - make
+    - make install
     # so that we log the version of nuget for when it works
     - make nuget
 

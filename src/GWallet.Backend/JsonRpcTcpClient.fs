@@ -4,6 +4,8 @@ open System
 open System.Net
 open System.Net.Sockets
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 type ProtocolGlitchException(message: string, innerException: Exception) =
     inherit CommunicationUnsuccessfulException (message, innerException)
 
@@ -38,13 +40,13 @@ type JsonRpcTcpClient (host: string, port: uint32) =
                 match ipAddressOption with
                 | Some ipAddress ->
                     if ipAddress.ToString().StartsWith("127.0.0.") then
-                        let msg = sprintf "Server '%s' resolved to localhost IP '%s'" host (ipAddress.ToString())
+                        let msg = SPrintF2 "Server '%s' resolved to localhost IP '%s'" host (ipAddress.ToString())
                         return raise <| ServerNameResolvedToInvalidAddressException (msg)
                     else
                         return ipAddress
                 | None   -> return raise <| ServerCannotBeResolvedException
-                                                (sprintf "DNS host entry lookup resulted in no records for %s" host)
-            | None -> return raise <| TimeoutException (sprintf "Timed out connecting to %s:%i" host port)
+                                                (SPrintF1 "DNS host entry lookup resulted in no records for %s" host)
+            | None -> return raise <| TimeoutException (SPrintF2 "Timed out connecting to %s:%i" host port)
         with
         | :? TimeoutException ->
             return raise(ServerCannotBeResolvedException(exceptionMsg))

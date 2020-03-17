@@ -13,6 +13,7 @@ open Nethereum.Util
 open Nethereum.KeyStore.Crypto
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 module internal Account =
 
@@ -45,7 +46,7 @@ module internal Account =
             elif (account.Currency.IsEthToken()) then
                 Server.GetTokenBalance account.Currency account.PublicAddress balType mode cancelSourceOption
             else
-                failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
+                failwith <| SPrintF1 "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         return balance
     }
 
@@ -137,7 +138,7 @@ module internal Account =
         let! result = Ether.Server.GetTransactionCount currency publicAddress
         let value = result.Value
         if (value > BigInteger(Int64.MaxValue)) then
-            failwithf "Serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
+            failwith <| SPrintF1 "Serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
                       (result.ToString())
         let int64result:Int64 = BigInteger.op_Explicit value
         return int64result
@@ -146,7 +147,7 @@ module internal Account =
     let private GetGasPrice currency: Async<int64> = async {
         let! gasPrice = Ether.Server.GetGasPrice currency
         if (gasPrice.Value > BigInteger(Int64.MaxValue)) then
-            failwithf "Serialization doesn't support such a big integer (%s) for the gas, please report this issue."
+            failwith <| SPrintF1 "Serialization doesn't support such a big integer (%s) for the gas, please report this issue."
                       (gasPrice.Value.ToString())
         let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
         return gasPrice64
@@ -174,11 +175,11 @@ module internal Account =
         let baseCurrency =
             match account.Currency with
             | DAI | SAI -> ETH
-            | _ -> failwithf "Unknown token %A" account.Currency
+            | _ -> failwith <| SPrintF1 "Unknown token %A" account.Currency
 
         let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination
         if (tokenTransferFee.Value > BigInteger(Int64.MaxValue)) then
-            failwithf "Serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
+            failwith <| SPrintF1 "Serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
                       (tokenTransferFee.Value.ToString())
         let gasCost64: Int64 = BigInteger.op_Explicit tokenTransferFee.Value
 
@@ -193,7 +194,7 @@ module internal Account =
         elif account.Currency.IsEthToken() then
             return! EstimateTokenTransferFee account amount.ValueToSend destination
         else
-            return failwithf "Assertion failed: currency %A should be Ether or Ether token" account.Currency
+            return failwith <| SPrintF1 "Assertion failed: currency %A should be Ether or Ether token" account.Currency
     }
 
     let private BroadcastRawTransaction (currency: Currency) trans =
@@ -217,13 +218,13 @@ module internal Account =
 
     let private GetNetwork (currency: Currency) =
         if not (currency.IsEtherBased()) then
-            failwithf "Assertion failed: currency %A should be Ether-type" currency
+            failwith <| SPrintF1 "Assertion failed: currency %A should be Ether-type" currency
         if currency.IsEthToken() || currency = ETH then
             Config.EthNet
         elif currency = ETC then
             Config.EtcNet
         else
-            failwithf "Assertion failed: Ether currency %A not supported?" currency
+            failwith <| SPrintF1 "Assertion failed: Ether currency %A not supported?" currency
 
     let private SignEtherTransaction (chain: Chain)
                                      (txMetadata: TransactionMetadata)
@@ -232,7 +233,7 @@ module internal Account =
                                      (privateKey: EthECKey) =
 
         if (GetNetwork txMetadata.Fee.Currency <> chain) then
-            invalidArg "chain" (sprintf "Assertion failed: fee currency (%A) chain doesn't match with passed chain (%A)"
+            invalidArg "chain" (SPrintF2 "Assertion failed: fee currency (%A) chain doesn't match with passed chain (%A)"
                                         txMetadata.Fee.Currency chain)
 
         let amountToSendConsideringMinerFee =
@@ -301,11 +302,11 @@ module internal Account =
                 SignEtherTokenTransaction chain txMetadata account.PublicAddress destination amount privateKey
             elif account.Currency.IsEtherBased() then
                 if (txMetadata.Fee.Currency <> account.Currency) then
-                    failwithf "Assertion failed: fee currency (%A) doesn't match with passed chain (%A)"
+                    failwith <| SPrintF2 "Assertion failed: fee currency (%A) doesn't match with passed chain (%A)"
                               txMetadata.Fee.Currency account.Currency
                 SignEtherTransaction chain txMetadata destination amount privateKey
             else
-                failwithf "Assertion failed: Ether currency %A not supported?" account.Currency
+                failwith <| SPrintF1 "Assertion failed: Ether currency %A not supported?" account.Currency
 
         if not (signer.VerifyTransaction(trans, chain)) then
             failwith "Transaction could not be verified?"

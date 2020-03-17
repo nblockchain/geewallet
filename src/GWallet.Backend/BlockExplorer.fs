@@ -3,6 +3,7 @@
 open System
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 module BlockExplorer =
 
@@ -22,7 +23,7 @@ module BlockExplorer =
                   // the only one? minergate.com seems to only show blocks, not addresses
                   "https://gastracker.io/addr/"
               | Currency.SAI ->
-                  sprintf "https://etherscan.io/token/%s?a=" Ether.TokenManager.SAI_CONTRACT_ADDRESS
+                  SPrintF1 "https://etherscan.io/token/%s?a=" Ether.TokenManager.SAI_CONTRACT_ADDRESS
               | Currency.DAI ->
                   raise <| NotImplementedException()
         Uri(baseUrl + account.PublicAddress)

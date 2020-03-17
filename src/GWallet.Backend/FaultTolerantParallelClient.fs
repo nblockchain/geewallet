@@ -6,6 +6,8 @@ open System.Diagnostics
 open System.Threading
 open System.Threading.Tasks
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 type ResourceUnavailabilityException (message: string, innerOrLastException: Exception) =
     inherit Exception (message, innerOrLastException)
 
@@ -25,7 +27,7 @@ type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                    maxNumberOfConsistentResultsObtained: int,
                                    numberOfConsistentResultsRequired: uint32) =
   inherit Exception ("Results obtained were not enough to be considered consistent" +
-                      sprintf " (received: %d, consistent: %d, required: %d)"
+                      SPrintF3 " (received: %i, consistent: %i, required: %i)"
                                   totalNumberOfSuccesfulResultsObtained
                                   maxNumberOfConsistentResultsObtained
                                   numberOfConsistentResultsRequired)
@@ -155,7 +157,7 @@ type internal Runner<'Resource when 'Resource: equality> =
                 match maybeSpecificEx with
                 | Some specificInnerEx ->
                     if report then
-                        Infrastructure.LogError (sprintf "Cancellation fault warning: %s"
+                        Infrastructure.LogError (SPrintF1 "Cancellation fault warning: %s"
                                                      (ex.ToString()))
                     return Error (specificInnerEx :> Exception)
                 | None ->
@@ -396,7 +398,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     return! returnWithConsistencyOf None None
 
                 else
-                    Infrastructure.LogDebug (sprintf "%f%% done (for this currency)"
+                    Infrastructure.LogDebug (SPrintF1 "%f%% done (for this currency)"
                             (100.*(float (newFailedFuncs.Length+newResults.Length))/(float initialServerCount)))
 
                     return! WhenSomeInternal consistencySettings
@@ -476,7 +478,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     with
                     | AlreadyCanceled ->
                         raise <| TaskCanceledException(
-                                     sprintf "Found canceled when about to subscribe to cancellation"
+                                     "Found canceled when about to subscribe to cancellation"
                                  )
                 cancelState.SafeDo (fun state ->
                     match state.Value with

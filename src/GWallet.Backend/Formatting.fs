@@ -2,6 +2,8 @@
 
 open System
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 type CurrencyType =
     Fiat | Crypto
 
@@ -16,10 +18,10 @@ module Formatting =
             match currencyType with
             | CurrencyType.Fiat ->
                 let twoDecimals = 2
-                twoDecimals,sprintf "N%d" twoDecimals
+                twoDecimals,SPrintF1 "N%i" twoDecimals
             | CurrencyType.Crypto ->
                 let fiveDecimals = 5
-                fiveDecimals,sprintf "#,0.%s" (String('#', fiveDecimals))
+                fiveDecimals,SPrintF1 "#,0.%s" (String('#', fiveDecimals))
 
         let rounded = Math.Round(amount, amountOfDecimalsToShow)
 
@@ -38,6 +40,6 @@ module Formatting =
         // https://stackoverflow.com/a/25451689/544947
         let truncated = amount - (amount % (1m / decimal (pown 10 amountOfDecimalsToShow)))
         if (truncated > maxAmount) then
-            failwithf "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
+            failwith <| SPrintF2 "how can %s be higher than %s?" (truncated.ToString()) (maxAmount.ToString())
 
         DecimalAmountRounding currencyType truncated

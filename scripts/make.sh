@@ -6,4 +6,4 @@ if [ ! -f "$BUILD_CONFIG" ]; then
     echo "ERROR: configure hasn't been run yet, run ./configure.sh first" >&2 && exit 1
 fi
 source "$BUILD_CONFIG"
-$FsxRunner ./scripts/make.fsx "$@"
+FsxRunner=$FsxRunner $FsxRunner ./scripts/make.fsx "$@"

@@ -5,6 +5,7 @@ open System
 open Newtonsoft.Json
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 // can't make this type below private, or else Newtonsoft.Json will serialize it incorrectly
 type Request =
@@ -119,7 +120,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         // FIXME: we should actually fix this bug in JsonRpcSharp (https://github.com/nblockchain/JsonRpcSharp/issues/9)
         if String.IsNullOrEmpty rawResponse then
-            return failwithf "Server '%s' returned a null/empty JSON response to the request '%s'??"
+            return failwith <| SPrintF2 "Server '%s' returned a null/empty JSON response to the request '%s'??"
                              jsonRpcClient.Host jsonRequest
 
         try
@@ -145,7 +146,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
                 JsonConvert.DeserializeObject<ErrorResult>(resultTrimmed,
                                                            Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
             with
-            | ex -> raise <| Exception(sprintf "Failed deserializing JSON response (to check for error) '%s' to type '%s'"
+            | ex -> raise <| Exception(SPrintF2 "Failed deserializing JSON response (to check for error) '%s' to type '%s'"
                                                resultTrimmed typedefof<'T>.FullName, ex)
 
         if (not (Object.ReferenceEquals(maybeError, null))) && (not (Object.ReferenceEquals(maybeError.Error, null))) then
@@ -156,11 +157,11 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
                 JsonConvert.DeserializeObject<'T>(resultTrimmed,
                                                   Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
             with
-            | ex -> raise <| Exception(sprintf "Failed deserializing JSON response '%s' to type '%s'"
+            | ex -> raise <| Exception(SPrintF2 "Failed deserializing JSON response '%s' to type '%s'"
                                                 resultTrimmed typedefof<'T>.FullName, ex)
 
         if Object.ReferenceEquals(deserializedValue, null) then
-            failwithf "Failed deserializing JSON response '%s' to type '%s' (result was null)"
+            failwith <| SPrintF2 "Failed deserializing JSON response '%s' to type '%s' (result was null)"
                       resultTrimmed typedefof<'T>.FullName
 
         deserializedValue
@@ -196,16 +197,16 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             Params = [clientName; protocolVersion.ToString()]
         }
         // this below serializes to:
-        //  (sprintf "{ \"id\": 0, \"method\": \"server.version\", \"params\": [ \"%s\", \"%s\" ] }"
+        //  (SPrintF2 "{ \"id\": 0, \"method\": \"server.version\", \"params\": [ \"%s\", \"%s\" ] }"
         //      CURRENT_ELECTRUM_FAKED_VERSION PROTOCOL_VERSION)
         let json = Serialize obj
         let! resObj, rawResponse = self.Request<ServerVersionResult> json
 
         if Object.ReferenceEquals (resObj, null) then
-            failwithf "resObj is null?? raw response was %s" rawResponse
+            failwith <| SPrintF1 "resObj is null?? raw response was %s" rawResponse
 
         if Object.ReferenceEquals (resObj.Result, null) then
-            failwithf "resObj.Result is null?? raw response was %s" rawResponse
+            failwith <| SPrintF1 "resObj.Result is null?? raw response was %s" rawResponse
 
         // resObj.Result.[0] is e.g. "ElectrumX 1.4.3"
         // e.g. "1.1"

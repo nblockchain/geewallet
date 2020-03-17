@@ -5,6 +5,8 @@ open System.Net
 
 open FSharp.Data
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 module FiatValueEstimation =
     let private PERIOD_TO_CONSIDER_PRICE_STILL_FRESH = TimeSpan.FromMinutes 2.0
 
@@ -42,9 +44,9 @@ module FiatValueEstimation =
             let baseUrl =
                 match provider with
                 | PriceProvider.CoinCap ->
-                    sprintf "https://api.coincap.io/v2/rates/%s" tickerName
+                    SPrintF1 "https://api.coincap.io/v2/rates/%s" tickerName
                 | PriceProvider.CoinGecko ->
-                    sprintf "https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd" tickerName
+                    SPrintF1 "https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd" tickerName
             let uri = Uri baseUrl
             let task = webClient.DownloadStringTaskAsync uri
             let! res = Async.AwaitTask task
@@ -80,10 +82,10 @@ module FiatValueEstimation =
             let parsedJsonObj = FSharp.Data.JsonValue.Parse json
             let usdPrice =
                 match parsedJsonObj.TryGetProperty ticker with
-                | None -> failwithf "Could not pre-parse %s" json
+                | None -> failwith <| SPrintF1 "Could not pre-parse %s" json
                 | Some innerObj ->
                     match innerObj.TryGetProperty "usd" with
-                    | None -> failwithf "Could not parse %s" json
+                    | None -> failwith <| SPrintF1 "Could not parse %s" json
                     | Some value -> value.AsDecimal()
             return Some usdPrice
     }

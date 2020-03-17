@@ -21,3 +21,9 @@ update-servers:
 
 nuget:
 	@./scripts/make.sh nuget
+
+sanitycheck:
+	@./scripts/make.sh sanitycheck
+
+strict:
+	@./scripts/make.sh strict

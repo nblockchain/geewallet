@@ -5,6 +5,8 @@ open System.Linq
 open System.IO
 open System.Threading.Tasks
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 module Account =
 
     let private GetShowableBalanceInternal (account: IAccount)
@@ -14,12 +16,13 @@ module Account =
         match account with
         | :? UtxoCoin.IUtxoAccount as utxoAccount ->
             if not (account.Currency.IsUtxo()) then
-                failwithf "Currency %A not Utxo-type but account is? report this bug (balance)" account.Currency
+                failwith <| SPrintF1 "Currency %A not Utxo-type but account is? report this bug (balance)"
+                                     account.Currency
 
             UtxoCoin.Account.GetShowableBalance utxoAccount mode cancelSourceOption
         | _ ->
             if not (account.Currency.IsEtherBased()) then
-                failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (balance)"
+                failwith <| SPrintF1 "Currency %A not ether based and not UTXO either? not supported, report this bug (balance)"
                     account.Currency
             Ether.Account.GetShowableBalance account mode cancelSourceOption
 
@@ -76,7 +79,7 @@ module Account =
                                 Ether.Account.GetPublicAddressFromNormalAccountFile
                             NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
                         else
-                            failwithf "Unknown currency %A" currency
+                            failwith <| SPrintF1 "Unknown currency %A" currency
                     yield account
         }
 
@@ -111,7 +114,7 @@ module Account =
                     elif currency.IsEtherBased() then
                         Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
                     else
-                        failwithf "Unknown currency %A" currency
+                        failwith <| SPrintF1 "Unknown currency %A" currency
 
                 let fromConfigAccountFileToPublicAddressFunc (accountConfigFile: FileRepresentation) =
                     let privateKeyFromConfigFile = accountConfigFile.Content()
@@ -152,7 +155,7 @@ module Account =
         elif currency.IsUtxo() then
             UtxoCoin.Account.ValidateAddress currency address
         else
-            failwithf "Unknown currency %A" currency
+            failwith <| SPrintF1 "Unknown currency %A" currency
     }
 
 
@@ -161,12 +164,13 @@ module Account =
             match account with
             | :? UtxoCoin.IUtxoAccount as utxoAccount ->
                 if not (account.Currency.IsUtxo()) then
-                    failwithf "Currency %A not Utxo-type but account is? report this bug (estimatefee)" account.Currency
+                    failwith <| SPrintF1 "Currency %A not Utxo-type but account is? report this bug (estimatefee)"
+                                         account.Currency
                 let! fee = UtxoCoin.Account.EstimateFee utxoAccount amount destination
                 return fee :> IBlockchainFeeInfo
             | _ ->
                 if not (account.Currency.IsEtherBased()) then
-                    failwithf "Currency %A not ether based and not UTXO either? not supported, report this bug (estimatefee)"
+                    failwith <| SPrintF1 "Currency %A not ether based and not UTXO either? not supported, report this bug (estimatefee)"
                         account.Currency
                 let! fee = Ether.Account.EstimateFee account amount destination
                 return fee :> IBlockchainFeeInfo
@@ -196,7 +200,7 @@ module Account =
             | :? Ether.TransactionMetadata as etherTxMetadata ->
                 let! outOfGas = Ether.Server.IsOutOfGas transactionMetadata.Currency txHash etherTxMetadata.Fee.GasLimit
                 if outOfGas then
-                    return failwithf "Transaction ran out of gas: %s" txHash
+                    return failwith <| SPrintF1 "Transaction ran out of gas: %s" txHash
             | _ ->
                 ()
         }
@@ -214,7 +218,7 @@ module Account =
                 elif currency.IsUtxo() then
                     UtxoCoin.Account.BroadcastTransaction currency trans
                 else
-                    failwithf "Unknown currency %A" currency
+                    failwith <| SPrintF1 "Unknown currency %A" currency
 
             do! CheckIfOutOfGas trans.TransactionInfo.Metadata txId
 
@@ -282,7 +286,7 @@ module Account =
             elif currency.IsEther() then
                 Ether.Account.GetPublicAddressFromUnencryptedPrivateKey
             else
-                failwithf "Unknown currency %A" currency
+                failwith <| SPrintF1 "Unknown currency %A" currency
 
         let fromConfigFileToPublicAddressFunc (accountConfigFile: FileRepresentation) =
             // there's no ETH unencrypted standard: https://github.com/ethereum/wiki/wiki/Web3-Secret-Storage-Definition
@@ -311,7 +315,7 @@ module Account =
                 let privKey = Ether.Account.GetPrivateKey account password
                 privKey.GetPrivateKey()
             else
-                failwithf "Unknown currency %A" currency
+                failwith <| SPrintF1 "Unknown currency %A" currency
         CreateArchivedAccount currency privateKeyAsString |> ignore
         Config.RemoveNormalAccount account
 
@@ -327,7 +331,7 @@ module Account =
             | :? UtxoCoin.ArchivedUtxoAccount as utxoAccount ->
                 UtxoCoin.Account.SweepArchivedFunds utxoAccount balance destination utxoTxMetadata
             | _ ->
-                failwithf "If tx metadata is UTXO type, archived account should be too"
+                failwith "If tx metadata is UTXO type, archived account should be too"
         | _ -> failwith "tx metadata type unknown"
 
     let SendPayment (account: NormalAccount)
@@ -349,7 +353,8 @@ module Account =
                 match txMetadata with
                 | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
                     if not (currency.IsUtxo()) then
-                        failwithf "Currency %A not Utxo-type but tx metadata is? report this bug (sendpayment)" currency
+                        failwith <| SPrintF1 "Currency %A not Utxo-type but tx metadata is? report this bug (sendpayment)"
+                                             currency
                     match account with
                     | :? UtxoCoin.NormalUtxoAccount as utxoAccount ->
                         UtxoCoin.Account.SendPayment utxoAccount btcTxMetadata destination amount password
@@ -361,7 +366,7 @@ module Account =
                         failwith "Account not ether-type but tx metadata is? report this bug (sendpayment)"
                     Ether.Account.SendPayment account etherTxMetadata destination amount password
                 | _ ->
-                    failwithf "Unknown tx metadata type"
+                    failwith "Unknown tx metadata type"
 
             do! CheckIfOutOfGas txMetadata txId
 
@@ -464,7 +469,7 @@ module Account =
             elif currency.IsEtherBased() then
                 return! CreateConceptEtherAccountInternal password seed
             else
-                return failwithf "Unknown currency %A" currency
+                return failwith <| SPrintF1 "Unknown currency %A" currency
         }
 
 
@@ -515,7 +520,7 @@ module Account =
                                  (dobPartOfSalt: DateTime) (emailPartOfSalt: string)
                                      : Async<array<byte>> =
         async {
-            let salt = sprintf "%s+%s" (dobPartOfSalt.Date.ToString("yyyyMMdd")) (emailPartOfSalt.ToLower())
+            let salt = SPrintF2 "%s+%s" (dobPartOfSalt.Date.ToString("yyyyMMdd")) (emailPartOfSalt.ToLower())
             let privateKeyBytes = WarpKey.CreatePrivateKey passphrase salt
             return privateKeyBytes
         }
@@ -608,7 +613,7 @@ module Account =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
-            raise <| Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName)
+            raise <| Exception(SPrintF1 "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName)
 
     let public ImportSignedTransactionFromJson (json: string): SignedTransaction<IBlockchainFeeInfo> =
         let transType = Marshalling.ExtractType json
@@ -623,7 +628,7 @@ module Account =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
         | unexpectedType ->
-            raise <| Exception(sprintf "Unknown signedTransaction subtype: %s" unexpectedType.FullName)
+            raise <| Exception(SPrintF1 "Unknown signedTransaction subtype: %s" unexpectedType.FullName)
 
     let LoadSignedTransactionFromFile (filePath: string) =
         let signedTransInJson = File.ReadAllText(filePath)

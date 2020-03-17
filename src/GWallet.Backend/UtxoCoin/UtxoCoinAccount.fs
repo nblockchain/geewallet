@@ -10,6 +10,7 @@ open System.Linq
 open NBitcoin
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type internal TransactionOutpoint =
     {
@@ -53,11 +54,11 @@ module Account =
 
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
-            failwithf "Assertion failed: currency %A should be UTXO-type" currency
+            failwith <| SPrintF1 "Assertion failed: currency %A should be UTXO-type" currency
         match currency with
         | BTC -> Config.BitcoinNet
         | LTC -> Config.LitecoinNet
-        | _ -> failwithf "Assertion failed: UTXO currency %A not supported?" currency
+        | _ -> failwith <| SPrintF1 "Assertion failed: UTXO currency %A not supported?" currency
 
     // technique taken from https://electrumx.readthedocs.io/en/latest/protocol-basics.html#script-hashes
     let private GetElectrumScriptHashFromAddress (address: BitcoinAddress): string =
@@ -239,7 +240,7 @@ module Account =
             match utxos with
             | [] ->
                 // should `raise InsufficientFunds` instead?
-                failwithf "Not enough funds (needed: %s, got so far: %s)"
+                failwith <| SPrintF2 "Not enough funds (needed: %s, got so far: %s)"
                           (amount.ToString()) (soFarInSatoshis.ToString())
             | utxoInfo::tail ->
                 let newAcc =
@@ -300,8 +301,8 @@ module Account =
                 Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC) |> FeeRate
             with
             | ex ->
-                // we need more info in case this bug shows again: https://gitlab.com/DiginexGlobal/geewallet/issues/43
-                raise <| Exception(sprintf "Could not create fee rate from %s btc per KB"
+                // we need more info in case this bug shows again: https://gitlab.com/knocte/geewallet/issues/43
+                raise <| Exception(SPrintF1 "Could not create fee rate from %s btc per KB"
                                            (btcPerKiloByteForFastTrans.ToString()), ex)
 
         let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
@@ -338,7 +339,7 @@ module Account =
         let finalTransaction = finalTransactionBuilder.BuildTransaction true
         let transCheckResultAfterSigning = finalTransaction.Check()
         if (transCheckResultAfterSigning <> TransactionCheckResult.Success) then
-            failwithf "Transaction check failed after signing with %A" transCheckResultAfterSigning
+            failwith <| SPrintF1 "Transaction check failed after signing with %A" transCheckResultAfterSigning
 
         if not (finalTransactionBuilder.Verify finalTransaction) then
             failwith "Something went wrong when verifying transaction"
@@ -458,7 +459,7 @@ module Account =
                 let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
                 let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
                 [ LITECOIN_ADDRESS_PUBKEYHASH_PREFIX; LITECOIN_ADDRESS_SCRIPTHASH_PREFIX ]
-            | _ -> failwithf "Unknown UTXO currency %A" currency
+            | _ -> failwith <| SPrintF1 "Unknown UTXO currency %A" currency
 
         if not (utxoCoinValidAddressPrefixes.Any(fun prefix -> address.StartsWith prefix)) then
             raise (AddressMissingProperPrefix(utxoCoinValidAddressPrefixes))

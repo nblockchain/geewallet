@@ -13,6 +13,7 @@ open Nethereum.RPC.Eth.DTOs
 open Nethereum.StandardTokenEIP20.ContractDefinition
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type BalanceType =
     | Unconfirmed
@@ -55,7 +56,7 @@ module Web3ServerSeedList =
             elif currency.IsEthToken() then
                 Currency.ETH
             else
-                failwithf "Assertion failed: Ether currency %A not supported?" currency
+                failwith <| SPrintF1 "Assertion failed: Ether currency %A not supported?" currency
         Caching.Instance.GetServers baseCurrency |> List.ofSeq
 
     let Randomize currency =
@@ -68,18 +69,18 @@ module Server =
     let private Web3Server (serverDetails: ServerDetails) =
         match serverDetails.ServerInfo.ConnectionType with
         | { Protocol = Tcp _ ; Encrypted = _ } ->
-            failwithf "Ether server of TCP connection type?: %s" serverDetails.ServerInfo.NetworkPath
+            failwith <| SPrintF1 "Ether server of TCP connection type?: %s" serverDetails.ServerInfo.NetworkPath
         | { Protocol = Http ; Encrypted = encrypted } ->
             let protocol =
                 if encrypted then
                     "https"
                 else
                     "http"
-            let uri = sprintf "%s://%s" protocol serverDetails.ServerInfo.NetworkPath
+            let uri = SPrintF2 "%s://%s" protocol serverDetails.ServerInfo.NetworkPath
             SomeWeb3 uri
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
-        ex.Message.StartsWith(sprintf "%d " errorCode) || ex.Message.Contains(sprintf " %d " errorCode)
+        ex.Message.StartsWith(SPrintF1 "%i " errorCode) || ex.Message.Contains(SPrintF1 " %i " errorCode)
 
     let exMsg = "Could not communicate with EtherServer"
     let PerformEtherRemoteCallWithTimeout<'T,'R> (job: Async<'R>): Async<'R> = async {
@@ -179,7 +180,7 @@ module Server =
                     if (not (rpcResponseEx.RpcError.Message.Contains "pruning=archive")) &&
                        (not (rpcResponseEx.RpcError.Message.Contains "missing trie node")) then
                         raise <| Exception(
-                                     sprintf "Expecting 'pruning=archive' or 'missing trie node' in message of a %d code"
+                                     SPrintF1 "Expecting 'pruning=archive' or 'missing trie node' in message of a %i code"
                                                    (int RpcErrorCode.StatePruningNodeOrMissingTrieNode), rpcResponseEx)
                     else
                         raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
@@ -189,7 +190,7 @@ module Server =
                     raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                 if rpcResponseEx.RpcError.Code = int RpcErrorCode.EmptyResponse then
                     raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                raise <| Exception(sprintf "RpcResponseException with RpcError Code <%d> and Message '%s' (%s)"
+                raise <| Exception(SPrintF3 "RpcResponseException with RpcError Code <%i> and Message '%s' (%s)"
                                          rpcResponseEx.RpcError.Code
                                          rpcResponseEx.RpcError.Message
                                          rpcResponseEx.Message,
@@ -353,10 +354,10 @@ module Server =
             // NOTE: try to make this 'with' block be in sync with the one in UtxoCoinAccount:GetRandomizedFuncs()
             with
             | :? CommunicationUnsuccessfulException as ex ->
-                let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                let msg = SPrintF2 "%s: %s" (ex.GetType().FullName) ex.Message
                 return raise <| ServerDiscardedException(msg, ex)
             | ex ->
-                return raise <| Exception(sprintf "Some problem when connecting to '%s'"
+                return raise <| Exception(SPrintF1 "Some problem when connecting to '%s'"
                                                   server.ServerInfo.NetworkPath, ex)
         }
 
@@ -416,7 +417,7 @@ module Server =
                                                    NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)
 
             if blockToCheck.Sign < 0 then
-                let errMsg = sprintf
+                let errMsg = SPrintF2
                                  "Looks like we received a wrong latestBlock(%s) because the substract was negative(%s)"
                                      (latestBlock.Value.ToString())
                                      (blockToCheck.ToString())
@@ -430,7 +431,7 @@ module Server =
             let! blockForConfirmationReference = GetBlockToCheckForConfirmedBalance web3
 (*
             if (Config.DebugLog) then
-                Infrastructure.LogError (sprintf "Last block number and last confirmed block number: %s: %s"
+                Infrastructure.LogError (SPrintF2 "Last block number and last confirmed block number: %s: %s"
                                                  (latestBlock.Value.ToString()) (blockForConfirmationReference.BlockNumber.Value.ToString()))
 *)
 
@@ -679,7 +680,7 @@ module Server =
             let emptyContract = "0x"
 
             if not (contractCode.StartsWith emptyContract) then
-                failwithf "GetCode API should always return a string starting with %s, but got: %s"
+                failwith <| SPrintF2 "GetCode API should always return a string starting with %s, but got: %s"
                           emptyContract contractCode
             elif contractCode <> emptyContract then
                 return raise <| InvalidDestinationAddress "Sending to contract addresses is not supported yet. Supply a normal address please."
