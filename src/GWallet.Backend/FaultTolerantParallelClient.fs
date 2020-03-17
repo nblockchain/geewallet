@@ -122,7 +122,7 @@ type internal ClientCancelStateInner =
 type internal ClientCancelState = MutableStateCapsule<ClientCancelStateInner>
 
 
-type Runner<'Resource when 'Resource: equality> =
+type internal Runner<'Resource when 'Resource: equality> =
     static member Run<'K,'Ex when 'K: equality and 'K :> ICommunicationHistory and 'Ex :> Exception>
                       (server: Server<'K,'Resource>)
                       (stopwatch: Stopwatch)
