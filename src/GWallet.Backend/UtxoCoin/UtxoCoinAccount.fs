@@ -454,11 +454,11 @@ module Account =
         else
             let uriBuilder = BitcoinUrlBuilder addressOrUrl
             if null <> uriBuilder.UnknowParameters && uriBuilder.UnknowParameters.Any() then
-                failwithf "Unknown parameters found in URI %s: %s"
+                failwith <| SPrintF2 "Unknown parameters found in URI %s: %s"
                           addressOrUrl (String.Join(",", uriBuilder.UnknowParameters.Keys))
 
             if null = uriBuilder.Address then
-                failwithf "Address started with 'bitcoin:' but an address could not be extracted: %s" addressOrUrl
+                failwith <| SPrintF1 "Address started with 'bitcoin:' but an address could not be extracted: %s" addressOrUrl
 
             let address = uriBuilder.Address.ToString()
             if (uriBuilder.Amount <> null) then

@@ -178,7 +178,7 @@ module Config =
         let resourceList = String.Join(",", allEmbeddedResources)
         let assemblyResourceName = allEmbeddedResources.FirstOrDefault(fun r -> r.EndsWith resourceName)
         if (assemblyResourceName = null) then
-            failwithf "Embedded resource %s not found in %s. Resource list: %s"
+            failwith <| SPrintF3 "Embedded resource %s not found in %s. Resource list: %s"
                       resourceName
                       (assembly.ToString())
                       resourceList

@@ -731,7 +731,7 @@ module Account =
                     Marshalling.Deserialize json
             Signed(deserializedTransaction.ToAbstract())
         | unexpectedType ->
-            raise(new Exception(sprintf "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName))
+            failwith <| SPrintF1 "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName
 
 
     let LoadSignedTransactionFromFile (filePath: string) =

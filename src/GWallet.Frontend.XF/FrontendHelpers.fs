@@ -10,6 +10,7 @@ open ZXing
 open ZXing.Mobile
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type BalanceWidgets =
     {
@@ -59,7 +60,7 @@ module FrontendHelpers =
 
     let private defaultFiatCurrency = "USD"
 
-    let internal ExchangeRateUnreachableMsg = sprintf " (~ ? %s)" defaultFiatCurrency
+    let internal ExchangeRateUnreachableMsg = SPrintF1 " (~ ? %s)" defaultFiatCurrency
 
     //FIXME: right now the UI doesn't explain what the below element means when it shows it, we should add a legend...
     let internal ExchangeOutdatedVisualElement = "*"
@@ -81,12 +82,12 @@ module FrontendHelpers =
             NotFresh(NotAvailable),ExchangeRateUnreachableMsg
         | Fresh(usdValue) ->
             let fiatBalance = usdValue * balance
-            Fresh(fiatBalance),sprintf "~ %s %s"
+            Fresh(fiatBalance),SPrintF2 "~ %s %s"
                                    (Formatting.DecimalAmountRounding CurrencyType.Fiat fiatBalance)
                                    defaultFiatCurrency
         | NotFresh(Cached(usdValue,time)) ->
             let fiatBalance = usdValue * balance
-            NotFresh(Cached(fiatBalance,time)),sprintf "~ %s %s%s"
+            NotFresh(Cached(fiatBalance,time)),SPrintF3 "~ %s %s%s"
                                                     (Formatting.DecimalAmountRounding CurrencyType.Fiat fiatBalance)
                                                     defaultFiatCurrency
                                                     (MaybeReturnOutdatedMarkForOldDate time)
@@ -119,10 +120,10 @@ module FrontendHelpers =
         let balanceAmountStr,fiatAmount,fiatAmountStr =
             match maybeBalanceAmount with
             | None ->
-                sprintf "%A (?)" currency, NotFresh(NotAvailable), sprintf "(?) %s" defaultFiatCurrency
+                SPrintF1 "%A (?)" currency, NotFresh(NotAvailable), SPrintF1 "(?) %s" defaultFiatCurrency
             | Some balanceAmount ->
                 let cryptoAmount = Formatting.DecimalAmountRounding CurrencyType.Crypto balanceAmount
-                let cryptoAmountStr = sprintf "%A %s" currency cryptoAmount
+                let cryptoAmountStr = SPrintF2 "%A %s" currency cryptoAmount
                 let fiatAmount,fiatAmountStr = BalanceInUsdString balanceAmount usdRate
                 cryptoAmountStr,fiatAmount,fiatAmountStr
         Device.BeginInvokeOnMainThread(fun _ ->
@@ -389,15 +390,15 @@ module FrontendHelpers =
     let GetImageSource name =
         let thisAssembly = typeof<BalanceState>.Assembly
         let thisAssemblyName = thisAssembly.GetName().Name
-        let fullyQualifiedResourceNameForLogo = sprintf "%s.img.%s.png"
+        let fullyQualifiedResourceNameForLogo = SPrintF2 "%s.img.%s.png"
                                                         thisAssemblyName name
         ImageSource.FromResource(fullyQualifiedResourceNameForLogo, thisAssembly)
 
     let GetSizedImageSource name size =
-        let sizedName = sprintf "%s_%ix%i" name size size
+        let sizedName = SPrintF3 "%s_%ix%i" name size size
         GetImageSource sizedName
 
     let GetSizedColoredImageSource name color size =
-        let sizedColoredName = sprintf "%s_%s" name color
+        let sizedColoredName = SPrintF2 "%s_%s" name color
         GetSizedImageSource sizedColoredName size
 

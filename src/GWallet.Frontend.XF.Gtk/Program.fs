@@ -5,6 +5,8 @@ open System
 open Xamarin.Forms
 open Xamarin.Forms.Platform.GTK
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 module Main =
 
     [<EntryPoint>]
@@ -25,7 +27,7 @@ module Main =
         let snapEnvVar = Environment.GetEnvironmentVariable "SNAP"
         let logoFileName = "logo.png"
         if not (String.IsNullOrEmpty snapEnvVar) then
-            window.SetApplicationIcon (sprintf "%s/lib/geewallet/%s" (snapEnvVar.TrimEnd('/')) logoFileName)
+            window.SetApplicationIcon (SPrintF2 "%s/lib/geewallet/%s" (snapEnvVar.TrimEnd('/')) logoFileName)
         else
             window.SetApplicationIcon logoFileName
         window.SetDefaultSize (1000, 1000)

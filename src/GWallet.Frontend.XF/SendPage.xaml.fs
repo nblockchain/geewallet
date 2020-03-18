@@ -11,6 +11,7 @@ open Xamarin.Essentials
 open ZXing.Net.Mobile.Forms
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type TransactionInfo =
     { Metadata: IBlockchainFeeInfo;
@@ -163,7 +164,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                             fun item -> item.ToString() = account.Currency.ToString()
                         )
                     if (cryptoCurrencyInPicker = null) then
-                        failwithf "Could not find currency %A in picker?" account.Currency
+                        failwith <| SPrintF1 "Could not find currency %A in picker?" account.Currency
                     currencySelectorPicker.SelectedItem <- cryptoCurrencyInPicker
                     let aPreviousAmountWasSet = not (String.IsNullOrWhiteSpace amountLabel.Text)
                     amountLabel.Text <- amount.ToString()
@@ -307,7 +308,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             return None
         | AddressMissingProperPrefix(possiblePrefixes) ->
             let possiblePrefixesStr = String.Join(", ", possiblePrefixes)
-            let msg =  (sprintf "Address starts with the wrong prefix. Valid prefixes: %s."
+            let msg =  (SPrintF1 "Address starts with the wrong prefix. Valid prefixes: %s."
                                     possiblePrefixesStr)
             Device.BeginInvokeOnMainThread(fun _ ->
                 this.DisplayAlert("Alert", msg, "OK")
@@ -320,23 +321,23 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 | 1 ->
                     let lengthLimitViolated = lengthLimitInfo.ElementAt 0
                     if destinationAddress.Length <> lengthLimitViolated then
-                        sprintf "Address should have a length of %d characters, please try again." lengthLimitViolated
+                        SPrintF1 "Address should have a length of %i characters, please try again." lengthLimitViolated
                     else
-                        failwithf "Address introduced '%s' gave a length error with a limit that matches its length: %d=%d. Report this bug."
+                        failwith <| SPrintF3 "Address introduced '%s' gave a length error with a limit that matches its length: %i=%i. Report this bug."
                                   destinationAddress lengthLimitViolated destinationAddress.Length
                 | 2 ->
                     let minLength,maxLength = lengthLimitInfo.ElementAt 0,lengthLimitInfo.ElementAt 1
                     if destinationAddress.Length < minLength then
-                        sprintf "Address should have a length not lower than %d characters, please try again."
+                        SPrintF1 "Address should have a length not lower than %i characters, please try again."
                                 minLength
                     elif destinationAddress.Length > maxLength then
-                        sprintf "Address should have a length not higher than %d characters, please try again."
+                        SPrintF1 "Address should have a length not higher than %i characters, please try again."
                                 maxLength
                     else
-                        sprintf "Address should have a length of either %d or %d characters, please try again."
+                        SPrintF2 "Address should have a length of either %i or %i characters, please try again."
                                 minLength maxLength
                 | _ ->
-                    failwithf "AddressWithInvalidLength returned an invalid parameter length (%d). Report this bug."
+                    failwith <| SPrintF1 "AddressWithInvalidLength returned an invalid parameter length (%i). Report this bug."
                                (lengthLimitInfo.Count())
 
             Device.BeginInvokeOnMainThread(fun _ ->
@@ -400,7 +401,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     Device.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err =
-                            sprintf "Transaction proposal's currency (%A) doesn't match with this currency's account (%A)"
+                            SPrintF2 "Transaction proposal's currency (%A) doesn't match with this currency's account (%A)"
                                     unsignedTransaction.Proposal.Amount.Currency account.Currency
                         this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     )
@@ -429,7 +430,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     Device.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err =
-                            sprintf "Transaction's currency (%A) doesn't match with this currency's account (%A)"
+                            SPrintF2 "Transaction's currency (%A) doesn't match with this currency's account (%A)"
                                     signedTransaction.TransactionInfo.Proposal.Amount.Currency account.Currency
                         this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     )
@@ -502,7 +503,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                 | _ ->
                                     Formatting.DecimalAmountRounding CurrencyType.Fiat (rate * amount),
                                         "USD"
-                            let usdAmount = sprintf "~ %s %s" eqAmount otherCurrency
+                            let usdAmount = SPrintF2 "~ %s %s" eqAmount otherCurrency
                             equivalentAmount.Text <- usdAmount
                             return true
                 }
@@ -667,10 +668,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
                     let feeInCrypto = txMetadataWithFeeEstimation.FeeValue
                     let feeInFiatValue = someUsdValue * feeInCrypto
-                    let feeInFiatValueStr = sprintf "~ %s USD"
+                    let feeInFiatValueStr = SPrintF1 "~ %s USD"
                                                     (Formatting.DecimalAmountRounding CurrencyType.Fiat feeInFiatValue)
 
-                    let feeAskMsg = sprintf "Estimated fee for this transaction would be: %s %s (%s)"
+                    let feeAskMsg = SPrintF3 "Estimated fee for this transaction would be: %s %s (%s)"
                                           (Formatting.DecimalAmountRounding CurrencyType.Crypto feeInCrypto)
                                           (txMetadataWithFeeEstimation.Currency.ToString())
                                           feeInFiatValueStr

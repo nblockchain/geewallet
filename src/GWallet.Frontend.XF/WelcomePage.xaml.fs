@@ -8,6 +8,7 @@ open Xamarin.Forms.Xaml
 open Xamarin.Essentials
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     inherit ContentPage()
@@ -61,7 +62,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         if passphraseEntry.Text <> passphraseConfirmationEntry.Text then
             Some "Seed passphrases don't match, please try again"
         elif passphraseEntry.Text.Length < LENGTH_OF_CURRENT_UNSOLVED_WARPWALLET_CHALLENGE then
-            Some (sprintf "Seed passphrases should contain %d or more characters, for security reasons"
+            Some (SPrintF1 "Seed passphrases should contain %i or more characters, for security reasons"
                           LENGTH_OF_CURRENT_UNSOLVED_WARPWALLET_CHALLENGE)
         elif (not containsASpaceAtLeast) && (not containsADigitAtLeast) then
             Some "If your passphrase doesn't contain spaces (thus only a password), at least use numbers too"

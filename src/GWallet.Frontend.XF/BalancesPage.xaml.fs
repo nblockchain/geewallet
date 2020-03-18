@@ -11,6 +11,7 @@ open Xamarin.Essentials
 
 open GWallet.Frontend.XF.Controls
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 
 // this type allows us to represent the idea that if we have, for example, 3 LTC and an unknown number of ETC (might
@@ -60,21 +61,21 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             | Fresh amount ->
                 match amount with
                 | ExactBalance exactAmount ->
-                    sprintf "~ %s USD" (Formatting.DecimalAmountRounding CurrencyType.Fiat exactAmount)
+                    SPrintF1 "~ %s USD" (Formatting.DecimalAmountRounding CurrencyType.Fiat exactAmount)
                 | AtLeastBalance atLeastAmount ->
-                    sprintf "~ %s USD?" (Formatting.DecimalAmountRounding CurrencyType.Fiat atLeastAmount)
+                    SPrintF1 "~ %s USD?" (Formatting.DecimalAmountRounding CurrencyType.Fiat atLeastAmount)
             | NotFresh(Cached(cachedAmount,time)) ->
                 match cachedAmount with
                 | ExactBalance exactAmount ->
-                    sprintf "~ %s USD%s"
+                    SPrintF2 "~ %s USD%s"
                            (Formatting.DecimalAmountRounding CurrencyType.Fiat exactAmount)
                            (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
                 | AtLeastBalance atLeastAmount ->
-                    sprintf "~ %s USD%s?"
+                    SPrintF2 "~ %s USD%s?"
                            (Formatting.DecimalAmountRounding CurrencyType.Fiat atLeastAmount)
                            (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
 
-        totalFiatAmountLabel.Text <- sprintf "Total Assets:\n%s" strBalance
+        totalFiatAmountLabel.Text <- SPrintF1 "Total Assets:\n%s" strBalance
 
     let rec UpdateGlobalFiatBalance (acc: Option<MaybeCached<TotalBalance>>)
                                     (fiatBalances: List<MaybeCached<decimal>>)

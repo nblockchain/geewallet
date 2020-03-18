@@ -9,6 +9,7 @@ open Xamarin.Forms
 open SkiaSharp
 
 open GWallet.Frontend.XF
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type SegmentInfo = 
     {
@@ -221,7 +222,7 @@ type CircleChartView () =
 
             use surface = SKSurface.Create imageInfo
             if surface = null then
-                failwithf "Strangely enough, surface created was null (w: %f, h: %f)" width height
+                failwith <| SPrintF2 "Strangely enough, surface created was null (w: %f, h: %f)" width height
             surface.Canvas.Clear SKColors.Empty
             let halfWidth = float32 width / 2.f
             let halfHeight = float32 height / 2.f
