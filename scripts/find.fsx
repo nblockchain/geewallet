@@ -17,9 +17,8 @@ let FindInFile (file: FileInfo)
                    : unit =
     let doIt () =
         for line in File.ReadLines file.FullName do
-            for someString in someStrings do
-                if line.IndexOf someString >= 0 then
-                    printfn "%s: %s" file.FullName line
+            if someStrings.Any(fun str -> line.IndexOf str >= 0) then
+                printfn "%s: %s" file.FullName line
 
     match maybeExcludeItems with
     | None ->
