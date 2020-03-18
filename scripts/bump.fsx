@@ -44,6 +44,7 @@ let filesToBumpFullVersion: seq<string> =
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
         "snap/snapcraft.yaml"
         ".github/workflows/ubuntu.yml"
+        "src/GWallet.Frontend.XF.UWP/Package.appxmanifest"
     ]
 let gitLabCiYml = ".gitlab-ci.yml"
 let filesToGitAdd: seq<string> =
