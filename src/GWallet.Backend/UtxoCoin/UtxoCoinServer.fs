@@ -6,6 +6,7 @@
 open System
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type QuerySettings<'R> =
     | Default of mode: ServerSelectionMode
@@ -73,10 +74,11 @@ module Server =
             // NOTE: try to make this 'with' block be in sync with the one in EtherServer:GetWeb3Funcs()
             with
             | :? CommunicationUnsuccessfulException as ex ->
-                let msg = sprintf "%s: %s" (ex.GetType().FullName) ex.Message
+                let msg = SPrintF2 "%s: %s" (ex.GetType().FullName) ex.Message
                 return raise <| ServerDiscardedException(msg, ex)
             | ex ->
-                return raise <| Exception(sprintf "Some problem when connecting to %s" server.ServerInfo.NetworkPath, ex)
+                return raise <| Exception(SPrintF1 "Some problem when connecting to %s" server.ServerInfo.NetworkPath,
+                                          ex)
         }
         let ElectrumServerToGenericServer (electrumClientFunc: Async<StratumClient>->Async<'R>)
                                           (electrumServer: ServerDetails)

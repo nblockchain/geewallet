@@ -9,7 +9,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Run a one-line script
       shell: cmd
-      run: configure.bat && make.bat release
+      run: configure.bat && make.bat sanitycheck && make.bat strict && make.bat release
 
   windows_tests_unit:
     runs-on: windows-latest

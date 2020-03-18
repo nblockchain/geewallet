@@ -7,6 +7,8 @@ open System
 open System.Text
 open System.Security.Cryptography
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 // .NET implementation for WarpWallet: https://keybase.io/warp/
 module WarpKey =
 
@@ -54,7 +56,7 @@ module WarpKey =
         let pbkdf2 = PBKDF2 passphrase salt
         let privKeyBytes = XOR scrypt pbkdf2
         if (privKeyBytes.Length <> LENGTH_OF_PRIVATE_KEYS) then
-            failwithf "Something went horribly wrong because length of privKey was not %d but %d"
+            failwith <| SPrintF2 "Something went horribly wrong because length of privKey was not %i but %i"
                       LENGTH_OF_PRIVATE_KEYS privKeyBytes.Length
         privKeyBytes
 

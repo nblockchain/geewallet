@@ -18,9 +18,9 @@ let ReplaceInFile (file: FileInfo) (oldString: string) (newString: string) =
 
 let rec ReplaceInDir (dir: DirectoryInfo) (oldString: string) (newString: string) =
     for file in dir.GetFiles() do
-        if (file.Extension.ToLower() <> "dll") &&
-           (file.Extension.ToLower() <> "exe") &&
-           (file.Extension.ToLower() <> "png") then
+        if file.Extension.ToLower() <> ".dll" &&
+           file.Extension.ToLower() <> ".exe" &&
+           file.Extension.ToLower() <> ".png" then
             ReplaceInFile file oldString newString
     for subFolder in dir.GetDirectories() do
         if subFolder.Name <> ".git" then

@@ -5,6 +5,8 @@ open System.IO
 open System.Linq
 open System.Net.Http
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 type CachedNetworkData =
     {
         UsdPrice: Map<Currency,CachedValue<decimal>>;
@@ -109,7 +111,7 @@ module Caching =
                 | :? DeserializationException ->
                     // FIXME: report a warning to sentry here...
                     Infrastructure.LogError "Warning: cleaning incompatible cache data found"
-                    Infrastructure.LogDebug (sprintf "JSON content: <<<%s>>>" json)
+                    Infrastructure.LogDebug (SPrintF1 "JSON content: <<<%s>>>" json)
                     None
         with
         | :? FileNotFoundException -> None
@@ -253,7 +255,7 @@ module Caching =
             for KeyValue(currency,servers) in mergedAndSaved do
                 for server in servers do
                     if server.CommunicationHistory.IsNone then
-                        Infrastructure.LogError (sprintf "WARNING: no history stats about %A server %s"
+                        Infrastructure.LogError (SPrintF2 "WARNING: no history stats about %A server %s"
                                                          currency server.ServerInfo.NetworkPath)
             mergedServers
 
@@ -296,7 +298,7 @@ module Caching =
             String.Join(Environment.NewLine, json1, json2, json3, json4)
 
         let ReportProblem (negativeBalance: decimal) (previousBalance) (currency) (address) (newCache) =
-            Infrastructure.ReportError (sprintf "Negative balance '%s'. Details: %s"
+            Infrastructure.ReportError (SPrintF2 "Negative balance '%s'. Details: %s"
                                                     (negativeBalance.ToString())
                                                     (GatherDebuggingInfo
                                                         previousBalance
@@ -554,7 +556,7 @@ module Caching =
             lock cacheFiles.ServerStats (fun _ ->
                 match sessionServerRanking.TryFind currency with
                 | None ->
-                    failwithf "Initialization of servers' cache failed? currency %A not found" currency
+                    failwith <| SPrintF1 "Initialization of servers' cache failed? currency %A not found" currency
                 | Some servers -> servers
             )
 
@@ -595,18 +597,18 @@ module Caching =
             let projName = "geewallet"
             let ghBaseUrl,glBaseUrl,gnomeBaseUrl =
                 "https://raw.githubusercontent.com","https://gitlab.com","https://gitlab.gnome.org"
-            let pathToFile = sprintf "src/GWallet.Backend/%s" ServerRegistry.ServersEmbeddedResourceFileName
+            let pathToFile = SPrintF1 "src/GWallet.Backend/%s" ServerRegistry.ServersEmbeddedResourceFileName
 
             let gitHub =
-                sprintf "%s/%s/%s/%s/%s"
+                SPrintF5 "%s/%s/%s/%s/%s"
                         ghBaseUrl orgName1 projName targetBranch pathToFile
 
             let gitLab =
-                sprintf "%s/%s/%s/raw/%s/%s"
+                SPrintF5 "%s/%s/%s/raw/%s/%s"
                         glBaseUrl orgName1 projName targetBranch pathToFile
 
             let gnomeGitLab =
-                sprintf "%s/%s/%s/raw/%s/%s"
+                SPrintF5 "%s/%s/%s/raw/%s/%s"
                         gnomeBaseUrl orgName2 projName targetBranch pathToFile
 
             let allUrls = [ gitHub; gitLab; gnomeGitLab ]

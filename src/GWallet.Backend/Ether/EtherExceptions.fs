@@ -4,6 +4,7 @@ open System
 open System.Net
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type HttpStatusCodeNotPresentInTheBcl =
     | TooManyRequests = 429
@@ -51,12 +52,12 @@ type ServerChannelNegotiationException =
         }
     new(message: string, webExStatusCode: WebExceptionStatus, innerException: Exception) =
         {
-            inherit CommunicationUnsuccessfulException(sprintf "%s (WebErr: %s)" message (webExStatusCode.ToString()),
+            inherit CommunicationUnsuccessfulException(SPrintF2 "%s (WebErr: %s)" message (webExStatusCode.ToString()),
                                                     innerException)
         }
     new(message: string, cloudFlareError: CloudFlareError, innerException: Exception) =
         {
-            inherit CommunicationUnsuccessfulException(sprintf "%s (CfErr: %s)" message (cloudFlareError.ToString()),
+            inherit CommunicationUnsuccessfulException(SPrintF2 "%s (CfErr: %s)" message (cloudFlareError.ToString()),
                                                     innerException)
         }
 
@@ -73,7 +74,7 @@ type UnhandledWebException =
 
     new (status: WebExceptionStatus, innerException: Exception) =
         {
-            inherit Exception (sprintf "Backend not prepared for this WebException with Status[%d]"
+            inherit Exception (SPrintF1 "Backend not prepared for this WebException with Status[%i]"
                                        (int status),
                                        innerException)
         }

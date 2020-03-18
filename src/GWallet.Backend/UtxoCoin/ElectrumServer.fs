@@ -10,6 +10,7 @@ open FSharp.Data.JsonExtensions
 open HtmlAgilityPack
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type IncompatibleServerException(message) =
     inherit CommunicationUnsuccessfulException(message)
@@ -58,9 +59,9 @@ module ElectrumServerSeedList =
             match currency with
             | Currency.BTC -> "btc"
             | Currency.LTC -> "ltc"
-            | _ -> failwithf "UTXO currency unknown to this algorithm: %A" currency
+            | _ -> failwith <| SPrintF1 "UTXO currency unknown to this algorithm: %A" currency
 
-        let url = sprintf "https://1209k.com/bitcoin-eye/ele.php?chain=%s" currencyMnemonic
+        let url = SPrintF1 "https://1209k.com/bitcoin-eye/ele.php?chain=%s" currencyMnemonic
         let web = HtmlWeb()
         let doc = web.Load url
         let firstTable = doc.DocumentNode.SelectNodes("//table").[0]
@@ -76,18 +77,18 @@ module ElectrumServerSeedList =
                 let fqdn = serverProperties.[0].InnerText
 
                 if serverProperties.Count < 2 then
-                    failwithf "Unexpected property count in server %s: %i" fqdn serverProperties.Count
+                    failwith <| SPrintF2 "Unexpected property count in server %s: %i" fqdn serverProperties.Count
                 let port = UInt32.Parse serverProperties.[1].InnerText
 
                 if serverProperties.Count < 3 then
-                    failwithf "Unexpected property count in server %s:%i: %i" fqdn port serverProperties.Count
+                    failwith <| SPrintF3 "Unexpected property count in server %s:%i: %i" fqdn port serverProperties.Count
                 let portType = serverProperties.[2].InnerText
 
                 let encrypted =
                     match portType with
                     | "ssl" -> true
                     | "tcp" -> false
-                    | _ -> failwithf "Got new unexpected port type: %s" portType
+                    | _ -> failwith <| SPrintF1 "Got new unexpected port type: %s" portType
                 let privatePort =
                     if encrypted then
                         Some port
@@ -137,7 +138,7 @@ module ElectrumServerSeedList =
             match currency with
             | Currency.BTC -> "https://raw.githubusercontent.com/spesmilo/electrum/master/electrum/servers.json"
             | Currency.LTC -> "https://raw.githubusercontent.com/pooler/electrum-ltc/master/electrum_ltc/servers.json"
-            | _ -> failwithf "UTXO currency unknown to this algorithm: %A" currency
+            | _ -> failwith <| SPrintF1 "UTXO currency unknown to this algorithm: %A" currency
 
         use webClient = new WebClient()
         let serverListInJson = webClient.DownloadString urlToElectrumJsonFile
@@ -157,5 +158,5 @@ module ElectrumServerSeedList =
             match currency with
             | BTC -> DefaultBtcList
             | LTC -> DefaultLtcList
-            | _ -> failwithf "Currency %A is not UTXO" currency
+            | _ -> failwith <| SPrintF1 "Currency %A is not UTXO" currency
         Shuffler.Unsort serverList

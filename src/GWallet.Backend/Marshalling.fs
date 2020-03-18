@@ -10,6 +10,8 @@ open System.Text.RegularExpressions
 open Newtonsoft.Json
 open Newtonsoft.Json.Serialization
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 type DeserializationException =
     inherit Exception
 
@@ -113,17 +115,17 @@ module Marshalling =
                     let endVersionIndex = jsonSinceVersion.IndexOf("\"")
                     let version = jsonSinceVersion.Substring(0, endVersionIndex)
                     if (version <> currentVersion) then
-                        let msg = sprintf "Incompatible marshalling version found (%s vs. current %s) while trying to deserialize JSON"
+                        let msg = SPrintF2 "Incompatible marshalling version found (%s vs. current %s) while trying to deserialize JSON"
                                           version currentVersion
                         raise <| VersionMismatchDuringDeserializationException(msg, ex)
-                raise <| DeserializationException(sprintf "Exception when trying to deserialize '%s'" json, ex)
+                raise <| DeserializationException(SPrintF1 "Exception when trying to deserialize '%s'" json, ex)
 
 
         if Object.ReferenceEquals(deserialized, null) then
-            raise <| DeserializationException(sprintf "JsonConvert.DeserializeObject returned null when trying to deserialize '%s'"
+            raise <| DeserializationException(SPrintF1 "JsonConvert.DeserializeObject returned null when trying to deserialize '%s'"
                                                       json)
         if Object.ReferenceEquals(deserialized.Value, null) then
-            raise <| DeserializationException(sprintf "JsonConvert.DeserializeObject could not deserialize the Value member of '%s'"
+            raise <| DeserializationException(SPrintF1 "JsonConvert.DeserializeObject could not deserialize the Value member of '%s'"
                                                       json)
         deserialized.Value
 
@@ -140,7 +142,7 @@ module Marshalling =
             SerializeInternal value settings
         with
         | exn ->
-            raise(SerializationException(sprintf "Could not serialize object of type '%s' and value '%A'"
+            raise (SerializationException(SPrintF2 "Could not serialize object of type '%s' and value '%A'"
                                                   (typeof<'T>.FullName) value, exn))
 
     let Serialize<'T>(value: 'T): string =

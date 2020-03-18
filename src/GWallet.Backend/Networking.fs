@@ -4,6 +4,8 @@ open System
 open System.Net
 open System.Net.Sockets
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
 type CloudFlareError =
     | ConnectionTimeOut = 522
@@ -15,7 +17,7 @@ type internal UnhandledSocketException =
     inherit Exception
 
     new(socketErrorCode: int, innerException: Exception) =
-        { inherit Exception(sprintf "Backend not prepared for this SocketException with ErrorCode[%d]" socketErrorCode,
+        { inherit Exception(SPrintF1 "Backend not prepared for this SocketException with ErrorCode[%i]" socketErrorCode,
                                     innerException) }
 
 type CommunicationUnsuccessfulException =
@@ -54,12 +56,12 @@ type ServerUnreachableException =
         }
     new(message: string, httpStatusCode: HttpStatusCode, innerException: Exception) =
         {
-            inherit CommunicationUnsuccessfulException(sprintf "%s (HttpErr: %s)" message (httpStatusCode.ToString()),
+            inherit CommunicationUnsuccessfulException(SPrintF2 "%s (HttpErr: %s)" message (httpStatusCode.ToString()),
                                                     innerException)
         }
     new(message: string, cloudFlareError: CloudFlareError, innerException: Exception) =
         {
-            inherit CommunicationUnsuccessfulException(sprintf "%s (CfErr: %s)" message (cloudFlareError.ToString()),
+            inherit CommunicationUnsuccessfulException(SPrintF2 "%s (CfErr: %s)" message (cloudFlareError.ToString()),
                                                     innerException)
         }
 

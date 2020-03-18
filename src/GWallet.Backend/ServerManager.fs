@@ -4,6 +4,8 @@ open System
 open System.IO
 open System.Linq
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 module ServerManager =
 
     let UpdateServersFile () =
@@ -33,7 +35,7 @@ module ServerManager =
             | true,baseLineBtcServers ->
                 baseLineBtcServers
             | false,_ ->
-                failwithf "There should be some %A servers as baseline" btc
+                failwith <| SPrintF1 "There should be some %A servers as baseline" btc
 
         let allBtcServers = Seq.append electrumBtcServers eyeBtcServers
                             |> Seq.map fromElectrumServerToGenericServerDetails
@@ -48,22 +50,22 @@ module ServerManager =
             | true,baseLineLtcServers ->
                 baseLineLtcServers
             | false,_ ->
-                failwithf "There should be some %A servers as baseline" ltc
+                failwith <| SPrintF1 "There should be some %A servers as baseline" ltc
 
         let allLtcServers = Seq.append electrumLtcServers eyeLtcServers
                             |> Seq.map fromElectrumServerToGenericServerDetails
                             |> Seq.append baseLineLtcServers
 
         for KeyValue(currency,servers) in baseLineServers do
-            Infrastructure.LogInfo (sprintf "%i %A servers from baseline JSON file" (servers.Count()) currency)
+            Infrastructure.LogInfo (SPrintF2 "%i %A servers from baseline JSON file" (servers.Count()) currency)
 
             match currency with
             | Currency.BTC ->
-                Infrastructure.LogInfo (sprintf "%i BTC servers from electrum repository" (electrumBtcServers.Count()))
-                Infrastructure.LogInfo (sprintf "%i BTC servers from bitcoin-eye" (eyeBtcServers.Count()))
+                Infrastructure.LogInfo (SPrintF1 "%i BTC servers from electrum repository" (electrumBtcServers.Count()))
+                Infrastructure.LogInfo (SPrintF1 "%i BTC servers from bitcoin-eye" (eyeBtcServers.Count()))
             | Currency.LTC ->
-                Infrastructure.LogInfo (sprintf "%i LTC servers from electrum repository" (electrumLtcServers.Count()))
-                Infrastructure.LogInfo (sprintf "%i LTC servers from bitcoin-eye" (eyeLtcServers.Count()))
+                Infrastructure.LogInfo (SPrintF1 "%i LTC servers from electrum repository" (electrumLtcServers.Count()))
+                Infrastructure.LogInfo (SPrintF1 "%i LTC servers from bitcoin-eye" (eyeLtcServers.Count()))
             | _ ->
                 ()
 
@@ -77,7 +79,7 @@ module ServerManager =
         Infrastructure.LogInfo "OUTPUT:"
         let filteredOutServers = ServerRegistry.Deserialize allServersJson
         for KeyValue(currency,servers) in filteredOutServers do
-            Infrastructure.LogInfo (sprintf "%i %A servers total" (servers.Count()) currency)
+            Infrastructure.LogInfo (SPrintF2 "%i %A servers total" (servers.Count()) currency)
 
     let private tester =
         FaultTolerantParallelClient<ServerDetails,CommunicationUnsuccessfulException>
@@ -112,7 +114,7 @@ module ServerManager =
                         let LTC_GENESIS_BLOCK_ADDRESS = "Ler4HNAEfwYhBmGXcFP2Po1NpRUEiK8km2"
                         UtxoCoin.Account.GetElectrumScriptHashFromPublicAddress currency LTC_GENESIS_BLOCK_ADDRESS
                     | _ ->
-                        failwithf "Currency %A not UTXO?" currency
+                        failwith <| SPrintF1 "Currency %A not UTXO?" currency
                 let utxoFunc electrumServer =
                     async {
                         let! bal = UtxoCoin.ElectrumClient.GetBalance scriptHash electrumServer

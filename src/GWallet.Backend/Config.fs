@@ -7,6 +7,8 @@ open System.Reflection
 
 open Xamarin.Essentials
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 // TODO: make internal when tests don't depend on this anymore
 module Config =
 
@@ -160,7 +162,7 @@ module Config =
     let private RemoveAccount (account: BaseAccount): unit =
         let configFile = GetFile (account:>IAccount).Currency account
         if not configFile.Exists then
-            failwithf "File %s doesn't exist. Please report this issue." configFile.FullName
+            failwith <| SPrintF1 "File %s doesn't exist. Please report this issue." configFile.FullName
         else
             configFile.Delete()
 
@@ -182,7 +184,7 @@ module Config =
                       resourceList
         use stream = assembly.GetManifestResourceStream assemblyResourceName
         if (stream = null) then
-            failwithf "Assertion failed: Embedded resource %s not found in %s. Resource list: %s"
+            failwith <| SPrintF3 "Assertion failed: Embedded resource %s not found in %s. Resource list: %s"
                                   resourceName
                                   (assembly.ToString())
                                   resourceList

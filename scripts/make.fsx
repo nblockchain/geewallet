@@ -125,12 +125,24 @@ let PrintNugetVersion () =
             Console.WriteLine()
             failwith "nuget process' output contained errors ^"
 
-let BuildSolution buildTool solutionFileName binaryConfig extraOptions =
+let BuildSolution buildTool solutionFileName binaryConfig maybeConstant extraOptions =
     let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
-    let configOptions =
+    let defineConstantsFromBuildConfig =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
-        | Some constants -> sprintf "%s;DefineConstants=%s" configOption constants
-        | None   -> configOption
+        | Some constants -> constants.Split([|";"|], StringSplitOptions.RemoveEmptyEntries) |> Seq.ofArray
+        | None -> Seq.empty
+    let allDefineConstants =
+        match maybeConstant with
+        | Some constant -> Seq.append [constant] defineConstantsFromBuildConfig
+        | None -> defineConstantsFromBuildConfig
+
+    let configOptions =
+        if allDefineConstants.Any() then
+            // FIXME: we shouldn't override the project's DefineConstants, but rather set "ExtraDefineConstants"
+            // from the command line, and merge them later in the project file: see https://stackoverflow.com/a/32326853/544947
+            sprintf "%s;DefineConstants=%s" configOption (String.Join(";", allDefineConstants))
+        else
+            configOption
     let buildArgs = sprintf "%s %s %s"
                             solutionFileName
                             configOptions
@@ -141,13 +153,13 @@ let BuildSolution buildTool solutionFileName binaryConfig extraOptions =
         PrintNugetVersion() |> ignore
         Environment.Exit 1
 
-let JustBuild binaryConfig: Frontend*FileInfo =
+let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     printfn "Building in %s mode..." (binaryConfig.ToString().ToUpper())
     let buildTool = Map.tryFind "BuildTool" buildConfigContents
     if buildTool.IsNone then
         failwith "A BuildTool should have been chosen by the configure script, please report this bug"
 
-    BuildSolution buildTool.Value DEFAULT_SOLUTION_FILE binaryConfig String.Empty
+    BuildSolution buildTool.Value DEFAULT_SOLUTION_FILE binaryConfig maybeConstant String.Empty
 
     let frontend =
         // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
@@ -166,9 +178,9 @@ let JustBuild binaryConfig: Frontend*FileInfo =
                             nugetExe.FullName GTK_FRONTEND GTK_FRONTEND
                 Process.Execute({ Command = "mono"; Arguments = nugetWorkaroundArgs }, Echo.All) |> ignore
 
-                BuildSolution "msbuild" LINUX_SOLUTION_FILE binaryConfig "/t:Restore"
+                BuildSolution "msbuild" LINUX_SOLUTION_FILE binaryConfig maybeConstant "/t:Restore"
                 // TODO: report as a bug the fact that /t:Restore;Build doesn't work while /t:Restore and later /t:Build does
-                BuildSolution "msbuild" LINUX_SOLUTION_FILE binaryConfig "/t:Build"
+                BuildSolution "msbuild" LINUX_SOLUTION_FILE binaryConfig maybeConstant "/t:Build"
                 Frontend.Gtk
             else
                 Frontend.Console
@@ -199,9 +211,9 @@ let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): Directo
 let GetPathToBackend () =
     Path.Combine (rootDir.FullName, "src", BACKEND)
 
-let MakeAll() =
+let MakeAll maybeConstant =
     let buildConfig = BinaryConfig.Debug
-    let frontend,_ = JustBuild buildConfig
+    let frontend,_ = JustBuild buildConfig maybeConstant
     frontend,buildConfig
 
 let RunFrontend (frontend: Frontend) (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
@@ -238,10 +250,10 @@ let RunFrontend (frontend: Frontend) (buildConfig: BinaryConfig) (maybeArgs: Opt
 let maybeTarget = GatherTarget (Misc.FsxArguments(), None)
 match maybeTarget with
 | None ->
-    MakeAll() |> ignore
+    MakeAll None |> ignore
 
 | Some("release") ->
-    JustBuild BinaryConfig.Release
+    JustBuild BinaryConfig.Release None
         |> ignore
 
 | Some "nuget" ->
@@ -258,7 +270,7 @@ match maybeTarget with
     let version = Misc.GetCurrentVersion(rootDir).ToString()
 
     let release = BinaryConfig.Release
-    let frontend,script = JustBuild release
+    let frontend,script = JustBuild release None
     let binDir = "bin"
     Directory.CreateDirectory(binDir) |> ignore
 
@@ -311,7 +323,7 @@ match maybeTarget with
         | _ ->
             let nunitVersion = "2.7.1"
             if not nugetExe.Exists then
-                MakeAll () |> ignore
+                MakeAll None |> ignore
 
             let nugetInstallCommand =
                 {
@@ -338,7 +350,7 @@ match maybeTarget with
 
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
-    let frontend,launcherScriptFile = JustBuild buildConfig
+    let frontend,launcherScriptFile = JustBuild buildConfig None
 
     let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(rootDir.FullName,
                                                                    "src",
@@ -373,12 +385,12 @@ match maybeTarget with
         failwith "Unexpected chmod failure, please report this bug"
 
 | Some("run") ->
-    let frontend,buildConfig = MakeAll()
+    let frontend,buildConfig = MakeAll None
     RunFrontend frontend buildConfig None
         |> ignore
 
 | Some "update-servers" ->
-    let _,buildConfig = MakeAll()
+    let _,buildConfig = MakeAll None
     Directory.SetCurrentDirectory (GetPathToBackend())
     let proc1 = RunFrontend Frontend.Console buildConfig (Some "--update-servers-file")
     if proc1.ExitCode <> 0 then
@@ -386,6 +398,44 @@ match maybeTarget with
     else
         let proc2 = RunFrontend Frontend.Console buildConfig (Some "--update-servers-stats")
         Environment.Exit proc2.ExitCode
+
+| Some "strict" ->
+    MakeAll <| Some "STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME"
+        |> ignore
+
+| Some "sanitycheck" ->
+    let FindOffendingPrintfUsage () =
+        let findScript = Path.Combine(rootDir.FullName, "scripts", "find.fsx")
+        let fsxRunner =
+            match Misc.GuessPlatform() with
+            | Misc.Platform.Windows ->
+                Path.Combine(rootDir.FullName, "scripts", "fsi.bat")
+            | _ ->
+                let fsxRunnerEnvVar = Environment.GetEnvironmentVariable "FsxRunner"
+                if String.IsNullOrEmpty fsxRunnerEnvVar then
+                    failwith "FsxRunner env var should have been passed to make.sh"
+                fsxRunnerEnvVar
+        let excludeFolders =
+            String.Format("scripts{0}" +
+                          "src{1}GWallet.Frontend.Console{0}" +
+                          "src{1}GWallet.Backend.Tests{0}" +
+                          "src{1}GWallet.Backend{1}FSharpUtil.fs",
+                          Path.PathSeparator, Path.DirectorySeparatorChar)
+
+        let proc =
+            {
+                Command = fsxRunner
+                Arguments = sprintf "%s --exclude=%s %s"
+                                    findScript
+                                    excludeFolders
+                                    "printf failwithf"
+            }
+        let findProc = Process.SafeExecute (proc, Echo.All)
+        if findProc.Output.StdOut.Trim().Length > 0 then
+            Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf detected"
+            Environment.Exit 1
+
+    FindOffendingPrintfUsage()
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)

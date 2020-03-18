@@ -3,6 +3,7 @@
 open System
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 module ElectrumClient =
 
@@ -32,12 +33,12 @@ module ElectrumClient =
                                             ex.Message.EndsWith (PROTOCOL_VERSION_SUPPORTED.ToString())) then
 
                         // FIXME: even if this ex is already handled to ignore the server, we should report to sentry as WARN
-                        raise (ServerTooNewException(sprintf "Version of server rejects our client version (%s)"
-                                                             (PROTOCOL_VERSION_SUPPORTED.ToString())))
+                        raise <| ServerTooNewException(SPrintF1 "Version of server rejects our client version (%s)"
+                                                             (PROTOCOL_VERSION_SUPPORTED.ToString()))
                     else
                         reraise()
             if versionSupportedByServer < PROTOCOL_VERSION_SUPPORTED then
-                raise (ServerTooOldException (sprintf "Version of server is older (%s) than the client (%s)"
+                raise (ServerTooOldException (SPrintF2 "Version of server is older (%s) than the client (%s)"
                                                       (versionSupportedByServer.ToString())
                                                       (PROTOCOL_VERSION_SUPPORTED.ToString())))
             return stratumClient

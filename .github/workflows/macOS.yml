@@ -8,7 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Run a one-line script
-      run: ./configure.sh && make release
+      run: ./configure.sh && make sanitycheck && make strict && make release
 
   macOS_tests_unit:
     runs-on: macOS-latest
