@@ -113,8 +113,10 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                         Account.GenerateMasterPrivateKey passphraseEntry.Text dateTime (emailEntry.Text.ToLower())
                             |> Async.StartAsTask
 
-                    FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this
-                                                                        (WelcomePage2 (state, masterPrivKeyTask))
+                    let welcomePage () =
+                        WelcomePage2 (state, masterPrivKeyTask)
+                            :> Page
+                    FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this welcomePage
                 } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
 

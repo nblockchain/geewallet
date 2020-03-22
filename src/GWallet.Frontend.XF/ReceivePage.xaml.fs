@@ -108,14 +108,17 @@ type ReceivePage(account: IAccount,
         let newReceivePageFunc = (fun _ ->
             ReceivePage(account, usdRate, balancesPage, balanceWidgetsFromBalancePage) :> Page
         )
-        let sendPage = SendPage(account, this, newReceivePageFunc)
+        let sendPage () =
+            let newPage = SendPage(account, this, newReceivePageFunc)
 
-        if paymentButton.Text = paymentCaptionInColdStorage then
-            (sendPage :> FrontendHelpers.IAugmentablePayPage).AddTransactionScanner()
-        elif paymentButton.Text = paymentCaption then
-            ()
-        else
-            failwith "Initialization of ReceivePage() didn't happen?"
+            if paymentButton.Text = paymentCaptionInColdStorage then
+                (newPage :> FrontendHelpers.IAugmentablePayPage).AddTransactionScanner()
+            elif paymentButton.Text = paymentCaption then
+                ()
+            else
+                failwith "Initialization of ReceivePage() didn't happen?"
+
+            newPage :> Page
 
         FrontendHelpers.SwitchToNewPage this sendPage false
 

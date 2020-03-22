@@ -53,7 +53,10 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
 
             async {
                 do! Account.CreateAllAccounts masterPrivateKeyGenerationTask password.Text
-                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this (LoadingPage (state, false))
+                let loadingPage () =
+                    LoadingPage (state, false)
+                        :> Page
+                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this loadingPage
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnPasswordTextChanged(sender: Object, args: EventArgs) =

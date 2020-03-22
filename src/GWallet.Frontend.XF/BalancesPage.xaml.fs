@@ -244,7 +244,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let balanceSet = balanceState.BalanceSet
                 let tapGestureRecognizer = TapGestureRecognizer()
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                    let receivePage = ReceivePage(balanceSet.Account, balanceState.UsdRate, this, balanceSet.Widgets)
+                    let receivePage () =
+                        ReceivePage(balanceSet.Account, balanceState.UsdRate, this, balanceSet.Widgets)
+                            :> Page
                     FrontendHelpers.SwitchToNewPage this receivePage true
                 ) |> ignore
                 let frame = balanceSet.Widgets.Frame
@@ -443,7 +445,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                      currencyImages, true) :> Page
                     )
                     let normalAccountsBalanceSets = normalAccountsBalanceSets
-                    let page = PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
+                    let page () =
+                        PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
+                            :> Page
                     FrontendHelpers.SwitchToNewPage this page false
                 else
                     match Account.GetNormalAccountsPairingInfoForWatchWallet() with
@@ -451,7 +455,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         failwith "Should have ether and utxo accounts if running from the XF Frontend"
                     | Some walletInfo ->
                         let walletInfoJson = Marshalling.Serialize walletInfo
-                        let page = PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
+                        let page () =
+                            PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
+                                :> Page
                         FrontendHelpers.SwitchToNewPage this page true
 
         )

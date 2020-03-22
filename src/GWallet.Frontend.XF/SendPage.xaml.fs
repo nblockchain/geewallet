@@ -591,8 +591,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         | Some rawTransaction ->
             let signedTransaction = { TransactionInfo = unsignedTransaction; RawTransaction = rawTransaction }
             let compressedTransaction = Account.SerializeSignedTransaction signedTransaction true
-            let pairSignedTransactionPage =
+            let pairSignedTransactionPage () =
                 PairingFromPage(this, "Copy signed transaction to the clipboard", compressedTransaction, None)
+                    :> Page
             FrontendHelpers.SwitchToNewPage this pairSignedTransactionPage false
 
     member private this.AnswerToFee (account: IAccount) (txInfo: TransactionInfo) (positiveFeeAnswer: bool): unit =
