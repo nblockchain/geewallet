@@ -11,8 +11,8 @@ open Process
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 
-let IsStableRevision revision =
-    (int revision % 2) = 0
+let IsStable miniVersion =
+    (int miniVersion % 2) = 0
 
 let args = Misc.FsxArguments()
 let suppliedVersion =
@@ -23,8 +23,12 @@ let suppliedVersion =
             failwith "Unreachable"
         else
             let full = Version(args.Head)
-            if not (IsStableRevision full.MinorRevision) then
-                Console.Error.WriteLine "Revision (last number) should be an even (stable) number"
+            if not (IsStable full.Build) then
+                Console.Error.WriteLine "Mini-version (previous-to-last number, e.g. 2 in 0.1.2.3) should be an even (stable) number"
+                Environment.Exit 2
+                failwith "Unreachable"
+            if full.Revision <> 0 then
+                Console.Error.WriteLine "Revision number (last number, e.g. 3 in 0.1.2.3) should be zero (UWP restrictions...)"
                 Environment.Exit 2
                 failwith "Unreachable"
             Some full
@@ -33,12 +37,12 @@ let suppliedVersion =
 
 let isReleaseManual = false
 
-let filesToBumpMinorRevision: seq<string> =
+let filesToBumpMiniVersion: seq<string> =
     [
     ] :> seq<string>
 
 let filesToBumpFullVersion: seq<string> =
-    Seq.append filesToBumpMinorRevision [
+    Seq.append filesToBumpMiniVersion [
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
         "snap/snapcraft.yaml"
         ".github/workflows/ubuntu.yml"
@@ -77,24 +81,24 @@ let Replace file fromStr toStr =
 
 let Bump(toStable: bool): Version*Version =
     let fullVersion = Misc.GetCurrentVersion(rootDir)
-    let androidVersion = fullVersion.MinorRevision
+    let androidVersion = fullVersion.Build // 0.1.2.3 -> 2
 
-    if toStable && IsStableRevision androidVersion then
+    if toStable && IsStable androidVersion then
         failwith "bump script expects you to be in unstable version currently, but we found a stable"
-    if (not toStable) && (not (IsStableRevision androidVersion)) then
+    if (not toStable) && (not (IsStable androidVersion)) then
         failwith "sanity check failed, post-bump should happen in a stable version"
 
     let newFullVersion,newVersion =
         match suppliedVersion,toStable with
         | (Some full),true ->
-            full,full.MinorRevision
+            full,full.Build
         | _ ->
-            let newVersion = androidVersion + 1s
+            let newVersion = androidVersion + 1
             let full = Version(sprintf "%i.%i.%i.%i"
                                        fullVersion.Major
                                        fullVersion.Minor
-                                       fullVersion.Build
-                                       newVersion)
+                                       newVersion
+                                       fullVersion.Revision)
             full,newVersion
 
     let expiryFrom,expiryTo =
@@ -127,7 +131,7 @@ let GitCommit (fullVersion: Version) (newFullVersion: Version) =
 
     let commitMessage = sprintf "Bump version: %s -> %s" (fullVersion.ToString()) (newFullVersion.ToString())
     let finalCommitMessage =
-        if IsStableRevision fullVersion.MinorRevision then
+        if IsStable fullVersion.Build then
             sprintf "(Post)%s" commitMessage
         else
             commitMessage
@@ -140,8 +144,8 @@ let GitCommit (fullVersion: Version) (newFullVersion: Version) =
                          Echo.Off) |> ignore
 
 let GitTag (newFullVersion: Version) =
-    if not (IsStableRevision newFullVersion.MinorRevision) then
-        failwith "something is wrong, this script should tag only even(stable) minorRevisions, not odd(unstable) ones"
+    if not (IsStable newFullVersion.Build) then
+        failwith "something is wrong, this script should tag only even(stable) mini-versions, not odd(unstable) ones"
 
     let gitDeleteTag =
         {
