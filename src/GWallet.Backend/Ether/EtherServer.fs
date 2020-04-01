@@ -115,11 +115,6 @@ module Server =
             if webEx.Status = WebExceptionStatus.TrustFailure then
                 raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
 
-            // as Ubuntu 18.04's Mono (4.6.2) doesn't have TLS1.2 support, this below is more likely to happen:
-            if not Networking.Tls12Support then
-                if webEx.Status = WebExceptionStatus.SendFailure then
-                    raise <| ServerUnreachableException(exMsg, webEx)
-
             raise <| UnhandledWebException(webEx.Status, webEx)
 
         | None ->
@@ -316,7 +311,7 @@ module Server =
 
     let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode) (currency: Currency) =
         let numberOfConsistentResponsesRequired =
-            if currency = Currency.ETC || not Networking.Tls12Support then
+            if currency = Currency.ETC then
                 1u
             else
                 2u
