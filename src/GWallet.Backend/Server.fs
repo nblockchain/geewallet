@@ -107,8 +107,11 @@ module ServerRegistry =
                     let newMap = serversMap.Remove serverToAppend.ServerInfo.NetworkPath
                     Seq.append (seq { yield serverToAppend }) (removeDupesInternal tail newMap)
 
-        removeDupesInternal servers
-                            (servers |> Seq.map (fun server -> server.ServerInfo.NetworkPath,server) |> Map.ofSeq)
+        let initialServersMap =
+            servers
+                |> Seq.map (fun server -> server.ServerInfo.NetworkPath, server)
+                |> Map.ofSeq
+        removeDupesInternal servers initialServersMap
 
     // as these servers can only serve very limited set of queries (e.g. only balance?) their stats are skewed and
     // they create exception when being queried for advanced ones (e.g. latest block)
@@ -121,22 +124,23 @@ module ServerRegistry =
             |> RemoveDupes
 
     let internal Sort (servers: seq<ServerDetails>): seq<ServerDetails> =
-        Seq.sortByDescending (fun server ->
-                                  let invertOrder (timeSpan: TimeSpan): int =
-                                      0 - int timeSpan.TotalMilliseconds
-                                  match server.CommunicationHistory with
-                                  | None -> None
-                                  | Some (history, lastComm) ->
-                                      match history.Status with
-                                      | Fault faultInfo ->
-                                          let success = false
-                                          match faultInfo.LastSuccessfulCommunication with
-                                          | None -> Some (success, invertOrder history.TimeSpan, None)
-                                          | Some lsc -> Some (success, invertOrder history.TimeSpan, Some lsc)
-                                      | Success ->
-                                          let success = true
-                                          Some (success, invertOrder history.TimeSpan, Some lastComm)
-                             ) servers
+        let sort server =
+            let invertOrder (timeSpan: TimeSpan): int =
+                0 - int timeSpan.TotalMilliseconds
+            match server.CommunicationHistory with
+            | None -> None
+            | Some (history, lastComm) ->
+                match history.Status with
+                | Fault faultInfo ->
+                    let success = false
+                    match faultInfo.LastSuccessfulCommunication with
+                    | None -> Some (success, invertOrder history.TimeSpan, None)
+                    | Some lsc -> Some (success, invertOrder history.TimeSpan, Some lsc)
+                | Success ->
+                    let success = true
+                    Some (success, invertOrder history.TimeSpan, Some lastComm)
+
+        Seq.sortByDescending sort servers
 
     let Serialize(servers: ServerRanking): string =
         let rearrangedServers =
@@ -169,7 +173,11 @@ module ServerRegistry =
                     | None -> Seq.empty
                     | Some servers ->
                         servers
-                yield currency,((Seq.append allServersFrom1 allServersFrom2) |> RemoveCruft |> Sort)
+                let allServers = Seq.append allServersFrom1 allServersFrom2
+                                 |> RemoveCruft
+                                 |> Sort
+
+                yield currency, allServers
         } |> Map.ofSeq
 
     let private ServersRankingBaseline =
