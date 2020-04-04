@@ -2611,6 +2611,18 @@
     "ETH": [
       {
         "ServerInfo": {
+          "NetworkPath": "mainnet.infura.io/v3/2e5bd2ba038d4e3f969a56f2ead074ca",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "mainnet.infura.io/mycrypto",
           "ConnectionType": {
             "Encrypted": true,
