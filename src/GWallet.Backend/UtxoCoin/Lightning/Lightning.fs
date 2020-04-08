@@ -104,6 +104,9 @@ module Lightning =
             match evt with
             | PeerEvent.ReceivedChannelMsg (chanMsg, _) ->
                 ChannelMessage (Peer.applyEvent oldPeer evt, chanMsg)
+            | PeerEvent.ReceivedError (error, _) ->
+                DebugLogger <| SPrintF1 "Error message: %A" error.Data
+                OtherMessage <| Peer.applyEvent oldPeer evt
             | _ ->
                 DebugLogger <| SPrintF1 "Warning: ignoring event that was not ReceivedChannelMsg, it was: %s" (evt.GetType().Name)
                 OtherMessage <| Peer.applyEvent oldPeer evt
