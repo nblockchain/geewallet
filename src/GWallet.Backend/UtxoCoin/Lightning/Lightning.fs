@@ -5,6 +5,7 @@ open System.Net.Sockets
 open System.Net
 open System.Diagnostics
 open System.IO
+open System.Text // For ASCIIEncoding
 
 open DotNetLightning.Utils
 open DotNetLightning.Serialize
@@ -105,7 +106,8 @@ module Lightning =
             | PeerEvent.ReceivedChannelMsg (chanMsg, _) ->
                 ChannelMessage (Peer.applyEvent oldPeer evt, chanMsg)
             | PeerEvent.ReceivedError (error, _) ->
-                DebugLogger <| SPrintF1 "Error message: %A" error.Data
+                let asciiEncoding = ASCIIEncoding ()
+                DebugLogger <| SPrintF1 "Error message: %A" (asciiEncoding.GetString error.Data)
                 OtherMessage <| Peer.applyEvent oldPeer evt
             | _ ->
                 DebugLogger <| SPrintF1 "Warning: ignoring event that was not ReceivedChannelMsg, it was: %s" (evt.GetType().Name)
