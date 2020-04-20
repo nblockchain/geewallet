@@ -508,8 +508,6 @@ let private NotReadyReasonToString (reason: Lightning.NotReadyReason): string =
     match reason with
     | Lightning.NotReadyReason.NeedMoreConfirmations (currentConfirmations, neededConfirmations) ->
         sprintf "%d out of %d confirmations" currentConfirmations.Value neededConfirmations.Value
-    | Lightning.NotReadyReason.TooOld confirmationsCount ->
-        sprintf "channel too old, it has %d confirmations and should already have been opened completely" confirmationsCount.Value
 
 let private CheckChannelStatus (path: string, channelFileId: int): Async<seq<string>> =
     async {
