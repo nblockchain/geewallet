@@ -7,6 +7,7 @@ open System.Diagnostics
 open System.IO
 
 open DotNetLightning.Utils
+open DotNetLightning.Serialize
 open DotNetLightning.Serialize.Msgs
 open DotNetLightning.Channel
 open DotNetLightning.Peer
@@ -32,8 +33,16 @@ module Lightning =
     // this one covers transactions that we alone can decide on an arbitrary feerate for
     let private feeRatePerKiloWeightForAllConfirmationTargets = FeeRatePerKw 7500u
     let private negotiatedFeeRatePerKw = FeeRatePerKw 10000u
-    // https://github.com/lightningnetwork/lightning-rfc/blob/master/09-features.md#assigned-localfeatures-flags
-    let private bolt09SupportsDataLossProtect = 3uy
+
+    let private featureBits =
+        match FeatureBit.TryCreate([| 1uy <<< Feature.OptionDataLossProtect.OptionalBitPosition |]) with
+        | Ok featureBits -> featureBits
+        | Error err -> failwith <| SPrintF1 "could not derive FeatureBits: %A" err
+    let plainInit: Init = {
+        Features = featureBits
+        TLVStream = [||]
+    }
+
     let private bolt08EncryptedMessageLengthPrefixLength = 18
     // https://github.com/lightningnetwork/lightning-rfc/blob/master/08-transport.md#authenticated-key-exchange-handshake-specification
     let private bolt08ActOneLength = 50
@@ -112,14 +121,14 @@ module Lightning =
         MinMaxAcceptedHTLCs = 1us
         MinDustLimitSatoshis = Money 100L
         MaxDustLimitSatoshis = Money 10000000L
-        MaxMinimumDepth = BlockHeightOffset UInt16.MaxValue // TODO make optional in DotNetLightning
+        MaxMinimumDepth = BlockHeightOffset32 UInt32.MaxValue // TODO make optional in DotNetLightning
         MaxClosingNegotiationIterations = 10
     }
 
     // Only used when accepting channels.
     // It is 'high', since low values are not accepted by alternate implementations.
     // TODO: test lower values
-    let handshakeConfig = { ChannelHandshakeConfig.MinimumDepth = BlockHeightOffset 6us }
+    let handshakeConfig = { ChannelHandshakeConfig.MinimumDepth = BlockHeightOffset32 6u }
 
     // Used for e.g. option_upfront_shutdown_script in
     // https://github.com/lightningnetwork/lightning-rfc/blob/master/02-peer-protocol.md#rationale-4
@@ -144,8 +153,6 @@ module Lightning =
     let CreateChannel (account: IAccount) =
         let channelConfig = CreateChannelConfig account
         Channel.CreateCurried channelConfig
-
-    let localFeatures = LocalFeatures.Flags [| bolt09SupportsDataLossProtect |]
 
     type ChannelEnvironment = { Account: UtxoCoin.NormalUtxoAccount; NodeIdForResponder: NodeId; KeyRepo: DefaultKeyRepository }
     type Connection = { Init: Init; Peer: Peer; Client: TcpClient }
@@ -191,11 +198,6 @@ module Lightning =
             Debug.Assert((bolt08ActThreeLength = actThree.Length), SPrintF1 "act3 has wrong length (not %i)" bolt08ActThreeLength)
             do! stream.WriteAsync(actThree, 0, actThree.Length) |> Async.AwaitTask
 
-            let plainInit: Init =
-                {
-                    GlobalFeatures = GlobalFeatures.Flags [||]
-                    LocalFeatures = localFeatures
-                }
             let! sentInitPeer = Send plainInit receivedAct2Peer stream
 
             // receive init
@@ -230,18 +232,17 @@ module Lightning =
         let channelKeys: ChannelKeys = (keyRepo :> IKeysRepository).GetChannelKeys false
         let channelPubkeys: ChannelPubKeys = channelKeys.ToChannelPubKeys()
         channelKeys, {
-            LocalFeatures = localFeatures
+            Features = featureBits
             NodeId = nodeIdForResponder
             ChannelPubKeys = channelPubkeys
             DustLimitSatoshis = Money 5UL
             MaxHTLCValueInFlightMSat = LNMoney 5000L
             ChannelReserveSatoshis = Money 1000L
             HTLCMinimumMSat = LNMoney 1000L
-            ToSelfDelay = BlockHeightOffset 6us
+            ToSelfDelay = BlockHeightOffset16 6us
             MaxAcceptedHTLCs = uint16 10
             IsFunder = isFunder
             DefaultFinalScriptPubKey = account |> CreatePayoutScript
-            GlobalFeatures = GlobalFeatures.Flags [||]
         }
 
     let GetAcceptChannel ({ Account = account; NodeIdForResponder = nodeIdForResponder; KeyRepo = keyRepo }: ChannelEnvironment)
@@ -364,7 +365,7 @@ module Lightning =
         let channelKeysSeedBytes = Array.zeroCreate 32
         random.NextBytes channelKeysSeedBytes
         let channelKeysSeed = uint256 channelKeysSeedBytes
-        let keyRepo = DefaultKeyRepository channelKeysSeed
+        let keyRepo = JsonMarshalling.UIntToKeyRepo channelKeysSeed
         let temporaryChannelIdBytes: array<byte> = Array.zeroCreate 32
         random.NextBytes temporaryChannelIdBytes
         let temporaryChannelId =
@@ -388,7 +389,7 @@ module Lightning =
                                          (peer: Peer)
                                              : Async<string> = // TxId of Funding Transaction is returned
         async {
-            let keyRepo = DefaultKeyRepository channelKeysSeed
+            let keyRepo = JsonMarshalling.UIntToKeyRepo channelKeysSeed
             let! fundingTxId, receivedFundingSignedChan = ContinueFromAcceptChannel keyRepo acceptChannel chan stream peer
             let fileName = GetNewChannelFilename()
             JsonMarshalling.Save account receivedFundingSignedChan channelKeysSeed channelCounterpartyIP acceptChannel.MinimumDepth fileName
@@ -397,29 +398,24 @@ module Lightning =
         }
 
     type NotReadyReason =
-        | NeedMoreConfirmations of BlockHeight * BlockHeight
-        | TooOld of BlockHeight
+        | NeedMoreConfirmations of BlockHeightOffset32 * BlockHeightOffset32
 
     type ChannelMessageOrDeepEnough =
         | NotReady of NotReadyReason
         | DeepEnough of ChannelCommand
 
     let MaybeChannelMessageFromConfirmationCountAndHistoryAndChannel (_: string)
-                                                                     (confirmationCount: BlockHeight)
+                                                                     (confirmationCount: BlockHeightOffset32)
                                                                      (absoluteBlockHeight: BlockHeight)
-                                                                     (minSafeDepth: BlockHeight)
+                                                                     (minSafeDepth: BlockHeightOffset32)
                                                                          : ChannelMessageOrDeepEnough =
-        if confirmationCount.Value > uint32 UInt16.MaxValue then
-            // we need to convert to uint16 below
-            NotReady <| TooOld confirmationCount
+        if confirmationCount < minSafeDepth then
+            NotReady <| NeedMoreConfirmations (confirmationCount, minSafeDepth)
         else
-            if confirmationCount < minSafeDepth then
-                NotReady <| NeedMoreConfirmations (confirmationCount, minSafeDepth)
-            else
-                let txIndex: TxIndexInBlock = TxIndexInBlock 0u // DOTNETLN does not batch
-                let depth: BlockHeightOffset = BlockHeightOffset <| uint16 confirmationCount.Value
-                let channelCommand = ChannelCommand.ApplyFundingConfirmedOnBC (absoluteBlockHeight, txIndex, depth)
-                DeepEnough channelCommand
+            let txIndex: TxIndexInBlock = TxIndexInBlock 0u // DOTNETLN does not batch
+            let depth: BlockHeightOffset32 = BlockHeightOffset32 <| uint32 confirmationCount.Value
+            let channelCommand = ChannelCommand.ApplyFundingConfirmedOnBC (absoluteBlockHeight, txIndex, depth)
+            DeepEnough channelCommand
 
     let GetFundingLockedMsg (channel: Channel) (channelCommand: ChannelCommand): Channel * FundingLocked =
         let channelEvents = Channel.executeCommand channel channelCommand
@@ -433,7 +429,7 @@ module Lightning =
         | Error e ->
             failwith <| SPrintF1 "bad result when expecting WeSentFundingLocked: %s" (e.ToString())
 
-    let GetConfirmationsAndHistoryAndChannel (fileName: string): Async<string * BlockHeight * BlockHeight * Channel * UtxoCoin.NormalUtxoAccount * SerializedChannel> =
+    let GetConfirmationsAndHistoryAndChannel (fileName: string): Async<string * BlockHeightOffset32 * BlockHeight * Channel * UtxoCoin.NormalUtxoAccount * SerializedChannel> =
         let serializedChannel = JsonMarshalling.LoadSerializedChannel fileName
         let accountFileName = serializedChannel.AccountFileName
 
@@ -473,7 +469,7 @@ module Lightning =
         async {
             let! verboseTransactionInfo =
                 Server.Query Currency.BTC (QuerySettings.Default ServerSelectionMode.Fast) (ElectrumClient.GetBlockchainTransactionVerbose txIdHex) None
-            let confirmationsCount = BlockHeight <| uint32 verboseTransactionInfo.Confirmations
+            let confirmationsCount = BlockHeightOffset32 <| uint32 verboseTransactionInfo.Confirmations
             let! currentHeadersSubscriptionResult =
                 Server.Query Currency.BTC (QuerySettings.Default ServerSelectionMode.Fast) (ElectrumClient.SubscribeHeaders ()) None
             let currentAbsoluteHeight: int = currentHeadersSubscriptionResult.Height
@@ -501,7 +497,7 @@ module Lightning =
                 | NotReady reason ->
                     return UnusableChannelWithReason (txIdHex, reason)
                 | DeepEnough channelCommand ->
-                    let keyRepo = DefaultKeyRepository channelKeysSeed
+                    let keyRepo = JsonMarshalling.UIntToKeyRepo channelKeysSeed
                     let channelEnvironment: ChannelEnvironment =
                         { Account = account; NodeIdForResponder = notReestablishedChannel.RemoteNodeId; KeyRepo = keyRepo }
                     let! connection = ConnectAndHandshake channelEnvironment channelCounterpartyIP
@@ -623,11 +619,6 @@ module Lightning =
                 | Error peerError ->
                     failwith <| SPrintF1 "couldn't parse init: %s" (peerError.ToString())
 
-            let plainInit: Init =
-                {
-                    GlobalFeatures = GlobalFeatures.Flags [||]
-                    LocalFeatures = localFeatures
-                }
             let! sentInitPeer = Send plainInit connection.Peer stream
             DebugLogger "Receiving open_channel..."
             let! receivedOpenChanPeer, chanMsg = ReadUntilChannelMessage (keyRepo, sentInitPeer, stream)

@@ -9,6 +9,7 @@ open DotNetLightning.Channel
 open DotNetLightning.Utils
 open DotNetLightning.Chain
 open DotNetLightning.Crypto
+open DotNetLightning.Serialize
 open DotNetLightning.Transactions
 
 open GWallet.Backend
@@ -33,7 +34,7 @@ type SerializedCommitments = {
     OriginChannels: Map<HTLCId, HTLCSource>
     RemoteChanges: RemoteChanges
     RemoteCommit: RemoteCommit
-    RemoteNextCommitInfo: Choice<WaitingForRevocation, PubKey>
+    RemoteNextCommitInfo: RemoteNextCommitInfo
     RemoteNextHTLCId: HTLCId
     RemoteParams: RemoteParams
     RemotePerCommitmentSecrets: ShaChain
@@ -47,7 +48,7 @@ type SerializedChannel = {
     AccountFileName: string
     CounterpartyIP: IPEndPoint
     // this is the amount of confirmations that the counterparty told us that the funding transaction needs
-    MinSafeDepth: BlockHeight
+    MinSafeDepth: BlockHeightOffset32
 }
 
 
@@ -74,6 +75,19 @@ module JsonMarshalling =
                     ToRemote = spec.ToRemote
                 }
             serializer.Serialize(writer, serializedCommitmentSpec)
+
+    type FeatureBitJsonConverter() =
+        inherit JsonConverter<FeatureBit>()
+
+        override this.ReadJson(reader: JsonReader, _: Type, _: FeatureBit, _: bool, serializer: JsonSerializer): FeatureBit =
+            let serializedFeatureBit = serializer.Deserialize<string> reader
+            let parsed = FeatureBit.TryParse serializedFeatureBit
+            match parsed with
+            | Ok featureBit -> featureBit
+            | _ -> failwith "error decoding feature bit"
+
+        override this.WriteJson(writer: JsonWriter, state: FeatureBit, serializer: JsonSerializer) =
+            serializer.Serialize(writer, state.ToString())
 
     type IPAddressJsonConverter() =
         inherit JsonConverter<IPAddress>()
@@ -150,9 +164,11 @@ module JsonMarshalling =
         let converter = CommitmentsJsonConverter()
         let ipAddressConverter = IPAddressJsonConverter()
         let ipEndPointConverter = IPEndPointJsonConverter()
+        let featureBitConverter = FeatureBitJsonConverter()
         settings.Converters.Add converter
         settings.Converters.Add ipAddressConverter
         settings.Converters.Add ipEndPointConverter
+        settings.Converters.Add featureBitConverter
         NBitcoin.JsonConverters.Serializer.RegisterFrontConverters settings
         settings
 
@@ -172,7 +188,7 @@ module JsonMarshalling =
              (chan: Channel)
              (keysRepoSeed: uint256)
              (ip: IPEndPoint)
-             (minSafeDepth: BlockHeight)
+             (minSafeDepth: BlockHeightOffset32)
                  : string -> unit =
         SaveSerializedChannel
             {
@@ -192,8 +208,12 @@ module JsonMarshalling =
     let DummyProvideFundingTx (_ : IDestination * Money * FeeRatePerKw): FSharp.Core.Result<(FinalizedTx * TxOutIndex),string> =
         FSharp.Core.Result.Error "funding tx not needed cause channel already created"
 
+    let UIntToKeyRepo (channelKeysSeed: uint256): DefaultKeyRepository =
+        let littleEndian = channelKeysSeed.ToBytes()
+        DefaultKeyRepository (ExtKey littleEndian, 0)
+
     let ChannelFromSerialized (serializedChannel: SerializedChannel) (createChannel) (feeEstimator): Channel =
-        let keyRepo = DefaultKeyRepository serializedChannel.KeysRepoSeed
+        let keyRepo = UIntToKeyRepo serializedChannel.KeysRepoSeed
         {
             createChannel
                 keyRepo
