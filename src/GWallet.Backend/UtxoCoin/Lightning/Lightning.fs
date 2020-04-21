@@ -106,8 +106,16 @@ module Lightning =
             | PeerEvent.ReceivedChannelMsg (chanMsg, _) ->
                 ChannelMessage (Peer.applyEvent oldPeer evt, chanMsg)
             | PeerEvent.ReceivedError (error, _) ->
-                let asciiEncoding = ASCIIEncoding ()
-                DebugLogger <| SPrintF1 "Error message: %A" (asciiEncoding.GetString error.Data)
+                let stringError =
+                    "Error received from Lightning peer: " +
+                    match error.Data with
+                    | [| 01uy |] -> "The number of pending channels exceeds the policy limit.\nHint: You can try from a new node identity."
+                    | [| 02uy |] -> "Node is not synced to blockchain." + (if Config.BitcoinNet = Network.RegTest then "\nHint: Try mining some blocks before opening." else "")
+                    | [| 03uy |] -> "Channel capacity too large.\nHint: Try with a smaller funding amount."
+                    | _ ->
+                        let asciiEncoding = ASCIIEncoding ()
+                        "ASCII representation: " + asciiEncoding.GetString error.Data
+                DebugLogger <| stringError
                 OtherMessage <| Peer.applyEvent oldPeer evt
             | _ ->
                 DebugLogger <| SPrintF1 "Warning: ignoring event that was not ReceivedChannelMsg, it was: %s" (evt.GetType().Name)
