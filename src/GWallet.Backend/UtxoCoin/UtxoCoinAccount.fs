@@ -352,7 +352,7 @@ module Account =
             failwith "Something went wrong when verifying transaction"
         finalTransaction
 
-    let internal GetPrivateKey (account: NormalAccount) password =
+    let GetPrivateKey (account: NormalAccount) password =
         let encryptedPrivateKey = account.GetEncryptedPrivateKey()
         let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, GetNetwork (account:>IAccount).Currency)
         try
@@ -517,3 +517,7 @@ module Account =
         // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
         | :? FormatException ->
             raise (AddressWithInvalidChecksum None)
+
+    let CreatePayoutScript (account: IUtxoAccount) =
+        let scriptAddress = BitcoinScriptAddress (account.PublicAddress, Config.BitcoinNet)
+        scriptAddress.ScriptPubKey
