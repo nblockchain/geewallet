@@ -34,7 +34,7 @@ type SerializedCommitments = {
     OriginChannels: Map<HTLCId, HTLCSource>
     RemoteChanges: RemoteChanges
     RemoteCommit: RemoteCommit
-    RemoteNextCommitInfo: Choice<WaitingForRevocation, PubKey>
+    RemoteNextCommitInfo: RemoteNextCommitInfo
     RemoteNextHTLCId: HTLCId
     RemoteParams: RemoteParams
     RemotePerCommitmentSecrets: ShaChain
