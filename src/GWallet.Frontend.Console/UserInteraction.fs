@@ -6,21 +6,27 @@ open System.Linq
 open System.Globalization
 open System.Net
 
+open DotNetLightning.Utils
+open DotNetLightning.Channel
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
+open GWallet.Backend.UtxoCoin.Lightning
 
 type internal Operations =
-    | Exit               = 0
-    | Refresh            = 1
-    | CreateAccounts     = 2
-    | SendPayment        = 3
-    | AddReadonlyAccounts= 4
-    | SignOffPayment     = 5
-    | BroadcastPayment   = 6
-    | ArchiveAccount     = 7
-    | PairToWatchWallet  = 8
-    | Options            = 9
-    | OpenChannel        = 10
-    | AcceptChannel      = 11
+    | Exit                    = 0
+    | Refresh                 = 1
+    | CreateAccounts          = 2
+    | SendPayment             = 3
+    | AddReadonlyAccounts     = 4
+    | SignOffPayment          = 5
+    | BroadcastPayment        = 6
+    | ArchiveAccount          = 7
+    | PairToWatchWallet       = 8
+    | Options                 = 9
+    | OpenChannel             = 10
+    | AcceptChannel           = 11
+    | SendLightningPayment    = 12
+    | ReceiveLightningPayment = 13
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -77,11 +83,16 @@ module UserInteraction =
         | Operations.ArchiveAccount
         | Operations.PairToWatchWallet
         | Operations.Options
-        | Operations.OpenChannel
-        | Operations.AcceptChannel
             ->
                 not noAccounts
         | Operations.CreateAccounts -> noAccounts
+        | Operations.OpenChannel
+        | Operations.AcceptChannel
+            -> not noAccounts
+        | Operations.SendLightningPayment ->
+            (Lightning.ListAvailableChannelIds true).Any()
+        | Operations.ReceiveLightningPayment ->
+            (Lightning.ListAvailableChannelIds false).Any()
         | _ -> true
 
     let rec internal AskFileNameToLoad (askText: string): FileInfo =
@@ -256,6 +267,94 @@ module UserInteraction =
             Seq.empty
         | _ ->
             DisplayAccountStatusInner accountNumber account maybeBalance maybeUsdValue
+
+    let GetLightningBalance (channelState: IHasCommitments): decimal * decimal =
+        let balance = channelState.Commitments.LocalCommit.Spec.ToLocal
+        let channelReserve = channelState.Commitments.LocalParams.ChannelReserveSatoshis
+        let spendable = LNMoney.Max(LNMoney.Zero, balance - channelReserve)
+        let balanceBtc = (decimal balance.Value) / (decimal LNMoneyUnit.BTC)
+        let spendableBtc = (decimal spendable.Value) / (decimal LNMoneyUnit.BTC)
+        balanceBtc, spendableBtc
+
+    let DisplayLightningChannelStatus (channelId: ChannelId): seq<string> = seq {
+        let serializedChannel = SerializedChannel.LoadFromWallet channelId
+        let maybeUsdValue =
+            FiatValueEstimation.UsdValue Currency.BTC
+            |> Async.RunSynchronously
+        if serializedChannel.IsFunder then
+            yield sprintf "    channel %s (outgoing):" (serializedChannel.ChannelId.Value.ToString())
+            let sent = serializedChannel.Commitments.LocalCommit.Spec.ToRemote
+            let sentBtc = (decimal sent.Value) / (decimal LNMoneyUnit.BTC)
+            let totalBtc =
+                let toLocal = serializedChannel.Commitments.LocalCommit.Spec.ToLocal
+                let total = toLocal + sent
+                (decimal total.Value) / (decimal LNMoneyUnit.BTC)
+            yield
+                sprintf
+                    "        channel capacity = %s (%s)"
+                    (totalBtc.ToString())
+                    (BalanceInUsdString totalBtc maybeUsdValue)
+            let totalSpendableBtc =
+                let spendable = serializedChannel.SpendableBalance()
+                let totalSpendable = sent + spendable
+                (decimal totalSpendable.Value) / (decimal LNMoneyUnit.BTC)
+            yield
+                sprintf
+                    "        sent %s BTC (%s) of max %s BTC (%s)"
+                    (sentBtc.ToString())
+                    (BalanceInUsdString sentBtc maybeUsdValue)
+                    (totalSpendableBtc.ToString())
+                    (BalanceInUsdString totalSpendableBtc maybeUsdValue)
+        else
+            yield sprintf "    channel %s (incoming):" (serializedChannel.ChannelId.Value.ToString())
+            let unsent = serializedChannel.Commitments.LocalCommit.Spec.ToRemote
+            let received = serializedChannel.Commitments.LocalCommit.Spec.ToLocal
+            let receivedBtc = (decimal received.Value) / (decimal LNMoneyUnit.BTC)
+            let total = received + unsent
+            let totalBtc = (decimal total.Value) / (decimal LNMoneyUnit.BTC)
+            yield
+                sprintf
+                    "        channel capacity = %s (%s)"
+                    (totalBtc.ToString())
+                    (BalanceInUsdString totalBtc maybeUsdValue)
+            let totalReceivableBtc =
+                let channelReserve =
+                    LNMoney.FromMoney serializedChannel.Commitments.LocalParams.ChannelReserveSatoshis
+                let fee =
+                    let feeRate = serializedChannel.Commitments.LocalCommit.Spec.FeeRatePerKw
+                    let weight = COMMITMENT_TX_BASE_WEIGHT
+                    LNMoney.FromMoney <| feeRate.ToFee weight
+                let totalReceivable = total - channelReserve - fee
+                (decimal totalReceivable.Value) / (decimal LNMoneyUnit.BTC)
+            yield
+                sprintf
+                    "        received %s BTC (%s) of max %s BTC (%s)"
+                    (receivedBtc.ToString())
+                    (BalanceInUsdString receivedBtc maybeUsdValue)
+                    (totalReceivableBtc.ToString())
+                    (BalanceInUsdString totalReceivableBtc maybeUsdValue)
+        let status =
+            Lightning.GetSerializedChannelStatus serializedChannel
+            |> Async.RunSynchronously
+        match status with
+        | Lightning.ChannelStatus.Active ->
+            yield "        channel is active"
+        | Lightning.ChannelStatus.WaitingForConfirmations remainingConfirmations ->
+            yield sprintf "        waiting for %i more confirmations" remainingConfirmations.Value
+        | Lightning.ChannelStatus.FundingConfirmed ->
+            yield "        funding confirmed"
+        | Lightning.ChannelStatus.InvalidChannelState ->
+            yield "        channel is in an abnormal state"
+    }
+
+    let DisplayLightningChannelStatuses(): seq<string> = seq {
+        let channelIds = List.ofSeq (SerializedChannel.ListSavedChannels())
+        yield String.Empty
+        yield sprintf "Lightning Status (%d channels)" (List.length channelIds)
+        for channelId in channelIds do
+            yield! DisplayLightningChannelStatus channelId
+        yield String.Empty
+    }
 
     let private GetAccountBalanceInner (account: IAccount): Async<IAccount*MaybeCached<decimal>*MaybeCached<decimal>> =
         async {
@@ -480,16 +579,17 @@ module UserInteraction =
         | CertainCryptoAmount
         | ApproxEquivalentFiatAmount
 
-    let rec private AskAmountOption(): AmountOption =
+    let rec private AskAmountOption(): Option<AmountOption> =
         Console.Write("Choose an option from the above: ")
         let optIntroduced = System.Console.ReadLine()
         match Int32.TryParse(optIntroduced) with
         | false, _ -> AskAmountOption()
         | true, optionParsed ->
             match optionParsed with
-            | 1 -> AmountOption.CertainCryptoAmount
-            | 2 -> AmountOption.ApproxEquivalentFiatAmount
-            | 3 -> AmountOption.AllBalance
+            | 0 -> None
+            | 1 -> Some AmountOption.CertainCryptoAmount
+            | 2 -> Some AmountOption.ApproxEquivalentFiatAmount
+            | 3 -> Some AmountOption.AllBalance
             | _ -> AskAmountOption()
 
     let rec AskParticularAmount() =
@@ -586,19 +686,84 @@ module UserInteraction =
                 None
             else
                 Console.WriteLine "There are various options to specify the amount of your transaction:"
+                Console.WriteLine "0. Cancel"
                 Console.WriteLine(sprintf "1. Exact amount in %A" account.Currency)
                 Console.WriteLine "2. Approximate amount in USD"
                 Console.WriteLine(sprintf "3. All balance existing in the account (%g %A)"
                                           balance account.Currency)
 
-                let amountOption = AskAmountOption()
-                AskParticularAmountOption balance amountOption
+                match AskAmountOption() with
+                | None -> None
+                | Some amountOption ->
+                    AskParticularAmountOption balance amountOption
+
+    let rec AskLightningAmount (channelId: ChannelId): Option<TransferAmount> =
+        let serializedChannel = SerializedChannel.LoadFromWallet channelId
+        option {
+            let fiatValueEstimation =
+                FiatValueEstimation.UsdValue Currency.BTC
+                |> Async.RunSynchronously
+            let balance = serializedChannel.Balance()
+            let spendable = serializedChannel.SpendableBalance()
+            let balanceBtc = (decimal balance.Value) / (decimal LNMoneyUnit.BTC)
+            let spendableBtc = (decimal spendable.Value) / (decimal LNMoneyUnit.BTC)
+            Console.WriteLine(
+                sprintf
+                    "full balance=[%s] (%s)"
+                    (balanceBtc.ToString())
+                    (BalanceInUsdString balanceBtc fiatValueEstimation)
+            )
+            Console.WriteLine(
+                sprintf
+                    "spendable balance=[%s] (%s)"
+                    (spendableBtc.ToString())
+                    (BalanceInUsdString spendableBtc fiatValueEstimation)
+            )
+            Console.WriteLine "There are various options to specify the amount of your transaction:"
+            Console.WriteLine "0. Cancel"
+            Console.WriteLine "1. Exact amount in BTC"
+            Console.WriteLine "2. Approximate amount in USD"
+            Console.WriteLine "3. All spendable balance in the channel"
+
+            let! amount = AskAmountOption()
+            match amount with
+            | AmountOption.AllBalance ->
+                return TransferAmount(spendableBtc, balanceBtc, Currency.BTC)
+            | AmountOption.CertainCryptoAmount ->
+                let amountBtc = AskParticularAmount()
+                if amountBtc > spendableBtc then
+                    Presentation.Error "Amount surpasses current balance, try again."
+                    return! AskLightningAmount channelId
+                else
+                    return TransferAmount(amountBtc, balanceBtc, Currency.BTC)
+            | AmountOption.ApproxEquivalentFiatAmount ->
+                match fiatValueEstimation with
+                | NotFresh(NotAvailable) ->
+                    Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
+                    return! AskLightningAmount channelId
+                | Fresh usdValue ->
+                    let! amountBtc = AskParticularFiatAmountWithRate Currency.BTC usdValue None
+                    if amountBtc > spendableBtc then
+                        Presentation.Error "Amount surpasses current balance, try again."
+                        return! AskLightningAmount channelId
+                    else
+                        return TransferAmount(amountBtc, balanceBtc, Currency.BTC)
+                | NotFresh(Cached(usdValue,time)) ->
+                    let! amountBtc = AskParticularFiatAmountWithRate Currency.BTC usdValue (Some(time))
+                    if amountBtc > spendableBtc then
+                        Presentation.Error "Amount surpasses current balance, try again."
+                        return! AskLightningAmount channelId
+                    else
+                        return TransferAmount(amountBtc, balanceBtc, Currency.BTC)
+        }
 
     let AskFee account amount destination: Option<IBlockchainFeeInfo> =
         try
             let txMetadataWithFeeEstimation =
                 Account.EstimateFee account amount destination |> Async.RunSynchronously
-            Presentation.ShowFee amount.Currency txMetadataWithFeeEstimation
+            let maybeUsdPrice =
+                FiatValueEstimation.UsdValue(amount.Currency) |> Async.RunSynchronously
+            Presentation.ShowFee maybeUsdPrice amount.Currency txMetadataWithFeeEstimation
             let accept = AskYesNo "Do you accept?"
             if accept then
                 Some(txMetadataWithFeeEstimation)
@@ -635,9 +800,27 @@ module UserInteraction =
                 | _ -> AskAccount()
             theAccountChosen
 
+    let rec AskBitcoinAccount(): UtxoCoin.NormalUtxoAccount =
+        let account = AskAccount()
+        if account.Currency <> Currency.BTC then
+            Console.WriteLine "You must select a BTC account"
+            AskBitcoinAccount()
+        else
+            match account with
+            | :? UtxoCoin.NormalUtxoAccount as btcAccount -> btcAccount
+            | :? UtxoCoin.ReadOnlyUtxoAccount ->
+                Console.WriteLine "Read-only accounts cannot be used in lightning"
+                AskBitcoinAccount()
+            | :? UtxoCoin.ArchivedUtxoAccount ->
+                Console.WriteLine "This account has been archived. You must select an active account"
+                AskBitcoinAccount()
+            | _ ->
+                Console.WriteLine "Invalid account for use with lightning"
+                AskBitcoinAccount()
+
     // Throws FormatException
-    let private AskChannelCounterpartyIP(): IPAddress =
-        Console.Write "Channel counterparty IP: "
+    let private AskIPAddress (msg: string): IPAddress =
+        Console.Write msg
         let ipString = Console.ReadLine().Trim()
         IPAddress.Parse ipString
 
@@ -650,14 +833,14 @@ module UserInteraction =
             int portParsed
 
     // Throws FormatException
-    let private AskChannelCounterpartyPort(): int =
-        Console.Write "Channel counterparty port: "
+    let private AskPort (msg: string): int =
+        Console.Write msg
         let portString = Console.ReadLine().Trim()
         ParsePortString portString
 
     // Throws FormatException
-    let private AskChannelCounterpartyIPAndPort(): IPEndPoint =
-        IPEndPoint(AskChannelCounterpartyIP(), AskChannelCounterpartyPort())
+    let private AskIPAddressAndPort (ipMsg: string) (portMsg: string): IPEndPoint =
+        IPEndPoint(AskIPAddress ipMsg, AskPort portMsg)
 
     // Throws FormatException
     let private AskChannelCounterpartyPubKey(): NBitcoin.PubKey =
@@ -687,10 +870,52 @@ module UserInteraction =
             if useQRString then
                 Some <| AskChannelCounterpartyQRString()
             else
-                let ipEndpoint = AskChannelCounterpartyIPAndPort()
+                let ipEndpoint =
+                    AskIPAddressAndPort "Channel counterparty IP: " "Channel counterparty port: "
                 let pubKey = AskChannelCounterpartyPubKey()
                 Some (ipEndpoint, pubKey)
         with
         | :? FormatException as e ->
             Presentation.Error e.Message
             None
+
+    let AskBindAddress(): IPEndPoint =
+        let defaultIpAddress = "127.0.0.1"
+        let defaultPort = 9735
+        let ipAddress =
+            try
+                AskIPAddress
+                    (sprintf "IP address to bind to (leave blank for %s): " defaultIpAddress)
+            with
+            | :? FormatException ->
+                Console.WriteLine(sprintf "using default of %s" defaultIpAddress)
+                IPAddress.Parse defaultIpAddress
+        let port =
+            try
+                AskPort
+                    (sprintf "Port to bind to (leave blank for %i): " defaultPort)
+            with
+            | :? FormatException ->
+                Console.WriteLine(sprintf "using default of %i" defaultPort)
+                defaultPort
+        IPEndPoint(ipAddress, port)
+
+    let AskChannelId(isFunder: bool): Option<ChannelId> =
+        let channels = Lightning.ListAvailableChannelIds isFunder
+        Console.WriteLine "Available channels:"
+        let mutable i = 0
+        for channelId in channels do
+            Console.WriteLine(sprintf "%d: %s" i (channelId.ToString()))
+            i <- i + 1
+        Console.Write "Choose a channel: "
+        let index = Console.ReadLine().Trim()
+        match Int32.TryParse index with
+        | false, _ ->
+            Console.WriteLine "Invalid option"
+            None
+        | true, index ->
+            if index < channels.Count() then
+                Some (channels.ElementAt index)
+            else
+                None
+

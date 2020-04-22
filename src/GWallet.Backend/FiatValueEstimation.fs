@@ -70,7 +70,7 @@ module FiatValueEstimation =
                 return Some tickerObj.Data.RateUsd
             with
             | ex ->
-                if currency = ETC then
+                if currency = ETC || currency = SAI then
                     // interestingly this can throw in CoinCap because retreiving ethereum-classic doesn't work...
                     return None
                 else

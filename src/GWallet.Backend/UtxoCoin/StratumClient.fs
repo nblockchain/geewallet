@@ -51,10 +51,23 @@ type BlockchainScriptHashHistoryInnerResult =
         Height: uint32
     }
 
+type BlockchainScriptHashMerkleInnerResult =
+    {
+        BlockHeight: uint32
+        Merkle: List<string>
+        Pos: uint32
+    }
+
 type BlockchainScriptHashHistoryResult =
     {
         Id: int
         Result: List<BlockchainScriptHashHistoryInnerResult>
+    }
+
+type BlockchainScriptHashMerkleResult =
+    {
+        Id: int
+        Result: BlockchainScriptHashMerkleInnerResult
     }
 
 type BlockchainTransactionGetResult =
@@ -65,8 +78,8 @@ type BlockchainTransactionGetResult =
 
 type VerboseResult =
     {
-        Locktime: int
-        Confirmations: int // can be -1 too when only in mempool!
+        Locktime: uint32
+        Confirmations: uint32
     }
 
 type BlockchainTransactionGetVerboseResult =
@@ -129,6 +142,41 @@ type public ElectrumServerReturningErrorInJsonResponseException(message: string,
 
     member val ErrorCode: int =
         code with get
+
+    member this.InternalErrors(): seq<ElectrumServerReturningErrorInJsonResponseException> =
+        let rec searchForOpenBracketFrom(openSearchIndex: int) = seq {
+            if openSearchIndex < message.Length then
+                let openIndex = message.IndexOf('{', openSearchIndex)
+                if openIndex <> -1 then
+                    let rec searchForCloseBracketFrom(closeSearchIndex: int) = seq {
+                        if closeSearchIndex < message.Length then
+                            let closeIndex = message.IndexOf('}', closeSearchIndex)
+                            if closeIndex <> -1 then
+                                yield message.[openIndex..closeIndex]
+                                yield! searchForCloseBracketFrom(closeIndex + 1)
+                    }
+                    yield! searchForCloseBracketFrom(openIndex + 1)
+                    yield! searchForOpenBracketFrom(openIndex + 1)
+        }
+        searchForOpenBracketFrom 0
+        |> Seq.choose (fun (possibleJsonString: string) ->
+            if possibleJsonString.Contains("\"") then
+                None
+            else
+                let possibleJsonString = possibleJsonString.Replace('\'', '"')
+                try
+                    let maybeError =
+                        JsonConvert.DeserializeObject<ErrorInnerResult>(
+                            possibleJsonString,
+                            Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings
+                        )
+                    if (not (Object.ReferenceEquals(maybeError, null))) then
+                        Some <| ElectrumServerReturningErrorInJsonResponseException(maybeError.Message, maybeError.Code)
+                    else
+                        None
+                with
+                | ex -> None
+        )
 
 type public ElectrumServerReturningErrorException(message: string, code: int,
                                                   originalRequest: string, originalResponse: string) =
@@ -272,6 +320,18 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
         async {
             let! resObj,_ = self.Request<BlockchainScriptHashHistoryResult> json
+            return resObj
+        }
+
+    member self.BlockchainScriptHashMerkle txHash height: Async<BlockchainScriptHashMerkleResult> =
+        let obj = {
+            Id = 0;
+            Method = "blockchain.transaction.get_merkle";
+            Params = Map.ofList ["tx_hash", txHash :> obj; "height", height :> obj]
+        }
+        let json = Serialize obj
+        async {
+            let! resObj,_ = self.Request<BlockchainScriptHashMerkleResult> json
             return resObj
         }
 

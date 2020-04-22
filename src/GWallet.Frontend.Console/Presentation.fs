@@ -16,10 +16,12 @@ module Presentation =
 
     let internal ExchangeRateUnreachableMsg = " (USD exchange rate unreachable... offline?)"
 
-    let ShowFee (transactionCurrency: Currency) (estimatedFee: IBlockchainFeeInfo) =
+    let ShowFee (maybeUsdPrice: MaybeCached<decimal>)
+                (transactionCurrency: Currency)
+                (estimatedFee: IBlockchainFeeInfo) =
         let currency = estimatedFee.Currency
         let estimatedFeeInUsd =
-            match FiatValueEstimation.UsdValue(currency) |> Async.RunSynchronously with
+            match maybeUsdPrice with
             | Fresh(usdValue) ->
                 sprintf "(~%s USD)"
                     (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
@@ -71,4 +73,41 @@ module Presentation =
                                    trans.Proposal.Amount.Currency
                                    fiatAmount)
         Console.WriteLine()
-        ShowFee trans.Proposal.Amount.Currency trans.Metadata
+        ShowFee maybeUsdPrice trans.Proposal.Amount.Currency trans.Metadata
+
+    let ShowFeeAndSpendableBalance (metadata: IBlockchainFeeInfo)
+                                   (channelCapacity: TransferAmount) =
+        let maybeUsdPrice = FiatValueEstimation.UsdValue(Currency.BTC)
+                            |> Async.RunSynchronously
+        let estimatedSpendableBalance =
+            let estimatedChannelReserve = channelCapacity.ValueToSend / 10m
+            let estimatedSpendableBalance =
+                channelCapacity.ValueToSend - metadata.FeeValue - estimatedChannelReserve
+            Math.Max(0m, estimatedSpendableBalance)
+        Console.WriteLine "Estimated spendable balance of the channel would be: "
+        Console.Write(
+            sprintf
+                " %s BTC "
+                (estimatedSpendableBalance
+                    |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
+        )
+        match maybeUsdPrice with
+        | Fresh(usdPrice) ->
+            Console.WriteLine(
+                sprintf
+                    "(~%s USD)"
+                    (estimatedSpendableBalance * usdPrice
+                        |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
+            )
+        | NotFresh(Cached(usdPrice, time)) ->
+            Console.WriteLine(
+                sprintf
+                    "(~%s USD (last exchange rate known at %s))"
+                    (estimatedSpendableBalance * usdPrice
+                        |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
+                    (time |> Formatting.ShowSaneDate)
+            )
+        | NotFresh(NotAvailable) ->
+            Console.WriteLine()
+        ShowFee maybeUsdPrice Currency.BTC metadata
+
