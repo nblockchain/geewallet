@@ -2,6 +2,9 @@
 open System.IO
 open System.Linq
 open System.Text.RegularExpressions
+open System.Text
+
+open NBitcoin
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil
@@ -9,6 +12,25 @@ open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Frontend.Console
 
 let random = Org.BouncyCastle.Security.SecureRandom () :> Random
+
+
+let GetLightningErrorMessage (error: DotNetLightning.Serialize.Msgs.ErrorMessage): string =
+    "Error received from Lightning peer: " +
+    match error.Data with
+    | [| 01uy |] ->
+        "The number of pending channels exceeds the policy limit." +
+        Environment.NewLine + "Hint: You can try from a new node identity."
+    | [| 02uy |] ->
+        "Node is not in sync to latest blockchain blocks." +
+            if Config.BitcoinNet = Network.RegTest then
+                Environment.NewLine + "Hint: Try mining some blocks before opening."
+            else
+                String.Empty
+    | [| 03uy |] ->
+        "Channel capacity too large." + Environment.NewLine + "Hint: Try with a smaller funding amount."
+    | _ ->
+        let asciiEncoding = ASCIIEncoding ()
+        "ASCII representation: " + asciiEncoding.GetString error.Data
 
 let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
@@ -315,7 +337,6 @@ let AskChannelFee (account: UtxoCoin.NormalUtxoAccount)
         | InsufficientBalanceForFee _ ->
             failwith "Estimated fee is too high for the remaining balance, \
                       use a different account or a different amount."
-    Presentation.ShowFee Currency.BTC metadata
 
     let channelKeysSeed, keyRepo, temporaryChannelId = Lightning.GetSeedAndRepo random
     let channelEnvironment: Lightning.ChannelEnvironment =
@@ -329,7 +350,7 @@ let AskChannelFee (account: UtxoCoin.NormalUtxoAccount)
             Lightning.ConnectAndHandshake channelEnvironment channelCounterpartyIP
         let passwordRef = ref "DotNetLightning shouldn't ask for password until later when user has
                                confirmed the funding transaction fee. So this is a placeholder."
-        let! acceptChannel, chan, peer =
+        let! acceptChannelRes =
             Lightning.GetAcceptChannel
                 channelEnvironment
                 connectionBeforeAcceptChannel
@@ -338,25 +359,32 @@ let AskChannelFee (account: UtxoCoin.NormalUtxoAccount)
                 (fun _ -> !passwordRef)
                 balance
                 temporaryChannelId
-        let connectionWithNewPeer = { connectionBeforeAcceptChannel with Peer = peer }
-        printfn
-            "Opening a channel with this party will require %d confirmations (~%d minutes)"
-            acceptChannel.MinimumDepth.Value
-            (acceptChannel.MinimumDepth.Value * 10u)
-        let accept = UserInteraction.AskYesNo "Do you accept?"
-        return
-            if accept then
-                Some
-                    {
-                        ChannelCreationDetails.Seed = channelKeysSeed
-                        AcceptChannel = acceptChannel
-                        Channel = chan
-                        Connection = connectionWithNewPeer
-                        Password = passwordRef
-                    }
-            else
-                connectionWithNewPeer.Client.Dispose()
-                None
+        match acceptChannelRes with
+        | FSharp.Core.Result.Error errorMsg ->
+            Console.WriteLine(GetLightningErrorMessage errorMsg)
+            return None
+        | FSharp.Core.Result.Ok (acceptChannel, chan, peer) ->
+            Presentation.ShowFee Currency.BTC metadata
+            printfn
+                "Opening a channel with this party will require %d confirmations (~%d minutes)"
+                acceptChannel.MinimumDepth.Value
+                (acceptChannel.MinimumDepth.Value * 10u)
+            let accept = UserInteraction.AskYesNo "Do you accept?"
+
+            return
+                if accept then
+                    let connectionWithNewPeer = { connectionBeforeAcceptChannel with Peer = peer }
+                    Some
+                        {
+                            ChannelCreationDetails.Seed = channelKeysSeed
+                            AcceptChannel = acceptChannel
+                            Channel = chan
+                            Connection = connectionWithNewPeer
+                            Password = passwordRef
+                        }
+                else
+                    connectionBeforeAcceptChannel.Client.Dispose()
+                    None
     }
 
 let OptionFromMaybeCachedBalance (balance: MaybeCached<decimal>): Option<decimal> =
@@ -440,7 +468,7 @@ let rec PerformOperation (numAccounts: int) =
                     // so while it looks unused, it is indeed used.
                     details.Password := password
                     try
-                        let txId =
+                        let txIdRes =
                             Lightning.ContinueFromAcceptChannelAndSave
                                 btcAccount
                                 details.Seed
@@ -451,7 +479,12 @@ let rec PerformOperation (numAccounts: int) =
                                 details.Connection.Peer
                                 |> Async.RunSynchronously
                         details.Connection.Client.Dispose()
-                        Some txId
+                        match txIdRes with
+                        | FSharp.Core.Result.Error errorMsg ->
+                            Console.WriteLine(GetLightningErrorMessage errorMsg)
+                            None
+                        | FSharp.Core.Result.Ok txId ->
+                            Some txId
                     with
                     | :? InvalidPassword ->
                         printfn "Invalid password, try again."
@@ -469,7 +502,11 @@ let rec PerformOperation (numAccounts: int) =
                              .GetAllActiveAccounts()
                              .OfType<UtxoCoin.NormalUtxoAccount>()
                              .Single(fun account -> (account :> IAccount).Currency = Currency.BTC)
-        Lightning.AcceptTheirChannel random btcAccount |> Async.RunSynchronously
+        let res = Lightning.AcceptTheirChannel random btcAccount |> Async.RunSynchronously
+        match res with
+        | FSharp.Core.Result.Error errorMsg ->
+            Console.WriteLine(GetLightningErrorMessage errorMsg)
+        | FSharp.Core.Result.Ok () -> ()
     | _ -> failwith "Unreachable"
 
 let rec GetAccountOfSameCurrency currency =
@@ -514,18 +551,24 @@ let private NotReadyReasonToString (reason: Lightning.NotReadyReason): string =
 
 let private CheckChannelStatus (path: string, channelFileId: int): Async<seq<string>> =
     async {
-        let! channelStatus = Lightning.LoadChannelAndCheckChannelMessage path
-        return
-            match channelStatus with
-            | Lightning.ChannelStatus.UnusableChannelWithReason (txIdHex, notReadyReason) ->
-                let reasonString = NotReadyReasonToString notReadyReason
-                let msg =
-                    sprintf
-                        "Channel %d opening in progress (%s): %s\n"
-                        channelFileId reasonString txIdHex
-                seq { yield msg }
-            | Lightning.ChannelStatus.UsableChannel _ ->
-                seq { yield sprintf "Channel %d is open.\n" channelFileId }
+        let! channelStatusRes = Lightning.LoadChannelAndCheckChannelMessage path
+        match channelStatusRes with
+        | FSharp.Core.Result.Error errorMsg ->
+            return seq {
+                yield GetLightningErrorMessage errorMsg
+            }
+        | FSharp.Core.Result.Ok channelStatus ->
+            return
+                match channelStatus with
+                | Lightning.ChannelStatus.UnusableChannelWithReason (txIdHex, notReadyReason) ->
+                    let reasonString = NotReadyReasonToString notReadyReason
+                    let msg =
+                        sprintf
+                            "Channel %d opening in progress (%s): %s\n"
+                            channelFileId reasonString txIdHex
+                    seq { yield msg }
+                | Lightning.ChannelStatus.UsableChannel _ ->
+                    seq { yield sprintf "Channel %d is open.\n" channelFileId }
     }
 
 let private CheckChannelStatuses(): Async<seq<string>> =

@@ -5,7 +5,6 @@ open System.Net.Sockets
 open System.Net
 open System.Diagnostics
 open System.IO
-open System.Text // For ASCIIEncoding
 
 open DotNetLightning.Utils
 open DotNetLightning.Serialize
@@ -97,6 +96,7 @@ module Lightning =
 
     type MessageReceived =
     | ChannelMessage of Peer * IChannelMsg
+    | ErrorMessage of Peer * ErrorMessage
     | OtherMessage of Peer
 
     let ProcessPeerEvents (oldPeer: Peer) (peerEventsResult: Result<List<PeerEvent>,'a>): MessageReceived =
@@ -106,25 +106,7 @@ module Lightning =
             | PeerEvent.ReceivedChannelMsg (chanMsg, _) ->
                 ChannelMessage (Peer.applyEvent oldPeer evt, chanMsg)
             | PeerEvent.ReceivedError (error, _) ->
-                let errorMsg =
-                    "Error received from Lightning peer: " +
-                    match error.Data with
-                    | [| 01uy |] ->
-                        "The number of pending channels exceeds the policy limit." +
-                        Environment.NewLine + "Hint: You can try from a new node identity."
-                    | [| 02uy |] ->
-                        "Node is not in sync to latest blockchain blocks." +
-                            if Config.BitcoinNet = Network.RegTest then
-                                Environment.NewLine + "Hint: Try mining some blocks before opening."
-                            else
-                                String.Empty
-                    | [| 03uy |] ->
-                        "Channel capacity too large." + Environment.NewLine + "Hint: Try with a smaller funding amount."
-                    | _ ->
-                        let asciiEncoding = ASCIIEncoding ()
-                        "ASCII representation: " + asciiEncoding.GetString error.Data
-                Console.WriteLine errorMsg
-                OtherMessage <| Peer.applyEvent oldPeer evt
+                MessageReceived.ErrorMessage (Peer.applyEvent oldPeer evt, error)
             | _ ->
                 DebugLogger <| SPrintF1 "Warning: ignoring event that was not ReceivedChannelMsg, it was: %s" (evt.GetType().Name)
                 OtherMessage <| Peer.applyEvent oldPeer evt
@@ -235,7 +217,7 @@ module Lightning =
                     failwith <| SPrintF1 "couldn't parse init: %s" (peerError.ToString())
         }
 
-    let rec ReadUntilChannelMessage (keyRepo: DefaultKeyRepository, peer: Peer, stream: NetworkStream): Async<Peer * IChannelMsg> =
+    let rec ReadUntilChannelMessage (keyRepo: DefaultKeyRepository, peer: Peer, stream: NetworkStream): Async<Result<Peer * IChannelMsg, ErrorMessage>> =
         async {
             let! res = ReadAsync keyRepo peer stream
             let messageReceived =
@@ -244,7 +226,9 @@ module Lightning =
                 |> ProcessPeerEvents peer
             match messageReceived with
             | ChannelMessage (newPeer, chanMsg) ->
-                return newPeer, chanMsg
+                return Ok (newPeer, chanMsg)
+            | MessageReceived.ErrorMessage (_, errorMsg) ->
+                return Error errorMsg
             | OtherMessage newPeer ->
                 return! ReadUntilChannelMessage (keyRepo, newPeer, stream)
         }
@@ -273,7 +257,7 @@ module Lightning =
                          (password: unit -> string)
                          (balance: decimal)
                          (temporaryChannelId: ChannelId)
-                             : Async<AcceptChannel * Channel * Peer> =
+                             : Async<Result<AcceptChannel * Channel * Peer, ErrorMessage>> =
         let fundingTxProvider (dest: IDestination, amount: Money, _: FeeRatePerKw) =
             let transferAmount = TransferAmount (amount.ToDecimal MoneyUnit.BTC, balance, Currency.BTC)
             Debug.Assert (
@@ -326,15 +310,17 @@ module Lightning =
 
             // receive acceptchannel
             DebugLogger "Receiving accept_channel..."
-            let! receivedOpenChanReplyPeer, chanMsg = ReadUntilChannelMessage (keyRepo, sentOpenChanPeer, stream)
-
-            let acceptChannel =
-                match chanMsg with
-                | :? AcceptChannel as acceptChannel ->
-                    acceptChannel
-                | _ ->
-                    failwith <| SPrintF1 "channel message is not accept channel: %s" (chanMsg.GetType().Name)
-            return acceptChannel, sentOpenChan, receivedOpenChanReplyPeer
+            let! msgRes = ReadUntilChannelMessage (keyRepo, sentOpenChanPeer, stream)
+            match msgRes with
+            | Error errorMsg -> return Error errorMsg
+            | Ok (receivedOpenChanReplyPeer, chanMsg) ->
+                let acceptChannel =
+                    match chanMsg with
+                    | :? AcceptChannel as acceptChannel ->
+                        acceptChannel
+                    | _ ->
+                        failwith <| SPrintF1 "channel message is not accept channel: %s" (chanMsg.GetType().Name)
+                return Ok (acceptChannel, sentOpenChan, receivedOpenChanReplyPeer)
         }
 
     let ContinueFromAcceptChannel (keyRepo: DefaultKeyRepository)
@@ -342,7 +328,7 @@ module Lightning =
                                   (sentOpenChan: Channel)
                                   (stream: NetworkStream)
                                   (receivedOpenChanReplyPeer: Peer)
-                                      : Async<string * Channel> =
+                                      : Async<Result<string * Channel, ErrorMessage>> =
         async {
             let fundingCreated, receivedAcceptChannelChan =
                 match Channel.executeCommand sentOpenChan (ApplyAcceptChannel acceptChannel) with
@@ -357,29 +343,31 @@ module Lightning =
             let! sentFundingCreatedPeer = Send fundingCreated receivedOpenChanReplyPeer stream
 
             DebugLogger "Receiving funding_created..."
-            let! _, chanMsg = ReadUntilChannelMessage (keyRepo, sentFundingCreatedPeer, stream)
+            let! msgRes = ReadUntilChannelMessage (keyRepo, sentFundingCreatedPeer, stream)
+            match msgRes with
+            | Error errorMsg -> return Error errorMsg
+            | Ok (_, chanMsg) ->
+                let fundingSigned =
+                    match chanMsg with
+                    | :? FundingSigned as fundingSigned ->
+                        fundingSigned
+                    | _ ->
+                        failwith <| SPrintF1 "channel message is not funding signed: %s" (chanMsg.GetType().Name)
 
-            let fundingSigned =
-                match chanMsg with
-                | :? FundingSigned as fundingSigned ->
-                    fundingSigned
-                | _ ->
-                    failwith <| SPrintF1 "channel message is not funding signed: %s" (chanMsg.GetType().Name)
-
-            let chanCmd = ChannelCommand.ApplyFundingSigned fundingSigned
-            let chanEvents = Channel.executeCommand receivedAcceptChannelChan chanCmd
-            let chan, finalizedTx =
-                match chanEvents with
-                | Ok (ChannelEvent.WeAcceptedFundingSigned (finalizedTx, _) as evt::[]) ->
-                    let chan = Channel.applyEvent receivedAcceptChannelChan evt
-                    chan, finalizedTx
-                | Ok evt ->
-                    failwith <| SPrintF1 "not one good WeAcceptedFundingSigned chan evt: %s" (evt.GetType().Name)
-                | Error e ->
-                    failwith <| SPrintF1 "bad result when expecting WeAcceptedFundingSigned: %s" (e.ToString())
-            let signedTx: string = finalizedTx.Value.ToHex()
-            let! txId = Account.BroadcastRawTransaction Currency.BTC signedTx
-            return txId, chan
+                let chanCmd = ChannelCommand.ApplyFundingSigned fundingSigned
+                let chanEvents = Channel.executeCommand receivedAcceptChannelChan chanCmd
+                let chan, finalizedTx =
+                    match chanEvents with
+                    | Ok (ChannelEvent.WeAcceptedFundingSigned (finalizedTx, _) as evt::[]) ->
+                        let chan = Channel.applyEvent receivedAcceptChannelChan evt
+                        chan, finalizedTx
+                    | Ok evt ->
+                        failwith <| SPrintF1 "not one good WeAcceptedFundingSigned chan evt: %s" (evt.GetType().Name)
+                    | Error e ->
+                        failwith <| SPrintF1 "bad result when expecting WeAcceptedFundingSigned: %s" (e.ToString())
+                let signedTx: string = finalizedTx.Value.ToHex()
+                let! txId = Account.BroadcastRawTransaction Currency.BTC signedTx
+                return Ok (txId, chan)
         }
 
     let GetSeedAndRepo (random: Random): uint256 * DefaultKeyRepository * ChannelId =
@@ -408,14 +396,17 @@ module Lightning =
                                          (chan: Channel)
                                          (stream: NetworkStream)
                                          (peer: Peer)
-                                             : Async<string> = // TxId of Funding Transaction is returned
+                                             : Async<Result<string, ErrorMessage>> = // TxId of Funding Transaction is returned
         async {
             let keyRepo = JsonMarshalling.UIntToKeyRepo channelKeysSeed
-            let! fundingTxId, receivedFundingSignedChan = ContinueFromAcceptChannel keyRepo acceptChannel chan stream peer
-            let fileName = GetNewChannelFilename()
-            JsonMarshalling.Save account receivedFundingSignedChan channelKeysSeed channelCounterpartyIP acceptChannel.MinimumDepth fileName
-            DebugLogger <| SPrintF1 "Channel saved to %s" fileName
-            return fundingTxId
+            let! res = ContinueFromAcceptChannel keyRepo acceptChannel chan stream peer
+            match res with
+            | Error errorMsg -> return Error errorMsg
+            | Ok (fundingTxId, receivedFundingSignedChan) ->
+                let fileName = GetNewChannelFilename()
+                JsonMarshalling.Save account receivedFundingSignedChan channelKeysSeed channelCounterpartyIP acceptChannel.MinimumDepth fileName
+                DebugLogger <| SPrintF1 "Channel saved to %s" fileName
+                return Ok fundingTxId
         }
 
     type NotReadyReason =
@@ -504,19 +495,19 @@ module Lightning =
     | UsableChannel of string
     | UnusableChannelWithReason of string * NotReadyReason
 
-    let LoadChannelAndCheckChannelMessage (fileName: string): Async<ChannelStatus> =
+    let LoadChannelAndCheckChannelMessage (fileName: string): Async<Result<ChannelStatus, ErrorMessage>> =
         async {
             let! txIdHex, confirmationsCount, absoluteBlockHeight, notReestablishedChannel, account, serializedChannel = GetConfirmationsAndHistoryAndChannel fileName
             match notReestablishedChannel.State with
             | ChannelState.Normal _ ->
-                return UsableChannel txIdHex
+                return Ok (UsableChannel txIdHex)
             | _ ->
                 let channelKeysSeed = serializedChannel.KeysRepoSeed
                 let channelCounterpartyIP = serializedChannel.CounterpartyIP
                 let maybeChannelMessage = MaybeChannelMessageFromConfirmationCountAndHistoryAndChannel txIdHex confirmationsCount absoluteBlockHeight serializedChannel.MinSafeDepth
                 match maybeChannelMessage with
                 | NotReady reason ->
-                    return UnusableChannelWithReason (txIdHex, reason)
+                    return Ok (UnusableChannelWithReason (txIdHex, reason))
                 | DeepEnough channelCommand ->
                     let keyRepo = JsonMarshalling.UIntToKeyRepo channelKeysSeed
                     let channelEnvironment: ChannelEnvironment =
@@ -540,39 +531,48 @@ module Lightning =
                     let channelWithFundingLockedSent, fundingLocked = GetFundingLockedMsg reestablishedChannel channelCommand
                     let! sentFundingLockedPeer = Send fundingLocked sentReestablishPeer stream
                     DebugLogger "Receiving channel_reestablish or funding_locked..."
-                    let! receivedChannelReestablishPeer, chanMsg = ReadUntilChannelMessage (keyRepo, sentFundingLockedPeer, connection.Client.GetStream())
-                    let! fundingLocked =
-                        match chanMsg with
-                        | :? ChannelReestablish ->
-                            async {
-                                // TODO: validate channel_reestablish
-                                DebugLogger "Received channel_reestablish, now receiving funding_locked..."
-                                let! _, chanMsg = ReadUntilChannelMessage (keyRepo, receivedChannelReestablishPeer, connection.Client.GetStream())
-                                return
-                                    match chanMsg with
-                                    | :? FundingLocked as fundingLocked ->
-                                        // TODO: validate funding_locked
-                                        fundingLocked
-                                    | _ ->
-                                        failwith <| SPrintF1 "channel message is not funding_locked, it is: %s" (chanMsg.GetType().Name)
-                            }
-                        | :? FundingLocked as fundingLocked ->
-                            // LND can send funding_locked before replying to our channel_reestablish
-                            async {
-                                return fundingLocked
-                            }
-                        | _ ->
-                            failwith <| SPrintF1 "channel message is not channel_reestablish or funding_locked, instead it is: %s" (chanMsg.GetType().Name)
-                    let bothFundingLockedChan =
-                        match Channel.executeCommand channelWithFundingLockedSent (ApplyFundingLocked fundingLocked) with
-                        | Ok ((ChannelEvent.BothFundingLocked _) as evt::[]) ->
-                            Channel.applyEvent channelWithFundingLockedSent evt
-                        | _ ->
-                            failwith "bad event during application of funding_locked"
-                    JsonMarshalling.SaveSerializedChannel { serializedChannel with ChanState = bothFundingLockedChan.State } fileName
-                    DebugLogger <| SPrintF1 "Channel overwritten (with funding transaction locked) at %s" fileName
-                    connection.Client.Dispose()
-                    return UsableChannel txIdHex
+                    let! msgRes = ReadUntilChannelMessage (keyRepo, sentFundingLockedPeer, connection.Client.GetStream())
+                    match msgRes with
+                    | Error errorMsg -> return Error errorMsg
+                    | Ok (receivedChannelReestablishPeer, chanMsg) ->
+                        let! fundingLockedRes =
+                            match chanMsg with
+                            | :? ChannelReestablish ->
+                                async {
+                                    // TODO: validate channel_reestablish
+                                    DebugLogger "Received channel_reestablish, now receiving funding_locked..."
+                                    let! msgRes = ReadUntilChannelMessage (keyRepo, receivedChannelReestablishPeer, connection.Client.GetStream())
+                                    match msgRes with
+                                    | Error errorMsg -> return Error errorMsg
+                                    | Ok (_, chanMsg) ->
+                                        return
+                                            match chanMsg with
+                                            | :? FundingLocked as fundingLocked ->
+                                                // TODO: validate funding_locked
+                                                Ok fundingLocked
+                                            | _ ->
+                                                failwith <| SPrintF1 "channel message is not funding_locked, it is: %s" (chanMsg.GetType().Name)
+                                }
+                            | :? FundingLocked as fundingLocked ->
+                                // LND can send funding_locked before replying to our channel_reestablish
+                                async {
+                                    return Ok fundingLocked
+                                }
+                            | _ ->
+                                failwith <| SPrintF1 "channel message is not channel_reestablish or funding_locked, instead it is: %s" (chanMsg.GetType().Name)
+                        match fundingLockedRes with
+                        | Error errorMsg -> return Error errorMsg
+                        | Ok fundingLocked ->
+                            let bothFundingLockedChan =
+                                match Channel.executeCommand channelWithFundingLockedSent (ApplyFundingLocked fundingLocked) with
+                                | Ok ((ChannelEvent.BothFundingLocked _) as evt::[]) ->
+                                    Channel.applyEvent channelWithFundingLockedSent evt
+                                | _ ->
+                                    failwith "bad event during application of funding_locked"
+                            JsonMarshalling.SaveSerializedChannel { serializedChannel with ChanState = bothFundingLockedChan.State } fileName
+                            DebugLogger <| SPrintF1 "Channel overwritten (with funding transaction locked) at %s" fileName
+                            connection.Client.Dispose()
+                            return Ok (UsableChannel txIdHex)
         }
 
     let ExtractChannelNumber (path: string): Option<string * int> =
@@ -596,7 +596,7 @@ module Lightning =
 
     let AcceptTheirChannel (random: Random)
                            (account: NormalUtxoAccount)
-                               : Async<unit> =
+                               : Async<Result<unit, ErrorMessage>> =
         let ip, port = "127.0.0.1", 9735
         let listener = new TcpListener (IPAddress.Parse ip, port)
         listener.Start()
@@ -642,96 +642,100 @@ module Lightning =
 
             let! sentInitPeer = Send plainInit connection.Peer stream
             DebugLogger "Receiving open_channel..."
-            let! receivedOpenChanPeer, chanMsg = ReadUntilChannelMessage (keyRepo, sentInitPeer, stream)
+            let! msgRes = ReadUntilChannelMessage (keyRepo, sentInitPeer, stream)
+            match msgRes with
+            | Error errorMsg -> return Error errorMsg
+            | Ok (receivedOpenChanPeer, chanMsg) ->
+                let openChannel =
+                    match chanMsg with
+                    | :? OpenChannel as openChannel ->
+                        openChannel
+                    | _ ->
+                        failwith <| SPrintF1 "channel message is not open_channel: %s" (chanMsg.GetType().Name)
 
-            let openChannel =
-                match chanMsg with
-                | :? OpenChannel as openChannel ->
-                    openChannel
-                | _ ->
-                    failwith <| SPrintF1 "channel message is not open_channel: %s" (chanMsg.GetType().Name)
+                DebugLogger "Creating LocalParams..."
+                let channelKeys, localParams = GetLocalParams false remoteNodeId account keyRepo
+                let initFundee: InputInitFundee = {
+                        TemporaryChannelId = temporaryChannelId
+                        LocalParams = localParams
+                        RemoteInit = connection.Init
+                        ToLocal = LNMoney.MilliSatoshis 0L
+                        ChannelKeys = channelKeys
+                    }
+                let chanCmd = ChannelCommand.CreateInbound initFundee
+                let fundingTxProvider (_: IDestination, _: Money, _: FeeRatePerKw) =
+                    failwith "not funding channel, so unreachable"
+                DebugLogger "Creating Channel..."
+                let initialChan: Channel = CreateChannel
+                                               account
+                                               keyRepo
+                                               feeEstimator
+                                               ourNodeSecret
+                                               fundingTxProvider
+                                               Config.BitcoinNet
+                                               remoteNodeId
 
-            DebugLogger "Creating LocalParams..."
-            let channelKeys, localParams = GetLocalParams false remoteNodeId account keyRepo
-            let initFundee: InputInitFundee = {
-                    TemporaryChannelId = temporaryChannelId
-                    LocalParams = localParams
-                    RemoteInit = connection.Init
-                    ToLocal = LNMoney.MilliSatoshis 0L
-                    ChannelKeys = channelKeys
-                }
-            let chanCmd = ChannelCommand.CreateInbound initFundee
-            let fundingTxProvider (_: IDestination, _: Money, _: FeeRatePerKw) =
-                failwith "not funding channel, so unreachable"
-            DebugLogger "Creating Channel..."
-            let initialChan: Channel = CreateChannel
-                                           account
-                                           keyRepo
-                                           feeEstimator
-                                           ourNodeSecret
-                                           fundingTxProvider
-                                           Config.BitcoinNet
-                                           remoteNodeId
+                let inboundStartedChan =
+                    match Channel.executeCommand initialChan chanCmd with
+                    | Ok (NewInboundChannelStarted _ as evt::[]) ->
+                        Channel.applyEvent initialChan evt
+                    | Ok evtList ->
+                        failwith <| SPrintF1 "event was not a single NewInboundChannelStarted, it was: %A" evtList
+                    | Error channelError ->
+                        failwith <| SPrintF1 "could not execute channel command: %s" (channelError.ToString())
 
-            let inboundStartedChan =
-                match Channel.executeCommand initialChan chanCmd with
-                | Ok (NewInboundChannelStarted _ as evt::[]) ->
-                    Channel.applyEvent initialChan evt
-                | Ok evtList ->
-                    failwith <| SPrintF1 "event was not a single NewInboundChannelStarted, it was: %A" evtList
-                | Error channelError ->
-                    failwith <| SPrintF1 "could not execute channel command: %s" (channelError.ToString())
+                DebugLogger "Applying open_channel..."
+                let res = Channel.executeCommand inboundStartedChan (ApplyOpenChannel openChannel)
 
-            DebugLogger "Applying open_channel..."
-            let res = Channel.executeCommand inboundStartedChan (ApplyOpenChannel openChannel)
+                DebugLogger "Generating accept_channel..."
+                let (acceptChannel: AcceptChannel), (receivedOpenChannelChan: Channel) =
+                    match res with
+                    | Ok (ChannelEvent.WeAcceptedOpenChannel(acceptChannel, _) as evt::[]) ->
+                        let chan = Channel.applyEvent inboundStartedChan evt
+                        acceptChannel, chan
+                    | Ok evtList ->
+                        failwith <| SPrintF1 "event list was not a single WeAcceptedOpenChannel, it was: %A" evtList
+                    | Error _ ->
+                        // be careful with channelError.ToString. When RResult.Describe was still used in DNL, it was observed to throw!
+                        failwith "unknown error tree during application of open_channel"
 
-            DebugLogger "Generating accept_channel..."
-            let (acceptChannel: AcceptChannel), (receivedOpenChannelChan: Channel) =
-                match res with
-                | Ok (ChannelEvent.WeAcceptedOpenChannel(acceptChannel, _) as evt::[]) ->
-                    let chan = Channel.applyEvent inboundStartedChan evt
-                    acceptChannel, chan
-                | Ok evtList ->
-                    failwith <| SPrintF1 "event list was not a single WeAcceptedOpenChannel, it was: %A" evtList
-                | Error _ ->
-                    // be careful with channelError.ToString. When RResult.Describe was still used in DNL, it was observed to throw!
-                    failwith "unknown error tree during application of open_channel"
+                DebugLogger "Sending accept_channel..."
+                let! sentAcceptChanPeer = Send acceptChannel receivedOpenChanPeer stream
 
-            DebugLogger "Sending accept_channel..."
-            let! sentAcceptChanPeer = Send acceptChannel receivedOpenChanPeer stream
+                DebugLogger "Receiving funding_created..."
+                let! msgRes = ReadUntilChannelMessage (keyRepo, sentAcceptChanPeer, stream)
+                match msgRes with
+                | Error errorMsg -> return Error errorMsg
+                | Ok (receivedFundingCreatedPeer, chanMsg) ->
+                    let fundingCreated =
+                        match chanMsg with
+                        | :? FundingCreated as fundingCreated ->
+                            fundingCreated
+                        | _ ->
+                            failwith <| SPrintF1 "channel message is not funding created: %s" (chanMsg.GetType().Name)
 
-            DebugLogger "Receiving funding_created..."
-            let! receivedFundingCreatedPeer, chanMsg = ReadUntilChannelMessage (keyRepo, sentAcceptChanPeer, stream)
+                    let fundingSigned, receivedFundingCreatedChan =
+                        match Channel.executeCommand receivedOpenChannelChan (ApplyFundingCreated fundingCreated) with
+                        | Ok (ChannelEvent.WeAcceptedFundingCreated(fundingSigned, _) as evt::[]) ->
+                            let chan = Channel.applyEvent receivedOpenChannelChan evt
+                            fundingSigned, chan
+                        | Ok evtList ->
+                            failwith <| SPrintF1 "event was not a single WeAcceptedFundingCreated, it was: %A" evtList
+                        | Error channelError ->
+                            failwith <| SPrintF1 "could not apply funding_created: %s" (channelError.ToString())
 
-            let fundingCreated =
-                match chanMsg with
-                | :? FundingCreated as fundingCreated ->
-                    fundingCreated
-                | _ ->
-                    failwith <| SPrintF1 "channel message is not funding created: %s" (chanMsg.GetType().Name)
+                    let! _ = Send fundingSigned receivedFundingCreatedPeer stream
 
-            let fundingSigned, receivedFundingCreatedChan =
-                match Channel.executeCommand receivedOpenChannelChan (ApplyFundingCreated fundingCreated) with
-                | Ok (ChannelEvent.WeAcceptedFundingCreated(fundingSigned, _) as evt::[]) ->
-                    let chan = Channel.applyEvent receivedOpenChannelChan evt
-                    fundingSigned, chan
-                | Ok evtList ->
-                    failwith <| SPrintF1 "event was not a single WeAcceptedFundingCreated, it was: %A" evtList
-                | Error channelError ->
-                    failwith <| SPrintF1 "could not apply funding_created: %s" (channelError.ToString())
+                    let fileName = GetNewChannelFilename()
+                    let remoteIp = client.Client.RemoteEndPoint :?> IPEndPoint
+                    let endpointToSave =
+                        if remoteIp.Address = IPAddress.Loopback then
+                            DebugLogger "WARNING: Remote address is the loopback address, saving 127.0.0.2 as IP instead!"
+                            IPEndPoint (IPAddress.Parse "127.0.0.2", 9735)
+                        else
+                            remoteIp
+                    JsonMarshalling.Save account receivedFundingCreatedChan channelKeysSeed endpointToSave acceptChannel.MinimumDepth fileName
+                    DebugLogger <| SPrintF1 "Channel saved to %s" fileName
 
-            let! _ = Send fundingSigned receivedFundingCreatedPeer stream
-
-            let fileName = GetNewChannelFilename()
-            let remoteIp = client.Client.RemoteEndPoint :?> IPEndPoint
-            let endpointToSave =
-                if remoteIp.Address = IPAddress.Loopback then
-                    DebugLogger "WARNING: Remote address is the loopback address, saving 127.0.0.2 as IP instead!"
-                    IPEndPoint (IPAddress.Parse "127.0.0.2", 9735)
-                else
-                    remoteIp
-            JsonMarshalling.Save account receivedFundingCreatedChan channelKeysSeed endpointToSave acceptChannel.MinimumDepth fileName
-            DebugLogger <| SPrintF1 "Channel saved to %s" fileName
-
-            return ()
+                    return Ok ()
         }
