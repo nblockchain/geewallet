@@ -50,8 +50,11 @@ module FiatValueEstimation =
             let! res = Async.AwaitTask task
             return Some (tickerName,res)
         with
-        | :? WebException ->
-            return None
+        | ex ->
+            if (FSharpUtil.FindException<WebException> ex).IsSome then
+                return None
+            else
+                return raise <| FSharpUtil.ReRaise ex
     }
 
     let private QueryCoinCap currency = async {
