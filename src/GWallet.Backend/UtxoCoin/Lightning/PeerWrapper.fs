@@ -50,31 +50,49 @@ type PeerWrapper = {
     static member ConnectFromTransportListener (transportListener: TransportListener)
                                                (peerNodeId: NodeId)
                                                (peerId: PeerId)
-                                                   : Async<PeerWrapper> = async {
-        let! init, msgStream =
-            MsgStream.ConnectFromTransportListener transportListener peerNodeId peerId
-        return {
-            Init = init
-            MsgStream = msgStream
+                                                   : Async<PeerWrapper> =
+        let rec accept() = async {
+            let! init, msgStream =
+                MsgStream.AcceptFromTransportListener transportListener
+            if msgStream.RemoteNodeId = peerNodeId && msgStream.PeerId = peerId then
+                return {
+                    Init = init
+                    MsgStream = msgStream
+                }
+            else
+                return! accept()
         }
-    }
 
-    static member AcceptFromTransportListener (transportListener: TransportListener)
-                                              (peerNodeId: NodeId)
-                                                  : Async<PeerWrapper> = async {
-        let! init, msgStream = MsgStream.AcceptFromTransportListener transportListener
-        if msgStream.RemoteNodeId = peerNodeId then
+        let connect = async {
+            let! init, msgStream =
+                let rec reconnect (backoff: TimeSpan) = async {
+                    try
+                        return!
+                            MsgStream.ConnectFromTransportListener
+                                transportListener
+                                peerNodeId
+                                peerId
+                    with
+                    | ex ->
+                        match FSharpUtil.FindException<SocketException> ex with
+                        | None -> return raise <| FSharpUtil.ReRaise ex
+                        | Some socketEx ->
+                            DebugLogger <| SPrintF1 "got socket exception: %s" (socketEx.ToString())
+                            Console.WriteLine(SPrintF1 "connection refused. trying again in %f seconds" backoff.TotalSeconds)
+                            do! Async.Sleep (int backoff.TotalMilliseconds)
+                            return! reconnect (backoff + backoff)
+                }
+                reconnect(TimeSpan.FromSeconds(1.0))
             return {
                 Init = init
                 MsgStream = msgStream
             }
-        else
-            (msgStream :> IDisposable).Dispose()
-            return! PeerWrapper.AcceptFromTransportListener transportListener peerNodeId
-    }
+        }
 
-    static member AcceptAnyFromTransportListener (transportListener: TransportListener)
-                                                     : Async<PeerWrapper> = async {
+        AsyncExtensions.WhenAny [accept(); connect]
+
+    static member AcceptFromTransportListener (transportListener: TransportListener)
+                                                  : Async<PeerWrapper> = async {
         let! init, msgStream = MsgStream.AcceptFromTransportListener transportListener
         return {
             Init = init

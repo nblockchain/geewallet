@@ -144,10 +144,8 @@ type ActiveChannel = {
 
     static member Reestablish (transportListener: TransportListener)
                               (channelId: ChannelId)
-                              (initiateConnection: bool)
                                   : Async<Result<ActiveChannel, BrokenChannel * ChannelOperationError>> = async {
-        let! connectedChannel =
-            ConnectedChannel.LoadFromWallet transportListener channelId initiateConnection
+        let! connectedChannel = ConnectedChannel.LoadFromWallet transportListener channelId
         let channelWrapper = connectedChannel.ChannelWrapper
         match channelWrapper.Channel.State with
         | WaitForFundingConfirmed state ->
@@ -169,6 +167,14 @@ type ActiveChannel = {
             return Ok activeChannel
         | _ ->
             return failwith <| SPrintF1 "unexpected channel state: %A" channelWrapper.Channel.State
+    }
+
+    static member ReestablishAll (transportListener: TransportListener)
+                                     : seq<Async<Result<ActiveChannel, BrokenChannel * ChannelOperationError>>> = seq {
+        let channelIds = SerializedChannel.ListSavedChannels()
+        for channelId in channelIds do
+            Console.WriteLine(SPrintF1 "Reestablishing channel %s." (channelId.Value.ToString()))
+            yield ActiveChannel.Reestablish transportListener channelId
     }
 
     member this.Balance

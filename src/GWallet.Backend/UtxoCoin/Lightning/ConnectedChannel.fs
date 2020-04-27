@@ -34,7 +34,6 @@ type ConnectedChannel = {
 
     static member LoadFromWallet (transportListener: TransportListener)
                                  (channelId: ChannelId)
-                                 (initiateConnection: bool)
                                      : Async<ConnectedChannel> = async {
         let serializedChannel = SerializedChannel.LoadFromWallet channelId
         DebugLogger <| SPrintF1 "loading account for %s" (channelId.Value.ToString())
@@ -66,15 +65,10 @@ type ConnectedChannel = {
         let! peerWrapper =
             let nodeId = channelWrapper.RemoteNodeId
             let peerId = PeerId (serializedChannel.CounterpartyIP :> EndPoint)
-            if initiateConnection then
-                PeerWrapper.ConnectFromTransportListener
-                    transportListener
-                    nodeId
-                    peerId
-            else
-                PeerWrapper.AcceptFromTransportListener
-                    transportListener
-                    nodeId
+            PeerWrapper.ConnectFromTransportListener
+                transportListener
+                nodeId
+                peerId
 
         let ourReestablishMsgRes, channelWrapper =
             let channelCmd = ChannelCommand.CreateChannelReestablish

@@ -290,13 +290,11 @@ let WalletOptions(): unit =
 let GetLightningChannelId(): Option<ChannelId> =
     SerializedChannel.ListSavedChannels() |> Seq.tryHead
 
-let ReestablishLightningChannel (transportListener: TransportListener)
-                                (initiateConnection: bool)
-                                    : Async<Option<ActiveChannel>> = async {
+let ReestablishLightningChannel(transportListener: TransportListener): Async<Option<ActiveChannel>> = async {
     match GetLightningChannelId() with
     | None -> return None
     | Some channelId ->
-        let! channelRes = ActiveChannel.Reestablish transportListener channelId initiateConnection
+        let! channelRes = ActiveChannel.Reestablish transportListener channelId
         match channelRes with
         | FSharp.Core.Error (_brokenChannel, errorMessage) ->
             Console.WriteLine(sprintf "Error from remote peer when reestablishing a channel: %s" (errorMessage.ToString()))
@@ -407,7 +405,7 @@ let AcceptChannel(): Async<unit> = async {
     )
     try
         try
-            let! peerWrapper = PeerWrapper.AcceptAnyFromTransportListener transportListener
+            let! peerWrapper = PeerWrapper.AcceptFromTransportListener transportListener
             let! fundedChannelRes = FundedChannel.AcceptChannel peerWrapper account
             match fundedChannelRes with
             | FSharp.Core.Error (_peerWrapper, errorMessage) ->
@@ -442,7 +440,7 @@ let SendLightningPayment(): Async<unit> = async {
         let transportListener = StartLightning account password
         try
             try
-                let! activeChannelOpt = ReestablishLightningChannel transportListener true
+                let! activeChannelOpt = ReestablishLightningChannel transportListener
                 let activeChannel = activeChannelOpt.Value
                 let! paymentRes = activeChannel.SendMonoHopUnidirectionalPayment amount
                 match paymentRes with
@@ -471,7 +469,7 @@ let ReceiveLightningPayment(): Async<unit> = async {
     let transportListener = StartLightning account password
     try
         try
-            let! activeChannelOpt = ReestablishLightningChannel transportListener false
+            let! activeChannelOpt = ReestablishLightningChannel transportListener
             let activeChannel = activeChannelOpt.Value
             let! paymentRes = activeChannel.RecvMonoHopUnidirectionalPayment()
             match paymentRes with
