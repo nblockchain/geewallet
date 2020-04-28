@@ -30,9 +30,6 @@ module Lightning =
 
     // we never batch channel openings, there will only be one output
     let private fundingOutputIndex = 0us |> TxOutIndex
-    // this one covers transactions that we alone can decide on an arbitrary feerate for
-    let private feeRatePerKiloWeightForAllConfirmationTargets = FeeRatePerKw 7500u
-    let private negotiatedFeeRatePerKw = FeeRatePerKw 10000u
 
     let private featureBits =
         match FeatureBit.TryCreate([| 1uy <<< Feature.OptionDataLossProtect.OptionalBitPosition |]) with
@@ -52,10 +49,23 @@ module Lightning =
     let private channelFilePrefix = "chan"
     let private channelFileEnding = ".json"
 
-    type FeeEstimator() =
+    type FeeEstimator(btcPerKb: decimal) =
         interface IFeeEstimator with
             member __.GetEstSatPer1000Weight(_: ConfirmationTarget) =
-                feeRatePerKiloWeightForAllConfirmationTargets
+                let satPerKb = (Money (btcPerKb, MoneyUnit.BTC)).ToUnit MoneyUnit.Satoshi
+                // 4 weight units per byte. See segwit specs.
+                let satPerKiloWeightUnit = satPerKb * 4m |> Convert.ToUInt32
+                FeeRatePerKw satPerKiloWeightUnit
+
+    let MakeFeeEstimator (account: IAccount): Async<IFeeEstimator> = async {
+        let averageFee (feesFromDifferentServers: List<decimal>): decimal =
+            let sum: decimal = List.sum feesFromDifferentServers
+            let avg = sum / decimal feesFromDifferentServers.Length
+            avg
+        let estimateFeeJob = ElectrumClient.EstimateFee 2 // same confirmation target as in UtxoCoinAccount
+        let! btcPerKb = Server.Query account.Currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob None
+        return FeeEstimator btcPerKb :> IFeeEstimator
+    }
 
     let rec ReadExactAsync (stream: NetworkStream) (numberBytesToRead: int): Async<array<byte>> =
         async {
@@ -152,7 +162,6 @@ module Lightning =
         ChannelOptions = CreateChannelOptions account
     }
 
-    let feeEstimator = FeeEstimator() :> IFeeEstimator
     let CreateChannel (account: IAccount) =
         let channelConfig = CreateChannelConfig account
         Channel.CreateCurried channelConfig
@@ -272,40 +281,41 @@ module Lightning =
 
         let channelKeys, localParams = GetLocalParams true nodeIdForResponder account keyRepo
 
-        let initFunder =
-            {
-                InputInitFunder.PushMSat = LNMoney.MilliSatoshis 0L
-                TemporaryChannelId = temporaryChannelId
-                FundingSatoshis = Money (channelCapacity.ValueToSend, MoneyUnit.BTC)
-                InitFeeRatePerKw = negotiatedFeeRatePerKw
-                FundingTxFeeRatePerKw = negotiatedFeeRatePerKw
-                LocalParams = localParams
-                RemoteInit = receivedInit
-                ChannelFlags = 0uy
-                ChannelKeys = channelKeys
-            }
-
-        let chanCmd = ChannelCommand.CreateOutbound initFunder
-        let initialChan: Channel = CreateChannel
-                                       account
-                                       keyRepo
-                                       feeEstimator
-                                       keyRepo.NodeSecret.PrivateKey
-                                       fundingTxProvider
-                                       Config.BitcoinNet
-                                       nodeIdForResponder
-
-        let openChanMsg, sentOpenChan =
-            match Channel.executeCommand initialChan chanCmd with
-            | Ok (NewOutboundChannelStarted (openChanMsg, _) as evt::[]) ->
-                let chan = Channel.applyEvent initialChan evt
-                openChanMsg, chan
-            | Ok evtList ->
-                failwith <| SPrintF1 "event was not a single NewOutboundChannelStarted, it was: %A" evtList
-            | Error channelError ->
-                failwith <| SPrintF1 "could not execute channel command: %s" (channelError.ToString())
-        let stream = client.GetStream()
         async {
+            let! feeEstimator = MakeFeeEstimator account
+            let initFunder =
+                {
+                    InputInitFunder.PushMSat = LNMoney.MilliSatoshis 0L
+                    TemporaryChannelId = temporaryChannelId
+                    FundingSatoshis = Money (channelCapacity.ValueToSend, MoneyUnit.BTC)
+                    InitFeeRatePerKw = feeEstimator.GetEstSatPer1000Weight <| ConfirmationTarget.Normal
+                    FundingTxFeeRatePerKw = feeEstimator.GetEstSatPer1000Weight <| ConfirmationTarget.Normal
+                    LocalParams = localParams
+                    RemoteInit = receivedInit
+                    ChannelFlags = 0uy
+                    ChannelKeys = channelKeys
+                }
+
+            let chanCmd = ChannelCommand.CreateOutbound initFunder
+            let stream = client.GetStream()
+            let initialChan: Channel = CreateChannel
+                                           account
+                                           keyRepo
+                                           feeEstimator
+                                           keyRepo.NodeSecret.PrivateKey
+                                           fundingTxProvider
+                                           Config.BitcoinNet
+                                           nodeIdForResponder
+
+            let openChanMsg, sentOpenChan =
+                match Channel.executeCommand initialChan chanCmd with
+                | Ok (NewOutboundChannelStarted (openChanMsg, _) as evt::[]) ->
+                    let chan = Channel.applyEvent initialChan evt
+                    openChanMsg, chan
+                | Ok evtList ->
+                    failwith <| SPrintF1 "event was not a single NewOutboundChannelStarted, it was: %A" evtList
+                | Error channelError ->
+                    failwith <| SPrintF1 "could not execute channel command: %s" (channelError.ToString())
             let! sentOpenChanPeer = Send openChanMsg receivedInitPeer stream
 
             // receive acceptchannel
@@ -460,25 +470,26 @@ module Lightning =
                     UtxoCoin.Account.GetPublicKeyFromNormalAccountFile
                 )
 
-        let channel =
-            JsonMarshalling.ChannelFromSerialized
-                serializedChannel
-                (CreateChannel account)
-                feeEstimator
-
-        let txId: ChannelId =
-            match channel.State with
-            | ChannelState.WaitForFundingConfirmed waitForFundingConfirmedData ->
-                waitForFundingConfirmedData.ChannelId//, waitForFundingConfirmedData.Commitments.FundingSCoin.ScriptPubKey
-            | ChannelState.Normal normalData ->
-                normalData.ChannelId
-            | _ as unknownState ->
-                // using failwith because this should never happen
-                failwith <| SPrintF1 "unexpected saved channel state: %s" (unknownState.GetType().Name)
-
-        let txIdHex: string = txId.Value.ToString()
-
         async {
+            let! feeEstimator = MakeFeeEstimator account
+
+            let channel =
+                JsonMarshalling.ChannelFromSerialized
+                    serializedChannel
+                    (CreateChannel account)
+                    feeEstimator
+
+            let txId: ChannelId =
+                match channel.State with
+                | ChannelState.WaitForFundingConfirmed waitForFundingConfirmedData ->
+                    waitForFundingConfirmedData.ChannelId
+                | ChannelState.Normal normalData ->
+                    normalData.ChannelId
+                | _ as unknownState ->
+                    // using failwith because this should never happen
+                    failwith <| SPrintF1 "unexpected saved channel state: %s" (unknownState.GetType().Name)
+
+            let txIdHex: string = txId.Value.ToString()
             let! verboseTransactionInfo =
                 Server.Query Currency.BTC (QuerySettings.Default ServerSelectionMode.Fast) (ElectrumClient.GetBlockchainTransactionVerbose txIdHex) None
             let confirmationsCount = BlockHeightOffset32 <| uint32 verboseTransactionInfo.Confirmations
@@ -666,6 +677,7 @@ module Lightning =
                 let fundingTxProvider (_: IDestination, _: Money, _: FeeRatePerKw) =
                     failwith "not funding channel, so unreachable"
                 DebugLogger "Creating Channel..."
+                let! feeEstimator = MakeFeeEstimator account
                 let initialChan: Channel = CreateChannel
                                                account
                                                keyRepo
