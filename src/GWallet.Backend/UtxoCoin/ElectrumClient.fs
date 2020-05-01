@@ -83,6 +83,12 @@ module ElectrumClient =
         return history.Result
     }
 
+    let GetBlockchainScriptHashMerkle txHash height (stratumServer: Async<StratumClient>) = async {
+        let! stratumClient = stratumServer
+        let! history = stratumClient.BlockchainScriptHashMerkle txHash height
+        return history.Result
+    }
+
     let GetBlockchainTransaction txHash (stratumServer: Async<StratumClient>) = async {
         let! stratumClient = stratumServer
         let! blockchainTransactionResult = stratumClient.BlockchainTransactionGet txHash

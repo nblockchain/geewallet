@@ -14,23 +14,27 @@ open GWallet.Frontend.Console
 let random = Org.BouncyCastle.Security.SecureRandom () :> Random
 
 
-let GetLightningErrorMessage (error: DotNetLightning.Serialize.Msgs.ErrorMessage): string =
-    "Error received from Lightning peer: " +
-    match error.Data with
-    | [| 01uy |] ->
-        "The number of pending channels exceeds the policy limit." +
-        Environment.NewLine + "Hint: You can try from a new node identity."
-    | [| 02uy |] ->
-        "Node is not in sync to latest blockchain blocks." +
-            if Config.BitcoinNet = Network.RegTest then
-                Environment.NewLine + "Hint: Try mining some blocks before opening."
-            else
-                String.Empty
-    | [| 03uy |] ->
-        "Channel capacity too large." + Environment.NewLine + "Hint: Try with a smaller funding amount."
-    | _ ->
-        let asciiEncoding = ASCIIEncoding ()
-        "ASCII representation: " + asciiEncoding.GetString error.Data
+let GetLightningErrorMessage (lnError: Lightning.LNError): string =
+    match lnError with
+    | Lightning.StringError { Msg = msg; During = actionAttempted } -> "Error: " + msg + " during " + actionAttempted
+    | Lightning.DNLChannelError error -> "DNL channel error: " + (error.ToString())
+    | Lightning.DNLError error ->
+        "Error received from Lightning peer: " +
+        match error.Data with
+        | [| 01uy |] ->
+            "The number of pending channels exceeds the policy limit." +
+            Environment.NewLine + "Hint: You can try from a new node identity."
+        | [| 02uy |] ->
+            "Node is not in sync to latest blockchain blocks." +
+                if Config.BitcoinNet = Network.RegTest then
+                    Environment.NewLine + "Hint: Try mining some blocks before opening."
+                else
+                    String.Empty
+        | [| 03uy |] ->
+            "Channel capacity too large." + Environment.NewLine + "Hint: Try with a smaller funding amount."
+        | _ ->
+            let asciiEncoding = ASCIIEncoding ()
+            "ASCII representation: " + asciiEncoding.GetString error.Data
 
 let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
@@ -546,8 +550,10 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
 
 let private NotReadyReasonToString (reason: Lightning.NotReadyReason): string =
     match reason with
-    | Lightning.NotReadyReason.NeedMoreConfirmations (currentConfirmations, neededConfirmations) ->
+    | Lightning.NotReadyReason.NeedMoreConfirmations (Some currentConfirmations, neededConfirmations) ->
         sprintf "%d out of %d confirmations" currentConfirmations.Value neededConfirmations.Value
+    | Lightning.NotReadyReason.NeedMoreConfirmations (None, neededConfirmations) ->
+        sprintf "funding transaction still in mempool, needs %d confirmations" neededConfirmations.Value
 
 let private CheckChannelStatus (path: string, channelFileId: int): Async<seq<string>> =
     async {
