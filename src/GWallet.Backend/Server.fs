@@ -110,6 +110,21 @@ module ServerRegistry =
         removeDupesInternal servers
                             (servers |> Seq.map (fun server -> server.ServerInfo.NetworkPath,server) |> Map.ofSeq)
 
+    let internal RemoveBlackListed (cs: Currency*seq<ServerDetails>): seq<ServerDetails> =
+        let isBlackListed currency server =
+            // as these servers can only serve very limited set of queries (e.g. only balance?) their stats are skewed and
+            // they create exception when being queried for advanced ones (e.g. latest block)
+            server.ServerInfo.NetworkPath.Contains "blockscout" ||
+
+            // there was a mistake when adding this server to geewallet's JSON: it was added in the ETC currency instead of ETH
+            (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethrpc.mewapi.io")
+
+        let currency,servers = cs
+        Seq.filter (fun server -> not (isBlackListed currency server)) servers
+
+    let RemoveCruft (cs: Currency*seq<ServerDetails>): seq<ServerDetails> =
+        cs |> RemoveBlackListed |> RemoveDupes
+
     let internal Sort (servers: seq<ServerDetails>): seq<ServerDetails> =
         Seq.sortByDescending (fun server ->
                                   let invertOrder (timeSpan: TimeSpan): int =
@@ -132,7 +147,7 @@ module ServerRegistry =
         let rearrangedServers =
             servers
             |> Map.toSeq
-            |> Seq.map (fun (currency, servers) -> currency, servers |> RemoveDupes |> Sort)
+            |> Seq.map (fun (currency, servers) -> currency, ((currency,servers) |> RemoveCruft |> Sort))
             |> Map.ofSeq
         Marshalling.Serialize rearrangedServers
 
