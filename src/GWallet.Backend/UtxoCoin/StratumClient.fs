@@ -143,6 +143,41 @@ type public ElectrumServerReturningErrorInJsonResponseException(message: string,
     member val ErrorCode: int =
         code with get
 
+    member this.InternalErrors(): seq<ElectrumServerReturningErrorInJsonResponseException> =
+        let rec searchForOpenBracketFrom(openSearchIndex: int) = seq {
+            if openSearchIndex < message.Length then
+                let openIndex = message.IndexOf('{', openSearchIndex)
+                if openIndex <> -1 then
+                    let rec searchForCloseBracketFrom(closeSearchIndex: int) = seq {
+                        if closeSearchIndex < message.Length then
+                            let closeIndex = message.IndexOf('}', closeSearchIndex)
+                            if closeIndex <> -1 then
+                                yield message.[openIndex..closeIndex]
+                                yield! searchForCloseBracketFrom(closeIndex + 1)
+                    }
+                    yield! searchForCloseBracketFrom(openIndex + 1)
+                    yield! searchForOpenBracketFrom(openIndex + 1)
+        }
+        searchForOpenBracketFrom 0
+        |> Seq.choose (fun (possibleJsonString: string) ->
+            if possibleJsonString.Contains("\"") then
+                None
+            else
+                let possibleJsonString = possibleJsonString.Replace('\'', '"')
+                try
+                    let maybeError =
+                        JsonConvert.DeserializeObject<ErrorInnerResult>(
+                            possibleJsonString,
+                            Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings
+                        )
+                    if (not (Object.ReferenceEquals(maybeError, null))) then
+                        Some <| ElectrumServerReturningErrorInJsonResponseException(maybeError.Message, maybeError.Code)
+                    else
+                        None
+                with
+                | ex -> None
+        )
+
 type public ElectrumServerReturningErrorException(message: string, code: int,
                                                   originalRequest: string, originalResponse: string) =
     inherit ElectrumServerReturningErrorInJsonResponseException(message, code)

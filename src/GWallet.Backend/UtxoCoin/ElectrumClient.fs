@@ -101,6 +101,42 @@ module ElectrumClient =
         return blockchainTransactionResult.Result
     }
 
+    let GetConfirmations (txHash: string)
+                         (stratumServer: Async<StratumClient>)
+                            : Async<uint32> = async {
+        let! verboseTransactionInfoOpt = async {
+            try
+                let! stratumClient = stratumServer
+                let! queryResult = stratumClient.BlockchainTransactionGetVerbose txHash
+                return Some queryResult
+            with
+            | :? ElectrumServerReturningErrorInJsonResponseException as ex ->
+
+                // NOTE: The response returned by the electrum servers when the
+                // transaction doesn't exist is:
+                //
+                // {"jsonrpc": "2.0", "error": {"code": 2, "message": "daemon error: DaemonError({'code': -5, 'message': 'No such mempool or blockchain transaction. Use gettransaction for wallet transactions.'})"}, "id": 0}
+
+                let unknownTransactionOuterErrorCode = 2
+                let unknownTransactionInnerErrorCode = -5
+                if ex.ErrorCode = unknownTransactionOuterErrorCode then
+                    let innerErrorCodeFound =
+                        Seq.exists
+                            (fun (ex: ElectrumServerReturningErrorInJsonResponseException) -> ex.ErrorCode = unknownTransactionInnerErrorCode)
+                            (ex.InternalErrors())
+                    if innerErrorCodeFound then
+                        return None
+                    else
+                        return raise <| FSharpUtil.ReRaise ex
+                else
+                    return raise <| FSharpUtil.ReRaise ex
+        }
+        match verboseTransactionInfoOpt with
+        | None -> return 0u
+        | Some verboseTransactionInfo ->
+            return verboseTransactionInfo.Result.Confirmations |> uint32
+    }
+
     let EstimateFee (numBlocksTarget: int) (stratumServer: Async<StratumClient>): Async<decimal> = async {
         let! stratumClient = stratumServer
         let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget

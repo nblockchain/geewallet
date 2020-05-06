@@ -560,17 +560,13 @@ module Lightning =
             let txIdHex: string = txId.Value.ToString()
             let! confirmationsCount =
                 async {
-                    try
-                        let! verboseTransactionInfo =
-                            QueryBTCFast (ElectrumClient.GetBlockchainTransactionVerbose txIdHex)
-                        if verboseTransactionInfo.Confirmations = 0u then
-                            return None
-                        else
-                            let offset = BlockHeightOffset32 verboseTransactionInfo.Confirmations
-                            return Some offset
-                    with
-                    | :? NoneAvailableException ->
+                    let! confirmations =
+                        QueryBTCFast (ElectrumClient.GetConfirmations txIdHex)
+                    if confirmations = 0u then
                         return None
+                    else
+                        let offset = BlockHeightOffset32 confirmations
+                        return Some offset
                 }
 
             return {
