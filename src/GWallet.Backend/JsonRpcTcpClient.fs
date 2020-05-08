@@ -53,8 +53,8 @@ type JsonRpcTcpClient (host: string, port: uint32) =
             let tcpClient = JsonRpcSharpOld.LegacyTcpClient(ResolveHost, port)
             tcpClient.Request
         else
-            let tcpClient = JsonRpcSharp.TcpClient.TcpClient(ResolveHost, int port)
-            fun jsonRequest -> tcpClient.Request jsonRequest
+            let tcpClient = JsonRpcSharp.TcpClient.JsonRpcClient(ResolveHost, int port, Config.DEFAULT_NETWORK_TIMEOUT)
+            fun jsonRequest -> tcpClient.RequestAsync jsonRequest
 
     member __.Host with get() = host
 
@@ -71,7 +71,7 @@ type JsonRpcTcpClient (host: string, port: uint32) =
             return raise <| FSharpUtil.ReRaise ex
         | :? JsonRpcSharpOld.ServerUnresponsiveException as ex ->
             return raise <| ServerTimedOutException(exceptionMsg, ex)
-        | :? JsonRpcSharp.TcpClient.NoResponseReceivedAfterRequestException as ex ->
+        | :? JsonRpcSharpOld.NoResponseReceivedAfterRequestException as ex ->
             return raise <| ServerTimedOutException(exceptionMsg, ex)
 
         // FIXME: we should log this one on Sentry as a warning because it's really strange, I bet it's a bug

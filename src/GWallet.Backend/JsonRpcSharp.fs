@@ -10,6 +10,7 @@ open System.Threading
 module JsonRpcSharpOld =
 
     exception ServerUnresponsiveException
+    exception NoResponseReceivedAfterRequestException
 
     type LegacyTcpClient  (resolveHostAsync: unit->Async<IPAddress>, port: uint32) =
         let rec WrapResult (acc: List<byte>): string =
@@ -30,7 +31,7 @@ module JsonRpcSharpOld =
             let timeIsUp (): bool =
                 if (List.Empty = acc) then
                     if (DateTime.UtcNow > initTime + DEFAULT_TIMEOUT_FOR_FIRST_DATA_AVAILABLE_SIGNAL_TO_HAPPEN) then
-                        raise JsonRpcSharp.TcpClient.NoResponseReceivedAfterRequestException
+                        raise NoResponseReceivedAfterRequestException
                     else
                         false
                 else

@@ -235,11 +235,20 @@ module Server =
         | None ->
             ()
 
-    // this could be a mono 6.0.x bug (see https://gitlab.com/knocte/geewallet/issues/121)
-    let MaybeRethrowSslException (ex: Exception): unit =
+    let MaybeRethrowInnerRpcException (ex: Exception): unit =
         let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
         match maybeRpcUnknownEx with
         | Some rpcUnknownEx ->
+
+            let maybeDeSerializationEx =
+                FSharpUtil.FindException<JsonRpcSharp.Client.DeserializationException> rpcUnknownEx
+            match maybeDeSerializationEx with
+            | None ->
+                ()
+            | Some deserEx ->
+                raise <| ServerMisconfiguredException(deserEx.Message, ex)
+
+            // this SSL exception could be a mono 6.0.x bug (see https://gitlab.com/knocte/geewallet/issues/121)
             let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
             match maybeHttpReqEx with
             | Some httpReqEx ->
@@ -277,7 +286,7 @@ module Server =
 
         MaybeRethrowObjectDisposedException ex
 
-        MaybeRethrowSslException ex
+        MaybeRethrowInnerRpcException ex
 
 
     let private NumberOfParallelJobsForMode mode =
