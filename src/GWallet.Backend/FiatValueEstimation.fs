@@ -33,9 +33,10 @@ module FiatValueEstimation =
             | Currency.LTC,_ -> "litecoin"
             | Currency.ETH,_ -> "ethereum"
             | Currency.ETC,_ -> "ethereum-classic"
+            | Currency.DAI,PriceProvider.CoinCap -> "multi-collateral-dai"
             | Currency.DAI,_ -> "dai"
-            // the API of CoinCap is not returning anything for "sai" even if the API from coingecko does
-            | Currency.SAI,PriceProvider.CoinCap -> "dai"
+            // the API of CoinCap is not returning anything for "sai" (even if the API from coingecko does) or "single-collateral-dai"
+            | Currency.SAI,PriceProvider.CoinCap -> "multi-collateral-dai"
             | Currency.SAI,_ -> "sai"
 
         try
