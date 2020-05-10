@@ -113,15 +113,20 @@ module ServerRegistry =
                 |> Map.ofSeq
         removeDupesInternal servers initialServersMap
 
-    // as these servers can only serve very limited set of queries (e.g. only balance?) their stats are skewed and
-    // they create exception when being queried for advanced ones (e.g. latest block)
-    let internal RemoveBlackListed (servers: seq<ServerDetails>) =
-        Seq.filter (fun server -> not (server.ServerInfo.NetworkPath.Contains "blockscout")) servers
+    let internal RemoveBlackListed (cs: Currency*seq<ServerDetails>): seq<ServerDetails> =
+        let isBlackListed currency server =
+            // as these servers can only serve very limited set of queries (e.g. only balance?) their stats are skewed and
+            // they create exception when being queried for advanced ones (e.g. latest block)
+            server.ServerInfo.NetworkPath.Contains "blockscout" ||
 
-    let RemoveCruft (servers: seq<ServerDetails>): seq<ServerDetails> =
-        servers
-            |> RemoveBlackListed
-            |> RemoveDupes
+            // there was a mistake when adding this server to geewallet's JSON: it was added in the ETC currency instead of ETH
+            (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethrpc.mewapi.io")
+
+        let currency,servers = cs
+        Seq.filter (fun server -> not (isBlackListed currency server)) servers
+
+    let RemoveCruft (cs: Currency*seq<ServerDetails>): seq<ServerDetails> =
+        cs |> RemoveBlackListed |> RemoveDupes
 
     let internal Sort (servers: seq<ServerDetails>): seq<ServerDetails> =
         let sort server =
@@ -146,7 +151,7 @@ module ServerRegistry =
         let rearrangedServers =
             servers
             |> Map.toSeq
-            |> Seq.map (fun (currency, servers) -> currency, servers |> RemoveCruft |> Sort)
+            |> Seq.map (fun (currency, servers) -> currency, ((currency,servers) |> RemoveCruft |> Sort))
             |> Map.ofSeq
         Marshalling.Serialize rearrangedServers
 
@@ -173,7 +178,7 @@ module ServerRegistry =
                     | None -> Seq.empty
                     | Some servers ->
                         servers
-                let allServers = Seq.append allServersFrom1 allServersFrom2
+                let allServers = (currency, Seq.append allServersFrom1 allServersFrom2)
                                  |> RemoveCruft
                                  |> Sort
 

@@ -67,7 +67,8 @@ type JsonRpcTcpClient (host: string, port: uint32) =
             let tcpClient = JsonRpcSharpOld.LegacyTcpClient(ResolveHost, port)
             tcpClient.Request
         else
-            let tcpClient = NonAbstractTcpClient(ResolveHost, int port, Config.DEFAULT_NETWORK_CONNECT_TIMEOUT)
+            let tcpClient =
+                JsonRpcSharp.TcpClient.JsonRpcClient(ResolveHost, int port, Config.DEFAULT_NETWORK_CONNECT_TIMEOUT)
             fun jsonRequest -> tcpClient.RequestAsync jsonRequest
 
     member __.Host with get() = host
