@@ -77,14 +77,6 @@ module FSharpUtil =
             ReflectionlessPrint.SPrintF5 fmt a b c d e
 #endif
 
-#if DEBUG
-    let DebugLogger (msg: string): unit =
-        Console.WriteLine (sprintf "DEBUG: %s" msg)
-#else
-    let DebugLogger (_: string): unit =
-        ()
-#endif
-
     type internal ResultWrapper<'T>(value : 'T) =
 
         // hack?

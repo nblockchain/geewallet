@@ -133,7 +133,8 @@ module Lightning =
             | PeerEvent.ReceivedError (error, _) ->
                 OurErrorMessage (Peer.applyEvent oldPeer evt, error)
             | _ ->
-                DebugLogger <| SPrintF1 "Warning: ignoring event that was not ReceivedChannelMsg, it was: %s" (evt.GetType().Name)
+                Infrastructure.LogDebug <| SPrintF1 "Warning: ignoring event that was not ReceivedChannelMsg, it was: %s"
+                                                    (evt.GetType().Name)
                 OtherMessage <| Peer.applyEvent oldPeer evt
         | Ok _ ->
             failwith "receiving more than one channel event"
@@ -204,13 +205,13 @@ module Lightning =
             let sentAct1Peer = { initialPeer with ChannelEncryptor = peerEncryptor }
 
             let client = new TcpClient (channelCounterpartyIP.AddressFamily)
-            DebugLogger <| SPrintF1 "Connecting over TCP to %A..." channelCounterpartyIP
+            Infrastructure.LogDebug <| SPrintF1 "Connecting over TCP to %A..." channelCounterpartyIP
             do! client.ConnectAsync(channelCounterpartyIP.Address, channelCounterpartyIP.Port) |> Async.AwaitTask
             let stream = client.GetStream()
             do! stream.WriteAsync(act1, 0, act1.Length) |> Async.AwaitTask
 
             // Receive act2
-            DebugLogger "Receiving Act 2..."
+            Infrastructure.LogDebug "Receiving Act 2..."
             let! res = ReadAsync keyRepo sentAct1Peer stream
             let actThree, receivedAct2Peer =
                 match Peer.executeCommand sentAct1Peer res with
@@ -228,7 +229,7 @@ module Lightning =
             let! sentInitPeer = Send plainInit receivedAct2Peer stream
 
             // receive init
-            DebugLogger "Receiving init..."
+            Infrastructure.LogDebug "Receiving init..."
             let! res = ReadAsync keyRepo sentInitPeer stream
             return
                 match Peer.executeCommand sentInitPeer res with
@@ -335,7 +336,7 @@ module Lightning =
             let! sentOpenChanPeer = Send openChanMsg receivedInitPeer stream
 
             // receive acceptchannel
-            DebugLogger "Receiving accept_channel..."
+            Infrastructure.LogDebug "Receiving accept_channel..."
             let! msgRes = ReadUntilChannelMessage (keyRepo, sentOpenChanPeer, stream)
             match msgRes with
             | Error errorMsg -> return Error errorMsg
@@ -363,7 +364,7 @@ module Lightning =
 
                 let! sentFundingCreatedPeer = Send fundingCreated receivedOpenChanReplyPeer stream
 
-                DebugLogger "Receiving funding_created..."
+                Infrastructure.LogDebug "Receiving funding_created..."
                 let! msgRes = ReadUntilChannelMessage (keyRepo, sentFundingCreatedPeer, stream)
                 match msgRes with
                 | Error errorMsg ->
@@ -444,7 +445,7 @@ module Lightning =
             | Ok (fundingTxId, receivedFundingSignedChan) ->
                 let fileName = GetNewChannelFilename()
                 JsonMarshalling.Save account receivedFundingSignedChan channelKeysSeed channelCounterpartyIP acceptChannel.MinimumDepth fileName
-                DebugLogger <| SPrintF1 "Channel saved to %s" fileName
+                Infrastructure.LogDebug <| SPrintF1 "Channel saved to %s" fileName
                 return Ok fundingTxId
         }
 
@@ -619,11 +620,11 @@ module Lightning =
                             failwith <| SPrintF1 "could not execute channel command: %s" (channelError.ToString())
 
                     let stream = connection.Client.GetStream()
-                    DebugLogger "Sending channel_reestablish..."
+                    Infrastructure.LogDebug "Sending channel_reestablish..."
                     let! sentReestablishPeer = Send reestablishMsg connection.Peer stream
                     let channelWithFundingLockedSent, fundingLocked = GetFundingLockedMsg reestablishedChannel channelCommand
                     let! sentFundingLockedPeer = Send fundingLocked sentReestablishPeer stream
-                    DebugLogger "Receiving channel_reestablish or funding_locked..."
+                    Infrastructure.LogDebug "Receiving channel_reestablish or funding_locked..."
                     let! msgRes = ReadUntilChannelMessage (keyRepo, sentFundingLockedPeer, connection.Client.GetStream())
                     match msgRes with
                     | Error errorMsg -> return Error errorMsg
@@ -633,7 +634,7 @@ module Lightning =
                             | :? ChannelReestablish ->
                                 async {
                                     // TODO: validate channel_reestablish
-                                    DebugLogger "Received channel_reestablish, now receiving funding_locked..."
+                                    Infrastructure.LogDebug "Received channel_reestablish, now receiving funding_locked..."
                                     let! msgRes = ReadUntilChannelMessage (keyRepo, receivedChannelReestablishPeer, connection.Client.GetStream())
                                     match msgRes with
                                     | Error errorMsg ->
@@ -664,7 +665,7 @@ module Lightning =
                             | Ok ((ChannelEvent.BothFundingLocked _) as evt::[]) ->
                                 let bothFundingLockedChan = Channel.applyEvent channelWithFundingLockedSent evt
                                 JsonMarshalling.SaveSerializedChannel { details.SerializedChannel with ChanState = bothFundingLockedChan.State } fileName
-                                DebugLogger <| SPrintF1 "Channel overwritten (with funding transaction locked) at %s" fileName
+                                Infrastructure.LogDebug <| SPrintF1 "Channel overwritten (with funding transaction locked) at %s" fileName
                                 connection.Client.Dispose()
                                 return Ok (UsableChannel txIdHex)
                             | Error channelError ->
@@ -729,7 +730,7 @@ module Lightning =
                     return Error <| StringError { Msg = SPrintF1 "error from DNL: %A" err; During = "processing of their act3" }
                 | Ok (remoteNodeId, pce) ->
                     let receivedAct3Peer = { peerWithSentAct2 with ChannelEncryptor = pce }
-                    DebugLogger "Receiving init..."
+                    Infrastructure.LogDebug "Receiving init..."
                     let! res = ReadAsync keyRepo receivedAct3Peer stream
                     match Peer.executeCommand receivedAct3Peer res with
                     | Error peerError ->
@@ -739,14 +740,14 @@ module Lightning =
                         let connection: Connection =
                             { Init = newInit; Peer = peer; Client = client }
                         let! sentInitPeer = Send plainInit connection.Peer stream
-                        DebugLogger "Receiving open_channel..."
+                        Infrastructure.LogDebug "Receiving open_channel..."
                         let! msgRes = ReadUntilChannelMessage (keyRepo, sentInitPeer, stream)
                         match msgRes with
                         | Error errorMsg -> return Error errorMsg
                         | Ok (receivedOpenChanPeer, chanMsg) ->
                             match chanMsg with
                             | :? OpenChannel as openChannel ->
-                                DebugLogger "Creating LocalParams..."
+                                Infrastructure.LogDebug "Creating LocalParams..."
                                 let channelKeys, localParams = GetLocalParams false remoteNodeId account keyRepo
                                 let initFundee: InputInitFundee = {
                                         TemporaryChannelId = temporaryChannelId
@@ -758,7 +759,7 @@ module Lightning =
                                 let chanCmd = ChannelCommand.CreateInbound initFundee
                                 let fundingTxProvider (_: IDestination, _: Money, _: FeeRatePerKw) =
                                     failwith "not funding channel, so unreachable"
-                                DebugLogger "Creating Channel..."
+                                Infrastructure.LogDebug "Creating Channel..."
                                 let! feeEstimator = MakeFeeEstimator account
                                 let initialChan: Channel = CreateChannel
                                                                account
@@ -774,17 +775,17 @@ module Lightning =
                                     let inboundStartedChan =
                                         Channel.applyEvent initialChan evt
 
-                                    DebugLogger "Applying open_channel..."
+                                    Infrastructure.LogDebug "Applying open_channel..."
                                     let res = Channel.executeCommand inboundStartedChan (ApplyOpenChannel openChannel)
 
-                                    DebugLogger "Generating accept_channel..."
+                                    Infrastructure.LogDebug "Generating accept_channel..."
                                     match res with
                                     | Ok (ChannelEvent.WeAcceptedOpenChannel(acceptChannel, _) as evt::[]) ->
                                         let receivedOpenChannelChan = Channel.applyEvent inboundStartedChan evt
-                                        DebugLogger "Sending accept_channel..."
+                                        Infrastructure.LogDebug "Sending accept_channel..."
                                         let! sentAcceptChanPeer = Send acceptChannel receivedOpenChanPeer stream
 
-                                        DebugLogger "Receiving funding_created..."
+                                        Infrastructure.LogDebug "Receiving funding_created..."
                                         let! msgRes = ReadUntilChannelMessage (keyRepo, sentAcceptChanPeer, stream)
                                         match msgRes with
                                         | Error errorMsg -> return Error errorMsg
@@ -800,12 +801,12 @@ module Lightning =
                                                     let remoteIp = client.Client.RemoteEndPoint :?> IPEndPoint
                                                     let endpointToSave =
                                                         if remoteIp.Address = IPAddress.Loopback then
-                                                            DebugLogger "WARNING: Remote address is the loopback address, saving 127.0.0.2 as IP instead!"
+                                                            Infrastructure.LogDebug "WARNING: Remote address is the loopback address, saving 127.0.0.2 as IP instead!"
                                                             IPEndPoint (IPAddress.Parse "127.0.0.2", 9735)
                                                         else
                                                             remoteIp
                                                     JsonMarshalling.Save account receivedFundingCreatedChan channelKeysSeed endpointToSave acceptChannel.MinimumDepth fileName
-                                                    DebugLogger <| SPrintF1 "Channel saved to %s" fileName
+                                                    Infrastructure.LogDebug <| SPrintF1 "Channel saved to %s" fileName
 
                                                     return Ok ()
                                                 | Ok evtList ->

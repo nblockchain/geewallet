@@ -331,7 +331,7 @@ let AskChannelFee (account: UtxoCoin.NormalUtxoAccount)
     let nullScriptId = NBitcoin.WitScriptId (Array.zeroCreate witScriptIdLength)
     let dummyAddr = NBitcoin.BitcoinWitScriptAddress (nullScriptId, Config.BitcoinNet)
 
-    DebugLogger "Calling EstimateFee..."
+    Infrastructure.LogDebug "Calling EstimateFee..."
     let metadata =
         try
             UtxoCoin.Account.EstimateFeeForDestination
@@ -451,7 +451,7 @@ let rec PerformOperation (numAccounts: int) =
                 let! balance = OptionFromMaybeCachedBalance balance
                 let! channelCapacity = UserInteraction.AskAmount btcAccount
                 let! ipEndpoint, pubKey = UserInteraction.AskChannelCounterpartyConnectionDetails()
-                DebugLogger "Getting channel fee..."
+                Infrastructure.LogDebug "Getting channel fee..."
                 let! channelCreationDetails =
                     AskChannelFee
                         btcAccount
@@ -464,7 +464,7 @@ let rec PerformOperation (numAccounts: int) =
             }
         match maybeChannelCreationDetails with
         | Some (ipEndpoint, details) ->
-            DebugLogger "Opening channel..."
+            Infrastructure.LogDebug "Opening channel..."
             let txId =
                 let attempt (): Option<string> =
                     let password = UserInteraction.AskPassword false
