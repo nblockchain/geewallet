@@ -19,9 +19,6 @@ type ServerNameResolvedToInvalidAddressException(message: string) =
     inherit CommunicationUnsuccessfulException (message)
 
 
-type NonAbstractTcpClient(resolveHostJob, port, timeout) =
-    inherit JsonRpcSharp.TcpClient.JsonRpcClient(resolveHostJob, port, timeout)
-
 type JsonRpcTcpClient (host: string, port: uint32) =
 
     let ResolveAsync (hostName: string): Async<Option<IPAddress>> = async {
