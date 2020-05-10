@@ -547,12 +547,12 @@ module Lightning =
                     (CreateChannel account)
                     feeEstimator
 
-            let (txId: ChannelId, fundingSCoin: ScriptCoin) =
+            let (txId: ChannelId, fundingScriptCoin: ScriptCoin) =
                 match channel.State with
                 | ChannelState.WaitForFundingConfirmed waitForFundingConfirmedData ->
-                    waitForFundingConfirmedData.ChannelId, waitForFundingConfirmedData.Commitments.FundingSCoin
+                    waitForFundingConfirmedData.ChannelId, waitForFundingConfirmedData.Commitments.FundingScriptCoin
                 | ChannelState.Normal normalData ->
-                    normalData.ChannelId, normalData.Commitments.FundingSCoin
+                    normalData.ChannelId, normalData.Commitments.FundingScriptCoin
                 | _ as unknownState ->
                     // using failwith because this should never happen
                     failwith <| SPrintF1 "unexpected saved channel state: %s" (unknownState.GetType().Name)
@@ -575,7 +575,7 @@ module Lightning =
                 Channel = channel
                 Account = account
                 SerializedChannel = serializedChannel
-                FundingScriptCoin = fundingSCoin
+                FundingScriptCoin = fundingScriptCoin
             }
         }
 

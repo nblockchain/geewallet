@@ -135,7 +135,7 @@ module JsonMarshalling =
                 LocalNextHTLCId = serializedCommitments.LocalNextHTLCId
                 LocalCommit = serializedCommitments.LocalCommit
                 LocalChanges = serializedCommitments.LocalChanges
-                FundingSCoin = serializedCommitments.FundingSCoin
+                FundingScriptCoin = serializedCommitments.FundingSCoin
                 ChannelId = serializedCommitments.ChannelId
                 ChannelFlags = serializedCommitments.ChannelFlags
             }
@@ -145,7 +145,7 @@ module JsonMarshalling =
             serializer.Serialize(writer, {
                 ChannelId = state.ChannelId
                 ChannelFlags = state.ChannelFlags
-                FundingSCoin = state.FundingSCoin
+                FundingScriptCoin = state.FundingScriptCoin
                 LocalChanges = state.LocalChanges
                 LocalCommit = state.LocalCommit
                 LocalNextHTLCId = state.LocalNextHTLCId
