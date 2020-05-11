@@ -37,6 +37,11 @@ let GetLightningErrorMessage (lnError: Lightning.LNError): string =
         | _ ->
             let asciiEncoding = ASCIIEncoding ()
             "ASCII representation: " + asciiEncoding.GetString error.Data
+    | Lightning.PeerDisconnected whileSendingMsg ->
+        if whileSendingMsg then
+            "Error: peer disconnected for unknown reason, abruptly during message transmission"
+        else
+            "Error: peer disconnected for unknown reason"
 
 let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
@@ -352,45 +357,50 @@ let AskChannelFee (account: UtxoCoin.NormalUtxoAccount)
             KeyRepo = keyRepo
         }
     async {
-        let! connectionBeforeAcceptChannel =
+        let! connectionBeforeAcceptChannelRes =
             Lightning.ConnectAndHandshake channelEnvironment channelCounterpartyIP
-        let passwordRef = ref "DotNetLightning shouldn't ask for password until later when user has
-                               confirmed the funding transaction fee. So this is a placeholder."
-        let! acceptChannelRes =
-            Lightning.GetAcceptChannel
-                channelEnvironment
-                connectionBeforeAcceptChannel
-                channelCapacity
-                metadata
-                (fun _ -> !passwordRef)
-                balance
-                temporaryChannelId
-        match acceptChannelRes with
+        match connectionBeforeAcceptChannelRes with
         | FSharp.Core.Result.Error errorMsg ->
             Console.WriteLine(GetLightningErrorMessage errorMsg)
             return None
-        | FSharp.Core.Result.Ok (acceptChannel, chan, peer) ->
-            Presentation.ShowFee Currency.BTC metadata
-            printfn
-                "Opening a channel with this party will require %d confirmations (~%d minutes)"
-                acceptChannel.MinimumDepth.Value
-                (acceptChannel.MinimumDepth.Value * 10u)
-            let accept = UserInteraction.AskYesNo "Do you accept?"
+        | FSharp.Core.Result.Ok connectionBeforeAcceptChannel ->
+            let passwordRef = ref "DotNetLightning shouldn't ask for password until later when user has
+                                   confirmed the funding transaction fee. So this is a placeholder."
+            let! acceptChannelRes =
+                Lightning.GetAcceptChannel
+                    channelEnvironment
+                    connectionBeforeAcceptChannel
+                    channelCapacity
+                    metadata
+                    (fun _ -> !passwordRef)
+                    balance
+                    temporaryChannelId
+            match acceptChannelRes with
+            | FSharp.Core.Result.Error errorMsg ->
+                Console.WriteLine(GetLightningErrorMessage errorMsg)
+                return None
+            | FSharp.Core.Result.Ok (acceptChannel, chan, peer) ->
+                Presentation.ShowFee Currency.BTC metadata
+                printfn
+                    "Opening a channel with this party will require %d confirmations (~%d minutes)"
+                    acceptChannel.MinimumDepth.Value
+                    (acceptChannel.MinimumDepth.Value * 10u)
+                let accept = UserInteraction.AskYesNo "Do you accept?"
 
-            return
-                if accept then
-                    let connectionWithNewPeer = { connectionBeforeAcceptChannel with Peer = peer }
-                    Some
-                        {
-                            ChannelCreationDetails.Seed = channelKeysSeed
-                            AcceptChannel = acceptChannel
-                            Channel = chan
-                            Connection = connectionWithNewPeer
-                            Password = passwordRef
-                        }
-                else
-                    connectionBeforeAcceptChannel.Client.Dispose()
-                    None
+                return
+                    if accept then
+                        let connectionWithNewPeer = { connectionBeforeAcceptChannel with Peer = peer }
+                        Some
+                            {
+                                ChannelCreationDetails.Seed = channelKeysSeed
+                                AcceptChannel = acceptChannel
+                                Channel = chan
+                                Connection = connectionWithNewPeer
+                                Password = passwordRef
+                            }
+                    else
+                        connectionBeforeAcceptChannel.Client.Dispose()
+                        None
     }
 
 let OptionFromMaybeCachedBalance (balance: MaybeCached<decimal>): Option<decimal> =
