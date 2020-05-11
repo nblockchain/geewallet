@@ -401,7 +401,8 @@ module Lightning =
             | Error channelError ->
                 match channelError with
                 | InvalidAcceptChannel invalidAcceptChannelError ->
-                    let msg = SPrintF1 "DNL says they sent an invalid accept_channel message: %A" invalidAcceptChannelError.Errors
+                    let msg = SPrintF1 "DNL detected an invalid accept_channel message from fundee: %A"
+                                        invalidAcceptChannelError.Errors
                     let innerError = { Msg = msg; During = "applying their accept_channel_message" }
                     return Error <| StringError innerError
                 | _ ->

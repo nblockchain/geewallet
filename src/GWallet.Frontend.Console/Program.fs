@@ -13,10 +13,12 @@ open GWallet.Frontend.Console
 
 let random = Org.BouncyCastle.Security.SecureRandom () :> Random
 
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 let GetLightningErrorMessage (lnError: Lightning.LNError): string =
     match lnError with
-    | Lightning.StringError { Msg = msg; During = actionAttempted } -> "Error: " + msg + " during " + actionAttempted
+    | Lightning.StringError { Msg = msg; During = actionAttempted } ->
+        SPrintF2 "Error: %s when %s" msg actionAttempted
     | Lightning.DNLChannelError error -> "DNL channel error: " + (error.ToString())
     | Lightning.DNLError error ->
         "Error received from Lightning peer: " +
