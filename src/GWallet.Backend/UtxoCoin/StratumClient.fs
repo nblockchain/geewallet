@@ -111,8 +111,7 @@ type public ElectrumServerReturningInternalErrorException(message: string, code:
 type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
     let Serialize(req: Request): string =
-        JsonConvert.SerializeObject(req, Formatting.None,
-                                    Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+        Marshalling.PlainSerialize req
 
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R*string> = async {

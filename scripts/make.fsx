@@ -344,7 +344,7 @@ match maybeTarget with
         |> ignore
 
 | Some "sanitycheck" ->
-    let FindOffendingPrintfUsage () =
+    let FindOffendingCodeUsage code =
         let findScript = Path.Combine(rootDir.FullName, "scripts", "find.fsx")
         let fsxRunner =
             match Misc.GuessPlatform() with
@@ -356,10 +356,12 @@ match maybeTarget with
                     failwith "FsxRunner env var should have been passed to make.sh"
                 fsxRunnerEnvVar
         let excludeFolders =
-            String.Format("scripts{0}" +
-                          "src{1}GWallet.Frontend.Console{0}" +
-                          "src{1}GWallet.Backend.Tests{0}" +
-                          "src{1}GWallet.Backend{1}FSharpUtil.fs",
+            String.Format("GWallet.Frontend.Console{0}" +
+                          "GWallet.Backend.Tests{0}" +
+                          "GWallet.Backend{1}FSharpUtil.fs{0}" +
+                          "GWallet.Backend{1}Marshalling.fs{0}" +
+                          "GWallet.Backend{1}servers.json{0}" +
+                          "GWallet.Backend{1}lastServerStats.json",
                           Path.PathSeparator, Path.DirectorySeparatorChar)
 
         let proc =
@@ -368,14 +370,22 @@ match maybeTarget with
                 Arguments = sprintf "%s --exclude=%s %s"
                                     findScript
                                     excludeFolders
-                                    "printf failwithf"
+                                    code
             }
         let findProc = Process.SafeExecute (proc, Echo.All)
         if findProc.Output.StdOut.Trim().Length > 0 then
-            Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf detected"
+            Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf/Some/None/Option detected"
             Environment.Exit 1
 
-    FindOffendingPrintfUsage()
+    let srcDir = Path.Combine(rootDir.FullName, "src") |> DirectoryInfo
+    Directory.SetCurrentDirectory srcDir.FullName
+    FindOffendingCodeUsage "printf failwithf"
+
+    let escapeChar =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Windows -> "^^^"
+        | _ -> String.Empty
+    FindOffendingCodeUsage (sprintf "Some None Option%s<" escapeChar)
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)

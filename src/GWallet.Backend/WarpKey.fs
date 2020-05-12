@@ -56,7 +56,7 @@ module WarpKey =
         let pbkdf2 = PBKDF2 passphrase salt
         let privKeyBytes = XOR scrypt pbkdf2
         if (privKeyBytes.Length <> LENGTH_OF_PRIVATE_KEYS) then
-            failwith <| SPrintF2 "Something went horribly wrong because length of privKey was not %i but %i"
+            failwith <| SPrintF2 "Fatal unexpected error: length of privKey was not %i but %i"
                       LENGTH_OF_PRIVATE_KEYS privKeyBytes.Length
         privKeyBytes
 

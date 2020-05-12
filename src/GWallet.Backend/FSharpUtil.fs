@@ -14,6 +14,47 @@ type Result<'Val, 'Err when 'Err :> Exception> =
 
 module FSharpUtil =
 
+    [<DefaultAugmentation(false)>]
+    type Maybe<'T> =
+        | Nothing
+        | Just of 'T
+        member self.IsJust =
+            match self with
+            | Nothing -> false
+            | _ -> true
+        member self.IsNothing =
+            match self with
+            | Nothing -> true
+            | _ -> false
+        member self.ToOpt() =
+            match self with
+            | Nothing -> None
+            | Just x -> Some x
+
+    module Maybe =
+        let Exists (func: _ -> bool) (opt: Maybe<_>): bool =
+            match opt with
+            | Nothing -> false
+            | Just x -> func x
+        let OfOpt (from: Option<_>): Maybe<_> =
+            match from with
+            | None -> Nothing
+            | Some x -> Just x
+        let OfObj from =
+            Option.ofObj from |> OfOpt
+        // taken from https://fsharpforfunandprofit.com/posts/elevated-world-2/#implementation-examples
+        let Bind f xOpt =
+            match xOpt with
+            | Just x -> f x
+            | _ -> Nothing
+        let ToAsyncOpt (job: Async<Maybe<_>>): Async<Option<_>> =
+            async {
+                let! foo = job
+                match foo with
+                | Nothing -> return None
+                | Just bar -> return Some bar
+            }
+
     module ReflectionlessPrint =
         // TODO: support "%.2f" for digits precision, "%0i", and other special things: https://fsharpforfunandprofit.com/posts/printf/
         let ToStringFormat (fmt: string) =
@@ -173,7 +214,7 @@ module FSharpUtil =
     let ListIntersect<'T> (list1: List<'T>) (list2: List<'T>) (offset: uint32): List<'T> =
         ListIntersectInternal list1 list2 offset [] 1
 
-    let WithTimeout (timeSpan: TimeSpan) (job: Async<'R>): Async<Option<'R>> = async {
+    let WithTimeout (timeSpan: TimeSpan) (job: Async<'R>): Async<Maybe<'R>> = async {
         let read = async {
             let! value = job
             return value |> Value |> Some
@@ -190,9 +231,9 @@ module FSharpUtil =
         | Some theResult ->
             match theResult with
             | Value r ->
-                return Some r
+                return Just r
             | Error _ ->
-                return None
+                return Nothing
         | None ->
             // none of the jobs passed to Async.Choice returns None
             return failwith "unreachable"
@@ -205,22 +246,22 @@ module FSharpUtil =
         failwith "Should be unreachable"
         ex
 
-    let rec public FindException<'T when 'T:> Exception>(ex: Exception): Option<'T> =
+    let rec public FindException<'T when 'T:> Exception>(ex: Exception): Maybe<'T> =
         let rec findExInSeq(sq: seq<Exception>) =
-            match Seq.tryHead sq with
-            | Some head ->
+            match Seq.tryHead sq |> Maybe.OfOpt with
+            | Just head ->
                 let found = FindException head
                 match found with
-                | Some ex -> Some ex
-                | None ->
+                | Just ex -> Just ex
+                | Nothing ->
                     findExInSeq <| Seq.tail sq
-            | None ->
-                None
+            | Nothing ->
+                Nothing
         if null = ex then
-            None
+            Nothing
         else
             match ex with
-            | :? 'T as specificEx -> Some(specificEx)
+            | :? 'T as specificEx -> Just specificEx
             | :? AggregateException as aggEx ->
                 findExInSeq aggEx.InnerExceptions
             | _ -> FindException<'T>(ex.InnerException)
@@ -238,11 +279,11 @@ module FSharpUtil =
         |> Seq.map GetUnionCaseInfoAndInstance<'T>
 #endif
 
-    type OptionBuilder() =
+    type MaybeBuilder() =
         // see https://github.com/dsyme/fsharp-presentations/blob/master/design-notes/ces-compared.md#overview-of-f-computation-expressions
-        member x.Bind (v,f) = Option.bind f v
-        member x.Return v = Some v
+        member x.Bind (v,f) = Maybe.Bind f v
+        member x.Return v = Just v
         member x.ReturnFrom o = o
-        member x.Zero () = None
+        member x.Zero () = Nothing
 
-    let option = OptionBuilder()
+    let maybe = MaybeBuilder()

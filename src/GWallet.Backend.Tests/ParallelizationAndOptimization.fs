@@ -7,7 +7,7 @@ open System.Diagnostics
 open NUnit.Framework
 
 open GWallet.Backend
-
+open GWallet.Backend.FSharpUtil
 
 exception SomeExceptionDuringParallelWork
 
@@ -24,7 +24,7 @@ type ParallelizationAndOptimization() =
                             NetworkPath = serverId
                             ConnectionType = dummy_connection_type
                         }
-                    CommunicationHistory = None
+                    CommunicationHistory = Nothing
                 }
             Retrieval = job
         }
@@ -224,7 +224,7 @@ type ParallelizationAndOptimization() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
@@ -238,7 +238,7 @@ type ParallelizationAndOptimization() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -293,7 +293,7 @@ type ParallelizationAndOptimization() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -307,7 +307,7 @@ type ParallelizationAndOptimization() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
@@ -321,7 +321,7 @@ type ParallelizationAndOptimization() =
                                           NetworkPath = "server3"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = None
+                                  CommunicationHistory = Nothing
                               }
                           Retrieval = async { return someResult3 }
                       }

@@ -7,6 +7,8 @@ open System.Net
 open System.Net.Sockets
 open System.Threading
 
+open GWallet.Backend.FSharpUtil
+
 module JsonRpcSharpOld =
 
     exception ServerUnresponsiveException
@@ -17,12 +19,12 @@ module JsonRpcSharpOld =
             let reverse = List.rev acc
             Encoding.UTF8.GetString(reverse.ToArray())
 
-        let rec ReadByte (stream: NetworkStream): Option<byte> =
+        let rec ReadByte (stream: NetworkStream): Maybe<byte> =
             let byteInt = stream.ReadByte()
             if (byteInt = -1) then
-                None
+                Nothing
             else
-                Some(Convert.ToByte(byteInt))
+                Convert.ToByte byteInt |> Just
 
         let DEFAULT_TIMEOUT_FOR_FIRST_DATA_AVAILABLE_SIGNAL_TO_HAPPEN = Config.DEFAULT_NETWORK_TIMEOUT
         let DEFAULT_TIMEOUT_FOR_SUBSEQUENT_DATA_AVAILABLE_SIGNAL_TO_HAPPEN = TimeSpan.FromMilliseconds(500.0)
@@ -45,8 +47,8 @@ module JsonRpcSharpOld =
                     ReadInternal stream acc initTime
             else
                 match ReadByte stream with
-                | None -> WrapResult acc
-                | Some(byte) ->
+                | Nothing -> WrapResult acc
+                | Just byte ->
                     ReadInternal stream (byte::acc) DateTime.UtcNow
 
         let Read (stream: NetworkStream): string =

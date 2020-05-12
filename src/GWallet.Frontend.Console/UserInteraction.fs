@@ -6,6 +6,7 @@ open System.Linq
 open System.Globalization
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 
 type internal Operations =
     | Exit               = 0
@@ -260,7 +261,7 @@ module UserInteraction =
                 // frontend would never re-discover slow/failing servers or even ones with no history
             let mode = ServerSelectionMode.Analysis
 
-            let balanceJob = Account.GetShowableBalance account mode None
+            let balanceJob = Account.GetShowableBalance account mode Nothing
             let usdValueJob = FiatValueEstimation.UsdValue account.Currency
             let! balance,usdValue = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdValueJob
             return (account,balance,usdValue)
@@ -280,29 +281,29 @@ module UserInteraction =
     let DisplayAccountStatuses(whichAccount: WhichAccount): Async<seq<string>> =
         let rec displayAllAndSumBalance (accounts: seq<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>)
                                          currentIndex
-                                        (currentSumMap: Map<Currency,Option<decimal*MaybeCached<decimal>>>)
-                                        : seq<string> * Map<Currency,Option<decimal*MaybeCached<decimal>>> =
+                                        (currentSumMap: Map<Currency,Maybe<decimal*MaybeCached<decimal>>>)
+                                        : seq<string> * Map<Currency,Maybe<decimal*MaybeCached<decimal>>> =
             let account,maybeBalance,maybeUsdValue = accounts.ElementAt currentIndex
             let status = DisplayAccountStatus (currentIndex+1) account maybeBalance maybeUsdValue
 
-            let balanceToSum: Option<decimal> =
+            let balanceToSum: Maybe<decimal> =
                 match maybeBalance with
-                | Fresh(balance) -> Some(balance)
-                | NotFresh(Cached(balance,_)) -> Some(balance)
-                | _ -> None
+                | Fresh(balance) -> Just balance
+                | NotFresh(Cached(balance,_)) -> Just balance
+                | _ -> Nothing
 
             let newBalanceForCurrency =
                 match balanceToSum with
-                | None -> None
-                | Some(thisBalance) ->
-                    match Map.tryFind account.Currency currentSumMap with
-                    | None ->
-                        Some(thisBalance,maybeUsdValue)
-                    | Some(None) ->
+                | Nothing -> Nothing
+                | Just thisBalance ->
+                    match Map.tryFind account.Currency currentSumMap |> Maybe.OfOpt with
+                    | Nothing ->
+                        Just (thisBalance, maybeUsdValue)
+                    | Just Nothing ->
                         // there was a previous error, so we want to keep the total balance as N/A
-                        None
-                    | Some(Some(sumSoFar,_)) ->
-                        Some(sumSoFar+thisBalance,maybeUsdValue)
+                        Nothing
+                    | Just (Just (sumSoFar,_)) ->
+                        Just(sumSoFar+thisBalance, maybeUsdValue)
 
             let maybeCleanedUpMapForReplacement =
                 match Map.containsKey account.Currency currentSumMap with
@@ -322,14 +323,14 @@ module UserInteraction =
             else
                 status, newAcc
 
-        let rec displayTotalAndSumFiatBalance (currenciesToBalances: Map<Currency,Option<decimal*MaybeCached<decimal>>>)
-                                                  : Option<decimal> * seq<string> =
+        let rec displayTotalAndSumFiatBalance (currenciesToBalances: Map<Currency,Maybe<decimal*MaybeCached<decimal>>>)
+                                                  : Maybe<decimal> * seq<string> =
             let usdTotals =
                 seq {
                     for KeyValue(currency, balance) in currenciesToBalances do
                         match balance with
-                        | None -> ()
-                        | Some(onlineBalance, maybeUsdValue) ->
+                        | Nothing -> ()
+                        | Just (onlineBalance, maybeUsdValue) ->
                             match maybeUsdValue with
                             | NotFresh(NotAvailable) -> yield None, None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
@@ -341,9 +342,9 @@ module UserInteraction =
             let onlyValues = Seq.map fst usdTotals
             let totals: seq<string> = Seq.map snd usdTotals |> Seq.choose id
             if onlyValues.Any(fun maybeUsdTotal -> maybeUsdTotal.IsNone) then
-                None, totals
+                Nothing, totals
             else
-                Some(onlyValues.Sum(fun maybeUsdTotal -> maybeUsdTotal.Value)), totals
+                Just(onlyValues.Sum(fun maybeUsdTotal -> maybeUsdTotal.Value)), totals
 
         match whichAccount with
         | WhichAccount.All(accounts) ->
@@ -358,8 +359,8 @@ module UserInteraction =
                         seq {
                             yield!
                                 match maybeTotalInUsd with
-                                | None -> statuses
-                                | Some(totalInUsd) ->
+                                | Nothing -> statuses
+                                | Just totalInUsd ->
                                     seq {
                                         yield! statuses
                                         yield! totals
@@ -459,9 +460,9 @@ module UserInteraction =
                 Console.Error.WriteLine "WARNING: the address provided didn't pass the checksum, are you sure you copied it properly?"
                 Console.Error.WriteLine "(If you copied it by hand or somebody dictated it to you, you probably made a spelling mistake.)"
                 match maybeAddressWithValidChecksum with
-                | None ->
+                | Nothing ->
                     AskPublicAddress currency askText
-                | Some addressWithValidChecksum ->
+                | Just addressWithValidChecksum ->
                     Console.Error.WriteLine "(If you used the clipboard, you're likely copying it from a service that doesn't have checksum validation.)"
                     let continueWithoutChecksum = AskYesNo "Continue with this address?"
                     if (continueWithoutChecksum) then
@@ -501,12 +502,12 @@ module UserInteraction =
             else
                 parsedAmount
 
-    let rec AskParticularUsdAmount currency usdValue (maybeTime:Option<DateTime>): Option<decimal> =
+    let rec AskParticularUsdAmount currency usdValue (maybeTime: Maybe<DateTime>): Maybe<decimal> =
         let usdAmount = AskParticularAmount()
         let exchangeRateDateMsg =
             match maybeTime with
-            | None -> String.Empty
-            | Some(time) -> sprintf " (as of %s)" (Formatting.ShowSaneDate time)
+            | Nothing -> String.Empty
+            | Just time -> sprintf " (as of %s)" (Formatting.ShowSaneDate time)
         let exchangeMsg = sprintf "%s USD per %A%s" (usdValue.ToString())
                                                     currency
                                                     exchangeRateDateMsg
@@ -516,69 +517,71 @@ module UserInteraction =
                               Environment.NewLine
                               (Formatting.DecimalAmountRounding CurrencyType.Crypto etherAmount))
         if AskYesNo "Do you accept?" then
-            Some(usdAmount)
+            Just usdAmount
         else
-            None
+            Nothing
 
-    let private AskParticularFiatAmountWithRate cryptoCurrency usdValue time: Option<decimal> =
-        FSharpUtil.option {
+    let private AskParticularFiatAmountWithRate cryptoCurrency usdValue time: Maybe<decimal> =
+        FSharpUtil.maybe {
             let! usdAmount = AskParticularUsdAmount cryptoCurrency usdValue time
             return usdAmount / usdValue
         }
 
     exception InsufficientBalance
-    let rec internal AskAmount (account: IAccount): Option<TransferAmount> =
-        let rec AskParticularAmountOption currentBalance (amountOption: AmountOption): Option<TransferAmount> =
+    let rec internal AskAmount (account: IAccount): Maybe<TransferAmount> =
+        let rec AskParticularAmountOption currentBalance (amountOption: AmountOption): Maybe<TransferAmount> =
             try
                 match amountOption with
                 | AmountOption.AllBalance ->
-                    TransferAmount(currentBalance, currentBalance, account.Currency) |> Some
+                    TransferAmount(currentBalance, currentBalance, account.Currency)
+                    |> Just
                 | AmountOption.CertainCryptoAmount ->
                     let specificCryptoAmount = AskParticularAmount()
                     if (specificCryptoAmount > currentBalance) then
                         raise InsufficientBalance
-                    TransferAmount(specificCryptoAmount, currentBalance, account.Currency) |> Some
+                    TransferAmount(specificCryptoAmount, currentBalance, account.Currency)
+                    |> Just
                 | AmountOption.ApproxEquivalentFiatAmount ->
                     match FiatValueEstimation.UsdValue account.Currency |> Async.RunSynchronously with
                     | NotFresh(NotAvailable) ->
                         Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
                         AskAmount account
                     | Fresh usdValue ->
-                        let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue None
+                        let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue Nothing
                         match maybeCryptoAmount with
-                        | None -> None
-                        | Some cryptoAmount ->
+                        | Nothing -> Nothing
+                        | Just cryptoAmount ->
                             if (cryptoAmount > currentBalance) then
                                 raise InsufficientBalance
-                            TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Some
+                            TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Just
                     | NotFresh(Cached(usdValue,time)) ->
-                        let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue (Some(time))
+                        let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue (Just time)
                         match maybeCryptoAmount with
-                        | None -> None
-                        | Some cryptoAmount ->
+                        | Nothing -> Nothing
+                        | Just cryptoAmount ->
                             if (cryptoAmount > currentBalance) then
                                 raise InsufficientBalance
-                            TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Some
+                            TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Just
             with
             | :? InsufficientBalance ->
                 Presentation.Error "Amount surpasses current balance, try again."
                 AskParticularAmountOption currentBalance amountOption
 
         let showableBalance =
-            Account.GetShowableBalance account ServerSelectionMode.Fast None
+            Account.GetShowableBalance account ServerSelectionMode.Fast Nothing
                 |> Async.RunSynchronously
 
         match showableBalance with
         | NotFresh(NotAvailable) ->
             Presentation.Error "Balance not available if offline."
-            None
+            Nothing
 
         | Fresh(balance) | NotFresh(Cached(balance,_)) ->
 
             if not (balance > 0m) then
                 // TODO: maybe we should check the balance before asking the destination address
                 Presentation.Error "Account needs to have positive balance."
-                None
+                Nothing
             else
                 Console.WriteLine "There are various options to specify the amount of your transaction:"
                 Console.WriteLine(sprintf "1. Exact amount in %A" account.Currency)
@@ -589,32 +592,32 @@ module UserInteraction =
                 let amountOption = AskAmountOption()
                 AskParticularAmountOption balance amountOption
 
-    let AskFee account amount destination: Option<IBlockchainFeeInfo> =
+    let AskFee account amount destination: Maybe<IBlockchainFeeInfo> =
         try
             let txMetadataWithFeeEstimation =
                 Account.EstimateFee account amount destination |> Async.RunSynchronously
             Presentation.ShowFee amount.Currency txMetadataWithFeeEstimation
             let accept = AskYesNo "Do you accept?"
             if accept then
-                Some(txMetadataWithFeeEstimation)
+                Just txMetadataWithFeeEstimation
             else
-                None
+                Nothing
         with
         | InsufficientBalanceForFee maybeFeeValue ->
             // TODO: show fiat value in this error msg below?
             let errMsg =
                 match maybeFeeValue with
-                | Some feeValue ->
+                | Just feeValue ->
                     sprintf "Estimated fee is too high (%M) for the remaining balance, use a different account or a different amount."
                             feeValue
-                | None ->
+                | Nothing ->
                     "Not enough balance to cover the estimated fee for this transaction plus the amount to be sent, use a different account or a different amount."
             Presentation.Error errMsg
 
             // TODO: instead of "press any key to continue...", it should ask amount again
             PressAnyKeyToContinue()
 
-            None
+            Nothing
 
     let rec AskAccount(): IAccount =
         let allAccounts = Account.GetAllActiveAccounts()

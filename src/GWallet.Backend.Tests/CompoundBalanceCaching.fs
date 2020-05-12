@@ -6,6 +6,7 @@ open System.IO
 open NUnit.Framework
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 
 [<TestFixture>]
 type CompoundBalanceCaching() =
@@ -27,7 +28,7 @@ type CompoundBalanceCaching() =
                 CachedNetworkData = tempFile1
                 ServerStats = tempFile2
             }
-        Caching.MainCache(Some tempFiles, expirationSpan),tempFiles
+        Caching.MainCache(Just tempFiles, expirationSpan),tempFiles
 
     [<Test>]
     member __.``combinations metatest``() =

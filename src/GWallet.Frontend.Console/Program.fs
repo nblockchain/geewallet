@@ -4,6 +4,7 @@ open System.Linq
 open System.Text.RegularExpressions
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 open GWallet.Frontend.Console
 
 let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
@@ -141,12 +142,12 @@ let SendPayment() =
     let destination = UserInteraction.AskPublicAddress account.Currency "Destination address: "
     let maybeAmount = UserInteraction.AskAmount account
     match maybeAmount with
-    | None -> ()
-    | Some(amount) ->
+    | Nothing -> ()
+    | Just amount ->
         let maybeFee = UserInteraction.AskFee account amount destination
         match maybeFee with
-        | None -> ()
-        | Some(fee) ->
+        | Nothing -> ()
+        | Just fee ->
             SendPaymentOfSpecificAmount account amount fee destination
 
 let rec TryArchiveAccount account =
@@ -179,7 +180,7 @@ let ArchiveAccount() =
             UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
         let balance =
-            Account.GetShowableBalance account ServerSelectionMode.Fast None
+            Account.GetShowableBalance account ServerSelectionMode.Fast Nothing
                 |> Async.RunSynchronously
         match balance with
         | NotFresh(NotAvailable) ->
@@ -209,10 +210,10 @@ let ArchiveAccount() =
 
 let PairToWatchWallet() =
     match Account.GetNormalAccountsPairingInfoForWatchWallet() with
-    | None ->
+    | Nothing ->
         Presentation.Error
             "There needs to be both Ether-based accounts and Utxo-based accounts to be able to use this feature."
-    | Some walletInfo ->
+    | Just walletInfo ->
         Console.WriteLine ""
         Console.WriteLine "Copy/paste this JSON fragment in your watching wallet:"
         Console.WriteLine ""
@@ -324,7 +325,7 @@ let rec GetAccountOfSameCurrency currency =
 
 let rec CheckArchivedAccountsAreEmpty(): bool =
     let archivedAccountsInNeedOfAction =
-        Account.GetArchivedAccountsWithPositiveBalance None
+        Account.GetArchivedAccountsWithPositiveBalance Nothing
             |> Async.RunSynchronously
     for archivedAccount,balance in archivedAccountsInNeedOfAction do
         let currency = (archivedAccount:>IAccount).Currency
@@ -339,8 +340,8 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
         let allBalance = TransferAmount(balance, balance, account.Currency)
         let maybeFee = UserInteraction.AskFee archivedAccount allBalance account.PublicAddress
         match maybeFee with
-        | None -> ()
-        | Some(feeInfo) ->
+        | Nothing -> ()
+        | Just feeInfo ->
             let txId =
                 Account.SweepArchivedFunds archivedAccount balance account feeInfo
                     |> Async.RunSynchronously

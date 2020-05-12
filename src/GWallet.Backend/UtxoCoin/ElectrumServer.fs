@@ -8,6 +8,7 @@ open FSharp.Data.JsonExtensions
 open HtmlAgilityPack
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type IncompatibleServerException(message) =
@@ -31,11 +32,11 @@ type TorNotSupportedYetInGWalletException(message) =
 type ElectrumServer =
     {
         Fqdn: string;
-        PrivatePort: Option<uint32>
-        UnencryptedPort: Option<uint32>
+        PrivatePort: Maybe<uint32>
+        UnencryptedPort: Maybe<uint32>
     }
     member self.CheckCompatibility (): unit =
-        if self.UnencryptedPort.IsNone then
+        if self.UnencryptedPort.IsNothing then
             raise(TlsNotSupportedYetInGWalletException("TLS not yet supported"))
         if self.Fqdn.EndsWith ".onion" then
             raise(TorNotSupportedYetInGWalletException("Tor(onion) not yet supported"))
@@ -89,14 +90,14 @@ module ElectrumServerSeedList =
                     | _ -> failwith <| SPrintF1 "Got new unexpected port type: %s" portType
                 let privatePort =
                     if encrypted then
-                        Some port
+                        Just port
                     else
-                        None
+                        Nothing
                 let unencryptedPort =
                     if encrypted then
-                        None
+                        Nothing
                     else
-                        Some port
+                        Just port
 
                 yield
                     {
@@ -111,16 +112,16 @@ module ElectrumServerSeedList =
         let servers =
             seq {
                 for (key,value) in serversParsed.Properties do
-                    let maybeUnencryptedPort = value.TryGetProperty "t"
+                    let maybeUnencryptedPort = value.TryGetProperty "t" |> Maybe.OfOpt
                     let unencryptedPort =
                         match maybeUnencryptedPort with
-                        | None -> None
-                        | Some portAsString -> Some (UInt32.Parse (portAsString.AsString()))
-                    let maybeEncryptedPort = value.TryGetProperty "s"
+                        | Nothing -> Nothing
+                        | Just portAsString -> Just (UInt32.Parse (portAsString.AsString()))
+                    let maybeEncryptedPort = value.TryGetProperty "s" |> Maybe.OfOpt
                     let encryptedPort =
                         match maybeEncryptedPort with
-                        | None -> None
-                        | Some portAsString -> Some (UInt32.Parse (portAsString.AsString()))
+                        | Nothing -> Nothing
+                        | Just portAsString -> Just (UInt32.Parse (portAsString.AsString()))
                     yield { Fqdn = key;
                             PrivatePort = encryptedPort;
                             UnencryptedPort = unencryptedPort;

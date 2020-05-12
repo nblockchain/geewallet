@@ -13,6 +13,7 @@ open Nethereum.Util
 open Nethereum.KeyStore.Crypto
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 module internal Account =
@@ -38,13 +39,13 @@ module internal Account =
     let private GetBalance (account: IAccount)
                            (mode: ServerSelectionMode)
                            (balType: BalanceType)
-                           (cancelSourceOption: Option<CustomCancelSource>)
+                           (maybeCancelSource: Maybe<CustomCancelSource>)
                                = async {
         let! balance =
             if (account.Currency.IsEther()) then
-                Server.GetEtherBalance account.Currency account.PublicAddress balType mode cancelSourceOption
+                Server.GetEtherBalance account.Currency account.PublicAddress balType mode maybeCancelSource
             elif (account.Currency.IsEthToken()) then
-                Server.GetTokenBalance account.Currency account.PublicAddress balType mode cancelSourceOption
+                Server.GetTokenBalance account.Currency account.PublicAddress balType mode maybeCancelSource
             else
                 failwith <| SPrintF1 "Assertion failed: currency %A should be Ether or Ether token" account.Currency
         return balance
@@ -53,37 +54,37 @@ module internal Account =
     let private GetBalanceFromServer (account: IAccount)
                                      (balType: BalanceType)
                                      (mode: ServerSelectionMode)
-                                     (cancelSourceOption: Option<CustomCancelSource>)
-                                         : Async<Option<decimal>> =
+                                     (maybeCancelSource: Maybe<CustomCancelSource>)
+                                         : Async<Maybe<decimal>> =
         async {
             try
-                let! balance = GetBalance account mode balType cancelSourceOption
-                return Some balance
+                let! balance = GetBalance account mode balType maybeCancelSource
+                return Just balance
             with
-            | ex when (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome ->
-                return None
+            | ex when (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsJust ->
+                return Nothing
         }
 
     let internal GetShowableBalance (account: IAccount)
                                     (mode: ServerSelectionMode)
-                                    (cancelSourceOption: Option<CustomCancelSource>)
-                                        : Async<Option<decimal>> =
-        let getBalanceWithoutCaching(maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>)
-                : Async<Option<decimal>> =
+                                    (maybeCancelSource: Maybe<CustomCancelSource>)
+                                        : Async<Maybe<decimal>> =
+        let getBalanceWithoutCaching(maybeUnconfirmedBalanceTaskAlreadyStarted: Maybe<Task<Maybe<decimal>>>)
+                : Async<Maybe<decimal>> =
             async {
-                let! confirmed = GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
+                let! confirmed = GetBalanceFromServer account BalanceType.Confirmed mode maybeCancelSource
                 if mode = ServerSelectionMode.Fast then
                     return confirmed
                 else
                     let! unconfirmed =
                         match maybeUnconfirmedBalanceTaskAlreadyStarted with
-                        | None ->
-                            GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
-                        | Some unconfirmedBalanceTask ->
+                        | Nothing ->
+                            GetBalanceFromServer account BalanceType.Confirmed mode maybeCancelSource
+                        | Just unconfirmedBalanceTask ->
                             Async.AwaitTask unconfirmedBalanceTask
 
                     match unconfirmed,confirmed with
-                    | Some unconfirmedAmount,Some confirmedAmount ->
+                    | Just unconfirmedAmount,Just confirmedAmount ->
                         if (unconfirmedAmount < confirmedAmount) then
                             return unconfirmed
                         else
@@ -93,25 +94,26 @@ module internal Account =
 
         async {
             if Caching.Instance.FirstRun then
-                return! getBalanceWithoutCaching None
+                return! getBalanceWithoutCaching Nothing
             else
-                let unconfirmedJob = GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
+                let unconfirmedJob = GetBalanceFromServer account BalanceType.Confirmed mode maybeCancelSource
                 let! cancellationToken = Async.CancellationToken
-                let unconfirmedTask = Async.StartAsTask(unconfirmedJob, ?cancellationToken = Some cancellationToken)
+                let unconfirmedTask = Async.StartAsTask(unconfirmedJob,
+                                                        ?cancellationToken = (Just cancellationToken).ToOpt())
                 let maybeCachedBalance = Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
                 match maybeCachedBalance with
                 | NotAvailable ->
-                    return! getBalanceWithoutCaching(Some unconfirmedTask)
+                    return! getBalanceWithoutCaching(Just unconfirmedTask)
                 | Cached(cachedBalance,_) ->
                     let! unconfirmed = Async.AwaitTask unconfirmedTask
                     match unconfirmed with
-                    | Some unconfirmedAmount ->
+                    | Just unconfirmedAmount ->
                         if unconfirmedAmount <= cachedBalance then
                             return unconfirmed
                         else
-                            return! getBalanceWithoutCaching(Some unconfirmedTask)
-                    | None ->
-                        return! getBalanceWithoutCaching(Some unconfirmedTask)
+                            return! getBalanceWithoutCaching(Just unconfirmedTask)
+                    | Nothing ->
+                        return! getBalanceWithoutCaching(Just unconfirmedTask)
         }
 
     let ValidateAddress (currency: Currency) (address: string) = async {
@@ -131,7 +133,7 @@ module internal Account =
 
         if (not (addressUtil.IsChecksumAddress(address))) then
             let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
-            raise (AddressWithInvalidChecksum(Some validCheckSumAddress))
+            raise <| AddressWithInvalidChecksum(Just validCheckSumAddress)
     }
 
     let private GetTransactionCount (currency: Currency) (publicAddress: string): Async<int64> = async {
@@ -163,7 +165,7 @@ module internal Account =
         let feeValue = ethMinerFee.CalculateAbsoluteValue()
         if (amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&
             feeValue > (amount.BalanceAtTheMomentOfSending - amount.ValueToSend)) then
-            raise <| InsufficientBalanceForFee (Some feeValue)
+            raise <| InsufficientBalanceForFee (Just feeValue)
 
         return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
     }

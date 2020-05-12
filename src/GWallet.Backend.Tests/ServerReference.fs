@@ -6,6 +6,7 @@ open Newtonsoft.Json
 open NUnit.Framework
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 
 [<TestFixture>]
 type ServerReference() =
@@ -21,7 +22,7 @@ type ServerReference() =
             //irrelevant for this test
             TimeSpan = TimeSpan.Zero
 
-        },lastSuccessfulCommunication) |> Some
+        },lastSuccessfulCommunication) |> Just
 
     let CreateHistoryInfoWithSpan(timeSpan: TimeSpan) =
         ({
@@ -29,26 +30,26 @@ type ServerReference() =
             Status = Success
 
             TimeSpan = timeSpan
-        },dummy_now) |> Some
+        },dummy_now) |> Just
 
     let CreateFaultyHistoryInfo (lastSuccessfulCommunication: DateTime) =
         ({
             // exception info irrelevant for this test
             Status = Fault { Exception = { TypeFullName = "SomeNamespace.SomeException" ; Message = "argh" }
-                             LastSuccessfulCommunication = None }
+                             LastSuccessfulCommunication = Nothing }
 
             //irrelevant for this test
             TimeSpan = TimeSpan.Zero
-        },lastSuccessfulCommunication) |> Some
+        },lastSuccessfulCommunication) |> Just
 
     let CreateFaultyHistoryInfoWithSpan(timeSpan: TimeSpan) =
         ({
             //irrelevant for this test
             Status = Fault { Exception = { TypeFullName = "SomeNamespace.SomeException" ; Message = "argh" }
-                             LastSuccessfulCommunication = None }
+                             LastSuccessfulCommunication = Nothing }
 
             TimeSpan = timeSpan
-        },dummy_now) |> Some
+        },dummy_now) |> Just
 
     [<Test>]
     member __.``order of servers is kept if non-hostname details are same``() =
@@ -59,7 +60,7 @@ type ServerReference() =
                         NetworkPath = "dlm8yerwlcifs"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
         let serverWithLowestPriority =
             {
@@ -68,7 +69,7 @@ type ServerReference() =
                         NetworkPath = "eliuh4midkndk"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
         let servers1 = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
@@ -116,7 +117,7 @@ type ServerReference() =
                         NetworkPath = "dlm8yerwlcifs"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
 
         let servers1 = Map.empty.Add
@@ -352,7 +353,7 @@ type ServerReference() =
                         NetworkPath = "eliuh4midkndk"
                         ConnectionType = { Encrypted = false; Protocol = Tcp port }
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
              }
         let servers = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
@@ -372,7 +373,7 @@ type ServerReference() =
                         NetworkPath = tcpServerNetworkPath
                         ConnectionType = { Encrypted = false; Protocol = Tcp 50001u }
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
 
         let timeSpanForHttpServer = TimeSpan.FromSeconds 1.0
@@ -385,7 +386,7 @@ type ServerReference() =
                         NetworkPath = httpServerNetworkPath
                         ConnectionType = { Encrypted = false; Protocol = Http }
                     }
-                CommunicationHistory = Some({
+                CommunicationHistory = Just({
                                                 Status = Success
                                                 TimeSpan = timeSpanForHttpServer
                                             },
@@ -402,9 +403,9 @@ type ServerReference() =
                         NetworkPath = httpsServerNetworkPath1
                         ConnectionType = { Encrypted = true; Protocol = Http }
                     }
-                CommunicationHistory = Some({
+                CommunicationHistory = Just({
                                                 Status = Fault { Exception = exInfo
-                                                                 LastSuccessfulCommunication = None }
+                                                                 LastSuccessfulCommunication = Nothing }
                                                 TimeSpan = timeSpanForHttpsServer
                                             },
                                             dummy_now)
@@ -417,13 +418,13 @@ type ServerReference() =
                         NetworkPath = httpsServerNetworkPath2
                         ConnectionType = { Encrypted = true; Protocol = Http }
                     }
-                CommunicationHistory = Some({
+                CommunicationHistory = Just({
                                                 Status =
                                                     Fault
                                                         {
                                                             Exception = exInfo
                                                             LastSuccessfulCommunication =
-                                                                Some lastSuccessfulCommunication
+                                                                Just lastSuccessfulCommunication
                                                         }
                                                 TimeSpan = timeSpanForHttpsServer
                                             },
@@ -462,8 +463,8 @@ type ServerReference() =
         Assert.That(httpServer.ServerInfo.NetworkPath, Is.EqualTo httpServerNetworkPath)
         Assert.That(httpServer.ServerInfo.ConnectionType.Encrypted, Is.EqualTo false)
         match httpServer.CommunicationHistory with
-        | None -> Assert.Fail "http server should have some historyinfo"
-        | Some (historyInfo,lastComm) ->
+        | Nothing -> Assert.Fail "http server should have some historyinfo"
+        | Just (historyInfo,lastComm) ->
             Assert.That(historyInfo.TimeSpan, Is.EqualTo timeSpanForHttpServer)
             match historyInfo.Status with
             | Fault _ ->
@@ -479,8 +480,8 @@ type ServerReference() =
         Assert.That(httpsServer1.ServerInfo.NetworkPath, Is.EqualTo httpsServerNetworkPath1)
         Assert.That(httpsServer1.ServerInfo.ConnectionType.Encrypted, Is.EqualTo true)
         match httpsServer1.CommunicationHistory with
-        | None -> Assert.Fail "https server should have some historyinfo"
-        | Some (historyInfo,_) ->
+        | Nothing -> Assert.Fail "https server should have some historyinfo"
+        | Just (historyInfo,_) ->
             Assert.That(historyInfo.TimeSpan, Is.EqualTo timeSpanForHttpsServer)
             match historyInfo.Status with
             | Fault faultInfo ->
@@ -498,8 +499,8 @@ type ServerReference() =
         Assert.That(httpsServer2.ServerInfo.NetworkPath, Is.EqualTo httpsServerNetworkPath2)
         Assert.That(httpsServer2.ServerInfo.ConnectionType.Encrypted, Is.EqualTo true)
         match httpsServer2.CommunicationHistory with
-        | None -> Assert.Fail "https server should have some historyinfo"
-        | Some (historyInfo,_) ->
+        | Nothing -> Assert.Fail "https server should have some historyinfo"
+        | Just (historyInfo,_) ->
             Assert.That(historyInfo.TimeSpan, Is.EqualTo timeSpanForHttpsServer)
             match historyInfo.Status with
             | Fault faultInfo ->
@@ -519,7 +520,7 @@ type ServerReference() =
                         NetworkPath = sameRandomHostname
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
         let serverB =
             {
@@ -549,7 +550,7 @@ type ServerReference() =
                         NetworkPath = "A"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
         let serverB =
             {
@@ -558,7 +559,7 @@ type ServerReference() =
                         NetworkPath = "B"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
 
         let servers = Map.empty.Add
@@ -597,7 +598,7 @@ type ServerReference() =
                         NetworkPath = sameRandomHostname
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
         let serverB =
             {
@@ -646,7 +647,7 @@ type ServerReference() =
         Assert.That(deserializedServers.Length, Is.EqualTo 1)
         Assert.That(mergedServers.Length, Is.EqualTo 1)
         match deserializedServers.[0].CommunicationHistory,mergedServers.[0].CommunicationHistory with
-        | Some (dHistory,dLastComm), Some (mHistory,mLastComm) ->
+        | Just (dHistory,dLastComm), Just (mHistory,mLastComm) ->
             match dHistory.Status,mHistory.Status with
             | Success,Success ->
                 Assert.That(dLastComm, Is.EqualTo dummy_now)
@@ -683,7 +684,7 @@ type ServerReference() =
         Assert.That(deserializedServers.Length, Is.EqualTo 1)
         Assert.That(mergedServers.Length, Is.EqualTo 1)
         match deserializedServers.[0].CommunicationHistory,mergedServers.[0].CommunicationHistory with
-        | Some (dHistory, dLastComm), Some (mHistory, mLastComm) ->
+        | Just (dHistory, dLastComm), Just (mHistory, mLastComm) ->
             match dHistory.Status,mHistory.Status with
             | Success,Success ->
                 Assert.That(dLastComm, Is.EqualTo dummy_now)
@@ -720,7 +721,7 @@ type ServerReference() =
         Assert.That(deserializedServers.Length, Is.EqualTo 1)
         Assert.That(mergedServers.Length, Is.EqualTo 1)
         match deserializedServers.[0].CommunicationHistory,mergedServers.[0].CommunicationHistory with
-        | Some (dHistory, dLastComm), Some (mHistory, mLastComm) ->
+        | Just (dHistory, dLastComm), Just (mHistory, mLastComm) ->
             match dHistory.Status,mHistory.Status with
             | Fault _,Fault _ ->
                 Assert.That(dLastComm, Is.EqualTo dummy_now)
@@ -738,7 +739,7 @@ type ServerReference() =
                         NetworkPath = "foo"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
         let serverB =
             {
@@ -747,7 +748,7 @@ type ServerReference() =
                         NetworkPath = "some.serverwithablacklistedname.blockscout.yes"
                         ConnectionType = some_connection_type_irrelevant_for_this_test
                     }
-                CommunicationHistory = None
+                CommunicationHistory = Nothing
             }
 
         let servers = Map.empty.Add

@@ -6,6 +6,7 @@ open System.Linq
 open NUnit.Framework
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 
 exception DummyIrrelevantToThisTestException
 exception SomeSpecificException
@@ -40,7 +41,7 @@ type FaultTolerance() =
 
     let some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test =
         Fault { Exception = { TypeFullName = typeof<Exception>.FullName; Message = "some err" }
-                LastSuccessfulCommunication = None }
+                LastSuccessfulCommunication = Nothing }
 
     let dummy_date_for_cache = DateTime.Now
 
@@ -50,7 +51,7 @@ type FaultTolerance() =
             NumberOfRetries = test_does_not_involve_retries
             NumberOfRetriesForInconsistency = test_does_not_involve_retries
             ResultSelectionMode = default_result_selection_mode_as_it_is_irrelevant_for_this_test consistencyConfig
-            ExceptionHandler = None
+            ExceptionHandler = Nothing
         }
 
     let defaultFaultTolerantParallelClient =
@@ -67,7 +68,7 @@ type FaultTolerance() =
                             NetworkPath = serverId
                             ConnectionType = dummy_connection_type
                         }
-                    CommunicationHistory = None
+                    CommunicationHistory = Nothing
                 }
             Retrieval = job
         }
@@ -192,7 +193,7 @@ type FaultTolerance() =
                         |> Async.RunSynchronously
                             |> ignore )
 
-        Assert.That((FSharpUtil.FindException<SomeOtherException> ex).IsSome, Is.True)
+        Assert.That((FSharpUtil.FindException<SomeOtherException> ex).IsJust, Is.True)
 
     [<Test>]
     member __.``exception type not passed in doesn't bubble up if exception handler is specified``() =
@@ -214,7 +215,7 @@ type FaultTolerance() =
                     dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                     .Query
                         ({ defaultSettingsForNoConsistencyNoParallelismAndNoRetries None
-                            with ExceptionHandler = Some (fun _ -> exceptionHandlerCalled <- true)})
+                            with ExceptionHandler = Just (fun _ -> exceptionHandlerCalled <- true)})
                             [ func1; func2; func3 ]
                                 |> Async.RunSynchronously
 
@@ -592,7 +593,7 @@ type FaultTolerance() =
                                           ConnectionType = dummy_connection_type
                                       }
                                   CommunicationHistory =
-                                      Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
+                                      Just ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
                                             dummy_date_for_cache)
                               }
                           Retrieval = async { return someResult1 }
@@ -605,7 +606,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some ({ Status = Success
+                                  CommunicationHistory = Just ({ Status = Success
                                                                  TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                                 dummy_date_for_cache)
                               }
@@ -641,7 +642,7 @@ type FaultTolerance() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 2.0 },
+                                  CommunicationHistory = Just ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                                dummy_date_for_cache)
                               }
                           Retrieval = async { return someResult1 }
@@ -654,7 +655,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
+                                  CommunicationHistory = Just ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                                dummy_date_for_cache)
                               }
                           Retrieval = async { return someResult2 }
@@ -688,7 +689,7 @@ type FaultTolerance() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some ({ Status = Success
+                                  CommunicationHistory = Just ({ Status = Success
                                                                  TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                                dummy_date_for_cache)
                               }
@@ -702,7 +703,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = None
+                                  CommunicationHistory = Nothing
                               }
                           Retrieval = async { return someResult2 }
                       }
@@ -736,7 +737,7 @@ type FaultTolerance() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
+                                  CommunicationHistory = Just ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                                dummy_date_for_cache)
                               }
                           Retrieval = async { return someResult1 }
@@ -749,7 +750,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = None
+                                  CommunicationHistory = Nothing
                               }
                           Retrieval = async { return someResult2 }
                       }
@@ -784,7 +785,7 @@ type FaultTolerance() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
+                                  CommunicationHistory = Just ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                                dummy_date_for_cache)
                               }
                           Retrieval = async { return someResult1 }
@@ -797,7 +798,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = None
+                                  CommunicationHistory = Nothing
                               }
                           Retrieval = async { return someResult2 }
                       }
@@ -809,7 +810,7 @@ type FaultTolerance() =
                                           NetworkPath = "server3"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -859,7 +860,7 @@ type FaultTolerance() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -873,7 +874,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
@@ -887,7 +888,7 @@ type FaultTolerance() =
                                           NetworkPath = "server3"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 3.0 },
                                                               dummy_date_for_cache)
                               }
@@ -902,7 +903,7 @@ type FaultTolerance() =
                                           NetworkPath = "server4"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = fault
+                                  CommunicationHistory = Just({ Status = fault
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -953,7 +954,7 @@ type FaultTolerance() =
                                           NetworkPath = "server1"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
@@ -967,7 +968,7 @@ type FaultTolerance() =
                                           NetworkPath = "server2"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
@@ -981,7 +982,7 @@ type FaultTolerance() =
                                           NetworkPath = "server3"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 3.0 },
                                                               dummy_date_for_cache)
                               }
@@ -996,7 +997,7 @@ type FaultTolerance() =
                                           NetworkPath = "server4"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 4.0 },
                                                               dummy_date_for_cache)
                               }
@@ -1010,7 +1011,7 @@ type FaultTolerance() =
                                           NetworkPath = "server5"
                                           ConnectionType = dummy_connection_type
                                       }
-                                  CommunicationHistory = Some({ Status = Success
+                                  CommunicationHistory = Just({ Status = Success
                                                                 TimeSpan = TimeSpan.FromSeconds 5.0 },
                                                               dummy_date_for_cache)
                               }
@@ -1061,7 +1062,7 @@ type FaultTolerance() =
         let saveServerLastStat (isServer: ServerDetails->bool) (historyFact: HistoryFact): unit =
             Assert.That(isServer func.Details, Is.EqualTo true)
             match historyFact.Fault with
-            | Some _ ->
+            | Just _ ->
                 failwith "assertion failed"
             | _ ->
                 ()
@@ -1094,7 +1095,7 @@ type FaultTolerance() =
         let saveServerLastStat (isServer: ServerDetails->bool) (historyFact: HistoryFact): unit =
             lock lockObj (fun _ ->
                 match historyFact.Fault with
-                | Some ex ->
+                | Just ex ->
                     Assert.That(isServer server1.Details, Is.EqualTo true)
                     Assert.That(isServer server2.Details, Is.EqualTo false)
                     Assert.That(ex.TypeFullName, Is.EqualTo typeof<SomeSpecificException>.FullName)
@@ -1135,7 +1136,7 @@ type FaultTolerance() =
                 NumberOfRetries = test_does_not_involve_retries
                 NumberOfRetriesForInconsistency = test_does_not_involve_retries
                 ResultSelectionMode = ResultSelectionMode.Exhaustive
-                ExceptionHandler = None
+                ExceptionHandler = Nothing
             }
         let retrievedData1 = defaultFaultTolerantParallelClient.Query
                                 settings
@@ -1172,7 +1173,7 @@ type FaultTolerance() =
                 NumberOfRetries = test_does_not_involve_retries
                 NumberOfRetriesForInconsistency = test_does_not_involve_retries
                 ResultSelectionMode = ResultSelectionMode.Exhaustive
-                ExceptionHandler = None
+                ExceptionHandler = Nothing
             }
         // test that it doesn't throw
         let retrievedData = defaultFaultTolerantParallelClient.Query

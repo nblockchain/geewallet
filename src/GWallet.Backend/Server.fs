@@ -2,6 +2,8 @@
 
 open System
 
+open GWallet.Backend.FSharpUtil
+
 type ExceptionInfo =
     { TypeFullName: string
       Message: string }
@@ -9,7 +11,7 @@ type ExceptionInfo =
 type FaultInfo =
     {
         Exception: ExceptionInfo
-        LastSuccessfulCommunication: Option<DateTime>
+        LastSuccessfulCommunication: Maybe<DateTime>
     }
 
 type Status =
@@ -31,12 +33,12 @@ type ConnectionType =
     }
 
 type ICommunicationHistory =
-    abstract member CommunicationHistory: Option<HistoryInfo> with get
+    abstract member CommunicationHistory: Maybe<HistoryInfo> with get
 
 type HistoryFact =
     {
         TimeSpan: TimeSpan
-        Fault: Option<ExceptionInfo>
+        Fault: Maybe<ExceptionInfo>
     }
 
 type ServerInfo =
@@ -49,7 +51,7 @@ type ServerInfo =
 type ServerDetails =
     {
         ServerInfo: ServerInfo
-        CommunicationHistory: Option<CachedValue<HistoryInfo>>
+        CommunicationHistory: Maybe<CachedValue<HistoryInfo>>
     }
     member private self.EqualsInternal (yObj: obj) =
         match yObj with
@@ -64,8 +66,8 @@ type ServerDetails =
         member self.CommunicationHistory
             with get() =
                 match self.CommunicationHistory with
-                | None -> None
-                | Some (h,_) -> Some h
+                | Nothing -> Nothing
+                | Just (h,_) -> Just h
 
 type ServerRanking = Map<Currency,seq<ServerDetails>>
 
@@ -74,22 +76,22 @@ module ServerRegistry =
     let ServersEmbeddedResourceFileName = "servers.json"
 
     let internal TryFindValue (map: ServerRanking) (serverPredicate: ServerDetails -> bool)
-                                  : Option<Currency*ServerDetails> =
+                                  : Maybe<Currency*ServerDetails> =
         let rec tryFind currencyAndServers server =
             match currencyAndServers with
-            | [] -> None
+            | [] -> Nothing
             | (currency, servers)::tail ->
-                match Seq.tryFind serverPredicate servers with
-                | None -> tryFind tail server
-                | Some foundServer -> Some (currency, foundServer)
+                match Seq.tryFind serverPredicate servers |> Maybe.OfOpt with
+                | Nothing -> tryFind tail server
+                | Just foundServer -> Just (currency, foundServer)
         let listMap = Map.toList map
         tryFind listMap serverPredicate
 
     let internal RemoveDupes (servers: seq<ServerDetails>) =
         let rec removeDupesInternal (servers: seq<ServerDetails>) (serversMap: Map<string,ServerDetails>) =
-            match Seq.tryHead servers with
-            | None -> Seq.empty
-            | Some server ->
+            match Seq.tryHead servers |> Maybe.OfOpt with
+            | Nothing -> Seq.empty
+            | Just server ->
                 let tail = Seq.tail servers
                 match serversMap.TryGetValue server.ServerInfo.NetworkPath with
                 | false,_ ->
@@ -97,9 +99,9 @@ module ServerRegistry =
                 | true,serverInMap ->
                     let serverToAppend =
                         match server.CommunicationHistory,serverInMap.CommunicationHistory with
-                        | None,_ -> serverInMap
-                        | _,None -> server
-                        | Some (_, lastComm),Some (_, lastCommInMap) ->
+                        | Nothing,_ -> serverInMap
+                        | _,Nothing -> server
+                        | Just (_, lastComm),Just (_, lastCommInMap) ->
                             if lastComm > lastCommInMap then
                                 server
                             else
@@ -133,17 +135,17 @@ module ServerRegistry =
             let invertOrder (timeSpan: TimeSpan): int =
                 0 - int timeSpan.TotalMilliseconds
             match server.CommunicationHistory with
-            | None -> None
-            | Some (history, lastComm) ->
+            | Nothing -> Nothing
+            | Just (history, lastComm) ->
                 match history.Status with
                 | Fault faultInfo ->
                     let success = false
                     match faultInfo.LastSuccessfulCommunication with
-                    | None -> Some (success, invertOrder history.TimeSpan, None)
-                    | Some lsc -> Some (success, invertOrder history.TimeSpan, Some lsc)
+                    | Nothing -> Just (success, invertOrder history.TimeSpan, Nothing)
+                    | Just lsc -> Just (success, invertOrder history.TimeSpan, Just lsc)
                 | Success ->
                     let success = true
-                    Some (success, invertOrder history.TimeSpan, Some lastComm)
+                    Just (success, invertOrder history.TimeSpan, Just lastComm)
 
         Seq.sortByDescending sort servers
 
@@ -170,13 +172,13 @@ module ServerRegistry =
         seq {
             for currency in allKeys do
                 let allServersFrom1 =
-                    match ranking1.TryFind currency with
-                    | None -> Seq.empty
-                    | Some servers -> servers
+                    match ranking1.TryFind currency |> Maybe.OfOpt with
+                    | Nothing -> Seq.empty
+                    | Just servers -> servers
                 let allServersFrom2 =
-                    match ranking2.TryFind currency with
-                    | None -> Seq.empty
-                    | Some servers ->
+                    match ranking2.TryFind currency |> Maybe.OfOpt with
+                    | Nothing -> Seq.empty
+                    | Just servers ->
                         servers
                 let allServers = (currency, Seq.append allServersFrom1 allServersFrom2)
                                  |> RemoveCruft

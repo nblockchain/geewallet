@@ -10,6 +10,7 @@ open System.Linq
 open NBitcoin
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type internal TransactionOutpoint =
@@ -105,45 +106,45 @@ module Account =
             BalanceToShow someRetrievedBalance = 0m
         else
             match Caching.Instance.TryRetrieveLastCompoundBalance address currency with
-            | None -> false
-            | Some balance ->
+            | Nothing -> false
+            | Just balance ->
                 BalanceToShow someRetrievedBalance = balance
 
     let private GetBalances (account: IUtxoAccount)
                             (mode: ServerSelectionMode)
-                            (cancelSourceOption: Option<CustomCancelSource>)
+                            (maybeCancelSource: Maybe<CustomCancelSource>)
                                 : Async<BlockchainScriptHashGetBalanceInnerResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
         let querySettings =
             QuerySettings.Balance(mode,(BalanceMatchWithCacheOrInitialBalance account.PublicAddress account.Currency))
         let balanceJob = ElectrumClient.GetBalance scriptHashHex
-        Server.Query account.Currency querySettings balanceJob cancelSourceOption
+        Server.Query account.Currency querySettings balanceJob maybeCancelSource
 
     let private GetBalancesFromServer (account: IUtxoAccount)
                                       (mode: ServerSelectionMode)
-                                      (cancelSourceOption: Option<CustomCancelSource>)
-                                         : Async<Option<BlockchainScriptHashGetBalanceInnerResult>> =
+                                      (maybeCancelSource: Maybe<CustomCancelSource>)
+                                         : Async<Maybe<BlockchainScriptHashGetBalanceInnerResult>> =
         async {
             try
-                let! balances = GetBalances account mode cancelSourceOption
-                return Some balances
+                let! balances = GetBalances account mode maybeCancelSource
+                return Just balances
             with
-            | ex when (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome ->
-                return None
+            | ex when (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsJust ->
+                return Nothing
         }
 
     let internal GetShowableBalance (account: IUtxoAccount)
                                     (mode: ServerSelectionMode)
-                                    (cancelSourceOption: Option<CustomCancelSource>)
-                                        : Async<Option<decimal>> =
+                                    (maybeCancelSource: Maybe<CustomCancelSource>)
+                                        : Async<Maybe<decimal>> =
         async {
-            let! maybeBalances = GetBalancesFromServer account mode cancelSourceOption
+            let! maybeBalances = GetBalancesFromServer account mode maybeCancelSource
             match maybeBalances with
-            | Some balances ->
-                return Some (BalanceToShow balances)
-            | None ->
-                return None
+            | Just balances ->
+                return Just (BalanceToShow balances)
+            | Nothing ->
+                return Nothing
         }
 
     let private ConvertToICoin (account: IUtxoAccount) (inputOutpointInfo: TransactionInputOutpointInfo): ICoin =
@@ -194,7 +195,7 @@ module Account =
         async {
             let job = ElectrumClient.GetBlockchainTransaction utxo.TransactionId
             let! transRaw =
-                Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+                Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job Nothing
             let transaction = Transaction.Parse(transRaw, GetNetwork currency)
             let txOut = transaction.Outputs.[utxo.OutputIndex]
             // should suggest a ToHex() method to NBitcoin's TxOut type?
@@ -265,7 +266,7 @@ module Account =
 
         let job = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
                   |> ElectrumClient.GetUnspentTransactionOutputs
-        let! utxos = Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+        let! utxos = Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job Nothing
 
         if not (utxos.Any()) then
             failwith "No UTXOs found!"
@@ -294,7 +295,7 @@ module Account =
         //querying for 1 will always return -1 surprisingly...
         let estimateFeeJob = ElectrumClient.EstimateFee 2
         let! btcPerKiloByteForFastTrans =
-            Server.Query account.Currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob None
+            Server.Query account.Currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob Nothing
 
         let feeRate =
             try
@@ -320,7 +321,7 @@ module Account =
             return { Inputs = allUsedInputs; Fee = minerFee }
         with
         | :? NBitcoin.NotEnoughFundsException ->
-            return raise <| InsufficientBalanceForFee None
+            return raise <| InsufficientBalanceForFee Nothing
     }
 
     let private SignTransactionWithPrivateKey (account: IUtxoAccount)
@@ -342,7 +343,7 @@ module Account =
             failwith <| SPrintF1 "Transaction check failed after signing with %A" transCheckResultAfterSigning
 
         if not (finalTransactionBuilder.Verify finalTransaction) then
-            failwith "Something went wrong when verifying transaction"
+            failwith "Verification of transaction failed"
         finalTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
@@ -376,7 +377,7 @@ module Account =
 
     let private BroadcastRawTransaction currency (rawTx: string): Async<string> =
         let job = ElectrumClient.BroadcastTransaction rawTx
-        Server.Query currency QuerySettings.Broadcast job None
+        Server.Query currency QuerySettings.Broadcast job Nothing
 
     let BroadcastTransaction currency (transaction: SignedTransaction<_>) =
         // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
@@ -485,4 +486,4 @@ module Account =
         with
         // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
         | :? FormatException ->
-            raise (AddressWithInvalidChecksum None)
+            raise <| AddressWithInvalidChecksum Nothing

@@ -6,6 +6,7 @@ open System.Threading
 open System.Threading.Tasks
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 
 open NUnit.Framework
 
@@ -22,7 +23,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
                             NetworkPath = serverId
                             ConnectionType = dummy_connection_type
                         }
-                    CommunicationHistory = None
+                    CommunicationHistory = Nothing
                 }
             Retrieval = job
         }
@@ -111,7 +112,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
             | ex ->
                 let taskException = FSharpUtil.FindException<TaskCanceledException> ex
                 let exDetails = ex.ToString()
-                Assert.That(taskException.IsSome, Is.True, exDetails)
+                Assert.That(taskException.IsJust, Is.True, exDetails)
                 None
 
         // to make sure the exception happened
@@ -153,7 +154,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
             | ex ->
                 let taskException = FSharpUtil.FindException<TaskCanceledException> ex
                 let exDetails = ex.ToString()
-                Assert.That(taskException.IsSome, Is.True, exDetails)
+                Assert.That(taskException.IsJust, Is.True, exDetails)
                 None
 
         // to make sure the exception happened
@@ -196,7 +197,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
             | ex ->
                 let resException = FSharpUtil.FindException<TaskCanceledException> ex
                 let exDetails = ex.ToString()
-                Assert.That(resException.IsSome, Is.True, exDetails)
+                Assert.That(resException.IsJust, Is.True, exDetails)
                 None
 
         // to make sure the exception happened
@@ -240,7 +241,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
             | ex ->
                 let resException = FSharpUtil.FindException<TaskCanceledException> ex
                 let exDetails = ex.ToString()
-                Assert.That(resException.IsSome, Is.True, exDetails)
+                Assert.That(resException.IsJust, Is.True, exDetails)
                 None
 
         // to make sure the exception happened
@@ -351,7 +352,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
                         |> Result.Value
                 with
                 | ex ->
-                    if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
+                    if (FSharpUtil.FindException<TaskCanceledException> ex).IsJust then
                         Error ex
                     else
                         reraise()
@@ -928,7 +929,7 @@ type DotNetAsyncCancellation() =
         let ex = Assert.Throws<AggregateException>(fun _ ->
             Console.WriteLine fastestTask.Result
         )
-        Assert.That((FSharpUtil.FindException<TaskCanceledException> ex).IsSome, Is.EqualTo true)
+        Assert.That((FSharpUtil.FindException<TaskCanceledException> ex).IsJust, Is.EqualTo true)
 
     [<Test>]
     member __.``check if we can query .IsCancellationRequested after cancelling and disposing``() =
@@ -945,7 +946,7 @@ type DotNetAsyncCancellation() =
         let ex = Assert.Throws<AggregateException>(fun _ ->
             Console.WriteLine task.Result
         )
-        Assert.That((FSharpUtil.FindException<TaskCanceledException> ex).IsSome, Is.EqualTo true)
+        Assert.That((FSharpUtil.FindException<TaskCanceledException> ex).IsJust, Is.EqualTo true)
 
         Assert.That(cancellationSource.IsCancellationRequested, Is.EqualTo true)
         cancellationSource.Dispose()

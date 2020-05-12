@@ -7,6 +7,7 @@ open NUnit.Framework
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
+open GWallet.Backend.FSharpUtil
 
 // TODO: move this to its own file
 [<TestFixture>]
@@ -178,10 +179,10 @@ type ElectrumIntegrationTests() =
                 false
             elif Environment.OSVersion.Platform = PlatformID.Unix then
                 match Config.GetMonoVersion() with
-                | None ->
+                | Nothing ->
                     Assert.Fail "unix platform can only be mono, as we must not be running this test in mobile..."
                     failwith "unreachable"
-                | Some monoVersion ->
+                | Just monoVersion ->
                     if monoVersion < Version("5.18.0.240") then
                         true
                     else

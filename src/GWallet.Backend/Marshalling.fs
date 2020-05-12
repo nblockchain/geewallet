@@ -60,10 +60,10 @@ type RequireAllPropertiesContractResolver() =
     override __.CreateProperty(memberInfo: MemberInfo, memberSerialization: MemberSerialization) =
         let property = base.CreateProperty(memberInfo, memberSerialization)
         // https://stackoverflow.com/questions/20696262/reflection-to-find-out-if-property-is-of-option-type
-        let isOption =
+        let isOpt =
             property.PropertyType.IsGenericType &&
             property.PropertyType.GetGenericTypeDefinition() = typedefof<Option<_>>
-        if isOption then
+        if isOpt then
             property.Required <- Required.AllowNull
         property
 
@@ -139,3 +139,6 @@ module Marshalling =
 
     let Serialize<'T>(value: 'T): string =
         SerializeCustom(value, DefaultSettings)
+
+    let PlainSerialize (value: obj): string =
+        JsonConvert.SerializeObject(value, Formatting.None, PascalCase2LowercasePlusUnderscoreConversionSettings)

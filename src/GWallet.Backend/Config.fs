@@ -7,6 +7,7 @@ open System.Reflection
 
 open Xamarin.Essentials
 
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 // TODO: make internal when tests don't depend on this anymore
@@ -52,13 +53,13 @@ module Config =
         | _ ->
             false
 
-    let GetMonoVersion(): Option<Version> =
-        FSharpUtil.option {
-            // this gives None on MS.NET (e.g. UWP/WPF)
-            let! monoRuntime = Type.GetType "Mono.Runtime" |> Option.ofObj
-            // this gives None on Mono Android/iOS/macOS
+    let GetMonoVersion(): Maybe<Version> =
+        FSharpUtil.maybe {
+            // this gives Nothing on MS.NET (e.g. UWP/WPF)
+            let! monoRuntime = Type.GetType "Mono.Runtime" |> Maybe.OfObj
+            // this gives Nothing on Mono Android/iOS/macOS
             let! displayName =
-                monoRuntime.GetMethod("GetDisplayName", BindingFlags.NonPublic ||| BindingFlags.Static) |> Option.ofObj
+                monoRuntime.GetMethod("GetDisplayName", BindingFlags.NonPublic ||| BindingFlags.Static) |> Maybe.OfObj
                 // example: 5.12.0.309 (2018-02/39d89a335c8 Thu Sep 27 06:54:53 EDT 2018)
             let fullVersion = displayName.Invoke(null, null) :?> string
             let simpleVersion = fullVersion.Substring(0, fullVersion.IndexOf(' ')) |> Version
@@ -70,8 +71,8 @@ module Config =
         //we need this check because older versions of Mono (such as 5.16, or Ubuntu 18.04 LTS's version: 4.6.2)
         //don't work with the new TCP client, only the legacy one works
         match GetMonoVersion() with
-        | None -> false
-        | Some monoVersion -> monoVersion < Version("5.18.0.240")
+        | Nothing -> false
+        | Just monoVersion -> monoVersion < Version("5.18.0.240")
 
     // FIXME: make FaultTolerantParallelClient accept funcs that receive this as an arg, maybe 2x-ing it when a full
     //        round of failures has happened, as in, all servers failed

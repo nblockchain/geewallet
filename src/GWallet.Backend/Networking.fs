@@ -4,6 +4,7 @@ open System
 open System.Net
 open System.Net.Sockets
 
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
@@ -78,71 +79,71 @@ module Networking =
     // Ubuntu 18.04 LTS still brings a very old version of Mono (4.6.2) that doesn't have TLS1.2 support
     let Tls12Support =
         let monoVersion = Config.GetMonoVersion()
-        not (Option.exists (fun monoVersion -> monoVersion < Version("4.8")) monoVersion)
+        not (Maybe.Exists (fun monoVersion -> monoVersion < Version("4.8")) monoVersion)
 
-    let FindBuggyException (ex: Exception) (newExceptionMsg): Option<Exception> =
+    let FindBuggyException (ex: Exception) (newExceptionMsg): Maybe<Exception> =
         let isOldMonoWithBuggyAsync =
             let monoVersion = Config.GetMonoVersion()
-            Option.exists (fun monoVersion -> monoVersion < Version("5.0")) monoVersion
-        let rec findBuggyExceptions (ex: Exception): Option<Exception> =
+            Maybe.Exists (fun monoVersion -> monoVersion < Version("5.0")) monoVersion
+        let rec findBuggyExceptions (ex: Exception): Maybe<Exception> =
             if null = ex then
-                None
+                Nothing
             // see https://bugzilla.xamarin.com/show_bug.cgi?id=41133 | https://sentry.io/organizations/nblockchain/issues/918478485/
             elif ex.GetType() = typeof<FieldAccessException> then
-                Some ex
+                Just ex
             // see https://github.com/Microsoft/visualfsharp/issues/2720
             elif ex.GetType() = typeof<Exception> && ex.Message = "Unexpected no result" then
-                Some ex
+                Just ex
             else
                 findBuggyExceptions ex.InnerException
 
         if not isOldMonoWithBuggyAsync then
-            None
+            Nothing
         else
             match findBuggyExceptions ex with
-            | None -> None
-            | Some buggyEx ->
-                BuggyExceptionFromOldMonoVersion(newExceptionMsg, buggyEx) :> Exception |> Some
+            | Nothing -> Nothing
+            | Just buggyEx ->
+                BuggyExceptionFromOldMonoVersion(newExceptionMsg, buggyEx) :> Exception |> Just
 
-    let FindExceptionToRethrow (ex: Exception) (newExceptionMsg): Option<Exception> =
+    let FindExceptionToRethrow (ex: Exception) (newExceptionMsg): Maybe<Exception> =
         match FSharpUtil.FindException<SocketException> ex with
-        | None ->
+        | Nothing ->
             FindBuggyException ex newExceptionMsg
-        | Some socketException ->
+        | Just socketException ->
             if socketException.ErrorCode = int SocketError.ConnectionRefused then
-                ServerRefusedException(newExceptionMsg, ex) :> Exception |> Some
+                ServerRefusedException(newExceptionMsg, ex) :> Exception |> Just
             elif socketException.ErrorCode = int SocketError.ConnectionReset then
-                ServerRefusedException(newExceptionMsg, ex) :> Exception |> Some
+                ServerRefusedException(newExceptionMsg, ex) :> Exception |> Just
 
             elif socketException.ErrorCode = int SocketError.TimedOut then
-                ServerTimedOutException(newExceptionMsg, ex) :> Exception |> Some
+                ServerTimedOutException(newExceptionMsg, ex) :> Exception |> Just
 
             // probably misleading errorCode (see fixed mono bug: https://github.com/mono/mono/pull/8041 )
             // TODO: remove this when Mono X.Y (where X.Y=version to introduce this bugfix) is stable
             //       everywhere (probably 8 years from now?), and see if we catch it again in sentry
             elif socketException.ErrorCode = int SocketError.AddressFamilyNotSupported then
-                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Just
 
             // -1!?! WTF, mono bug in v6.4.0? see https://sentry.io/organizations/nblockchain/issues/1261821968/
             elif socketException.ErrorCode = int SocketError.SocketError &&
                  socketException.Message.Contains "mono-io-layer-error" then
-                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Just
 
             elif socketException.ErrorCode = int SocketError.HostUnreachable then
-                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Just
             elif socketException.ErrorCode = int SocketError.NetworkUnreachable then
-                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Just
             elif socketException.ErrorCode = int SocketError.AddressNotAvailable then
-                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Just
             elif socketException.ErrorCode = int SocketError.NetworkDown then
-                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Just
             elif socketException.ErrorCode = int SocketError.Shutdown then
-                ServerClosedConnectionEarlyException(newExceptionMsg, ex) :> Exception |> Some
+                ServerClosedConnectionEarlyException(newExceptionMsg, ex) :> Exception |> Just
             elif socketException.ErrorCode = int SocketError.ProtocolOption then
-                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Just
             elif socketException.ErrorCode = int SocketError.HostNotFound then
-                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Just
 
             else
-                UnhandledSocketException(socketException.ErrorCode, ex) :> Exception |> Some
+                UnhandledSocketException(socketException.ErrorCode, ex) :> Exception |> Just
 

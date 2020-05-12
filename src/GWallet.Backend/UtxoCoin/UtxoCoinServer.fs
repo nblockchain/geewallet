@@ -6,6 +6,7 @@
 open System
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type QuerySettings<'R> =
@@ -25,14 +26,14 @@ module Server =
                                                            maybeConsistencyConfig =
         let consistencyConfig =
             match maybeConsistencyConfig with
-            | None -> SpecificNumberOfConsistentResponsesRequired 2u
-            | Some specificConsistencyConfig -> specificConsistencyConfig
+            | Nothing -> SpecificNumberOfConsistentResponsesRequired 2u
+            | Just specificConsistencyConfig -> specificConsistencyConfig
 
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS
-            ExceptionHandler = Some (fun ex -> Infrastructure.ReportWarning ex)
+            ExceptionHandler = Just (fun ex -> Infrastructure.ReportWarning ex)
             ResultSelectionMode =
                 Selective
                     {
@@ -44,21 +45,21 @@ module Server =
 
     let private FaultTolerantParallelClientSettingsForBroadcast() =
         FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast
-                                                   (Some (SpecificNumberOfConsistentResponsesRequired 1u))
+                                                   (Just (SpecificNumberOfConsistentResponsesRequired 1u))
 
     let private FaultTolerantParallelClientSettingsForBalanceCheck (mode: ServerSelectionMode)
                                                                    cacheOrInitialBalanceMatchFunc =
         let consistencyConfig =
             if mode = ServerSelectionMode.Fast then
-                Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
+                Just (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
             else
-                None
+                Nothing
         FaultTolerantParallelClientDefaultSettings mode consistencyConfig
 
     let private faultTolerantElectrumClient =
         FaultTolerantParallelClient<ServerDetails,ServerDiscardedException> Caching.Instance.SaveServerLastStat
 
-    // FIXME: seems there's some code duplication between this function and EtherServer.fs's GetServerFuncs function
+    // FIXME: seems there's Just code duplication between this function and EtherServer.fs's GetServerFuncs function
     //        and room for simplification to not pass a new ad-hoc delegate?
     let internal GetServerFuncs<'R> (electrumClientFunc: Async<StratumClient>->Async<'R>)
                                     (electrumServers: seq<ServerDetails>)
@@ -77,7 +78,7 @@ module Server =
                 let msg = SPrintF2 "%s: %s" (ex.GetType().FullName) ex.Message
                 return raise <| ServerDiscardedException(msg, ex)
             | ex ->
-                return raise <| Exception(SPrintF1 "Some problem when connecting to %s" server.ServerInfo.NetworkPath,
+                return raise <| Exception(SPrintF1 "Just problem when connecting to %s" server.ServerInfo.NetworkPath,
                                           ex)
         }
         let ElectrumServerToGenericServer (electrumClientFunc: Async<StratumClient>->Async<'R>)
@@ -104,23 +105,23 @@ module Server =
     let Query<'R when 'R: equality> currency
                                     (settings: QuerySettings<'R>)
                                     (job: Async<StratumClient>->Async<'R>)
-                                    (cancelSourceOption: Option<CustomCancelSource>)
+                                    (maybeCancelSource: Maybe<CustomCancelSource>)
                                         : Async<'R> =
         let query =
-            match cancelSourceOption with
-            | None ->
+            match maybeCancelSource with
+            | Nothing ->
                 faultTolerantElectrumClient.Query
-            | Some cancelSource ->
+            | Just cancelSource ->
                 faultTolerantElectrumClient.QueryWithCancellation cancelSource
         let querySettings =
             match settings with
-            | Default mode -> FaultTolerantParallelClientDefaultSettings mode None
+            | Default mode -> FaultTolerantParallelClientDefaultSettings mode Nothing
             | Balance (mode,predicate) -> FaultTolerantParallelClientSettingsForBalanceCheck mode predicate
             | FeeEstimation averageFee ->
                 let minResponsesRequired = 3u
                 FaultTolerantParallelClientDefaultSettings
                     ServerSelectionMode.Fast
-                    (Some (AverageBetweenResponses (minResponsesRequired, averageFee)))
+                    (Just (AverageBetweenResponses (minResponsesRequired, averageFee)))
             | Broadcast -> FaultTolerantParallelClientSettingsForBroadcast()
         query
             querySettings

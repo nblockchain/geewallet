@@ -13,13 +13,14 @@ open Nethereum.RPC.Eth.DTOs
 open Nethereum.StandardTokenEIP20.ContractDefinition
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type BalanceType =
     | Unconfirmed
     | Confirmed
 
-type SomeWeb3(url: string) =
+type AWeb3(url: string) =
     inherit Web3(url)
 
     member val Url = url with get
@@ -35,11 +36,11 @@ module Web3ServerSeedList =
     // -------------- SERVERS TO REVIEW ADDING TO THE REGISTRY: -----------------------------
     //let private PUBLIC_WEB3_API_ETH_INFURA = "https://mainnet.infura.io:8545" ?
     // not sure why the below one doesn't work, gives some JSON error
-    //let private ethWeb3EtherScan = SomeWeb3 "https://api.etherscan.io/api"
+    //let private ethWeb3EtherScan = AWeb3 "https://api.etherscan.io/api"
 
     // TODO: add the one from https://etcchain.com/api/ too
     // FIXME: the below one doesn't seem to work; we should include it anyway and make the algorithm discard it at runtime
-    //let private etcWeb3CommonWealthMantis = SomeWeb3("https://etc-mantis.callisto.network")
+    //let private etcWeb3CommonWealthMantis = AWeb3("https://etc-mantis.callisto.network")
 
     // these 2 only support simple balance requests
     //  (unconfirmed, because can't do getCurrentBlock requests)
@@ -77,7 +78,7 @@ module Server =
                 else
                     "http"
             let uri = SPrintF2 "%s://%s" protocol serverDetails.ServerInfo.NetworkPath
-            SomeWeb3 uri
+            AWeb3 uri
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
         ex.Message.StartsWith(SPrintF1 "%i " errorCode) || ex.Message.Contains(SPrintF1 " %i " errorCode)
@@ -86,16 +87,16 @@ module Server =
     let PerformEtherRemoteCallWithTimeout<'T,'R> (job: Async<'R>): Async<'R> = async {
         let! maybeResult = FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT job
         match maybeResult with
-        | None ->
+        | Nothing ->
             return raise <| ServerTimedOutException("Timeout when trying to communicate with Ether server")
-        | Some result ->
+        | Just result ->
             return result
     }
 
     let MaybeRethrowWebException (ex: Exception): unit =
         let maybeWebEx = FSharpUtil.FindException<WebException> ex
         match maybeWebEx with
-        | Some webEx ->
+        | Just webEx ->
 
             // TODO: send a warning in Sentry
             if webEx.Status = WebExceptionStatus.UnknownError then
@@ -122,13 +123,13 @@ module Server =
 
             raise <| UnhandledWebException(webEx.Status, webEx)
 
-        | None ->
+        | Nothing ->
             ()
 
     let MaybeRethrowHttpRequestException (ex: Exception): unit =
         let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
         match maybeHttpReqEx with
-        | Some httpReqEx ->
+        | Just httpReqEx ->
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.ConnectionTimeOut) then
                 raise <| ServerTimedOutException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
@@ -166,7 +167,7 @@ module Server =
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
 
             // weird "IOException: The server returned an invalid or unrecognized response." since Mono 6.4.x (vs16.3)
-            if (FSharpUtil.FindException<IOException> httpReqEx).IsSome then
+            if (FSharpUtil.FindException<IOException> httpReqEx).IsJust then
                 raise <| ServerMisconfiguredException(exMsg, httpReqEx)
         | _ ->
             ()
@@ -174,7 +175,7 @@ module Server =
     let MaybeRethrowRpcResponseException (ex: Exception): unit =
         let maybeRpcResponseEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex
         match maybeRpcResponseEx with
-        | Some rpcResponseEx ->
+        | Just rpcResponseEx ->
             if rpcResponseEx.RpcError <> null then
                 if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNodeOrMissingTrieNode) then
                     if (not (rpcResponseEx.RpcError.Message.Contains "pruning=archive")) &&
@@ -195,74 +196,74 @@ module Server =
                                          rpcResponseEx.RpcError.Message
                                          rpcResponseEx.Message,
                                    rpcResponseEx)
-        | None ->
+        | Nothing ->
             ()
 
     let MaybeRethrowRpcClientTimeoutException (ex: Exception): unit =
         let maybeRpcTimeoutException =
             FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientTimeoutException> ex
         match maybeRpcTimeoutException with
-        | Some rpcTimeoutEx ->
+        | Just rpcTimeoutEx ->
             raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
-        | None ->
+        | Nothing ->
             ()
 
     let MaybeRethrowNetworkingException (ex: Exception): unit =
         let maybeSocketRewrappedException = Networking.FindExceptionToRethrow ex exMsg
         match maybeSocketRewrappedException with
-        | Some socketRewrappedException ->
+        | Just socketRewrappedException ->
             raise socketRewrappedException
-        | None ->
+        | Nothing ->
             ()
 
     // this could be a Xamarin.Android bug (see https://gitlab.gnome.org/World/geewallet/issues/119)
     let MaybeRethrowObjectDisposedException (ex: Exception): unit =
         let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
         match maybeRpcUnknownEx with
-        | Some _ ->
+        | Just _ ->
             let maybeObjectDisposedEx = FSharpUtil.FindException<ObjectDisposedException> ex
             match maybeObjectDisposedEx with
-            | Some objectDisposedEx ->
+            | Just objectDisposedEx ->
                 if objectDisposedEx.Message.Contains "MobileAuthenticatedStream" then
                     raise <| ProtocolGlitchException(objectDisposedEx.Message, objectDisposedEx)
-            | None ->
+            | Nothing ->
                 ()
-        | None ->
+        | Nothing ->
             ()
 
     let MaybeRethrowInnerRpcException (ex: Exception): unit =
         let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
         match maybeRpcUnknownEx with
-        | Some rpcUnknownEx ->
+        | Just rpcUnknownEx ->
 
             let maybeDeSerializationEx =
                 FSharpUtil.FindException<JsonRpcSharp.Client.DeserializationException> rpcUnknownEx
             match maybeDeSerializationEx with
-            | None ->
+            | Nothing ->
                 ()
-            | Some deserEx ->
+            | Just deserEx ->
                 raise <| ServerMisconfiguredException(deserEx.Message, ex)
 
             // this SSL exception could be a mono 6.0.x bug (see https://gitlab.com/knocte/geewallet/issues/121)
             let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
             match maybeHttpReqEx with
-            | Some httpReqEx ->
+            | Just httpReqEx ->
                 if httpReqEx.Message.Contains "SSL" then
                     let maybeIOEx = FSharpUtil.FindException<IOException> ex
                     match maybeIOEx with
-                    | Some ioEx ->
+                    | Just ioEx ->
                         raise <| ProtocolGlitchException(ioEx.Message, ex)
-                    | None ->
+                    | Nothing ->
                         let maybeSecEx =
                             FSharpUtil.FindException<System.Security.Authentication.AuthenticationException> ex
                         match maybeSecEx with
-                        | Some secEx ->
+                        | Just secEx ->
                             raise <| ProtocolGlitchException(secEx.Message, ex)
-                        | None ->
+                        | Nothing ->
                             ()
-            | None ->
+            | Nothing ->
                 ()
-        | None ->
+        | Nothing ->
             ()
 
     let private ReworkException (ex: Exception): unit =
@@ -293,14 +294,14 @@ module Server =
 
         let consistencyConfig =
             match maybeConsistencyConfig with
-            | None -> SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired
-            | Some specificConsistencyConfig -> specificConsistencyConfig
+            | Nothing -> SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired
+            | Just specificConsistencyConfig -> specificConsistencyConfig
 
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
             NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
             NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
-            ExceptionHandler = Some
+            ExceptionHandler = Just
                 (
                     fun ex ->
                         Infrastructure.ReportWarning ex
@@ -328,13 +329,13 @@ module Server =
                                                                    (cacheOrInitialBalanceMatchFunc: decimal->bool) =
         let consistencyConfig =
             if mode = ServerSelectionMode.Fast then
-                Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
+                Just (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
             else
-                None
+                Nothing
         FaultTolerantParallelClientDefaultSettings mode currency consistencyConfig
 
     let private FaultTolerantParallelClientSettingsForBroadcast () =
-        FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast None
+        FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast Nothing
 
     let private faultTolerantEtherClient =
         JsonRpcSharp.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
@@ -342,7 +343,7 @@ module Server =
 
 
     let Web3ServerToRetrievalFunc (server: ServerDetails)
-                                  (web3ClientFunc: SomeWeb3->Async<'R>)
+                                  (web3ClientFunc: AWeb3->Async<'R>)
                                       : Async<'R> =
 
         let HandlePossibleEtherFailures (job: Async<'R>): Async<'R> =
@@ -367,16 +368,16 @@ module Server =
                 let msg = SPrintF2 "%s: %s" (ex.GetType().FullName) ex.Message
                 return raise <| ServerDiscardedException(msg, ex)
             | ex ->
-                return raise <| Exception(SPrintF1 "Some problem when connecting to '%s'"
+                return raise <| Exception(SPrintF1 "Just problem when connecting to '%s'"
                                                   server.ServerInfo.NetworkPath, ex)
         }
 
-    // FIXME: seems there's some code duplication between this function and UtxoCoinAccount.fs's GetServerFuncs function
+    // FIXME: seems there's Just code duplication between this function and UtxoCoinAccount.fs's GetServerFuncs function
     //        and room for simplification to not pass a new ad-hoc delegate?
-    let GetServerFuncs<'R> (web3Func: SomeWeb3->Async<'R>)
+    let GetServerFuncs<'R> (web3Func: AWeb3->Async<'R>)
                            (etherServers: seq<ServerDetails>)
                                : seq<Server<ServerDetails,'R>> =
-        let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
+        let Web3ServerToGenericServer (web3ClientFunc: AWeb3->Async<'R>)
                                       (etherServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
             {
@@ -390,7 +391,7 @@ module Server =
         serverFuncs
 
     let private GetRandomizedFuncs<'R> (currency: Currency)
-                                       (web3Func: SomeWeb3->Async<'R>)
+                                       (web3Func: AWeb3->Async<'R>)
                                            : List<Server<ServerDetails,'R>> =
         let etherServers = Web3ServerSeedList.Randomize currency
         GetServerFuncs web3Func etherServers
@@ -409,7 +410,7 @@ module Server =
                         }
                 GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast currency None)
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast currency Nothing)
                 web3Funcs
         }
 
@@ -461,14 +462,14 @@ module Server =
             someRetrievedBalance = 0m
         else
             match Caching.Instance.TryRetrieveLastCompoundBalance address currency with
-            | None -> false
-            | Some balance -> someRetrievedBalance = balance
+            | Nothing -> false
+            | Just balance -> someRetrievedBalance = balance
 
     let GetEtherBalance (currency: Currency)
                         (address: string)
                         (balType: BalanceType)
                         (mode: ServerSelectionMode)
-                        (cancelSourceOption: Option<CustomCancelSource>)
+                        (maybeCancelSource: Maybe<CustomCancelSource>)
                                      : Async<decimal> =
         async {
             let web3Funcs =
@@ -490,10 +491,10 @@ module Server =
                 GetRandomizedFuncs currency web3Func
 
             let query =
-                match cancelSourceOption with
-                | None ->
+                match maybeCancelSource with
+                | Nothing ->
                     faultTolerantEtherClient.Query
-                | Some cancelSource ->
+                | Just cancelSource ->
                     faultTolerantEtherClient.QueryWithCancellation cancelSource
 
             return! query
@@ -528,7 +529,7 @@ module Server =
                         (address: string)
                         (balType: BalanceType)
                         (mode: ServerSelectionMode)
-                        (cancelSourceOption: Option<CustomCancelSource>)
+                        (maybeCancelSource: Maybe<CustomCancelSource>)
                             : Async<decimal> =
         async {
             let web3Funcs =
@@ -547,10 +548,10 @@ module Server =
                 GetRandomizedFuncs currency web3Func
 
             let query =
-                match cancelSourceOption with
-                | None ->
+                match maybeCancelSource with
+                | Nothing ->
                     faultTolerantEtherClient.Query
-                | Some cancelSource ->
+                | Just cancelSource ->
                     faultTolerantEtherClient.QueryWithCancellation cancelSource
 
             return! query
@@ -577,7 +578,7 @@ module Server =
                     }
                 GetRandomizedFuncs account.Currency web3Func
             return! faultTolerantEtherClient.Query
-                        (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast account.Currency None)
+                        (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast account.Currency Nothing)
                         web3Funcs
         }
 
@@ -603,7 +604,7 @@ module Server =
                         (FaultTolerantParallelClientDefaultSettings
                             ServerSelectionMode.Fast
                             currency
-                            (Some (AverageBetweenResponses (minResponsesRequired, AverageGasPrice))))
+                            (Just (AverageBetweenResponses (minResponsesRequired, AverageGasPrice))))
                         web3Funcs
 
         }
@@ -629,9 +630,9 @@ module Server =
             with
             | ex ->
                 match FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex with
-                | None ->
+                | Nothing ->
                     return raise (FSharpUtil.ReRaise ex)
-                | Some rpcResponseException ->
+                | Just rpcResponseException ->
                     // FIXME: this is fragile, ideally should respond with an error code
                     if rpcResponseException.Message.StartsWith(insufficientFundsMsg,
                                                                StringComparison.InvariantCultureIgnoreCase) then
@@ -657,7 +658,7 @@ module Server =
                     }
                 GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast currency None)
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast currency Nothing)
                 web3Funcs
         }
 
@@ -681,7 +682,7 @@ module Server =
                         }
                 GetRandomizedFuncs baseCurrency web3Func
             return! faultTolerantEtherClient.Query
-                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast baseCurrency None)
+                (FaultTolerantParallelClientDefaultSettings ServerSelectionMode.Fast baseCurrency Nothing)
                 web3Funcs
         }
 

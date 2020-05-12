@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Linq
 
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 module ServerManager =
@@ -15,15 +16,15 @@ module ServerManager =
 
         let fromElectrumServerToGenericServerDetails (es: UtxoCoin.ElectrumServer) =
             match es.UnencryptedPort with
-            | None -> failwith "filtering for non-ssl electrum servers didn't work?"
-            | Some unencryptedPort ->
+            | Nothing -> failwith "filtering for non-ssl electrum servers didn't work?"
+            | Just unencryptedPort ->
                 {
                     ServerInfo =
                         {
                             NetworkPath = es.Fqdn
                             ConnectionType = { Encrypted = false; Protocol = Tcp unencryptedPort }
                         }
-                    CommunicationHistory = None
+                    CommunicationHistory = Nothing
                 }
 
         let btc = Currency.BTC
@@ -35,7 +36,7 @@ module ServerManager =
             | true,baseLineBtcServers ->
                 baseLineBtcServers
             | false,_ ->
-                failwith <| SPrintF1 "There should be some %A servers as baseline" btc
+                failwith <| SPrintF1 "There should be Just %A servers as baseline" btc
 
         let allBtcServers = Seq.append electrumBtcServers eyeBtcServers
                             |> Seq.map fromElectrumServerToGenericServerDetails
@@ -50,7 +51,7 @@ module ServerManager =
             | true,baseLineLtcServers ->
                 baseLineLtcServers
             | false,_ ->
-                failwith <| SPrintF1 "There should be some %A servers as baseline" ltc
+                failwith <| SPrintF1 "There should be Just %A servers as baseline" ltc
 
         let allLtcServers = Seq.append electrumLtcServers eyeLtcServers
                             |> Seq.map fromElectrumServerToGenericServerDetails
@@ -95,7 +96,7 @@ module ServerManager =
 
             ResultSelectionMode = Exhaustive
 
-            ExceptionHandler = None
+            ExceptionHandler = Nothing
         }
 
     let private GetDummyBalanceAction (currency: Currency) servers =
@@ -120,40 +121,40 @@ module ServerManager =
                         let! bal = UtxoCoin.ElectrumClient.GetBalance scriptHash electrumServer
                         return bal.Confirmed |> decimal
                     }
-                UtxoCoin.Server.GetServerFuncs utxoFunc servers |> Some
+                UtxoCoin.Server.GetServerFuncs utxoFunc servers |> Just
 
             elif currency.IsEther() then
                 let ETH_GENESISBLOCK_ADDRESS = "0x0000000000000000000000000000000000000000"
 
-                let web3Func (web3: Ether.SomeWeb3): Async<decimal> =
+                let web3Func (web3: Ether.AWeb3): Async<decimal> =
                     async {
                         let! balance = Async.AwaitTask (web3.Eth.GetBalance.SendRequestAsync ETH_GENESISBLOCK_ADDRESS)
                         return balance.Value |> decimal
                     }
 
-                Ether.Server.GetServerFuncs web3Func servers |> Some
+                Ether.Server.GetServerFuncs web3Func servers |> Just
 
             else
-                None
+                Nothing
 
         match retrievalFuncs with
-        | Some queryFuncs ->
+        | Just queryFuncs ->
             async {
                 try
                     let! _ = tester.Query testingSettings
                                           (queryFuncs |> List.ofSeq)
                     return ()
                 with
-                | :? NoneAvailableException ->
+                | :? AllUnavailableException ->
                     return ()
-            } |> Some
+            } |> Just
         | _ ->
-            None
+            Nothing
 
     let private UpdateBaseline() =
         match Caching.Instance.ExportServers() with
-        | None -> failwith "After updating servers, cache should not be empty"
-        | Some serversInJson ->
+        | Nothing -> failwith "After updating servers, cache should not be empty"
+        | Just serversInJson ->
             File.WriteAllText(ServerRegistry.ServersEmbeddedResourceFileName, serversInJson)
 
     let UpdateServersStats () =
@@ -164,8 +165,8 @@ module ServerManager =
                 if not (currency.IsEthToken()) then
                     let serversForSpecificCurrency = Caching.Instance.GetServers currency
                     match GetDummyBalanceAction currency serversForSpecificCurrency with
-                    | None -> ()
-                    | Some job -> yield job
+                    | Nothing -> ()
+                    | Just job -> yield job
         }
         Async.Parallel jobs
             |> Async.RunSynchronously
