@@ -6,24 +6,21 @@ open System.Net
 open System.Diagnostics
 open System.IO
 
+open NBitcoin
 open DotNetLightning.Utils
 open DotNetLightning.Serialize
 open DotNetLightning.Serialize.Msgs
 open DotNetLightning.Channel
 open DotNetLightning.Peer
-open DotNetLightning.Crypto
 open DotNetLightning.Chain
 open DotNetLightning.Transactions
 
 open GWallet.Backend
-open GWallet.Backend.FSharpUtil
 open GWallet.Backend.UtxoCoin
 open GWallet.Backend.FSharpUtil.UwpHacks
-open NBitcoin
-
-open Newtonsoft.Json.Linq
 
 open FSharp.Core
+
 
 module Lightning =
     let private hex = DataEncoders.HexEncoder()
