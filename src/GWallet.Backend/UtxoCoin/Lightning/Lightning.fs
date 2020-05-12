@@ -105,7 +105,6 @@ module Lightning =
     let ReadAsync (keyRepo: DefaultKeyRepository) (peer: Peer) (stream: NetworkStream): Async<Result<PeerCommand, LNError>> =
         match peer.ChannelEncryptor.GetNoiseStep() with
         | ActTwo ->
-            Infrastructure.LogDebug "ReadAsync2"
             async {
                 let! actTwoRes = ReadExactAsync stream bolt08ActTwoLength
                 match actTwoRes with
@@ -115,7 +114,6 @@ module Lightning =
                     return Error err
             }
         | ActThree ->
-            Infrastructure.LogDebug "ReadAsync3"
             async {
                 let! actThreeRes = ReadExactAsync stream bolt08ActThreeLength
                 match actThreeRes with
@@ -125,7 +123,6 @@ module Lightning =
                     return Error err
             }
         | NoiseComplete ->
-            Infrastructure.LogDebug "ReadAsync4"
             async {
                 let! encryptedLengthRes = ReadExactAsync stream bolt08EncryptedMessageLengthPrefixLength
                 match encryptedLengthRes with
@@ -134,7 +131,6 @@ module Lightning =
                         let buf = Array.zeroCreate length
                         Debug.Assert ((stream.Read (buf, 0, length)) = length, "read length not equal to requested length")
                         buf
-                    Infrastructure.LogDebug "ReadAsync6"
                     return Ok (DecodeCipherPacket (encryptedLength, reader))
                 | Error err ->
                     return Error err
@@ -148,27 +144,20 @@ module Lightning =
     | OtherMessage of Peer
 
     let ProcessPeerEvents (oldPeer: Peer) (peerEventsResult: Result<List<PeerEvent>,'a>): MessageReceived =
-        Infrastructure.LogDebug "ProcessPeerEvents1"
         match peerEventsResult with
         | Ok (evt::[]) ->
-            Infrastructure.LogDebug "ProcessPeerEvents2"
             match evt with
             | PeerEvent.ReceivedChannelMsg (chanMsg, _) ->
-                Infrastructure.LogDebug "ProcessPeerEvents3"
                 ChannelMessage (Peer.applyEvent oldPeer evt, chanMsg)
             | PeerEvent.ReceivedError (error, _) ->
-                Infrastructure.LogDebug "ProcessPeerEvents4"
                 OurErrorMessage (Peer.applyEvent oldPeer evt, error)
             | _ ->
-                Infrastructure.LogDebug "ProcessPeerEvents5"
                 Infrastructure.LogDebug <| SPrintF1 "Warning: ignoring event that was not ReceivedChannelMsg, it was: %s"
                                                     (evt.GetType().Name)
                 OtherMessage <| Peer.applyEvent oldPeer evt
         | Ok _ ->
-            Infrastructure.LogDebug "ProcessPeerEvents6"
             failwith "receiving more than one channel event"
         | Error peerError ->
-            Infrastructure.LogDebug "ProcessPeerEvents7"
             failwith <| SPrintF1 "couldn't parse chan msg: %s" (peerError.ToString())
 
     let peerLimits: ChannelHandshakeLimits = {
@@ -288,16 +277,12 @@ module Lightning =
                     channelMsg
                     |> Peer.executeCommand peer
                     |> ProcessPeerEvents peer
-                Infrastructure.LogDebug "ReadUntilChannelMessage3"
                 match messageReceived with
                 | ChannelMessage (newPeer, chanMsg) ->
-                    Infrastructure.LogDebug "ReadUntilChannelMessage4"
                     return Ok (newPeer, chanMsg)
                 | OurErrorMessage (_, dnlErrorMessage) ->
-                    Infrastructure.LogDebug "ReadUntilChannelMessage5"
                     return Error <| DNLError dnlErrorMessage
                 | OtherMessage newPeer ->
-                    Infrastructure.LogDebug "ReadUntilChannelMessage6"
                     return! ReadUntilChannelMessage (keyRepo, newPeer, stream)
         }
 
