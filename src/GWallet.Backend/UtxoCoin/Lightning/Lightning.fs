@@ -58,7 +58,7 @@ module Lightning =
             member __.GetEstSatPer1000Weight(_: ConfirmationTarget) =
                 let satPerKb = (Money (btcPerKb, MoneyUnit.BTC)).ToUnit MoneyUnit.Satoshi
                 // 4 weight units per byte. See segwit specs.
-                let satPerKiloWeightUnit = satPerKb * 4m |> Convert.ToUInt32
+                let satPerKiloWeightUnit = satPerKb / 4m |> Convert.ToUInt32
                 FeeRatePerKw satPerKiloWeightUnit
 
     type StringErrorInner =
