@@ -213,6 +213,20 @@ module Lightning =
             return sentPeer
         }
 
+    let ReportDisconnection (ipEndPoint: IPEndPoint)
+                            (nodeId: NodeId)
+                            (abruptly: bool)
+                            (context: string) =
+        let msg =
+            SPrintF5
+                "peer %s@%s:%i disconnected %s(context: %s)"
+                (nodeId.Value.ToString())
+                (ipEndPoint.Address.ToString())
+                ipEndPoint.Port
+                (if abruptly then "after sending partial message " else "")
+                context
+        Infrastructure.ReportWarningMessage msg
+
     let ConnectAndHandshake ({ Account = _; NodeIdForResponder = nodeIdForResponder; KeyRepo = keyRepo }: ChannelEnvironment)
                             (channelCounterpartyIP: IPEndPoint)
                                 : Async<Result<Connection, LNError>> =
@@ -233,6 +247,9 @@ module Lightning =
             Infrastructure.LogDebug "Receiving Act 2..."
             let! act2Res = ReadAsync keyRepo sentAct1Peer stream
             match act2Res with
+            | Error (PeerDisconnected abruptly) ->
+                ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly "receiving act 2"
+                return Error (PeerDisconnected abruptly)
             | Error err -> return Error err
             | Ok act2 ->
                 let actThree, receivedAct2Peer =
@@ -254,6 +271,10 @@ module Lightning =
                 Infrastructure.LogDebug "Receiving init..."
                 let! initRes = ReadAsync keyRepo sentInitPeer stream
                 match initRes with
+                | Error (PeerDisconnected abruptly) ->
+                    let context = SPrintF1 "receiving init message while connecting, our init: %A" plainInit
+                    ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly context
+                    return Error (PeerDisconnected abruptly)
                 | Error err -> return Error err
                 | Ok init ->
                     return
@@ -343,6 +364,7 @@ module Lightning =
 
             let chanCmd = ChannelCommand.CreateOutbound initFunder
             let stream = client.GetStream()
+            let channelCounterpartyIP = client.Client.RemoteEndPoint :?> IPEndPoint
             let initialChan: Channel = CreateChannel
                                            account
                                            keyRepo
@@ -367,6 +389,10 @@ module Lightning =
             Infrastructure.LogDebug "Receiving accept_channel..."
             let! msgRes = ReadUntilChannelMessage (keyRepo, sentOpenChanPeer, stream)
             match msgRes with
+            | Error (PeerDisconnected abruptly) ->
+                let context = SPrintF1 "receiving accept_channel, our open_channel == %A" openChanMsg
+                ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly context
+                return Error (PeerDisconnected abruptly)
             | Error errorMsg -> return Error errorMsg
             | Ok (receivedOpenChanReplyPeer, chanMsg) ->
                 match chanMsg with
@@ -388,6 +414,8 @@ module Lightning =
         async {
             match Channel.executeCommand sentOpenChan (ApplyAcceptChannel acceptChannel) with
             | Ok (ChannelEvent.WeAcceptedAcceptChannel(fundingCreated, _) as evt::[]) ->
+                let channelCounterpartyIP = receivedOpenChanReplyPeer.PeerId.Value :?> IPEndPoint
+                let nodeIdForResponder = receivedOpenChanReplyPeer.TheirNodeId.Value
                 let receivedAcceptChannelChan = Channel.applyEvent sentOpenChan evt
 
                 let! sentFundingCreatedPeer = Send fundingCreated receivedOpenChanReplyPeer stream
@@ -395,6 +423,10 @@ module Lightning =
                 Infrastructure.LogDebug "Receiving funding_created..."
                 let! msgRes = ReadUntilChannelMessage (keyRepo, sentFundingCreatedPeer, stream)
                 match msgRes with
+                | Error (PeerDisconnected abruptly) ->
+                    let context = SPrintF1 "receiving funding_created, their accept_channel == %A" acceptChannel
+                    ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly context
+                    return Error (PeerDisconnected abruptly)
                 | Error errorMsg ->
                     return Error errorMsg
                 | Ok (_, chanMsg) ->
@@ -619,6 +651,7 @@ module Lightning =
             let! details = LoadChannelAndFetchDepth fileName
             let txIdHex = details.ChannelId.Value.ToString ()
             let notReestablishedChannel = details.Channel
+            let nodeIdForResponder = notReestablishedChannel.RemoteNodeId
             match notReestablishedChannel.State with
             | ChannelState.Normal _ ->
                 return Ok (UsableChannel txIdHex)
@@ -659,6 +692,9 @@ module Lightning =
                         Infrastructure.LogDebug "Receiving channel_reestablish or funding_locked..."
                         let! msgRes = ReadUntilChannelMessage (keyRepo, sentFundingLockedPeer, connection.Client.GetStream())
                         match msgRes with
+                        | Error (PeerDisconnected abruptly) ->
+                            ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly "receiving channel_reestablish or funding_locked"
+                            return Error (PeerDisconnected abruptly)
                         | Error errorMsg -> return Error errorMsg
                         | Ok (receivedChannelReestablishPeer, chanMsg) ->
                             let! fundingLockedRes =
@@ -669,6 +705,9 @@ module Lightning =
                                         Infrastructure.LogDebug "Received channel_reestablish, now receiving funding_locked..."
                                         let! msgRes = ReadUntilChannelMessage (keyRepo, receivedChannelReestablishPeer, connection.Client.GetStream())
                                         match msgRes with
+                                        | Error (PeerDisconnected abruptly) ->
+                                            ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly "receiving funding_locked"
+                                            return Error (PeerDisconnected abruptly)
                                         | Error errorMsg ->
                                             return Error errorMsg
                                         | Ok (_, chanMsg) ->
@@ -742,6 +781,7 @@ module Lightning =
         async {
             use! client = listener.AcceptTcpClientAsync() |> Async.AwaitTask
             let stream = client.GetStream()
+            let channelCounterpartyIP = client.Client.RemoteEndPoint :?> IPEndPoint
             // client.Client is actually a Socket (not a TcpClient), LOL
             let peerId = client.Client.RemoteEndPoint |> PeerId
             let initialPeer = Peer.CreateInbound(peerId, ourNodeSecret)
@@ -771,6 +811,9 @@ module Lightning =
                             Infrastructure.LogDebug "Receiving init..."
                             let! initRes = ReadAsync keyRepo receivedAct3Peer stream
                             match initRes with
+                            | Error (PeerDisconnected abruptly) ->
+                                ReportDisconnection channelCounterpartyIP remoteNodeId abruptly "receiving init message while accepting"
+                                return Error (PeerDisconnected abruptly)
                             | Error err -> return Error err
                             | Ok init ->
                                 match Peer.executeCommand receivedAct3Peer init with
@@ -784,6 +827,9 @@ module Lightning =
                                     Infrastructure.LogDebug "Receiving open_channel..."
                                     let! msgRes = ReadUntilChannelMessage (keyRepo, sentInitPeer, stream)
                                     match msgRes with
+                                    | Error (PeerDisconnected abruptly) ->
+                                        ReportDisconnection channelCounterpartyIP remoteNodeId abruptly "receiving open_channel"
+                                        return Error (PeerDisconnected abruptly)
                                     | Error errorMsg -> return Error errorMsg
                                     | Ok (receivedOpenChanPeer, chanMsg) ->
                                         match chanMsg with
@@ -829,6 +875,10 @@ module Lightning =
                                                     Infrastructure.LogDebug "Receiving funding_created..."
                                                     let! msgRes = ReadUntilChannelMessage (keyRepo, sentAcceptChanPeer, stream)
                                                     match msgRes with
+                                                    | Error (PeerDisconnected abruptly) ->
+                                                        let context = SPrintF2 "receiving funding_created, their open_channel == %A, our accept_channel == %A" openChannel acceptChannel
+                                                        ReportDisconnection channelCounterpartyIP remoteNodeId abruptly context
+                                                        return Error (PeerDisconnected abruptly)
                                                     | Error errorMsg -> return Error errorMsg
                                                     | Ok (receivedFundingCreatedPeer, chanMsg) ->
                                                         match chanMsg with
