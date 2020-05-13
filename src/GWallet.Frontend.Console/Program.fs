@@ -382,7 +382,7 @@ let AskChannelFee (account: UtxoCoin.NormalUtxoAccount)
             | FSharp.Core.Result.Ok (acceptChannel, chan, peer) ->
                 Presentation.ShowFee Currency.BTC metadata
                 printfn
-                    "Opening a channel with this party will require %d confirmations (~%d minutes)"
+                    "Opening a channel with this party will require %i confirmations (~%i minutes)"
                     acceptChannel.MinimumDepth.Value
                     (acceptChannel.MinimumDepth.Value * 10u)
                 let accept = UserInteraction.AskYesNo "Do you accept?"
@@ -560,7 +560,7 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
     not (archivedAccountsInNeedOfAction.Any())
 
 let private NotReadyReasonToString (reason: Lightning.NotReadyReason): string =
-    sprintf "%d out of %d confirmations" reason.CurrentConfirmations.Value reason.NeededConfirmations.Value
+    sprintf "%i out of %i confirmations" reason.CurrentConfirmations.Value reason.NeededConfirmations.Value
 
 let private CheckChannelStatus (path: string, channelFileId: int): Async<seq<string>> =
     async {
@@ -577,11 +577,11 @@ let private CheckChannelStatus (path: string, channelFileId: int): Async<seq<str
                     let reasonString = NotReadyReasonToString notReadyReason
                     let msg =
                         sprintf
-                            "Channel %d opening in progress (%s): %s\n"
-                            channelFileId reasonString txIdHex
+                            "Channel %i opening in progress (%s): %s%s"
+                            channelFileId reasonString txIdHex Environment.NewLine
                     seq { yield msg }
                 | Lightning.ChannelStatus.UsableChannel _ ->
-                    seq { yield sprintf "Channel %d is open.\n" channelFileId }
+                    seq { yield sprintf "Channel %i is open%s" channelFileId Environment.NewLine }
     }
 
 let private CheckChannelStatuses(): Async<seq<string>> =
