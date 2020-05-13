@@ -289,7 +289,12 @@ module Lightning =
                     return! ReadUntilChannelMessage (keyRepo, newPeer, stream)
         }
 
-    let GetLocalParams (isFunder: Boolean) (nodeIdForResponder: NodeId) (account: NormalUtxoAccount) (keyRepo: DefaultKeyRepository): ChannelKeys * LocalParams =
+    let GetLocalParams (isFunder: Boolean)
+                       (fundingAmount: Money)
+                       (nodeIdForResponder: NodeId)
+                       (account: NormalUtxoAccount)
+                       (keyRepo: DefaultKeyRepository)
+                           : ChannelKeys * LocalParams =
         let channelKeys: ChannelKeys = (keyRepo :> IKeysRepository).GetChannelKeys false
         let channelPubkeys: ChannelPubKeys = channelKeys.ToChannelPubKeys()
         channelKeys, {
@@ -298,7 +303,8 @@ module Lightning =
             ChannelPubKeys = channelPubkeys
             DustLimitSatoshis = Money 5UL
             MaxHTLCValueInFlightMSat = LNMoney 5000L
-            ChannelReserveSatoshis = Money 1000L
+            // BOLT #2 recommends a channel reserve of 1% of the channel capacity
+            ChannelReserveSatoshis = fundingAmount / 100L
             HTLCMinimumMSat = LNMoney 1000L
             ToSelfDelay = BlockHeightOffset16 6us
             MaxAcceptedHTLCs = uint16 10
@@ -327,7 +333,8 @@ module Lightning =
             let outputs = fundingTransaction.Outputs.AsIndexedOutputs ()
             (fundingTransaction |> FinalizedTx, GetIndexOfDestinationInOutputSeq dest outputs) |> Ok
 
-        let channelKeys, localParams = GetLocalParams true nodeIdForResponder account keyRepo
+        let fundingAmount = Money (channelCapacity.ValueToSend, MoneyUnit.BTC)
+        let channelKeys, localParams = GetLocalParams true fundingAmount nodeIdForResponder account keyRepo
 
         async {
             let! feeEstimator = FeeEstimator.Create ()
@@ -336,7 +343,7 @@ module Lightning =
                 {
                     InputInitFunder.PushMSat = LNMoney.MilliSatoshis 0L
                     TemporaryChannelId = temporaryChannelId
-                    FundingSatoshis = Money (channelCapacity.ValueToSend, MoneyUnit.BTC)
+                    FundingSatoshis = fundingAmount
                     InitFeeRatePerKw = feeEstimator.GetEstSatPer1000Weight <| ConfirmationTarget.Normal
                     FundingTxFeeRatePerKw = feeEstimator.GetEstSatPer1000Weight <| ConfirmationTarget.Normal
                     LocalParams = localParams
@@ -819,7 +826,7 @@ module Lightning =
                                         match chanMsg with
                                         | :? OpenChannel as openChannel ->
                                             Infrastructure.LogDebug "Creating LocalParams..."
-                                            let channelKeys, localParams = GetLocalParams false remoteNodeId account keyRepo
+                                            let channelKeys, localParams = GetLocalParams false openChannel.FundingSatoshis remoteNodeId account keyRepo
                                             let initFundee: InputInitFundee = {
                                                     TemporaryChannelId = temporaryChannelId
                                                     LocalParams = localParams
