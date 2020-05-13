@@ -33,9 +33,10 @@ module Lightning =
         TxOutIndex <| uint16 matchingOutput.N
 
     let private featureBits =
-        match FeatureBit.TryCreate([| 1uy <<< Feature.OptionDataLossProtect.OptionalBitPosition |]) with
-        | Ok featureBits -> featureBits
-        | Error err -> failwith <| SPrintF1 "could not derive FeatureBits: %A" err
+        let featureBits = FeatureBit.Zero
+        featureBits.SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true
+        featureBits
+
     let plainInit: Init = {
         Features = featureBits
         TLVStream = [||]
