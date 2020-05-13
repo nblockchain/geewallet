@@ -477,8 +477,8 @@ let rec PerformOperation (numAccounts: int) =
         match maybeChannelCreationDetails with
         | Some (ipEndpoint, details) ->
             Infrastructure.LogDebug "Opening channel..."
-            let txId =
-                let attempt (): Option<string> =
+            let txIdRes =
+                let attempt (): Option<FSharp.Core.Result<string, Lightning.LNError>> =
                     let password = UserInteraction.AskPassword false
                     // Password is a reference, it is also inside details.Channel,
                     // so while it looks unused, it is indeed used.
@@ -495,19 +495,18 @@ let rec PerformOperation (numAccounts: int) =
                                 details.Connection.Peer
                                 |> Async.RunSynchronously
                         details.Connection.Client.Dispose()
-                        match txIdRes with
-                        | FSharp.Core.Result.Error errorMsg ->
-                            Console.WriteLine(GetLightningErrorMessage errorMsg)
-                            None
-                        | FSharp.Core.Result.Ok txId ->
-                            Some txId
+                        Some txIdRes
                     with
                     | :? InvalidPassword ->
                         printfn "Invalid password, try again."
                         None
                 RetryOptionFunctionUntilSome attempt
-            let uri = BlockExplorer.GetTransaction Currency.BTC txId
-            printfn "A funding transaction was broadcast: %A" uri
+            match txIdRes with
+            | FSharp.Core.Result.Error errorMsg ->
+                Console.WriteLine(GetLightningErrorMessage errorMsg)
+            | FSharp.Core.Result.Ok txId ->
+                let uri = BlockExplorer.GetTransaction Currency.BTC txId
+                printfn "A funding transaction was broadcast: %A" uri
             UserInteraction.PressAnyKeyToContinue()
         | None ->
             // Error message printed already
