@@ -590,7 +590,7 @@ let private CheckChannelStatus (path: string, channelFileId: int): Async<seq<str
 
 let private CheckChannelStatuses(): Async<seq<string>> =
     async {
-        let jobs = Lightning.ListSavedChannels () |> Seq.map CheckChannelStatus
+        let jobs = SerializedChannel.ListSavedChannels () |> Seq.map CheckChannelStatus
         let! statuses = Async.Parallel jobs
         return Seq.collect id statuses
     }

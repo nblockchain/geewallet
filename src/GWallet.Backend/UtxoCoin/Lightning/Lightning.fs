@@ -47,9 +47,6 @@ module Lightning =
     let private bolt08ActTwoLength = 50
     let private bolt08ActThreeLength = 66
 
-    let private channelFilePrefix = "chan"
-    let private channelFileEnding = ".json"
-
     type StringErrorInner =
         {
             Msg: string
@@ -465,7 +462,7 @@ module Lightning =
         let channelKeysSeedBytes = Array.zeroCreate 32
         random.NextBytes channelKeysSeedBytes
         let channelKeysSeed = uint256 channelKeysSeedBytes
-        let keyRepo = JsonMarshalling.UIntToKeyRepo channelKeysSeed
+        let keyRepo = SerializedChannel.UIntToKeyRepo channelKeysSeed
         let temporaryChannelIdBytes: array<byte> = Array.zeroCreate 32
         random.NextBytes temporaryChannelIdBytes
         let temporaryChannelId =
@@ -475,10 +472,10 @@ module Lightning =
         channelKeysSeed, keyRepo, temporaryChannelId
 
     let GetNewChannelFilename(): string =
-        channelFilePrefix
+        SerializedChannel.ChannelFilePrefix
             // this offset is the approximate time this feature was added (making filenames shorter)
             + (DateTimeOffset.Now.ToUnixTimeSeconds() - 1574212362L |> string)
-            + channelFileEnding
+            + SerializedChannel.ChannelFileEnding
 
     let ContinueFromAcceptChannelAndSave (account: UtxoCoin.NormalUtxoAccount)
                                          (channelKeysSeed: uint256)
@@ -489,13 +486,13 @@ module Lightning =
                                          (peer: Peer)
                                              : Async<Result<string, LNError>> = // TxId of Funding Transaction is returned
         async {
-            let keyRepo = JsonMarshalling.UIntToKeyRepo channelKeysSeed
+            let keyRepo = SerializedChannel.UIntToKeyRepo channelKeysSeed
             let! res = ContinueFromAcceptChannel keyRepo acceptChannel chan stream peer
             match res with
             | Error errorMsg -> return Error errorMsg
             | Ok (fundingTxId, receivedFundingSignedChan) ->
                 let fileName = GetNewChannelFilename()
-                JsonMarshalling.Save account receivedFundingSignedChan channelKeysSeed channelCounterpartyIP acceptChannel.MinimumDepth fileName
+                SerializedChannel.Save account receivedFundingSignedChan channelKeysSeed channelCounterpartyIP acceptChannel.MinimumDepth fileName
                 Infrastructure.LogDebug <| SPrintF1 "Channel saved to %s" fileName
                 return Ok fundingTxId
         }
@@ -572,7 +569,7 @@ module Lightning =
             failwith <| SPrintF1 "bad result when expecting WeSentFundingLocked: %s" (e.ToString())
 
     let LoadChannelAndFetchDepth (fileName: string): Async<ChannelDepthAndAccount> =
-        let serializedChannel = JsonMarshalling.LoadSerializedChannel fileName
+        let serializedChannel = SerializedChannel.LoadSerializedChannel fileName
         let accountFileName = serializedChannel.AccountFileName
 
         let fromAccountFileToPublicAddress =
@@ -595,8 +592,7 @@ module Lightning =
             let feeEstimator = feeEstimator :> IFeeEstimator
 
             let channel =
-                JsonMarshalling.ChannelFromSerialized
-                    serializedChannel
+                serializedChannel.ChannelFromSerialized
                     (CreateChannel account)
                     feeEstimator
 
@@ -656,7 +652,7 @@ module Lightning =
                     return Ok (UnusableChannelWithReason (txIdHex, reason))
                 | DeepEnough channelCommandAction ->
                     let! channelCommand = channelCommandAction
-                    let keyRepo = JsonMarshalling.UIntToKeyRepo channelKeysSeed
+                    let keyRepo = SerializedChannel.UIntToKeyRepo channelKeysSeed
                     let channelEnvironment: ChannelEnvironment =
                         { Account = details.Account; NodeIdForResponder = notReestablishedChannel.RemoteNodeId; KeyRepo = keyRepo }
                     let! connectionRes = ConnectAndHandshake channelEnvironment channelCounterpartyIP
@@ -726,7 +722,11 @@ module Lightning =
                                 match Channel.executeCommand channelWithFundingLockedSent (ApplyFundingLocked fundingLocked) with
                                 | Ok ((ChannelEvent.BothFundingLocked _) as evt::[]) ->
                                     let bothFundingLockedChan = Channel.applyEvent channelWithFundingLockedSent evt
-                                    JsonMarshalling.SaveSerializedChannel { details.SerializedChannel with ChanState = bothFundingLockedChan.State } fileName
+                                    let serializedChannel = {
+                                        details.SerializedChannel with
+                                            ChanState = bothFundingLockedChan.State
+                                    }
+                                    serializedChannel.SaveSerializedChannel fileName
                                     Infrastructure.LogDebug <| SPrintF1 "Channel overwritten (with funding transaction locked) at %s" fileName
                                     connection.Client.Dispose()
                                     return Ok (UsableChannel txIdHex)
@@ -739,25 +739,6 @@ module Lightning =
                                     let msg = "expected only one event"
                                     return Error <| StringError { Msg = msg; During = "application of funding_locked" }
         }
-
-    let ExtractChannelNumber (path: string): Option<string * int> =
-        let fileName = Path.GetFileName path
-        let withoutPrefix = fileName.Substring channelFilePrefix.Length
-        let withoutEnding = withoutPrefix.Substring (0, withoutPrefix.Length - channelFileEnding.Length)
-        match Int32.TryParse withoutEnding with
-        | true, channelNumber ->
-            Some (path, channelNumber)
-        | false, _ ->
-            None
-
-    let ListSavedChannels (): seq<string * int> =
-        if JsonMarshalling.LightningDir.Exists then
-            let files =
-                Directory.GetFiles
-                    ((JsonMarshalling.LightningDir.ToString()), channelFilePrefix + "*" + channelFileEnding)
-            files |> Seq.choose ExtractChannelNumber
-        else
-            Seq.empty
 
     let AcceptTheirChannel (random: Random)
                            (account: NormalUtxoAccount)
@@ -887,7 +868,7 @@ module Lightning =
                                                                         IPEndPoint (IPAddress.Parse "127.0.0.2", 9735)
                                                                     else
                                                                         remoteIp
-                                                                JsonMarshalling.Save account receivedFundingCreatedChan channelKeysSeed endpointToSave acceptChannel.MinimumDepth fileName
+                                                                SerializedChannel.Save account receivedFundingCreatedChan channelKeysSeed endpointToSave acceptChannel.MinimumDepth fileName
                                                                 Infrastructure.LogDebug <| SPrintF1 "Channel saved to %s" fileName
 
                                                                 return Ok ()
