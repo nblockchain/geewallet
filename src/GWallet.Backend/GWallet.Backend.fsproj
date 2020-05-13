@@ -76,6 +76,8 @@
     <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
     <Compile Include="UtxoCoin\TransactionTypes.fs" />
     <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
+    <Compile Include="UtxoCoin\Lightning\SerializedChannel.fs" />
+    <Compile Include="UtxoCoin\Lightning\FeeEstimator.fs" />
     <Compile Include="UtxoCoin\Lightning\JsonMarshalling.fs" />
     <Compile Include="UtxoCoin\Lightning\Lightning.fs" />
     <Compile Include="Ether\EtherExceptions.fs" />

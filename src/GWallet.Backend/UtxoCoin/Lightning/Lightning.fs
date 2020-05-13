@@ -50,14 +50,6 @@ module Lightning =
     let private channelFilePrefix = "chan"
     let private channelFileEnding = ".json"
 
-    type FeeEstimator(btcPerKb: decimal) =
-        interface IFeeEstimator with
-            member __.GetEstSatPer1000Weight(_: ConfirmationTarget) =
-                let satPerKb = (Money (btcPerKb, MoneyUnit.BTC)).ToUnit MoneyUnit.Satoshi
-                // 4 weight units per byte. See segwit specs.
-                let satPerKiloWeightUnit = satPerKb / 4m |> Convert.ToUInt32
-                FeeRatePerKw satPerKiloWeightUnit
-
     type StringErrorInner =
         {
             Msg: string
@@ -69,16 +61,6 @@ module Lightning =
     | StringError of StringErrorInner
     | DNLChannelError of ChannelError
     | PeerDisconnected of bool
-
-    let MakeFeeEstimator (account: IAccount): Async<IFeeEstimator> = async {
-        let averageFee (feesFromDifferentServers: List<decimal>): decimal =
-            let sum: decimal = List.sum feesFromDifferentServers
-            let avg = sum / decimal feesFromDifferentServers.Length
-            avg
-        let estimateFeeJob = ElectrumClient.EstimateFee 2 // same confirmation target as in UtxoCoinAccount
-        let! btcPerKb = Server.Query account.Currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob None
-        return FeeEstimator btcPerKb :> IFeeEstimator
-    }
 
     let ReadExactAsync (stream: NetworkStream)
                        (numberBytesToRead: int)
@@ -348,7 +330,8 @@ module Lightning =
         let channelKeys, localParams = GetLocalParams true nodeIdForResponder account keyRepo
 
         async {
-            let! feeEstimator = MakeFeeEstimator account
+            let! feeEstimator = FeeEstimator.Create ()
+            let feeEstimator = feeEstimator :> IFeeEstimator
             let initFunder =
                 {
                     InputInitFunder.PushMSat = LNMoney.MilliSatoshis 0L
@@ -601,7 +584,8 @@ module Lightning =
                 )
 
         async {
-            let! feeEstimator = MakeFeeEstimator account
+            let! feeEstimator = FeeEstimator.Create ()
+            let feeEstimator = feeEstimator :> IFeeEstimator
 
             let channel =
                 JsonMarshalling.ChannelFromSerialized
@@ -847,7 +831,7 @@ module Lightning =
                                             let fundingTxProvider (_: IDestination, _: Money, _: FeeRatePerKw) =
                                                 failwith "not funding channel, so unreachable"
                                             Infrastructure.LogDebug "Creating Channel..."
-                                            let! feeEstimator = MakeFeeEstimator account
+                                            let! feeEstimator = FeeEstimator.Create ()
                                             let initialChan: Channel = CreateChannel
                                                                            account
                                                                            keyRepo
