@@ -523,8 +523,10 @@ module Lightning =
             return TxIndexInBlock (merkleResult: BlockchainScriptHashMerkleInnerResult).Pos, fundingBlockHeight
         }
 
-    type NotReadyReason =
-        | NeedMoreConfirmations of Option<BlockHeightOffset32> * BlockHeightOffset32
+    type NotReadyReason = {
+        CurrentConfirmations: BlockHeightOffset32
+        NeededConfirmations: BlockHeightOffset32
+    }
 
     type ChannelMessageOrDeepEnough =
         | NotReady of NotReadyReason
@@ -532,7 +534,7 @@ module Lightning =
 
     type ChannelDepthAndAccount = {
         ChannelId: ChannelId
-        ConfirmationsCount: Option<BlockHeightOffset32>
+        ConfirmationsCount: BlockHeightOffset32
         Channel: Channel
         Account: UtxoCoin.NormalUtxoAccount
         SerializedChannel: SerializedChannel
@@ -541,21 +543,23 @@ module Lightning =
 
     let JudgeDepth (details: ChannelDepthAndAccount)
                        : ChannelMessageOrDeepEnough =
-        match details.ConfirmationsCount with
-            | Some count when count >= details.SerializedChannel.MinSafeDepth ->
-                DeepEnough <|
-                    async {
-                        let! txIndex, fundingBlockHeight =
-                            PositionInBlockFromScriptCoin
-                                details.ChannelId
-                                details.FundingScriptCoin
-                        let channelCommand =
-                            ChannelCommand.ApplyFundingConfirmedOnBC
-                                (fundingBlockHeight, txIndex, count)
-                        return channelCommand
-                    }
-            | _ ->
-                NotReady <| NeedMoreConfirmations (details.ConfirmationsCount, details.SerializedChannel.MinSafeDepth)
+        if details.ConfirmationsCount >= details.SerializedChannel.MinSafeDepth then
+            DeepEnough <|
+                async {
+                    let! txIndex, fundingBlockHeight =
+                        PositionInBlockFromScriptCoin
+                            details.ChannelId
+                            details.FundingScriptCoin
+                    let channelCommand =
+                        ChannelCommand.ApplyFundingConfirmedOnBC
+                            (fundingBlockHeight, txIndex, details.ConfirmationsCount)
+                    return channelCommand
+                }
+        else
+            NotReady {
+                CurrentConfirmations = details.ConfirmationsCount
+                NeededConfirmations = details.SerializedChannel.MinSafeDepth
+            }
 
     let GetFundingLockedMsg (channel: Channel) (channelCommand: ChannelCommand): Channel * FundingLocked =
         let channelEvents = Channel.executeCommand channel channelCommand
@@ -612,11 +616,7 @@ module Lightning =
                 async {
                     let! confirmations =
                         QueryBTCFast (ElectrumClient.GetConfirmations txIdHex)
-                    if confirmations = 0u then
-                        return None
-                    else
-                        let offset = BlockHeightOffset32 confirmations
-                        return Some offset
+                    return BlockHeightOffset32 confirmations
                 }
 
             return {

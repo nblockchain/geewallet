@@ -560,11 +560,7 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
     not (archivedAccountsInNeedOfAction.Any())
 
 let private NotReadyReasonToString (reason: Lightning.NotReadyReason): string =
-    match reason with
-    | Lightning.NotReadyReason.NeedMoreConfirmations (Some currentConfirmations, neededConfirmations) ->
-        sprintf "%d out of %d confirmations" currentConfirmations.Value neededConfirmations.Value
-    | Lightning.NotReadyReason.NeedMoreConfirmations (None, neededConfirmations) ->
-        sprintf "funding transaction still in mempool, needs %d confirmations" neededConfirmations.Value
+    sprintf "%d out of %d confirmations" reason.CurrentConfirmations.Value reason.NeededConfirmations.Value
 
 let private CheckChannelStatus (path: string, channelFileId: int): Async<seq<string>> =
     async {
