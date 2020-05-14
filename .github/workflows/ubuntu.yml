@@ -12,6 +12,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Generate snap package
       run: |
+        sudo apt update
         ./scripts/install_snapcraft.sh
         sudo ./scripts/snap_build.sh
 
@@ -34,5 +35,6 @@ jobs:
       env:
         SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
       run: |
+        sudo apt update
         ./scripts/install_snapcraft.sh
         ./scripts/snap_release.sh
