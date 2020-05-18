@@ -3,8 +3,12 @@
 open System
 open System.IO
 
-#load "Infra.fs"
+#r "System.Configuration"
+#load "fsx/InfraLib/Misc.fs"
+#load "fsx/InfraLib/Process.fs"
+#load "fsx/InfraLib/Unix.fs"
 open FSX.Infrastructure
+open Process
 
 let outputFolder = "bin"
 let deps = "fsharp"::[]
