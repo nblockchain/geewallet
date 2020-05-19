@@ -4,13 +4,12 @@ open System
 open System.Linq
 open System.Threading.Tasks
 open System.Runtime.ExceptionServices
+
+open FSharp.Core
+
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
 open Microsoft.FSharp.Reflection
 #endif
-
-type Result<'Val, 'Err when 'Err :> Exception> =
-    | Error of 'Err
-    | Value of 'Val
 
 module FSharpUtil =
 
@@ -176,7 +175,7 @@ module FSharpUtil =
     let WithTimeout (timeSpan: TimeSpan) (job: Async<'R>): Async<Option<'R>> = async {
         let read = async {
             let! value = job
-            return value |> Value |> Some
+            return value |> Result.Ok |> Some
         }
 
         let delay = async {
@@ -189,7 +188,7 @@ module FSharpUtil =
         match dummyOption with
         | Some theResult ->
             match theResult with
-            | Value r ->
+            | Ok r ->
                 return Some r
             | Error _ ->
                 return None

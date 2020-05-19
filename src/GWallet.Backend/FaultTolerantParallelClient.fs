@@ -136,7 +136,7 @@ type internal Runner<'Resource when 'Resource: equality> =
             try
                 try
                     let! res = server.Retrieval
-                    return Value res
+                    return Ok res
                 finally
                     stopwatch.Stop()
             with
@@ -183,7 +183,7 @@ type internal Runner<'Resource when 'Resource: equality> =
                 Runner.Run<'K,'Ex> server stopwatch cancelState shouldReportUncanceledJobs exceptionHandler
 
             match runResult with
-            | Value result ->
+            | Ok result ->
                 let historyFact = { TimeSpan = stopwatch.Elapsed; Fault = None }
                 updateServer (fun srv -> srv = server.Details) historyFact
                 return SuccessfulResult result
