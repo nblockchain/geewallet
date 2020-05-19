@@ -348,18 +348,18 @@ type FaultTolerantParallelClientAsyncCancellation() =
             try
                 try
                     task.Result
-                        |> Result.Value
+                        |> SuccessfulValue
                 with
                 | ex ->
                     if (FSharpUtil.FindException<TaskCanceledException> ex).IsSome then
-                        Error ex
+                        FailureResult ex
                     else
                         reraise()
             finally
                 stopWatch.Stop()
 
         match result with
-        | Result.Value _ -> Assert.Fail "should have been canceled"
+        | SuccessfulValue _ -> Assert.Fail "should have been canceled"
         | _ -> ()
 
         Assert.That(stopWatch.Elapsed, Is.LessThan timeoutTime)

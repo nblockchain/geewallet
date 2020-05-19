@@ -8,9 +8,10 @@ open System.Runtime.ExceptionServices
 open Microsoft.FSharp.Reflection
 #endif
 
-type Result<'Val, 'Err when 'Err :> Exception> =
-    | Error of 'Err
-    | Value of 'Val
+// FIXME: replace all usages of the below with native FSharp.Core's Result type (https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/results)
+type Either<'Val, 'Err when 'Err :> Exception> =
+    | FailureResult of 'Err
+    | SuccessfulValue of 'Val
 
 module FSharpUtil =
 
@@ -176,22 +177,22 @@ module FSharpUtil =
     let WithTimeout (timeSpan: TimeSpan) (job: Async<'R>): Async<Option<'R>> = async {
         let read = async {
             let! value = job
-            return value |> Value |> Some
+            return value |> SuccessfulValue |> Some
         }
 
         let delay = async {
             let total = int timeSpan.TotalMilliseconds
             do! Async.Sleep total
-            return Some (Error(TimeoutException()))
+            return FailureResult <| TimeoutException() |> Some
         }
 
         let! dummyOption = Async.Choice([read; delay])
         match dummyOption with
         | Some theResult ->
             match theResult with
-            | Value r ->
+            | SuccessfulValue r ->
                 return Some r
-            | Error _ ->
+            | FailureResult _ ->
                 return None
         | None ->
             // none of the jobs passed to Async.Choice returns None
