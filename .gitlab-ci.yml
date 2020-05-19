@@ -1,5 +1,6 @@
 before_script:
   - apt-get update
+  - apt install -y make git
   # needed to download NuGet
   - apt-get install -y curl
 
@@ -45,8 +46,6 @@ stockmono_build:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt install -y make git
-
     - ./configure.sh
     - make sanitycheck
     - make strict
@@ -61,8 +60,6 @@ stockmono_test_unit:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt install -y make git
-
     - apt-get install -y nunit-console
     - ./configure.sh
     - make
@@ -76,13 +73,11 @@ stockmono_test_integration:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt install -y make git
-
     - ./configure.sh
     - make
     - make update-servers
 
-newmono_build:
+newmono1804_build:
   image: ubuntu:18.04
   stage: build
   artifacts:
@@ -103,7 +98,7 @@ newmono_build:
     - apt-get install -y zip
     - make zip
 
-newmono_test_unit:
+newmono1804_test_unit:
   image: ubuntu:18.04
   stage: unit_tests
   script:
@@ -124,8 +119,49 @@ stockoldmono_test_integration:
       make &&
       make update-servers
 
-newmono_test_integration:
+newmono1804_test_integration:
   image: ubuntu:18.04
+  stage: integration_tests
+  script:
+    - ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    - ./configure.sh &&
+      make &&
+      make update-servers
+
+newmono_build:
+  image: ubuntu:20.04
+  stage: build
+  artifacts:
+    paths:
+      - bin/*.zip
+    expire_in: 50days
+  script:
+    - ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    - ./configure.sh
+    - make sanitycheck
+    - make strict
+    - make
+    - make install
+    # so that we log the version of nuget for when it works
+    - make nuget
+
+    - apt-get install -y zip
+    - make zip
+
+newmono_test_unit:
+  image: ubuntu:20.04
+  stage: unit_tests
+  script:
+    - ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    - apt install -y nunit-console
+
+    - time (./configure.sh && make && make check)
+
+newmono_test_integration:
+  image: ubuntu:20.04
   stage: integration_tests
   script:
     - ./scripts/install_mono_from_microsoft_deb_packages.sh
