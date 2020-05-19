@@ -115,7 +115,7 @@ type FSharpUtilCoverage() =
                     Is.EqualTo "FOOxBAR")
 
     [<Test>]
-    [<Ignore "NOTE: this test fails with old F# versions (stockmono, stocknewmono CI lanes), passes with new versions (newmono lane)">]
+    [<Ignore "NOTE: this test fails with old F# versions (stockmono, stockoldmono CI lanes), passes with new versions (newmono lane)">]
     member __.``converts fsharp's print syntax to String-Format (advanced II)``() =
         let advanced = "%A"
         Assert.That(FSharpUtil.ReflectionlessPrint.ToStringFormat advanced, Is.EqualTo "{0}")

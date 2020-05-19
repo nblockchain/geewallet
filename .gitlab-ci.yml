@@ -9,7 +9,7 @@ stages:
   - integration_tests
   - package
 
-stockmono_build:
+stockoldmono_build:
   image: ubuntu:18.04
   stage: build
   script:
@@ -25,7 +25,7 @@ stockmono_build:
     # so that we log the version of nuget for when it works
     - make nuget
 
-stockmono_test_unit:
+stockoldmono_test_unit:
   image: ubuntu:18.04
   stage: unit_tests
   script:
@@ -37,7 +37,7 @@ stockmono_test_unit:
             make &&
             make check)
 
-stocknewmono_build:
+stockmono_build:
   image: ubuntu:20.04
   stage: build
   script:
@@ -53,7 +53,7 @@ stocknewmono_build:
     - make
     - make install
 
-stocknewmono_test_unit:
+stockmono_test_unit:
   image: ubuntu:20.04
   stage: unit_tests
   script:
@@ -68,7 +68,7 @@ stocknewmono_test_unit:
     - make
     - make check
 
-stocknewmono_test_integration:
+stockmono_test_integration:
   image: ubuntu:20.04
   stage: integration_tests
   script:
@@ -113,7 +113,7 @@ newmono_test_unit:
 
     - time (./configure.sh && make && make check)
 
-stockmono_test_integration:
+stockoldmono_test_integration:
   image: ubuntu:18.04
   stage: integration_tests
   script:
@@ -135,7 +135,7 @@ newmono_test_integration:
       make update-servers
 
 # snap package generation is not working with GitLabCI; TODO: report bug
-#stockmono_package:
+#stockoldmono_package:
 #  image: ubuntu:18.04
 #  stage: package
 #  script:
