@@ -62,7 +62,7 @@ module ElectrumServerSeedList =
         let url = SPrintF1 "https://1209k.com/bitcoin-eye/ele.php?chain=%s" currencyMnemonic
         let web = HtmlWeb()
         let doc = web.Load url
-        let firstTable = doc.DocumentNode.SelectNodes("//table").[0]
+        let firstTable = (doc.DocumentNode.SelectNodes "//table").[0]
         let tableBody = firstTable.SelectSingleNode "tbody"
         let servers = tableBody.SelectNodes "tr"
         seq {
