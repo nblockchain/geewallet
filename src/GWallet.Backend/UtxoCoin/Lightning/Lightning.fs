@@ -362,35 +362,33 @@ module Lightning =
                                            Config.BitcoinNet
                                            nodeIdForResponder
 
-            let openChanMsg, sentOpenChan =
-                match Channel.executeCommand initialChan chanCmd with
-                | Ok (NewOutboundChannelStarted (openChanMsg, _) as evt::[]) ->
-                    let chan = Channel.applyEvent initialChan evt
-                    openChanMsg, chan
-                | Ok evtList ->
-                    failwith <| SPrintF1 "event was not a single NewOutboundChannelStarted, it was: %A" evtList
-                | Error channelError ->
-                    failwith <| SPrintF1 "could not execute channel command: %s" (channelError.ToString())
-            let! sentOpenChanPeer = Send openChanMsg receivedInitPeer stream
+            match Channel.executeCommand initialChan chanCmd with
+            | Ok (NewOutboundChannelStarted (openChanMsg, _) as evt::[]) ->
+                let sentOpenChan = Channel.applyEvent initialChan evt
+                let! sentOpenChanPeer = Send openChanMsg receivedInitPeer stream
 
-            // receive acceptchannel
-            Infrastructure.LogDebug "Receiving accept_channel..."
-            let! msgRes = ReadUntilChannelMessage (keyRepo, sentOpenChanPeer, stream)
-            match msgRes with
-            | Error (PeerDisconnected abruptly) ->
-                let context = SPrintF1 "receiving accept_channel, our open_channel == %A" openChanMsg
-                ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly context
-                return Error (PeerDisconnected abruptly)
-            | Error errorMsg -> return Error errorMsg
-            | Ok (receivedOpenChanReplyPeer, chanMsg) ->
-                match chanMsg with
-                | :? AcceptChannel as acceptChannel ->
-                    return Ok (acceptChannel, sentOpenChan, receivedOpenChanReplyPeer)
-                | _ ->
-                    return Error <| StringError {
-                        Msg = SPrintF1 "channel message is not accept channel: %s" (chanMsg.GetType().Name)
-                        During = "waiting for accept_channel"
-                    }
+                // receive acceptchannel
+                Infrastructure.LogDebug "Receiving accept_channel..."
+                let! msgRes = ReadUntilChannelMessage (keyRepo, sentOpenChanPeer, stream)
+                match msgRes with
+                | Error (PeerDisconnected abruptly) ->
+                    let context = SPrintF1 "receiving accept_channel, our open_channel == %A" openChanMsg
+                    ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly context
+                    return Error (PeerDisconnected abruptly)
+                | Error errorMsg -> return Error errorMsg
+                | Ok (receivedOpenChanReplyPeer, chanMsg) ->
+                    match chanMsg with
+                    | :? AcceptChannel as acceptChannel ->
+                        return Ok (acceptChannel, sentOpenChan, receivedOpenChanReplyPeer)
+                    | _ ->
+                        return Error <| StringError {
+                            Msg = SPrintF1 "channel message is not accept channel: %s" (chanMsg.GetType().Name)
+                            During = "waiting for accept_channel"
+                        }
+            | Ok evtList ->
+                return failwith <| SPrintF1 "event was not a single NewOutboundChannelStarted, it was: %A" evtList
+            | Error channelError ->
+                return Error <| DNLChannelError channelError
         }
 
     let ContinueFromAcceptChannel (keyRepo: DefaultKeyRepository)
