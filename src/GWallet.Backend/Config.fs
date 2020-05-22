@@ -124,8 +124,13 @@ module Config =
             let daiConfigDir = GetConfigDir Currency.DAI accountKind
             for originalAccountFilePath in Directory.GetFiles daiConfigDir.FullName do
                 let saiConfigDir = GetConfigDir Currency.SAI accountKind
-                let newPath = originalAccountFilePath.Replace(daiConfigDir.FullName, saiConfigDir.FullName)
-                File.Move(originalAccountFilePath, newPath)
+                let newFile = originalAccountFilePath.Replace(daiConfigDir.FullName, saiConfigDir.FullName)
+                              |> FileInfo
+                if newFile.Exists then
+                    File.Delete originalAccountFilePath
+                else
+                    File.Move(originalAccountFilePath, newFile.FullName)
+
 
     let GetAccountFiles (currencies: seq<Currency>) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {
