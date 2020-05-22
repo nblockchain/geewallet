@@ -1,13 +1,10 @@
 name: ubuntu
 
-on:
-  push:
-    tags:
-    - '*'
+on: [push]
 
 jobs:
   ubuntu-snap-build:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
     - name: Generate snap package
@@ -24,7 +21,7 @@ jobs:
 
   ubuntu-snap-upload:
     needs: ubuntu-snap-build
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
     - name: Download artifact from previous job
