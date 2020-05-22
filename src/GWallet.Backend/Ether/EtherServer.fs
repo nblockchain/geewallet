@@ -330,9 +330,11 @@ module Server =
                     }
         }
 
+    let etcEcosystemIsMomentarilyCentralized = true
+
     let private FaultTolerantParallelClientDefaultSettings (currency: Currency) (mode: ServerSelectionMode) =
         let numberOfConsistentResponsesRequired =
-            if currency = Currency.ETC || not Networking.Tls12Support then
+            if (etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC) || not Networking.Tls12Support then
                 1u
             else
                 2u
@@ -343,7 +345,9 @@ module Server =
                                                                    (mode: ServerSelectionMode)
                                                                    (cacheOrInitialBalanceMatchFunc: decimal->bool) =
         let consistencyConfig =
-            if mode = ServerSelectionMode.Fast then
+            if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
+                None
+            elif mode = ServerSelectionMode.Fast then
                 Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
             else
                 None
@@ -614,7 +618,11 @@ module Server =
                             return! Async.AwaitTask task
                         }
                 GetRandomizedFuncs currency web3Func
-            let minResponsesRequired = 2u
+            let minResponsesRequired =
+                if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
+                    1u
+                else
+                    2u
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings
                             currency ServerSelectionMode.Fast
