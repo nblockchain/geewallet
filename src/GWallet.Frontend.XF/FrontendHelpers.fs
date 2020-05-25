@@ -95,7 +95,11 @@ module FrontendHelpers =
     let internal GetCryptoColor(currency: Currency) =
         match currency with
         | Currency.BTC -> Color.FromRgb(245, 146, 47)
-        | Currency.DAI | Currency.SAI -> Color.FromRgb(254, 205, 83)
+
+        // looks very similar to BTC (orangish)... so let's use SAI color when we phase it out?
+        | Currency.DAI -> Color.FromRgb(250, 176, 28)
+
+        | Currency.SAI -> Color.FromRgb(254, 205, 83)
         | Currency.ETC -> Color.FromRgb(14, 119, 52)
         | Currency.ETH -> Color.FromRgb(130, 131, 132)
         | Currency.LTC -> Color.FromRgb(54, 94, 155)
@@ -111,7 +115,7 @@ module FrontendHelpers =
                 Some amount
             | Fresh(amount) ->
                 match maybeFrame, currency, amount with
-                | Some frame, Currency.SAI, 0m ->
+                | Some frame, Currency.SAI, 0m | Some frame, Currency.DAI, 0m ->
                     Device.BeginInvokeOnMainThread(fun _ ->
                         frame.IsVisible <- false
                     )

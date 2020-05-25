@@ -36,6 +36,9 @@
             <Frame BackgroundColor="Transparent"
                    BorderColor="Gray"
                    HorizontalOptions="FillAndExpand" />
+            <Frame BackgroundColor="Transparent"
+                   BorderColor="Gray"
+                   HorizontalOptions="FillAndExpand" />
         </StackLayout>
 
         <!-- dots will be appended to Text -->

@@ -37,11 +37,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 "grey"
             else
                 "red"
-        let currencyLowerCase =
-            match currency with
-            | SAI -> DAI.ToString().ToLower()
-            | _ ->
-                currency.ToString().ToLower()
+        let currencyLowerCase = currency.ToString().ToLower()
         let imageSource = FrontendHelpers.GetSizedColoredImageSource currencyLowerCase colour 60
         let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
         currencyLogoImg
