@@ -31,14 +31,10 @@ module FiatValueEstimation =
             match currency,provider with
             | Currency.BTC,_ -> "bitcoin"
             | Currency.LTC,_ -> "litecoin"
-            | Currency.ETH,_ -> "ethereum"
+            | Currency.ETH,_ | Currency.SAI,_ -> "ethereum"
             | Currency.ETC,_ -> "ethereum-classic"
             | Currency.DAI,PriceProvider.CoinCap -> "multi-collateral-dai"
             | Currency.DAI,_ -> "dai"
-            // the API of CoinCap is not returning anything for "sai" (even if the API from coingecko does) or "single-collateral-dai"
-            | Currency.SAI,PriceProvider.CoinCap -> "multi-collateral-dai"
-            | Currency.SAI,_ -> "sai"
-
         try
             let baseUrl =
                 match provider with
@@ -99,18 +95,30 @@ module FiatValueEstimation =
         let! maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap = bothJobs
         if maybeUsdPriceFromCoinCap.IsSome && currency = Currency.ETC then
             Infrastructure.ReportWarningMessage "Currency ETC can now be queried from CoinCap provider?"
-        match maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap with
-        | None, None -> return None
-        | Some usdPriceFromCoinGecko, None ->
-            Caching.Instance.StoreLastFiatUsdPrice(currency, usdPriceFromCoinGecko)
-            return Some usdPriceFromCoinGecko
-        | None, Some usdPriceFromCoinCap ->
-            Caching.Instance.StoreLastFiatUsdPrice(currency, usdPriceFromCoinCap)
-            return Some usdPriceFromCoinCap
-        | Some usdPriceFromCoinGecko, Some usdPriceFromCoinCap ->
-            let average = (usdPriceFromCoinGecko + usdPriceFromCoinCap) / 2m
-            Caching.Instance.StoreLastFiatUsdPrice(currency, average)
-            return Some average
+        let result =
+            match maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap with
+            | None, None -> None
+            | Some usdPriceFromCoinGecko, None ->
+                Some usdPriceFromCoinGecko
+            | None, Some usdPriceFromCoinCap ->
+                Some usdPriceFromCoinCap
+            | Some usdPriceFromCoinGecko, Some usdPriceFromCoinCap ->
+                let average = (usdPriceFromCoinGecko + usdPriceFromCoinCap) / 2m
+                Some average
+
+        let realResult =
+            match result with
+            | Some price ->
+                let realPrice =
+                    if currency = Currency.SAI then
+                        let ethMultiplied = price * 0.0053m
+                        ethMultiplied
+                    else
+                        price
+                Caching.Instance.StoreLastFiatUsdPrice(currency, realPrice)
+                realPrice |> Some
+            | None -> None
+        return realResult
     }
 
     let UsdValue(currency: Currency): Async<MaybeCached<decimal>> = async {
