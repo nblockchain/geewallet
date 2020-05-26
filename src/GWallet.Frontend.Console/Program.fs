@@ -1,4 +1,5 @@
 ﻿open System
+open System.Net.Sockets
 open System.IO
 open System.Linq
 open System.Text.RegularExpressions
@@ -19,6 +20,9 @@ let GetLightningErrorMessage (lnError: Lightning.LNError): string =
     match lnError with
     | Lightning.StringError { Msg = msg; During = actionAttempted } ->
         SPrintF2 "Error: %s when %s" msg actionAttempted
+    | Lightning.ConnectError errors ->
+        let messages = Seq.map (fun (error: SocketException) -> error.Message) errors
+        "TCP connection failed: " + (String.concat "; " messages)
     | Lightning.DNLChannelError error -> "DNL channel error: " + (error.ToString())
     | Lightning.DNLError error ->
         "Error received from Lightning peer: " +

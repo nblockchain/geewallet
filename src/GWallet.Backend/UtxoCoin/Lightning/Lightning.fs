@@ -17,6 +17,7 @@ open DotNetLightning.Transactions
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 open FSharp.Core
@@ -56,6 +57,7 @@ module Lightning =
 
     type LNError =
     | DNLError of ErrorMessage
+    | ConnectError of seq<SocketException>
     | StringError of StringErrorInner
     | DNLChannelError of ChannelError
     | PeerDisconnected of bool
@@ -219,53 +221,64 @@ module Lightning =
 
             let client = new TcpClient (channelCounterpartyIP.AddressFamily)
             Infrastructure.LogDebug <| SPrintF1 "Connecting over TCP to %A..." channelCounterpartyIP
-            do! client.ConnectAsync(channelCounterpartyIP.Address, channelCounterpartyIP.Port) |> Async.AwaitTask
-            let stream = client.GetStream()
-            do! stream.WriteAsync(act1, 0, act1.Length) |> Async.AwaitTask
-
-            // Receive act2
-            Infrastructure.LogDebug "Receiving Act 2..."
-            let! act2Res = ReadAsync keyRepo sentAct1Peer stream
-            match act2Res with
-            | Error (PeerDisconnected abruptly) ->
-                ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly "receiving act 2"
-                return Error (PeerDisconnected abruptly)
+            let! connectRes = async {
+                try
+                    do! client.ConnectAsync(channelCounterpartyIP.Address, channelCounterpartyIP.Port) |> Async.AwaitTask
+                    return Ok ()
+                with
+                | ex ->
+                    let socketExceptions = FindSingleException<SocketException> ex
+                    return Error <| ConnectError socketExceptions
+            }
+            match connectRes with
             | Error err -> return Error err
-            | Ok act2 ->
-                let actThree, receivedAct2Peer =
-                    match Peer.executeCommand sentAct1Peer act2 with
-                    | Ok (ActTwoProcessed ((actThree, _nodeId), _) as evt::[]) ->
-                        let peer = Peer.applyEvent sentAct1Peer evt
-                        actThree, peer
-                    | Ok _ ->
-                        failwith "not one good ActTwoProcessed event"
-                    | Error peerError ->
-                        failwith <| SPrintF1 "couldn't parse act2: %s" (peerError.ToString())
+            | Ok () ->
+                let stream = client.GetStream()
+                do! stream.WriteAsync(act1, 0, act1.Length) |> Async.AwaitTask
 
-                Debug.Assert((bolt08ActThreeLength = actThree.Length), SPrintF1 "act3 has wrong length (not %i)" bolt08ActThreeLength)
-                do! stream.WriteAsync(actThree, 0, actThree.Length) |> Async.AwaitTask
-
-                let! sentInitPeer = Send plainInit receivedAct2Peer stream
-
-                // receive init
-                Infrastructure.LogDebug "Receiving init..."
-                let! initRes = ReadAsync keyRepo sentInitPeer stream
-                match initRes with
+                // Receive act2
+                Infrastructure.LogDebug "Receiving Act 2..."
+                let! act2Res = ReadAsync keyRepo sentAct1Peer stream
+                match act2Res with
                 | Error (PeerDisconnected abruptly) ->
-                    let context = SPrintF1 "receiving init message while connecting, our init: %A" plainInit
-                    ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly context
+                    ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly "receiving act 2"
                     return Error (PeerDisconnected abruptly)
                 | Error err -> return Error err
-                | Ok init ->
-                    return
-                        match Peer.executeCommand sentInitPeer init with
-                        | Ok (ReceivedInit (newInit, _) as evt::[]) ->
-                            let peer = Peer.applyEvent sentInitPeer evt
-                            Ok { Init = newInit; Peer = peer; Client = client }
+                | Ok act2 ->
+                    let actThree, receivedAct2Peer =
+                        match Peer.executeCommand sentAct1Peer act2 with
+                        | Ok (ActTwoProcessed ((actThree, _nodeId), _) as evt::[]) ->
+                            let peer = Peer.applyEvent sentAct1Peer evt
+                            actThree, peer
                         | Ok _ ->
-                            failwith "not one good ReceivedInit event"
+                            failwith "not one good ActTwoProcessed event"
                         | Error peerError ->
-                            failwith <| SPrintF1 "couldn't parse init: %s" (peerError.ToString())
+                            failwith <| SPrintF1 "couldn't parse act2: %s" (peerError.ToString())
+
+                    Debug.Assert((bolt08ActThreeLength = actThree.Length), SPrintF1 "act3 has wrong length (not %i)" bolt08ActThreeLength)
+                    do! stream.WriteAsync(actThree, 0, actThree.Length) |> Async.AwaitTask
+
+                    let! sentInitPeer = Send plainInit receivedAct2Peer stream
+
+                    // receive init
+                    Infrastructure.LogDebug "Receiving init..."
+                    let! initRes = ReadAsync keyRepo sentInitPeer stream
+                    match initRes with
+                    | Error (PeerDisconnected abruptly) ->
+                        let context = SPrintF1 "receiving init message while connecting, our init: %A" plainInit
+                        ReportDisconnection channelCounterpartyIP nodeIdForResponder abruptly context
+                        return Error (PeerDisconnected abruptly)
+                    | Error err -> return Error err
+                    | Ok init ->
+                        return
+                            match Peer.executeCommand sentInitPeer init with
+                            | Ok (ReceivedInit (newInit, _) as evt::[]) ->
+                                let peer = Peer.applyEvent sentInitPeer evt
+                                Ok { Init = newInit; Peer = peer; Client = client }
+                            | Ok _ ->
+                                failwith "not one good ReceivedInit event"
+                            | Error peerError ->
+                                failwith <| SPrintF1 "couldn't parse init: %s" (peerError.ToString())
         }
 
     let rec ReadUntilChannelMessage (keyRepo: DefaultKeyRepository, peer: Peer, stream: NetworkStream): Async<Result<Peer * IChannelMsg, LNError>> =
