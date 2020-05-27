@@ -145,7 +145,13 @@ module ElectrumClient =
         elif estimateFeeResult.Result <= 0m then
             return raise <| ServerMisconfiguredException(SPrintF1 "Fee estimation returned an invalid non-positive value %M"
                                                                   estimateFeeResult.Result)
-        return estimateFeeResult.Result
+
+        let btcPerKB = estimateFeeResult.Result
+        let satPerKB = (NBitcoin.Money(btcPerKB, NBitcoin.MoneyUnit.BTC)).ToUnit NBitcoin.MoneyUnit.Satoshi
+        let satPerB = satPerKB / decimal(1000)
+        Infrastructure.LogDebug <| SPrintF2
+            "Electrum server gave us a fee rate of %M BTC per KB = %M sat per B" btcPerKB satPerB
+        return btcPerKB
     }
 
     let BroadcastTransaction (transactionInHex: string) (stratumServer: Async<StratumClient>) = async {
