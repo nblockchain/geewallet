@@ -7,6 +7,7 @@ open DotNetLightning.Chain
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type FeeEstimator = {
     FeeRatePerKw: FeeRatePerKw

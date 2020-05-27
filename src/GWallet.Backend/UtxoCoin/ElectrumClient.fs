@@ -140,7 +140,10 @@ module ElectrumClient =
     let EstimateFee (numBlocksTarget: int) (stratumServer: Async<StratumClient>): Async<decimal> = async {
         let! stratumClient = stratumServer
         let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
-        return estimateFeeResult.Result
+        let result = estimateFeeResult.Result
+        Infrastructure.LogDebug <| SPrintF1
+            "Electrum server gave us a fee rate of %Msat per kw" result
+        return result
     }
 
     let BroadcastTransaction (transactionInHex: string) (stratumServer: Async<StratumClient>) = async {
