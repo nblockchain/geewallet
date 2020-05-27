@@ -5,6 +5,7 @@ open System.Net.Sockets
 open System.Net
 open System.Diagnostics
 open System.IO
+open System.Text
 
 open NBitcoin
 open DotNetLightning.Utils
@@ -61,6 +62,38 @@ module Lightning =
     | StringError of StringErrorInner
     | DNLChannelError of ChannelError
     | PeerDisconnected of bool
+    with
+        member this.Message: string =
+            match this with
+            | StringError { Msg = msg; During = actionAttempted } ->
+                SPrintF2 "Error: %s when %s" msg actionAttempted
+            | ConnectError errors ->
+                let messages = Seq.map (fun (error: SocketException) -> error.Message) errors
+                "TCP connection failed: " + (String.concat "; " messages)
+            | DNLChannelError error -> "DNL channel error: " + error.Message
+            | DNLError error ->
+                "Error received from Lightning peer: " +
+                match error.Data with
+                | [| 01uy |] ->
+                    "The number of pending channels exceeds the policy limit." +
+                    Environment.NewLine + "Hint: You can try from a new node identity."
+                | [| 02uy |] ->
+                    "Node is not in sync to latest blockchain blocks." +
+                        if Config.BitcoinNet = Network.RegTest then
+                            Environment.NewLine + "Hint: Try mining some blocks before opening."
+                        else
+                            String.Empty
+                | [| 03uy |] ->
+                    "Channel capacity too large." + Environment.NewLine + "Hint: Try with a smaller funding amount."
+                | _ ->
+                    let asciiEncoding = ASCIIEncoding ()
+                    "ASCII representation: " + asciiEncoding.GetString error.Data
+            | PeerDisconnected whileSendingMsg ->
+                if whileSendingMsg then
+                    "Error: peer disconnected for unknown reason, abruptly during message transmission"
+                else
+                    "Error: peer disconnected for unknown reason"
+
 
     let ReadExactAsync (stream: NetworkStream)
                        (numberBytesToRead: int)
@@ -125,7 +158,7 @@ module Lightning =
     | OurErrorMessage of Peer * ErrorMessage
     | OtherMessage of Peer
 
-    let ProcessPeerEvents (oldPeer: Peer) (peerEventsResult: Result<List<PeerEvent>,'a>): MessageReceived =
+    let ProcessPeerEvents (oldPeer: Peer) (peerEventsResult: Result<List<PeerEvent>, PeerError>): MessageReceived =
         match peerEventsResult with
         | Ok (evt::[]) ->
             match evt with
@@ -140,7 +173,7 @@ module Lightning =
         | Ok _ ->
             failwith "receiving more than one channel event"
         | Error peerError ->
-            failwith <| SPrintF1 "couldn't parse chan msg: %s" (peerError.ToString())
+            failwith <| SPrintF1 "couldn't parse chan msg: %s" peerError.Message
 
     let peerLimits: ChannelHandshakeLimits = {
         ForceChannelAnnouncementPreference = false
@@ -253,7 +286,7 @@ module Lightning =
                         | Ok _ ->
                             failwith "not one good ActTwoProcessed event"
                         | Error peerError ->
-                            failwith <| SPrintF1 "couldn't parse act2: %s" (peerError.ToString())
+                            failwith <| SPrintF1 "couldn't parse act2: %s" peerError.Message
 
                     Debug.Assert((bolt08ActThreeLength = actThree.Length), SPrintF1 "act3 has wrong length (not %i)" bolt08ActThreeLength)
                     do! stream.WriteAsync(actThree, 0, actThree.Length) |> Async.AwaitTask
@@ -278,7 +311,7 @@ module Lightning =
                             | Ok _ ->
                                 failwith "not one good ReceivedInit event"
                             | Error peerError ->
-                                failwith <| SPrintF1 "couldn't parse init: %s" (peerError.ToString())
+                                failwith <| SPrintF1 "couldn't parse init: %s" peerError.Message
         }
 
     let rec ReadUntilChannelMessage (keyRepo: DefaultKeyRepository, peer: Peer, stream: NetworkStream): Async<Result<Peer * IChannelMsg, LNError>> =
@@ -444,7 +477,7 @@ module Lightning =
                             let innerError = { StringErrorInner.Msg = msg; During = "applying their funding_signed message" }
                             return Error <| StringError innerError
                         | Error e ->
-                            let msg = SPrintF1 "bad result when expecting WeAcceptedFundingSigned: %s" (e.ToString())
+                            let msg = SPrintF1 "bad result when expecting WeAcceptedFundingSigned: %s" e.Message
                             let innerError = { Msg = msg; During = "applying their funding_signed message" }
                             return Error <| StringError innerError
                     | _ ->
@@ -582,7 +615,7 @@ module Lightning =
         | Ok events ->
             failwith <| SPrintF1 "not two good channel events: %A" (List.map (fun evt -> evt.GetType().Name) events)
         | Error e ->
-            failwith <| SPrintF1 "bad result when expecting WeSentFundingLocked: %s" (e.ToString())
+            failwith <| SPrintF1 "bad result when expecting WeSentFundingLocked: %s" e.Message
 
     let LoadChannelAndFetchDepth (fileName: string): Async<ChannelDepthAndAccount> =
         let serializedChannel = SerializedChannel.LoadSerializedChannel fileName
@@ -681,7 +714,7 @@ module Lightning =
                             | Ok evtList ->
                                 failwith <| SPrintF1 "event was not a single WeSentChannelReestablish, it was: %A" evtList
                             | Error channelError ->
-                                failwith <| SPrintF1 "could not execute channel command: %s" (channelError.ToString())
+                                failwith <| SPrintF1 "could not execute channel command: %s" channelError.Message
 
                         let stream = connection.Client.GetStream()
                         Infrastructure.LogDebug "Sending channel_reestablish..."
@@ -802,7 +835,7 @@ module Lightning =
                             | Ok init ->
                                 match Peer.executeCommand receivedAct3Peer init with
                                 | Error peerError ->
-                                    return Error <| StringError { Msg = SPrintF1 "couldn't parse init: %s" (peerError.ToString()); During = "receiving init" }
+                                    return Error <| StringError { Msg = SPrintF1 "couldn't parse init: %s" peerError.Message; During = "receiving init" }
                                 | Ok (ReceivedInit (newInit, _) as evt::[]) ->
                                     let peer = Peer.applyEvent receivedAct3Peer evt
                                     let connection: Connection =
@@ -887,7 +920,7 @@ module Lightning =
                                                             | Ok evtList ->
                                                                 return Error <| StringError { Msg = SPrintF1 "event was not a single WeAcceptedFundingCreated, it was: %A" evtList; During = "application of their funding_created message" }
                                                             | Error channelError ->
-                                                                return Error <| StringError { Msg = SPrintF1 "could not apply funding_created: %s" (channelError.ToString()); During = "application of their funding_created message" }
+                                                                return Error <| StringError { Msg = SPrintF1 "could not apply funding_created: %s" channelError.Message; During = "application of their funding_created message" }
 
                                                         | _ ->
                                                             return Error <| StringError { Msg = SPrintF1 "channel message is not funding_created: %s" (chanMsg.GetType().Name); During = "reception of answer to accept_channel" }
@@ -900,7 +933,7 @@ module Lightning =
                                             | Ok evtList ->
                                                 return Error <| StringError { Msg = SPrintF1 "event was not a single NewInboundChannelStarted, it was: %A" evtList; During = "execution of CreateChannel command" }
                                             | Error channelError ->
-                                                return Error <| StringError { Msg = SPrintF1 "could not execute channel command: %s" (channelError.ToString()); During = "execution of CreateChannel command" }
+                                                return Error <| StringError { Msg = SPrintF1 "could not execute channel command: %s" channelError.Message; During = "execution of CreateChannel command" }
                                         | _ ->
                                             return Error <| StringError { Msg = SPrintF1 "channel message is not open_channel: %s" (chanMsg.GetType().Name); During = "reception of open_channel" }
                                 | Ok _ ->

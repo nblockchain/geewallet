@@ -16,37 +16,6 @@ let random = Org.BouncyCastle.Security.SecureRandom () :> Random
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-let GetLightningErrorMessage (lnError: Lightning.LNError): string =
-    match lnError with
-    | Lightning.StringError { Msg = msg; During = actionAttempted } ->
-        SPrintF2 "Error: %s when %s" msg actionAttempted
-    | Lightning.ConnectError errors ->
-        let messages = Seq.map (fun (error: SocketException) -> error.Message) errors
-        "TCP connection failed: " + (String.concat "; " messages)
-    | Lightning.DNLChannelError error -> "DNL channel error: " + (error.ToString())
-    | Lightning.DNLError error ->
-        "Error received from Lightning peer: " +
-        match error.Data with
-        | [| 01uy |] ->
-            "The number of pending channels exceeds the policy limit." +
-            Environment.NewLine + "Hint: You can try from a new node identity."
-        | [| 02uy |] ->
-            "Node is not in sync to latest blockchain blocks." +
-                if Config.BitcoinNet = Network.RegTest then
-                    Environment.NewLine + "Hint: Try mining some blocks before opening."
-                else
-                    String.Empty
-        | [| 03uy |] ->
-            "Channel capacity too large." + Environment.NewLine + "Hint: Try with a smaller funding amount."
-        | _ ->
-            let asciiEncoding = ASCIIEncoding ()
-            "ASCII representation: " + asciiEncoding.GetString error.Data
-    | Lightning.PeerDisconnected whileSendingMsg ->
-        if whileSendingMsg then
-            "Error: peer disconnected for unknown reason, abruptly during message transmission"
-        else
-            "Error: peer disconnected for unknown reason"
-
 let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
     try
@@ -365,7 +334,7 @@ let AskChannelFee (account: UtxoCoin.NormalUtxoAccount)
             Lightning.ConnectAndHandshake channelEnvironment channelCounterpartyIP
         match connectionBeforeAcceptChannelRes with
         | FSharp.Core.Result.Error errorMsg ->
-            Console.WriteLine(GetLightningErrorMessage errorMsg)
+            Console.WriteLine(errorMsg.Message)
             return None
         | FSharp.Core.Result.Ok connectionBeforeAcceptChannel ->
             let passwordRef = ref "DotNetLightning shouldn't ask for password until later when user has
@@ -381,7 +350,7 @@ let AskChannelFee (account: UtxoCoin.NormalUtxoAccount)
                     temporaryChannelId
             match acceptChannelRes with
             | FSharp.Core.Result.Error errorMsg ->
-                Console.WriteLine(GetLightningErrorMessage errorMsg)
+                Console.WriteLine(errorMsg.Message)
                 return None
             | FSharp.Core.Result.Ok (acceptChannel, chan, peer) ->
                 Presentation.ShowFee Currency.BTC metadata
@@ -507,7 +476,7 @@ let rec PerformOperation (numAccounts: int) =
                 RetryOptionFunctionUntilSome attempt
             match txIdRes with
             | FSharp.Core.Result.Error errorMsg ->
-                Console.WriteLine(GetLightningErrorMessage errorMsg)
+                Console.WriteLine(errorMsg.Message)
             | FSharp.Core.Result.Ok txId ->
                 let uri = BlockExplorer.GetTransaction Currency.BTC txId
                 printfn "A funding transaction was broadcast: %A" uri
@@ -524,7 +493,7 @@ let rec PerformOperation (numAccounts: int) =
         let res = Lightning.AcceptTheirChannel random btcAccount |> Async.RunSynchronously
         match res with
         | FSharp.Core.Result.Error errorMsg ->
-            Console.WriteLine(GetLightningErrorMessage errorMsg)
+            Console.WriteLine(errorMsg.Message)
         | FSharp.Core.Result.Ok () -> ()
     | _ -> failwith "Unreachable"
 
@@ -572,7 +541,7 @@ let private CheckChannelStatus (path: string, channelFileId: int): Async<seq<str
         match channelStatusRes with
         | FSharp.Core.Result.Error errorMsg ->
             return seq {
-                yield GetLightningErrorMessage errorMsg
+                yield errorMsg.Message
             }
         | FSharp.Core.Result.Ok channelStatus ->
             return
