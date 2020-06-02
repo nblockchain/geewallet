@@ -1,5 +1,6 @@
 before_script:
   - apt-get update
+  - apt install -y make git
   # needed to download NuGet
   - apt-get install -y curl
 
@@ -9,7 +10,7 @@ stages:
   - integration_tests
   - package
 
-stockmono_build:
+stockoldmono_build:
   image: ubuntu:18.04
   stage: build
   script:
@@ -25,7 +26,7 @@ stockmono_build:
     # so that we log the version of nuget for when it works
     - make nuget
 
-stockmono_test_unit:
+stockoldmono_test_unit:
   image: ubuntu:18.04
   stage: unit_tests
   script:
@@ -37,7 +38,7 @@ stockmono_test_unit:
             make &&
             make check)
 
-stocknewmono_build:
+stockmono_build:
   image: ubuntu:20.04
   stage: build
   script:
@@ -45,15 +46,13 @@ stocknewmono_build:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt install -y make git
-
     - ./configure.sh
     - make sanitycheck
     - make strict
     - make
     - make install
 
-stocknewmono_test_unit:
+stockmono_test_unit:
   image: ubuntu:20.04
   stage: unit_tests
   script:
@@ -61,14 +60,12 @@ stocknewmono_test_unit:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt install -y make git
-
     - apt-get install -y nunit-console
     - ./configure.sh
     - make
     - make check
 
-stocknewmono_test_integration:
+stockmono_test_integration:
   image: ubuntu:20.04
   stage: integration_tests
   script:
@@ -76,13 +73,11 @@ stocknewmono_test_integration:
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt install -y make git
-
     - ./configure.sh
     - make
     - make update-servers
 
-newmono_build:
+newmono1804_build:
   image: ubuntu:18.04
   stage: build
   artifacts:
@@ -109,7 +104,7 @@ newmono_build:
     - apt-get install -y zip
     - make zip
 
-newmono_test_unit:
+newmono1804_test_unit:
   image: ubuntu:18.04
   stage: unit_tests
   script:
@@ -119,7 +114,7 @@ newmono_test_unit:
 
     - time (./configure.sh && make && make check)
 
-stockmono_test_integration:
+stockoldmono_test_integration:
   image: ubuntu:18.04
   stage: integration_tests
   script:
@@ -130,7 +125,7 @@ stockmono_test_integration:
       make &&
       make update-servers
 
-newmono_test_integration:
+newmono1804_test_integration:
   image: ubuntu:18.04
   stage: integration_tests
   script:
@@ -140,8 +135,49 @@ newmono_test_integration:
       make &&
       make update-servers
 
+newmono_build:
+  image: ubuntu:20.04
+  stage: build
+  artifacts:
+    paths:
+      - bin/*.zip
+    expire_in: 50days
+  script:
+    - ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    - ./configure.sh
+    - make sanitycheck
+    - make strict
+    - make
+    - make install
+    # so that we log the version of nuget for when it works
+    - make nuget
+
+    - apt-get install -y zip
+    - make zip
+
+newmono_test_unit:
+  image: ubuntu:20.04
+  stage: unit_tests
+  script:
+    - ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    - apt install -y nunit-console
+
+    - time (./configure.sh && make && make check)
+
+newmono_test_integration:
+  image: ubuntu:20.04
+  stage: integration_tests
+  script:
+    - ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    - ./configure.sh &&
+      make &&
+      make update-servers
+
 # snap package generation is not working with GitLabCI; TODO: report bug
-#stockmono_package:
+#stockoldmono_package:
 #  image: ubuntu:18.04
 #  stage: package
 #  script:

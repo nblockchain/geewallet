@@ -184,12 +184,15 @@ module Server =
         match maybeRpcResponseEx with
         | Some rpcResponseEx ->
             if rpcResponseEx.RpcError <> null then
-                if (rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNodeOrMissingTrieNode) then
+                if rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound then
                     if (not (rpcResponseEx.RpcError.Message.Contains "pruning=archive")) &&
+                       (not (rpcResponseEx.RpcError.Message.Contains "header not found")) &&
                        (not (rpcResponseEx.RpcError.Message.Contains "missing trie node")) then
                         raise <| Exception(
-                                     SPrintF1 "Expecting 'pruning=archive' or 'missing trie node' in message of a %i code"
-                                                   (int RpcErrorCode.StatePruningNodeOrMissingTrieNode), rpcResponseEx)
+                                     SPrintF2 "Expecting 'pruning=archive' or 'missing trie node' or 'header not found' in message of a %d code, but got '%s'"
+                                             (int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound)
+                                             rpcResponseEx.RpcError.Message,
+                                     rpcResponseEx)
                     else
                         raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                 if (rpcResponseEx.RpcError.Code = int RpcErrorCode.UnknownBlockNumber) then
@@ -329,9 +332,11 @@ module Server =
                     }
         }
 
+    let etcEcosystemIsMomentarilyCentralized = true
+
     let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode) (currency: Currency) =
         let numberOfConsistentResponsesRequired =
-            if currency = Currency.ETC || not Networking.Tls12Support then
+            if (etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC) || not Networking.Tls12Support then
                 1u
             else
                 2u
@@ -342,7 +347,9 @@ module Server =
                                                                    (currency: Currency)
                                                                    (cacheOrInitialBalanceMatchFunc: decimal->bool) =
         let consistencyConfig =
-            if mode = ServerSelectionMode.Fast then
+            if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
+                None
+            elif mode = ServerSelectionMode.Fast then
                 Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
             else
                 None
@@ -613,7 +620,11 @@ module Server =
                             return! Async.AwaitTask task
                         }
                 GetRandomizedFuncs currency web3Func
-            let minResponsesRequired = 2u
+            let minResponsesRequired =
+                if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
+                    1u
+                else
+                    2u
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings
                             ServerSelectionMode.Fast

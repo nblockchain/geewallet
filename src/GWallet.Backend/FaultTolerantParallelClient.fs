@@ -131,12 +131,12 @@ type internal Runner<'Resource when 'Resource: equality> =
                       (cancelState: ClientCancelState)
                       (shouldReportUncanceledJobs: bool)
                       (maybeExceptionHandler: Option<Exception->unit>)
-                          : Async<Result<'Resource,Exception>> =
+                          : Async<Either<'Resource,Exception>> =
         async {
             try
                 try
                     let! res = server.Retrieval
-                    return Value res
+                    return SuccessfulValue res
                 finally
                     stopwatch.Stop()
             with
@@ -159,13 +159,13 @@ type internal Runner<'Resource when 'Resource: equality> =
                     if report then
                         Infrastructure.LogError (SPrintF1 "Cancellation fault warning: %s"
                                                      (ex.ToString()))
-                    return Error (specificInnerEx :> Exception)
+                    return FailureResult (specificInnerEx :> Exception)
                 | None ->
                     match maybeExceptionHandler with
                     | None -> return raise <| FSharpUtil.ReRaise ex
                     | Some exceptionHandler ->
                         exceptionHandler ex
-                        return Error ex
+                        return FailureResult ex
         }
 
     static member CreateAsyncJobFromFunc<'K,'Ex when 'K: equality and 'K :> ICommunicationHistory and 'Ex :> Exception>
@@ -183,11 +183,11 @@ type internal Runner<'Resource when 'Resource: equality> =
                 Runner.Run<'K,'Ex> server stopwatch cancelState shouldReportUncanceledJobs exceptionHandler
 
             match runResult with
-            | Value result ->
+            | SuccessfulValue result ->
                 let historyFact = { TimeSpan = stopwatch.Elapsed; Fault = None }
                 updateServer (fun srv -> srv = server.Details) historyFact
                 return SuccessfulResult result
-            | Error ex ->
+            | FailureResult ex ->
                 let exInfo =
                     {
                         TypeFullName = ex.GetType().FullName
