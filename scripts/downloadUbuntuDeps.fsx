@@ -13,8 +13,7 @@ open Process
 let binFolderName = "bin"
 let outputSubFolder = "apt"
 let outputFolder = Path.Combine(binFolderName, outputSubFolder)
-let mainDep = "fsharp"
-let deps = mainDep::[]
+let packageDependencies = "fsharp"::[]
 
 let currentDir = Directory.GetCurrentDirectory()
 let binAptDir = Path.Combine(currentDir, outputFolder)
@@ -30,7 +29,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-APT_SOURCE_FILENAME=/etc/apt/sources.list.d/apt-{dep}-offline.list
+APT_SOURCE_FILENAME=/etc/apt/sources.list.d/apt-{aptSourceName}-offline.list
 DIR_OF_THIS_SCRIPT=$(dirname $(readlink -f $0))
 echo "deb file:///$DIR_OF_THIS_SCRIPT/ ./" > $APT_SOURCE_FILENAME
 apt update --allow-insecure-repositories --allow-unauthenticated
@@ -40,11 +39,11 @@ apt update
 """
 
 let installScriptContents =
-    installScriptTemplate.Replace("{dep}", mainDep)
+    installScriptTemplate.Replace("{aptSourceName}", "geewalletdependencies")
 let installScriptFileName = "install.sh"
 
 try
-    Unix.DownloadAptPackagesRecursively deps
+    Unix.DownloadAptPackagesRecursively packageDependencies
     Unix.InstallAptPackageIfNotAlreadyInstalled "dpkg-dev"
     let scanPkg = Process.SafeExecute({ Command = "dpkg-scanpackages"; Arguments = "." },
                                       Echo.Off)
