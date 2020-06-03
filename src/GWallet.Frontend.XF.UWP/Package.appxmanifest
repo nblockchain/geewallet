@@ -9,7 +9,7 @@
   <Identity
     Name="10509AndresG.Aragoneses.geewallet"
     Publisher="CN=849618F6-D64D-4552-88E2-1B8766BCD10A"
-    Version="0.4.207.0" />
+    Version="0.4.208.0" />
 
   <mp:PhoneIdentity PhoneProductId="b1e8a5f8-5846-4c4c-a375-78e18581c3fe" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
