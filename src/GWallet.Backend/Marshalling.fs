@@ -138,7 +138,7 @@ module Marshalling =
     let internal PascalCase2LowercasePlusUnderscoreConversionSettings =
         JsonSerializerSettings(ContractResolver = PascalCase2LowercasePlusUnderscoreContractResolver())
 
-    let internal DefaultSettings =
+    let internal DefaultSettings () = // Function so that we won't mutate. This is hard to clone.
         JsonSerializerSettings(MissingMemberHandling = MissingMemberHandling.Error,
                                ContractResolver = RequireAllPropertiesContractResolver(),
                                DateTimeZoneHandling = DateTimeZoneHandling.Utc)
@@ -185,10 +185,10 @@ module Marshalling =
     let Deserialize<'T>(json: string): 'T =
         match typeof<'T> with
         | theType when typeof<Exception>.IsAssignableFrom theType ->
-            let marshalledException: MarshalledException = DeserializeCustom(json, DefaultSettings)
+            let marshalledException: MarshalledException = DeserializeCustom (json, DefaultSettings())
             BinaryMarshalling.DeserializeFromString marshalledException.FullBinaryForm :?> 'T
         | _ ->
-            DeserializeCustom(json, DefaultSettings)
+            DeserializeCustom (json, DefaultSettings())
 
     let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings): string =
         JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
@@ -207,7 +207,7 @@ module Marshalling =
         match box value with
         | :? Exception as ex ->
             let exToSerialize = MarshalledException.Create ex
-            let serializedEx = SerializeCustom(exToSerialize, DefaultSettings)
+            let serializedEx = SerializeCustom (exToSerialize, DefaultSettings())
 
             try
                 let _deserializedEx: 'T = Deserialize serializedEx
@@ -222,4 +222,4 @@ module Marshalling =
 
             serializedEx
         | _ ->
-            SerializeCustom(value, DefaultSettings)
+            SerializeCustom (value, DefaultSettings())
