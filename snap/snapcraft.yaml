@@ -20,7 +20,7 @@ layout:
 
 apps:
   geewallet:
-    command: desktop-launch $SNAP/bin/geewallet-gtk
+    command: bin/desktop-launch $SNAP/bin/geewallet-gtk
     plugs:
       - network
       - desktop
