@@ -27,9 +27,8 @@ let suppliedVersion =
                 Console.Error.WriteLine "Mini-version (previous-to-last number, e.g. 2 in 0.1.2.3) should be an even (stable) number"
                 Environment.Exit 2
                 failwith "Unreachable"
-            if full.Revision <> 1 then
-                // FIXME: seems UWP requires revision to be 0 while SnapStore requires it to be non-zero??
-                Console.Error.WriteLine "Revision number (last number, e.g. 3 in 0.1.2.3) should be 1 (SnapStore restrictions...)"
+            if full.Revision <> 0 then
+                Console.Error.WriteLine "Revision number (last number, e.g. 3 in 0.1.2.3) should be zero (UWP restrictions...)"
                 Environment.Exit 2
                 failwith "Unreachable"
             Some full
