@@ -32,7 +32,7 @@ type WarpWallet() =
         let privKey = NBitcoin.Key(privKeyBytes, LENGTH_OF_PRIVATE_KEYS, false)
         Assert.That(privKey.GetWif(NBitcoin.Network.Main).ToWif(), Is.EqualTo privKeyWif)
 
-        let pubKey = privKey.PubKey.GetAddress(NBitcoin.Network.Main)
+        let pubKey = privKey.PubKey.GetAddress(NBitcoin.ScriptPubKeyType.Legacy, NBitcoin.Network.Main)
         Assert.That(pubKey.ToString(), Is.EqualTo pubAddress)
 
     [<Test>]
