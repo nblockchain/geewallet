@@ -20,4 +20,4 @@ fi
 snapcraft login --with snapcraft.login
 
 # the 'stable' and 'candidate' channels require 'stable' grade in the yaml
-snapcraft push snap/*.snap --release=beta
+snapcraft push snap/*.snap --release=stable
