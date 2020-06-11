@@ -339,7 +339,7 @@ module Server =
         FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast None
 
     let private faultTolerantEtherClient =
-        JsonRpcSharp.Client.RpcClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
+        JsonRpcSharp.Client.HttpClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
         FaultTolerantParallelClient<ServerDetails,ServerDiscardedException> Caching.Instance.SaveServerLastStat
 
 

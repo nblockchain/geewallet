@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>GWallet.Frontend.Console</RootNamespace>
     <AssemblyName>GWallet.Frontend.Console</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFSharpCoreVersion>4.7.0.0</TargetFSharpCoreVersion>
     <Name>GWallet.Frontend.Console</Name>
@@ -87,6 +87,9 @@
     </ProjectReference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\net45\FSharp.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="BouncyCastle.Crypto">
+      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.5.2\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>
