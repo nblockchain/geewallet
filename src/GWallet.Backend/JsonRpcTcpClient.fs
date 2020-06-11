@@ -66,7 +66,7 @@ type JsonRpcTcpClient (host: string, port: uint32) =
 
     member __.Host with get() = host
 
-    member self.Request (request: string): Async<string> = async {
+    member __.Request (request: string): Async<string> = async {
         try
             let! stringOption = rpcTcpClientInnerRequest request |> FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT
             let str =
