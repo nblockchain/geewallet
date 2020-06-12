@@ -120,10 +120,7 @@ module Config =
         seq {
             for currency in currencies do
                 for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
-                    yield {
-                        Name = Path.GetFileName filePath
-                        Content = (fun _ -> File.ReadAllText filePath)
-                    }
+                    yield FileRepresentation.FromFile (FileInfo(filePath))
         }
 
     let private GetFile (currency: Currency) (account: BaseAccount): FileInfo =

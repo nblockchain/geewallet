@@ -1,5 +1,7 @@
 namespace GWallet.Backend
 
+open System.IO
+
 type WatchWalletInfo =
     {
         UtxoCoinPublicKey: string
@@ -11,6 +13,11 @@ type FileRepresentation =
         Name: string;
         Content: unit->string;
     }
+    static member FromFile (file: FileInfo) =
+        {
+            Name = Path.GetFileName file.FullName
+            Content = (fun _ -> File.ReadAllText file.FullName)
+        }
 
 type ConceptAccount =
     {
