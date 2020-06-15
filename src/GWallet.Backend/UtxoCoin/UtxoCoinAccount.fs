@@ -20,7 +20,7 @@ type internal TransactionOutpoint =
     member self.ToCoin (): Coin =
         Coin(self.Transaction, uint32 self.OutputIndex)
 
-type IUtxoAccount =
+type internal IUtxoAccount =
     inherit IAccount
 
     abstract member PublicKey: PubKey with get
@@ -341,12 +341,23 @@ module Account =
             return raise <| InsufficientBalanceForFee None
     }
 
-    let EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
-                        : Async<TransactionMetadata> =
-        EstimateFeeForDestination
-            account
-            amount
-            (BitcoinAddress.Create (destination, Config.BitcoinNet))
+    let EstimateFeeP2WSH (account: NormalUtxoAccount)
+                         (amount: TransferAmount)
+                             : Async<TransactionMetadata> =
+        // use a dummy, all-zero witness script to estimate the fee
+        let witScriptIdLength = 32
+        let nullScriptId = NBitcoin.WitScriptId (Array.zeroCreate witScriptIdLength)
+        let network = GetNetwork (account :> IAccount).Currency
+        let dummyAddr = NBitcoin.BitcoinWitScriptAddress (nullScriptId, network)
+
+        EstimateFeeForDestination account amount dummyAddr
+
+    let internal EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
+                                 : Async<TransactionMetadata> =
+        let currency = (account:>IAccount).Currency
+        let network = GetNetwork currency
+        let destAddress = BitcoinAddress.Create (destination, network)
+        EstimateFeeForDestination account amount destAddress
 
     let private SignTransactionWithPrivateKey (account: IUtxoAccount)
                                               (txMetadata: TransactionMetadata)
@@ -370,7 +381,7 @@ module Account =
             failwith "Something went wrong when verifying transaction"
         finalTransaction
 
-    let internal GetPrivateKey (account: NormalAccount) password =
+    let GetPrivateKey (account: NormalAccount) password =
         let encryptedPrivateKey = account.GetEncryptedPrivateKey()
         let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, GetNetwork (account:>IAccount).Currency)
         try
@@ -401,21 +412,24 @@ module Account =
                         (destination: string)
                         (amount: TransferAmount)
                         (password: string) =
+        let currency = (account :> IAccount).Currency
+        let network = GetNetwork currency
+        let destAddress = BitcoinAddress.Create (destination, network)
         SignTransactionForDestination
             account
             txMetadata
-            (BitcoinAddress.Create (destination, Config.BitcoinNet))
+            destAddress
             amount
             password
 
-    let CheckValidPassword (account: NormalAccount) (password: string) =
+    let internal CheckValidPassword (account: NormalAccount) (password: string) =
         GetPrivateKey account password |> ignore
 
     let internal BroadcastRawTransaction currency (rawTx: string): Async<string> =
         let job = ElectrumClient.BroadcastTransaction rawTx
         Server.Query currency QuerySettings.Broadcast job None
 
-    let BroadcastTransaction currency (transaction: SignedTransaction<_>) =
+    let internal BroadcastTransaction currency (transaction: SignedTransaction<_>) =
         // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
         // and show the info from the RawTx, using NBitcoin to extract it
         BroadcastRawTransaction currency transaction.RawTransaction
@@ -432,15 +446,18 @@ module Account =
         let finalTransaction = SignTransactionForDestination account txMetadata destination amount password
         BroadcastRawTransaction baseAccount.Currency finalTransaction
 
-    let SendPayment (account: NormalUtxoAccount)
-                    (txMetadata: TransactionMetadata)
-                    (destination: string)
-                    (amount: TransferAmount)
-                    (password: string) =
+    let internal SendPayment (account: NormalUtxoAccount)
+                             (txMetadata: TransactionMetadata)
+                             (destination: string)
+                             (amount: TransferAmount)
+                             (password: string) =
+        let currency = (account:>IAccount).Currency
+        let network = GetNetwork currency
+        let destAddress = BitcoinAddress.Create (destination, network)
         SendPaymentForDestination
             account
             txMetadata
-            (BitcoinAddress.Create (destination, Config.BitcoinNet))
+            destAddress
             amount
             password
 
@@ -448,7 +465,7 @@ module Account =
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
 
-    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
+    let internal SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
                                 (txMetadata: TransactionMetadata)
                                 (readOnlyAccounts: seq<ReadOnlyAccount>)
                                     : string =
@@ -461,7 +478,7 @@ module Account =
             }
         ExportUnsignedTransactionToJson unsignedTransaction
 
-    let SweepArchivedFunds (account: ArchivedUtxoAccount)
+    let internal SweepArchivedFunds (account: ArchivedUtxoAccount)
                            (balance: decimal)
                            (destination: IAccount)
                            (txMetadata: TransactionMetadata) =
@@ -488,7 +505,7 @@ module Account =
             }
         }
 
-    let ValidateAddress (currency: Currency) (address: string) =
+    let internal ValidateAddress (currency: Currency) (address: string) =
         if String.IsNullOrEmpty address then
             raise <| ArgumentNullException "address"
 

@@ -8,7 +8,7 @@ open DotNetLightning.Chain
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 
-type FeeEstimator = {
+type internal FeeEstimator = {
     FeeRatePerKw: FeeRatePerKw
 } with
     static member Create() = async {
