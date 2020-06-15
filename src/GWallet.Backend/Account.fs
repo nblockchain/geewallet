@@ -184,9 +184,13 @@ module Account =
         async {
             match transactionMetadata with
             | :? Ether.TransactionMetadata as etherTxMetadata ->
-                let! outOfGas = Ether.Server.IsOutOfGas transactionMetadata.Currency txHash etherTxMetadata.Fee.GasLimit
-                if outOfGas then
-                    return failwith <| SPrintF1 "Transaction ran out of gas: %s" txHash
+                try
+                    let! outOfGas = Ether.Server.IsOutOfGas transactionMetadata.Currency txHash etherTxMetadata.Fee.GasLimit
+                    if outOfGas then
+                        return failwith <| SPrintF1 "Transaction ran out of gas: %s" txHash
+                with
+                | ex ->
+                    return raise <| Exception(SPrintF1 "An issue occurred while trying to check if the following transaction ran out of gas: %s" txHash, ex)
             | _ ->
                 ()
         }
