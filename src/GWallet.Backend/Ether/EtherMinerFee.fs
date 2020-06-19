@@ -14,7 +14,7 @@ type MinerFee(gasLimit: Int64, gasPriceInWei: Int64, estimationTime: DateTime, c
     member val Currency = currency with get
     member val EstimationTime = estimationTime with get
 
-    member self.CalculateAbsoluteValue() =
+    member __.CalculateAbsoluteValue() =
         let gasPriceInWei = BigInteger(gasPriceInWei)
         let costInWei = BigInteger.Multiply(gasPriceInWei, BigInteger(gasLimit))
         UnitConversion.Convert.FromWei(costInWei, UnitConversion.EthUnit.Ether)

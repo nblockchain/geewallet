@@ -88,6 +88,25 @@ module Account =
         let privateKey = Key.Parse(privateKey, GetNetwork currency)
         GetPublicAddressFromPublicKey currency privateKey.PubKey
 
+    let internal GetAccountFromFile (accountFile: FileRepresentation) (currency: Currency) kind: IAccount =
+        if not (currency.IsUtxo()) then
+            failwith <| SPrintF1 "Assertion failed: currency %A should be UTXO-type" currency
+        match kind with
+        | AccountKind.ReadOnly ->
+            ReadOnlyUtxoAccount(currency,
+                                accountFile,
+                                (fun accountFile -> accountFile.Name),
+                                GetPublicKeyFromReadOnlyAccountFile)
+                                            :> IAccount
+        | AccountKind.Normal ->
+            let fromAccountFileToPublicAddress = GetPublicAddressFromNormalAccountFile currency
+            let fromAccountFileToPublicKey = GetPublicKeyFromNormalAccountFile
+            NormalUtxoAccount(currency, accountFile,
+                              fromAccountFileToPublicAddress, fromAccountFileToPublicKey)
+            :> IAccount
+        | _ ->
+            failwith <| SPrintF1 "Kind (%A) not supported for this API" kind
+
     let private BalanceToShow (balances: BlockchainScriptHashGetBalanceInnerResult) =
         let unconfirmedPlusConfirmed = balances.Unconfirmed + balances.Confirmed
         let amountToShowInSatoshis,imminentIncomingPayment =
