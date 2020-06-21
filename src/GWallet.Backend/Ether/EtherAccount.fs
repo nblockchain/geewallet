@@ -25,7 +25,7 @@ module internal Account =
     let GetPublicAddressFromUnencryptedPrivateKey (privateKey: string) =
         EthECKey(privateKey).GetPublicAddress()
 
-    let internal GetPublicAddressFromNormalAccountFile (accountFile: FileRepresentation): string =
+    let GetPublicAddressFromNormalAccountFile (accountFile: FileRepresentation): string =
         let encryptedPrivateKey = accountFile.Content()
         let rawPublicAddress = KeyStoreService.GetAddressFromKeyStore encryptedPrivateKey
         let publicAddress =
@@ -34,17 +34,6 @@ module internal Account =
             else
                 "0x" + rawPublicAddress
         publicAddress
-
-    let internal GetAccountFromFile (accountFile: FileRepresentation) (currency: Currency) kind: IAccount =
-        if not (currency.IsEtherBased()) then
-            failwith <| SPrintF1 "Assertion failed: currency %A should be Ether-type" currency
-        match kind with
-        | AccountKind.ReadOnly ->
-            ReadOnlyAccount(currency, accountFile, fun accountFile -> accountFile.Name) :> IAccount
-        | AccountKind.Normal ->
-            NormalAccount(currency, accountFile, GetPublicAddressFromNormalAccountFile) :> IAccount
-        | _ ->
-            failwith <| SPrintF1 "Kind (%A) not supported for this API" kind
 
     let private GetBalance (account: IAccount)
                            (mode: ServerSelectionMode)

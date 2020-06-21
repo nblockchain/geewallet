@@ -85,7 +85,7 @@ type FaultTolerantParallelClientSettings<'R> =
 
 type MutableStateUnsafeAccessor<'T>(initialState: 'T) =
     let mutable state = initialState
-    member __.Value
+    member this.Value
         with get() =
             state
          and set value =
@@ -94,7 +94,7 @@ type MutableStateUnsafeAccessor<'T>(initialState: 'T) =
 type MutableStateCapsule<'T>(initialState: 'T) =
     let state = MutableStateUnsafeAccessor initialState
     let lockObject = Object()
-    member __.SafeDo (func: MutableStateUnsafeAccessor<'T>->'R): 'R =
+    member this.SafeDo (func: MutableStateUnsafeAccessor<'T>->'R): 'R =
         lock lockObject (fun _ -> func state)
 
 type ServerJob<'K,'R when 'K: equality and 'K :> ICommunicationHistory> =
@@ -234,7 +234,7 @@ type CustomCancelSource() =
     let mutable canceledAlready = false
     let lockObj = Object()
 
-    member __.Cancel() =
+    member this.Cancel() =
         lock lockObj (fun _ ->
             if canceledAlready then
                 raise <| ObjectDisposedException "Already canceled/disposed"
@@ -243,7 +243,7 @@ type CustomCancelSource() =
         canceled.Trigger()
 
     [<CLIEvent>]
-    member __.Canceled
+    member this.Canceled
         with get() =
             lock lockObj (fun _ ->
                 if canceledAlready then
@@ -252,9 +252,9 @@ type CustomCancelSource() =
             )
 
     interface IDisposable with
-        member self.Dispose() =
+        member this.Dispose() =
             try
-                self.Cancel()
+                this.Cancel()
             with
             | :? ObjectDisposedException ->
                 ()
@@ -692,7 +692,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             let randomizationOffset = intersectionOffset + 1u
             Shuffler.RandomizeEveryNthElement result randomizationOffset
 
-    member private __.QueryInternal<'R when 'R : equality>
+    member private self.QueryInternal<'R when 'R : equality>
                             (settings: FaultTolerantParallelClientSettings<'R>)
                             (servers: List<Server<'K,'R>>)
                             (cancellationTokenSourceOption: Option<CustomCancelSource>)

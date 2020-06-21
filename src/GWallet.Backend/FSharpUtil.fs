@@ -83,7 +83,7 @@ module FSharpUtil =
         // hack?
         inherit Exception()
 
-        member __.Value = value
+        member self.Value = value
 
     module AsyncExtensions =
 

@@ -59,15 +59,7 @@ module Account =
         ()
 #endif
 
-    let internal GetAccountFromFile accountFile (currency: Currency) kind: IAccount =
-        if currency.IsUtxo() then
-            UtxoCoin.Account.GetAccountFromFile accountFile currency kind
-        elif currency.IsEtherBased() then
-            Ether.Account.GetAccountFromFile accountFile currency kind
-        else
-            failwith <| SPrintF1 "Currency (%A) not supported for this API" currency
-
-    let GetAllActiveAccounts(): seq<IAccount> =
+    let GetAllActiveAccounts(): List<IAccount> =
         Config.RenameDaiAccountsToSai()
 
         let allCurrencies = Currency.GetAll()
@@ -81,12 +73,33 @@ module Account =
 
         seq {
             for currency in allCurrencies do
-                let activeKinds = [AccountKind.ReadOnly; AccountKind.Normal]
-                for kind in activeKinds do
-                    for accountFile in Config.GetAccountFiles [currency] kind do
-                        yield GetAccountFromFile accountFile currency kind
-        }
+                for accountFile in Config.GetAccountFiles [currency] AccountKind.ReadOnly do
+                    if currency.IsUtxo() then
+                        yield UtxoCoin.ReadOnlyUtxoAccount(currency, accountFile,
+                                                           (fun accountFile -> accountFile.Name),
+                                                           UtxoCoin.Account.GetPublicKeyFromReadOnlyAccountFile)
+                                                               :> IAccount
+                    elif currency.IsEtherBased() then
+                        yield ReadOnlyAccount(currency, accountFile, fun accountFile -> accountFile.Name) :> IAccount
 
+                for accountFile in Config.GetAccountFiles [currency] AccountKind.Normal do
+                    let account =
+                        if currency.IsUtxo() then
+                            let fromAccountFileToPublicAddress =
+                                UtxoCoin.Account.GetPublicAddressFromNormalAccountFile currency
+                            let fromAccountFileToPublicKey =
+                                UtxoCoin.Account.GetPublicKeyFromNormalAccountFile
+                            UtxoCoin.NormalUtxoAccount(currency, accountFile,
+                                                       fromAccountFileToPublicAddress, fromAccountFileToPublicKey)
+                                :> IAccount
+                        elif currency.IsEtherBased() then
+                            let fromAccountFileToPublicAddress =
+                                Ether.Account.GetPublicAddressFromNormalAccountFile
+                            NormalAccount(currency, accountFile, fromAccountFileToPublicAddress) :> IAccount
+                        else
+                            failwith <| SPrintF1 "Unknown currency %A" currency
+                    yield account
+        } |> List.ofSeq
 
     let GetNormalAccountsPairingInfoForWatchWallet(): Option<WatchWalletInfo> =
         let allCurrencies = Currency.GetAll()
@@ -219,13 +232,9 @@ module Account =
         async {
             match transactionMetadata with
             | :? Ether.TransactionMetadata as etherTxMetadata ->
-                try
-                    let! outOfGas = Ether.Server.IsOutOfGas transactionMetadata.Currency txHash etherTxMetadata.Fee.GasLimit
-                    if outOfGas then
-                        return failwith <| SPrintF1 "Transaction ran out of gas: %s" txHash
-                with
-                | ex ->
-                    return raise <| Exception(SPrintF1 "An issue occurred while trying to check if the following transaction ran out of gas: %s" txHash, ex)
+                let! outOfGas = Ether.Server.IsOutOfGas transactionMetadata.Currency txHash etherTxMetadata.Fee.GasLimit
+                if outOfGas then
+                    return failwith <| SPrintF1 "Transaction ran out of gas: %s" txHash
             | _ ->
                 ()
         }

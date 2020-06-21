@@ -306,12 +306,12 @@ module Caching =
                                                         address
                                                         newCache))
 
-        member __.ClearAll () =
+        member this.ClearAll () =
             SaveNetworkDataToDisk CachedNetworkData.Empty
             SaveServerRankingsToDisk Map.empty
                 |> ignore
 
-        member __.SaveSnapshot(newDietCachedData: DietCache) =
+        member self.SaveSnapshot(newDietCachedData: DietCache) =
             let newCachedData = CachedNetworkData.FromDietCache newDietCachedData
             lock cacheFiles.CachedNetworkData (fun _ ->
                 let newSessionCachedNetworkData =
@@ -327,12 +327,12 @@ module Caching =
                 SaveNetworkDataToDisk newSessionCachedNetworkData
             )
 
-        member __.GetLastCachedData (): CachedNetworkData =
+        member self.GetLastCachedData (): CachedNetworkData =
             lock cacheFiles.CachedNetworkData (fun _ ->
                 sessionCachedNetworkData
             )
 
-        member __.RetrieveLastKnownUsdPrice currency: NotFresh<decimal> =
+        member self.RetrieveLastKnownUsdPrice currency: NotFresh<decimal> =
             lock cacheFiles.CachedNetworkData (fun _ ->
                 try
                     Cached(sessionCachedNetworkData.UsdPrice.Item currency)
@@ -341,7 +341,7 @@ module Caching =
                 | :? System.Collections.Generic.KeyNotFoundException -> NotAvailable
             )
 
-        member __.StoreLastFiatUsdPrice (currency, lastFiatUsdPrice: decimal): unit =
+        member self.StoreLastFiatUsdPrice (currency, lastFiatUsdPrice: decimal): unit =
             lock cacheFiles.CachedNetworkData (fun _ ->
                 let time = DateTime.UtcNow
 
@@ -353,7 +353,7 @@ module Caching =
                 SaveNetworkDataToDisk newCachedValue
             )
 
-        member __.RetrieveLastCompoundBalance (address: PublicAddress) (currency: Currency): NotFresh<decimal> =
+        member self.RetrieveLastCompoundBalance (address: PublicAddress) (currency: Currency): NotFresh<decimal> =
             lock cacheFiles.CachedNetworkData (fun _ ->
                 let balance =
                     try
@@ -387,10 +387,10 @@ module Caching =
             | Cached(cachedBalance,_) ->
                 Some cachedBalance
 
-        member __.RetrieveAndUpdateLastCompoundBalance (address: PublicAddress)
-                                                       (currency: Currency)
-                                                       (newBalance: decimal)
-                                                           : CachedValue<decimal> =
+        member self.RetrieveAndUpdateLastCompoundBalance (address: PublicAddress)
+                                                         (currency: Currency)
+                                                         (newBalance: decimal)
+                                                             : CachedValue<decimal> =
             let time = DateTime.UtcNow
             lock cacheFiles.CachedNetworkData (fun _ ->
                 let newCachedValueWithNewBalance,previousBalance =
@@ -465,11 +465,11 @@ module Caching =
                     compoundBalance,time
             )
 
-        member private __.StoreTransactionRecord (address: PublicAddress)
-                                                 (currency: Currency)
-                                                 (txId: string)
-                                                 (amount: decimal)
-                                                     : unit =
+        member private self.StoreTransactionRecord (address: PublicAddress)
+                                                   (currency: Currency)
+                                                   (txId: string)
+                                                   (amount: decimal)
+                                                       : unit =
             let time = DateTime.UtcNow
             lock cacheFiles.CachedNetworkData (fun _ ->
                 let newCurrencyAddresses =
@@ -508,8 +508,8 @@ module Caching =
             if transactionCurrency <> feeCurrency && (not Config.EthTokenEstimationCouldBeBuggyAsInNotAccurate) then
                 self.StoreTransactionRecord address feeCurrency txId feeAmount
 
-        member __.SaveServerLastStat (serverMatchFunc: ServerDetails->bool)
-                                     (stat: HistoryFact): unit =
+        member self.SaveServerLastStat (serverMatchFunc: ServerDetails->bool)
+                                       (stat: HistoryFact): unit =
             lock cacheFiles.ServerStats (fun _ ->
                 let currency,serverInfo,previousLastSuccessfulCommunication =
                     match ServerRegistry.TryFindValue sessionServerRanking serverMatchFunc with
@@ -552,7 +552,7 @@ module Caching =
                 sessionServerRanking <- newCachedValue
             )
 
-        member __.GetServers (currency: Currency): seq<ServerDetails> =
+        member self.GetServers (currency: Currency): seq<ServerDetails> =
             lock cacheFiles.ServerStats (fun _ ->
                 match sessionServerRanking.TryFind currency with
                 | None ->
@@ -560,12 +560,12 @@ module Caching =
                 | Some servers -> servers
             )
 
-        member __.ExportServers (): Option<string> =
+        member self.ExportServers (): Option<string> =
             lock cacheFiles.ServerStats (fun _ ->
                 LoadFromDiskInner cacheFiles.ServerStats
             )
 
-        member __.BootstrapServerStatsFromTrustedSource(): Async<unit> =
+        member self.BootstrapServerStatsFromTrustedSource(): Async<unit> =
             let downloadFile url: Async<Option<string>> =
                 let tryDownloadFile url: Async<string> =
                     async {

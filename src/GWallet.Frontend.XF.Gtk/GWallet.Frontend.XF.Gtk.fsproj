@@ -9,7 +9,7 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>GWallet.Frontend.XF.Gtk</RootNamespace>
     <AssemblyName>geewallet</AssemblyName>
-    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -64,7 +64,7 @@
     </Reference>
     <Reference Include="System.Net.Http" />
     <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.5.2\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+      <HintPath>..\..\packages\BouncyCastle.1.8.2\lib\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -155,52 +155,52 @@
       <HintPath>..\..\packages\System.Net.WebSockets.Client.4.3.2\lib\net46\System.Net.WebSockets.Client.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.Client">
-      <HintPath>..\..\packages\JsonRpcSharp.0.92.0-date20200610-0657.git-425436f\lib\net46\JsonRpcSharp.Client.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.91.0-date20200508-0436.git-69b4b96\lib\net46\JsonRpcSharp.Client.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.IpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.92.0-date20200610-0657.git-425436f\lib\net46\JsonRpcSharp.IpcClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.91.0-date20200508-0436.git-69b4b96\lib\net46\JsonRpcSharp.IpcClient.dll</HintPath>
     </Reference>
-    <Reference Include="JsonRpcSharp.HttpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.92.0-date20200610-0657.git-425436f\lib\net46\JsonRpcSharp.HttpClient.dll</HintPath>
+    <Reference Include="JsonRpcSharp.RpcClient">
+      <HintPath>..\..\packages\JsonRpcSharp.0.91.0-date20200508-0436.git-69b4b96\lib\net46\JsonRpcSharp.RpcClient.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.TcpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.92.0-date20200610-0657.git-425436f\lib\net46\JsonRpcSharp.TcpClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.91.0-date20200508-0436.git-69b4b96\lib\net46\JsonRpcSharp.TcpClient.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.WebSocketClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.92.0-date20200610-0657.git-425436f\lib\net46\JsonRpcSharp.WebSocketClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.91.0-date20200508-0436.git-69b4b96\lib\net46\JsonRpcSharp.WebSocketClient.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.ABI.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.ABI.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Accounts">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.Accounts.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.Accounts.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.Contracts.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.Contracts.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.Hex.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.Hex.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.KeyStore.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.KeyStore.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.RLP.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.RLP.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.RPC.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.RPC.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.Signer.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.Signer.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.StandardTokenEIP20">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.StandardTokenEIP20.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.Util.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.Util.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\net46\Nethereum.Web3.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.91.0-date20200508-0551.git-e09a8a1\lib\net46\Nethereum.Web3.dll</HintPath>
     </Reference>
     <Reference Include="SkiaSharp">
       <HintPath>..\..\packages\SkiaSharp.1.68.1\lib\net45\SkiaSharp.dll</HintPath>
