@@ -1,5 +1,7 @@
 namespace GWallet.Backend
 
+open System.IO
+
 type WatchWalletInfo =
     {
         UtxoCoinPublicKey: string
@@ -11,6 +13,11 @@ type FileRepresentation =
         Name: string;
         Content: unit->string;
     }
+    static member FromFile (file: FileInfo) =
+        {
+            Name = Path.GetFileName file.FullName
+            Content = (fun _ -> File.ReadAllText file.FullName)
+        }
 
 type ConceptAccount =
     {
@@ -51,16 +58,16 @@ type NormalAccount(currency: Currency, accountFile: FileRepresentation,
                    fromAccountFileToPublicAddress: FileRepresentation -> string) =
     inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
-    member internal self.GetEncryptedPrivateKey() =
+    member internal __.GetEncryptedPrivateKey() =
         accountFile.Content()
 
-    override this.Kind = AccountKind.Normal
+    override __.Kind = AccountKind.Normal
 
 type ReadOnlyAccount(currency: Currency, accountFile: FileRepresentation,
                      fromAccountFileToPublicAddress: FileRepresentation -> string) =
     inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
-    override this.Kind = AccountKind.ReadOnly
+    override __.Kind = AccountKind.ReadOnly
 
 type ArchivedAccount(currency: Currency, accountFile: FileRepresentation,
                      fromAccountFileToPublicAddress: FileRepresentation -> string) =
@@ -69,4 +76,4 @@ type ArchivedAccount(currency: Currency, accountFile: FileRepresentation,
     member internal __.GetUnencryptedPrivateKey() =
         accountFile.Content()
 
-    override this.Kind = AccountKind.Archived
+    override __.Kind = AccountKind.Archived
