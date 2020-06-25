@@ -20,7 +20,7 @@ type internal TransactionOutpoint =
     member self.ToCoin (): Coin =
         Coin(self.Transaction, uint32 self.OutputIndex)
 
-type IUtxoAccount =
+type internal IUtxoAccount =
     inherit IAccount
 
     abstract member PublicKey: PubKey with get
@@ -249,8 +249,8 @@ module Account =
                     return! EstimateFees newTxBuilder feeRate account newInputs tail
         }
 
-    let EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
-                        : Async<TransactionMetadata> = async {
+    let internal EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
+                                 : Async<TransactionMetadata> = async {
         let rec addInputsUntilAmount (utxos: List<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount
