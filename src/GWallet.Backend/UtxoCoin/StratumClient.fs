@@ -120,8 +120,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         // FIXME: we should actually fix this bug in JsonRpcSharp (https://github.com/nblockchain/JsonRpcSharp/issues/9)
         if String.IsNullOrEmpty rawResponse then
-            return failwith <| SPrintF2 "Server '%s' returned a null/empty JSON response to the request '%s'??"
-                             jsonRpcClient.Host jsonRequest
+            return raise <| ProtocolGlitchException(SPrintF2 "Server '%s' returned a null/empty JSON response to the request '%s'??"
+                                                             jsonRpcClient.Host jsonRequest)
 
         try
             return (StratumClient.Deserialize<'R> rawResponse, rawResponse)
