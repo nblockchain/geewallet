@@ -40,7 +40,7 @@ type SerializedCommitments = {
     RemoteNextCommitInfo: RemoteNextCommitInfo
     RemoteNextHTLCId: HTLCId
     RemoteParams: RemoteParams
-    RemotePerCommitmentSecrets: ShaChain
+    RemotePerCommitmentSecrets: RevocationSet
 }
 
 type private CommitmentsJsonConverter() =

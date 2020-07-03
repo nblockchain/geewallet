@@ -17,6 +17,40 @@ open GWallet.Backend.UtxoCoin.Lightning.Util
 
 open Newtonsoft.Json
 
+type CommitmentPubKeyConverter() =
+    inherit JsonConverter<CommitmentPubKey>()
+
+    override this.ReadJson(reader: JsonReader, _: Type, _: CommitmentPubKey, _: bool, serializer: JsonSerializer) =
+        let serializedCommitmentPubKey = serializer.Deserialize<string> reader
+        let hex = NBitcoin.DataEncoders.HexEncoder()
+        serializedCommitmentPubKey |> hex.DecodeData |> PubKey |> CommitmentPubKey
+
+    override this.WriteJson(writer: JsonWriter, state: CommitmentPubKey, serializer: JsonSerializer) =
+        let serializedCommitmentPubKey: string = state.PubKey.ToHex()
+        serializer.Serialize(writer, serializedCommitmentPubKey)
+
+type CommitmentNumberConverter() =
+    inherit JsonConverter<CommitmentNumber>()
+
+    override this.ReadJson(reader: JsonReader, _: Type, _: CommitmentNumber, _: bool, serializer: JsonSerializer) =
+        let serializedCommitmentNumber = serializer.Deserialize<uint64> reader
+        CommitmentNumber <| (UInt48.MaxValue - UInt48.FromUInt64 serializedCommitmentNumber)
+
+    override this.WriteJson(writer: JsonWriter, state: CommitmentNumber, serializer: JsonSerializer) =
+        let serializedCommitmentNumber: uint64 = (UInt48.MaxValue - state.Index).UInt64
+        serializer.Serialize(writer, serializedCommitmentNumber)
+
+type RevocationSetConverter() =
+    inherit JsonConverter<RevocationSet>()
+
+    override this.ReadJson(reader: JsonReader, _: Type, _: RevocationSet, _: bool, serializer: JsonSerializer) =
+        let keys = serializer.Deserialize<list<CommitmentNumber * RevocationKey>> reader
+        RevocationSet.FromKeys keys
+
+    override this.WriteJson(writer: JsonWriter, state: RevocationSet, serializer: JsonSerializer) =
+        let keys: list<CommitmentNumber * RevocationKey> = state.Keys
+        serializer.Serialize(writer, keys)
+
 type FeatureBitJsonConverter() =
     inherit JsonConverter<FeatureBit>()
 
@@ -62,9 +96,15 @@ module JsonMarshalling =
         let ipAddressConverter = IPAddressJsonConverter()
         let ipEndPointConverter = IPEndPointJsonConverter()
         let featureBitConverter = FeatureBitJsonConverter()
+        let commitmentNumberConverter = CommitmentNumberConverter()
+        let commitmentPubKeyConverter = CommitmentPubKeyConverter()
+        let revocationSetConverter = RevocationSetConverter()
         settings.Converters.Add ipAddressConverter
         settings.Converters.Add ipEndPointConverter
         settings.Converters.Add featureBitConverter
+        settings.Converters.Add commitmentNumberConverter
+        settings.Converters.Add commitmentPubKeyConverter
+        settings.Converters.Add revocationSetConverter
         NBitcoin.JsonConverters.Serializer.RegisterFrontConverters settings
         settings
 
