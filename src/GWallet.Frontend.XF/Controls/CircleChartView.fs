@@ -378,18 +378,20 @@ type CircleChartView () =
         else
             let nonZeroItems =
                 if self.SegmentsSource <> null then
-                    self.SegmentsSource.Where(fun s -> s.Percentage > 0.)
+                    self.SegmentsSource.Where(fun s -> s.Percentage > 0.) |> Some
                 else
-                    Seq.empty<SegmentInfo>
+                    None
 
-            if nonZeroItems.Any() then
+            match nonZeroItems with
+            | None -> ()
+            | Some items when items.Any() ->
                 // let's be careful about enabling the Pie for all platforms in the future (instead of Android
                 // exclusively) because there are bugs in macOS & GTK...
                 if Device.RuntimePlatform = Device.Android then
-                    self.DrawSkiaPieFallback width height nonZeroItems
+                    self.DrawSkiaPieFallback width height items
                 else
-                    self.DrawSvgBasedPie width height nonZeroItems
-            else
+                    self.DrawSvgBasedPie width height items
+            | Some _ ->
                 self.Source <- self.DefaultImageSource
 
 
