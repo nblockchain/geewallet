@@ -19,4 +19,4 @@ fi
 
 snapcraft login --with snapcraft.login
 
-snapcraft push snap/*.snap --release=beta
+snapcraft push snap/*.snap --release=stable
