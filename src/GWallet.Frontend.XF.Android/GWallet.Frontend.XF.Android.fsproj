@@ -331,6 +331,7 @@
     <AndroidResource Include="Resources\drawable-hdpi\icon.png" />
     <AndroidResource Include="Resources\drawable-xhdpi\icon.png" />
     <AndroidResource Include="Resources\drawable-xxhdpi\icon.png" />
+    <Compile Include="Renderers\DatePickerYearFirstRenderer.fs" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <None Include="Properties\AndroidManifest.xml" />
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
