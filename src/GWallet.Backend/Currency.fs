@@ -13,8 +13,8 @@ type Currency =
     | LTC
     | ETH
     | ETC
-    | SAI
     | DAI
+    | SAI
     // </NOTE>
 
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
@@ -32,8 +32,8 @@ type Currency =
             yield LTC
             yield ETH
             yield ETC
-            yield SAI
             yield DAI
+            yield SAI
         }
 #endif
 
