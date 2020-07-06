@@ -55,7 +55,7 @@ newmono_build:
   artifacts:
     paths:
       - bin/*.zip
-    expire_in: 50days
+    expire_in: 50years
   script:
     - ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -112,4 +112,4 @@ newmono_test_integration:
 #  artifacts:
 #    paths:
 #      - gwallet*.snap
-#    expire_in: 50days
+#    expire_in: 50years
