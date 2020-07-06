@@ -94,10 +94,11 @@ let SignOffPayment() =
                 Console.WriteLine ("Importing external data...")
                 Caching.Instance.SaveSnapshot unsignedTransaction.Cache
 
+                let lines = UserInteraction.DisplayAccountStatuses <| WhichAccount.MatchingWith account
+                               |> Async.RunSynchronously
                 Console.WriteLine ("Account to use when signing off this transaction:")
                 Console.WriteLine ()
-                let linesJob = UserInteraction.DisplayAccountStatuses <| WhichAccount.MatchingWith account
-                for line in Async.RunSynchronously linesJob do
+                for line in lines do
                     Console.WriteLine line
                 Console.WriteLine()
 
