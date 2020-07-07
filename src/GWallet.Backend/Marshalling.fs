@@ -38,14 +38,30 @@ type MarshallingWrapper<'T> =
             TypeName = typeof<'T>.FullName
         }
 
-type private PascalCase2LowercasePlusUnderscoreContractResolver() =
+type private PascalCase2SnakeCaseContractResolver() =
     inherit DefaultContractResolver()
 
     // https://stackoverflow.com/a/20952003/544947
-    let pascalToUnderScoreRegex = Regex("((?<=.)[A-Z][a-zA-Z]*)|((?<=[a-zA-Z])\d+)", RegexOptions.Multiline)
-    let pascalToUnderScoreReplacementExpression = "_$1$2"
+    let pascalCaseToSnakeCaseRegex = Regex("((?<=.)[A-Z][a-zA-Z]*)|((?<=[a-zA-Z])\d+)", RegexOptions.Multiline)
+    let pascalCaseToSnakeCaseReplacementExpression = "_$1$2"
     override __.ResolvePropertyName (propertyName: string) =
-        pascalToUnderScoreRegex.Replace(propertyName, pascalToUnderScoreReplacementExpression).ToLower()
+        pascalCaseToSnakeCaseRegex.Replace(propertyName, pascalCaseToSnakeCaseReplacementExpression).ToLower()
+
+type private SnakeCaseOrCamelCase2PascalCaseContractResolver() =
+    inherit DefaultContractResolver()
+
+    let snakeCaseRegex = Regex("^([a-z]+_{0,1})+$", RegexOptions.Singleline)
+    let snakeCaseToCamelCaseRegex = Regex("(_)([a-z])", RegexOptions.Singleline)
+    let snakeCaseMatchEvaluator = new MatchEvaluator(fun m -> m.Value.Substring(1).ToUpper())
+
+    override __.ResolvePropertyName (propertyName: string) =
+        let camelCase =
+            if (snakeCaseRegex.Match propertyName).Value = propertyName then
+                snakeCaseToCamelCaseRegex.Replace(propertyName, snakeCaseMatchEvaluator)
+            else
+                propertyName
+
+        camelCase.Substring(0, 1).ToUpper() + camelCase.Substring(1)
 
 // combine https://stackoverflow.com/a/48330214/544947 with https://stackoverflow.com/a/29660550/544947
 // (because null values should map to None values in the case of Option<> types, otherwise tests fail)
@@ -76,9 +92,12 @@ module Marshalling =
         Formatting.None
 #endif
 
-    let internal PascalCase2LowercasePlusUnderscoreConversionSettings =
-        JsonSerializerSettings(ContractResolver = PascalCase2LowercasePlusUnderscoreContractResolver())
-
+    let internal PascalCase2SnakeCaseConversionSettings =
+        JsonSerializerSettings(ContractResolver = PascalCase2SnakeCaseContractResolver())
+    
+    let internal SnakeCaseOrCamelCase2PascalCaseConversionSettings =
+        JsonSerializerSettings(ContractResolver = SnakeCaseOrCamelCase2PascalCaseContractResolver())
+        
     let internal DefaultSettings () = // Function so that we won't mutate. This is hard to clone.
         JsonSerializerSettings(MissingMemberHandling = MissingMemberHandling.Error,
                                ContractResolver = RequireAllPropertiesContractResolver(),
