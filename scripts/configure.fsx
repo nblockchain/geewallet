@@ -30,6 +30,8 @@ let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) =
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 
+let monoPkgName = "mono"
+
 let initialConfigFile,oldVersionOfMono =
     match Misc.GuessPlatform() with
     | Misc.Platform.Windows ->
@@ -37,18 +39,24 @@ let initialConfigFile,oldVersionOfMono =
         Map.empty,false
 
     | Misc.Platform.Mac ->
-        ConfigCommandCheck ["mono"] |> ignore
+        ConfigCommandCheck [monoPkgName] |> ignore
 
         // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
         Map.empty,false
 
     | Misc.Platform.Linux ->
-        ConfigCommandCheck ["mono"] |> ignore
+        ConfigCommandCheck [monoPkgName] |> ignore
 
         let pkgConfig = "pkg-config"
         ConfigCommandCheck [pkgConfig] |> ignore
+
+        let versionOfMonoThatSupportsTLS1dot2 = Version("4.8")
+        Console.Write (sprintf "checking for %s v%s... "
+                               monoPkgName
+                               (versionOfMonoThatSupportsTLS1dot2.ToString()))
+
         let pkgConfigCmd = { Command = pkgConfig
-                             Arguments = sprintf "--modversion mono" }
+                             Arguments = sprintf "--modversion %s" monoPkgName }
         let processResult = Process.Execute(pkgConfigCmd, Echo.Off)
         if processResult.ExitCode <> 0 then
             failwith "Mono was found but not detected by pkg-config?"
@@ -59,6 +67,17 @@ let initialConfigFile,oldVersionOfMono =
         let currentMonoVersion = Version(monoVersion)
         let oldVersionOfMono =
             1 = versionOfMonoWhereArrayEmptyIsPresent.CompareTo currentMonoVersion
+
+        if 1 = versionOfMonoThatSupportsTLS1dot2.CompareTo currentMonoVersion then
+            Console.WriteLine "not found"
+            Console.Error.WriteLine (sprintf "configure: error, package requirements not met:")
+            Console.Error.WriteLine (sprintf "Please upgrade %s version from %s to (at least) %s"
+                                             monoPkgName
+                                             (currentMonoVersion.ToString())
+                                             (versionOfMonoThatSupportsTLS1dot2.ToString()))
+            Environment.Exit 1
+        Console.WriteLine "found"
+
         Map.empty.Add("MonoPkgConfigVersion", monoVersion),oldVersionOfMono
 
 let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-8"?>
