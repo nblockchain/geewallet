@@ -18,6 +18,7 @@
         /warnon:3218
         /warnon:0193
     </OtherFlags>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -63,6 +64,7 @@
     <Compile Include="AsyncCancellation.fs" />
     <Compile Include="Shuffling.fs" />
     <Compile Include="StratumParsing.fs" />
+    <Compile Include="LN.fs" />
     <Content Include="packages.config" />
     <EmbeddedResource Include="data\signedAndFormattedBtcTransaction.json" />
     <EmbeddedResource Include="data\signedAndFormattedSaiTransaction.json" />
