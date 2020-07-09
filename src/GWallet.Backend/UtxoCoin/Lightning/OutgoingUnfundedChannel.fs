@@ -76,10 +76,8 @@ type internal OutgoingUnfundedChannel =
                     let matchingOutput: IndexedTxOut =
                         Seq.find hasRightDestination indexedOutputs
                     TxOutIndex <| uint16 matchingOutput.N
-                let fundingTransaction =
-                    Transaction.Load (hex.DecodeData transactionHex, network)
-                    |> FinalizedTx
-                Ok (fundingTransaction, fundingOutputIndex)
+                let finalizedFundingTransaction = FinalizedTx fundingTransaction
+                Ok (finalizedFundingTransaction, fundingOutputIndex)
             MonoHopUnidirectionalChannel.Create
                 nodeId
                 account

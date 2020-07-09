@@ -15,6 +15,7 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 type internal LockFundingError =
     | FundingNotConfirmed of BlockHeightOffset32
+    | FundingOnChainLocationUnknown
     | RecvFundingLocked of RecvMsgError
     | FundingLockedPeerErrorResponse of BrokenChannel * PeerErrorMessage
     | ExpectedFundingLocked of ILightningMsg
@@ -26,6 +27,8 @@ type internal LockFundingError =
                 SPrintF1
                     "Funding not yet confirmed on-chain. %i more confirmations required"
                     remainingConfirmations.Value
+            | FundingOnChainLocationUnknown ->
+                "Funding appears to be confirmed but its on-chain location has not been indexed yet"
             | RecvFundingLocked err ->
                 SPrintF1 "Error receiving funding locked: %s" (err :> IErrorMsg).Message
             | FundingLockedPeerErrorResponse (_, err) ->
@@ -38,6 +41,7 @@ type internal LockFundingError =
         match self with
         | RecvFundingLocked err -> err.PossibleBug
         | FundingNotConfirmed _
+        | FundingOnChainLocationUnknown
         | FundingLockedPeerErrorResponse _
         | ExpectedFundingLocked _
         | InvalidFundingLocked _ -> false
@@ -163,13 +167,13 @@ and internal ActiveChannel =
 
     static member private LockFunding (fundedChannel: FundedChannel)
                                       (confirmationCount: BlockHeightOffset32)
+                                      (absoluteBlockHeight: BlockHeight)
+                                      (txIndexInBlock: TxIndexInBlock)
                                           : Async<Result<ActiveChannel, LockFundingError>> = async {
         let theirFundingLockedMsgOpt = fundedChannel.TheirFundingLockedMsgOpt
         if confirmationCount < fundedChannel.ConnectedChannel.MinimumDepth then
             failwith
                 "LockFunding called when required confirmation depth has not been reached"
-        let currency = (fundedChannel.ConnectedChannel.Account :> IAccount).Currency
-        let! absoluteBlockHeight, txIndex = fundedChannel.GetLocationOnChain currency
         let connectedChannel = fundedChannel.ConnectedChannel
         let peerNode = connectedChannel.PeerNode
         let channel = connectedChannel.Channel
@@ -177,7 +181,7 @@ and internal ActiveChannel =
             let channelCmd =
                 ChannelCommand.ApplyFundingConfirmedOnBC(
                     absoluteBlockHeight,
-                    txIndex,
+                    txIndexInBlock,
                     confirmationCount
                 )
             channel.ExecuteCommand channelCmd <| function
@@ -237,14 +241,23 @@ and internal ActiveChannel =
     }
 
     static member private CheckFundingConfirmed (fundedChannel: FundedChannel)
-                                                    : Async<Result<ActiveChannel, LockFundingError>> = async {
-        let currency = (fundedChannel.ConnectedChannel.Account :> IAccount).Currency
-        let! confirmationCount = fundedChannel.GetConfirmations currency
+                                                   : Async<Result<ActiveChannel, LockFundingError>> = async {
+        let! confirmationCount = fundedChannel.GetConfirmations()
         if confirmationCount < fundedChannel.MinimumDepth then
             let remainingConfirmations = fundedChannel.MinimumDepth - confirmationCount
             return Error <| FundingNotConfirmed remainingConfirmations
         else
-            return! ActiveChannel.LockFunding fundedChannel confirmationCount
+            let! locationOnChainOpt = fundedChannel.GetLocationOnChain()
+            match locationOnChainOpt with
+            | None ->
+                return Error <| FundingOnChainLocationUnknown
+            | Some (absoluteBlockHeight, txIndexInBlock) ->
+                return!
+                    ActiveChannel.LockFunding
+                        fundedChannel
+                        confirmationCount
+                        absoluteBlockHeight
+                        txIndexInBlock
     }
 
     static member private ConfirmFundingLocked (connectedChannel: ConnectedChannel)
