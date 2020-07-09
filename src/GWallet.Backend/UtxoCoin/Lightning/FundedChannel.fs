@@ -274,7 +274,8 @@ type internal FundedChannel =
                 "The FundedChannel type is created by funding a channel and \
                 guarantees that the underlying ChannelState has a script coin"
 
-    member internal self.GetConfirmations currency: Async<BlockHeightOffset32> = async {
+    member internal self.GetConfirmations(): Async<BlockHeightOffset32> = async {
+        let currency = (self.ConnectedChannel.Account :> IAccount).Currency
         let! confirmationCount =
             let txId = self.FundingTxId.ToString()
             Server.Query currency
@@ -284,7 +285,8 @@ type internal FundedChannel =
         return confirmationCount |> BlockHeightOffset32
     }
 
-    member internal self.GetLocationOnChain currency: Async<BlockHeight * TxIndexInBlock> = async {
+    member internal self.GetLocationOnChain(): Async<Option<BlockHeight * TxIndexInBlock>> = async {
+        let currency = (self.ConnectedChannel.Account :> IAccount).Currency
         let fundingScriptCoin = self.FundingScriptCoin
         let txIdHex: string = self.ConnectedChannel.FundingTxId.ToString()
         let fundingDestination: TxDestination = fundingScriptCoin.ScriptPubKey.GetDestination()
@@ -297,15 +299,18 @@ type internal FundedChannel =
                          (QuerySettings.Default ServerSelectionMode.Fast)
                          (ElectrumClient.GetBlockchainScriptHashHistory scriptHash)
                          None
-        let history = Seq.head historyList
-        let fundingBlockHeight = BlockHeight history.Height
-        let! merkleResult =
-            Server.Query currency
-                         (QuerySettings.Default ServerSelectionMode.Fast)
-                         (ElectrumClient.GetBlockchainScriptHashMerkle txIdHex history.Height)
-                         None
-        let fundingTxIndexInBlock = TxIndexInBlock merkleResult.Pos
-        return fundingBlockHeight, fundingTxIndexInBlock
+        if Seq.isEmpty historyList then
+            return None
+        else
+            let history = Seq.head historyList
+            let fundingBlockHeight = BlockHeight history.Height
+            let! merkleResult =
+                Server.Query currency
+                             (QuerySettings.Default ServerSelectionMode.Fast)
+                             (ElectrumClient.GetBlockchainScriptHashMerkle txIdHex history.Height)
+                             None
+            let fundingTxIndexInBlock = TxIndexInBlock merkleResult.Pos
+            return Some(fundingBlockHeight, fundingTxIndexInBlock)
     }
 
     member self.FundingTxId
