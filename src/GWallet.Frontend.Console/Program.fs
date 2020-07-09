@@ -294,7 +294,10 @@ let rec PerformOperation (numAccounts: int) =
             Account.GenerateMasterPrivateKey passphrase dob email
                 |> Async.StartAsTask
         let password = UserInteraction.AskPassword true
-        Async.RunSynchronously (Account.CreateAllAccounts masterPrivateKeyTask password)
+        Async.RunSynchronously <| async {
+            let! privateKeyBytes = Async.AwaitTask masterPrivateKeyTask
+            return! Account.CreateAllAccounts privateKeyBytes password
+        }
         Console.WriteLine("Accounts created")
         UserInteraction.PressAnyKeyToContinue()
     | Operations.Refresh -> ()
