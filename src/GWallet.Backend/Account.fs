@@ -538,8 +538,7 @@ module Account =
         return allConceptAccounts
     }
 
-    let CreateAllAccounts (masterPrivateKeyTask: Task<array<byte>>) (encryptionPassword: string): Async<unit> = async {
-        let! privateKeyBytes = Async.AwaitTask masterPrivateKeyTask
+    let CreateAllAccounts (privateKeyBytes: array<byte>) (encryptionPassword: string): Async<unit> = async {
         let! allConceptAccounts = CreateAllConceptAccounts privateKeyBytes encryptionPassword
         for conceptAccount in allConceptAccounts do
             CreateNormalAccount conceptAccount |> ignore
