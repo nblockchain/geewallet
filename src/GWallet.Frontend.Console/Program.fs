@@ -245,6 +245,69 @@ let ReceiveLightningPayment(): Async<unit> = async {
         UserInteraction.PressAnyKeyToContinue()
 }
 
+let InitiateCloseLightningChannel(): Async<unit> = async {
+    let channelIdOpt = UserInteraction.AskAnyChannelId
+    match channelIdOpt with
+    | None -> return ()
+    | Some channelId ->
+        let account = Lightning.GetLightningChannelAccount channelId
+        let password = UserInteraction.AskPassword false
+        let nodeSecret = Lightning.GetLightningNodeSecret account password
+        let! connectRes = ActiveChannel.ConnectReestablish nodeSecret channelId
+        match connectRes with
+        | FSharp.Core.Error connectError ->
+            Console.WriteLine(sprintf "Error reestablishing channel: %s" connectError.Message)
+            if connectError.PossibleBug then
+                let msg =
+                    sprintf
+                        "Error reestablishing channel %s to receive payment: %s"
+                        (channelId.Value.ToString())
+                        connectError.Message
+                Infrastructure.ReportWarningMessage msg
+        | FSharp.Core.Ok activeChannel ->
+            let! closeRes = ClosedChannel.InitiateCloseChannel activeChannel
+
+            match closeRes with
+            | FSharp.Core.Error closeError ->
+                Console.WriteLine(sprintf "Error closing channel: %s" closeError.Message)
+            | FSharp.Core.Ok activeChannel ->
+                (activeChannel :> IDisposable).Dispose()
+                Console.WriteLine "Channel closed."
+        UserInteraction.PressAnyKeyToContinue()
+}
+
+let AwaitCloseLightningChannel(): Async<unit> = async {
+    let channelIdOpt = UserInteraction.AskChannelId false
+    match channelIdOpt with
+    | None -> return ()
+    | Some channelId ->
+        let account = Lightning.GetLightningChannelAccount channelId
+        let password = UserInteraction.AskPassword false
+        let transportListener = BindLightning account password
+        let! connectRes = ActiveChannel.AcceptReestablish transportListener channelId
+        match connectRes with
+        | FSharp.Core.Error connectError ->
+            Console.WriteLine(sprintf "Error reestablishing channel: %s" connectError.Message)
+            if connectError.PossibleBug then
+                let msg =
+                    sprintf
+                        "Error reestablishing channel %s to close channel payment: %s"
+                        (channelId.Value.ToString())
+                        connectError.Message
+                Infrastructure.ReportWarningMessage msg
+        | FSharp.Core.Ok activeChannel ->
+            let! closeRes = ClosedChannel.AwaitCloseChannel activeChannel
+
+            match closeRes with
+            | FSharp.Core.Error closeError ->
+                Console.WriteLine(sprintf "Error closing channel: %s" closeError.Message)
+            | FSharp.Core.Ok activeChannel ->
+                (activeChannel :> IDisposable).Dispose()
+                Console.WriteLine "Channel closed."
+        Lightning.StopLightning transportListener
+        UserInteraction.PressAnyKeyToContinue()
+}
+
 let LockChannelsIfFundingConfirmed(): Async<unit> = async {
     let channelIds = List.ofSeq (SerializedChannel.ListSavedChannels())
     for channelId in channelIds do
@@ -615,6 +678,10 @@ let rec PerformOperation (numAccounts: int): unit =
         SendLightningPayment() |> Async.RunSynchronously
     | Operations.ReceiveLightningPayment ->
         ReceiveLightningPayment() |> Async.RunSynchronously
+    | Operations.InitiateCloseChannel ->
+        InitiateCloseLightningChannel() |> Async.RunSynchronously
+    | Operations.AwaitCloseChannel ->
+        AwaitCloseLightningChannel() |> Async.RunSynchronously
     | _ -> failwith "Unreachable"
 
 let rec GetAccountOfSameCurrency currency =

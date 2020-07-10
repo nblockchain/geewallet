@@ -58,15 +58,29 @@ module Lightning =
         | _ -> return ChannelStatus.InvalidChannelState
     }
 
-    let ListAvailableChannelIds(isFunder: bool): seq<ChannelId> = seq {
+    let ListAvailableChannelIds(isFunderOpt: Option<bool>): seq<ChannelId> = seq {
         for channelId in SerializedChannel.ListSavedChannels() do
             let serializedChannel = SerializedChannel.LoadFromWallet channelId
-            if serializedChannel.IsFunder = isFunder then
-                let channelStatus =
-                    GetSerializedChannelStatus serializedChannel
-                    |> Async.RunSynchronously
-                match channelStatus with
-                | ChannelStatus.Active -> yield channelId
+            match serializedChannel.ChanState with
+            | ChannelState.Closed _ | ChannelState.Closing _ | ChannelState.Negotiating _ -> ()
+            | _ ->
+                match isFunderOpt with
+                // This check below is required because of a bug where
+                // None passed to this function is null
+                | _ when Object.ReferenceEquals(isFunderOpt, null) ->
+                    let channelStatus =
+                        GetSerializedChannelStatus serializedChannel
+                        |> Async.RunSynchronously
+                    match channelStatus with
+                    | ChannelStatus.Active -> yield channelId
+                    | _ -> ()
+                | None
+                | Some _ when isFunderOpt.Value = serializedChannel.IsFunder  ->
+                    let channelStatus =
+                        GetSerializedChannelStatus serializedChannel
+                        |> Async.RunSynchronously
+                    match channelStatus with
+                    | ChannelStatus.Active -> yield channelId
+                    | _ -> ()
                 | _ -> ()
     }
-

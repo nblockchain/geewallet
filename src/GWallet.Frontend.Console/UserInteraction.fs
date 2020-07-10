@@ -27,6 +27,8 @@ type internal Operations =
     | AcceptChannel           = 11
     | SendLightningPayment    = 12
     | ReceiveLightningPayment = 13
+    | InitiateCloseChannel    = 14
+    | AwaitCloseChannel       = 15
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -90,9 +92,13 @@ module UserInteraction =
         | Operations.AcceptChannel
             -> not noAccounts
         | Operations.SendLightningPayment ->
-            (Lightning.ListAvailableChannelIds true).Any()
+            (Lightning.ListAvailableChannelIds (Some true)).Any()
         | Operations.ReceiveLightningPayment ->
-            (Lightning.ListAvailableChannelIds false).Any()
+            (Lightning.ListAvailableChannelIds (Some false)).Any()
+        | Operations.InitiateCloseChannel ->
+            (Lightning.ListAvailableChannelIds None).Any()
+        | Operations.AwaitCloseChannel ->
+            (Lightning.ListAvailableChannelIds None).Any()
         | _ -> true
 
     let rec internal AskFileNameToLoad (askText: string): FileInfo =
@@ -278,77 +284,97 @@ module UserInteraction =
 
     let DisplayLightningChannelStatus (channelId: ChannelId): seq<string> = seq {
         let serializedChannel = SerializedChannel.LoadFromWallet channelId
-        let maybeUsdValue =
-            FiatValueEstimation.UsdValue Currency.BTC
-            |> Async.RunSynchronously
-        if serializedChannel.IsFunder then
-            yield sprintf "    channel %s (outgoing):" (serializedChannel.ChannelId.Value.ToString())
-            let sent = serializedChannel.Commitments.LocalCommit.Spec.ToRemote
-            let sentBtc = (decimal sent.Value) / (decimal LNMoneyUnit.BTC)
-            let totalBtc =
-                let toLocal = serializedChannel.Commitments.LocalCommit.Spec.ToLocal
-                let total = toLocal + sent
-                (decimal total.Value) / (decimal LNMoneyUnit.BTC)
-            yield
-                sprintf
-                    "        channel capacity = %s (%s)"
-                    (totalBtc.ToString())
-                    (BalanceInUsdString totalBtc maybeUsdValue)
-            let totalSpendableBtc =
-                let spendable = serializedChannel.SpendableBalance()
-                let totalSpendable = sent + spendable
-                (decimal totalSpendable.Value) / (decimal LNMoneyUnit.BTC)
-            yield
-                sprintf
-                    "        sent %s BTC (%s) of max %s BTC (%s)"
-                    (sentBtc.ToString())
-                    (BalanceInUsdString sentBtc maybeUsdValue)
-                    (totalSpendableBtc.ToString())
-                    (BalanceInUsdString totalSpendableBtc maybeUsdValue)
-        else
-            yield sprintf "    channel %s (incoming):" (serializedChannel.ChannelId.Value.ToString())
-            let unsent = serializedChannel.Commitments.LocalCommit.Spec.ToRemote
-            let received = serializedChannel.Commitments.LocalCommit.Spec.ToLocal
-            let receivedBtc = (decimal received.Value) / (decimal LNMoneyUnit.BTC)
-            let total = received + unsent
-            let totalBtc = (decimal total.Value) / (decimal LNMoneyUnit.BTC)
-            yield
-                sprintf
-                    "        channel capacity = %s (%s)"
-                    (totalBtc.ToString())
-                    (BalanceInUsdString totalBtc maybeUsdValue)
-            let totalReceivableBtc =
-                let channelReserve =
-                    LNMoney.FromMoney serializedChannel.Commitments.LocalParams.ChannelReserveSatoshis
-                let fee =
-                    let feeRate = serializedChannel.Commitments.LocalCommit.Spec.FeeRatePerKw
-                    let weight = COMMITMENT_TX_BASE_WEIGHT
-                    LNMoney.FromMoney <| feeRate.ToFee weight
-                let totalReceivable = total - channelReserve - fee
-                (decimal totalReceivable.Value) / (decimal LNMoneyUnit.BTC)
-            yield
-                sprintf
-                    "        received %s BTC (%s) of max %s BTC (%s)"
-                    (receivedBtc.ToString())
-                    (BalanceInUsdString receivedBtc maybeUsdValue)
-                    (totalReceivableBtc.ToString())
-                    (BalanceInUsdString totalReceivableBtc maybeUsdValue)
-        let status =
-            Lightning.GetSerializedChannelStatus serializedChannel
-            |> Async.RunSynchronously
-        match status with
-        | Lightning.ChannelStatus.Active ->
-            yield "        channel is active"
-        | Lightning.ChannelStatus.WaitingForConfirmations remainingConfirmations ->
-            yield sprintf "        waiting for %i more confirmations" remainingConfirmations.Value
-        | Lightning.ChannelStatus.FundingConfirmed ->
-            yield "        funding confirmed"
-        | Lightning.ChannelStatus.InvalidChannelState ->
-            yield "        channel is in an abnormal state"
+        match serializedChannel.ChanState with
+        | ChannelState.Negotiating _ | ChannelState.Closing _ ->
+            yield "closing"
+        | _ ->
+            let maybeUsdValue =
+                FiatValueEstimation.UsdValue Currency.BTC
+                |> Async.RunSynchronously
+            if serializedChannel.IsFunder then
+                yield sprintf "    channel %s (outgoing):" (serializedChannel.ChannelId.Value.ToString())
+                let sent = serializedChannel.Commitments.LocalCommit.Spec.ToRemote
+                let sentBtc = (decimal sent.Value) / (decimal LNMoneyUnit.BTC)
+                let totalBtc =
+                    let toLocal = serializedChannel.Commitments.LocalCommit.Spec.ToLocal
+                    let total = toLocal + sent
+                    (decimal total.Value) / (decimal LNMoneyUnit.BTC)
+                yield
+                    sprintf
+                        "        channel capacity = %s (%s)"
+                        (totalBtc.ToString())
+                        (BalanceInUsdString totalBtc maybeUsdValue)
+                let totalSpendableBtc =
+                    let spendable = serializedChannel.SpendableBalance()
+                    let totalSpendable = sent + spendable
+                    (decimal totalSpendable.Value) / (decimal LNMoneyUnit.BTC)
+                yield
+                    sprintf
+                        "        sent %s BTC (%s) of max %s BTC (%s)"
+                        (sentBtc.ToString())
+                        (BalanceInUsdString sentBtc maybeUsdValue)
+                        (totalSpendableBtc.ToString())
+                        (BalanceInUsdString totalSpendableBtc maybeUsdValue)
+            else
+                yield sprintf "    channel %s (incoming):" (serializedChannel.ChannelId.Value.ToString())
+                let unsent = serializedChannel.Commitments.LocalCommit.Spec.ToRemote
+                let received = serializedChannel.Commitments.LocalCommit.Spec.ToLocal
+                let receivedBtc = (decimal received.Value) / (decimal LNMoneyUnit.BTC)
+                let total = received + unsent
+                let totalBtc = (decimal total.Value) / (decimal LNMoneyUnit.BTC)
+                yield
+                    sprintf
+                        "        channel capacity = %s (%s)"
+                        (totalBtc.ToString())
+                        (BalanceInUsdString totalBtc maybeUsdValue)
+                let totalReceivableBtc =
+                    let channelReserve =
+                        LNMoney.FromMoney serializedChannel.Commitments.LocalParams.ChannelReserveSatoshis
+                    let fee =
+                        let feeRate = serializedChannel.Commitments.LocalCommit.Spec.FeeRatePerKw
+                        let weight = COMMITMENT_TX_BASE_WEIGHT
+                        LNMoney.FromMoney <| feeRate.CalculateFeeFromWeight weight
+                    let totalReceivable = total - channelReserve - fee
+                    (decimal totalReceivable.Value) / (decimal LNMoneyUnit.BTC)
+                yield
+                    sprintf
+                        "        received %s BTC (%s) of max %s BTC (%s)"
+                        (receivedBtc.ToString())
+                        (BalanceInUsdString receivedBtc maybeUsdValue)
+                        (totalReceivableBtc.ToString())
+                        (BalanceInUsdString totalReceivableBtc maybeUsdValue)
+            let status =
+                Lightning.GetSerializedChannelStatus serializedChannel
+                |> Async.RunSynchronously
+            match status with
+            | Lightning.ChannelStatus.Active ->
+                yield "        channel is active"
+            | Lightning.ChannelStatus.WaitingForConfirmations remainingConfirmations ->
+                yield sprintf "        waiting for %i more confirmations" remainingConfirmations.Value
+            | Lightning.ChannelStatus.FundingConfirmed ->
+                yield "        funding confirmed"
+            | Lightning.ChannelStatus.InvalidChannelState ->
+                yield "        channel is in an abnormal state"
+    }
+
+    let private RemoveClosedChannelsFromSequence(channelIds: seq<ChannelId>): seq<ChannelId> = seq {
+        for channelId in channelIds do
+            let serializedChannel = SerializedChannel.LoadFromWallet channelId
+            match serializedChannel.ChanState with
+            | ChannelState.Closed _ -> ()
+            | ChannelState.Negotiating _ | ChannelState.Closing _ ->
+                let checkClosed = ClosedChannel.CheckClosingFinished serializedChannel.FundingTxId |> Async.RunSynchronously
+                match checkClosed with
+                | Ok isClosed ->
+                    if not isClosed then
+                        yield channelId
+                | _ ->
+                    yield channelId
+            | _ -> yield channelId
     }
 
     let DisplayLightningChannelStatuses(): seq<string> = seq {
-        let channelIds = List.ofSeq (SerializedChannel.ListSavedChannels())
+        let channelIds = List.ofSeq (RemoveClosedChannelsFromSequence (SerializedChannel.ListSavedChannels()))
         yield String.Empty
         yield sprintf "Lightning Status (%d channels)" (List.length channelIds)
         for channelId in channelIds do
@@ -901,7 +927,26 @@ module UserInteraction =
         IPEndPoint(ipAddress, port)
 
     let AskChannelId(isFunder: bool): Option<ChannelId> =
-        let channels = Lightning.ListAvailableChannelIds isFunder
+        let channels = Lightning.ListAvailableChannelIds (Some isFunder)
+        Console.WriteLine "Available channels:"
+        let mutable i = 0
+        for channelId in channels do
+            Console.WriteLine(sprintf "%d: %s" i (channelId.ToString()))
+            i <- i + 1
+        Console.Write "Choose a channel: "
+        let index = Console.ReadLine().Trim()
+        match Int32.TryParse index with
+        | false, _ ->
+            Console.WriteLine "Invalid option"
+            None
+        | true, index ->
+            if index < channels.Count() then
+                Some (channels.ElementAt index)
+            else
+                None
+
+    let AskAnyChannelId: Option<ChannelId> =
+        let channels = Lightning.ListAvailableChannelIds None
         Console.WriteLine "Available channels:"
         let mutable i = 0
         for channelId in channels do

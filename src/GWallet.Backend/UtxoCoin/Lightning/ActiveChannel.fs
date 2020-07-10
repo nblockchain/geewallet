@@ -110,7 +110,7 @@ type SendMonoHopPaymentError =
     member this.Message =
         match this with
         | InvalidMonoHopPayment (_, err) ->
-            SPrintF1 "Invalid monohop payment: %s" err.Message
+            SPrintF1 "Invalid monohop payment: %s" (err.ToString())
         | SendCommit err ->
             SPrintF1 "Error sending commitment: %s" err.Message
         | RecvCommit err ->

@@ -93,6 +93,7 @@ type SerializedChannel = {
     CounterpartyIP: IPEndPoint
     // this is the amount of confirmations that the counterparty told us that the funding transaction needs
     MinSafeDepth: BlockHeightOffset32
+    FundingTxId: TxId
 } with
     static member ConfigDir: DirectoryInfo =
         Config.GetConfigDir Currency.BTC AccountKind.Normal
@@ -104,7 +105,10 @@ type SerializedChannel = {
     static member LightningSerializerSettings: JsonSerializerSettings =
         let settings = JsonMarshalling.SerializerSettings
         let commitmentsConverter = CommitmentsJsonConverter()
+        let psbtConverter = NBitcoin.JsonConverters.PSBTJsonConverter(NBitcoin.Network.Main)
+
         settings.Converters.Add commitmentsConverter
+        settings.Converters.Add psbtConverter
         settings
 
     static member FileNameForChannelId (channelId: ChannelId) =
