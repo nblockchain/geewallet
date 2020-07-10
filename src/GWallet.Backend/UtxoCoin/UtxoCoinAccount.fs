@@ -438,11 +438,11 @@ module Account =
         let finalTransaction = SignTransactionForDestination account txMetadata destination amount password
         BroadcastRawTransaction baseAccount.Currency finalTransaction
 
-    let SendPayment (account: NormalUtxoAccount)
-                    (txMetadata: TransactionMetadata)
-                    (destination: string)
-                    (amount: TransferAmount)
-                    (password: string) =
+    let internal SendPayment (account: NormalUtxoAccount)
+                             (txMetadata: TransactionMetadata)
+                             (destination: string)
+                             (amount: TransferAmount)
+                             (password: string) =
         let currency = (account:>IAccount).Currency
         let network = GetNetwork currency
         let destAddress = BitcoinAddress.Create (destination, network)
