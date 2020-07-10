@@ -457,56 +457,38 @@ and ActiveChannel = {
                 | Ok activeChannelAfterCommitReceived -> return Ok activeChannelAfterCommitReceived
     }
 
-    member this.RecvMonoHopUnidirectionalPayment(): Async<Result<ActiveChannel, RecvMonoHopPaymentError>> = async {
+    member this.RecvMonoHopUnidirectionalPayment (monoHopUnidirectionalPaymentMsg: MonoHopUnidirectionalPaymentMsg): Async<Result<ActiveChannel, RecvMonoHopPaymentError>> = async {
         let connectedChannel = this.ConnectedChannel
-        let peerWrapper = connectedChannel.PeerWrapper
         let channelWrapper = connectedChannel.ChannelWrapper
 
-        let! recvChannelMsgRes = peerWrapper.RecvChannelMsg()
-        match recvChannelMsgRes with
-        | Error (RecvMsg recvMsgError) -> return Error <| RecvMonoHopPayment recvMsgError
-        | Error (ReceivedPeerErrorMessage (peerWrapperAfterMonoHopPaymentReceived, errorMessage)) ->
-            let connectedChannelAfterError = {
-                connectedChannel with
-                    PeerWrapper = peerWrapperAfterMonoHopPaymentReceived
-                    ChannelWrapper = channelWrapper
-            }
+        let res, channelWrapperAfterMonoHopPaymentReceived =
+            let channelCmd =
+                ChannelCommand.ApplyMonoHopUnidirectionalPayment
+                    monoHopUnidirectionalPaymentMsg
+            channelWrapper.ExecuteCommand channelCmd <| function
+                | (WeAcceptedMonoHopUnidirectionalPayment(_))::[] -> Some ()
+                | _ -> None
+        let connectedChannelAfterMonoHopPaymentReceived = {
+            connectedChannel with
+                ChannelWrapper = channelWrapperAfterMonoHopPaymentReceived
+        }
+        match res with
+        | Error err ->
+            let! connectedChannelAfterError = connectedChannelAfterMonoHopPaymentReceived.SendError err.Message
             let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
-            return Error <| PeerErrorMessageInsteadOfMonoHopPayment
-                (brokenChannel, errorMessage)
-        | Ok (peerWrapperAfterMonoHopPaymentReceived, channelMsg) ->
-            match channelMsg with
-            | :? MonoHopUnidirectionalPaymentMsg  as monoHopUnidirectionalPaymentMsg ->
-                let res, channelWrapperAfterMonoHopPaymentReceived =
-                    let channelCmd =
-                        ChannelCommand.ApplyMonoHopUnidirectionalPayment
-                            monoHopUnidirectionalPaymentMsg
-                    channelWrapper.ExecuteCommand channelCmd <| function
-                        | (WeAcceptedMonoHopUnidirectionalPayment(_))::[] -> Some ()
-                        | _ -> None
-                let connectedChannelAfterMonoHopPaymentReceived = {
-                    connectedChannel with
-                        PeerWrapper = peerWrapperAfterMonoHopPaymentReceived
-                        ChannelWrapper = channelWrapperAfterMonoHopPaymentReceived
-                }
-                match res with
-                | Error err ->
-                    let! connectedChannelAfterError = connectedChannelAfterMonoHopPaymentReceived.SendError err.Message
-                    let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
-                    return Error <| InvalidMonoHopPayment
-                        (brokenChannel, err)
-                | Ok () ->
-                    connectedChannelAfterMonoHopPaymentReceived.SaveToWallet()
-                    let activeChannel = { ConnectedChannel = connectedChannelAfterMonoHopPaymentReceived }
-                    let! activeChannelAfterCommitReceivedRes = activeChannel.RecvCommit()
-                    match activeChannelAfterCommitReceivedRes with
-                    | Error err -> return Error <| RecvMonoHopPaymentError.RecvCommit err
-                    | Ok activeChannelAfterCommitReceived ->
-                        let! activeChannelAfterCommitSentRes = activeChannelAfterCommitReceived.SendCommit()
-                        match activeChannelAfterCommitSentRes with
-                        | Error err -> return Error <| RecvMonoHopPaymentError.SendCommit err
-                        | Ok activeChannelAfterCommitSent -> return Ok activeChannelAfterCommitSent
-            | _ -> return Error <| ExpectedMonoHopPayment channelMsg
+            return Error <| InvalidMonoHopPayment
+                (brokenChannel, err)
+        | Ok () ->
+            connectedChannelAfterMonoHopPaymentReceived.SaveToWallet()
+            let activeChannel = { ConnectedChannel = connectedChannelAfterMonoHopPaymentReceived }
+            let! activeChannelAfterCommitReceivedRes = activeChannel.RecvCommit()
+            match activeChannelAfterCommitReceivedRes with
+            | Error err -> return Error <| RecvMonoHopPaymentError.RecvCommit err
+            | Ok activeChannelAfterCommitReceived ->
+                let! activeChannelAfterCommitSentRes = activeChannelAfterCommitReceived.SendCommit()
+                match activeChannelAfterCommitSentRes with
+                | Error err -> return Error <| RecvMonoHopPaymentError.SendCommit err
+                | Ok activeChannelAfterCommitSent -> return Ok activeChannelAfterCommitSent
 
     }
 

@@ -10,6 +10,8 @@ open GWallet.Backend.FSharpUtil
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Frontend.Console
 
+open FSharp.Core
+
 let random = Org.BouncyCastle.Security.SecureRandom () :> Random
 
 let BindLightning (account: UtxoCoin.NormalUtxoAccount)
@@ -207,7 +209,37 @@ let SendLightningPayment(): Async<unit> = async {
             UserInteraction.PressAnyKeyToContinue()
 }
 
-let ReceiveLightningPayment(): Async<unit> = async {
+let InitiateCloseLightningChannel(): Async<unit> = async {
+    let channelIdOpt = UserInteraction.AskAnyChannelId
+    match channelIdOpt with
+    | None -> return ()
+    | Some channelId ->
+        let account = Lightning.GetLightningChannelAccount channelId
+        let password = UserInteraction.AskPassword false
+        let nodeSecret = Lightning.GetLightningNodeSecret account password
+        let! connectRes = ActiveChannel.ConnectReestablish nodeSecret channelId
+        match connectRes with
+        | FSharp.Core.Error connectError ->
+            Console.WriteLine(sprintf "Error reestablishing channel: %s" connectError.Message)
+            if connectError.PossibleBug then
+                let msg =
+                    sprintf
+                        "Error reestablishing channel %s to receive payment: %s"
+                        (channelId.Value.ToString())
+                        connectError.Message
+                Infrastructure.ReportWarningMessage msg
+        | FSharp.Core.Ok activeChannel ->
+            let! closeRes = ClosedChannel.InitiateCloseChannel activeChannel.ConnectedChannel
+
+            match closeRes with
+            | FSharp.Core.Error closeError ->
+                Console.WriteLine(sprintf "Error closing channel: %s" closeError.Message)
+            | FSharp.Core.Ok _ ->
+                Console.WriteLine "Channel closed."
+        UserInteraction.PressAnyKeyToContinue()
+}
+
+let AcceptLightningEvent(): Async<unit> = async {
     let channelIdOpt = UserInteraction.AskChannelId false
     match channelIdOpt with
     | None -> return ()
@@ -222,25 +254,41 @@ let ReceiveLightningPayment(): Async<unit> = async {
             if connectError.PossibleBug then
                 let msg =
                     sprintf
-                        "Error reestablishing channel %s to receive payment: %s"
+                        "Error reestablishing channel %s to close channel payment: %s"
                         (channelId.Value.ToString())
                         connectError.Message
                 Infrastructure.ReportWarningMessage msg
         | FSharp.Core.Ok activeChannel ->
-            let! paymentRes = activeChannel.RecvMonoHopUnidirectionalPayment()
-            match paymentRes with
-            | FSharp.Core.Error paymentError ->
-                Console.WriteLine(sprintf "Error receiving monohop payment: %s" paymentError.Message)
-                if paymentError.PossibleBug then
-                    let msg =
-                        sprintf
-                            "Error receiving payment on channel %s: %s"
-                            (channelId.Value.ToString())
-                            paymentError.Message
-                    Infrastructure.ReportWarningMessage msg
-            | FSharp.Core.Ok activeChannel ->
-                (activeChannel :> IDisposable).Dispose()
-                Console.WriteLine "Payment received."
+            let connectedChannel = activeChannel.ConnectedChannel
+
+            Infrastructure.LogDebug "Waiting for lightning message"
+            let! recvChannelMsgRes = connectedChannel.PeerWrapper.RecvChannelMsg()
+
+            match recvChannelMsgRes with
+            | Ok (peerWrapperAfterMessageReceived, channelMsg) ->
+                let connectedChannelAfterMessageReceived =
+                    { connectedChannel with
+                          PeerWrapper = peerWrapperAfterMessageReceived }
+
+                let activeChannelAfterMessageReceived = 
+                    { activeChannel with
+                          ConnectedChannel = connectedChannelAfterMessageReceived }
+
+                match channelMsg with
+                | :? DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
+                    Console.WriteLine(sprintf "Received MonoHopUnidirectionalPaymentMsg")
+                    let! res = activeChannelAfterMessageReceived.RecvMonoHopUnidirectionalPayment(monoHopUnidirectionalPaymentMsg)
+                    res |> ignore
+                | :? DotNetLightning.Serialize.Msgs.ShutdownMsg as shutdownMsg ->
+                    Console.WriteLine(sprintf "Received ShutdownMsg")
+                    let! res = ClosedChannel.AcceptCloseChannel(connectedChannelAfterMessageReceived, shutdownMsg)
+                    match res with
+                    | Error err -> Console.WriteLine(sprintf "Closing channel failed with error: %s" err.Message)
+                    | _ -> ()
+                | msg -> Console.WriteLine(sprintf "Received unexpected lightning message: %A" msg)
+            | Error err -> Console.WriteLine(sprintf "Received error while waiting for lightning message: %s" err.Message)
+
+
         Lightning.StopLightning transportListener
         UserInteraction.PressAnyKeyToContinue()
 }
@@ -613,8 +661,10 @@ let rec PerformOperation (numAccounts: int): unit =
         AcceptChannel() |> Async.RunSynchronously
     | Operations.SendLightningPayment ->
         SendLightningPayment() |> Async.RunSynchronously
-    | Operations.ReceiveLightningPayment ->
-        ReceiveLightningPayment() |> Async.RunSynchronously
+    | Operations.InitiateCloseChannel ->
+        InitiateCloseLightningChannel() |> Async.RunSynchronously
+    | Operations.AcceptLightningEvent ->
+        AcceptLightningEvent() |> Async.RunSynchronously
     | _ -> failwith "Unreachable"
 
 let rec GetAccountOfSameCurrency currency =

@@ -89,6 +89,7 @@
     <Compile Include="UtxoCoin\Lightning\OutgoingUnfundedChannel.fs" />
     <Compile Include="UtxoCoin\Lightning\FundedChannel.fs" />
     <Compile Include="UtxoCoin\Lightning\ActiveChannel.fs" />
+    <Compile Include="UtxoCoin\Lightning\ClosedChannel.fs" />
     <Compile Include="Ether\EtherExceptions.fs" />
     <Compile Include="Ether\EtherMinerFee.fs" />
     <Compile Include="Ether\TransactionMetadata.fs" />
@@ -105,10 +106,22 @@
     <EmbeddedResource Include="servers.json" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="DotNetLightning.Core">
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200716-0908-git-df5dfa1\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
+    </Reference>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\net45\FSharp.Data.dll</HintPath>
     </Reference>
+    <Reference Include="InternalBech32Encoder">
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200716-0908-git-df5dfa1\lib\netstandard2.0\InternalBech32Encoder.dll</HintPath>
+    </Reference>
+    <Reference Include="Macaroons">
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200716-0908-git-df5dfa1\lib\netstandard2.0\Macaroons.dll</HintPath>
+    </Reference>
     <Reference Include="mscorlib" />
+    <Reference Include="ResultUtils">
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200716-0908-git-df5dfa1\lib\netstandard2.0\ResultUtils.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Sockets">
@@ -159,7 +172,7 @@
       <HintPath>..\..\packages\NBitcoin.Altcoins.2.0.5.1\lib\net452\NBitcoin.Altcoins.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.5.0.13\lib\net461\NBitcoin.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.5.0.41\lib\net461\NBitcoin.dll</HintPath>
     </Reference>
     <Reference Include="System.Threading.Tasks.Extensions">
       <HintPath>..\..\packages\System.Threading.Tasks.Extensions.4.5.1\lib\portable-net45+win8+wp8+wpa81\System.Threading.Tasks.Extensions.dll</HintPath>
@@ -272,15 +285,6 @@
     </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\packages\HtmlAgilityPack.1.11.9\lib\Net45\HtmlAgilityPack.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetLightning.Core">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200703-1201-git-df51210\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="InternalBech32Encoder">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200703-1201-git-df51210\lib\netstandard2.0\InternalBech32Encoder.dll</HintPath>
-    </Reference>
-    <Reference Include="ResultUtils">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200703-1201-git-df51210\lib\netstandard2.0\ResultUtils.dll</HintPath>
     </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

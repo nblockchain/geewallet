@@ -80,6 +80,7 @@ type VerboseResult =
     {
         Locktime: uint32
         Confirmations: uint32
+        Hex: string
     }
 
 type BlockchainTransactionGetVerboseResult =
@@ -168,7 +169,7 @@ type public ElectrumServerReturningErrorInJsonResponseException(message: string,
                     let maybeError =
                         JsonConvert.DeserializeObject<ErrorInnerResult>(
                             possibleJsonString,
-                            Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings
+                            Marshalling.PascalCase2SnakeCaseConversionSettings
                         )
                     if (not (Object.ReferenceEquals(maybeError, null))) then
                         Some <| ElectrumServerReturningErrorInJsonResponseException(maybeError.Message, maybeError.Code)
@@ -196,7 +197,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
     let Serialize(req: Request): string =
         JsonConvert.SerializeObject(req, Formatting.None,
-                                    Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+                                    Marshalling.PascalCase2SnakeCaseConversionSettings)
 
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R*string> = async {
@@ -228,7 +229,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let maybeError =
             try
                 JsonConvert.DeserializeObject<ErrorResult>(resultTrimmed,
-                                                           Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+                                                           Marshalling.PascalCase2SnakeCaseConversionSettings)
             with
             | ex -> raise <| Exception(SPrintF2 "Failed deserializing JSON response (to check for error) '%s' to type '%s'"
                                                resultTrimmed typedefof<'T>.FullName, ex)
@@ -239,7 +240,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let deserializedValue =
             try
                 JsonConvert.DeserializeObject<'T>(resultTrimmed,
-                                                  Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+                                                  Marshalling.PascalCase2SnakeCaseConversionSettings)
             with
             | ex -> raise <| Exception(SPrintF2 "Failed deserializing JSON response '%s' to type '%s'"
                                                 resultTrimmed typedefof<'T>.FullName, ex)

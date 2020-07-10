@@ -75,12 +75,10 @@ type IPEndPointJsonConverter() =
     inherit JsonConverter<IPEndPoint>()
 
     override this.ReadJson(reader: JsonReader, _: Type, _: IPEndPoint, _: bool, serializer: JsonSerializer) =
-        assert (reader.TokenType = JsonToken.StartArray)
         reader.Read() |> ignore
         let ip = serializer.Deserialize<IPAddress> reader
         reader.Read() |> ignore
         let port = serializer.Deserialize<int32> reader
-        assert (reader.TokenType = JsonToken.EndArray)
         reader.Read() |> ignore
         IPEndPoint (ip, port)
 

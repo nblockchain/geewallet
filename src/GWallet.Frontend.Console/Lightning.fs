@@ -32,6 +32,8 @@ module Lightning =
 
     type ChannelStatus =
         | Active
+        | Closing
+        | Closed
         | WaitingForConfirmations of BlockHeightOffset32
         | FundingConfirmed
         | InvalidChannelState
@@ -39,6 +41,11 @@ module Lightning =
     let GetSerializedChannelStatus (serializedChannel: SerializedChannel)
                                        : Async<ChannelStatus> = async {
         match serializedChannel.ChanState with
+        | ChannelState.Negotiating _
+        | ChannelState.Closing _ ->
+            return Closing
+        | ChannelState.Closed _ ->
+            return Closed
         | ChannelState.Normal _ -> return ChannelStatus.Active
         | ChannelState.WaitForFundingConfirmed waitForFundingConfirmedData ->
             let! confirmationCount =
@@ -58,15 +65,17 @@ module Lightning =
         | _ -> return ChannelStatus.InvalidChannelState
     }
 
-    let ListAvailableChannelIds(isFunder: bool): seq<ChannelId> = seq {
+    let ListAvailableChannelIds(isFunderOpt: Option<bool>): seq<ChannelId> = seq {
         for channelId in SerializedChannel.ListSavedChannels() do
             let serializedChannel = SerializedChannel.LoadFromWallet channelId
-            if serializedChannel.IsFunder = isFunder then
-                let channelStatus =
-                    GetSerializedChannelStatus serializedChannel
-                    |> Async.RunSynchronously
-                match channelStatus with
-                | ChannelStatus.Active -> yield channelId
-                | _ -> ()
+            match serializedChannel.ChanState with
+            | ChannelState.Closed _ | ChannelState.Closing _ | ChannelState.Negotiating _ -> ()
+            | _ ->
+                if isFunderOpt.IsNone || isFunderOpt.Value = serializedChannel.IsFunder then
+                    let channelStatus =
+                        GetSerializedChannelStatus serializedChannel
+                        |> Async.RunSynchronously
+                    match channelStatus with
+                    | ChannelStatus.Active -> yield channelId
+                    | _ -> ()
     }
-
