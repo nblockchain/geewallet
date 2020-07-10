@@ -31,6 +31,7 @@ stockmono_test_unit:
     # https://askubuntu.com/a/1013396
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
+    - ./scripts/install_regtest_dependencies.sh
 
     - apt-get install -y nunit-console
     - ./configure.sh
@@ -74,6 +75,7 @@ newmono_test_unit:
   image: ubuntu:20.04
   stage: unit_tests
   script:
+    - ./scripts/install_regtest_dependencies.sh
     - ./scripts/install_mono_from_microsoft_deb_packages.sh
 
     - apt install -y nunit-console
