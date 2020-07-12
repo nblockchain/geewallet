@@ -31,50 +31,37 @@ type ServerCannotBeResolvedException =
     inherit CommunicationUnsuccessfulException
 
     new(message: string, innerException: Exception) =
-        {
-            inherit CommunicationUnsuccessfulException(message, innerException)
-        }
+        { inherit CommunicationUnsuccessfulException(message, innerException) }
 
 type ServerUnavailableException =
     inherit CommunicationUnsuccessfulException
 
     new(message: string, innerException: Exception) =
-        {
-            inherit CommunicationUnsuccessfulException(message, innerException)
-        }
+        { inherit CommunicationUnsuccessfulException(message, innerException) }
 
 type ServerChannelNegotiationException =
     inherit CommunicationUnsuccessfulException
 
     new(message: string, innerException: Exception) =
-        {
-            inherit CommunicationUnsuccessfulException(message, innerException)
-        }
+        { inherit CommunicationUnsuccessfulException(message, innerException) }
+
     new(message: string, webExStatusCode: WebExceptionStatus, innerException: Exception) =
-        {
-            inherit CommunicationUnsuccessfulException(SPrintF2 "%s (WebErr: %s)" message (webExStatusCode.ToString()),
-                                                    innerException)
-        }
+        { inherit CommunicationUnsuccessfulException(SPrintF2 "%s (WebErr: %s)" message (webExStatusCode.ToString ()),
+                                                     innerException) }
+
     new(message: string, cloudFlareError: CloudFlareError, innerException: Exception) =
-        {
-            inherit CommunicationUnsuccessfulException(SPrintF2 "%s (CfErr: %s)" message (cloudFlareError.ToString()),
-                                                    innerException)
-        }
+        { inherit CommunicationUnsuccessfulException(SPrintF2 "%s (CfErr: %s)" message (cloudFlareError.ToString ()),
+                                                     innerException) }
 
 type ServerRestrictiveException =
     inherit CommunicationUnsuccessfulException
 
-    new (message: string, innerException: Exception) =
-        {
-            inherit CommunicationUnsuccessfulException (message, innerException)
-        }
+    new(message: string, innerException: Exception) =
+        { inherit CommunicationUnsuccessfulException(message, innerException) }
 
 type UnhandledWebException =
     inherit Exception
 
-    new (status: WebExceptionStatus, innerException: Exception) =
-        {
-            inherit Exception (SPrintF1 "Backend not prepared for this WebException with Status[%i]"
-                                       (int status),
-                                       innerException)
-        }
+    new(status: WebExceptionStatus, innerException: Exception) =
+        { inherit Exception(SPrintF1 "Backend not prepared for this WebException with Status[%i]" (int status),
+                            innerException) }

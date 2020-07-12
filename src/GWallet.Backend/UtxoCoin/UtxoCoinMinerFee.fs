@@ -5,13 +5,10 @@ open System
 open GWallet.Backend
 
 //FIXME: convert to record?
-type MinerFee(estimatedFeeInSatoshis: int64,
-              estimationTime: DateTime,
-              currency: Currency) =
+type MinerFee (estimatedFeeInSatoshis: int64, estimationTime: DateTime, currency: Currency) =
 
-    member val EstimatedFeeInSatoshis = estimatedFeeInSatoshis with get
+    member val EstimatedFeeInSatoshis = estimatedFeeInSatoshis
 
-    member val EstimationTime = estimationTime with get
+    member val EstimationTime = estimationTime
 
-    member val Currency = currency with get
-
+    member val Currency = currency
