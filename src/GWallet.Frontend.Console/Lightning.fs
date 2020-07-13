@@ -32,6 +32,8 @@ module Lightning =
 
     type ChannelStatus =
         | Active
+        | Closing
+        | Closed
         | WaitingForConfirmations of BlockHeightOffset32
         | FundingConfirmed
         | InvalidChannelState
@@ -39,6 +41,11 @@ module Lightning =
     let GetSerializedChannelStatus (serializedChannel: SerializedChannel)
                                        : Async<ChannelStatus> = async {
         match serializedChannel.ChanState with
+        | ChannelState.Negotiating
+        | ChannelState.Closing ->
+            return Closing
+        | ChannelState.Closed ->
+            return Closed
         | ChannelState.Normal _ -> return ChannelStatus.Active
         | ChannelState.WaitForFundingConfirmed waitForFundingConfirmedData ->
             let! confirmationCount =

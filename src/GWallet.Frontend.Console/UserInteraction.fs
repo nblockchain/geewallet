@@ -284,9 +284,15 @@ module UserInteraction =
 
     let DisplayLightningChannelStatus (channelId: ChannelId): seq<string> = seq {
         let serializedChannel = SerializedChannel.LoadFromWallet channelId
-        match serializedChannel.ChanState with
-        | ChannelState.Negotiating _ | ChannelState.Closing _ ->
+        let status =
+            Lightning.GetSerializedChannelStatus serializedChannel
+            |> Async.RunSynchronously
+
+        match status with
+        | Lightning.ChannelStatus.Closing  _->
             yield "closing"
+        | Lightning.ChannelStatus.Closed  _->
+            yield "closed"
         | _ ->
             let maybeUsdValue =
                 FiatValueEstimation.UsdValue Currency.BTC
@@ -343,9 +349,6 @@ module UserInteraction =
                         (BalanceInUsdString receivedBtc maybeUsdValue)
                         (totalReceivableBtc.ToString())
                         (BalanceInUsdString totalReceivableBtc maybeUsdValue)
-            let status =
-                Lightning.GetSerializedChannelStatus serializedChannel
-                |> Async.RunSynchronously
             match status with
             | Lightning.ChannelStatus.Active ->
                 yield "        channel is active"
@@ -355,6 +358,8 @@ module UserInteraction =
                 yield "        funding confirmed"
             | Lightning.ChannelStatus.InvalidChannelState ->
                 yield "        channel is in an abnormal state"
+            | _ ->
+                yield "        channel is in an unknown state"
     }
 
     let private RemoveClosedChannelsFromSequence(channelIds: seq<ChannelId>): seq<ChannelId> = seq {
