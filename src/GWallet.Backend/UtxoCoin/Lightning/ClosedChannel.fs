@@ -96,7 +96,7 @@ type ClosedChannel()=
             let channelWrapper = connectedChannel.ChannelWrapper
             let peerWrapper = connectedChannel.PeerWrapper
             match OperationClose.Create ourPayoutScript with
-            | Error e -> return failwith (SPrintF1 "Failed to create OperationClose: " (e.ToString()))
+            | Error e -> return failwith (SPrintF1 "Failed to create OperationClose: %s" (e.ToString()))
             | Ok op ->
                 let channelCommand = ChannelCommand.Close op
 
