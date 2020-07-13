@@ -93,7 +93,6 @@ type SerializedChannel = {
     CounterpartyIP: IPEndPoint
     // this is the amount of confirmations that the counterparty told us that the funding transaction needs
     MinSafeDepth: BlockHeightOffset32
-    FundingTxId: TxId
 } with
     static member ConfigDir: DirectoryInfo =
         Config.GetConfigDir Currency.BTC AccountKind.Normal

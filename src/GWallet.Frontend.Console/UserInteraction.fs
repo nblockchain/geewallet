@@ -360,10 +360,11 @@ module UserInteraction =
     let private RemoveClosedChannelsFromSequence(channelIds: seq<ChannelId>): seq<ChannelId> = seq {
         for channelId in channelIds do
             let serializedChannel = SerializedChannel.LoadFromWallet channelId
+            let fundingTxId = TxId serializedChannel.Commitments.FundingScriptCoin.Outpoint.Hash
             match serializedChannel.ChanState with
             | ChannelState.Closed _ -> ()
             | ChannelState.Negotiating _ | ChannelState.Closing _ ->
-                let checkClosed = ClosedChannel.CheckClosingFinished serializedChannel.FundingTxId |> Async.RunSynchronously
+                let checkClosed = ClosedChannel.CheckClosingFinished fundingTxId |> Async.RunSynchronously
                 match checkClosed with
                 | Ok isClosed ->
                     if not isClosed then

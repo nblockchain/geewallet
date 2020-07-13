@@ -221,7 +221,6 @@ type ConnectedChannel = {
             AccountFileName = this.Account.AccountFile.Name
             CounterpartyIP = this.PeerWrapper.RemoteEndPoint
             MinSafeDepth = this.MinimumDepth
-            FundingTxId = this.FundingTxId
         }
         serializedChannel.SaveToWallet()
 
