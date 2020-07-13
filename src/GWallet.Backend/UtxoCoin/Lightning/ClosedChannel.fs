@@ -71,12 +71,12 @@ type ClosedChannel =
                 { ActiveChannel = activeChannel
                   OurPayoutScript = ourPayoutScript }
 
-            let! shutdownSendResult = initialChannel.initiateShutdown ()
+            let! shutdownSendResult = initialChannel.InitiateShutdown ()
 
             match shutdownSendResult with
             | Error e -> return Error <| e
             | Ok closedChannelAfterShutdownSent ->
-                let! closingSignedExchangeResult = closedChannelAfterShutdownSent.runClosingSignedExchange
+                let! closingSignedExchangeResult = closedChannelAfterShutdownSent.RunClosingSignedExchange
 
                 match closingSignedExchangeResult with
                 | Error e -> return Error <| e
@@ -92,19 +92,19 @@ type ClosedChannel =
                 { ActiveChannel = activeChannel
                   OurPayoutScript = ourPayoutScript }
 
-            let! shutdownReceiveResult = initialChannel.receiveShutdown ()
+            let! shutdownReceiveResult = initialChannel.ReceiveShutdown ()
 
             match shutdownReceiveResult with
             | Error e -> return Error <| e
             | Ok closedChannelAfterShutdownSent ->
-                let! closingSignedExchangeResult = closedChannelAfterShutdownSent.runClosingSignedExchange
+                let! closingSignedExchangeResult = closedChannelAfterShutdownSent.RunClosingSignedExchange
 
                 match closingSignedExchangeResult with
                 | Error e -> return Error <| e
                 | Ok closedChannelAfterClosingSignedExchange -> return Ok closedChannelAfterClosingSignedExchange
         }
 
-    member private self.initiateShutdown(): Async<Result<ClosedChannel, CloseChannelError>> =
+    member private self.InitiateShutdown(): Async<Result<ClosedChannel, CloseChannelError>> =
         async {
             Infrastructure.LogDebug "Sending shutdown message"
             let connectedChannel = self.ActiveChannel.ConnectedChannel
@@ -152,11 +152,11 @@ type ClosedChannel =
 
                         match channelMsg with
                         | :? ShutdownMsg as shutdownMsg ->
-                            return! (closedChannelAfterShutdownChannelReceived.handleRemoteShutdown shutdownMsg true)
+                            return! (closedChannelAfterShutdownChannelReceived.HandleRemoteShutdown shutdownMsg true)
                         | _ -> return Error <| ExpectedShutdownMsg channelMsg
         }
 
-    member private self.receiveShutdown(): Async<Result<ClosedChannel, CloseChannelError>> =
+    member private self.ReceiveShutdown(): Async<Result<ClosedChannel, CloseChannelError>> =
         async {
             Infrastructure.LogDebug "Waiting for shutdown message"
             let connectedChannel = self.ActiveChannel.ConnectedChannel
@@ -184,11 +184,11 @@ type ClosedChannel =
 
                 match channelMsg with
                 | :? ShutdownMsg as shutdownMsg ->
-                    return! (closedChannelAfterShutdownChannelReceived.handleRemoteShutdown shutdownMsg false)
+                    return! (closedChannelAfterShutdownChannelReceived.HandleRemoteShutdown shutdownMsg false)
                 | _ -> return Error <| ExpectedShutdownMsg channelMsg
         }
 
-    member private self.handleRemoteShutdown shutdownMsg sentOurs: Async<Result<ClosedChannel, CloseChannelError>> =
+    member private self.HandleRemoteShutdown shutdownMsg sentOurs: Async<Result<ClosedChannel, CloseChannelError>> =
         async {
             Infrastructure.LogDebug "Received remote shutdown message"
             let connectedChannel = self.ActiveChannel.ConnectedChannel
@@ -255,7 +255,7 @@ type ClosedChannel =
                                                          ChannelWrapper = channelWrapperAfterShutdownResponse } } }
         }
 
-    member private self.runClosingSignedExchange : Async<Result<ClosedChannel, CloseChannelError>> =
+    member private self.RunClosingSignedExchange : Async<Result<ClosedChannel, CloseChannelError>> =
         async {
             Infrastructure.LogDebug "Starting closingSigned exchange loop"
 
