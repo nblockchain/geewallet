@@ -488,7 +488,7 @@ and internal ActiveChannel =
                 (brokenChannel, errorMessage)
         | Ok (peerNodeAfterMonoHopPaymentReceived, channelMsg) ->
             match channelMsg with
-            | :? MonoHopUnidirectionalPayment  as monoHopUnidirectionalPaymentMsg ->
+            | :? MonoHopUnidirectionalPaymentMsg  as monoHopUnidirectionalPaymentMsg ->
                 let res, channelAfterMonoHopPaymentReceived =
                     let channelCmd =
                         ChannelCommand.ApplyMonoHopUnidirectionalPayment

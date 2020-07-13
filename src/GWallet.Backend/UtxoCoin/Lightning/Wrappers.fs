@@ -13,9 +13,9 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 type ChannelIdentifier =
     internal {
-        DnlChannelId: DotNetLightning.Utils.Primitives.ChannelId
+        DnlChannelId: DotNetLightning.Utils.ChannelId
     }
-    static member internal FromDnl (dnlChannelId: DotNetLightning.Utils.Primitives.ChannelId): ChannelIdentifier =
+    static member internal FromDnl (dnlChannelId: DotNetLightning.Utils.ChannelId): ChannelIdentifier =
         { DnlChannelId = dnlChannelId }
 
     static member NewRandom(): ChannelIdentifier =
@@ -25,7 +25,7 @@ type ChannelIdentifier =
             random.NextBytes temporaryChannelIdBytes
             temporaryChannelIdBytes
             |> NBitcoin.uint256
-            |> DotNetLightning.Utils.Primitives.ChannelId
+            |> DotNetLightning.Utils.ChannelId
         { DnlChannelId = dnlChannelId }
 
     static member Parse (text: string): Option<ChannelIdentifier> =
@@ -33,7 +33,7 @@ type ChannelIdentifier =
             let dnlChannelId =
                 text
                 |> NBitcoin.uint256
-                |> DotNetLightning.Utils.Primitives.ChannelId
+                |> DotNetLightning.Utils.ChannelId
             Some { DnlChannelId = dnlChannelId }
         with
         | :? FormatException -> None
@@ -44,10 +44,10 @@ type ChannelIdentifier =
 
 type TransactionIdentifier =
     internal {
-        DnlTxId: DotNetLightning.Utils.Primitives.TxId
+        DnlTxId: DotNetLightning.Utils.TxId
     }
     static member internal FromHash (txIdHash: NBitcoin.uint256): TransactionIdentifier =
-        { DnlTxId = DotNetLightning.Utils.Primitives.TxId txIdHash }
+        { DnlTxId = DotNetLightning.Utils.TxId txIdHash }
 
     override self.ToString() =
         self.DnlTxId.Value.ToString()
@@ -118,7 +118,7 @@ type MonoHopUnidirectionalChannel =
         with get(): Option<TransactionIdentifier> =
             match self.Channel.State.Commitments with
             | Some commitments ->
-                { DnlTxId = DotNetLightning.Utils.Primitives.TxId commitments.FundingScriptCoin.Outpoint.Hash }
+                { DnlTxId = DotNetLightning.Utils.TxId commitments.FundingScriptCoin.Outpoint.Hash }
                 |> Some
             | None -> None
 
