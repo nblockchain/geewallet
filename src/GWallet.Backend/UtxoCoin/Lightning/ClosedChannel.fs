@@ -111,7 +111,7 @@ type ClosedChannel =
             let channelWrapper = connectedChannel.ChannelWrapper
             let peerWrapper = connectedChannel.PeerWrapper
             match OperationClose.Create self.OurPayoutScript with
-            | Error e -> return failwith <| SPrintF1 "Failed to create OperationClose: " (e.ToString())
+            | Error e -> return failwith (SPrintF1 "Failed to create OperationClose: " (e.ToString()))
             | Ok op ->
                 let channelCommand = ChannelCommand.Close op
 
@@ -351,7 +351,7 @@ type ClosedChannel =
                                     return Ok closedChannelAfterMutualClosePerformed
                                 | _ ->
                                     // This should never happen
-                                    return failwith <| "Expected to receive either new closingSigned or mutualClosePerformed"
+                                    return failwith "Expected to receive either new closingSigned or mutualClosePerformed"
                             | Error err -> return Error <| ApplyClosingSignedFailed err
                         | _ -> return Error <| ExpectedClosingSignedMsg channelMsg
                 }
