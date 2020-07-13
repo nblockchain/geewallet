@@ -188,7 +188,7 @@ type ClosedChannel =
                 | _ -> return Error <| ExpectedShutdownMsg channelMsg
         }
 
-    member private self.HandleRemoteShutdown shutdownMsg sentOurs: Async<Result<ClosedChannel, CloseChannelError>> =
+    member private self.HandleRemoteShutdown (shutdownMsg: ShutdownMsg) (sentOurs: bool): Async<Result<ClosedChannel, CloseChannelError>> =
         async {
             Infrastructure.LogDebug "Received remote shutdown message"
             let connectedChannel = self.ActiveChannel.ConnectedChannel
