@@ -17,7 +17,6 @@ open GWallet.Backend.UtxoCoin.Lightning.Util
 open FSharp.Core
 
 type CloseChannelError =
-    | OperationCloseFailed of string
     | CloseCommandFailed of ChannelError
     | RecvFailed of RecvMsgError
     | RecvPeerError of BrokenChannel * PeerErrorMessage
@@ -25,10 +24,8 @@ type CloseChannelError =
     | RemoteShutdownCommandFailed of BrokenChannel * ChannelError
     | ExpectedClosingSignedMsg of ILightningMsg
     | ApplyClosingSignedFailed of ChannelError
-    | UnexpectedApplyClosingSignedResult
     member self.Message =
         match self with
-        | OperationCloseFailed err -> SPrintF1 "Failed to create close operation: %s" err
         | CloseCommandFailed err -> SPrintF1 "Failed to apply close command to the channel: %s" err.Message
         | RecvFailed err -> SPrintF1 "Failed to receive response from peer: %s" err.Message
         | RecvPeerError (_, err) -> SPrintF1 "Peer responded with an error: %s" err.Message
@@ -40,8 +37,6 @@ type CloseChannelError =
             SPrintF2 "Expected to receive a ClosingSigned message from peer, but got %A: %s" msg (msg.ToString())
         | ApplyClosingSignedFailed err ->
             SPrintF1 "Failed to apply ClosingSigned command to the channel: %s" err.Message
-        | UnexpectedApplyClosingSignedResult ->
-            "Expected to either receive a MutualClosePerformed or next ClosingSigned"
 
 
 (*
@@ -116,7 +111,7 @@ type ClosedChannel =
             let channelWrapper = connectedChannel.ChannelWrapper
             let peerWrapper = connectedChannel.PeerWrapper
             match OperationClose.Create self.OurPayoutScript with
-            | Error e -> return Error <| OperationCloseFailed e
+            | Error e -> return failwith <| SPrintF1 "Failed to create OperationClose: " (e.ToString())
             | Ok op ->
                 let channelCommand = ChannelCommand.Close op
 
@@ -356,7 +351,7 @@ type ClosedChannel =
                                     return Ok closedChannelAfterMutualClosePerformed
                                 | _ ->
                                     // This should never happen
-                                    return Error <| UnexpectedApplyClosingSignedResult
+                                    return failwith <| "Expected to receive either new closingSigned or mutualClosePerformed"
                             | Error err -> return Error <| ApplyClosingSignedFailed err
                         | _ -> return Error <| ExpectedClosingSignedMsg channelMsg
                 }
