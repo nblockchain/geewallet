@@ -41,10 +41,10 @@ module Lightning =
     let GetSerializedChannelStatus (serializedChannel: SerializedChannel)
                                        : Async<ChannelStatus> = async {
         match serializedChannel.ChanState with
-        | ChannelState.Negotiating
-        | ChannelState.Closing ->
+        | ChannelState.Negotiating _
+        | ChannelState.Closing _ ->
             return Closing
-        | ChannelState.Closed ->
+        | ChannelState.Closed _ ->
             return Closed
         | ChannelState.Normal _ -> return ChannelStatus.Active
         | ChannelState.WaitForFundingConfirmed waitForFundingConfirmedData ->
