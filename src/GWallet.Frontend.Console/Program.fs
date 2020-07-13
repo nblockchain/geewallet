@@ -265,13 +265,12 @@ let InitiateCloseLightningChannel(): Async<unit> = async {
                         connectError.Message
                 Infrastructure.ReportWarningMessage msg
         | FSharp.Core.Ok activeChannel ->
-            let! closeRes = ClosedChannel.InitiateCloseChannel activeChannel
+            let! closeRes = ClosedChannel.InitiateCloseChannel activeChannel.ConnectedChannel
 
             match closeRes with
             | FSharp.Core.Error closeError ->
                 Console.WriteLine(sprintf "Error closing channel: %s" closeError.Message)
-            | FSharp.Core.Ok activeChannel ->
-                (activeChannel :> IDisposable).Dispose()
+            | FSharp.Core.Ok _ ->
                 Console.WriteLine "Channel closed."
         UserInteraction.PressAnyKeyToContinue()
 }
@@ -296,13 +295,12 @@ let AwaitCloseLightningChannel(): Async<unit> = async {
                         connectError.Message
                 Infrastructure.ReportWarningMessage msg
         | FSharp.Core.Ok activeChannel ->
-            let! closeRes = ClosedChannel.AwaitCloseChannel activeChannel
+            let! closeRes = ClosedChannel.AwaitCloseChannel activeChannel.ConnectedChannel
 
             match closeRes with
             | FSharp.Core.Error closeError ->
                 Console.WriteLine(sprintf "Error closing channel: %s" closeError.Message)
-            | FSharp.Core.Ok activeChannel ->
-                (activeChannel :> IDisposable).Dispose()
+            | FSharp.Core.Ok _ ->
                 Console.WriteLine "Channel closed."
         Lightning.StopLightning transportListener
         UserInteraction.PressAnyKeyToContinue()
