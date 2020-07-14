@@ -232,7 +232,11 @@ type ClosedChannel()=
             let rec exchange channel =
                 async {
                     Infrastructure.LogDebug "Waiting for next closingSigned message from peer"
-                    let! recvChannelMsgRes = channel.PeerWrapper.RecvChannelMsg()
+                    let recvChannelMsgRes = 
+                        try
+                            channel.PeerWrapper.RecvChannelMsg() |> Async.RunSynchronously
+                        with
+                        | _ -> Error <| RecvMsg (RecvBytes (PeerDisconnected {Abruptly=false} ))
 
                     match recvChannelMsgRes with
                     | Error (RecvMsg _) ->
