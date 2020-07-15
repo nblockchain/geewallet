@@ -236,7 +236,7 @@ type ClosedChannel()=
                         try
                             channel.PeerWrapper.RecvChannelMsg() |> Async.RunSynchronously
                         with
-                        | _ -> Error <| RecvMsg (RecvBytes (PeerDisconnected {Abruptly=false} ))
+                            | :? System.IO.IOException -> Error <| RecvMsg (RecvBytes (PeerDisconnected { Abruptly=false } ))
 
                     match recvChannelMsgRes with
                     | Error (RecvMsg _) ->
