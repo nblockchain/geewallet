@@ -14,8 +14,8 @@ open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type internal LockFundingError =
-    | FundingNotConfirmed of BlockHeightOffset32
-    | FundingOnChainLocationUnknown
+    | FundingNotConfirmed of FundedChannel * BlockHeightOffset32
+    | FundingOnChainLocationUnknown of FundedChannel
     | RecvFundingLocked of RecvMsgError
     | FundingLockedPeerErrorResponse of BrokenChannel * PeerErrorMessage
     | ExpectedFundingLocked of ILightningMsg
@@ -23,11 +23,11 @@ type internal LockFundingError =
     interface IErrorMsg with
         member self.Message =
             match self with
-            | FundingNotConfirmed remainingConfirmations ->
+            | FundingNotConfirmed(_, remainingConfirmations) ->
                 SPrintF1
                     "Funding not yet confirmed on-chain. %i more confirmations required"
                     remainingConfirmations.Value
-            | FundingOnChainLocationUnknown ->
+            | FundingOnChainLocationUnknown _ ->
                 "Funding appears to be confirmed but its on-chain location has not been indexed yet"
             | RecvFundingLocked err ->
                 SPrintF1 "Error receiving funding locked: %s" (err :> IErrorMsg).Message
@@ -41,7 +41,7 @@ type internal LockFundingError =
         match self with
         | RecvFundingLocked err -> err.PossibleBug
         | FundingNotConfirmed _
-        | FundingOnChainLocationUnknown
+        | FundingOnChainLocationUnknown _
         | FundingLockedPeerErrorResponse _
         | ExpectedFundingLocked _
         | InvalidFundingLocked _ -> false
@@ -245,12 +245,12 @@ and internal ActiveChannel =
         let! confirmationCount = fundedChannel.GetConfirmations()
         if confirmationCount < fundedChannel.MinimumDepth then
             let remainingConfirmations = fundedChannel.MinimumDepth - confirmationCount
-            return Error <| FundingNotConfirmed remainingConfirmations
+            return Error <| FundingNotConfirmed(fundedChannel, remainingConfirmations)
         else
             let! locationOnChainOpt = fundedChannel.GetLocationOnChain()
             match locationOnChainOpt with
             | None ->
-                return Error <| FundingOnChainLocationUnknown
+                return Error <| FundingOnChainLocationUnknown fundedChannel
             | Some (absoluteBlockHeight, txIndexInBlock) ->
                 return!
                     ActiveChannel.LockFunding
