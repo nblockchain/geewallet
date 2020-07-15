@@ -106,10 +106,22 @@
     <EmbeddedResource Include="servers.json" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="DotNetLightning.Core">
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200715-1301-git-5829edf\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
+    </Reference>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\net45\FSharp.Data.dll</HintPath>
     </Reference>
+    <Reference Include="InternalBech32Encoder">
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200715-1301-git-5829edf\lib\netstandard2.0\InternalBech32Encoder.dll</HintPath>
+    </Reference>
+    <Reference Include="Macaroons">
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200715-1301-git-5829edf\lib\netstandard2.0\Macaroons.dll</HintPath>
+    </Reference>
     <Reference Include="mscorlib" />
+    <Reference Include="ResultUtils">
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200715-1301-git-5829edf\lib\netstandard2.0\ResultUtils.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Net.Sockets">
@@ -273,18 +285,6 @@
     </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\packages\HtmlAgilityPack.1.11.9\lib\Net45\HtmlAgilityPack.dll</HintPath>
-    </Reference>
-    <Reference Include="DotNetLightning.Core">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200702-1307-git-66fa410\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="InternalBech32Encoder">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200702-1307-git-66fa410\lib\netstandard2.0\InternalBech32Encoder.dll</HintPath>
-    </Reference>
-    <Reference Include="Macaroons">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200702-1307-git-66fa410\lib\netstandard2.0\Macaroons.dll</HintPath>
-    </Reference>
-    <Reference Include="ResultUtils">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200702-1307-git-66fa410\lib\netstandard2.0\ResultUtils.dll</HintPath>
     </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
