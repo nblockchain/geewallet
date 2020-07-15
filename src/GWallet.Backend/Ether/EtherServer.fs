@@ -176,7 +176,7 @@ module Server =
                        (not (rpcResponseEx.RpcError.Message.Contains "header not found")) &&
                        (not (rpcResponseEx.RpcError.Message.Contains "missing trie node")) then
                         raise <| Exception(
-                                     sprintf "Expecting 'pruning=archive' or 'missing trie node' or 'header not found' in message of a %d code, but got '%s'"
+                                     SPrintF2 "Expecting 'pruning=archive' or 'missing trie node' or 'header not found' in message of a %d code, but got '%s'"
                                              (int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound)
                                              rpcResponseEx.RpcError.Message,
                                      rpcResponseEx)
