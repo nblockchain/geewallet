@@ -21,6 +21,7 @@ type internal OpenChannelError =
     | RecvAcceptChannel of RecvMsgError
     | OpenChannelPeerErrorResponse of PeerNode * PeerErrorMessage
     | ExpectedAcceptChannel of ILightningMsg
+    | InvalidAcceptChannel of PeerNode * ChannelError
     interface IErrorMsg with
         member self.Message =
             match self with
@@ -32,17 +33,20 @@ type internal OpenChannelError =
                 SPrintF1 "Peer responded to our open_channel with an error message: %s" (err :> IErrorMsg).Message
             | ExpectedAcceptChannel msg ->
                 SPrintF1 "Expected accept_channel, got %A" (msg.GetType())
+            | InvalidAcceptChannel (_, err) ->
+                SPrintF1 "Invalid accept_channel message: %s" err.Message
     member internal self.PossibleBug =
         match self with
         | RecvAcceptChannel err -> err.PossibleBug
         | InvalidChannelParameters _
         | OpenChannelPeerErrorResponse _
-        | ExpectedAcceptChannel _ -> false
+        | ExpectedAcceptChannel _
+        | InvalidAcceptChannel _ -> false
 
 type internal OutgoingUnfundedChannel =
     {
         ConnectedChannel: ConnectedChannel
-        AcceptChannelMsg: AcceptChannelMsg
+        FundingCreatedMsg: FundingCreatedMsg
     }
     static member OpenChannel (peerNode: PeerNode)
                               (account: NormalUtxoAccount)
@@ -126,19 +130,31 @@ type internal OutgoingUnfundedChannel =
             | Ok (peerNodeAfterAcceptChannel, channelMsg) ->
                 match channelMsg with
                 | :? AcceptChannelMsg as acceptChannelMsg ->
-                    let minimumDepth = acceptChannelMsg.MinimumDepth
-                    let connectedChannel = {
-                        PeerNode = peerNodeAfterAcceptChannel
-                        Channel = channelAfterOpenChannel
-                        Account = account
-                        MinimumDepth = minimumDepth
-                        ChannelIndex = channelIndex
-                    }
-                    let outgoingUnfundedChannel = {
-                        ConnectedChannel = connectedChannel
-                        AcceptChannelMsg = acceptChannelMsg
-                    }
-                    return Ok outgoingUnfundedChannel
+                    let fundingCreatedMsgRes, channelAfterFundingCreated =
+                        let channelCmd = ApplyAcceptChannel acceptChannelMsg
+                        channelAfterOpenChannel.ExecuteCommand channelCmd <| function
+                            | (WeAcceptedAcceptChannel(fundingCreatedMsg, _)::[])
+                                -> Some fundingCreatedMsg
+                            | _ -> None
+                    match fundingCreatedMsgRes with
+                    | Error err ->
+                        return Error <| InvalidAcceptChannel
+                            (peerNodeAfterAcceptChannel, err)
+                    | Ok fundingCreatedMsg ->
+                        let minimumDepth = acceptChannelMsg.MinimumDepth
+                        let connectedChannel = {
+                            PeerNode = peerNodeAfterAcceptChannel
+                            Channel = channelAfterFundingCreated
+                            Account = account
+                            // TODO: move this into FundedChannel?
+                            MinimumDepth = minimumDepth
+                            ChannelIndex = channelIndex
+                        }
+                        let outgoingUnfundedChannel = {
+                            ConnectedChannel = connectedChannel
+                            FundingCreatedMsg = fundingCreatedMsg
+                        }
+                        return Ok outgoingUnfundedChannel
                 | _ -> return Error <| ExpectedAcceptChannel channelMsg
     }
 
