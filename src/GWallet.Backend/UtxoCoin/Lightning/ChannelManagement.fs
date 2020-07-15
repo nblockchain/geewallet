@@ -83,7 +83,7 @@ type ChannelStore(account: NormalUtxoAccount) =
         Config.GetConfigDir self.Currency AccountKind.Normal
 
     member self.ChannelDir: DirectoryInfo =
-        let subdirectory = SPrintF1 "%s-lightning" (self.Account :> IAccount).PublicAddress
+        let subdirectory = SPrintF1 "%s-lightning" (self.Account :> BaseAccount).AccountFile.Name
         Path.Combine (self.AccountDir.FullName, subdirectory) |> DirectoryInfo
 
     member self.ListChannelIds(): seq<ChannelIdentifier> =
