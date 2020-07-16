@@ -11,6 +11,20 @@ open FSharpUtil
 open Newtonsoft.Json
 
 module JsonMarshalling =
+    type internal ChannelIdentifierConverter() =
+        inherit JsonConverter<ChannelIdentifier>()
+
+        override this.ReadJson(reader: JsonReader, _: Type, _: ChannelIdentifier, _: bool, serializer: JsonSerializer) =
+            let serializedChannelId = serializer.Deserialize<string> reader
+            serializedChannelId
+            |> NBitcoin.uint256
+            |> DotNetLightning.Utils.Primitives.ChannelId
+            |> ChannelIdentifier.FromDnl
+
+        override this.WriteJson(writer: JsonWriter, state: ChannelIdentifier, serializer: JsonSerializer) =
+            let serializedChannelId: string = state.DnlChannelId.Value.ToString()
+            serializer.Serialize(writer, serializedChannelId)
+
     type internal FeatureBitJsonConverter() =
         inherit JsonConverter<FeatureBit>()
 
@@ -55,9 +69,11 @@ module JsonMarshalling =
         let ipAddressConverter = IPAddressJsonConverter()
         let ipEndPointConverter = IPEndPointJsonConverter()
         let featureBitConverter = FeatureBitJsonConverter()
+        let channelIdentifierConverter = ChannelIdentifierConverter()
         settings.Converters.Add ipAddressConverter
         settings.Converters.Add ipEndPointConverter
         settings.Converters.Add featureBitConverter
+        settings.Converters.Add channelIdentifierConverter
         NBitcoin.JsonConverters.Serializer.RegisterFrontConverters settings
         settings
 
