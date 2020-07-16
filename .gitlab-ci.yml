@@ -31,7 +31,6 @@ stockmono_test_unit:
     # https://askubuntu.com/a/1013396
     - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
-    - source ./scripts/install_regtest_dependencies.sh
 
     - apt-get install -y nunit-console
     - ./configure.sh
@@ -80,7 +79,7 @@ newmono_test_unit:
 
     - apt install -y nunit-console
 
-    - time (./configure.sh && make && make check)
+    - time (./configure.sh && make && make check && make check-end-to-end)
 
 newmono_test_integration:
   image: ubuntu:20.04

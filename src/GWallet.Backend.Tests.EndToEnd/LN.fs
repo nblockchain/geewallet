@@ -1,4 +1,4 @@
-namespace GWallet.Backend.Tests
+namespace GWallet.Backend.Tests.EndToEnd
 
 open Microsoft.FSharp.Linq.NullableOperators // For <>?
 

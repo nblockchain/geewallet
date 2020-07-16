@@ -7,7 +7,9 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend", "src\GWal
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.Console", "src\GWallet.Frontend.Console\GWallet.Frontend.Console.fsproj", "{8413EEF5-69F5-499F-AE01-754E9541EF90}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests", "src\GWallet.Backend.Tests\GWallet.Backend.Tests.fsproj", "{F9448076-88BE-4045-8704-A652D133E036}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests.Unit", "src\GWallet.Backend.Tests.Unit\GWallet.Backend.Tests.Unit.fsproj", "{F9448076-88BE-4045-8704-A652D133E036}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests.EndToEnd", "src\GWallet.Backend.Tests.EndToEnd\GWallet.Backend.Tests.EndToEnd.fsproj", "{976C2EC9-C37C-4B9C-A854-5F08F9665D5B}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CE79AB9D-0FB9-4606-B7C6-A78C0858CC54}"
 	ProjectSection(SolutionItems) = preProject
@@ -53,6 +55,10 @@ Global
 		{F9448076-88BE-4045-8704-A652D133E036}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.Build.0 = Release|Any CPU
+		{976C2EC9-C37C-4B9C-A854-5F08F9665D5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{976C2EC9-C37C-4B9C-A854-5F08F9665D5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{976C2EC9-C37C-4B9C-A854-5F08F9665D5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{976C2EC9-C37C-4B9C-A854-5F08F9665D5B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{6EE07541-91A1-42C2-A21F-2809BBDC2F50} = {CE79AB9D-0FB9-4606-B7C6-A78C0858CC54}
