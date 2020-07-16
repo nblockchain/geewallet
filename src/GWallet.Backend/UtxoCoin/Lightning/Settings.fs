@@ -19,10 +19,10 @@ module Settings =
         ForceChannelAnnouncementPreference = false
         MinFundingSatoshis = Money 100L
         MaxHTLCMinimumMSat = LNMoney 100000L
-        MinMaxHTLCValueInFlightMSat = LNMoney 1000L
+        MinMaxHTLCValueInFlightMSat = LNMoney 10000L
         MaxChannelReserveSatoshis = Money 100000L
         MinMaxAcceptedHTLCs = 1us
-        MinDustLimitSatoshis = Money 1L
+        MinDustLimitSatoshis = Money 100L
         MaxDustLimitSatoshis = Money 10000000L
         // TODO make optional in DotNetLightning
         MaxMinimumDepth = BlockHeightOffset32 UInt32.MaxValue
