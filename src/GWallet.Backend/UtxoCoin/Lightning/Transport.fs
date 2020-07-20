@@ -135,7 +135,11 @@ type TransportStream = {
                             let! res = readAsync ()
                             return Some res
                         with
-                        | :? System.Net.Sockets.SocketException -> return None
+                        | ex ->
+                            if (FSharpUtil.FindException<System.Net.Sockets.SocketException> ex).IsSome then
+                                return None
+                            else
+                                return raise <| FSharpUtil.ReRaise ex
                     }
     
                 match maybeBytesRead with
