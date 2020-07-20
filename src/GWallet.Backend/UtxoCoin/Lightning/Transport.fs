@@ -135,7 +135,7 @@ type TransportStream = {
                             let! res = readAsync ()
                             return Some res
                         with
-                        | :? System.IO.IOException -> return None
+                        | :? System.Net.Sockets.SocketException -> return None
                     }
     
                 match maybeBytesRead with
