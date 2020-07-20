@@ -73,14 +73,14 @@ type ClosedChannel()=
                 | Ok _ -> return Ok (ClosedChannel())
         }
 
-    static member AwaitCloseChannel(connectedChannel: ConnectedChannel): Async<Result<ClosedChannel, CloseChannelError>> =
+    static member AcceptCloseChannel(connectedChannel: ConnectedChannel, shutdownMsg: ShutdownMsg): Async<Result<ClosedChannel, CloseChannelError>> =
         async {
             let ourPayoutScript =
                 connectedChannel.ChannelWrapper.Channel.Config.ChannelOptions.ShutdownScriptPubKey.Value
 
-            let! shutdownReceiveResult = ClosedChannel.ReceiveShutdown connectedChannel
+            let! handleRemoteShutdownResult = ClosedChannel.HandleRemoteShutdown connectedChannel shutdownMsg false
 
-            match shutdownReceiveResult with
+            match handleRemoteShutdownResult with
             | Error e -> return Error <| e
             | Ok connectedChannelAfterShutdownReceived ->
                 let! closingSignedExchangeResult = ClosedChannel.RunClosingSignedExchange connectedChannelAfterShutdownReceived ourPayoutScript
@@ -88,6 +88,7 @@ type ClosedChannel()=
                 match closingSignedExchangeResult with
                 | Error e -> return Error <| e
                 | Ok _ -> return Ok (ClosedChannel())
+
         }
 
     static member private InitiateShutdown connectedChannel ourPayoutScript: Async<Result<ConnectedChannel, CloseChannelError>> =
@@ -136,34 +137,6 @@ type ClosedChannel()=
                         | :? ShutdownMsg as shutdownMsg ->
                             return! (ClosedChannel.HandleRemoteShutdown connectedChannelAfterShutdownChannelReceived shutdownMsg true)
                         | _ -> return Error <| ExpectedShutdownMsg channelMsg
-        }
-
-    static member private ReceiveShutdown connectedChannel: Async<Result<ConnectedChannel, CloseChannelError>> =
-        async {
-            Infrastructure.LogDebug "Waiting for shutdown message"
-            let! recvChannelMsgRes = connectedChannel.PeerWrapper.RecvChannelMsg()
-
-            match recvChannelMsgRes with
-            | Error (RecvMsg recvMsgError) -> return Error <| RecvFailed recvMsgError
-            | Error (ReceivedPeerErrorMessage (peerWrapperAfterShutdownChannel, errorMessage)) ->
-                let connectedChannelAfterError =
-                    { connectedChannel with
-                          PeerWrapper = peerWrapperAfterShutdownChannel }
-
-                let brokenChannel =
-                    { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
-
-                return Error
-                       <| RecvPeerError(brokenChannel, errorMessage)
-            | Ok (peerWrapperAfterShutdownChannelReceived, channelMsg) ->
-                let connectedChannelAfterShutdownChannelReceived =
-                    { connectedChannel with
-                          PeerWrapper = peerWrapperAfterShutdownChannelReceived }
-
-                match channelMsg with
-                | :? ShutdownMsg as shutdownMsg ->
-                    return! (ClosedChannel.HandleRemoteShutdown connectedChannelAfterShutdownChannelReceived shutdownMsg false)
-                | _ -> return Error <| ExpectedShutdownMsg channelMsg
         }
 
     static member private HandleRemoteShutdown (connectedChannel: ConnectedChannel) (shutdownMsg: ShutdownMsg) (sentOurs: bool): Async<Result<ConnectedChannel, CloseChannelError>> =

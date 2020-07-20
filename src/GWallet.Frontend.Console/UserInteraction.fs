@@ -26,9 +26,8 @@ type internal Operations =
     | OpenChannel             = 10
     | AcceptChannel           = 11
     | SendLightningPayment    = 12
-    | ReceiveLightningPayment = 13
-    | InitiateCloseChannel    = 14
-    | AwaitCloseChannel       = 15
+    | InitiateCloseChannel    = 13
+    | AcceptLightningEvent    = 14
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -93,11 +92,9 @@ module UserInteraction =
             -> not noAccounts
         | Operations.SendLightningPayment ->
             (Lightning.ListAvailableChannelIds (Some true)).Any()
-        | Operations.ReceiveLightningPayment ->
-            (Lightning.ListAvailableChannelIds (Some false)).Any()
         | Operations.InitiateCloseChannel ->
             (Lightning.ListAvailableChannelIds None).Any()
-        | Operations.AwaitCloseChannel ->
+        | Operations.AcceptLightningEvent ->
             (Lightning.ListAvailableChannelIds None).Any()
         | _ -> true
 
