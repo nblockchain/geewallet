@@ -13,7 +13,7 @@ open GWallet.Backend
 module Settings =
 
     // FIXME: this should return seq<> so that we can run Lightning on Litecoin too
-    let internal Currency = Currency.BTC
+    let Currency = Currency.BTC
 
     let internal PeerLimits: ChannelHandshakeLimits = {
         ForceChannelAnnouncementPreference = false
@@ -34,9 +34,9 @@ module Settings =
         featureBits.SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true
         featureBits
 
-    let internal GetLocalParams (funding: Money)
+    let internal GetLocalParams (isFunder: bool)
+                                (fundingAmount: Money)
                                 (defaultFinalScriptPubKey: Script)
-                                (isFunder: bool)
                                 (remoteNodeId: NodeId)
                                 (channelPubKeys: ChannelKeys)
                                     : LocalParams =
@@ -45,7 +45,8 @@ module Settings =
             ChannelPubKeys = channelPubKeys.ToChannelPubKeys()
             DustLimitSatoshis = Money 5UL
             MaxHTLCValueInFlightMSat = LNMoney 5000L
-            ChannelReserveSatoshis = funding / 100L
+            // BOLT #2 recommends a channel reserve of 1% of the channel capacity
+            ChannelReserveSatoshis = fundingAmount / 100L
             HTLCMinimumMSat = LNMoney 1000L
             ToSelfDelay = BlockHeightOffset16 6us
             MaxAcceptedHTLCs = uint16 10

@@ -132,9 +132,9 @@ type MonoHopUnidirectionalChannel =
                                      (defaultFinalScriptPubKey: Script)
                                      (isFunder: bool)
                                          : LocalParams =
-        Settings.GetLocalParams funding
+        Settings.GetLocalParams isFunder
+                                funding
                                 defaultFinalScriptPubKey
-                                isFunder
                                 self.RemoteNodeId
                                 self.ChannelKeys
 

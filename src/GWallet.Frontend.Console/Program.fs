@@ -11,7 +11,7 @@ open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Frontend.Console
 
 let OpenChannel(): Async<unit> = async {
-    let account = UserInteraction.AskBitcoinAccount()
+    let account = UserInteraction.AskLightningCompatibleAccount ()
     let currency = (account :> IAccount).Currency
     let channelStore = ChannelStore account
 
@@ -74,7 +74,7 @@ let OpenChannel(): Async<unit> = async {
 }
 
 let AcceptChannel(): Async<unit> = async {
-    let account = UserInteraction.AskBitcoinAccount()
+    let account = UserInteraction.AskLightningCompatibleAccount ()
     let channelStore = ChannelStore account
     let bindAddress = UserInteraction.AskBindAddress()
     let password = UserInteraction.AskPassword false
@@ -93,7 +93,7 @@ let AcceptChannel(): Async<unit> = async {
 }
 
 let SendLightningPayment(): Async<unit> = async {
-    let account = UserInteraction.AskBitcoinAccount()
+    let account = UserInteraction.AskLightningCompatibleAccount ()
     let channelStore = ChannelStore account
     let channelIdOpt = UserInteraction.AskChannelId channelStore true
     match channelIdOpt with
@@ -117,7 +117,7 @@ let SendLightningPayment(): Async<unit> = async {
 }
 
 let ReceiveLightningPayment(): Async<unit> = async {
-    let account = UserInteraction.AskBitcoinAccount()
+    let account = UserInteraction.AskLightningCompatibleAccount ()
     let channelStore = ChannelStore account
     let channelIdOpt = UserInteraction.AskChannelId channelStore true
     match channelIdOpt with

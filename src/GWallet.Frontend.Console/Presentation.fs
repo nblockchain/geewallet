@@ -109,5 +109,5 @@ module Presentation =
             )
         | NotFresh NotAvailable ->
             Console.WriteLine()
-        ShowFee maybeUsdPrice Currency.BTC metadata
+        ShowFee maybeUsdPrice channelCapacity.Currency metadata
 
