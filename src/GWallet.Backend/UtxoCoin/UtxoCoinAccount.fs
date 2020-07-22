@@ -487,7 +487,7 @@ module Account =
 
     let internal Create currency (password: string) (seed: array<byte>): Async<FileRepresentation> =
         async {
-            let privKey = Key seed
+            let privKey = new Key(seed)
             let network = GetNetwork currency
             let secret = privKey.GetBitcoinSecret network
             let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
