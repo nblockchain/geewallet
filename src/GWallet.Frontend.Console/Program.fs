@@ -652,8 +652,10 @@ let main argv =
         Config.SetRunModeTesting()
         NormalStartWithNoParameters()
     | 1 when argv.[0] = "--update-servers-file" ->
+        Config.SetRunModeNormal()
         UpdateServersFile()
     | 1 when argv.[0] = "--update-servers-stats" ->
+        Config.SetRunModeNormal()
         UpdateServersStats()
     | _ ->
         failwith "Arguments not recognized"
