@@ -22,7 +22,7 @@ module Settings =
         MinMaxHTLCValueInFlightMSat = LNMoney 10000L
         MaxChannelReserveSatoshis = Money 100000L
         MinMaxAcceptedHTLCs = 1us
-        MinDustLimitSatoshis = Money 573L // Value used by lnd
+        MinDustLimitSatoshis = Money 200L // Value used by lnd
         MaxDustLimitSatoshis = Money 10000000L
         // TODO make optional in DotNetLightning
         MaxMinimumDepth = BlockHeightOffset32 UInt32.MaxValue
