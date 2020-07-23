@@ -519,15 +519,17 @@ module Server =
                         web3Funcs
         }
 
-    let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string): Async<decimal> =
+    let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string) (currency: Currency)
+                                                     : Async<decimal> =
         if (web3 = null) then
             invalidArg "web3" "web3 argument should not be null"
 
         async {
             let! blockForConfirmationReference = GetBlockToCheckForConfirmedBalance web3
             let balanceOfFunctionMsg = BalanceOfFunction(Owner = publicAddress)
+            let contractAddress = TokenManager.GetTokenContractAddress currency
 
-            let contractHandler = web3.Eth.GetContractHandler TokenManager.SAI_CONTRACT_ADDRESS
+            let contractHandler = web3.Eth.GetContractHandler contractAddress
             if (contractHandler = null) then
                 failwith "contractHandler somehow is null"
 
@@ -552,9 +554,9 @@ module Server =
                 let web3Func (web3: Web3): Async<decimal> =
                         match balType with
                         | BalanceType.Confirmed ->
-                            GetConfirmedTokenBalanceInternal web3 address
+                            GetConfirmedTokenBalanceInternal web3 address currency
                         | BalanceType.Unconfirmed ->
-                            let tokenService = TokenManager.DaiContract web3
+                            let tokenService = TokenManager.TokenServiceWrapper (web3, currency)
                             async {
                                 let! cancelToken = Async.CancellationToken
                                 let task = tokenService.BalanceOfQueryAsync (address, null, cancelToken)
@@ -581,7 +583,8 @@ module Server =
         async {
             let web3Funcs =
                 let web3Func (web3: Web3): Async<HexBigInteger> =
-                    let contractHandler = web3.Eth.GetContractHandler TokenManager.SAI_CONTRACT_ADDRESS
+                    let contractAddress = TokenManager.GetTokenContractAddress account.Currency
+                    let contractHandler = web3.Eth.GetContractHandler contractAddress
                     let amountInWei = UnitConversion.Convert.ToWei(amount, UnitConversion.EthUnit.Ether)
                     let transferFunctionMsg = TransferFunction(FromAddress = account.PublicAddress,
                                                                To = destination,

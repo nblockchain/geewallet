@@ -86,6 +86,11 @@ module ElectrumClient =
     let EstimateFee (numBlocksTarget: int) (stratumServer: Async<StratumClient>): Async<decimal> = async {
         let! stratumClient = stratumServer
         let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
+        if estimateFeeResult.Result = -1m then
+            return raise <| ServerMisconfiguredException("Fee estimation returned a -1 error code")
+        elif estimateFeeResult.Result <= 0m then
+            return raise <| ServerMisconfiguredException(SPrintF1 "Fee estimation returned an invalid non-positive value %M"
+                                                                  estimateFeeResult.Result)
         return estimateFeeResult.Result
     }
 

@@ -244,12 +244,13 @@ module internal Account =
         else
             failwith <| SPrintF1 "Assertion failed: Ether currency %A not supported?" currency
 
-    let private SignEtherTransaction (chain: Chain)
+    let private SignEtherTransaction (currency: Currency)
                                      (txMetadata: TransactionMetadata)
                                      (destination: string)
                                      (amount: TransferAmount)
                                      (privateKey: EthECKey) =
 
+        let chain = GetNetwork currency
         if (GetNetwork txMetadata.Fee.Currency <> chain) then
             invalidArg "chain" (SPrintF2 "Assertion failed: fee currency (%A) chain doesn't match with passed chain (%A)"
                                         txMetadata.Fee.Currency chain)
@@ -278,29 +279,32 @@ module internal Account =
                         BigInteger(txMetadata.Fee.GasLimit))
         trans
 
-    let private SignEtherTokenTransaction (chain: Chain)
+    let private SignEtherTokenTransaction (currency: Currency)
                                           (txMetadata: TransactionMetadata)
                                           (origin: string)
                                           (destination: string)
                                           (amount: TransferAmount)
                                           (privateKey: EthECKey) =
 
+        let chain = GetNetwork currency
         let privKeyInBytes = privateKey.GetPrivateKeyAsBytes()
 
         let amountInWei = UnitConversion.Convert.ToWei(amount.ValueToSend, UnitConversion.EthUnit.Ether)
         let gasLimit = BigInteger(txMetadata.Fee.GasLimit)
-        let data = TokenManager.OfflineDaiContract.ComposeInputDataForTransferTransaction(origin,
-                                                                                          destination,
-                                                                                          amountInWei,
-                                                                                          gasLimit)
+        let data = (TokenManager.OfflineTokenServiceWrapper currency)
+                       .ComposeInputDataForTransferTransaction(origin,
+                                                               destination,
+                                                               amountInWei,
+                                                               gasLimit)
 
         let etherValue = BigInteger(0)
         let nonce = BigInteger(txMetadata.TransactionCount)
         let gasPrice = BigInteger(txMetadata.Fee.GasPriceInWei)
+        let contractAddress = TokenManager.GetTokenContractAddress currency
 
         signer.SignTransaction (privKeyInBytes,
                                 chain,
-                                TokenManager.SAI_CONTRACT_ADDRESS,
+                                contractAddress,
                                 etherValue,
                                 nonce,
                                 gasPrice,
@@ -313,19 +317,19 @@ module internal Account =
                                               (amount: TransferAmount)
                                               (privateKey: EthECKey) =
 
-        let chain = GetNetwork account.Currency
-
         let trans =
             if account.Currency.IsEthToken() then
-                SignEtherTokenTransaction chain txMetadata account.PublicAddress destination amount privateKey
+                SignEtherTokenTransaction
+                    account.Currency txMetadata account.PublicAddress destination amount privateKey
             elif account.Currency.IsEtherBased() then
                 if (txMetadata.Fee.Currency <> account.Currency) then
                     failwith <| SPrintF2 "Assertion failed: fee currency (%A) doesn't match with passed chain (%A)"
                               txMetadata.Fee.Currency account.Currency
-                SignEtherTransaction chain txMetadata destination amount privateKey
+                SignEtherTransaction account.Currency txMetadata destination amount privateKey
             else
                 failwith <| SPrintF1 "Assertion failed: Ether currency %A not supported?" account.Currency
 
+        let chain = GetNetwork account.Currency
         if not (signer.VerifyTransaction(trans, chain)) then
             failwith "Transaction could not be verified?"
         trans

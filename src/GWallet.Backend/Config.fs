@@ -112,18 +112,18 @@ module Config =
             configDir.Create()
         configDir
 
-    let RenameDaiAccountsToSai() =
+    // In case a new token was added it will not have a config for an existing user
+    // we copy the eth configs to the new tokens config directory
+    let PropagateEthAccountInfoToMissingTokensAccounts() =
         for accountKind in (AccountKind.All()) do
-            let daiConfigDir = GetConfigDir Currency.DAI accountKind
-            for originalAccountFilePath in Directory.GetFiles daiConfigDir.FullName do
-                let saiConfigDir = GetConfigDir Currency.SAI accountKind
-                let newFile = originalAccountFilePath.Replace(daiConfigDir.FullName, saiConfigDir.FullName)
-                              |> FileInfo
-                if newFile.Exists then
-                    File.Delete originalAccountFilePath
-                else
-                    File.Move(originalAccountFilePath, newFile.FullName)
-
+            let ethConfigDir = GetConfigDir Currency.ETH accountKind
+            for token in Currency.GetAll() do
+                if token.IsEthToken() then
+                    let tokenConfigDir = GetConfigDir token accountKind
+                    for ethAccountFilePath in Directory.GetFiles ethConfigDir.FullName do
+                        let newPath = ethAccountFilePath.Replace(ethConfigDir.FullName, tokenConfigDir.FullName)
+                        if not (File.Exists newPath) then
+                            File.Copy(ethAccountFilePath, newPath)
 
     let GetAccountFiles (currencies: seq<Currency>) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {

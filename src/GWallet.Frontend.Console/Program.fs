@@ -94,10 +94,11 @@ let SignOffPayment() =
                 Console.WriteLine ("Importing external data...")
                 Caching.Instance.SaveSnapshot unsignedTransaction.Cache
 
+                let lines = UserInteraction.DisplayAccountStatuses <| WhichAccount.MatchingWith account
+                               |> Async.RunSynchronously
                 Console.WriteLine ("Account to use when signing off this transaction:")
                 Console.WriteLine ()
-                let linesJob = UserInteraction.DisplayAccountStatuses <| WhichAccount.MatchingWith account
-                for line in Async.RunSynchronously linesJob do
+                for line in lines do
                     Console.WriteLine line
                 Console.WriteLine()
 
@@ -293,7 +294,10 @@ let rec PerformOperation (numAccounts: int) =
             Account.GenerateMasterPrivateKey passphrase dob email
                 |> Async.StartAsTask
         let password = UserInteraction.AskPassword true
-        Async.RunSynchronously (Account.CreateAllAccounts masterPrivateKeyTask password)
+        Async.RunSynchronously <| async {
+            let! privateKeyBytes = Async.AwaitTask masterPrivateKeyTask
+            return! Account.CreateAllAccounts privateKeyBytes password
+        }
         Console.WriteLine("Accounts created")
         UserInteraction.PressAnyKeyToContinue()
     | Operations.Refresh -> ()

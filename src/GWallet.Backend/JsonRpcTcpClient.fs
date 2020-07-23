@@ -6,8 +6,13 @@ open System.Net.Sockets
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-type ProtocolGlitchException(message: string, innerException: Exception) =
-    inherit CommunicationUnsuccessfulException (message, innerException)
+type ProtocolGlitchException =
+    inherit CommunicationUnsuccessfulException
+
+    new (message) = { inherit CommunicationUnsuccessfulException (message) }
+    new (message: string, innerException: Exception) = {
+        inherit CommunicationUnsuccessfulException (message, innerException)
+    }
 
 type ServerCannotBeResolvedException =
     inherit CommunicationUnsuccessfulException

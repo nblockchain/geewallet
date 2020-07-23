@@ -68,7 +68,7 @@ module Account =
             failwith <| SPrintF1 "Currency (%A) not supported for this API" currency
 
     let GetAllActiveAccounts(): seq<IAccount> =
-        Config.RenameDaiAccountsToSai()
+        Config.PropagateEthAccountInfoToMissingTokensAccounts()
 
         let allCurrencies = Currency.GetAll()
 
@@ -531,10 +531,7 @@ module Account =
 
     let CreateEtherNormalAccounts (password: string) (seed: array<byte>)
                                       : Async<List<ConceptAccount>> =
-        let supportedEtherCurrencies =
-            // we create SAI account (even though we don't show it anymore if it has zero balance) just in case the user
-            // used it before when we had support for it (and since we don't support DAI yet, we filter it here)
-            Currency.GetAll().Where(fun currency -> currency.IsEtherBased() && not (currency = Currency.DAI))
+        let supportedEtherCurrencies = Currency.GetAll().Where(fun currency -> currency.IsEtherBased())
         let etherAccounts = async {
             let! virtualFile, fromEncPrivKeyToPublicAddressFunc =
                 CreateConceptEtherAccountInternal password seed
@@ -588,8 +585,7 @@ module Account =
         return allConceptAccounts
     }
 
-    let CreateAllAccounts (masterPrivateKeyTask: Task<array<byte>>) (encryptionPassword: string): Async<unit> = async {
-        let! privateKeyBytes = Async.AwaitTask masterPrivateKeyTask
+    let CreateAllAccounts (privateKeyBytes: array<byte>) (encryptionPassword: string): Async<unit> = async {
         let! allConceptAccounts = CreateAllConceptAccounts privateKeyBytes encryptionPassword
         for conceptAccount in allConceptAccounts do
             CreateNormalAccount conceptAccount |> ignore

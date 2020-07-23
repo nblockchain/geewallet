@@ -21,7 +21,7 @@ type internal TransactionOutpoint =
     member self.ToCoin (): Coin =
         Coin(self.Transaction, uint32 self.OutputIndex)
 
-type IUtxoAccount =
+type internal IUtxoAccount =
     inherit IAccount
 
     abstract member PublicKey: PubKey with get
@@ -74,17 +74,17 @@ module Account =
     let internal GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
         (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
 
-    let GetPublicAddressFromNormalAccountFile (currency: Currency) (accountFile: FileRepresentation): string =
+    let internal GetPublicAddressFromNormalAccountFile (currency: Currency) (accountFile: FileRepresentation): string =
         let pubKey = PubKey(accountFile.Name)
         GetPublicAddressFromPublicKey currency pubKey
 
-    let GetPublicKeyFromNormalAccountFile (accountFile: FileRepresentation): PubKey =
+    let internal GetPublicKeyFromNormalAccountFile (accountFile: FileRepresentation): PubKey =
         PubKey accountFile.Name
 
-    let GetPublicKeyFromReadOnlyAccountFile (accountFile: FileRepresentation): PubKey =
+    let internal GetPublicKeyFromReadOnlyAccountFile (accountFile: FileRepresentation): PubKey =
         accountFile.Content() |> PubKey
 
-    let GetPublicAddressFromUnencryptedPrivateKey (currency: Currency) (privateKey: string) =
+    let internal GetPublicAddressFromUnencryptedPrivateKey (currency: Currency) (privateKey: string) =
         let privateKey = Key.Parse(privateKey, GetNetwork currency)
         GetPublicAddressFromPublicKey currency privateKey.PubKey
 
@@ -251,8 +251,8 @@ module Account =
                     return! EstimateFees newTxBuilder feeRate account newInputs tail
         }
 
-    let EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
-                        : Async<TransactionMetadata> = async {
+    let internal EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
+                                 : Async<TransactionMetadata> = async {
         let rec addInputsUntilAmount (utxos: List<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
                                       amount
@@ -375,11 +375,11 @@ module Account =
         | :? SecurityException ->
             raise (InvalidPassword)
 
-    let SignTransaction (account: NormalUtxoAccount)
-                        (txMetadata: TransactionMetadata)
-                        (destination: string)
-                        (amount: TransferAmount)
-                        (password: string) =
+    let internal SignTransaction (account: NormalUtxoAccount)
+                                 (txMetadata: TransactionMetadata)
+                                 (destination: string)
+                                 (amount: TransferAmount)
+                                 (password: string) =
 
         let privateKey = GetPrivateKey account password
 
@@ -392,23 +392,23 @@ module Account =
         let rawTransaction = signedTransaction.ToHex()
         rawTransaction
 
-    let CheckValidPassword (account: NormalAccount) (password: string) =
+    let internal CheckValidPassword (account: NormalAccount) (password: string) =
         GetPrivateKey account password |> ignore
 
     let private BroadcastRawTransaction currency (rawTx: string): Async<string> =
         let job = ElectrumClient.BroadcastTransaction rawTx
         Server.Query currency QuerySettings.Broadcast job None
 
-    let BroadcastTransaction currency (transaction: SignedTransaction<_>) =
+    let internal BroadcastTransaction currency (transaction: SignedTransaction<_>) =
         // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
         // and show the info from the RawTx, using NBitcoin to extract it
         BroadcastRawTransaction currency transaction.RawTransaction
 
-    let SendPayment (account: NormalUtxoAccount)
-                    (txMetadata: TransactionMetadata)
-                    (destination: string)
-                    (amount: TransferAmount)
-                    (password: string)
+    let internal SendPayment (account: NormalUtxoAccount)
+                             (txMetadata: TransactionMetadata)
+                             (destination: string)
+                             (amount: TransferAmount)
+                             (password: string)
                     =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
@@ -421,10 +421,10 @@ module Account =
     let public ExportUnsignedTransactionToJson trans =
         Marshalling.Serialize trans
 
-    let SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
-                                (txMetadata: TransactionMetadata)
-                                (readOnlyAccounts: seq<ReadOnlyAccount>)
-                                    : string =
+    let internal SaveUnsignedTransaction (transProposal: UnsignedTransactionProposal)
+                                         (txMetadata: TransactionMetadata)
+                                         (readOnlyAccounts: seq<ReadOnlyAccount>)
+                                             : string =
 
         let unsignedTransaction =
             {
@@ -434,10 +434,11 @@ module Account =
             }
         ExportUnsignedTransactionToJson unsignedTransaction
 
-    let SweepArchivedFunds (account: ArchivedUtxoAccount)
-                           (balance: decimal)
-                           (destination: IAccount)
-                           (txMetadata: TransactionMetadata) =
+    let internal SweepArchivedFunds (account: ArchivedUtxoAccount)
+                                    (balance: decimal)
+                                    (destination: IAccount)
+                                    (txMetadata: TransactionMetadata)
+                                        =
         let currency = (account:>IAccount).Currency
         let network = GetNetwork currency
         let amount = TransferAmount(balance, balance, currency)
@@ -446,7 +447,7 @@ module Account =
                               account txMetadata destination.PublicAddress amount privateKey
         BroadcastRawTransaction currency (signedTrans.ToHex())
 
-    let Create currency (password: string) (seed: array<byte>): Async<FileRepresentation> =
+    let internal Create currency (password: string) (seed: array<byte>): Async<FileRepresentation> =
         async {
             let privKey = Key seed
             let network = GetNetwork currency
@@ -485,7 +486,7 @@ module Account =
             else
                 address,None
 
-    let ValidateAddress (currency: Currency) (address: string) =
+    let internal ValidateAddress (currency: Currency) (address: string) =
         if String.IsNullOrEmpty address then
             raise <| ArgumentNullException "address"
 
