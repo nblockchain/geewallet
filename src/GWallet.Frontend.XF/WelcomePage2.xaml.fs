@@ -52,7 +52,8 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
             ToggleInputWidgetsEnabledOrDisabled false
 
             async {
-                do! Account.CreateAllAccounts masterPrivateKeyGenerationTask password.Text
+                let! privateKeyBytes = Async.AwaitTask masterPrivateKeyGenerationTask
+                do! Account.CreateAllAccounts privateKeyBytes password.Text
                 let loadingPage () =
                     LoadingPage (state, false)
                         :> Page
