@@ -119,7 +119,7 @@ let SendLightningPayment(): Async<unit> = async {
 let ReceiveLightningPayment(): Async<unit> = async {
     let account = UserInteraction.AskLightningCompatibleAccount ()
     let channelStore = ChannelStore account
-    let channelIdOpt = UserInteraction.AskChannelId channelStore true
+    let channelIdOpt = UserInteraction.AskChannelId channelStore false
     match channelIdOpt with
     | None -> return ()
     | Some channelId ->
