@@ -25,7 +25,8 @@ type internal Operations =
     | OpenChannel             = 10
     | AcceptChannel           = 11
     | SendLightningPayment    = 12
-    | ReceiveLightningPayment = 13
+    | AcceptLightningEvent    = 13
+    | CloseChannel            = 14
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -93,11 +94,16 @@ module UserInteraction =
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
             ).Any(fun channelInfo -> channelInfo.IsFunder)
-        | Operations.ReceiveLightningPayment ->
+        | Operations.AcceptLightningEvent ->
             accounts.OfType<UtxoCoin.NormalUtxoAccount>().SelectMany(fun account ->
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
             ).Any(fun channelInfo -> not channelInfo.IsFunder)
+        | Operations.CloseChannel ->
+            accounts.OfType<UtxoCoin.NormalUtxoAccount>().SelectMany(fun account ->
+                let channelStore = ChannelStore account
+                channelStore.ListChannelInfos()
+            ).Any()
         | _ -> true
 
     let rec internal AskFileNameToLoad (askText: string): FileInfo =
@@ -273,12 +279,9 @@ module UserInteraction =
         | _ ->
             DisplayAccountStatusInner accountNumber account maybeBalance maybeUsdValue
 
-    let DisplayLightningChannelStatus (channelInfo: ChannelInfo): seq<string> = seq {
+    let DisplayLightningChannelStatus (channelInfo: ChannelInfo) maybeUsdValue: seq<string> = seq {
         let capacity = channelInfo.Capacity
         let currency = channelInfo.Currency
-        let maybeUsdValue =
-            FiatValueEstimation.UsdValue currency
-            |> Async.RunSynchronously
         if channelInfo.IsFunder then
             yield sprintf "    channel %s (outgoing):" (ChannelId.ToString channelInfo.ChannelId)
             let sent = capacity - channelInfo.Balance
@@ -843,13 +846,17 @@ module UserInteraction =
         IPEndPoint(ipAddress, int port)
 
     let rec AskChannelId (channelStore: ChannelStore)
-                         (isFunder: bool)
+                         (isFunderOpt: Option<bool>)
                              : Option<ChannelIdentifier> =
         let channelIds = seq {
             for channelId in channelStore.ListChannelIds() do
                 let channelInfo = channelStore.ChannelInfo channelId
-                if channelInfo.IsFunder = isFunder then
+                match isFunderOpt with
+                | None ->
                     yield channelId
+                | Some isFunder ->
+                    if channelInfo.IsFunder = isFunder then
+                        yield channelId
         }
 
         Console.WriteLine "Available channels:"
@@ -869,5 +876,5 @@ module UserInteraction =
                 Some (channelIds.ElementAt index)
             | _ ->
                 Console.WriteLine "Invalid option"
-                AskChannelId channelStore isFunder
+                AskChannelId channelStore isFunderOpt
 
