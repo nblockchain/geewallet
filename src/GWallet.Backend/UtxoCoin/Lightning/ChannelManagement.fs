@@ -31,6 +31,8 @@ type FundingBroadcastButNotLockedData =
 
 type ChannelStatus =
     | FundingBroadcastButNotLocked of FundingBroadcastButNotLockedData
+    | Closing
+    | Closed
     | Active
     | Broken
 
@@ -46,6 +48,7 @@ type ChannelInfo =
         FundingTxId: TransactionIdentifier
         Status: ChannelStatus
         Currency: Currency
+        FundingTransaction: TransactionIdentifier
     }
     static member internal FromSerializedChannel (serializedChannel: SerializedChannel)
                                                  (currency: Currency)
@@ -60,8 +63,14 @@ type ChannelInfo =
         FundingTxId =
             TransactionIdentifier.FromHash (ChannelSerialization.Commitments serializedChannel).FundingScriptCoin.Outpoint.Hash
         Currency = currency
+        FundingTransaction = TransactionIdentifier.FromHash serializedChannel.Commitments.FundingScriptCoin.Outpoint.Hash
         Status =
             match serializedChannel.ChanState with
+            | ChannelState.Negotiating _
+            | ChannelState.Closing _ ->
+                Closing
+            | ChannelState.Closed _ ->
+                Closed
             | ChannelState.Normal _ -> ChannelStatus.Active
             | ChannelState.WaitForFundingConfirmed waitForFundingConfirmedData ->
                 let txId = TransactionIdentifier.FromHash waitForFundingConfirmedData.Commitments.FundingScriptCoin.Outpoint.Hash
@@ -142,7 +151,10 @@ type ChannelStore(account: NormalUtxoAccount) =
 
     member self.ListChannelInfos(): seq<ChannelInfo> = seq {
         for channelId in self.ListChannelIds() do
-            yield self.ChannelInfo channelId
+            let channelInfo = self.ChannelInfo channelId
+            if channelInfo.Status <> ChannelStatus.Closing &&
+               channelInfo.Status <> ChannelStatus.Closed then
+                yield channelInfo
     }
 
 

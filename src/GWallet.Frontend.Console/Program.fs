@@ -97,7 +97,7 @@ let AcceptChannel(): Async<unit> = async {
 let SendLightningPayment(): Async<unit> = async {
     let account = UserInteraction.AskBitcoinAccount()
     let channelStore = ChannelStore account
-    let channelIdOpt = UserInteraction.AskChannelId channelStore true
+    let channelIdOpt = UserInteraction.AskChannelId channelStore (Some true)
     match channelIdOpt with
     | None -> return ()
     | Some channelId ->
@@ -118,10 +118,31 @@ let SendLightningPayment(): Async<unit> = async {
             UserInteraction.PressAnyKeyToContinue()
 }
 
-let ReceiveLightningPayment(): Async<unit> = async {
+let CloseChannel(): Async<unit> =
+    async {
+        let account = UserInteraction.AskBitcoinAccount()
+        let channelStore = ChannelStore account
+        let channelIdOpt = UserInteraction.AskChannelId channelStore None
+        match channelIdOpt with
+        | None -> return ()
+        | Some channelId ->
+            let password = UserInteraction.AskPassword false
+            let bindAddress = IPEndPoint(IPAddress.Parse "127.0.0.1", 0)
+            use lightningNode = Lightning.Connection.Start channelStore password bindAddress
+            let! closeRes = Lightning.Network.CloseChannel lightningNode channelId
+            match closeRes with
+            | Error closeError ->
+                return failwithf "Error closing channel: %s" closeError.Message
+            | Ok () ->
+                Console.WriteLine "Channel closed."
+            UserInteraction.PressAnyKeyToContinue()
+            return ()
+    }
+
+let AcceptLightningEvent(): Async<unit> = async {
     let account = UserInteraction.AskBitcoinAccount()
     let channelStore = ChannelStore account
-    let channelIdOpt = UserInteraction.AskChannelId channelStore false
+    let channelIdOpt = UserInteraction.AskChannelId channelStore (Some false)
     match channelIdOpt with
     | None -> return ()
     | Some channelId ->
@@ -158,6 +179,7 @@ let LockChannel (channelStore: ChannelStore)
     let password = UserInteraction.AskPassword false
     use lightningNode = Lightning.Connection.Start channelStore password bindAddress
     async {
+        let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
         let! lockFundingRes = Lightning.Network.LockChannelFunding lightningNode channelId
         match lockFundingRes with
         | Error lockFundingError ->
@@ -165,7 +187,7 @@ let LockChannel (channelStore: ChannelStore)
         | Ok () ->
             Console.WriteLine(sprintf "funding locked for channel %s" (ChannelId.ToString channelId))
         return seq {
-            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+            yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
             yield "        funding locked - channel is now active"
         }
     }
@@ -174,13 +196,14 @@ let LockChannelIfFundingConfirmed (channelStore: ChannelStore)
                                   (channelInfo: ChannelInfo)
                                   (fundingBroadcastButNotLockedData: FundingBroadcastButNotLockedData)
                                       : Async<Async<seq<string>>> = async {
+    let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
     let! remainingConfirmations = fundingBroadcastButNotLockedData.GetRemainingConfirmations()
     if remainingConfirmations = 0u then
         return LockChannel channelStore channelInfo
     else
         return async {
             return seq {
-                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
                 yield sprintf "        waiting for %i more confirmations" remainingConfirmations
             }
         }
@@ -189,6 +212,9 @@ let LockChannelIfFundingConfirmed (channelStore: ChannelStore)
 let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>> = seq {
     let normalUtxoAccounts = accounts.OfType<UtxoCoin.NormalUtxoAccount>()
     for account in normalUtxoAccounts do
+        let maybeUsdValue =
+            FiatValueEstimation.UsdValue (account :> IAccount).Currency
+            |> Async.RunSynchronously
         let channelStore = ChannelStore account
         let channelIds = channelStore.ListChannelIds()
         yield async {
@@ -199,29 +225,44 @@ let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>>
             }
         }
         for channelId in channelIds do
-            let channelInfo = channelStore.ChannelInfo channelId
-            yield
+                let channelInfo = channelStore.ChannelInfo channelId
                 match channelInfo.Status with
                 | ChannelStatus.FundingBroadcastButNotLocked fundingBroadcastButNotLockedData ->
-                    LockChannelIfFundingConfirmed channelStore channelInfo fundingBroadcastButNotLockedData
+                    yield LockChannelIfFundingConfirmed channelStore channelInfo fundingBroadcastButNotLockedData
                 | ChannelStatus.Active ->
-                    async {
+                    yield async {
                         return async {
                             return seq {
-                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
                                 yield "        channel is active"
                             }
                         }
                     }
                 | ChannelStatus.Broken ->
-                    async {
+                    yield async {
                         return async {
                             return seq {
-                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
                                 yield "        channel is in an abnormal state"
                             }
                         }
                     }
+                | ChannelStatus.Closing ->
+                    yield async {
+                        return async {
+                            let! isClosed = UtxoCoin.Lightning.Network.CheckClosingFinished channelInfo
+                            let showTheChannel = not isClosed
+                            if showTheChannel then
+                                return seq {
+                                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
+                                    yield "        channel is in being closed"
+                                }
+                            else
+                                return Seq.empty
+                        }
+                    }
+                | ChannelStatus.Closed ->
+                    ()
 
 }
 
@@ -557,8 +598,10 @@ let rec PerformOperation (accounts: seq<IAccount>): unit =
         AcceptChannel() |> Async.RunSynchronously
     | Operations.SendLightningPayment ->
         SendLightningPayment() |> Async.RunSynchronously
-    | Operations.ReceiveLightningPayment ->
-        ReceiveLightningPayment() |> Async.RunSynchronously
+    | Operations.AcceptLightningEvent ->
+        AcceptLightningEvent() |> Async.RunSynchronously
+    | Operations.CloseChannel ->
+        CloseChannel() |> Async.RunSynchronously
     | _ -> failwith "Unreachable"
 
 let rec GetAccountOfSameCurrency currency =

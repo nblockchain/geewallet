@@ -230,21 +230,48 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 Infrastructure.ReportWarningMessage msg
             return Error <| (NodeReceiveMonoHopPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
         | Ok activeChannel ->
-            let! paymentRes = activeChannel.RecvMonoHopUnidirectionalPayment()
-            match paymentRes with
-            | Error recvMonoHopPaymentError ->
-                if recvMonoHopPaymentError.PossibleBug then
-                    let msg =
-                        SPrintF2
-                            "error accepting monohop payment on channel %s: %s"
-                            (channelId.ToString())
-                            (recvMonoHopPaymentError :> IErrorMsg).Message
-                    Infrastructure.ReportWarningMessage msg
-                return Error <| (NodeReceiveMonoHopPaymentError.ReceivePayment recvMonoHopPaymentError :> IErrorMsg)
-            | Ok activeChannelAfterPaymentReceived ->
-                (activeChannelAfterPaymentReceived :> IDisposable).Dispose()
-                return Ok ()
+            let connectedChannel = activeChannel.ConnectedChannel
+
+            Infrastructure.LogDebug "Waiting for lightning message"
+            let! recvChannelMsgRes = connectedChannel.PeerNode.RecvChannelMsg()
+            match recvChannelMsgRes with
+            | Error err ->
+                return failwith <| SPrintF1 "Received error while waiting for lightning message: %s" (err :> IErrorMsg).Message
+            | Ok (_, channelMsg) ->
+                match channelMsg with
+                | :? DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
+                    let! paymentRes = activeChannel.RecvMonoHopUnidirectionalPayment monoHopUnidirectionalPaymentMsg
+                    match paymentRes with
+                    | Error recvMonoHopPaymentError ->
+                        if recvMonoHopPaymentError.PossibleBug then
+                            let msg =
+                                SPrintF2
+                                    "error accepting monohop payment on channel %s: %s"
+                                    (channelId.ToString())
+                                    (recvMonoHopPaymentError :> IErrorMsg).Message
+                            Infrastructure.ReportWarningMessage msg
+                        return Error <| (NodeReceiveMonoHopPaymentError.ReceivePayment recvMonoHopPaymentError :> IErrorMsg)
+                    | Ok activeChannelAfterPaymentReceived ->
+                        (activeChannelAfterPaymentReceived :> IDisposable).Dispose()
+                        return Ok ()
+                | msg ->
+                    return failwith <| SPrintF1 "Unexpected msg while waiting for monohop payment message: %As" msg
     }
+
+    member internal self.InitiateCloseChannel (channelId: ChannelIdentifier): Async<Result<unit, IErrorMsg>> =
+        async {
+            let! connectRes = ActiveChannel.ConnectReestablish self.ChannelStore self.SecretKey channelId
+            match connectRes with
+            | Error connectError ->
+                return failwith <| SPrintF1 "Error reestablishing channel: %s" (connectError :> IErrorMsg).Message
+            | Ok activeChannel ->
+                let! closeRes = ClosedChannel.InitiateCloseChannel activeChannel.ConnectedChannel
+                match closeRes with
+                | Error closeError ->
+                    return failwith <| SPrintF1 "Error closing channel: %s" (closeError :> IErrorMsg).Message
+                | Ok _ ->
+                    return Ok ()
+        }
 
     member internal self.LockChannelFunding (channelId: ChannelIdentifier)
                                                 : Async<Result<unit, IErrorMsg>> =

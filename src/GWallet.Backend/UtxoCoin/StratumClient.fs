@@ -80,6 +80,7 @@ type VerboseResult =
     {
         Locktime: uint32
         Confirmations: uint32
+        Hex: string
     }
 
 type BlockchainTransactionGetVerboseResult =
