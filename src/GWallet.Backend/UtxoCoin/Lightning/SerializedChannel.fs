@@ -94,7 +94,10 @@ type SerializedChannel =
     static member LightningSerializerSettings: JsonSerializerSettings =
         let settings = JsonMarshalling.SerializerSettings
         let commitmentsConverter = CommitmentsJsonConverter()
+        let psbtConverter = NBitcoin.JsonConverters.PSBTJsonConverter NBitcoin.Network.Main
+
         settings.Converters.Add commitmentsConverter
+        settings.Converters.Add psbtConverter
         settings
 
 
