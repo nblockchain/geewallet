@@ -362,8 +362,9 @@ module Account =
         if (transCheckResultAfterSigning <> TransactionCheckResult.Success) then
             failwith <| SPrintF1 "Transaction check failed after signing with %A" transCheckResultAfterSigning
 
-        if not (finalTransactionBuilder.Verify finalTransaction) then
-            failwith "Something went wrong when verifying transaction"
+        let success, errors = finalTransactionBuilder.Verify finalTransaction
+        if not success then
+            failwith <| SPrintF1 "Something went wrong when verifying transaction: %A" errors
         finalTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
