@@ -603,6 +603,33 @@ type LN() =
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
+        let! closeChannelRes = Lightning.Network.CloseChannel node channelId
+        match closeChannelRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "error when closing channel: %s" err.Message)
+
+        match (channelStore.ChannelInfo channelId).Status with
+        | ChannelStatus.Closing -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
+
+        let rec waitForClosingTxConfirmed attempt = async {
+            Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
+            if attempt = 10 then
+                return Error "Closing tx not confirmed after maximum attempts"
+            else
+                let! txIsConfirmed = Lightning.Network.CheckClosingFinished (channelStore.ChannelInfo channelId)
+                if txIsConfirmed then
+                    return Ok ()
+                else
+                    return! waitForClosingTxConfirmed (attempt + 1)
+                    
+        }
+
+        let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
+        match closingTxConfirmedRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
+
         return ()
     }
 
