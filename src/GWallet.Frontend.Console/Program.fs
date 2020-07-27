@@ -154,8 +154,12 @@ let AcceptLightningEvent(): Async<unit> = async {
         match receiveLightningEventRes with
         | Error nodeReceiveLightningEventError ->
             Console.WriteLine(sprintf "Error receiving lightning event: %s" nodeReceiveLightningEventError.Message)
-        | Ok () ->
-            Console.WriteLine "Lightning event received."
+        | Ok msg ->
+            match msg with
+            | IncomingChannelEvent.MonoHopUnidirectionalPayment ->
+                Console.WriteLine "Payment received."
+            | IncomingChannelEvent.Shutdown ->
+                Console.WriteLine "Channel closed."
         UserInteraction.PressAnyKeyToContinue()
 }
 

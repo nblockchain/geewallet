@@ -82,6 +82,10 @@ type IChannelToBeOpened =
     abstract member ConfirmationsRequired: uint32 with get
     abstract member ChannelId: ChannelIdentifier with get
 
+type IncomingChannelEvent =
+    | MonoHopUnidirectionalPayment
+    | Shutdown
+
 type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) =
     member internal self.OutgoingUnfundedChannel = outgoingUnfundedChannel
     member public self.Accept (): Async<Result<TransactionIdentifier, IErrorMsg>> = async {
@@ -371,7 +375,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
         }
 
     member internal self.ReceiveLightningEvent (channelId: ChannelIdentifier)
-                                            : Async<Result<unit, IErrorMsg>> =
+                                            : Async<Result<IncomingChannelEvent, IErrorMsg>> =
         async {
             let! activeChannelRes = ActiveChannel.AcceptReestablish self.ChannelStore self.TransportListener channelId
             match activeChannelRes with
@@ -394,9 +398,15 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 | Ok (_, channelMsg) ->
                     match channelMsg with
                     | :? DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
-                        return! self.HandleMonoHopUnidirectionalPaymentMsg activeChannel channelId monoHopUnidirectionalPaymentMsg
+                        let! res = self.HandleMonoHopUnidirectionalPaymentMsg activeChannel channelId monoHopUnidirectionalPaymentMsg
+                        match res with
+                        | Error err -> return Error err
+                        | Ok _ -> return Ok IncomingChannelEvent.MonoHopUnidirectionalPayment
                     | :? DotNetLightning.Serialize.Msgs.ShutdownMsg as shutdownMsg ->
-                        return! self.HandleShutdownMsg activeChannel shutdownMsg
+                        let! res = self.HandleShutdownMsg activeChannel shutdownMsg
+                        match res with
+                        | Error err -> return Error err
+                        | Ok _ -> return Ok IncomingChannelEvent.Shutdown
                     | msg -> return failwith <| SPrintF1 "Received invalid msg while waiting for lightning event: %A" msg
         }
 
