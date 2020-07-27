@@ -150,13 +150,12 @@ let AcceptLightningEvent(): Async<unit> = async {
         let password = UserInteraction.AskPassword false
         use lightningNode = Lightning.Connection.Start channelStore password bindAddress
 
-        let! receivePaymentRes =
-            Lightning.Network.ReceiveMonoHopPayment lightningNode channelId
-        match receivePaymentRes with
-        | Error nodeReceiveMonoHopPaymentError ->
-            Console.WriteLine(sprintf "Error receiving monohop payment: %s" nodeReceiveMonoHopPaymentError.Message)
+        let! receiveLightningEventRes = Lightning.Network.ReceiveLightningEvent lightningNode channelId
+        match receiveLightningEventRes with
+        | Error nodeReceiveLightningEventError ->
+            Console.WriteLine(sprintf "Error receiving lightning event: %s" nodeReceiveLightningEventError.Message)
         | Ok () ->
-            Console.WriteLine "Payment received."
+            Console.WriteLine "Lightning event received."
         UserInteraction.PressAnyKeyToContinue()
 }
 

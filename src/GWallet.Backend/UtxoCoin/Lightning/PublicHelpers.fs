@@ -23,6 +23,7 @@ module public Network =
     let public OpenChannel (lightningNode: Node) = lightningNode.OpenChannel
     let public AcceptChannel (lightningNode: Node) = lightningNode.AcceptChannel ()
     let public CloseChannel (lightningNode: Node) = lightningNode.InitiateCloseChannel
+    let public AcceptCloseChannel (lightningNode: Node) = lightningNode.AcceptCloseChannel
     let public CheckClosingFinished (channel: ChannelInfo): Async<bool> =
         async {
             let! resCheck = ClosedChannel.CheckClosingFinished channel.FundingTransaction.DnlTxId
@@ -34,5 +35,6 @@ module public Network =
         }
     let public SendMonoHopPayment (lightningNode: Node) = lightningNode.SendMonoHopPayment
     let public ReceiveMonoHopPayment (lightningNode: Node) = lightningNode.ReceiveMonoHopPayment
+    let public ReceiveLightningEvent (lightningNode: Node) = lightningNode.ReceiveLightningEvent
     let public LockChannelFunding (lightningNode: Node) = lightningNode.LockChannelFunding
     let public EndPoint (lightningNode: Node) = lightningNode.EndPoint
