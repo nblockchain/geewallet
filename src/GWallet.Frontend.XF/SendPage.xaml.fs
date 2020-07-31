@@ -151,7 +151,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
                 let address,maybeAmount =
                     match account.Currency with
-                    | Currency.BTC -> UtxoCoin.Account.ParseAddressOrUrl result.Text
+                    | Currency.BTC -> UtxoCoin.Account.ParseAddressOrUrl result.Text Currency.BTC
                     | _ -> result.Text,None
 
                 destinationAddressEntry.Text <- address

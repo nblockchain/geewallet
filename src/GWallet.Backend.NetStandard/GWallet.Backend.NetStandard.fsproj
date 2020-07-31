@@ -120,7 +120,7 @@
     <EmbeddedResource Include="..\GWallet.Backend\servers.json">
       <Link>servers.json</Link>
     </EmbeddedResource>
-    <PackageReference Include="NBitcoin" Version="4.2.8" />
+    <PackageReference Include="NBitcoin" Version="5.0.13" />
     <PackageReference Include="FSharp.Data" Version="3.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.5.2" />
