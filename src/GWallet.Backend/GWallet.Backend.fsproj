@@ -296,7 +296,7 @@
       <HintPath>..\..\packages\Nethereum.0.92.0-date20200610-0232.git-686865c\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack">
-      <HintPath>..\..\packages\HtmlAgilityPack.1.11.9\lib\Net45\HtmlAgilityPack.dll</HintPath>
+      <HintPath>..\..\packages\HtmlAgilityPack.1.11.24\lib\Net45\HtmlAgilityPack.dll</HintPath>
     </Reference>
 
     <!-- only needed for old Mono version (v.4.6.x) to compile, dependency of DotNetEssentials -->
