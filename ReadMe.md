@@ -16,4 +16,3 @@ geewallet is a minimalistic and pragmatist crossplatform lightweight opensource 
 
 Note: this is a deprecated version of the "ReadMe" file, head here to read the updated version from the frontend branch:
 https://gitlab.gnome.org/World/geewallet/blob/frontend/ReadMe.md
-
