@@ -87,7 +87,7 @@
       <HintPath>..\..\packages\NBitcoin.5.0.13\lib\netstandard2.1\NBitcoin.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin.Altcoins">
-      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.3\lib\netstandard2.0\NBitcoin.Altcoins.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.Altcoins.2.0.5.1\lib\netstandard2.0\NBitcoin.Altcoins.dll</HintPath>
     </Reference>
     <Reference Include="System.Numerics" />
     <Reference Include="Xamarin.Forms.Core">

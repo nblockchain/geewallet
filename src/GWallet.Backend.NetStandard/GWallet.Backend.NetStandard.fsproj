@@ -127,7 +127,7 @@
     <PackageReference Include="SharpRaven" Version="2.4.0" />
     <PackageReference Include="System.Buffers" Version="4.5.0" />
     <PackageReference Include="System.IO.Pipelines" Version="4.5.3" />
-    <PackageReference Include="NBitcoin.Altcoins" Version="1.0.3" />
+    <PackageReference Include="NBitcoin.Altcoins" Version="2.0.5.1" />
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Nethereum" Version="0.93.0-date20200803-1151.git-eaea926" />
     <PackageReference Include="JsonRpcSharp" Version="0.93.0-date20200803-1106.git-5cb1461" />

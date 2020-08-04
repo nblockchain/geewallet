@@ -202,7 +202,7 @@
       <HintPath>..\..\packages\NBitcoin.5.0.13\lib\netstandard2.1\NBitcoin.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin.Altcoins">
-      <HintPath>..\..\packages\NBitcoin.Altcoins.1.0.3\lib\netstandard2.0\NBitcoin.Altcoins.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.Altcoins.2.0.5.1\lib\netstandard2.0\NBitcoin.Altcoins.dll</HintPath>
     </Reference>
     <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
       <Project>{85236682-6463-4209-B66C-E0643EF12B46}</Project>
