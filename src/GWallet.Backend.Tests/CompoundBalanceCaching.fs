@@ -9,6 +9,7 @@ open GWallet.Backend
 
 [<TestFixture>]
 type CompoundBalanceCaching() =
+    do Config.SetRunModeTesting()
 
     let high_expiration_span_because_this_test_doesnt_involve_timing = TimeSpan.FromDays 100.0
     let zero_fee_because_this_test_does_not_involve_fees = 0.0m

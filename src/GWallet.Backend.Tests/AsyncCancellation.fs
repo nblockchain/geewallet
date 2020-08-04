@@ -11,6 +11,7 @@ open NUnit.Framework
 
 [<TestFixture>]
 type FaultTolerantParallelClientAsyncCancellation() =
+    do Config.SetRunModeTesting()
 
     let dummy_connection_type = { Encrypted = false; Protocol = Http }
     let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId job =
