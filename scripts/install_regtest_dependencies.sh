@@ -12,7 +12,7 @@ export ALLOW_ROOT=1
 # Install bitcoin core
 apt install -y curl tar gzip
 curl -OJL https://bitcoin.org/bin/bitcoin-core-0.20.0/bitcoin-0.20.0-x86_64-linux-gnu.tar.gz
-tar -C /usr/local --strip-components 1 -xzvf bitcoin-0.20.0-x86_64-linux-gnu.tar.gz
+tar -C /usr/local --strip-components 1 -xzf bitcoin-0.20.0-x86_64-linux-gnu.tar.gz
 
 # Install electrumx
 apt install -y curl unzip python3-pip
@@ -23,7 +23,7 @@ pip3 install ./electrumx-1.15.0
 # Install lnd
 apt install -y curl tar gzip unzip make git
 curl -OJL https://golang.org/dl/go1.14.4.linux-amd64.tar.gz
-tar -C /usr/local -xzvf go1.14.4.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.14.4.linux-amd64.tar.gz
 git clone https://github.com/lightningnetwork/lnd
 pushd lnd
 git checkout v0.10.3-beta
