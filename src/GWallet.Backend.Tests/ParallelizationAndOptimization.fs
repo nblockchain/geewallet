@@ -13,6 +13,7 @@ exception SomeExceptionDuringParallelWork
 
 [<TestFixture>]
 type ParallelizationAndOptimization() =
+    do Config.SetRunModeTesting()
 
     let dummy_connection_type = { Encrypted = false; Protocol = Http }
     let serverWithNoHistoryInfoBecauseIrrelevantToThisTest serverId job =

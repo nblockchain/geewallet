@@ -16,6 +16,7 @@ type SomeInnerException() =
 
 [<TestFixture>]
 type FaultTolerance() =
+    do Config.SetRunModeTesting()
 
     let one_consistent_result_because_this_test_doesnt_test_consistency = 1u
     let not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1u

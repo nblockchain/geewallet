@@ -11,6 +11,7 @@ open GWallet.Backend.UtxoCoin
 // TODO: move this to its own file
 [<TestFixture>]
 type ElectrumServerUnitTests() =
+    do Config.SetRunModeTesting()
 
     [<Test>]
     member __.``filters electrum BTC servers``() =
@@ -37,6 +38,7 @@ type ElectrumServerUnitTests() =
 [<TestFixture>]
 [<Ignore ("Seems we have general issues reaching electrum servers these days, probably related to DDOS attack on them")>]
 type ElectrumIntegrationTests() =
+    do Config.SetRunModeTesting()
 
     // probably a satoshi address because it was used in blockheight 2 and is unspent yet
     let SCRIPTHASH_OF_SATOSHI_ADDRESS =
