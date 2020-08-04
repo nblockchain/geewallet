@@ -612,6 +612,9 @@ type LN() =
         | ChannelStatus.Closing -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
 
+        // Mine 10 blocks to make sure closing tx is confirmed
+        bitcoind.GenerateBlocks (BlockHeightOffset32 (uint32 10)) geewalletAddress
+        
         let rec waitForClosingTxConfirmed attempt = async {
             Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
             if attempt = 10 then
@@ -621,6 +624,7 @@ type LN() =
                 if txIsConfirmed then
                     return Ok ()
                 else
+                    do! Async.Sleep 1000
                     return! waitForClosingTxConfirmed (attempt + 1)
                     
         }
