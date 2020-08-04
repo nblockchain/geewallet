@@ -130,7 +130,7 @@ type PeerErrorMessage =
                     Hint: You can try from a new node identity."
                 | 0x02uy ->
                     "Node is not synced to blockchain." +
-                    if Config.BitcoinNet = Network.RegTest then
+                    if Config.BitcoinNet() = Network.RegTest then
                         "\nHint: Try mining some blocks before opening."
                     else
                         String.Empty
