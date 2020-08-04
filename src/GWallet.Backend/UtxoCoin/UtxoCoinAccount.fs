@@ -59,7 +59,7 @@ module Account =
         if not (currency.IsUtxo()) then
             failwith <| SPrintF1 "Assertion failed: currency %A should be UTXO-type" currency
         match currency with
-        | BTC -> Config.BitcoinNet
+        | BTC -> Config.BitcoinNet()
         | LTC -> Config.LitecoinNet
         | _ -> failwith <| SPrintF1 "Assertion failed: UTXO currency %A not supported?" currency
 
