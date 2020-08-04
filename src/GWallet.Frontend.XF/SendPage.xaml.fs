@@ -459,10 +459,14 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             // FIXME: marking as red should not even mark button as disabled but give the reason in Alert?
             match Decimal.TryParse(amountToSend.Text) with
             | false,_ ->
-                amountToSend.TextColor <- Color.Red
-                sendOrSignButton.IsEnabled <- false
-                equivalentAmount.Text <- String.Empty
-                async { return false }
+                async {
+                    Device.BeginInvokeOnMainThread(fun _ ->
+                        amountToSend.TextColor <- Color.Red
+                        sendOrSignButton.IsEnabled <- false
+                        equivalentAmount.Text <- String.Empty
+                    )
+                    return false
+                }
             | true,amount ->
                 async {
                     let! usdRate = Async.AwaitTask usdRateTask
@@ -484,12 +488,16 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         | _ -> lastCachedBalance
 
                     if (amount <= 0.0m || amount > allBalanceInSelectedCurrency) then
-                        amountToSend.TextColor <- Color.Red
-                        if (amount > 0.0m) then
-                            equivalentAmount.Text <- "(Not enough funds)"
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            amountToSend.TextColor <- Color.Red
+                            if amount > 0.0m then
+                                equivalentAmount.Text <- "(Not enough funds)"
+                        )
                         return false
                     else
-                        amountToSend.TextColor <- Color.Default
+                        Device.BeginInvokeOnMainThread(fun _ ->
+                            amountToSend.TextColor <- Color.Default
+                        )
 
                         match usdRate with
                         | NotFresh NotAvailable ->
@@ -504,7 +512,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                     Formatting.DecimalAmountRounding CurrencyType.Fiat (rate * amount),
                                         "USD"
                             let usdAmount = SPrintF2 "~ %s %s" eqAmount otherCurrency
-                            equivalentAmount.Text <- usdAmount
+                            Device.BeginInvokeOnMainThread(fun _ ->
+                                equivalentAmount.Text <- usdAmount
+                            )
                             return true
                 }
 
