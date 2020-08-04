@@ -131,7 +131,7 @@ type ChannelStore(account: NormalUtxoAccount) =
         let json = File.ReadAllText fileName
         Marshalling.DeserializeCustom<SerializedChannel> (
             json,
-            SerializedChannel.LightningSerializerSettings
+            SerializedChannel.LightningSerializerSettings self.Currency
         )
 
     member internal self.SaveChannel (serializedChannel: SerializedChannel) =
@@ -139,7 +139,7 @@ type ChannelStore(account: NormalUtxoAccount) =
         let json =
             Marshalling.SerializeCustom(
                 serializedChannel,
-                SerializedChannel.LightningSerializerSettings
+                SerializedChannel.LightningSerializerSettings self.Currency
             )
         if not self.ChannelDir.Exists then
             self.ChannelDir.Create()
