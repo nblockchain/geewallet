@@ -139,7 +139,7 @@ module ElectrumClient =
 
     let EstimateFee (numBlocksTarget: int) (stratumServer: Async<StratumClient>): Async<decimal> = async {
         if Config.BitcoinNet() = NBitcoin.Network.RegTest then
-            return 0.0001m
+            return 0.0005m
         else
             let! stratumClient = stratumServer
             let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
