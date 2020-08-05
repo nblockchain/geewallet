@@ -313,8 +313,18 @@ module Account =
             avg
 
         let estimateFeeJob = ElectrumClient.EstimateFee CONFIRMATION_BLOCK_TARGET
-        let! btcPerKiloByteForFastTrans =
+        let! queriedFee =
             Server.Query account.Currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob None
+
+        let btcPerKiloByteForFastTrans =
+            // Our wallet has issues if the feerate is too close to zero.
+            // Make sure the feerate isn't zero by raising it above
+            // some arbitrary very low limit. This limit is lower than
+            // the actual feerate has been for years, so this is not
+            // in danger of wasting funds of fees. The block is most
+            // likely to be triggered on RegTest, where fees of course
+            // are arbitrary anyway.
+            Math.Max(0.00001m, queriedFee)
 
         let feeRate =
             try

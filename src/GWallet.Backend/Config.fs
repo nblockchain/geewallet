@@ -14,7 +14,11 @@ module Config =
 
     // we might want to test with TestNet at some point, so this below is the key:
     // (but we would need to get a seed list of testnet electrum servers, and testnet(/ropsten/rinkeby?), first...)
-    let BitcoinNet = NBitcoin.Network.Main
+#if DEBUG
+    let mutable BitcoinNet = NBitcoin.Network.Main
+#else
+    let         BitcoinNet = NBitcoin.Network.Main
+#endif
     let LitecoinNet = NBitcoin.Altcoins.Litecoin.Instance.Mainnet
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
     let EthNet = Nethereum.Signer.Chain.MainNet
@@ -32,6 +36,12 @@ module Config =
     // NOTE: enabling this might look confusing because it only works for non-cache
     //       balances, so you might find discrepancies (e.g. the donut-chart-view)
     let internal NoNetworkBalanceForDebuggingPurposes = false
+
+    let OneIfRegTestElse(elseValue: uint32) =
+        if BitcoinNet = NBitcoin.Network.RegTest then
+            1u
+        else
+            elseValue
 
     let IsWindowsPlatform() =
         Path.DirectorySeparatorChar = '\\'
