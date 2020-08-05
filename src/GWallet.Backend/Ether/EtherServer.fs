@@ -213,7 +213,7 @@ module Server =
         | None ->
             ()
 
-    // this could be a Xamarin.Android bug (see https://gitlab.com/knocte/geewallet/issues/119)
+    // this could be a Xamarin.Android bug (see https://gitlab.com/nblockchain/geewallet/issues/119)
     let MaybeRethrowObjectDisposedException (ex: Exception): unit =
         let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
         match maybeRpcUnknownEx with

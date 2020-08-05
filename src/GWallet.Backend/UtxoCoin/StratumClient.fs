@@ -76,16 +76,16 @@ type ErrorResult =
     }
 
 type RpcErrorCode =
-    // see https://gitlab.com/knocte/geewallet/issues/110
+    // see https://gitlab.com/nblockchain/geewallet/issues/110
     | ExcessiveResourceUsage = -101
 
-    // see https://gitlab.com/knocte/geewallet/issues/117
+    // see https://gitlab.com/nblockchain/geewallet/issues/117
     | ServerBusy = -102
 
     // see git commit msg of 0aba03a8291daa526fde888d0c02a789abe411f2
     | InternalError = -32603
 
-    // see https://gitlab.com/knocte/geewallet/issues/112
+    // see https://gitlab.com/nblockchain/geewallet/issues/112
     | UnknownMethod = -32601
 
 type public ElectrumServerReturningErrorInJsonResponseException(message: string, code: int) =
