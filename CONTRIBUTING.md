@@ -148,7 +148,7 @@ Area/Sub-area: short title of what is changed (50 chars max)
 Explanation of **why** (and maybe **how** as well, in case there's a part of
 the change that is not self-explanatory). Don't hesitate to be very verbose
 here, adding any references you may need, in this way[1], or even @nicknames of
-people that helped. Manually crop your lines to not be longer than 80 chars.
+people that helped. Manually crop your lines to not be longer than 64 chars.
 
 Fixes https://gitlab.com/nblockchain/geewallet/issues/45
 
