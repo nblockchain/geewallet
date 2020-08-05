@@ -15,6 +15,7 @@ open Process
 let UNIX_NAME = "gwallet"
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"
 let BACKEND = "GWallet.Backend"
+let nunitVersion = "2.7.1"
 
 type BinaryConfig =
     | Debug
@@ -182,12 +183,77 @@ let RunFrontend (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
     proc.WaitForExit()
     proc
 
-let RunTests(suite: string) =
-    let testAssemblyName = "GWallet.Backend.Tests." + suite
+let GetTestAssembly suite =
+    let testAssemblyName = sprintf "GWallet.Backend.Tests.%s" suite
     let testAssembly = Path.Combine(rootDir.FullName, "src", testAssemblyName, "bin",
                                     testAssemblyName + ".dll") |> FileInfo
     if not testAssembly.Exists then
         failwithf "File not found: %s" testAssembly.FullName
+
+    testAssembly
+
+let OurWalletToOurWalletTest() =
+    let testAssembly = GetTestAssembly "EndToEnd"
+
+    let funderRunnerCommand =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Linux ->
+            let nunitCommand = "nunit-console"
+            MakeCheckCommand nunitCommand
+
+            let arguments = "-include GeewalletToGeewalletFunder " + testAssembly.FullName
+
+            { Command = nunitCommand; Arguments = arguments }
+        | _ ->
+            let arguments = "/include:GeewalletToGeewalletFunder " + testAssembly.FullName
+            {
+                Command = Path.Combine(nugetPackagesSubDirName,
+                                       sprintf "NUnit.Runners.%s" nunitVersion,
+                                       "tools",
+                                       "nunit-console.exe")
+                Arguments = arguments
+            }
+
+    let fundeeRunnerCommand =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Linux ->
+            let nunitCommand = "nunit-console"
+            MakeCheckCommand nunitCommand
+
+            let arguments = "-include GeewalletToGeewalletFundee " + testAssembly.FullName
+
+            { Command = nunitCommand; Arguments = arguments }
+        | _ ->
+            let arguments = "/include:GeewalletToGeewalletFundee " + testAssembly.FullName
+            {
+                Command = Path.Combine(nugetPackagesSubDirName,
+                                       sprintf "NUnit.Runners.%s" nunitVersion,
+                                       "tools",
+                                       "nunit-console.exe")
+                Arguments = arguments
+            }
+
+    let funderRun = async {
+        let res = Process.Execute(funderRunnerCommand, Echo.All)
+        if res.ExitCode <> 0 then
+            Console.Error.WriteLine "Funder test failed"
+            Environment.Exit 1
+    }
+
+    let fundeeRun = async {
+        let res = Process.Execute(fundeeRunnerCommand, Echo.All)
+        if res.ExitCode <> 0 then
+            Console.Error.WriteLine "Fundee test failed"
+            Environment.Exit 1
+    }
+
+    [funderRun; fundeeRun]
+    |> Async.Parallel
+    |> Async.RunSynchronously
+    |> ignore
+
+let RunTests(suite: string) =
+    let testAssembly = GetTestAssembly suite
 
     let runnerCommand =
         match Misc.GuessPlatform() with
@@ -195,9 +261,14 @@ let RunTests(suite: string) =
             let nunitCommand = "nunit-console"
             MakeCheckCommand nunitCommand
 
-            { Command = nunitCommand; Arguments = testAssembly.FullName }
+            let arguments = 
+                if suite = "EndToEnd" then
+                    "-exclude GeewalletToGeewalletFunder,GeewalletToGeewalletFundee " + testAssembly.FullName
+                else
+                    testAssembly.FullName
+
+            { Command = nunitCommand; Arguments = arguments }
         | _ ->
-            let nunitVersion = "2.7.1"
             if not nugetExe.Exists then
                 MakeAll None |> ignore
 
@@ -207,6 +278,13 @@ let RunTests(suite: string) =
                     Arguments = sprintf "install NUnit.Runners -Version %s -OutputDirectory %s"
                                         nunitVersion nugetPackagesSubDirName
                 }
+
+            let arguments = 
+                if suite = "EndToEnd" then
+                    "/exclude:GeewalletToGeewalletFunder,GeewalletToGeewalletFundee " + testAssembly.FullName
+                else
+                    testAssembly.FullName
+
             Process.SafeExecute(nugetInstallCommand, Echo.All)
                 |> ignore
 
@@ -215,7 +293,7 @@ let RunTests(suite: string) =
                                        sprintf "NUnit.Runners.%s" nunitVersion,
                                        "tools",
                                        "nunit-console.exe")
-                Arguments = testAssembly.FullName
+                Arguments = arguments
             }
 
     let nunitRun = Process.Execute(runnerCommand,
@@ -224,6 +302,8 @@ let RunTests(suite: string) =
         Console.Error.WriteLine "Tests failed"
         Environment.Exit 1
 
+    if suite = "EndToEnd" then
+        OurWalletToOurWalletTest()
 
 let maybeTarget = GatherTarget (Misc.FsxArguments(), None)
 match maybeTarget with
