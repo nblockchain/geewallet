@@ -43,8 +43,8 @@ module Settings =
         {
             NodeId = remoteNodeId
             ChannelPubKeys = channelPubKeys.ToChannelPubKeys()
-            DustLimitSatoshis = Money 5UL
-            MaxHTLCValueInFlightMSat = LNMoney 5000L
+            DustLimitSatoshis = Money 200UL
+            MaxHTLCValueInFlightMSat = LNMoney 10000L
             ChannelReserveSatoshis = funding / 100L
             HTLCMinimumMSat = LNMoney 1000L
             ToSelfDelay = BlockHeightOffset16 6us
