@@ -85,6 +85,7 @@ let FindOffendingPrintfUsage () =
             "scripts{0}" +
             "src{1}GWallet.Frontend.Console{0}" +
             "src{1}GWallet.Backend.Tests{0}" +
+            "src{1}GWallet.Backend.Tests.End2End{0}" +
             "src{1}GWallet.Backend{1}FSharpUtil.fs",
             Path.PathSeparator,
             Path.DirectorySeparatorChar
@@ -104,6 +105,9 @@ let FindOffendingPrintfUsage () =
         Environment.Exit 1
 
 let SanityCheckNugetPackages () =
+
+    let notBlacklist (projPath: string): bool =
+        not <| projPath.Contains "End2End"
 
     let notSubmodule (dir: DirectoryInfo): bool =
         let getSubmoduleDirsForThisRepo (): seq<DirectoryInfo> =
@@ -130,7 +134,7 @@ let SanityCheckNugetPackages () =
             let parsedSolution = SolutionFile.Parse sol.FullName
             seq {
                 for projPath in (parsedSolution.ProjectsInOrder.Select(fun proj -> normalizeDirSeparatorsPaths proj.AbsolutePath).ToList()) do
-                    if projPath.ToLower().EndsWith ".fsproj" then
+                    if projPath.ToLower().EndsWith ".fsproj" && (notBlacklist projPath) then
                         for file in ((FileInfo projPath).Directory).EnumerateFiles () do
                             if file.Name.ToLower () = "packages.config" then
                                 yield file
