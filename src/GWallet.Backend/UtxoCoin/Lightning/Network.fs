@@ -327,6 +327,49 @@ type internal TransportStream =
             return! TransportStream.AcceptHandshake client transportListener.NodeSecret
     }
 
+    static member internal ConnectAcceptFromTransportListener (transportListener: TransportListener)
+                                                              (peerNodeId: NodeId)
+                                                              (peerId: PeerId)
+                                                                  : Async<Result<TransportStream, HandshakeError>> = async {
+        let localEndPoint = transportListener.LocalIPEndPoint
+        let remoteEndPoint = peerId.Value :?> IPEndPoint
+        let rec connect (backoffMillis: int) = async {
+            let! connectRes = TransportStream.TcpConnect localEndPoint remoteEndPoint
+            match connectRes with
+            | Error errors ->
+                let message =
+                    let messages = Seq.map (fun (err: SocketException) -> err.Message) errors
+                    String.concat "; " messages
+                Infrastructure.LogDebug <| SPrintF1 "connect errors: %s" message
+                Infrastructure.LogDebug <| SPrintF1 "retrying in %ims" backoffMillis
+                do! Async.Sleep backoffMillis
+                return! connect (backoffMillis * 2)
+            | Ok client -> return Choice1Of2 client
+        }
+        let rec accept (backoffMillis: int) = async {
+            let! acceptRes = TransportStream.AcceptFromTransportListener transportListener
+            match acceptRes with
+            | Error error ->
+                Infrastructure.LogDebug <| SPrintF1 "accept error: %s" (error :> IErrorMsg).Message
+                Infrastructure.LogDebug <| SPrintF1 "retrying in %ims" backoffMillis
+                do! Async.Sleep backoffMillis
+                return! accept (backoffMillis * 2)
+            | Ok transportStream ->
+                if transportStream.RemoteNodeId = peerNodeId then
+                    return Choice2Of2 transportStream
+                else
+                    (transportStream :> IDisposable).Dispose()
+                    return! accept 1000
+        }
+
+        let! res = AsyncExtensions.WhenAny [ connect 1000; accept 1000 ]
+        match res with
+        | Choice1Of2 client ->
+            return! TransportStream.ConnectHandshake client transportListener.NodeSecret peerNodeId
+        | Choice2Of2 transportStream ->
+            return Ok transportStream
+    }
+
     member internal self.RemoteNodeId
         with get(): NodeId =
             match self.Peer.TheirNodeId with
