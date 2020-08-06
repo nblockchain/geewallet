@@ -279,15 +279,7 @@ module UserInteraction =
 
     let private GetAccountBalances (accounts: seq<IAccount>)
                                        : Async<array<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>> =
-        let bitcoinOnlyFilterOnRegTest: seq<IAccount> -> seq<IAccount> =
-            if Config.BitcoinNet = NBitcoin.Network.RegTest then
-                Seq.filter (fun x -> x.Currency = BTC)
-            else
-                id
-        let accountAndBalancesToBeQueried =
-            accounts
-            |> bitcoinOnlyFilterOnRegTest
-            |> Seq.map GetAccountBalanceInner
+        let accountAndBalancesToBeQueried = accounts |> Seq.map GetAccountBalanceInner
         Async.Parallel accountAndBalancesToBeQueried
 
     let DisplayAccountStatuses(whichAccount: WhichAccount): Async<seq<string>> =
