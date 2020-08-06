@@ -192,18 +192,22 @@ type internal TransportStream =
         }
         read buf 0
 
-    static member private TcpConnect (localEndPoint: IPEndPoint)
+    static member private TcpConnect (localEndPointOpt: Option<IPEndPoint>)
                                      (remoteEndPoint: IPEndPoint)
                                          : Async<Result<TcpClient, seq<SocketException>>> = async {
         let client = new TcpClient (remoteEndPoint.AddressFamily)
-        client.Client.ExclusiveAddressUse <- false
-        client.Client.SetSocketOption(
-            SocketOptionLevel.Socket,
-            SocketOptionName.ReuseAddress,
-            true
-        )
-        client.Client.Bind(localEndPoint)
-        Console.WriteLine(SPrintF1 "Connecting over TCP to %A..." remoteEndPoint)
+        match localEndPointOpt with
+        | Some localEndPoint ->
+            client.Client.ExclusiveAddressUse <- false
+            client.Client.SetSocketOption(
+                SocketOptionLevel.Socket,
+                SocketOptionName.ReuseAddress,
+                true
+            )
+            client.Client.Bind(localEndPoint)
+            Console.WriteLine(SPrintF2 "Connecting over TCP from %A to %A..." localEndPoint remoteEndPoint)
+        | None ->
+            Console.WriteLine(SPrintF1 "Connecting over TCP to %A..." remoteEndPoint)
         try
             do! client.ConnectAsync(remoteEndPoint.Address, remoteEndPoint.Port) |> Async.AwaitTask
             return Ok client
@@ -311,7 +315,7 @@ type internal TransportStream =
                                                         (peerId: PeerId)
                                                             : Async<Result<TransportStream, HandshakeError>> = async {
         let peerEndpoint = peerId.Value :?> IPEndPoint
-        let! connectRes = TransportStream.TcpConnect transportListener.LocalIPEndPoint peerEndpoint
+        let! connectRes = TransportStream.TcpConnect None peerEndpoint
         match connectRes with
         | Error err -> return Error <| TcpConnect err
         | Ok client ->
@@ -334,7 +338,7 @@ type internal TransportStream =
         let localEndPoint = transportListener.LocalIPEndPoint
         let remoteEndPoint = peerId.Value :?> IPEndPoint
         let rec connect (backoffMillis: int) = async {
-            let! connectRes = TransportStream.TcpConnect localEndPoint remoteEndPoint
+            let! connectRes = TransportStream.TcpConnect (Some localEndPoint) remoteEndPoint
             match connectRes with
             | Error errors ->
                 let message =
