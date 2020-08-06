@@ -104,7 +104,8 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                                          : Async<Result<PendingChannel, IErrorMsg>> = async {
         let peerId = PeerId (nodeEndPoint.IPEndPoint :> EndPoint)
         let nodeId = nodeEndPoint.NodeId.ToString() |> NBitcoin.PubKey |> NodeId
-        let! connectRes = PeerNode.Connect self.SecretKey nodeId peerId
+        let! connectRes =
+            PeerNode.ConnectFromTransportListener self.TransportListener nodeId peerId
         match connectRes with
         | Error connectError ->
             if connectError.PossibleBug then
@@ -176,7 +177,8 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
             let btcAmount = transferAmount.ValueToSend
             let lnAmount = int64(btcAmount * decimal DotNetLightning.Utils.LNMoneyUnit.BTC)
             DotNetLightning.Utils.LNMoney lnAmount
-        let! activeChannelRes = ActiveChannel.ConnectReestablish self.ChannelStore self.SecretKey channelId
+        let! activeChannelRes =
+            ActiveChannel.ConnectReestablish self.ChannelStore self.TransportListener channelId
         match activeChannelRes with
         | Error reconnectActiveChannelError ->
             if reconnectActiveChannelError.PossibleBug then
@@ -240,9 +242,15 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
             let channelInfo = self.ChannelStore.ChannelInfo channelId
             let! activeChannelRes =
                 if channelInfo.IsFunder then
-                    ActiveChannel.ConnectReestablish self.ChannelStore self.SecretKey channelId
+                    ActiveChannel.ConnectReestablish
+                        self.ChannelStore
+                        self.TransportListener
+                        channelId
                 else
-                    ActiveChannel.AcceptReestablish self.ChannelStore self.TransportListener channelId
+                    ActiveChannel.AcceptReestablish
+                        self.ChannelStore
+                        self.TransportListener
+                        channelId
             match activeChannelRes with
             | Error reconnectActiveChannelError ->
                 if reconnectActiveChannelError.PossibleBug then
