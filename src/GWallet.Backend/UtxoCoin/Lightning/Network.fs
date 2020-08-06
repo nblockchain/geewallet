@@ -265,6 +265,47 @@ type internal TransportStream =
                     "DNL returned unexpected events when processing act2: %A" evts
     }
 
+    static member private AcceptHandshake (client: TcpClient)
+                                          (nodeSecret: ExtKey)
+                                              : Async<Result<TransportStream, HandshakeError>> = async {
+        let nodeSecretKey = nodeSecret.PrivateKey
+        let stream = client.GetStream()
+        let peerId = client.Client.RemoteEndPoint |> PeerId
+        let peer = Peer.CreateInbound(peerId, nodeSecretKey)
+        let! act1Res = TransportStream.ReadExactAsync stream TransportStream.bolt08ActOneLength
+        match act1Res with
+        | Error peerDisconnectedError -> return Error <| DisconnectedOnAct1 peerDisconnectedError
+        | Ok act1 ->
+            let peerCmd = ProcessActOne(act1, nodeSecretKey)
+            match Peer.executeCommand peer peerCmd with
+            | Error err -> return Error <| InvalidAct1 err
+            | Ok (ActOneProcessed(act2, _) as evt::[]) ->
+                let peerAfterAct2 = Peer.applyEvent peer evt
+                do! stream.WriteAsync(act2, 0, act2.Length) |> Async.AwaitTask
+                let! act3Res = TransportStream.ReadExactAsync stream TransportStream.bolt08ActThreeLength
+                match act3Res with
+                | Error peerDisconnectedError ->
+                    return Error <| DisconnectedOnAct3 peerDisconnectedError
+                | Ok act3 ->
+                    let peerCmd = ProcessActThree act3
+                    match Peer.executeCommand peerAfterAct2 peerCmd with
+                    | Error err -> return Error <| InvalidAct3 err
+                    | Ok (ActThreeProcessed(_, _) as evt::[]) ->
+                        let peerAfterAct3 = Peer.applyEvent peerAfterAct2 evt
+
+                        return Ok {
+                            NodeSecret = nodeSecret
+                            Peer = peerAfterAct3
+                            Client = client
+                        }
+                    | Ok evts ->
+                        return failwith <| SPrintF1
+                            "DNL returned unexpected events when processing act3: %A" evts
+            | Ok evts ->
+                return failwith <| SPrintF1
+                    "DNL returned unexpected events when processing act1: %A" evts
+    }
+
     static member internal ConnectFromTransportListener (transportListener: TransportListener)
                                                         (peerNodeId: NodeId)
                                                         (peerId: PeerId)
@@ -283,42 +324,7 @@ type internal TransportStream =
         match clientRes with
         | Error socketError -> return Error <| TcpAccept socketError
         | Ok client ->
-            let nodeSecretKey = transportListener.NodeSecret.PrivateKey
-            let stream = client.GetStream()
-            let peerId = client.Client.RemoteEndPoint |> PeerId
-            let peer = Peer.CreateInbound(peerId, nodeSecretKey)
-            let! act1Res = TransportStream.ReadExactAsync stream TransportStream.bolt08ActOneLength
-            match act1Res with
-            | Error peerDisconnectedError -> return Error <| DisconnectedOnAct1 peerDisconnectedError
-            | Ok act1 ->
-                let peerCmd = ProcessActOne(act1, nodeSecretKey)
-                match Peer.executeCommand peer peerCmd with
-                | Error err -> return Error <| InvalidAct1 err
-                | Ok (ActOneProcessed(act2, _) as evt::[]) ->
-                    let peerAfterAct2 = Peer.applyEvent peer evt
-                    do! stream.WriteAsync(act2, 0, act2.Length) |> Async.AwaitTask
-                    let! act3Res = TransportStream.ReadExactAsync stream TransportStream.bolt08ActThreeLength
-                    match act3Res with
-                    | Error peerDisconnectedError ->
-                        return Error <| DisconnectedOnAct3 peerDisconnectedError
-                    | Ok act3 ->
-                        let peerCmd = ProcessActThree act3
-                        match Peer.executeCommand peerAfterAct2 peerCmd with
-                        | Error err -> return Error <| InvalidAct3 err
-                        | Ok (ActThreeProcessed(_, _) as evt::[]) ->
-                            let peerAfterAct3 = Peer.applyEvent peerAfterAct2 evt
-
-                            return Ok {
-                                NodeSecret = transportListener.NodeSecret
-                                Peer = peerAfterAct3
-                                Client = client
-                            }
-                        | Ok evts ->
-                            return failwith <| SPrintF1
-                                "DNL returned unexpected events when processing act3: %A" evts
-                | Ok evts ->
-                    return failwith <| SPrintF1
-                        "DNL returned unexpected events when processing act1: %A" evts
+            return! TransportStream.AcceptHandshake client transportListener.NodeSecret
     }
 
     member internal self.RemoteNodeId
