@@ -555,7 +555,7 @@ module Caching =
             )
 
         member __.GetServers (currency: Currency): seq<ServerDetails> =
-            if Config.BitcoinNet = NBitcoin.Network.RegTest && currency = Currency.BTC then
+            if Config.BitcoinNet() = NBitcoin.Network.RegTest && currency = Currency.BTC then
                 let ipv6Localhost = "::1"
                 seq [
                     {

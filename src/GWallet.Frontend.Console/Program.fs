@@ -604,7 +604,7 @@ let main argv =
         NormalStartWithNoParameters()
     | 1 when argv.[0] = "--regtest-on-localhost" ->
 #if DEBUG
-        Config.BitcoinNet <- NBitcoin.Network.RegTest
+        Config.SetRunModeToTesting()
         NormalStartWithNoParameters()
 #else
         failwith "Regtest was requested on command line but Geewallet can only use regtest when compiled with -p:Configuration=Debug"

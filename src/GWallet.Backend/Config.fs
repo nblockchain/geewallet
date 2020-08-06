@@ -12,13 +12,28 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 // TODO: make internal when tests don't depend on this anymore
 module Config =
 
+    type internal RunMode =
+        | Normal
+        | Testing
+
+#if DEBUG
+    let mutable private runMode: RunMode =
+#else
+    let         private runMode: RunMode =
+#endif
+        RunMode.Normal
+
+#if DEBUG
+    let public SetRunModeToTesting() =
+        runMode <- RunMode.Testing
+#endif
+
     // we might want to test with TestNet at some point, so this below is the key:
     // (but we would need to get a seed list of testnet electrum servers, and testnet(/ropsten/rinkeby?), first...)
-#if DEBUG
-    let mutable BitcoinNet = NBitcoin.Network.Main
-#else
-    let         BitcoinNet = NBitcoin.Network.Main
-#endif
+    let BitcoinNet() =
+        match runMode with
+        | Normal -> NBitcoin.Network.Main
+        | Testing -> NBitcoin.Network.RegTest
     let LitecoinNet = NBitcoin.Altcoins.Litecoin.Instance.Mainnet
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
     let EthNet = Nethereum.Signer.Chain.MainNet
@@ -38,7 +53,7 @@ module Config =
     let internal NoNetworkBalanceForDebuggingPurposes = false
 
     let OneIfRegTestElse(elseValue: uint32) =
-        if BitcoinNet = NBitcoin.Network.RegTest then
+        if BitcoinNet() = NBitcoin.Network.RegTest then
             1u
         else
             elseValue
