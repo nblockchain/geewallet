@@ -97,46 +97,48 @@ type SerializedChannel =
         settings.Converters.Add commitmentsConverter
         settings
 
-    member internal self.Commitments: Commitments =
+
+module SerializedChannel =
+    let internal Commitments (serializedChannel: SerializedChannel): Commitments =
         UnwrapOption
-            self.ChanState.Commitments
+            serializedChannel.ChanState.Commitments
             "A SerializedChannel is only created once a channel has started \
             being established and must therefore have an initial commitment"
 
-    member self.IsFunder: bool =
-        self.Commitments.LocalParams.IsFunder
+    let IsFunder (serializedChannel: SerializedChannel): bool =
+        (Commitments serializedChannel).LocalParams.IsFunder
 
-    member internal self.Capacity(): Money =
-        self.Commitments.FundingScriptCoin.Amount
+    let internal Capacity (serializedChannel: SerializedChannel): Money =
+        (Commitments serializedChannel).FundingScriptCoin.Amount
 
-    member internal self.Balance(): DotNetLightning.Utils.LNMoney =
-        self.Commitments.LocalCommit.Spec.ToLocal
+    let internal Balance (serializedChannel: SerializedChannel): DotNetLightning.Utils.LNMoney =
+        (Commitments serializedChannel).LocalCommit.Spec.ToLocal
 
-    member internal self.SpendableBalance(): DotNetLightning.Utils.LNMoney =
-        self.Commitments.SpendableBalance()
+    let internal SpendableBalance (serializedChannel: SerializedChannel): DotNetLightning.Utils.LNMoney =
+        (Commitments serializedChannel).SpendableBalance()
 
     // How low the balance can go. A channel must maintain enough balance to
     // cover the channel reserve. The funder must also keep enough in the
     // channel to cover the closing fee.
-    member internal this.MinBalance(): DotNetLightning.Utils.LNMoney =
-        this.Balance() - this.SpendableBalance()
+    let internal MinBalance (serializedChannel: SerializedChannel): DotNetLightning.Utils.LNMoney =
+        (Balance serializedChannel) - (SpendableBalance serializedChannel)
 
     // How high the balance can go. The fundee will only be able to receive up
     // to this amount before the funder no longer has enough funds to cover
     // the channel reserve and closing fee.
-    member internal self.MaxBalance(): DotNetLightning.Utils.LNMoney =
-        let capacity = LNMoney.FromMoney <| self.Capacity()
+    let internal MaxBalance (serializedChannel: SerializedChannel): DotNetLightning.Utils.LNMoney =
+        let capacity = LNMoney.FromMoney <| (Capacity serializedChannel)
         let channelReserve =
-            LNMoney.FromMoney self.Commitments.LocalParams.ChannelReserveSatoshis
+            LNMoney.FromMoney (Commitments serializedChannel).LocalParams.ChannelReserveSatoshis
         let fee =
-            if self.IsFunder then
-                let feeRate = self.Commitments.LocalCommit.Spec.FeeRatePerKw
+            if (IsFunder serializedChannel) then
+                let feeRate = (Commitments serializedChannel).LocalCommit.Spec.FeeRatePerKw
                 let weight = COMMITMENT_TX_BASE_WEIGHT
                 LNMoney.FromMoney <| feeRate.CalculateFeeFromWeight weight
             else
                 LNMoney.Zero
         capacity - channelReserve - fee
 
-    member self.ChannelId: ChannelIdentifier =
-        ChannelIdentifier.FromDnl self.Commitments.ChannelId
+    let ChannelId (serializedChannel: SerializedChannel): ChannelIdentifier =
+        ChannelIdentifier.FromDnl (Commitments serializedChannel).ChannelId
 
