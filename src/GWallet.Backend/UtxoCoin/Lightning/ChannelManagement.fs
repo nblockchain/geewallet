@@ -50,15 +50,15 @@ type ChannelInfo =
     static member internal FromSerializedChannel (serializedChannel: SerializedChannel)
                                                  (currency: Currency)
                                                      : ChannelInfo = {
-        ChannelId = SerializedChannel.ChannelId serializedChannel
-        IsFunder = SerializedChannel.IsFunder serializedChannel
-        Balance = (SerializedChannel.Balance serializedChannel).ToMoney().ToUnit(NBitcoin.MoneyUnit.BTC)
-        SpendableBalance = (SerializedChannel.SpendableBalance serializedChannel).ToMoney().ToUnit(NBitcoin.MoneyUnit.BTC)
-        Capacity = (SerializedChannel.Capacity serializedChannel).ToUnit(NBitcoin.MoneyUnit.BTC)
-        MaxBalance = (SerializedChannel.MaxBalance serializedChannel).ToMoney().ToUnit(NBitcoin.MoneyUnit.BTC)
-        MinBalance = (SerializedChannel.MinBalance serializedChannel).ToMoney().ToUnit(NBitcoin.MoneyUnit.BTC)
+        ChannelId = ChannelSerialization.ChannelId serializedChannel
+        IsFunder = ChannelSerialization.IsFunder serializedChannel
+        Balance = (ChannelSerialization.Balance serializedChannel).ToMoney().ToUnit NBitcoin.MoneyUnit.BTC
+        SpendableBalance = (ChannelSerialization.SpendableBalance serializedChannel).ToMoney().ToUnit NBitcoin.MoneyUnit.BTC
+        Capacity = (ChannelSerialization.Capacity serializedChannel).ToUnit NBitcoin.MoneyUnit.BTC
+        MaxBalance = (ChannelSerialization.MaxBalance serializedChannel).ToMoney().ToUnit NBitcoin.MoneyUnit.BTC
+        MinBalance = (ChannelSerialization.MinBalance serializedChannel).ToMoney().ToUnit NBitcoin.MoneyUnit.BTC
         FundingTxId =
-            TransactionIdentifier.FromHash (SerializedChannel.Commitments serializedChannel).FundingScriptCoin.Outpoint.Hash
+            TransactionIdentifier.FromHash (ChannelSerialization.Commitments serializedChannel).FundingScriptCoin.Outpoint.Hash
         Currency = currency
         Status =
             match serializedChannel.ChanState with
@@ -126,7 +126,7 @@ type ChannelStore(account: NormalUtxoAccount) =
         )
 
     member internal self.SaveChannel (serializedChannel: SerializedChannel) =
-        let fileName = self.ChannelFileName (SerializedChannel.ChannelId serializedChannel)
+        let fileName = self.ChannelFileName (ChannelSerialization.ChannelId serializedChannel)
         let json =
             Marshalling.SerializeCustom(
                 serializedChannel,

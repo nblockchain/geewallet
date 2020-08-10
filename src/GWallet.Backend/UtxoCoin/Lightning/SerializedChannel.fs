@@ -98,7 +98,7 @@ type SerializedChannel =
         settings
 
 
-module SerializedChannel =
+module ChannelSerialization =
     let internal Commitments (serializedChannel: SerializedChannel): Commitments =
         UnwrapOption
             serializedChannel.ChanState.Commitments
