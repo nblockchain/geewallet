@@ -8,6 +8,7 @@ open NBitcoin
 open DotNetLightning.Utils
 open DotNetLightning.Serialize.Msgs
 open DotNetLightning.Channel
+open ResultUtils.Portability
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil
