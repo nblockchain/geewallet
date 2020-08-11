@@ -192,68 +192,77 @@ let GetTestAssembly suite =
 
     testAssembly
 
-let OurWalletToOurWalletTest() =
+let TwoProcessTestNames = ["GeewalletToGeewallet"; "MonoHopPayments"]
+
+let RunTwoProcessTests() =
     let testAssembly = GetTestAssembly "EndToEnd"
 
-    let funderRunnerCommand =
-        match Misc.GuessPlatform() with
-        | Misc.Platform.Linux ->
-            let nunitCommand = "nunit-console"
-            MakeCheckCommand nunitCommand
+    for testName in TwoProcessTestNames do
+        let funderRunnerCommand =
+            match Misc.GuessPlatform() with
+            | Misc.Platform.Linux ->
+                let nunitCommand = "nunit-console"
+                MakeCheckCommand nunitCommand
 
-            let arguments = "-include GeewalletToGeewalletFunder " + testAssembly.FullName
+                let arguments = "-include " + testName + "Funder " + testAssembly.FullName
 
-            { Command = nunitCommand; Arguments = arguments }
-        | _ ->
-            let arguments = "/include:GeewalletToGeewalletFunder " + testAssembly.FullName
-            {
-                Command = Path.Combine(nugetPackagesSubDirName,
-                                       sprintf "NUnit.Runners.%s" nunitVersion,
-                                       "tools",
-                                       "nunit-console.exe")
-                Arguments = arguments
-            }
+                { Command = nunitCommand; Arguments = arguments }
+            | _ ->
+                let arguments = "/include:" + testName + "Funder " + testAssembly.FullName
+                {
+                    Command = Path.Combine(nugetPackagesSubDirName,
+                                           sprintf "NUnit.Runners.%s" nunitVersion,
+                                           "tools",
+                                           "nunit-console.exe")
+                    Arguments = arguments
+                }
 
-    let fundeeRunnerCommand =
-        match Misc.GuessPlatform() with
-        | Misc.Platform.Linux ->
-            let nunitCommand = "nunit-console"
-            MakeCheckCommand nunitCommand
+        let fundeeRunnerCommand =
+            match Misc.GuessPlatform() with
+            | Misc.Platform.Linux ->
+                let nunitCommand = "nunit-console"
+                MakeCheckCommand nunitCommand
 
-            let arguments = "-include GeewalletToGeewalletFundee " + testAssembly.FullName
+                let arguments = "-include " + testName + "Fundee " + testAssembly.FullName
 
-            { Command = nunitCommand; Arguments = arguments }
-        | _ ->
-            let arguments = "/include:GeewalletToGeewalletFundee " + testAssembly.FullName
-            {
-                Command = Path.Combine(nugetPackagesSubDirName,
-                                       sprintf "NUnit.Runners.%s" nunitVersion,
-                                       "tools",
-                                       "nunit-console.exe")
-                Arguments = arguments
-            }
+                { Command = nunitCommand; Arguments = arguments }
+            | _ ->
+                let arguments = "/include:" + testName + "Fundee " + testAssembly.FullName
+                {
+                    Command = Path.Combine(nugetPackagesSubDirName,
+                                           sprintf "NUnit.Runners.%s" nunitVersion,
+                                           "tools",
+                                           "nunit-console.exe")
+                    Arguments = arguments
+                }
 
-    let funderRun = async {
-        let res = Process.Execute(funderRunnerCommand, Echo.All)
-        if res.ExitCode <> 0 then
-            Console.Error.WriteLine "Funder test failed"
-            Environment.Exit 1
-    }
+        let funderRun = async {
+            let res = Process.Execute(funderRunnerCommand, Echo.All)
+            if res.ExitCode <> 0 then
+                Console.Error.WriteLine (testName + "Funder test failed")
+                Environment.Exit 1
+        }
 
-    let fundeeRun = async {
-        let res = Process.Execute(fundeeRunnerCommand, Echo.All)
-        if res.ExitCode <> 0 then
-            Console.Error.WriteLine "Fundee test failed"
-            Environment.Exit 1
-    }
+        let fundeeRun = async {
+            let res = Process.Execute(fundeeRunnerCommand, Echo.All)
+            if res.ExitCode <> 0 then
+                Console.Error.WriteLine (testName + "Fundee test failed")
+                Environment.Exit 1
+        }
 
-    [funderRun; fundeeRun]
-    |> Async.Parallel
-    |> Async.RunSynchronously
-    |> ignore
+        [funderRun; fundeeRun]
+        |> Async.Parallel
+        |> Async.RunSynchronously
+        |> ignore
 
 let RunTests(suite: string) =
     let testAssembly = GetTestAssembly suite
+    let exclude =
+        TwoProcessTestNames
+        |> Seq.ofList
+        |> Seq.map (fun testName -> [testName + "Funder"; testName + "Fundee"])
+        |> Seq.concat
+        |> String.concat ","
 
     let runnerCommand =
         match Misc.GuessPlatform() with
@@ -263,7 +272,7 @@ let RunTests(suite: string) =
 
             let arguments = 
                 if suite = "EndToEnd" then
-                    "-exclude GeewalletToGeewalletFunder,GeewalletToGeewalletFundee " + testAssembly.FullName
+                    "-exclude " + exclude + " " + testAssembly.FullName
                 else
                     testAssembly.FullName
 
@@ -281,7 +290,7 @@ let RunTests(suite: string) =
 
             let arguments = 
                 if suite = "EndToEnd" then
-                    "/exclude:GeewalletToGeewalletFunder,GeewalletToGeewalletFundee " + testAssembly.FullName
+                    "/exclude:" + exclude + " " + testAssembly.FullName
                 else
                     testAssembly.FullName
 
@@ -303,7 +312,7 @@ let RunTests(suite: string) =
         Environment.Exit 1
 
     if suite = "EndToEnd" then
-        OurWalletToOurWalletTest()
+        RunTwoProcessTests()
 
 let maybeTarget = GatherTarget (Misc.FsxArguments(), None)
 match maybeTarget with
