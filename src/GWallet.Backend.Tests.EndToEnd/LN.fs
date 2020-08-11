@@ -397,45 +397,33 @@ type Lnd = {
 
 type WalletInstance private (password: string, channelStore: ChannelStore, node: Node) =
     static let oneWalletAtATime: Semaphore = new Semaphore(1, 1)
-    static member private LocalhostIP = IPAddress.Parse "127.0.0.1"
-    static member private FunderLightningPort = 0
-    static member private FundeeLightningPort = 9735
-    static member private FunderPrivateKey = [| for i in 1 .. 32 -> byte i |]
-    static member private FundeePrivateKey = [| for i in 33 .. 64 -> byte i |]
 
-    static member private FundeePubKey =
-        let privateKey = (new Key(WalletInstance.FundeePrivateKey))
-        let extKey = Node.AccountPrivateKeyToNodeSecret privateKey
-        extKey.PrivateKey.PubKey.ToHex()
-
-    static member private FunderLightningIPEndpoint = IPEndPoint (WalletInstance.LocalhostIP, WalletInstance.FunderLightningPort)
-    static member private FundeeLightningIPEndpoint = IPEndPoint (WalletInstance.LocalhostIP, WalletInstance.FundeeLightningPort)
-
-    static member FundeeNodeEndpoint = NodeEndPoint.Parse Currency.BTC (SPrintF3 
-                                                                            "%s@%s:%d"
-                                                                            WalletInstance.FundeePubKey
-                                                                            (WalletInstance.FundeeLightningIPEndpoint.Address.ToString())
-                                                                            WalletInstance.FundeeLightningIPEndpoint.Port)
-
-    static member New(): Async<WalletInstance> = async {
-        return! WalletInstance.instantiate WalletInstance.FunderLightningIPEndpoint WalletInstance.FunderPrivateKey
-    }
-
-    static member NewFundee(): Async<WalletInstance> = async {
-        return! WalletInstance.instantiate WalletInstance.FundeeLightningIPEndpoint WalletInstance.FundeePrivateKey
-    }
-
-    static member private instantiate ipEndpoint privateKeyBytes : Async<WalletInstance> = async {
+    static member New (listenEndpointOpt: Option<IPEndPoint>) (privateKeyOpt: Option<Key>) = async {
         oneWalletAtATime.WaitOne() |> ignore
         let password = Path.GetRandomFileName()
+        let privateKeyBytes =
+            let privateKey =
+                match privateKeyOpt with
+                | Some privateKey -> privateKey
+                | None -> new Key()
+            let privateKeyBytesLength = 32
+            let bytes: array<byte> = Array.zeroCreate privateKeyBytesLength
+            use bytesStream = new MemoryStream(bytes)
+            let stream = NBitcoin.BitcoinStream(bytesStream, true)
+            privateKey.ReadWrite stream
+            bytes
+
         do! Account.CreateAllAccounts privateKeyBytes password
         let btcAccount =
             let account = Account.GetAllActiveAccounts() |> Seq.filter (fun x -> x.Currency = Currency.BTC) |> Seq.head
             account :?> NormalUtxoAccount
         let channelStore = ChannelStore btcAccount
         let node =
-            let geewalletLightningBindAddress = ipEndpoint
-            Connection.Start channelStore password geewalletLightningBindAddress
+            let listenEndpoint =
+                match listenEndpointOpt with
+                | Some listenEndpoint -> listenEndpoint
+                | None -> IPEndPoint(IPAddress.Parse "127.0.0.1", 0)
+            Connection.Start channelStore password listenEndpoint
         return new WalletInstance(password, channelStore, node)
     }
 
@@ -494,13 +482,32 @@ type WalletInstance private (password: string, channelStore: ChannelStore, node:
 type LN() =
     do Config.SetRunModeTesting()
 
+    let FundeeAccountsPrivateKey =
+        // Note: The key needs to be hard-coded, as opposed to randomly
+        // generated, since it is used in two separate processes and must be
+        // the same in each process.
+        new Key(uint256.Parse("9d1ee30acb68716ed5f4e25b3c052c6078f1813f45d33a47e46615bfd05fa6fe").ToBytes())
+    let FundeeNodePubKey =
+        let extKey = Node.AccountPrivateKeyToNodeSecret FundeeAccountsPrivateKey
+        extKey.PrivateKey.PubKey
+    let FundeeLightningIPEndpoint = IPEndPoint (IPAddress.Parse "127.0.0.1", 9735)
+    let FundeeNodeEndpoint =
+        NodeEndPoint.Parse
+            Currency.BTC
+            (SPrintF3
+                "%s@%s:%d"
+                (FundeeNodePubKey.ToHex())
+                (FundeeLightningIPEndpoint.Address.ToString())
+                FundeeLightningIPEndpoint.Port
+            )
+
     let WalletToWalletTestPayment0Amount = Money(0.01m, MoneyUnit.BTC)
     let WalletToWalletTestPayment1Amount = Money(0.015m, MoneyUnit.BTC)
 
     [<Category("GeewalletToGeewalletFunder")>]
     [<Test>]
     member __.``can open channel with geewallet (funder)``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.New()
+        use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
         use _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
@@ -556,7 +563,7 @@ type LN() =
         let! pendingChannelRes =
             Lightning.Network.OpenChannel
                 walletInstance.Node
-                WalletInstance.FundeeNodeEndpoint
+                FundeeNodeEndpoint
                 transferAmount
                 metadata
                 walletInstance.Password
@@ -603,7 +610,7 @@ type LN() =
     [<Category("GeewalletToGeewalletFundee")>]
     [<Test>]
     member __.``can open channel with geewallet (fundee)``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.NewFundee()
+        use! walletInstance = WalletInstance.New (Some FundeeLightningIPEndpoint) (Some FundeeAccountsPrivateKey)
         let! pendingChannelRes =
             Lightning.Network.AcceptChannel
                 walletInstance.Node
@@ -624,7 +631,7 @@ type LN() =
     [<Category("MonoHopPaymentsFunder")>]
     [<Test>]
     member __.``can send/receive monohop payments (funder)``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.New()
+        use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
         use _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
@@ -680,7 +687,7 @@ type LN() =
         let! pendingChannelRes =
             Lightning.Network.OpenChannel
                 walletInstance.Node
-                WalletInstance.FundeeNodeEndpoint
+                FundeeNodeEndpoint
                 transferAmount
                 metadata
                 walletInstance.Password
@@ -766,7 +773,7 @@ type LN() =
     [<Category("MonoHopPaymentsFundee")>]
     [<Test>]
     member __.``can send/receive monohop payments (fundee)``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.NewFundee()
+        use! walletInstance = WalletInstance.New (Some FundeeLightningIPEndpoint) (Some FundeeAccountsPrivateKey)
         let! pendingChannelRes =
             Lightning.Network.AcceptChannel
                 walletInstance.Node
@@ -813,7 +820,7 @@ type LN() =
 
     [<Test>]
     member __.``can open channel with LND``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.New()
+        use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
         use _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
@@ -899,7 +906,7 @@ type LN() =
 
     [<Test>]
     member __.``can accept channel from LND``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.New()
+        use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
         use _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
