@@ -58,6 +58,7 @@
     </Compile>
     <Compile Include="MarshallingData.fs" />
     <Compile Include="Serialization.fs" />
+    <Compile Include="SerializedChannel.fs" />
     <Compile Include="Deserialization.fs" />
     <Compile Include="FaultTolerance.fs" />
     <Compile Include="ParallelizationAndOptimization.fs" />
