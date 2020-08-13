@@ -3,9 +3,9 @@ set -e
 
 # TODO: check for .NET SDK in the configure.fsx file as well
 
-# taken from https://www.microsoft.com/net/download/linux-package-manager/ubuntu18-04/sdk-current
+# taken from https://docs.microsoft.com/en-gb/dotnet/core/install/linux-ubuntu#2004-
 apt install -y wget
-wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
+wget -q https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb
 dpkg -i packages-microsoft-prod.deb
 apt install -y apt-transport-https
 apt update
