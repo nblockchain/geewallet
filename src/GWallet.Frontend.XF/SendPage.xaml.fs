@@ -239,7 +239,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     member private this.ShowWarningAndEnableFormWidgetsAgain (msg: string) =
         let showAndEnableJob = async {
-            let mainThreadSynchContext = SynchronizationContext.Current
+            let! mainThreadSynchContext = Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
             let displayTask = this.DisplayAlert("Alert", msg, "OK")
             do! Async.AwaitTask displayTask
             do! Async.SwitchToContext mainThreadSynchContext
@@ -278,7 +278,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             // TODO: allow linking to tx in a button or something?
 
             let showSuccessAndGoBack = async {
-                let mainThreadSynchContext = SynchronizationContext.Current
+                let! mainThreadSynchContext = Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
                 let displayTask = this.DisplayAlert("Success", "Transaction sent.", "OK")
                 let newReceivePage = newReceivePageFunc()
                 let navNewReceivePage = NavigationPage(newReceivePage)
@@ -634,7 +634,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let coldMsg =
                     "Account belongs to cold storage, so you'll need to scan this as a transaction proposal in the next page."
                 let showWarningAndGoForward = async {
-                    let mainThreadSynchContext = SynchronizationContext.Current
+                    let! mainThreadSynchContext = Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
                     let displayTask = this.DisplayAlert("Alert", coldMsg, "OK")
                     let pairTransactionProposalPage =
                         PairingFromPage(this,
@@ -702,7 +702,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     member private this.BroadcastTransaction (signedTransaction): unit =
         let afterSuccessfullBroadcastJob = async {
-            let mainThreadSynchContext = SynchronizationContext.Current
+            let! mainThreadSynchContext = Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
             let displayTask = this.DisplayAlert("Success", "Transaction sent.", "OK")
             let newReceivePage = newReceivePageFunc()
             let navNewReceivePage = NavigationPage newReceivePage
