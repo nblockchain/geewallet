@@ -76,17 +76,20 @@ type ErrorResult =
     }
 
 type RpcErrorCode =
-    // see https://gitlab.gnome.org/World/geewallet/issues/110
+    // see https://gitlab.com/nblockchain/geewallet/issues/110
     | ExcessiveResourceUsage = -101
 
-    // see https://gitlab.gnome.org/World/geewallet/issues/117
+    // see https://gitlab.com/nblockchain/geewallet/issues/117
     | ServerBusy = -102
 
     // see git commit msg of 0aba03a8291daa526fde888d0c02a789abe411f2
     | InternalError = -32603
 
-    // see https://gitlab.gnome.org/World/geewallet/issues/112
+    // see https://gitlab.com/nblockchain/geewallet/issues/112
     | UnknownMethod = -32601
+
+type public ElectrumServerReturningImproperJsonResponseException(message: string, innerEx: Exception) =
+    inherit ServerMisconfiguredException (message, innerEx)
 
 type public ElectrumServerReturningErrorInJsonResponseException(message: string, code: int) =
     inherit CommunicationUnsuccessfulException(message)
@@ -152,13 +155,20 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         if (not (Object.ReferenceEquals(maybeError, null))) && (not (Object.ReferenceEquals(maybeError.Error, null))) then
             raise(ElectrumServerReturningErrorInJsonResponseException(maybeError.Error.Message, maybeError.Error.Code))
 
+        let failedDeserMsg = SPrintF2 "Failed deserializing JSON response '%s' to type '%s'"
+                                      resultTrimmed typedefof<'T>.FullName
         let deserializedValue =
             try
                 JsonConvert.DeserializeObject<'T>(resultTrimmed,
                                                   Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
             with
-            | ex -> raise <| Exception(SPrintF2 "Failed deserializing JSON response '%s' to type '%s'"
-                                                resultTrimmed typedefof<'T>.FullName, ex)
+            | :? Newtonsoft.Json.JsonSerializationException as serEx ->
+                let newEx = ElectrumServerReturningImproperJsonResponseException(failedDeserMsg, serEx)
+#if !DEBUG
+                Infrastructure.ReportWarning newEx
+#endif
+                raise newEx
+            | ex -> raise <| Exception(failedDeserMsg, ex)
 
         if Object.ReferenceEquals(deserializedValue, null) then
             failwith <| SPrintF2 "Failed deserializing JSON response '%s' to type '%s' (result was null)"

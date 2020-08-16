@@ -374,6 +374,7 @@ module Caching =
                                       currency
                                       address
                                       sessionCachedNetworkData
+                        // FIXME: should we return here just balance, or NotAvailable (as in there's no cache), and remove all transactions?
                         Cached(0.0m,time)
                     else
                         Cached(compoundBalance,time)
@@ -460,6 +461,7 @@ module Caching =
                                   currency
                                   address
                                   newCachedValueWithNewBalanceAndMaybeLessTransactions
+                    // FIXME: should we return here just newBalance, and remove all transactions?
                     0.0m,time
                 else
                     compoundBalance,time
