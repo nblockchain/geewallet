@@ -6,6 +6,7 @@ open System.Linq
 open System.Diagnostics
 
 #r "System.Configuration"
+open System.Configuration
 #load "InfraLib/Misc.fs"
 #load "InfraLib/Process.fs"
 #load "InfraLib/Git.fs"
