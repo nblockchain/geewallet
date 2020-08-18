@@ -36,6 +36,7 @@ stockmono_test_unit:
     - ./configure.sh
     - make
     - make check
+    - make check-end-to-end
 
 stockmono_test_integration:
   image: ubuntu:20.04
