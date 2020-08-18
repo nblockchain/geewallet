@@ -5,6 +5,8 @@ open NUnit.Framework
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin.Lightning
 
+type DU = | DU of string
+
 [<TestFixture>]
 type SerializedChannelTest() =
     let serializedChannelJson = """
@@ -248,4 +250,11 @@ type SerializedChannelTest() =
         if serializedChannelJson.Trim() <> reserializedChannelJson then
             failwith ("deserializing and reserializing a channel changed the json:\n" + reserializedChannelJson)
 
+    [<Test>]
+    member __.``can serialize/deserialize discriminated union with case name identical to type name``() =
+        let du: DU = DU "hello"
+        let serialized = Marshalling.SerializeCustom(du, SerializedChannel.LightningSerializerSettings)
+        let deserialized = Marshalling.DeserializeCustom(serialized, SerializedChannel.LightningSerializerSettings)
+        match deserialized with
+        | DU _ -> ()
 
