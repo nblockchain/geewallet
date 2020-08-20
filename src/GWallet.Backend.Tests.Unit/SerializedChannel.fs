@@ -35,8 +35,7 @@ type SerializedChannelTest() =
               "fields": [
                 0
               ]
-            },
-            "asString": "109x1x0"
+            }
           },
           "buried": true
         }

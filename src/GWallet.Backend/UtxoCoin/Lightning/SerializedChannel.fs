@@ -80,54 +80,11 @@ type private CommitmentsJsonConverter() =
             RemotePerCommitmentSecrets = state.RemotePerCommitmentSecrets
         })
 
-[<StructuredFormatDisplay("{AsString}")>]
 type GShortChannelId = {
     BlockHeight: DotNetLightning.Utils.Primitives.BlockHeight
     BlockIndex: DotNetLightning.Utils.Primitives.TxIndexInBlock
     TxOutIndex: DotNetLightning.Utils.Primitives.TxOutIndex
 }
-    with
-
-    static member From8Bytes(b: byte[]): ShortChannelId =
-        let bh = NBitcoin.Utils.ToUInt32 (Array.concat [| [| 0uy |]; b.[0..2]; |], false)
-        let bi = NBitcoin.Utils.ToUInt32 (Array.concat [| [| 0uy |]; b.[3..5]; |], false)
-        let txOutIndex = NBitcoin.Utils.ToUInt16(b.[6..7], false)
-
-        {
-            BlockHeight = bh |> DotNetLightning.Utils.Primitives.BlockHeight
-            BlockIndex = bi |> DotNetLightning.Utils.Primitives.TxIndexInBlock
-            TxOutIndex = txOutIndex |> DotNetLightning.Utils.Primitives.TxOutIndex
-        }
-
-    static member FromUInt64(rawData: uint64) =
-        NBitcoin.Utils.ToBytes(rawData, false) |> ShortChannelId.From8Bytes
-        
-    member this.ToBytes(): byte [] =
-        Array.concat [|
-                    NBitcoin.Utils.ToBytes(this.BlockHeight.Value, false).[1..3]
-                    NBitcoin.Utils.ToBytes(this.BlockIndex.Value, false).[1..3]
-                    NBitcoin.Utils.ToBytes(this.TxOutIndex.Value, false)
-                |]
-    override this.ToString() =
-        SPrintF3 "%dx%dx%d" this.BlockHeight.Value this.BlockIndex.Value this.TxOutIndex.Value
-
-    member this.AsString = this.ToString()
-        
-    static member TryParse(s: string) =
-        let items = s.Split('x')
-        let err = Error (SPrintF1 "Failed to parse %s" s)
-        if (items.Length <> 3)  then err else
-        match (items.[0] |> UInt32.TryParse), (items.[1] |> UInt32.TryParse), (items.[2] |> UInt16.TryParse) with
-        | (true, h), (true, blockI), (true, outputI) ->
-            {
-                BlockHeight = h |> DotNetLightning.Utils.Primitives.BlockHeight
-                BlockIndex = blockI |> DotNetLightning.Utils.Primitives.TxIndexInBlock
-                TxOutIndex = outputI |> DotNetLightning.Utils.Primitives.TxOutIndex
-            } |> Ok
-        | _ -> err
-    //static member ParseUnsafe(s: string) =
-    //    ShortChannelId.TryParse s
-    //    |> Result.defaultWith (fun _ -> raise <| FormatException(SPrintF1 "Failed to parse %s" s))
 
 type GNormalData =   {
                         ShortChannelId: GShortChannelId;
