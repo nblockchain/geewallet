@@ -141,26 +141,6 @@ type GChannelState =
             | ErrFundingTimeOut _
             | ErrInformationLeak _ -> None
 
-        member this.Phase =
-            match this with
-            | WaitForInitInternal
-            | WaitForOpenChannel _ 
-            | WaitForAcceptChannel _
-            | WaitForFundingCreated _
-            | WaitForFundingSigned _
-            | WaitForFundingConfirmed _
-            | WaitForFundingLocked _ -> Opening
-            | Normal _ -> ChannelStatePhase.Normal
-            | Shutdown _
-            | Negotiating _
-            | Closing _ -> ChannelStatePhase.Closing
-            | Closed _ -> ChannelStatePhase.Closed
-            | Offline _
-            | Syncing _
-            | ErrFundingLost _
-            | ErrFundingTimeOut _
-            | ErrInformationLeak _ -> Abnormal
-
         member this.Commitments: Option<Commitments> =
             match this with
             | WaitForInitInternal
