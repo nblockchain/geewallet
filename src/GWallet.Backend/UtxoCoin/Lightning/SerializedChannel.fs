@@ -81,9 +81,26 @@ type private CommitmentsJsonConverter() =
 
 type IGState = interface end
 
+type GNormalData =   {
+                        Commitments: Commitments;
+                        ShortChannelId: ShortChannelId;
+                        Buried: bool;
+                        ChannelAnnouncement: DotNetLightning.Serialize.Msgs.ChannelAnnouncementMsg option
+                        ChannelUpdate: DotNetLightning.Serialize.Msgs.ChannelUpdateMsg
+                        LocalShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
+                        RemoteShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
+                        ChannelId: ChannelId
+                    }
+    with
+        interface IHasCommitments with
+            member this.ChannelId: ChannelId = 
+                this.ChannelId
+            member this.Commitments: Commitments = 
+                this.Commitments
+
 type GChannelState =
     /// normal
-    | Normal of NormalData
+    | Normal of GNormalData
 
     /// Closing
     | Closing of ClosingData
