@@ -82,14 +82,7 @@ type private CommitmentsJsonConverter() =
 type GNormalData =   {
                         ShortChannelId: ShortChannelId;
                         Buried: bool;
-                        ChannelId: ChannelId
                     }
-    with
-        interface IHasCommitments with
-            member this.ChannelId: ChannelId = 
-                this.ChannelId
-            member this.Commitments: Commitments = 
-                failwith "tmp:NIE"
 
 type GChannelState =
     /// normal

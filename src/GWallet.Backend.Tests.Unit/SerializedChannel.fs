@@ -38,13 +38,7 @@ type SerializedChannelTest() =
             },
             "asString": "109x1x0"
           },
-          "buried": true,
-          "channelId": {
-            "case": "ChannelId",
-            "fields": [
-              "2c0e386c42c30b0c4032e8406ab632d6916636df1e5edf66eb083badda023afa"
-            ]
-          }
+          "buried": true
         }
       ]
     }
