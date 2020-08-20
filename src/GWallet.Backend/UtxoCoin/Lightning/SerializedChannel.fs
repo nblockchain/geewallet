@@ -80,7 +80,6 @@ type private CommitmentsJsonConverter() =
             RemotePerCommitmentSecrets = state.RemotePerCommitmentSecrets
         })
 
-[<Struct>]
 type GTxIndexInBlock = | TxIndexInBlock of uint32 with
     member x.Value = let (TxIndexInBlock v) = x in v
 
