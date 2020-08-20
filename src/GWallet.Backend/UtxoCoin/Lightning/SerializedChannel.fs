@@ -108,8 +108,6 @@ type GChannelState =
     | ErrFundingLost of IChannelStateData
     | ErrFundingTimeOut of IChannelStateData
     | ErrInformationLeak of IChannelStateData
-    with
-        interface IGState 
 
         member this.ChannelId: Option<ChannelId> =
             match this with
