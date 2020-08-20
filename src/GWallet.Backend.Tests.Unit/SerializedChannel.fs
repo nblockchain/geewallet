@@ -23,12 +23,6 @@ type SerializedChannelTest() =
               "fields": [
                 1
               ]
-            },
-            "txOutIndex": {
-              "case": "TxOutIndex",
-              "fields": [
-                0
-              ]
             }
           },
           "buried": true
