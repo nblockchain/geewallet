@@ -81,7 +81,6 @@ type private CommitmentsJsonConverter() =
         })
 
 type GShortChannelId = {
-    BlockHeight: DotNetLightning.Utils.Primitives.BlockHeight
     BlockIndex: DotNetLightning.Utils.Primitives.TxIndexInBlock
     TxOutIndex: DotNetLightning.Utils.Primitives.TxOutIndex
 }

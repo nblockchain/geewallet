@@ -18,12 +18,6 @@ type SerializedChannelTest() =
       "fields": [
         {
           "shortChannelId": {
-            "blockHeight": {
-              "case": "BlockHeight",
-              "fields": [
-                109
-              ]
-            },
             "blockIndex": {
               "case": "TxIndexInBlock",
               "fields": [
