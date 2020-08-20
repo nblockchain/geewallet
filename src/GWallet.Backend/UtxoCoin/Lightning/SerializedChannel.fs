@@ -79,11 +79,113 @@ type private CommitmentsJsonConverter() =
             RemotePerCommitmentSecrets = state.RemotePerCommitmentSecrets
         })
 
+type IGState = interface end
+type GPrism<'a, 'b> =
+    ('a -> 'b option) * ('b -> 'a -> 'a)
+
+type GChannelState =
+    /// Establishing
+    | WaitForInitInternal
+    | WaitForOpenChannel of WaitForOpenChannelData
+    | WaitForAcceptChannel of WaitForAcceptChannelData
+    | WaitForFundingCreated of WaitForFundingCreatedData
+    | WaitForFundingSigned of WaitForFundingSignedData
+    | WaitForFundingConfirmed of WaitForFundingConfirmedData
+    | WaitForFundingLocked of WaitForFundingLockedData
+
+    /// normal
+    | Normal of NormalData
+
+    /// Closing
+    | Shutdown of ShutdownData
+    | Negotiating of NegotiatingData
+    | Closing of ClosingData
+    | Closed of IChannelStateData
+
+    /// Abnormal
+    | Offline of IChannelStateData
+    | Syncing of IChannelStateData
+
+    /// Error
+    | ErrFundingLost of IChannelStateData
+    | ErrFundingTimeOut of IChannelStateData
+    | ErrInformationLeak of IChannelStateData
+    with
+        interface IGState 
+
+        static member Zero = WaitForInitInternal
+        static member Normal_: GPrism<_, _> =
+            (fun cc -> match cc with
+                       | Normal s -> Some s
+                       | _ -> None ),
+            (fun v cc -> match cc with
+                         | Normal _ -> Normal v
+                         | _ -> cc )
+        member this.ChannelId: Option<ChannelId> =
+            match this with
+            | WaitForInitInternal
+            | WaitForOpenChannel _
+            | WaitForAcceptChannel _
+            | WaitForFundingCreated _ -> None
+            | WaitForFundingSigned data -> Some data.ChannelId
+            | WaitForFundingConfirmed data -> Some data.ChannelId
+            | WaitForFundingLocked data -> Some data.ChannelId
+            | Normal data -> Some data.ChannelId
+            | Shutdown data -> Some data.ChannelId
+            | Negotiating data -> Some data.ChannelId
+            | Closing data -> Some data.ChannelId
+            | Closed _
+            | Offline _
+            | Syncing _
+            | ErrFundingLost _
+            | ErrFundingTimeOut _
+            | ErrInformationLeak _ -> None
+
+        member this.Phase =
+            match this with
+            | WaitForInitInternal
+            | WaitForOpenChannel _ 
+            | WaitForAcceptChannel _
+            | WaitForFundingCreated _
+            | WaitForFundingSigned _
+            | WaitForFundingConfirmed _
+            | WaitForFundingLocked _ -> Opening
+            | Normal _ -> ChannelStatePhase.Normal
+            | Shutdown _
+            | Negotiating _
+            | Closing _ -> ChannelStatePhase.Closing
+            | Closed _ -> ChannelStatePhase.Closed
+            | Offline _
+            | Syncing _
+            | ErrFundingLost _
+            | ErrFundingTimeOut _
+            | ErrInformationLeak _ -> Abnormal
+
+        member this.Commitments: Option<Commitments> =
+            match this with
+            | WaitForInitInternal
+            | WaitForOpenChannel _
+            | WaitForAcceptChannel _
+            | WaitForFundingCreated _
+            | WaitForFundingSigned _ -> None
+            | WaitForFundingConfirmed data -> Some (data :> IHasCommitments).Commitments
+            | WaitForFundingLocked data -> Some (data :> IHasCommitments).Commitments
+            | Normal data -> Some (data :> IHasCommitments).Commitments
+            | Shutdown data -> Some (data :> IHasCommitments).Commitments
+            | Negotiating data -> Some (data :> IHasCommitments).Commitments
+            | Closing data -> Some (data :> IHasCommitments).Commitments
+            | Closed _
+            | Offline _
+            | Syncing _
+            | ErrFundingLost _
+            | ErrFundingTimeOut _
+            | ErrInformationLeak _ -> None
+
 type SerializedChannel =
     {
         ChannelIndex: int
         //Network: Network
-        ChanState: ChannelState
+        ChanState: GChannelState
         //AccountFileName: string
         // FIXME: should store just RemoteNodeEndPoint instead of CounterpartyIP+RemoteNodeId?
         //CounterpartyIP: IPEndPoint

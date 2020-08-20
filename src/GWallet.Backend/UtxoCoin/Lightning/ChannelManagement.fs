@@ -62,8 +62,8 @@ type ChannelInfo =
         Currency = currency
         Status =
             match serializedChannel.ChanState with
-            | ChannelState.Normal _ -> ChannelStatus.Active
-            | ChannelState.WaitForFundingConfirmed waitForFundingConfirmedData ->
+            | GChannelState.Normal _ -> ChannelStatus.Active
+            | GChannelState.WaitForFundingConfirmed waitForFundingConfirmedData ->
                 let txId = TransactionIdentifier.FromHash waitForFundingConfirmedData.Commitments.FundingScriptCoin.Outpoint.Hash
                 let minimumDepth = 1u//serializedChannel.MinSafeDepth.Value
                 let fundingBroadcastButNotLockedData = {

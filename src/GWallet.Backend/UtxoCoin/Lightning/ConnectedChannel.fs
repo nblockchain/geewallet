@@ -219,7 +219,8 @@ type internal ConnectedChannel =
     }
 
     member self.SaveToWallet() =
-        let channelStore = ChannelStore self.Account
+        let _ = ChannelStore self.Account
+        failwith "TMP:NIE"(*
         let serializedChannel = {
             ChannelIndex = self.ChannelIndex
             //Network = self.Channel.Network
@@ -230,6 +231,7 @@ type internal ConnectedChannel =
             //MinSafeDepth = self.MinimumDepth
         }
         channelStore.SaveChannel serializedChannel
+        *)
 
     member internal self.RemoteNodeId
         with get(): NodeId = self.Channel.RemoteNodeId
