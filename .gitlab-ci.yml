@@ -79,7 +79,7 @@ newmono_test_unit:
 
     - apt install -y nunit-console
 
-    - time (./configure.sh && make && make check && make check-end-to-end)
+    - time (./configure.sh && make && make check)
 
 newmono_test_integration:
   image: ubuntu:20.04

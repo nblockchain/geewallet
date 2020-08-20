@@ -82,14 +82,14 @@ type private CommitmentsJsonConverter() =
 type SerializedChannel =
     {
         ChannelIndex: int
-        Network: Network
+        //Network: Network
         ChanState: ChannelState
         AccountFileName: string
         // FIXME: should store just RemoteNodeEndPoint instead of CounterpartyIP+RemoteNodeId?
-        CounterpartyIP: IPEndPoint
+        //CounterpartyIP: IPEndPoint
         RemoteNodeId: NodeId
         // this is the amount of confirmations that the counterparty told us that the funding transaction needs
-        MinSafeDepth: BlockHeightOffset32
+        //MinSafeDepth: BlockHeightOffset32
     }
     static member LightningSerializerSettings: JsonSerializerSettings =
         let settings = JsonMarshalling.SerializerSettings

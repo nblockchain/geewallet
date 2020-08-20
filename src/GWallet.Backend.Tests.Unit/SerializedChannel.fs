@@ -13,7 +13,6 @@ type SerializedChannelTest() =
   "typeName": "GWallet.Backend.UtxoCoin.Lightning.SerializedChannel",
   "value": {
     "channelIndex": 672938070,
-    "network": "RegTest",
     "chanState": {
       "case": "Normal",
       "fields": [
@@ -479,20 +478,10 @@ type SerializedChannelTest() =
       ]
     },
     "accountFileName": "0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0",
-    "counterpartyIP": [
-      "127.0.0.2",
-      9735
-    ],
     "remoteNodeId": {
       "case": "NodeId",
       "fields": [
         "02323d281f323fc7513660602736a7bcd90d9d06057c9fa9e8d2deb0de5aeb2231"
-      ]
-    },
-    "minSafeDepth": {
-      "case": "BlockHeightOffset32",
-      "fields": [
-        3
       ]
     }
   }

@@ -157,7 +157,7 @@ type internal ConnectedChannel =
             ConnectedChannel.LoadChannel channelStore nodeSecretKey channelId
         let! connectRes =
             let nodeId = channel.RemoteNodeId
-            let peerId = PeerId (serializedChannel.CounterpartyIP :> EndPoint)
+            let peerId = PeerId (null (*serializedChannel.CounterpartyIP*) :> EndPoint)
             PeerNode.ConnectFromTransportListener
                 transportListener
                 nodeId
@@ -170,7 +170,7 @@ type internal ConnectedChannel =
             match reestablishRes with
             | Error reestablishError -> return Error <| Reestablish reestablishError
             | Ok (peerNodeAfterReestablish, channelAfterReestablish) ->
-                let minimumDepth = serializedChannel.MinSafeDepth
+                let minimumDepth = BlockHeightOffset32 1u//serializedChannel.MinSafeDepth
                 let channelIndex = serializedChannel.ChannelIndex
                 let connectedChannel = {
                     Account = channelStore.Account
@@ -190,7 +190,7 @@ type internal ConnectedChannel =
             ConnectedChannel.LoadChannel channelStore transportListener.NodeSecret channelId
         let! connectRes =
             let nodeId = channel.RemoteNodeId
-            let peerId = PeerId (serializedChannel.CounterpartyIP :> EndPoint)
+            let peerId = PeerId (null (*serializedChannel.CounterpartyIP*) :> EndPoint)
             PeerNode.ConnectAcceptFromTransportListener
                 transportListener
                 nodeId
@@ -203,7 +203,7 @@ type internal ConnectedChannel =
             match reestablishRes with
             | Error reestablishError -> return Error <| Reestablish reestablishError
             | Ok (peerNodeAfterReestablish, channelAfterReestablish) ->
-                let minimumDepth = serializedChannel.MinSafeDepth
+                let minimumDepth = BlockHeightOffset32 1u//serializedChannel.MinSafeDepth
                 let channelIndex = serializedChannel.ChannelIndex
                 let connectedChannel = {
                     Account = channelStore.Account
@@ -219,12 +219,12 @@ type internal ConnectedChannel =
         let channelStore = ChannelStore self.Account
         let serializedChannel = {
             ChannelIndex = self.ChannelIndex
-            Network = self.Channel.Network
+            //Network = self.Channel.Network
             RemoteNodeId = self.PeerNode.RemoteNodeId
             ChanState = self.Channel.Channel.State
             AccountFileName = self.Account.AccountFile.Name
-            CounterpartyIP = self.PeerNode.RemoteEndPoint
-            MinSafeDepth = self.MinimumDepth
+            //CounterpartyIP = self.PeerNode.RemoteEndPoint
+            //MinSafeDepth = self.MinimumDepth
         }
         channelStore.SaveChannel serializedChannel
 
