@@ -84,10 +84,10 @@ type SerializedChannel =
         ChannelIndex: int
         //Network: Network
         ChanState: ChannelState
-        AccountFileName: string
+        //AccountFileName: string
         // FIXME: should store just RemoteNodeEndPoint instead of CounterpartyIP+RemoteNodeId?
         //CounterpartyIP: IPEndPoint
-        RemoteNodeId: NodeId
+        //RemoteNodeId: NodeId
         // this is the amount of confirmations that the counterparty told us that the funding transaction needs
         //MinSafeDepth: BlockHeightOffset32
     }

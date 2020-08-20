@@ -67,11 +67,13 @@ type internal ConnectedChannel =
             (self.PeerNode :> IDisposable).Dispose()
 
     static member private LoadChannel (channelStore: ChannelStore)
-                                      (nodeSecretKey: ExtKey)
+                                      (_: ExtKey)
                                       (channelId: ChannelIdentifier)
                                           : Async<SerializedChannel * MonoHopUnidirectionalChannel> = async {
-        let serializedChannel = channelStore.LoadChannel channelId
+        let _ = channelStore.LoadChannel channelId
         Infrastructure.LogDebug <| SPrintF1 "loading channel for %s" (channelId.ToString())
+        return failwith "TMP:NIE"
+        (*
         let! channel =
             let fundingTxProvider (_ : IDestination * Money * FeeRatePerKw) =
                 Result.Error "funding tx not needed cause channel already created"
@@ -83,6 +85,7 @@ type internal ConnectedChannel =
                 fundingTxProvider
                 serializedChannel.ChanState
         return serializedChannel, channel
+        *)
     }
 
     static member private Reestablish (peerNode: PeerNode)
@@ -220,9 +223,9 @@ type internal ConnectedChannel =
         let serializedChannel = {
             ChannelIndex = self.ChannelIndex
             //Network = self.Channel.Network
-            RemoteNodeId = self.PeerNode.RemoteNodeId
+            //RemoteNodeId = self.PeerNode.RemoteNodeId
             ChanState = self.Channel.Channel.State
-            AccountFileName = self.Account.AccountFile.Name
+            //AccountFileName = self.Account.AccountFile.Name
             //CounterpartyIP = self.PeerNode.RemoteEndPoint
             //MinSafeDepth = self.MinimumDepth
         }
