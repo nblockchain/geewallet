@@ -85,10 +85,6 @@ type GNormalData =   {
                         Commitments: Commitments;
                         ShortChannelId: ShortChannelId;
                         Buried: bool;
-                        ChannelAnnouncement: DotNetLightning.Serialize.Msgs.ChannelAnnouncementMsg option
-                        ChannelUpdate: DotNetLightning.Serialize.Msgs.ChannelUpdateMsg
-                        LocalShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
-                        RemoteShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
                         ChannelId: ChannelId
                     }
     with
