@@ -80,7 +80,6 @@ type private CommitmentsJsonConverter() =
         })
 
 type GNormalData =   {
-                        Commitments: Commitments;
                         ShortChannelId: ShortChannelId;
                         Buried: bool;
                         ChannelId: ChannelId
@@ -90,7 +89,7 @@ type GNormalData =   {
             member this.ChannelId: ChannelId = 
                 this.ChannelId
             member this.Commitments: Commitments = 
-                this.Commitments
+                failwith "tmp:NIE"
 
 type GChannelState =
     /// normal
