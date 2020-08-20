@@ -80,7 +80,7 @@ type private CommitmentsJsonConverter() =
             RemotePerCommitmentSecrets = state.RemotePerCommitmentSecrets
         })
 
-[<Struct;StructuredFormatDisplay("{AsString}")>]
+[<StructuredFormatDisplay("{AsString}")>]
 type GShortChannelId = {
     BlockHeight: DotNetLightning.Utils.Primitives.BlockHeight
     BlockIndex: DotNetLightning.Utils.Primitives.TxIndexInBlock
