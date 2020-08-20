@@ -47,11 +47,9 @@ type ChannelInfo =
         Status: ChannelStatus
         Currency: Currency
     }
-    static member internal FromSerializedChannel (_: SerializedChannel)
-                                                 (_: Currency)
-                                                     : ChannelInfo =
-        failwith "tmp:NIE"
-        (*                                                 {
+    static member internal FromSerializedChannel (serializedChannel: SerializedChannel)
+                                                 (currency: Currency)
+                                                     : ChannelInfo = {
         ChannelId = ChannelSerialization.ChannelId serializedChannel
         IsFunder = ChannelSerialization.IsFunder serializedChannel
         Balance = (ChannelSerialization.Balance serializedChannel).ToMoney().ToUnit NBitcoin.MoneyUnit.BTC
@@ -75,7 +73,7 @@ type ChannelInfo =
                 }
                 ChannelStatus.FundingBroadcastButNotLocked fundingBroadcastButNotLockedData
             | _ -> ChannelStatus.Broken
-    }*)
+    }
 
 type ChannelStore(account: NormalUtxoAccount) =
     static member ChannelFilePrefix = "chan-"

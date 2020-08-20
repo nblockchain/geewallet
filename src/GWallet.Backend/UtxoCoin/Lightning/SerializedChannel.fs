@@ -83,7 +83,7 @@ type SerializedChannel =
     {
         ChannelIndex: int
         //Network: Network
-        //ChanState: ChannelState
+        ChanState: ChannelState
         AccountFileName: string
         // FIXME: should store just RemoteNodeEndPoint instead of CounterpartyIP+RemoteNodeId?
         //CounterpartyIP: IPEndPoint
@@ -99,13 +99,11 @@ type SerializedChannel =
 
 
 module ChannelSerialization =
-    let internal Commitments (_: SerializedChannel): Commitments =
-        failwith "tmp:NIE"
-        (*
+    let internal Commitments (serializedChannel: SerializedChannel): Commitments =
         UnwrapOption
             serializedChannel.ChanState.Commitments
             "A SerializedChannel is only created once a channel has started \
-            being established and must therefore have an initial commitment"*)
+            being established and must therefore have an initial commitment"
 
     let IsFunder (serializedChannel: SerializedChannel): bool =
         (Commitments serializedChannel).LocalParams.IsFunder
