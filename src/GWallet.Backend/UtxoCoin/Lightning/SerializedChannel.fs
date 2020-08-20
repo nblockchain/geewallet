@@ -80,8 +80,6 @@ type private CommitmentsJsonConverter() =
         })
 
 type IGState = interface end
-type GPrism<'a, 'b> =
-    ('a -> 'b option) * ('b -> 'a -> 'a)
 
 type GChannelState =
     /// Establishing
@@ -113,14 +111,6 @@ type GChannelState =
     with
         interface IGState 
 
-        static member Zero = WaitForInitInternal
-        static member Normal_: GPrism<_, _> =
-            (fun cc -> match cc with
-                       | Normal s -> Some s
-                       | _ -> None ),
-            (fun v cc -> match cc with
-                         | Normal _ -> Normal v
-                         | _ -> cc )
         member this.ChannelId: Option<ChannelId> =
             match this with
             | WaitForInitInternal
