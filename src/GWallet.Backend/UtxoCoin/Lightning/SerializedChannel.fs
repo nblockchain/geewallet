@@ -79,8 +79,6 @@ type private CommitmentsJsonConverter() =
             RemotePerCommitmentSecrets = state.RemotePerCommitmentSecrets
         })
 
-type IGState = interface end
-
 type GNormalData =   {
                         Commitments: Commitments;
                         ShortChannelId: ShortChannelId;
@@ -99,16 +97,7 @@ type GChannelState =
     | Normal of GNormalData
 
     /// Closing
-    | Closing of ClosingData
-
-    /// Abnormal
-    | Offline of IChannelStateData
-
-        member this.Commitments: Option<Commitments> =
-            match this with
-            | Normal data -> Some (data :> IHasCommitments).Commitments
-            | Closing data -> Some (data :> IHasCommitments).Commitments
-            | Offline _ -> None
+    | Closing
 
 type SerializedChannel =
     {
@@ -130,11 +119,12 @@ type SerializedChannel =
 
 
 module ChannelSerialization =
-    let internal Commitments (serializedChannel: SerializedChannel): Commitments =
-        UnwrapOption
-            serializedChannel.ChanState.Commitments
-            "A SerializedChannel is only created once a channel has started \
-            being established and must therefore have an initial commitment"
+    let internal Commitments (_: SerializedChannel): Commitments =
+        failwith "TMP:NIE"
+        //UnwrapOption
+        //    serializedChannel.ChanState.Commitments
+        //    "A SerializedChannel is only created once a channel has started \
+        //    being established and must therefore have an initial commitment"
 
     let IsFunder (serializedChannel: SerializedChannel): bool =
         (Commitments serializedChannel).LocalParams.IsFunder
