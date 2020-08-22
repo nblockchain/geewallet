@@ -87,6 +87,11 @@ type GShortChannelId = {
     BlockIndex: GTxIndexInBlock
 }
 
+[<StructuralComparison;StructuralEquality>]
+type GTxId = | GTxId of uint256 with
+    member x.Value = let (GTxId v) = x in v
+    static member Zero = uint256.Zero |> TxId
+
 type GNormalData =   {
                         ShortChannelId: GShortChannelId;
                         Buried: bool;
