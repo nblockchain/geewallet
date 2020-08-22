@@ -87,6 +87,18 @@ type GShortChannelId = {
     BlockIndex: GTxIndexInBlock
 }
 
+[<StructuralComparison;StructuralEquality;CLIMutable>]
+type GUnsignedChannelAnnouncementMsg = {
+    mutable Features: DotNetLightning.Serialize.FeatureBit
+    mutable ChainHash: uint256
+    mutable ShortChannelId: ShortChannelId
+    mutable NodeId1: NodeId
+    mutable NodeId2: NodeId
+    mutable BitcoinKey1: ComparablePubKey
+    mutable BitcoinKey2: ComparablePubKey
+    mutable ExcessData: byte[]
+}
+
 //[<Struct>]
 type GUInt48 = {
     UInt64: uint64
