@@ -87,7 +87,7 @@ type GShortChannelId = {
     BlockIndex: GTxIndexInBlock
 }
 
-[<Struct>]
+//[<Struct>]
 type GUInt48 = {
     UInt64: uint64
 } with
