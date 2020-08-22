@@ -114,15 +114,15 @@ type GUInt48 = {
     override this.ToString() =
         this.UInt64.ToString()
 
-    member this.GetBytesBigEndian(): array<byte> =
-        this.UInt64.GetBytesBigEndian().[2..]
+    //member this.GetBytesBigEndian(): array<byte> =
+    //    this.UInt64.GetBytesBigEndian().[2..]
 
-    static member FromBytesBigEndian(bytes6: array<byte>) =
-        if bytes6.Length <> 6 then
-            failwith "UInt48.FromBytesBigEndian expects a 6 byte array"
-        else
-            let bytes8 = Array.concat [| [| 0uy; 0uy |]; bytes6 |]
-            { UInt64 = System.UInt64.FromBytesBigEndian bytes8 }
+    //static member FromBytesBigEndian(bytes6: array<byte>) =
+    //    if bytes6.Length <> 6 then
+    //        failwith "UInt48.FromBytesBigEndian expects a 6 byte array"
+    //    else
+    //        let bytes8 = Array.concat [| [| 0uy; 0uy |]; bytes6 |]
+    //        { UInt64 = System.UInt64.FromBytesBigEndian bytes8 }
 
     static member (+) (a: UInt48, b: UInt48): UInt48 = {
         UInt64 = ((a.UInt64 <<< 8) + (b.UInt64 <<< 8)) >>> 8
