@@ -66,10 +66,12 @@ type internal ConnectedChannel =
         member self.Dispose() =
             (self.PeerNode :> IDisposable).Dispose()
 
-    static member private LoadChannel (channelStore: ChannelStore)
-                                      (nodeSecretKey: ExtKey)
-                                      (channelId: ChannelIdentifier)
-                                          : Async<SerializedChannel * MonoHopUnidirectionalChannel> = async {
+    static member private LoadChannel (_: ChannelStore)
+                                      (_: ExtKey)
+                                      (_: ChannelIdentifier)
+                                          : Async<SerializedChannel * MonoHopUnidirectionalChannel> =
+                                              failwith "tmp:NIE"
+                                              (* async {
         let serializedChannel = channelStore.LoadChannel channelId
         Infrastructure.LogDebug <| SPrintF1 "loading channel for %s" (channelId.ToString())
         let! channel =
@@ -83,7 +85,7 @@ type internal ConnectedChannel =
                 fundingTxProvider
                 serializedChannel.ChanState
         return serializedChannel, channel
-    }
+    } *)
 
     static member private Reestablish (peerNode: PeerNode)
                                       (channel: MonoHopUnidirectionalChannel)
@@ -216,7 +218,8 @@ type internal ConnectedChannel =
     }
 
     member self.SaveToWallet() =
-        let channelStore = ChannelStore self.Account
+        failwith "tmp:NIE"
+        (*        let channelStore = ChannelStore self.Account
         let serializedChannel = {
             ChannelIndex = self.ChannelIndex
             //Network = self.Channel.Network
@@ -227,6 +230,7 @@ type internal ConnectedChannel =
             //MinSafeDepth = self.MinimumDepth
         }
         channelStore.SaveChannel serializedChannel
+        *)
 
     member internal self.RemoteNodeId
         with get(): NodeId = self.Channel.RemoteNodeId

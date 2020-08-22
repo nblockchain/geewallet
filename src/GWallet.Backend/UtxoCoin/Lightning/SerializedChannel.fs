@@ -79,6 +79,21 @@ type private CommitmentsJsonConverter() =
             RemotePerCommitmentSecrets = state.RemotePerCommitmentSecrets
         })
 
+[<CustomEquality;CustomComparison>]
+type GNodeId = | GNodeId of PubKey with
+    member x.Value = let (GNodeId v) = x in v
+    interface IComparable with
+        override this.CompareTo(other) =
+            match other with
+            | :? GNodeId as n -> this.Value.CompareTo(n.Value)
+            | _ -> -1
+    override this.Equals(other) =
+        match other with
+        | :? GNodeId as n -> this.Value.Equals(n.Value)
+        | _              -> false
+    override this.GetHashCode() =
+        this.Value.GetHashCode()
+
 type SerializedChannel =
     {
         ChannelIndex: int
@@ -87,7 +102,7 @@ type SerializedChannel =
         AccountFileName: string
         // FIXME: should store just RemoteNodeEndPoint instead of CounterpartyIP+RemoteNodeId?
         //CounterpartyIP: IPEndPoint
-        RemoteNodeId: NodeId
+        RemoteNodeId: GNodeId
         // this is the amount of confirmations that the counterparty told us that the funding transaction needs
         //MinSafeDepth: BlockHeightOffset32
     }
