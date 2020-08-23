@@ -9,9 +9,92 @@ open DotNetLightning.Crypto
 
 open GWallet.Backend
 open FSharpUtil
+open FSharpUtil.UwpHacks
 
 open NBitcoin
 open Newtonsoft.Json
+
+
+type GRevocationSet private (keys: list<DotNetLightning.Utils.Primitives.CommitmentNumber * DotNetLightning.Utils.Primitives.RevocationKey>) =
+    new() = GRevocationSet(List.empty)
+
+    member this.Keys = keys
+
+    static member FromKeys (keys: list<DotNetLightning.Utils.Primitives.CommitmentNumber * DotNetLightning.Utils.Primitives.RevocationKey>): GRevocationSet =
+        let rec sanityCheck (commitmentNumbers: list<DotNetLightning.Utils.Primitives.CommitmentNumber>): bool =
+            if commitmentNumbers.IsEmpty then
+                true
+            else
+                let commitmentNumber = commitmentNumbers.Head
+                let tail = commitmentNumbers.Tail
+                match commitmentNumber.PreviousUnsubsumed with
+                | None -> tail.IsEmpty
+                | Some expectedCommitmentNumber ->
+                    if tail.IsEmpty then
+                        false
+                    else
+                        let nextCommitmentNumber = tail.Head
+                        if nextCommitmentNumber <> expectedCommitmentNumber then
+                            false
+                        else
+                            sanityCheck tail
+        let commitmentNumbers, _ = List.unzip keys
+        if not (sanityCheck commitmentNumbers) then
+            failwith <| SPrintF1 "commitment number list is malformed: %A" commitmentNumbers
+        GRevocationSet keys
+
+    member this.NextCommitmentNumber: DotNetLightning.Utils.Primitives.CommitmentNumber =
+        if this.Keys.IsEmpty then
+            DotNetLightning.Utils.Primitives.CommitmentNumber.FirstCommitment
+        else
+            let prevCommitmentNumber, _ = this.Keys.Head
+            prevCommitmentNumber.NextCommitment
+
+    member this.InsertRevocationKey (commitmentNumber: DotNetLightning.Utils.Primitives.CommitmentNumber)
+                                    (revocationKey: DotNetLightning.Utils.Primitives.RevocationKey)
+                                        : Result<GRevocationSet, DotNetLightning.Crypto.InsertRevocationKeyError> =
+        let nextCommitmentNumber = this.NextCommitmentNumber
+        if commitmentNumber <> nextCommitmentNumber then
+            Error <| DotNetLightning.Crypto.UnexpectedCommitmentNumber (commitmentNumber, nextCommitmentNumber)
+        else
+            let rec fold (keys: list<DotNetLightning.Utils.Primitives.CommitmentNumber * DotNetLightning.Utils.Primitives.RevocationKey>)
+                             : Result<GRevocationSet, DotNetLightning.Crypto.InsertRevocationKeyError> =
+                if keys.IsEmpty then
+                    let res = [commitmentNumber, revocationKey]
+                    Ok <| GRevocationSet res
+                else
+                    let storedCommitmentNumber, storedRevocationKey = keys.Head
+                    match revocationKey.DeriveChild commitmentNumber storedCommitmentNumber with
+                    | Some derivedRevocationKey ->
+                        if derivedRevocationKey <> storedRevocationKey then
+                            Error <| DotNetLightning.Crypto.KeyMismatch (storedCommitmentNumber, commitmentNumber)
+                        else
+                            fold keys.Tail
+                    | None ->
+                        let res = (commitmentNumber, revocationKey) :: keys
+                        Ok <| GRevocationSet res
+            fold this.Keys
+
+    member this.GetRevocationKey (commitmentNumber: DotNetLightning.Utils.Primitives.CommitmentNumber)
+                                     : Option<DotNetLightning.Utils.Primitives.RevocationKey> =
+        let rec fold (keys: list<DotNetLightning.Utils.Primitives.CommitmentNumber * DotNetLightning.Utils.Primitives.RevocationKey>) =
+            if keys.IsEmpty then
+                None
+            else
+                let storedCommitmentNumber, storedRevocationKey = keys.Head
+                match storedRevocationKey.DeriveChild storedCommitmentNumber commitmentNumber with
+                | Some revocationKey -> Some revocationKey
+                | None -> fold keys.Tail
+        fold this.Keys
+
+    member this.LastRevocationKey(): Option<DotNetLightning.Utils.Primitives.RevocationKey> =
+        if this.Keys.IsEmpty then
+            None
+        else
+            let _, revocationKey = this.Keys.Head
+            Some revocationKey
+
+
 
 module JsonMarshalling =
     type internal CommitmentPubKeyConverter() =
@@ -38,13 +121,13 @@ module JsonMarshalling =
             serializer.Serialize(writer, serializedCommitmentNumber)
 
     type internal RevocationSetConverter() =
-        inherit JsonConverter<RevocationSet>()
+        inherit JsonConverter<GRevocationSet>()
 
-        override this.ReadJson(reader: JsonReader, _: Type, _: RevocationSet, _: bool, serializer: JsonSerializer) =
+        override this.ReadJson(reader: JsonReader, _: Type, _: GRevocationSet, _: bool, serializer: JsonSerializer) =
             let keys = serializer.Deserialize<list<CommitmentNumber * RevocationKey>> reader
-            RevocationSet.FromKeys keys
+            GRevocationSet.FromKeys keys
 
-        override this.WriteJson(writer: JsonWriter, state: RevocationSet, serializer: JsonSerializer) =
+        override this.WriteJson(writer: JsonWriter, state: GRevocationSet, serializer: JsonSerializer) =
             let keys: list<CommitmentNumber * RevocationKey> = state.Keys
             serializer.Serialize(writer, keys)
 
@@ -55,7 +138,7 @@ module JsonMarshalling =
             let serializedChannelId = serializer.Deserialize<string> reader
             serializedChannelId
             |> NBitcoin.uint256
-            |> DotNetLightning.Utils.ChannelId
+            |> GChannelId
             |> ChannelIdentifier.FromDnl
 
         override this.WriteJson(writer: JsonWriter, state: ChannelIdentifier, serializer: JsonSerializer) =

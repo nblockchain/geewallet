@@ -11,11 +11,17 @@ open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 
+type GChannelId = | GChannelId of uint256 with
+    member x.Value = let (GChannelId v) = x in v
+
+    static member Zero = uint256.Zero |> GChannelId
+
+
 type ChannelIdentifier =
     internal {
-        DnlChannelId: DotNetLightning.Utils.ChannelId
+        DnlChannelId: GChannelId
     }
-    static member internal FromDnl (dnlChannelId: DotNetLightning.Utils.ChannelId): ChannelIdentifier =
+    static member internal FromDnl (dnlChannelId: GChannelId): ChannelIdentifier =
         { DnlChannelId = dnlChannelId }
 
     static member NewRandom(): ChannelIdentifier =
@@ -25,7 +31,7 @@ type ChannelIdentifier =
             random.NextBytes temporaryChannelIdBytes
             temporaryChannelIdBytes
             |> NBitcoin.uint256
-            |> DotNetLightning.Utils.ChannelId
+            |> GChannelId
         { DnlChannelId = dnlChannelId }
 
     static member Parse (text: string): Option<ChannelIdentifier> =
@@ -33,13 +39,14 @@ type ChannelIdentifier =
             let dnlChannelId =
                 text
                 |> NBitcoin.uint256
-                |> DotNetLightning.Utils.ChannelId
+                |> GChannelId
             Some { DnlChannelId = dnlChannelId }
         with
         | :? FormatException -> None
 
     override self.ToString() =
         self.DnlChannelId.Value.ToString()
+
 
 
 type TransactionIdentifier =
@@ -105,10 +112,7 @@ type MonoHopUnidirectionalChannel =
 
     member self.ChannelId
         with get(): Option<ChannelIdentifier> =
-            match self.Channel.State.ChannelId with
-            | Some channelId ->
-                Some <| ChannelIdentifier.FromDnl channelId
-            | None -> None
+            failwith "tmp:NIE"
 
     member internal self.ChannelKeys
         with get(): ChannelKeys =

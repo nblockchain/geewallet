@@ -164,6 +164,7 @@ type SerializedCommitmentSpec =
         ToRemote: LNMoney
     }
 
+
 type SerializedCommitments =
     {
         ChannelId: ChannelIdentifier
@@ -171,23 +172,42 @@ type SerializedCommitments =
         FundingScriptCoin: ScriptCoin
         LocalChanges: DotNetLightning.Channel.LocalChanges
         LocalCommit: DotNetLightning.Channel.LocalCommit
-        LocalNextHTLCId: DotNetLightning.Utils.Primitives.HTLCId
+        LocalNextHTLCId: HTLCId
         LocalParams: DotNetLightning.Channel.LocalParams
-        OriginChannels: Map<DotNetLightning.Utils.Primitives.HTLCId, DotNetLightning.Channel.HTLCSource>
+        OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
         RemoteChanges: DotNetLightning.Channel.RemoteChanges
         RemoteCommit: DotNetLightning.Channel.RemoteCommit
         RemoteNextCommitInfo: DotNetLightning.Channel.RemoteNextCommitInfo
-        RemoteNextHTLCId: DotNetLightning.Utils.Primitives.HTLCId
+        RemoteNextHTLCId: HTLCId
         RemoteParams: DotNetLightning.Channel.RemoteParams
-        RemotePerCommitmentSecrets: DotNetLightning.Crypto.RevocationSet
+        RemotePerCommitmentSecrets: GRevocationSet
     }
 
-type private CommitmentsJsonConverter() =
-    inherit JsonConverter<DotNetLightning.Channel.Commitments>()
 
-    override __.ReadJson(reader: JsonReader, _: Type, _: DotNetLightning.Channel.Commitments, _: bool, serializer: JsonSerializer) =
+
+type Commitments = {
+    LocalParams: DotNetLightning.Channel.LocalParams
+    RemoteParams: DotNetLightning.Channel.RemoteParams
+    ChannelFlags: uint8
+    FundingScriptCoin: ScriptCoin
+    LocalCommit: DotNetLightning.Channel.LocalCommit
+    RemoteCommit: DotNetLightning.Channel.RemoteCommit
+    LocalChanges: DotNetLightning.Channel.LocalChanges
+    RemoteChanges: DotNetLightning.Channel.RemoteChanges
+    LocalNextHTLCId: HTLCId
+    RemoteNextHTLCId: HTLCId
+    OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
+    RemoteNextCommitInfo: DotNetLightning.Channel.RemoteNextCommitInfo
+    RemotePerCommitmentSecrets: GRevocationSet
+    ChannelId: GChannelId
+}
+
+type private CommitmentsJsonConverter() =
+    inherit JsonConverter<Commitments>()
+
+    override __.ReadJson(reader: JsonReader, _: Type, _: Commitments, _: bool, serializer: JsonSerializer) =
         let serializedCommitments = serializer.Deserialize<SerializedCommitments> reader
-        let commitments: DotNetLightning.Channel.Commitments = {
+        let commitments: Commitments = {
             RemotePerCommitmentSecrets = serializedCommitments.RemotePerCommitmentSecrets
             RemoteParams = serializedCommitments.RemoteParams
             RemoteNextHTLCId = serializedCommitments.RemoteNextHTLCId
@@ -205,23 +225,25 @@ type private CommitmentsJsonConverter() =
         }
         commitments
 
-    override __.WriteJson(writer: JsonWriter, state: DotNetLightning.Channel.Commitments, serializer: JsonSerializer) =
-        serializer.Serialize(writer, {
-            ChannelId = ChannelIdentifier.FromDnl state.ChannelId
-            ChannelFlags = state.ChannelFlags
-            FundingScriptCoin = state.FundingScriptCoin
-            LocalChanges = state.LocalChanges
-            LocalCommit = state.LocalCommit
-            LocalNextHTLCId = state.LocalNextHTLCId
-            LocalParams = state.LocalParams
-            OriginChannels = state.OriginChannels
-            RemoteChanges = state.RemoteChanges
-            RemoteCommit = state.RemoteCommit
-            RemoteNextCommitInfo = state.RemoteNextCommitInfo
-            RemoteNextHTLCId = state.RemoteNextHTLCId
-            RemoteParams = state.RemoteParams
-            RemotePerCommitmentSecrets = state.RemotePerCommitmentSecrets
-        })
+    override __.WriteJson(writer: JsonWriter, state: Commitments, serializer: JsonSerializer) =
+        let comm: SerializedCommitments =
+            {
+                ChannelId = ChannelIdentifier.FromDnl state.ChannelId
+                ChannelFlags = state.ChannelFlags
+                FundingScriptCoin = state.FundingScriptCoin
+                LocalChanges = state.LocalChanges
+                LocalCommit = state.LocalCommit
+                LocalNextHTLCId = state.LocalNextHTLCId
+                LocalParams = state.LocalParams
+                OriginChannels = state.OriginChannels
+                RemoteChanges = state.RemoteChanges
+                RemoteCommit = state.RemoteCommit
+                RemoteNextCommitInfo = state.RemoteNextCommitInfo
+                RemoteNextHTLCId = state.RemoteNextHTLCId
+                RemoteParams = state.RemoteParams
+                RemotePerCommitmentSecrets = state.RemotePerCommitmentSecrets
+            }
+        serializer.Serialize(writer, comm)
 
 [<CustomEquality;CustomComparison>]
 type GNodeId = | GNodeId of PubKey with
@@ -239,19 +261,11 @@ type GNodeId = | GNodeId of PubKey with
         this.Value.GetHashCode()
 
 
-type GChannelId = | GChannelId of uint256 with
-    member x.Value = let (GChannelId v) = x in v
-
-    static member Zero = uint256.Zero |> GChannelId
 
 type IState = interface end
 type IStateData = interface end
 type IChannelStateData =
     interface inherit IStateData end
-type IHasCommitments =
-    inherit IChannelStateData
-    abstract member ChannelId: GChannelId
-    abstract member Commitments: DotNetLightning.Channel.Commitments
 
 type Prism<'a, 'b> =
     ('a -> 'b option) * ('b -> 'a -> 'a)
@@ -350,6 +364,7 @@ type ShortChannelId = {
                 TxOutIndex = outputI |> TxOutIndex
             } |> Ok
         | _ -> err
+
 
 [<CustomEquality;CustomComparison;StructuredFormatDisplay("{AsString}")>]
 type LNECDSASignature = LNECDSASignature of NBitcoin.Crypto.ECDSASignature | Empty with
@@ -614,8 +629,15 @@ with
     member this.IsNode1 =
         (this.Contents.ChannelFlags &&& 1uy) = 0uy
 
+
+
+type IHasCommitments =
+    inherit IChannelStateData
+    abstract member ChannelId: GChannelId
+    abstract member Commitments: Commitments
+
 type NormalData =   {
-                            Commitments: DotNetLightning.Channel.Commitments;
+                            Commitments: Commitments;
                             ShortChannelId: ShortChannelId;
                             Buried: bool;
                             ChannelAnnouncement: ChannelAnnouncementMsg option
@@ -631,7 +653,7 @@ type NormalData =   {
             interface IHasCommitments with
                 member this.ChannelId: GChannelId = 
                     this.ChannelId
-                member this.Commitments: DotNetLightning.Channel.Commitments = 
+                member this.Commitments: Commitments = 
                     this.Commitments
 
 type ChannelStatePhase =
@@ -673,7 +695,7 @@ type GChannelState =
             | Closing _ -> ChannelStatePhase.Closing
             | Offline _ -> Abnormal
 
-        member this.Commitments: Option<DotNetLightning.Channel.Commitments> =
+        member this.Commitments: Option<Commitments> =
             match this with
             | Normal data -> Some (data :> IHasCommitments).Commitments
             | Closing
@@ -699,7 +721,7 @@ type SerializedChannel =
 
 
 module ChannelSerialization =
-    let internal Commitments (serializedChannel: SerializedChannel): DotNetLightning.Channel.Commitments =
+    let internal Commitments (serializedChannel: SerializedChannel): Commitments =
         UnwrapOption
             serializedChannel.ChanState.Commitments
             "A SerializedChannel is only created once a channel has started \
@@ -714,8 +736,8 @@ module ChannelSerialization =
     let internal Balance (serializedChannel: SerializedChannel): DotNetLightning.Utils.LNMoney =
         (Commitments serializedChannel).LocalCommit.Spec.ToLocal
 
-    let internal SpendableBalance (serializedChannel: SerializedChannel): DotNetLightning.Utils.LNMoney =
-        (Commitments serializedChannel).SpendableBalance()
+    let internal SpendableBalance (_: SerializedChannel): DotNetLightning.Utils.LNMoney =
+        failwith "tmp:NIE"
 
     // How low the balance can go. A channel must maintain enough balance to
     // cover the channel reserve. The funder must also keep enough in the
@@ -729,6 +751,6 @@ module ChannelSerialization =
     let internal MaxBalance (_: SerializedChannel): LNMoney =
         failwith "tmp:NIE"
 
-    let ChannelId (serializedChannel: SerializedChannel): ChannelIdentifier =
-        ChannelIdentifier.FromDnl (Commitments serializedChannel).ChannelId
+    let ChannelId (_: SerializedChannel): ChannelIdentifier =
+        failwith "tmp:NIE"
 

@@ -89,27 +89,17 @@ type internal OutgoingUnfundedChannel =
                 channelIndex
                 fundingTxProvider
                 WaitForInitInternal
-        let localParams =
+        let _ =
             let funding = Money(channelCapacity.ValueToSend, MoneyUnit.BTC)
             let defaultFinalScriptPubKey = ScriptManager.CreatePayoutScript account
             channel.LocalParams funding defaultFinalScriptPubKey true
-        let temporaryChannelId = ChannelIdentifier.NewRandom()
-        let feeRate =
+        let _ = ChannelIdentifier.NewRandom()
+        let _ =
             channel.Channel.FeeEstimator.GetEstSatPer1000Weight ConfirmationTarget.Normal
         let openChannelMsgRes, channelAfterOpenChannel =
             let channelCommand =
-                let inputInitFunder = {
-                    InputInitFunder.PushMSat = LNMoney 0L
-                    TemporaryChannelId = temporaryChannelId.DnlChannelId
-                    FundingSatoshis = Money (channelCapacity.ValueToSend, MoneyUnit.BTC)
-                    InitFeeRatePerKw = feeRate
-                    FundingTxFeeRatePerKw = feeRate
-                    LocalParams = localParams
-                    RemoteInit = peerNode.InitMsg
-                    ChannelFlags = 0uy
-                    ChannelKeys = channel.ChannelKeys
-                }
-                ChannelCommand.CreateOutbound inputInitFunder
+                failwith "tmp:NIE"
+                //ChannelCommand.CreateOutbound inputInitFunder
             channel.ExecuteCommand channelCommand <| function
                 | NewOutboundChannelStarted(openChannelMsg, _)::[] -> Some openChannelMsg
                 | _ -> None
