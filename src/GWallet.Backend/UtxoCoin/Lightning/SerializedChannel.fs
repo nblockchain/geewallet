@@ -585,14 +585,43 @@ type ChannelAnnouncementMsg = {
     mutable Contents: UnsignedChannelAnnouncementMsg
 }
 
+[<CLIMutable>]
+type UnsignedChannelUpdateMsg = {
+    mutable ChainHash: uint256
+    mutable ShortChannelId: ShortChannelId
+    mutable Timestamp: uint32
+    mutable MessageFlags: uint8
+    mutable ChannelFlags: uint8
+    mutable CLTVExpiryDelta: BlockHeightOffset16
+    mutable HTLCMinimumMSat: LNMoney
+    mutable FeeBaseMSat: LNMoney
+    mutable FeeProportionalMillionths: uint32
+    mutable HTLCMaximumMSat: Option<LNMoney>
+}
+
+[<CLIMutable>]
+type ShutdownMsg = {
+    mutable ChannelId: GChannelId
+    mutable ScriptPubKey: Script
+}
+
+[<CLIMutable>]
+type ChannelUpdateMsg = {
+    mutable Signature: LNECDSASignature
+    mutable Contents: UnsignedChannelUpdateMsg
+}
+with
+    member this.IsNode1 =
+        (this.Contents.ChannelFlags &&& 1uy) = 0uy
+
 type NormalData =   {
                             Commitments: DotNetLightning.Channel.Commitments;
                             ShortChannelId: ShortChannelId;
                             Buried: bool;
                             ChannelAnnouncement: ChannelAnnouncementMsg option
-                            ChannelUpdate: DotNetLightning.Serialize.Msgs.ChannelUpdateMsg
-                            LocalShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
-                            RemoteShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
+                            ChannelUpdate: ChannelUpdateMsg
+                            LocalShutdown: ShutdownMsg option
+                            RemoteShutdown: ShutdownMsg option
                             ChannelId: GChannelId
                         }
         with
