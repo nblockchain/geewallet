@@ -119,9 +119,105 @@ type internal Direction =
             | In -> Out
             | Out -> In
 
+type PaymentHash = | PaymentHash of uint256 with
+    member x.Value = let (PaymentHash v) = x in v
+    member x.ToBytes(?lEndian) =
+        let e = defaultArg lEndian false
+        x.Value.ToBytes(e)
+
+    member x.GetRIPEMD160() =
+        let b = x.Value.ToBytes() |> Array.rev
+        Crypto.Hashes.RIPEMD160(b, b.Length)
+
+
+/// Absolute block height
+type BlockHeight = | BlockHeight of uint32 with
+    static member Zero = 0u |> BlockHeight
+    static member One = 1u |> BlockHeight
+    member x.Value = let (BlockHeight v) = x in v
+    member x.AsOffset() =
+        x.Value |> Checked.uint16 |> BlockHeightOffset16
+
+    static member (+) (a: BlockHeight, b: BlockHeightOffset16) =
+            a.Value + (uint32 b.Value ) |> BlockHeight
+    static member (+) (a: BlockHeight, b: BlockHeightOffset32) =
+            a.Value + b.Value |> BlockHeight
+
+    static member (-) (a: BlockHeight, b: BlockHeightOffset16) =
+        a.Value - (uint32 b.Value) |> BlockHeight
+    static member (-) (a: BlockHeight, b: BlockHeightOffset32) =
+        a.Value - b.Value |> BlockHeight
+
+    static member (-) (a: BlockHeight, b: BlockHeight) =
+        a.Value - (b.Value) |> BlockHeightOffset32
+
+/// **Description**
+///
+/// 16bit relative block height used for `OP_CSV` locks,
+/// Since OP_CSV allow only block number of 0 ~ 65535, it is safe
+/// to restrict into the range smaller than BlockHeight
+and BlockHeightOffset16 = | BlockHeightOffset16 of uint16 with
+    member x.Value = let (BlockHeightOffset16 v) = x in v
+
+    static member ofBlockHeightOffset32(bho32: BlockHeightOffset32) =
+        BlockHeightOffset16 (uint16 bho32.Value)
+    static member op_Implicit (v: uint16) =
+        BlockHeightOffset16 v
+    static member One = BlockHeightOffset16(1us)
+    static member Zero = BlockHeightOffset16(0us)
+    static member MaxValue = UInt16.MaxValue |> BlockHeightOffset16
+    static member (+) (a: BlockHeightOffset16, b: BlockHeightOffset16) =
+        a.Value + b.Value |> BlockHeightOffset16
+    static member (-) (a: BlockHeightOffset16, b: BlockHeightOffset16) =
+        a.Value - b.Value |> BlockHeightOffset16
+
+/// **Description**
+///
+/// 32bit relative block height. For `OP_CSV` locks, BlockHeightOffset16
+/// should be used instead.
+and BlockHeightOffset32 = | BlockHeightOffset32 of uint32 with
+    member x.Value = let (BlockHeightOffset32 v) = x in v
+
+    static member ofBlockHeightOffset16(bho16: BlockHeightOffset16) =
+        BlockHeightOffset32 (uint32 bho16.Value)
+    static member op_Implicit (v: uint32) =
+        BlockHeightOffset32 v
+    static member One = BlockHeightOffset32(1u)
+    static member Zero = BlockHeightOffset32(0u)
+    static member MaxValue = UInt32.MaxValue |> BlockHeightOffset32
+    static member (+) (a: BlockHeightOffset32, b: BlockHeightOffset32) =
+        a.Value + b.Value |> BlockHeightOffset32
+    static member (-) (a: BlockHeightOffset32, b: BlockHeightOffset32) =
+        a.Value - b.Value |> BlockHeightOffset32
+
+[<CLIMutable;StructuralComparison;StructuralEquality>]
+type OnionPacket =
+    {
+        mutable Version: uint8
+        /// This might be 33 bytes of 0uy in case of last packet
+        /// So we are not using `PubKey` to represent pubkey
+        mutable PublicKey: byte[]
+        mutable HopData: byte[]
+        mutable HMAC: uint256
+    }
+    with
+
+        member this.IsLastPacket =
+            this.HMAC = uint256.Zero
+
+[<CLIMutable;StructuralComparison;StructuralEquality>]
+type UpdateAddHTLCMsg = {
+    mutable ChannelId: GChannelId
+    mutable HTLCId: HTLCId
+    mutable Amount: LNMoney
+    mutable PaymentHash: PaymentHash
+    mutable CLTVExpiry: BlockHeight
+    mutable OnionRoutingPacket: OnionPacket
+}
+
 type DirectedHTLC = internal {
     Direction: Direction
-    Add: DotNetLightning.Serialize.Msgs.UpdateAddHTLCMsg
+    Add: UpdateAddHTLCMsg
 }
 
 type FeeRatePerKw = | FeeRatePerKw of uint32 with
@@ -272,66 +368,6 @@ type Prism<'a, 'b> =
 
 type Lens<'a, 'b> =
     ('a -> 'b) * ('b -> 'a -> 'a)
-
-/// Absolute block height
-type BlockHeight = | BlockHeight of uint32 with
-    static member Zero = 0u |> BlockHeight
-    static member One = 1u |> BlockHeight
-    member x.Value = let (BlockHeight v) = x in v
-    member x.AsOffset() =
-        x.Value |> Checked.uint16 |> BlockHeightOffset16
-
-    static member (+) (a: BlockHeight, b: BlockHeightOffset16) =
-            a.Value + (uint32 b.Value ) |> BlockHeight
-    static member (+) (a: BlockHeight, b: BlockHeightOffset32) =
-            a.Value + b.Value |> BlockHeight
-
-    static member (-) (a: BlockHeight, b: BlockHeightOffset16) =
-        a.Value - (uint32 b.Value) |> BlockHeight
-    static member (-) (a: BlockHeight, b: BlockHeightOffset32) =
-        a.Value - b.Value |> BlockHeight
-
-    static member (-) (a: BlockHeight, b: BlockHeight) =
-        a.Value - (b.Value) |> BlockHeightOffset32
-
-/// **Description**
-///
-/// 16bit relative block height used for `OP_CSV` locks,
-/// Since OP_CSV allow only block number of 0 ~ 65535, it is safe
-/// to restrict into the range smaller than BlockHeight
-and BlockHeightOffset16 = | BlockHeightOffset16 of uint16 with
-    member x.Value = let (BlockHeightOffset16 v) = x in v
-
-    static member ofBlockHeightOffset32(bho32: BlockHeightOffset32) =
-        BlockHeightOffset16 (uint16 bho32.Value)
-    static member op_Implicit (v: uint16) =
-        BlockHeightOffset16 v
-    static member One = BlockHeightOffset16(1us)
-    static member Zero = BlockHeightOffset16(0us)
-    static member MaxValue = UInt16.MaxValue |> BlockHeightOffset16
-    static member (+) (a: BlockHeightOffset16, b: BlockHeightOffset16) =
-        a.Value + b.Value |> BlockHeightOffset16
-    static member (-) (a: BlockHeightOffset16, b: BlockHeightOffset16) =
-        a.Value - b.Value |> BlockHeightOffset16
-
-/// **Description**
-///
-/// 32bit relative block height. For `OP_CSV` locks, BlockHeightOffset16
-/// should be used instead.
-and BlockHeightOffset32 = | BlockHeightOffset32 of uint32 with
-    member x.Value = let (BlockHeightOffset32 v) = x in v
-
-    static member ofBlockHeightOffset16(bho16: BlockHeightOffset16) =
-        BlockHeightOffset32 (uint32 bho16.Value)
-    static member op_Implicit (v: uint32) =
-        BlockHeightOffset32 v
-    static member One = BlockHeightOffset32(1u)
-    static member Zero = BlockHeightOffset32(0u)
-    static member MaxValue = UInt32.MaxValue |> BlockHeightOffset32
-    static member (+) (a: BlockHeightOffset32, b: BlockHeightOffset32) =
-        a.Value + b.Value |> BlockHeightOffset32
-    static member (-) (a: BlockHeightOffset32, b: BlockHeightOffset32) =
-        a.Value - b.Value |> BlockHeightOffset32
 
 type TxOutIndex = | TxOutIndex of uint16 with
     member x.Value = let (TxOutIndex v) = x in v
