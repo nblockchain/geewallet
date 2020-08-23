@@ -345,11 +345,245 @@ type ShortChannelId = {
             } |> Ok
         | _ -> err
 
+[<CustomEquality;CustomComparison;StructuredFormatDisplay("{AsString}")>]
+type LNECDSASignature = LNECDSASignature of NBitcoin.Crypto.ECDSASignature | Empty with
+    member x.Value = match x with LNECDSASignature s -> s | Empty -> failwith "Unreachable!"
+    override this.GetHashCode() = hash this.Value
+    override this.Equals(obj: obj) =
+        match obj with
+        | :? LNECDSASignature as o -> (this :> IEquatable<LNECDSASignature>).Equals(o)
+        | _ -> false
+    interface IEquatable<LNECDSASignature> with
+        member this.Equals(o: LNECDSASignature) =
+            Utils.ArrayEqual(o.ToBytesCompact(), this.ToBytesCompact())
+            
+
+    override this.ToString() =
+        SPrintF1 "LNECDSASignature (%A)" (this.ToBytesCompact())
+    member this.AsString = this.ToString()
+
+    /// ** Description **
+    ///
+    /// Bitcoin Layer 1 forces (by consensus) DER encoding for the signatures.
+    /// This is not optimal, but remaining as a rule since changing consensus is not easy.
+    /// However in layer2, there are no such rules. So we use more optimal serialization by
+    /// This function.
+    /// Note it does not include the recovery id. so its always 64 bytes
+    ///
+    /// **Output**
+    ///
+    /// (serialized R value + S value) in byte array.
+    member this.ToBytesCompact() =
+        this.Value.ToCompact()
+
+    /// Logic does not really matter here. This is just for making life easier by enabling automatic implementation
+    /// of `StructuralComparison` for wrapper types.
+    member this.CompareTo(e: LNECDSASignature) =
+        let a = this.ToBytesCompact() |> fun x -> Utils.ToUInt64(x, true)
+        let b = e.ToBytesCompact() |>  fun x -> Utils.ToUInt64(x, true)
+        a.CompareTo(b)
+    interface IComparable with
+        member this.CompareTo(o: obj) =
+            match o with
+            | :? LNECDSASignature as e -> this.CompareTo(e)
+            | _ -> -1
+            
+    member this.ToDER() =
+        this.Value.ToDER()
+        
+    /// Read 64 bytes as r(32 bytes) and s(32 bytes) value
+    /// If `withRecId` is `true`, skip first 1 byte
+    static member FromBytesCompact(bytes: byte [], ?withRecId: bool) =
+        let withRecId = defaultArg withRecId false
+        if withRecId && bytes.Length <> 65 then
+            invalidArg "bytes" "ECDSASignature specified to have recovery id, but it was not 65 bytes length"
+        else if (not withRecId) && bytes.Length <> 64 then
+            invalidArg "bytes" "ECDSASignature was not specified to have recovery id, but it was not 64 bytes length."
+        else
+            let data = if withRecId then bytes.[1..] else bytes
+            match NBitcoin.Crypto.ECDSASignature.TryParseFromCompact data with
+            | true, x -> LNECDSASignature x
+            | _ -> failwith "failed to parse compact ecdsa signature __" //data
+
+    static member op_Implicit (ec: NBitcoin.Crypto.ECDSASignature) =
+        ec |> LNECDSASignature
+
+        (*  
+module BitArrayEx =
+    let ToByteArray (ba: System.Collections.BitArray) =
+        if ba.Length = 0 then [||] else
+
+        let leadingZeros =
+            match (Seq.tryFindIndex (fun b -> b) (Seq.cast ba)) with
+            | Some i -> i
+            | None -> ba.Length
+        let trueLength = ba.Length - leadingZeros
+        let desiredLength = ((trueLength + 7) / 8) * 8
+        let difference = desiredLength - ba.Length
+        let bitArray =
+            if difference < 0 then
+                // Drop zeroes from the front of the array until we have a multiple of 8 bits
+                let shortenedBitArray = System.Collections.BitArray(desiredLength)
+                for i in 0 .. (desiredLength - 1) do
+                    shortenedBitArray.[i] <- ba.[i - difference]
+                shortenedBitArray
+            else if difference > 0 then
+                // Push zeroes to the front of the array until we have a multiple of 8 bits
+                let lengthenedBitArray = System.Collections.BitArray(desiredLength)
+                for i in 0 .. (ba.Length - 1) do
+                    lengthenedBitArray.[i + difference] <- ba.[i]
+                lengthenedBitArray
+            else
+                ba
+
+        // Copy the bit array to a byte array, then flip the bytes.
+        let byteArray: byte[] = Array.zeroCreate(desiredLength / 8)
+        bitArray.CopyTo(byteArray, 0)
+        failwith "tmp:NIE"
+    let FromBytes(ba: byte[]) =
+        ba |> Array.map(fun b -> b.FlipBit()) |> BitArray
+
+[<StructuredFormatDisplay("{PrettyPrint}")>]
+type FeatureBit private (bitArray) =
+    member val BitArray: System.Collections.BitArray = bitArray with get, set
+    member this.ByteArray
+        with get() =
+            BitArrayEx.ToByteArray bitArray
+        and set(bytes: byte[]) =
+            this.BitArray <- System.Collections.BitArray.FromBytes(bytes)
+    static member Zero =
+        let b: bool array = [||]
+        b |> System.Collections.BitArray |> FeatureBit
+    static member TryCreate(bytes: byte[]) =
+        FeatureBit.TryCreate(BitArray.FromBytes(bytes))
+
+    static member TryCreate(v: int64) =
+        BitArray.FromInt64(v) |> FeatureBit.TryCreate
+        
+    static member CreateUnsafe(v: int64) =
+        BitArray.FromInt64(v) |> FeatureBit.CreateUnsafe
+        
+    static member private Unwrap(r: Result<FeatureBit, _>) =
+        match r with
+        | Error(FeatureError.UnknownRequiredFeature(e))
+        | Error(FeatureError.BogusFeatureDependency(e)) -> raise <| FormatException(e)
+        | Ok fb -> fb
+    /// Throws FormatException
+    /// TODO: ugliness of this method is caused by binary serialization throws error instead of returning Result
+    /// We should refactor serialization altogether at some point
+    static member CreateUnsafe(bytes: byte[]) =
+        FeatureBit.TryCreate bytes |> FeatureBit.Unwrap
+        
+    static member CreateUnsafe(ba: BitArray) =
+        FeatureBit.TryCreate ba |> FeatureBit.Unwrap
+    static member TryParse(str: string) =
+        result {
+            let! ba = BitArray.TryParse str
+            return! ba |> FeatureBit.TryCreate |> Result.mapError(fun fe -> fe.ToString())
+        }
+        
+    override this.ToString() =
+        this.BitArray.PrintBits()
+        
+    member this.SetFeature(feature: Feature) (support: FeaturesSupport) (on: bool): unit =
+        let index = feature.BitPosition support
+        let length = this.BitArray.Length
+        if length <= index then
+            this.BitArray.Length <- index + 1
+
+            //this.BitArray.RightShift(index - length + 1)
+
+            // NOTE: Calling RightShift gives me:
+            // "The field, constructor or member 'RightShift' is not defined."
+            // So I just re-implement it here
+            for i in (length - 1) .. -1 .. 0 do
+                this.BitArray.[i + index - length + 1] <- this.BitArray.[i]
+
+            // NOTE: this probably wouldn't be necessary if we were using
+            // RightShift, but the dotnet docs don't actualy specify that
+            // RightShift sets the leading bits to zero.
+            for i in 0 .. (index - length) do
+                this.BitArray.[i] <- false
+        this.BitArray.[this.BitArray.Length - index - 1] <- on
+
+    member this.HasFeature(f, ?featureType) =
+        Feature.hasFeature this.BitArray (f) (featureType)
+        
+    member this.PrettyPrint =
+        let sb = StringBuilder()
+        let reversed = this.BitArray.Reverse()
+        for f in Feature.allFeatures do
+            if (reversed.Length > f.MandatoryBitPosition) && (reversed.[f.MandatoryBitPosition]) then
+                sb.Append(SPrintF1 "%s is mandatory. " f.RfcName) |> ignore
+            else if (reversed.Length > f.OptionalBitPosition) && (reversed.[f.OptionalBitPosition]) then
+                sb.Append(SPrintF1 "%s is optional. " f.RfcName) |> ignore
+            else
+                sb.Append(SPrintF1 "%s is non supported. " f.RfcName) |> ignore
+        sb.ToString()
+    
+    member this.ToByteArray() = this.ByteArray
+        
+    // --- equality and comparison members ----
+    member this.Equals(o: FeatureBit) =
+        this.ByteArray = o.ByteArray
+
+    interface IEquatable<FeatureBit> with
+        member this.Equals(o: FeatureBit) = this.Equals(o)
+    override this.Equals(other: obj) =
+        match other with
+        | :? FeatureBit as o -> this.Equals(o)
+        | _ -> false
+        
+    override this.GetHashCode() =
+        let mutable num = 0
+        for i in this.BitArray do
+            num <- -1640531527 + i.GetHashCode() + ((num <<< 6) + (num >>> 2))
+        num
+        
+    member this.CompareTo(o: FeatureBit) =
+        if (this.BitArray.Length > o.BitArray.Length) then -1 else
+        if (this.BitArray.Length < o.BitArray.Length) then 1 else
+        let mutable result = 0
+        for i in 0..this.BitArray.Length - 1 do
+            if      (this.BitArray.[i] > o.BitArray.[i]) then
+                result <- -1
+            else if (this.BitArray.[i] < o.BitArray.[i]) then
+                result <- 1
+        result
+    interface IComparable with
+        member this.CompareTo(o) =
+            match o with
+            | :? FeatureBit as fb -> this.CompareTo(fb)
+            | _ -> -1
+    // --------
+*)
+
+[<StructuralComparison;StructuralEquality;CLIMutable>]
+type UnsignedChannelAnnouncementMsg = {
+    mutable Features: DotNetLightning.Serialize.FeatureBit
+    mutable ChainHash: uint256
+    mutable ShortChannelId: ShortChannelId
+    mutable NodeId1: DotNetLightning.Utils.Primitives.NodeId
+    mutable NodeId2: DotNetLightning.Utils.Primitives.NodeId
+    mutable BitcoinKey1: DotNetLightning.Utils.Primitives.ComparablePubKey
+    mutable BitcoinKey2: DotNetLightning.Utils.Primitives.ComparablePubKey
+    mutable ExcessData: byte[]
+}
+
+[<CLIMutable>]
+type ChannelAnnouncementMsg = {
+    mutable NodeSignature1: LNECDSASignature
+    mutable NodeSignature2: LNECDSASignature
+    mutable BitcoinSignature1: LNECDSASignature
+    mutable BitcoinSignature2: LNECDSASignature
+    mutable Contents: UnsignedChannelAnnouncementMsg
+}
+
 type NormalData =   {
                             Commitments: DotNetLightning.Channel.Commitments;
                             ShortChannelId: ShortChannelId;
                             Buried: bool;
-                            ChannelAnnouncement: DotNetLightning.Serialize.Msgs.ChannelAnnouncementMsg option
+                            ChannelAnnouncement: ChannelAnnouncementMsg option
                             ChannelUpdate: DotNetLightning.Serialize.Msgs.ChannelUpdateMsg
                             LocalShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
                             RemoteShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
