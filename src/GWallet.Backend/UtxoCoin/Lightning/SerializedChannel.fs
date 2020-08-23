@@ -238,13 +238,19 @@ type GNodeId = | GNodeId of PubKey with
     override this.GetHashCode() =
         this.Value.GetHashCode()
 
+
+type GChannelId = | GChannelId of uint256 with
+    member x.Value = let (GChannelId v) = x in v
+
+    static member Zero = uint256.Zero |> GChannelId
+
 type IState = interface end
 type IStateData = interface end
 type IChannelStateData =
     interface inherit IStateData end
 type IHasCommitments =
     inherit IChannelStateData
-    abstract member ChannelId: DotNetLightning.Utils.ChannelId
+    abstract member ChannelId: GChannelId
     abstract member Commitments: DotNetLightning.Channel.Commitments
 
 type Prism<'a, 'b> =
@@ -587,14 +593,14 @@ type NormalData =   {
                             ChannelUpdate: DotNetLightning.Serialize.Msgs.ChannelUpdateMsg
                             LocalShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
                             RemoteShutdown: DotNetLightning.Serialize.Msgs.ShutdownMsg option
-                            ChannelId: DotNetLightning.Utils.ChannelId
+                            ChannelId: GChannelId
                         }
         with
             static member Commitments_: Lens<_, _> =
                 (fun nd -> nd.Commitments), (fun v nd -> { nd with Commitments = v })
 
             interface IHasCommitments with
-                member this.ChannelId: DotNetLightning.Utils.ChannelId = 
+                member this.ChannelId: GChannelId = 
                     this.ChannelId
                 member this.Commitments: DotNetLightning.Channel.Commitments = 
                     this.Commitments
@@ -626,7 +632,7 @@ type GChannelState =
             (fun v cc -> match cc with
                          | Normal _ -> Normal v
                          | _ -> cc )
-        member this.ChannelId: Option<DotNetLightning.Utils.ChannelId> =
+        member this.ChannelId: Option<GChannelId> =
             match this with
             | Normal data -> Some data.ChannelId
             | Closing
