@@ -615,15 +615,46 @@ type FeatureBit private (bitArray) =
     // --------
 *)
 
+[<CustomEquality;CustomComparison>]
+type NodeId = | NodeId of PubKey with
+    member x.Value = let (NodeId v) = x in v
+    interface IComparable with
+        override this.CompareTo(other) =
+            match other with
+            | :? NodeId as n -> this.Value.CompareTo(n.Value)
+            | _ -> -1
+    override this.Equals(other) =
+        match other with
+        | :? NodeId as n -> this.Value.Equals(n.Value)
+        | _              -> false
+    override this.GetHashCode() =
+        this.Value.GetHashCode()
+
+[<CustomEquality;CustomComparison>]
+type ComparablePubKey = ComparablePubKey of PubKey with
+    member x.Value = let (ComparablePubKey v) = x in v
+    interface IComparable with
+        override this.CompareTo(other) =
+            match other with
+            | :? ComparablePubKey as n -> this.Value.CompareTo(n.Value)
+            | _ -> -1
+    override this.GetHashCode() = this.Value.GetHashCode()
+    override this.Equals(other) =
+        match other with
+        | :? ComparablePubKey as n -> this.Value.Equals(n.Value)
+        | _              -> false
+    static member op_Implicit (pk: PubKey) =
+        pk |> ComparablePubKey
+
 [<StructuralComparison;StructuralEquality;CLIMutable>]
 type UnsignedChannelAnnouncementMsg = {
     mutable Features: DotNetLightning.Serialize.FeatureBit
     mutable ChainHash: uint256
     mutable ShortChannelId: ShortChannelId
-    mutable NodeId1: DotNetLightning.Utils.Primitives.NodeId
-    mutable NodeId2: DotNetLightning.Utils.Primitives.NodeId
-    mutable BitcoinKey1: DotNetLightning.Utils.Primitives.ComparablePubKey
-    mutable BitcoinKey2: DotNetLightning.Utils.Primitives.ComparablePubKey
+    mutable NodeId1: NodeId
+    mutable NodeId2: NodeId
+    mutable BitcoinKey1: ComparablePubKey
+    mutable BitcoinKey2: ComparablePubKey
     mutable ExcessData: byte[]
 }
 
