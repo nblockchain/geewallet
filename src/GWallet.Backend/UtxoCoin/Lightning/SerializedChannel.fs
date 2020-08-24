@@ -596,7 +596,7 @@ type SerializedCommitments =
         RemoteNextCommitInfo: RemoteNextCommitInfo
         RemoteNextHTLCId: HTLCId
         RemoteParams: RemoteParams
-        RemotePerCommitmentSecrets: GRevocationSet
+        RemotePerCommitmentSecrets: RevocationSet
     }
 
 type Commitments = {
@@ -612,7 +612,7 @@ type Commitments = {
     RemoteNextHTLCId: HTLCId
     OriginChannels: Map<HTLCId, HTLCSource>
     RemoteNextCommitInfo: RemoteNextCommitInfo
-    RemotePerCommitmentSecrets: GRevocationSet
+    RemotePerCommitmentSecrets: RevocationSet
     ChannelId: GChannelId
 }
 

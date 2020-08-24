@@ -4,9 +4,6 @@ open System
 open System.Net
 open System.Collections
 
-//open DotNetLightning.Serialize
-//open DotNetLightning.Utils
-
 open GWallet.Backend
 open FSharpUtil
 open FSharpUtil.UwpHacks
@@ -495,12 +492,12 @@ type RevocationKey(key: Key) =
         CommitmentPubKey this.Key.PubKey
 
 
-type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
-    new() = GRevocationSet(List.empty)
+type RevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
+    new() = RevocationSet(List.empty)
 
     member this.Keys = keys
 
-    static member FromKeys (keys: list<CommitmentNumber * RevocationKey>): GRevocationSet =
+    static member FromKeys (keys: list<CommitmentNumber * RevocationKey>): RevocationSet =
         let rec sanityCheck (commitmentNumbers: list<CommitmentNumber>): bool =
             if commitmentNumbers.IsEmpty then
                 true
@@ -521,7 +518,7 @@ type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
         let commitmentNumbers, _ = List.unzip keys
         if not (sanityCheck commitmentNumbers) then
             failwith <| SPrintF1 "commitment number list is malformed: %A" commitmentNumbers
-        GRevocationSet keys
+        RevocationSet keys
 
     member this.NextCommitmentNumber: CommitmentNumber =
         if this.Keys.IsEmpty then
@@ -557,13 +554,13 @@ module JsonMarshalling =
             serializer.Serialize(writer, serializedCommitmentNumber)
 
     type internal RevocationSetConverter() =
-        inherit JsonConverter<GRevocationSet>()
+        inherit JsonConverter<RevocationSet>()
 
-        override this.ReadJson(reader: JsonReader, _: Type, _: GRevocationSet, _: bool, serializer: JsonSerializer) =
+        override this.ReadJson(reader: JsonReader, _: Type, _: RevocationSet, _: bool, serializer: JsonSerializer) =
             let keys = serializer.Deserialize<list<CommitmentNumber * RevocationKey>> reader
-            GRevocationSet.FromKeys keys
+            RevocationSet.FromKeys keys
 
-        override this.WriteJson(writer: JsonWriter, state: GRevocationSet, serializer: JsonSerializer) =
+        override this.WriteJson(writer: JsonWriter, state: RevocationSet, serializer: JsonSerializer) =
             let keys: list<CommitmentNumber * RevocationKey> = state.Keys
             serializer.Serialize(writer, keys)
 
