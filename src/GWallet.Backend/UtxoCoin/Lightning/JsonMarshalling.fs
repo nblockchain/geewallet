@@ -233,7 +233,7 @@ type Feature = private {
 type FeatureError =
     | UnknownRequiredFeature of string
     | BogusFeatureDependency of string
-    member this.Message =
+    member this.Message() =
         match this with
         | UnknownRequiredFeature msg
         | BogusFeatureDependency msg -> msg
