@@ -339,24 +339,23 @@ type FeatureBit private (bitArray: BitArray) =
             num <- -1640531527 + i.GetHashCode() + ((num <<< 6) + (num >>> 2))
         num
 
-    static member TryCreate(ba: BitArray): Result<FeatureBit,FeatureError> =
-        ResultCEExtensions.result {
-            do! FeatureInternal.validateFeatureGraph(ba)
-            if not <| FeatureInternal.areSupported(ba) then
-                return!
-                    sprintf "feature bits (%s) contains a mandatory flag that we don't know!" (BclEx.PrintBits ba)
-                    |> FeatureError.UnknownRequiredFeature
-                    |> Error
-            else
-                return FeatureBit ba
-        }
-
     static member TryParse(str: string): Result<FeatureBit,string> =
+        let tryCreate(ba: BitArray): Result<FeatureBit,FeatureError> =
+            ResultCEExtensions.result {
+                do! FeatureInternal.validateFeatureGraph(ba)
+                if not <| FeatureInternal.areSupported(ba) then
+                    return!
+                        sprintf "feature bits (%s) contains a mandatory flag that we don't know!" (BclEx.PrintBits ba)
+                        |> FeatureError.UnknownRequiredFeature
+                        |> Error
+                else
+                    return FeatureBit ba
+            }
         let ba = BclEx.TryParse str
         match ba with
         | Error x -> Error x
         | Ok v ->
-            let fb = v |> FeatureBit.TryCreate
+            let fb = v |> tryCreate
             match fb with
             | Error fe -> Error <| fe.ToString()
             | Ok vv -> Ok vv
