@@ -4,8 +4,8 @@ open System
 open System.Net
 open System.Collections
 
-open DotNetLightning.Serialize
-open DotNetLightning.Utils
+//open DotNetLightning.Serialize
+//open DotNetLightning.Utils
 
 open GWallet.Backend
 open FSharpUtil
@@ -161,6 +161,11 @@ module ResultCEExtensions =
 
     let result = ResultCE.ResultBuilder()
 
+
+type FeaturesSupport =
+    | Mandatory
+    | Optional
+
 /// Feature bits specified in BOLT 9.
 /// It has no constructors, use its static members to instantiate
 type Feature = private {
@@ -221,6 +226,14 @@ type Feature = private {
         RfcName = "basic_mpp"
         Mandatory = 16
     }
+
+type FeatureError =
+    | UnknownRequiredFeature of msg: string
+    | BogusFeatureDependency of msg: string
+    member this.Message =
+        match this with
+        | UnknownRequiredFeature msg
+        | BogusFeatureDependency msg -> msg
 
 module internal FeatureInternal =
     /// Features may depend on other features, as specified in BOLT 9
@@ -466,6 +479,11 @@ type CommitmentNumber(index: UInt48) =
             Some <| CommitmentNumber(UInt48.FromUInt64 prev)
 
 
+
+type [<StructAttribute>] CommitmentPubKey(pubKey: PubKey) =
+        member this.PubKey = pubKey
+
+
 [<StructAttribute>]
 type RevocationKey(key: Key) =
     member this.Key = key
@@ -513,8 +531,6 @@ type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
             prevCommitmentNumber.NextCommitment
 
 
-type [<StructAttribute>] CommitmentPubKey(pubKey: PubKey) =
-        member this.PubKey = pubKey
 
 module JsonMarshalling =
     type internal CommitmentPubKeyConverter() =
