@@ -277,9 +277,21 @@ type HTLCSuccessTx = {
     PaymentHash: PaymentHash
 }
 
+type CommitmentSpec = {
+    HTLCs: Map<HTLCId, DirectedHTLC>
+    FeeRatePerKw: FeeRatePerKw
+    ToLocal: LNMoney
+    ToRemote: LNMoney
+}
+    with
+
+        member this.TotalFunds =
+            this.ToLocal + this.ToRemote + (this.HTLCs |> Seq.sumBy(fun h -> h.Value.Add.Amount))
+
+
 type LocalCommit = {
     Index: DotNetLightning.Utils.Primitives.CommitmentNumber
-    Spec: DotNetLightning.Transactions.CommitmentSpec
+    Spec: CommitmentSpec
     PublishableTxs: PublishableTxs
     /// These are not redeemable on-chain until we get a corresponding preimage.
     PendingHTLCSuccessTxs: HTLCSuccessTx list
@@ -291,9 +303,11 @@ type GTxId = | GTxId of uint256 with
     static member Zero = uint256.Zero |> GTxId
 
 
+
+
 type RemoteCommit = {
     Index: DotNetLightning.Utils.Primitives.CommitmentNumber
-    Spec: DotNetLightning.Transactions.CommitmentSpec
+    Spec: CommitmentSpec
     TxId: GTxId
     RemotePerCommitmentPoint: DotNetLightning.Utils.Primitives.CommitmentPubKey
 }
