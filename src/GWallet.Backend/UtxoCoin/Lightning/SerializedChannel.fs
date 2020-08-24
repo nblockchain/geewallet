@@ -305,12 +305,11 @@ type GTxId = | GTxId of uint256 with
     static member Zero = uint256.Zero |> GTxId
 
 
-
 type RemoteCommit = {
     Index: CommitmentNumber
     Spec: CommitmentSpec
     TxId: GTxId
-    RemotePerCommitmentPoint: DotNetLightning.Utils.Primitives.CommitmentPubKey
+    RemotePerCommitmentPoint: CommitmentPubKey
 }
 
 
@@ -450,7 +449,7 @@ type WaitingForRevocation = {
 
 type RemoteNextCommitInfo =
     | Waiting of WaitingForRevocation
-    | Revoked of DotNetLightning.Utils.Primitives.CommitmentPubKey
+    | Revoked of CommitmentPubKey
 
 
 type ILightningMsg = interface end

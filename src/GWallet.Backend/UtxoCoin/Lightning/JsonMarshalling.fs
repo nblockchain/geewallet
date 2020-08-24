@@ -253,6 +253,17 @@ type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
             Some revocationKey
 
 
+type [<StructAttribute>] CommitmentPubKey(pubKey: PubKey) =
+        member this.PubKey = pubKey
+
+        static member BytesLength: int =
+            failwith "tmp:NIE"
+
+        static member FromBytes(bytes: array<byte>): CommitmentPubKey =
+            CommitmentPubKey <| PubKey bytes
+
+        member this.ToByteArray(): array<byte> =
+            this.PubKey.ToBytes()
 
 module JsonMarshalling =
     type internal CommitmentPubKeyConverter() =
