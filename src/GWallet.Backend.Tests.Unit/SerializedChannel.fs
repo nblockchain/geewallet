@@ -143,7 +143,8 @@ type SerializedChannelTest() =
               },
               "maxAcceptedHTLCs": 10,
               "isFunder": true,
-              "defaultFinalScriptPubKey": "a914ee63c76cda9f5a4928a24710e3b950f2bed0bcc787"
+              "defaultFinalScriptPubKey": "a914ee63c76cda9f5a4928a24710e3b950f2bed0bcc787",
+              "features": "10"
             },
             "originChannels": {},
             "remoteChanges": {
