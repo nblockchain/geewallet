@@ -347,7 +347,7 @@ type LocalParams = {
     MaxAcceptedHTLCs: uint16
     IsFunder: bool
     DefaultFinalScriptPubKey: Script
-    Features: DotNetLightning.Serialize.FeatureBit
+    Features: FeatureBit
 }
 
 type RemoteParams = {
@@ -363,7 +363,7 @@ type RemoteParams = {
     RevocationBasePoint: PubKey
     DelayedPaymentBasePoint: PubKey
     HTLCBasePoint: PubKey
-    Features: DotNetLightning.Serialize.FeatureBit
+    Features: FeatureBit
     MinimumDepth: BlockHeightOffset32
 }
 
@@ -662,158 +662,6 @@ type private CommitmentsJsonConverter() =
 
 
 
-
-        (*  
-module BitArrayEx =
-    let ToByteArray (ba: System.Collections.BitArray) =
-        if ba.Length = 0 then [||] else
-
-        let leadingZeros =
-            match (Seq.tryFindIndex (fun b -> b) (Seq.cast ba)) with
-            | Some i -> i
-            | None -> ba.Length
-        let trueLength = ba.Length - leadingZeros
-        let desiredLength = ((trueLength + 7) / 8) * 8
-        let difference = desiredLength - ba.Length
-        let bitArray =
-            if difference < 0 then
-                // Drop zeroes from the front of the array until we have a multiple of 8 bits
-                let shortenedBitArray = System.Collections.BitArray(desiredLength)
-                for i in 0 .. (desiredLength - 1) do
-                    shortenedBitArray.[i] <- ba.[i - difference]
-                shortenedBitArray
-            else if difference > 0 then
-                // Push zeroes to the front of the array until we have a multiple of 8 bits
-                let lengthenedBitArray = System.Collections.BitArray(desiredLength)
-                for i in 0 .. (ba.Length - 1) do
-                    lengthenedBitArray.[i + difference] <- ba.[i]
-                lengthenedBitArray
-            else
-                ba
-
-        // Copy the bit array to a byte array, then flip the bytes.
-        let byteArray: byte[] = Array.zeroCreate(desiredLength / 8)
-        bitArray.CopyTo(byteArray, 0)
-        failwith "tmp:NIE"
-    let FromBytes(ba: byte[]) =
-        ba |> Array.map(fun b -> b.FlipBit()) |> BitArray
-
-[<StructuredFormatDisplay("{PrettyPrint}")>]
-type FeatureBit private (bitArray) =
-    member val BitArray: System.Collections.BitArray = bitArray with get, set
-    member this.ByteArray
-        with get() =
-            BitArrayEx.ToByteArray bitArray
-        and set(bytes: byte[]) =
-            this.BitArray <- System.Collections.BitArray.FromBytes(bytes)
-    static member Zero =
-        let b: bool array = [||]
-        b |> System.Collections.BitArray |> FeatureBit
-    static member TryCreate(bytes: byte[]) =
-        FeatureBit.TryCreate(BitArray.FromBytes(bytes))
-
-    static member TryCreate(v: int64) =
-        BitArray.FromInt64(v) |> FeatureBit.TryCreate
-        
-    static member CreateUnsafe(v: int64) =
-        BitArray.FromInt64(v) |> FeatureBit.CreateUnsafe
-        
-    static member private Unwrap(r: Result<FeatureBit, _>) =
-        match r with
-        | Error(FeatureError.UnknownRequiredFeature(e))
-        | Error(FeatureError.BogusFeatureDependency(e)) -> raise <| FormatException(e)
-        | Ok fb -> fb
-    /// Throws FormatException
-    /// TODO: ugliness of this method is caused by binary serialization throws error instead of returning Result
-    /// We should refactor serialization altogether at some point
-    static member CreateUnsafe(bytes: byte[]) =
-        FeatureBit.TryCreate bytes |> FeatureBit.Unwrap
-        
-    static member CreateUnsafe(ba: BitArray) =
-        FeatureBit.TryCreate ba |> FeatureBit.Unwrap
-    static member TryParse(str: string) =
-        result {
-            let! ba = BitArray.TryParse str
-            return! ba |> FeatureBit.TryCreate |> Result.mapError(fun fe -> fe.ToString())
-        }
-        
-    override this.ToString() =
-        this.BitArray.PrintBits()
-        
-    member this.SetFeature(feature: Feature) (support: FeaturesSupport) (on: bool): unit =
-        let index = feature.BitPosition support
-        let length = this.BitArray.Length
-        if length <= index then
-            this.BitArray.Length <- index + 1
-
-            //this.BitArray.RightShift(index - length + 1)
-
-            // NOTE: Calling RightShift gives me:
-            // "The field, constructor or member 'RightShift' is not defined."
-            // So I just re-implement it here
-            for i in (length - 1) .. -1 .. 0 do
-                this.BitArray.[i + index - length + 1] <- this.BitArray.[i]
-
-            // NOTE: this probably wouldn't be necessary if we were using
-            // RightShift, but the dotnet docs don't actualy specify that
-            // RightShift sets the leading bits to zero.
-            for i in 0 .. (index - length) do
-                this.BitArray.[i] <- false
-        this.BitArray.[this.BitArray.Length - index - 1] <- on
-
-    member this.HasFeature(f, ?featureType) =
-        Feature.hasFeature this.BitArray (f) (featureType)
-        
-    member this.PrettyPrint =
-        let sb = StringBuilder()
-        let reversed = this.BitArray.Reverse()
-        for f in Feature.allFeatures do
-            if (reversed.Length > f.MandatoryBitPosition) && (reversed.[f.MandatoryBitPosition]) then
-                sb.Append(SPrintF1 "%s is mandatory. " f.RfcName) |> ignore
-            else if (reversed.Length > f.OptionalBitPosition) && (reversed.[f.OptionalBitPosition]) then
-                sb.Append(SPrintF1 "%s is optional. " f.RfcName) |> ignore
-            else
-                sb.Append(SPrintF1 "%s is non supported. " f.RfcName) |> ignore
-        sb.ToString()
-    
-    member this.ToByteArray() = this.ByteArray
-        
-    // --- equality and comparison members ----
-    member this.Equals(o: FeatureBit) =
-        this.ByteArray = o.ByteArray
-
-    interface IEquatable<FeatureBit> with
-        member this.Equals(o: FeatureBit) = this.Equals(o)
-    override this.Equals(other: obj) =
-        match other with
-        | :? FeatureBit as o -> this.Equals(o)
-        | _ -> false
-        
-    override this.GetHashCode() =
-        let mutable num = 0
-        for i in this.BitArray do
-            num <- -1640531527 + i.GetHashCode() + ((num <<< 6) + (num >>> 2))
-        num
-        
-    member this.CompareTo(o: FeatureBit) =
-        if (this.BitArray.Length > o.BitArray.Length) then -1 else
-        if (this.BitArray.Length < o.BitArray.Length) then 1 else
-        let mutable result = 0
-        for i in 0..this.BitArray.Length - 1 do
-            if      (this.BitArray.[i] > o.BitArray.[i]) then
-                result <- -1
-            else if (this.BitArray.[i] < o.BitArray.[i]) then
-                result <- 1
-        result
-    interface IComparable with
-        member this.CompareTo(o) =
-            match o with
-            | :? FeatureBit as fb -> this.CompareTo(fb)
-            | _ -> -1
-    // --------
-*)
-
-
 [<CustomEquality;CustomComparison>]
 type ComparablePubKey = ComparablePubKey of PubKey with
     member x.Value = let (ComparablePubKey v) = x in v
@@ -832,7 +680,7 @@ type ComparablePubKey = ComparablePubKey of PubKey with
 
 [<StructuralComparison;StructuralEquality;CLIMutable>]
 type UnsignedChannelAnnouncementMsg = {
-    mutable Features: DotNetLightning.Serialize.FeatureBit
+    mutable Features: FeatureBit
     mutable ChainHash: uint256
     mutable ShortChannelId: ShortChannelId
     mutable NodeId1: NodeId

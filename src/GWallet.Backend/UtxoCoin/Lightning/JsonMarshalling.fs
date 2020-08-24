@@ -2,6 +2,7 @@ namespace GWallet.Backend.UtxoCoin.Lightning
 
 open System
 open System.Net
+open System.Collections
 
 open DotNetLightning.Serialize
 open DotNetLightning.Utils
@@ -15,7 +16,409 @@ open NBitcoin
 open Newtonsoft.Json
 
 
+module BclEx =
 
+    let ResOfChoice c =
+      match c with
+      | Choice1Of2 x -> Ok x
+      | Choice2Of2 x -> Error x
+
+    let FlipBit (a: System.Byte) =
+        ((a &&& 0x1uy)  <<< 7) ||| ((a &&& 0x2uy)  <<< 5) |||
+        ((a &&& 0x4uy)  <<< 3) ||| ((a &&& 0x8uy)  <<< 1) |||
+        ((a &&& 0x10uy) >>> 1) ||| ((a &&& 0x20uy) >>> 3) |||
+        ((a &&& 0x40uy) >>> 5) ||| ((a &&& 0x80uy) >>> 7)
+
+    let PrintBits (ba: BitArray) =
+        let sb = System.Text.StringBuilder()
+        for b in ba do
+            (if b then "1" else "0") |> sb.Append |> ignore
+        sb.ToString()
+
+    let FromBytes(ba: byte[]) =
+        ba |> Array.map(fun b -> FlipBit b) |> BitArray
+
+    let TryParse(str: string): Result<BitArray,string> =
+        let mutable str = str.Trim().Clone() :?> string
+        if str.StartsWith("0b", StringComparison.OrdinalIgnoreCase) then
+            str <- str.Substring("0b".Length)
+        let array = Array.zeroCreate(str.Length)
+        let mutable hasFunnyChar = -1
+        for i in 0..str.Length - 1 do
+            if hasFunnyChar <> -1 then () else
+            if str.[i] = '0' then array.[i] <- false else
+            if str.[i] = '1' then array.[i] <- true else
+            hasFunnyChar <- i
+        if hasFunnyChar <> -1 then
+            sprintf "Failed to parse BitArray! it must have only '0' or '1' but we found %A" str.[hasFunnyChar]
+            |> Error
+        else
+            BitArray(array) |> Ok
+
+    let Reverse this =
+        let boolArray: array<bool> = Array.ofSeq (Seq.cast this)
+        Array.Reverse boolArray
+        BitArray(boolArray)
+
+    let ToByteArray (ba: BitArray): byte[] =
+        if ba.Length = 0 then
+            [||]
+        else
+
+            let leadingZeros =
+                match (Seq.tryFindIndex (fun b -> b) (Seq.cast ba)) with
+                | Some i -> i
+                | None -> ba.Length
+            let trueLength = ba.Length - leadingZeros
+            let desiredLength = ((trueLength + 7) / 8) * 8
+            let difference = desiredLength - ba.Length
+            let bitArray =
+                if difference < 0 then
+                    // Drop zeroes from the front of the array until we have a multiple of 8 bits
+                    let shortenedBitArray = BitArray(desiredLength)
+                    for i in 0 .. (desiredLength - 1) do
+                        shortenedBitArray.[i] <- ba.[i - difference]
+                    shortenedBitArray
+                else if difference > 0 then
+                    // Push zeroes to the front of the array until we have a multiple of 8 bits
+                    let lengthenedBitArray = BitArray(desiredLength)
+                    for i in 0 .. (ba.Length - 1) do
+                        lengthenedBitArray.[i + difference] <- ba.[i]
+                    lengthenedBitArray
+                else
+                    ba
+            // Copy the bit array to a byte array, then flip the bytes.
+            let byteArray: byte[] = Array.zeroCreate(desiredLength / 8)
+            bitArray.CopyTo(byteArray, 0)
+            byteArray |> Array.map (fun b -> FlipBit b)
+
+
+[<AutoOpen>]
+module ResultCE =
+  type ResultBuilder() =
+    member __.Return (v: 'T) : Result<'T, 'TError> =
+      Ok v
+
+    member __.ReturnFrom (result: Result<'T, 'TError>) : Result<'T, 'TError> =
+      result
+
+    member this.Zero () : Result<unit, 'TError> =
+      this.Return ()
+
+    member __.Bind
+        (result: Result<'T, 'TError>, binder: 'T -> Result<'U, 'TError>)
+        : Result<'U, 'TError> =
+      Result.bind binder result
+
+    member __.Delay
+        (generator: unit -> Result<'T, 'TError>)
+        : unit -> Result<'T, 'TError> =
+      generator
+
+    member __.Run
+        (generator: unit -> Result<'T, 'TError>)
+        : Result<'T, 'TError> =
+      generator ()
+
+    member this.Combine
+        (result: Result<unit, 'TError>, binder: unit -> Result<'T, 'TError>)
+        : Result<'T, 'TError> =
+      this.Bind(result, binder)
+
+    member this.TryWith
+        (generator: unit -> Result<'T, 'TError>,
+         handler: exn -> Result<'T, 'TError>)
+        : Result<'T, 'TError> =
+      try this.Run generator with | e -> handler e
+
+    member this.TryFinally
+        (generator: unit -> Result<'T, 'TError>, compensation: unit -> unit)
+        : Result<'T, 'TError> =
+      try this.Run generator finally compensation ()
+
+    member this.Using
+        (resource: 'T when 'T :> IDisposable, binder: 'T -> Result<'U, 'TError>)
+        : Result<'U, 'TError> =
+      this.TryFinally (
+        (fun () -> binder resource),
+        (fun () -> if not <| obj.ReferenceEquals(resource, null) then resource.Dispose ())
+      )
+
+    member this.While
+        (guard: unit -> bool, generator: unit -> Result<unit, 'TError>)
+        : Result<unit, 'TError> =
+      if not <| guard () then this.Zero ()
+      else this.Bind(this.Run generator, fun () -> this.While (guard, generator))
+
+    member this.For
+        (sequence: #seq<'T>, binder: 'T -> Result<unit, 'TError>)
+        : Result<unit, 'TError> =
+      this.Using(sequence.GetEnumerator (), fun enum ->
+        this.While(enum.MoveNext,
+          this.Delay(fun () -> binder enum.Current)))
+
+
+[<AutoOpen>]
+module ResultCEExtensions =
+
+  // Having Choice<_> members as extensions gives them lower priority in
+  // overload resolution and allows skipping more type annotations.
+    type ResultBuilder with
+
+        member __.ReturnFrom (result: Choice<'T, 'TError>) : Result<'T, 'TError> =
+            BclEx.ResOfChoice result
+
+        member __.Bind (result: Choice<'T, 'TError>, binder: 'T -> Result<'U, 'TError>)
+                       : Result<'U, 'TError> =
+            result
+            |> BclEx.ResOfChoice
+            |> Result.bind binder 
+
+    let result = ResultBuilder()
+
+/// Feature bits specified in BOLT 9.
+/// It has no constructors, use its static members to instantiate
+type Feature = private {
+    RfcName: string
+    Mandatory: int
+}
+    with
+    member this.MandatoryBitPosition = this.Mandatory
+    member this.OptionalBitPosition = this.Mandatory + 1
+    member this.BitPosition(support: FeaturesSupport) =
+        match support with
+        | Mandatory -> this.MandatoryBitPosition
+        | Optional -> this.OptionalBitPosition
+
+    override this.ToString() = this.RfcName
+
+    static member OptionDataLossProtect = {
+        RfcName = "option_data_loss_protect"
+        Mandatory = 0
+    }
+        
+    static member InitialRoutingSync = {
+        RfcName = "initial_routing_sync"
+        Mandatory = 2
+    }
+    
+    static member OptionUpfrontShutdownScript = {
+        RfcName = "option_upfront_shutdown_script"
+        Mandatory = 4
+    }
+    
+    static member ChannelRangeQueries = {
+        RfcName = "gossip_queries"
+        Mandatory = 6
+    }
+    
+    static member VariableLengthOnion = {
+        RfcName = "var_onion_optin"
+        Mandatory = 8
+    }
+    
+    static member ChannelRangeQueriesExtended = {
+        RfcName = "gossip_queries_ex"
+        Mandatory = 10
+    }
+    
+    static member OptionStaticRemoteKey = {
+        RfcName = "option_static_remotekey"
+        Mandatory = 12
+    }
+    
+    static member PaymentSecret = {
+        RfcName = "payment_secret"
+        Mandatory = 14
+    }
+    
+    static member BasicMultiPartPayment = {
+        RfcName = "basic_mpp"
+        Mandatory = 16
+    }
+    
+    static member OptionSupportLargeChannel = {
+        RfcName = "option_support_large_channel"
+        Mandatory = 18
+    }
+
+module internal FeatureInternal =
+    /// Features may depend on other features, as specified in BOLT 9
+    let private featuresDependency =
+        Map.empty
+        |> Map.add (Feature.ChannelRangeQueriesExtended) ([Feature.ChannelRangeQueries])
+        |> Map.add (Feature.BasicMultiPartPayment) ([Feature.PaymentSecret])
+        |> Map.add (Feature.PaymentSecret) ([Feature.VariableLengthOnion])
+        
+    let isFeatureOn(features: BitArray) (bit: int) =
+        (features.Length > bit) && (BclEx.Reverse features).[bit]
+        
+    let hasFeature(features: BitArray) (f: Feature) (support: FeaturesSupport option) =
+        match support with
+        | Some(Mandatory) ->
+            isFeatureOn(features) (f.Mandatory)
+        | Some(Optional) ->
+            isFeatureOn(features) (f.OptionalBitPosition)
+        | None ->
+            isFeatureOn(features) (f.OptionalBitPosition) || isFeatureOn(features) (f.Mandatory)
+        
+    let private printDeps (deps: #seq<Feature>) (features) =
+        deps
+        |> Seq.filter(fun d -> not <| (hasFeature(features) (d) (None) ))
+        |> Seq.map(fun d -> d.ToString())
+        |> String.concat " and "
+    let validateFeatureGraph(features: BitArray) =
+        result {
+            for kvp in featuresDependency do
+                let f = kvp.Key
+                let deps = kvp.Value
+                if hasFeature(features) (f) (None) && deps |> List.exists(fun d -> not <| hasFeature(features) (d) (None)) then
+                    return!
+                        sprintf
+                            "%s sets %s but is missing a dependency %s "
+                            (BclEx.PrintBits features)
+                            (f.ToString())
+                            (printDeps deps features)
+                        |> FeatureError.BogusFeatureDependency
+                        |> Error
+                else
+                    return ()
+        }
+        
+    let private supportedMandatoryFeatures =
+        seq { yield Feature.OptionDataLossProtect
+              yield Feature.InitialRoutingSync
+              yield Feature.OptionUpfrontShutdownScript
+              yield Feature.ChannelRangeQueries
+              yield Feature.VariableLengthOnion
+              // TODO: support this feature
+              // Feature.ChannelRangeQueriesExtended
+              yield Feature.OptionStaticRemoteKey
+              yield Feature.PaymentSecret
+              // TODO: support this feature
+              // Feature.BasicMultiPartPayment
+          }
+        |> Seq.map(fun f -> f.Mandatory)
+        |> Set
+    /// Check that the features that we understand are correctly specified, and that there are no mandatory features
+    /// we don't understand
+    let areSupported(features: BitArray) =
+
+        let reversed = BclEx.Reverse features
+        seq {
+            for i in 0..reversed.Length - 1 do
+                if (i % 2 = 0) then
+                    yield i
+        }
+        |> Seq.exists(fun i ->
+            reversed.[i] && not <| supportedMandatoryFeatures.Contains(i)
+            )
+        |> not
+        
+    let allFeatures =
+        seq {
+            yield Feature.OptionDataLossProtect
+            yield Feature.InitialRoutingSync
+            yield Feature.OptionUpfrontShutdownScript
+            yield Feature.ChannelRangeQueries
+            yield Feature.VariableLengthOnion
+            yield Feature.ChannelRangeQueriesExtended
+            yield Feature.OptionStaticRemoteKey
+            yield Feature.PaymentSecret
+            yield Feature.BasicMultiPartPayment
+            yield Feature.OptionSupportLargeChannel
+        }
+        |> Set
+
+[<StructuredFormatDisplay("{PrettyPrint}")>]
+type FeatureBit private (bitArray: BitArray) =
+    member val BitArray: BitArray = bitArray with get, set
+
+    member this.ByteArray
+        with get() =
+            BclEx.ToByteArray bitArray
+        and set(bytes: byte[]) =
+            this.BitArray <- BclEx.FromBytes(bytes)
+
+    override this.ToString() =
+        BclEx.PrintBits this.BitArray
+        
+    member this.SetFeature(feature: Feature) (support: FeaturesSupport) (on: bool): unit =
+        let index = feature.BitPosition support
+        let length = this.BitArray.Length
+        if length <= index then
+            this.BitArray.Length <- index + 1
+
+            //this.BitArray.RightShift(index - length + 1)
+
+            // NOTE: Calling RightShift gives me:
+            // "The field, constructor or member 'RightShift' is not defined."
+            // So I just re-implement it here
+            for i in (length - 1) .. -1 .. 0 do
+                this.BitArray.[i + index - length + 1] <- this.BitArray.[i]
+
+            // NOTE: this probably wouldn't be necessary if we were using
+            // RightShift, but the dotnet docs don't actualy specify that
+            // RightShift sets the leading bits to zero.
+            for i in 0 .. (index - length) do
+                this.BitArray.[i] <- false
+        this.BitArray.[this.BitArray.Length - index - 1] <- on
+
+    // --- equality and comparison members ----
+    member this.Equals(o: FeatureBit) =
+        this.ByteArray = o.ByteArray
+
+    interface IEquatable<FeatureBit> with
+        member this.Equals(o: FeatureBit) = this.Equals(o)
+    override this.Equals(other: obj) =
+        match other with
+        | :? FeatureBit as o -> this.Equals(o)
+        | _ -> false
+        
+    override this.GetHashCode() =
+        let mutable num = 0
+        for i in this.BitArray do
+            num <- -1640531527 + i.GetHashCode() + ((num <<< 6) + (num >>> 2))
+        num
+
+    static member TryCreate(ba: BitArray): Result<FeatureBit,FeatureError> =
+        result {
+            do! FeatureInternal.validateFeatureGraph(ba)
+            if not <| FeatureInternal.areSupported(ba) then
+                return!
+                    sprintf "feature bits (%s) contains a mandatory flag that we don't know!" (BclEx.PrintBits ba)
+                    |> FeatureError.UnknownRequiredFeature
+                    |> Error
+            else
+                return FeatureBit ba
+        }
+
+    static member TryParse(str: string): Result<FeatureBit,string> =
+        let ba = BclEx.TryParse str
+        match ba with
+        | Error x -> Error x
+        | Ok v ->
+            let fb = v |> FeatureBit.TryCreate
+            match fb with
+            | Error fe -> Error <| fe.ToString()
+            | Ok vv -> Ok vv
+        
+    member this.CompareTo(o: FeatureBit) =
+        if (this.BitArray.Length > o.BitArray.Length) then -1 else
+        if (this.BitArray.Length < o.BitArray.Length) then 1 else
+        let mutable result = 0
+        for i in 0..this.BitArray.Length - 1 do
+            if      (this.BitArray.[i] > o.BitArray.[i]) then
+                result <- -1
+            else if (this.BitArray.[i] < o.BitArray.[i]) then
+                result <- 1
+        result
+    interface IComparable with
+        member this.CompareTo(o) =
+            match o with
+            | :? FeatureBit as fb -> this.CompareTo(fb)
+            | _ -> -1
+    // --------
 
 
 type UInt48 = {
