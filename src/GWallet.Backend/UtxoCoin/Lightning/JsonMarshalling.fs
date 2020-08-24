@@ -154,24 +154,6 @@ type RevocationKey(key: Key) =
     member this.CommitmentPubKey: CommitmentPubKey =
         CommitmentPubKey this.Key.PubKey
 
-type InsertRevocationKeyError =
-    | UnexpectedCommitmentNumber of got: CommitmentNumber * expected: CommitmentNumber
-    | KeyMismatch of previousCommitmentNumber: CommitmentNumber * newCommitmentNumber: CommitmentNumber
-    with
-        member this.Message: string =
-            match this with
-            | UnexpectedCommitmentNumber(got, expected) ->
-                sprintf
-                    "Unexpected commitment number. Got %s, expected %s"
-                    (got.ToString())
-                    (expected.ToString())
-            | KeyMismatch(previousCommitmentNumber, newCommitmentNumber) ->
-                sprintf
-                    "Revocation key for commitment %s derives a key for commitment %s which does \
-                    not match the recorded key"
-                    (newCommitmentNumber.ToString())
-                    (previousCommitmentNumber.ToString())
-
 
 type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
     new() = GRevocationSet(List.empty)
@@ -207,31 +189,6 @@ type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
         else
             let prevCommitmentNumber, _ = this.Keys.Head
             prevCommitmentNumber.NextCommitment
-
-    member this.InsertRevocationKey (commitmentNumber: CommitmentNumber)
-                                    (revocationKey: RevocationKey)
-                                        : Result<GRevocationSet, InsertRevocationKeyError> =
-        let nextCommitmentNumber = this.NextCommitmentNumber
-        if commitmentNumber <> nextCommitmentNumber then
-            Error <| UnexpectedCommitmentNumber (commitmentNumber, nextCommitmentNumber)
-        else
-            let rec fold (keys: list<CommitmentNumber * RevocationKey>)
-                             : Result<GRevocationSet, InsertRevocationKeyError> =
-                if keys.IsEmpty then
-                    let res = [commitmentNumber, revocationKey]
-                    Ok <| GRevocationSet res
-                else
-                    let storedCommitmentNumber, storedRevocationKey = keys.Head
-                    match revocationKey.DeriveChild commitmentNumber storedCommitmentNumber with
-                    | Some derivedRevocationKey ->
-                        if derivedRevocationKey <> storedRevocationKey then
-                            Error <| KeyMismatch (storedCommitmentNumber, commitmentNumber)
-                        else
-                            fold keys.Tail
-                    | None ->
-                        let res = (commitmentNumber, revocationKey) :: keys
-                        Ok <| GRevocationSet res
-            fold this.Keys
 
     member this.GetRevocationKey (commitmentNumber: CommitmentNumber)
                                      : Option<RevocationKey> =
