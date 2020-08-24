@@ -347,7 +347,6 @@ type LocalParams = {
     MaxAcceptedHTLCs: uint16
     IsFunder: bool
     DefaultFinalScriptPubKey: Script
-    Features: DotNetLightning.Serialize.FeatureBit
 }
 
 type RemoteParams = {
