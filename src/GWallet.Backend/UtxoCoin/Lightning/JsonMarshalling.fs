@@ -318,15 +318,10 @@ type FeatureBit (bitArray: BitArray) =
 
     static member TryParse(str: string): Result<FeatureBit,string> =
         let tryCreate(ba: BitArray): Result<FeatureBit,FeatureError> =
-            ResultCEExtensions.result {
                 if not <| FeatureInternal.areSupported(ba) then
-                    return!
-                        sprintf "feature bits (%s) contains a mandatory flag that we don't know!" (BclEx.PrintBits ba)
-                        |> FeatureError.UnknownRequiredFeature
-                        |> Error
+                    Error <| FeatureError.UnknownRequiredFeature (SPrintF1 "feature bits (%s) contains a mandatory flag that we don't know!" (BclEx.PrintBits ba))
                 else
-                    return FeatureBit ba
-            }
+                    Ok <| FeatureBit ba
         let ba = BclEx.TryParse str
         match ba with
         | Error x -> Error x
