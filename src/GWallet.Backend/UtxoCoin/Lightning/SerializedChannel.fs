@@ -261,13 +261,38 @@ type SerializedCommitmentSpec =
     }
 
 
+type FinalizedTx =
+    FinalizedTx of Transaction
+    with
+        member this.Value = let (FinalizedTx v) = this in v
+
+type PublishableTxs = {
+    CommitTx: FinalizedTx
+    HTLCTxs: FinalizedTx list
+}
+
+type HTLCSuccessTx = {
+    Value: PSBT
+    WhichInput: int
+    PaymentHash: PaymentHash
+}
+
+type LocalCommit = {
+    Index: DotNetLightning.Utils.Primitives.CommitmentNumber
+    Spec: DotNetLightning.Transactions.CommitmentSpec
+    PublishableTxs: PublishableTxs
+    /// These are not redeemable on-chain until we get a corresponding preimage.
+    PendingHTLCSuccessTxs: HTLCSuccessTx list
+}
+
+
 type SerializedCommitments =
     {
         ChannelId: ChannelIdentifier
         ChannelFlags: uint8
         FundingScriptCoin: ScriptCoin
         LocalChanges: DotNetLightning.Channel.LocalChanges
-        LocalCommit: DotNetLightning.Channel.LocalCommit
+        LocalCommit: LocalCommit
         LocalNextHTLCId: HTLCId
         LocalParams: DotNetLightning.Channel.LocalParams
         OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
@@ -279,14 +304,12 @@ type SerializedCommitments =
         RemotePerCommitmentSecrets: GRevocationSet
     }
 
-
-
 type Commitments = {
     LocalParams: DotNetLightning.Channel.LocalParams
     RemoteParams: DotNetLightning.Channel.RemoteParams
     ChannelFlags: uint8
     FundingScriptCoin: ScriptCoin
-    LocalCommit: DotNetLightning.Channel.LocalCommit
+    LocalCommit: LocalCommit
     RemoteCommit: DotNetLightning.Channel.RemoteCommit
     LocalChanges: DotNetLightning.Channel.LocalChanges
     RemoteChanges: DotNetLightning.Channel.RemoteChanges
@@ -800,16 +823,16 @@ module ChannelSerialization =
     let internal Capacity (serializedChannel: SerializedChannel): Money =
         (Commitments serializedChannel).FundingScriptCoin.Amount
 
-    let internal Balance (serializedChannel: SerializedChannel): DotNetLightning.Utils.LNMoney =
-        (Commitments serializedChannel).LocalCommit.Spec.ToLocal
+    let internal Balance (_: SerializedChannel): LNMoney =
+        failwith "tmp:NIE"
 
-    let internal SpendableBalance (_: SerializedChannel): DotNetLightning.Utils.LNMoney =
+    let internal SpendableBalance (_: SerializedChannel): LNMoney =
         failwith "tmp:NIE"
 
     // How low the balance can go. A channel must maintain enough balance to
     // cover the channel reserve. The funder must also keep enough in the
     // channel to cover the closing fee.
-    let internal MinBalance (serializedChannel: SerializedChannel): DotNetLightning.Utils.LNMoney =
+    let internal MinBalance (serializedChannel: SerializedChannel): LNMoney =
         (Balance serializedChannel) - (SpendableBalance serializedChannel)
 
     // How high the balance can go. The fundee will only be able to receive up
