@@ -442,17 +442,37 @@ type RemoteNextCommitInfo =
     | Waiting of WaitingForRevocation
     | Revoked of DotNetLightning.Utils.Primitives.CommitmentPubKey
 
+
+type ILightningMsg = interface end
+type IChannelMsg = inherit ILightningMsg
+type IUpdateMsg = inherit IChannelMsg
+
+type LocalChanges = {
+    Proposed: IUpdateMsg list
+    Signed: IUpdateMsg list
+    ACKed: IUpdateMsg list
+}
+    with
+        member this.All =
+            this.Proposed @ this.Signed @ this.ACKed
+
+type RemoteChanges = { 
+    Proposed: IUpdateMsg list
+    Signed: IUpdateMsg list
+    ACKed: IUpdateMsg list
+}
+
 type SerializedCommitments =
     {
         ChannelId: ChannelIdentifier
         ChannelFlags: uint8
         FundingScriptCoin: ScriptCoin
-        LocalChanges: DotNetLightning.Channel.LocalChanges
+        LocalChanges: LocalChanges
         LocalCommit: LocalCommit
         LocalNextHTLCId: HTLCId
         LocalParams: LocalParams
         OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
-        RemoteChanges: DotNetLightning.Channel.RemoteChanges
+        RemoteChanges: RemoteChanges
         RemoteCommit: RemoteCommit
         RemoteNextCommitInfo: RemoteNextCommitInfo
         RemoteNextHTLCId: HTLCId
@@ -467,8 +487,8 @@ type Commitments = {
     FundingScriptCoin: ScriptCoin
     LocalCommit: LocalCommit
     RemoteCommit: RemoteCommit
-    LocalChanges: DotNetLightning.Channel.LocalChanges
-    RemoteChanges: DotNetLightning.Channel.RemoteChanges
+    LocalChanges: LocalChanges
+    RemoteChanges: RemoteChanges
     LocalNextHTLCId: HTLCId
     RemoteNextHTLCId: HTLCId
     OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
