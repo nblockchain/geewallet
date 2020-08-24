@@ -830,6 +830,7 @@ type ComparablePubKey = ComparablePubKey of PubKey with
 
 [<StructuralComparison;StructuralEquality;CLIMutable>]
 type UnsignedChannelAnnouncementMsg = {
+    mutable Features: DotNetLightning.Serialize.FeatureBit
     mutable ChainHash: uint256
     mutable ShortChannelId: ShortChannelId
     mutable NodeId1: NodeId
