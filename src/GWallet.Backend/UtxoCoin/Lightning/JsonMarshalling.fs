@@ -314,16 +314,13 @@ module internal FeatureInternal =
 
 [<StructuredFormatDisplay("{PrettyPrint}")>]
 type FeatureBit private (bitArray: BitArray) =
-    member val BitArray: BitArray = bitArray with get, set
-
+    member val BitArray = bitArray
     member this.ByteArray
         with get() =
             BclEx.ToByteArray bitArray
-        and set(bytes: byte[]) =
-            this.BitArray <- BclEx.FromBytes(bytes)
 
     override this.ToString() =
-        BclEx.PrintBits this.BitArray
+        BclEx.PrintBits bitArray
 
     // --- equality and comparison members ----
     member this.Equals(o: FeatureBit) =
@@ -338,7 +335,7 @@ type FeatureBit private (bitArray: BitArray) =
         
     override this.GetHashCode() =
         let mutable num = 0
-        for i in this.BitArray do
+        for i in bitArray do
             num <- -1640531527 + i.GetHashCode() + ((num <<< 6) + (num >>> 2))
         num
 
@@ -365,15 +362,20 @@ type FeatureBit private (bitArray: BitArray) =
             | Ok vv -> Ok vv
         
     member this.CompareTo(o: FeatureBit) =
-        if (this.BitArray.Length > o.BitArray.Length) then -1 else
-        if (this.BitArray.Length < o.BitArray.Length) then 1 else
-        let mutable result = 0
-        for i in 0..this.BitArray.Length - 1 do
-            if      (this.BitArray.[i] > o.BitArray.[i]) then
-                result <- -1
-            else if (this.BitArray.[i] < o.BitArray.[i]) then
-                result <- 1
-        result
+        if bitArray.Length > o.BitArray.Length then
+            -1
+        else
+            if bitArray.Length < o.BitArray.Length then
+                1
+            else
+                let mutable result = 0
+                for i in 0..this.BitArray.Length - 1 do
+                    if bitArray.[i] > o.BitArray.[i] then
+                        result <- -1
+                    elif bitArray.[i] < o.BitArray.[i] then
+                        result <- 1
+                result
+
     interface IComparable with
         member this.CompareTo(o) =
             match o with
