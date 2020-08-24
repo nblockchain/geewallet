@@ -2,6 +2,7 @@ namespace GWallet.Backend.UtxoCoin.Lightning
 
 open System
 open System.Net
+open System.Linq
 
 open Newtonsoft.Json
 open NBitcoin
@@ -462,6 +463,116 @@ type RemoteChanges = {
     ACKed: IUpdateMsg list
 }
 
+
+type IState = interface end
+type IStateData = interface end
+type IChannelStateData =
+    interface inherit IStateData end
+
+type Prism<'a, 'b> =
+    ('a -> 'b option) * ('b -> 'a -> 'a)
+
+type Lens<'a, 'b> =
+    ('a -> 'b) * ('b -> 'a -> 'a)
+
+type TxOutIndex = | TxOutIndex of uint16 with
+    member x.Value = let (TxOutIndex v) = x in v
+
+type TxIndexInBlock = | TxIndexInBlock of uint32 with
+    member x.Value = let (TxIndexInBlock v) = x in v
+
+
+[<StructuredFormatDisplay("{AsString}")>]
+type ShortChannelId = {
+    BlockHeight: BlockHeight
+    BlockIndex: TxIndexInBlock
+    TxOutIndex: TxOutIndex
+}
+    with
+    
+    override this.ToString() =
+        SPrintF3 "%dx%dx%d" this.BlockHeight.Value this.BlockIndex.Value this.TxOutIndex.Value
+        
+    member this.AsString = this.ToString()
+
+    static member TryParse(s: string) =
+        let items = s.Split('x')
+        let err = Error (SPrintF1 "Failed to parse %s" s)
+        if (items.Length <> 3)  then err else
+        match (items.[0] |> UInt32.TryParse), (items.[1] |> UInt32.TryParse), (items.[2] |> UInt16.TryParse) with
+        | (true, h), (true, blockI), (true, outputI) ->
+            {
+                BlockHeight = h |> BlockHeight
+                BlockIndex = blockI |> TxIndexInBlock
+                TxOutIndex = outputI |> TxOutIndex
+            } |> Ok
+        | _ -> err
+
+type PaymentPreimage =
+        private PaymentPreimage of seq<byte>
+            with
+                // as per BOLT-2:
+                static member LENGTH = 32
+
+                static member Create(data: seq<byte>) =
+                    if data.Count() <> PaymentPreimage.LENGTH then
+                        raise <| ArgumentException(SPrintF1 "Payment preimage length should be %i" PaymentPreimage.LENGTH)
+                    PaymentPreimage data
+
+                member this.Value =
+                    let (PaymentPreimage v) = this in v
+
+                member this.ToHex() =
+                    let h = NBitcoin.DataEncoders.HexEncoder()
+                    let ba: byte[] = this.ToByteArray()
+                    ba |> h.EncodeData
+                    
+                member this.ToBytes() =
+                    this.Value
+
+                member this.ToByteArray() =
+                    this.Value |> Array.ofSeq
+
+                member this.Hash =
+                    this.ToByteArray() |> Crypto.Hashes.SHA256 |> fun x -> uint256(x, false) |> PaymentHash
+
+                member this.ToPrivKey() =
+                    this.ToByteArray() |> fun ba -> new Key(ba)
+
+                member this.ToPubKey() =
+                    this.ToPrivKey().PubKey
+
+type HTLCPreviousHopData =
+    | ShortChannelId of ShortChannelId
+    | HTLCId of HTLCId
+    | IncomingPacketSharedSecret of PaymentPreimage
+
+type RouteHop = {
+    /// The node_id of the node at this hop.
+    PubKey: PubKey
+    /// The channel that should be used from the previous hop to reach this node.
+    ShortChannelId: ShortChannelId
+    /// The fee of this hop. FOr the last hop, this should be the full value of the payment.
+    Fee: LNMoney
+    /// The CLTV delta added for this hop. For the last hop, this should be the full CLTV value
+    /// expected at the destination, in excess of the current block height.
+    CLTVExpiryDelta: uint32
+}
+
+type Route = Route of RouteHop list
+    with
+    member this.Value = let (Route r) = this in r
+
+type OutboundRoute = {
+    Route: Route
+    SessionPriv: Key
+    FirstHopHTLC: LNMoney
+}
+
+type HTLCSource =
+    | PreviousHopData of HTLCPreviousHopData
+    | OutboundRoute of OutboundRoute
+
 type SerializedCommitments =
     {
         ChannelId: ChannelIdentifier
@@ -471,7 +582,7 @@ type SerializedCommitments =
         LocalCommit: LocalCommit
         LocalNextHTLCId: HTLCId
         LocalParams: LocalParams
-        OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
+        OriginChannels: Map<HTLCId, HTLCSource>
         RemoteChanges: RemoteChanges
         RemoteCommit: RemoteCommit
         RemoteNextCommitInfo: RemoteNextCommitInfo
@@ -491,7 +602,7 @@ type Commitments = {
     RemoteChanges: RemoteChanges
     LocalNextHTLCId: HTLCId
     RemoteNextHTLCId: HTLCId
-    OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
+    OriginChannels: Map<HTLCId, HTLCSource>
     RemoteNextCommitInfo: RemoteNextCommitInfo
     RemotePerCommitmentSecrets: GRevocationSet
     ChannelId: GChannelId
@@ -542,49 +653,6 @@ type private CommitmentsJsonConverter() =
 
 
 
-
-type IState = interface end
-type IStateData = interface end
-type IChannelStateData =
-    interface inherit IStateData end
-
-type Prism<'a, 'b> =
-    ('a -> 'b option) * ('b -> 'a -> 'a)
-
-type Lens<'a, 'b> =
-    ('a -> 'b) * ('b -> 'a -> 'a)
-
-type TxOutIndex = | TxOutIndex of uint16 with
-    member x.Value = let (TxOutIndex v) = x in v
-
-type TxIndexInBlock = | TxIndexInBlock of uint32 with
-    member x.Value = let (TxIndexInBlock v) = x in v
-
-[<StructuredFormatDisplay("{AsString}")>]
-type ShortChannelId = {
-    BlockHeight: BlockHeight
-    BlockIndex: TxIndexInBlock
-    TxOutIndex: TxOutIndex
-}
-    with
-    
-    override this.ToString() =
-        SPrintF3 "%dx%dx%d" this.BlockHeight.Value this.BlockIndex.Value this.TxOutIndex.Value
-        
-    member this.AsString = this.ToString()
-
-    static member TryParse(s: string) =
-        let items = s.Split('x')
-        let err = Error (SPrintF1 "Failed to parse %s" s)
-        if (items.Length <> 3)  then err else
-        match (items.[0] |> UInt32.TryParse), (items.[1] |> UInt32.TryParse), (items.[2] |> UInt16.TryParse) with
-        | (true, h), (true, blockI), (true, outputI) ->
-            {
-                BlockHeight = h |> BlockHeight
-                BlockIndex = blockI |> TxIndexInBlock
-                TxOutIndex = outputI |> TxOutIndex
-            } |> Ok
-        | _ -> err
 
 
         (*  
