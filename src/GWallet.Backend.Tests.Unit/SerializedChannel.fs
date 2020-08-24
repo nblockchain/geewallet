@@ -182,7 +182,7 @@ type SerializedChannelTest() =
                 }
               },
               "txId": {
-                "case": "TxId",
+                "case": "GTxId",
                 "fields": [
                   "2ce238b4fe973636e02004a6af2dd434a4221b1757ea62b0b0abac810674f3e8"
                 ]

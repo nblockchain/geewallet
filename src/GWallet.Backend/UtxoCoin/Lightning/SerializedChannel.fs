@@ -285,6 +285,19 @@ type LocalCommit = {
     PendingHTLCSuccessTxs: HTLCSuccessTx list
 }
 
+[<StructuralComparison;StructuralEquality>]
+type GTxId = | GTxId of uint256 with
+    member x.Value = let (GTxId v) = x in v
+    static member Zero = uint256.Zero |> GTxId
+
+
+type RemoteCommit = {
+    Index: DotNetLightning.Utils.Primitives.CommitmentNumber
+    Spec: DotNetLightning.Transactions.CommitmentSpec
+    TxId: GTxId
+    RemotePerCommitmentPoint: DotNetLightning.Utils.Primitives.CommitmentPubKey
+}
+
 
 [<CustomEquality;CustomComparison>]
 type GNodeId = | GNodeId of PubKey with
@@ -343,7 +356,7 @@ type SerializedCommitments =
         LocalParams: LocalParams
         OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
         RemoteChanges: DotNetLightning.Channel.RemoteChanges
-        RemoteCommit: DotNetLightning.Channel.RemoteCommit
+        RemoteCommit: RemoteCommit
         RemoteNextCommitInfo: DotNetLightning.Channel.RemoteNextCommitInfo
         RemoteNextHTLCId: HTLCId
         RemoteParams: RemoteParams
@@ -356,7 +369,7 @@ type Commitments = {
     ChannelFlags: uint8
     FundingScriptCoin: ScriptCoin
     LocalCommit: LocalCommit
-    RemoteCommit: DotNetLightning.Channel.RemoteCommit
+    RemoteCommit: RemoteCommit
     LocalChanges: DotNetLightning.Channel.LocalChanges
     RemoteChanges: DotNetLightning.Channel.RemoteChanges
     LocalNextHTLCId: HTLCId
