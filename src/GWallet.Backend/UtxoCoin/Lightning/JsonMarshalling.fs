@@ -290,7 +290,6 @@ module internal FeatureInternal =
         |> not
 
 
-[<StructuredFormatDisplay("{PrettyPrint}")>]
 type FeatureBit private (bitArray: BitArray) =
     member val BitArray = bitArray
     member this.ByteArray
