@@ -91,8 +91,6 @@ module BclEx =
             bitArray.CopyTo(byteArray, 0)
             byteArray |> Array.map (fun b -> FlipBit b)
 
-
-[<AutoOpen>]
 module ResultCE =
   type ResultBuilder() =
     member __.Return (v: 'T) : Result<'T, 'TError> =
@@ -146,12 +144,11 @@ module ResultCE =
           this.Delay(fun () -> binder enum.Current)))
 
 
-[<AutoOpen>]
 module ResultCEExtensions =
 
   // Having Choice<_> members as extensions gives them lower priority in
   // overload resolution and allows skipping more type annotations.
-    type ResultBuilder with
+    type ResultCE.ResultBuilder with
 
         member __.ReturnFrom (result: Choice<'T, 'TError>) : Result<'T, 'TError> =
             BclEx.ResOfChoice result
@@ -162,7 +159,7 @@ module ResultCEExtensions =
             |> BclEx.ResOfChoice
             |> Result.bind binder 
 
-    let result = ResultBuilder()
+    let result = ResultCE.ResultBuilder()
 
 /// Feature bits specified in BOLT 9.
 /// It has no constructors, use its static members to instantiate
@@ -251,7 +248,7 @@ module internal FeatureInternal =
         |> Seq.map(fun d -> d.ToString())
         |> String.concat " and "
     let validateFeatureGraph(features: BitArray) =
-        result {
+        ResultCEExtensions.result {
             for kvp in featuresDependency do
                 let f = kvp.Key
                 let deps = kvp.Value
@@ -312,8 +309,6 @@ type FeatureBit private (bitArray: BitArray) =
     override this.ToString() =
         BclEx.PrintBits this.BitArray
 
-
-
     // --- equality and comparison members ----
     member this.Equals(o: FeatureBit) =
         this.ByteArray = o.ByteArray
@@ -332,7 +327,7 @@ type FeatureBit private (bitArray: BitArray) =
         num
 
     static member TryCreate(ba: BitArray): Result<FeatureBit,FeatureError> =
-        result {
+        ResultCEExtensions.result {
             do! FeatureInternal.validateFeatureGraph(ba)
             if not <| FeatureInternal.areSupported(ba) then
                 return!
