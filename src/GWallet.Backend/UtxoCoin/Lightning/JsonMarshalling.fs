@@ -290,7 +290,7 @@ module internal FeatureInternal =
         |> not
 
 
-type FeatureBit private (bitArray: BitArray) =
+type FeatureBit (bitArray: BitArray) =
     member val BitArray = bitArray
     member this.ByteArray
         with get() =
