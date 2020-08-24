@@ -359,6 +359,89 @@ type RemoteParams = {
     MinimumDepth: BlockHeightOffset32
 }
 
+
+[<CustomEquality;CustomComparison;StructuredFormatDisplay("{AsString}")>]
+type LNECDSASignature = LNECDSASignature of NBitcoin.Crypto.ECDSASignature | Empty with
+    member x.Value = match x with LNECDSASignature s -> s | Empty -> failwith "Unreachable!"
+    override this.GetHashCode() = hash this.Value
+    override this.Equals(obj: obj) =
+        match obj with
+        | :? LNECDSASignature as o -> (this :> IEquatable<LNECDSASignature>).Equals(o)
+        | _ -> false
+    interface IEquatable<LNECDSASignature> with
+        member this.Equals(o: LNECDSASignature) =
+            Utils.ArrayEqual(o.ToBytesCompact(), this.ToBytesCompact())
+            
+
+    override this.ToString() =
+        SPrintF1 "LNECDSASignature (%A)" (this.ToBytesCompact())
+    member this.AsString = this.ToString()
+
+    /// ** Description **
+    ///
+    /// Bitcoin Layer 1 forces (by consensus) DER encoding for the signatures.
+    /// This is not optimal, but remaining as a rule since changing consensus is not easy.
+    /// However in layer2, there are no such rules. So we use more optimal serialization by
+    /// This function.
+    /// Note it does not include the recovery id. so its always 64 bytes
+    ///
+    /// **Output**
+    ///
+    /// (serialized R value + S value) in byte array.
+    member this.ToBytesCompact() =
+        this.Value.ToCompact()
+
+    /// Logic does not really matter here. This is just for making life easier by enabling automatic implementation
+    /// of `StructuralComparison` for wrapper types.
+    member this.CompareTo(e: LNECDSASignature) =
+        let a = this.ToBytesCompact() |> fun x -> Utils.ToUInt64(x, true)
+        let b = e.ToBytesCompact() |>  fun x -> Utils.ToUInt64(x, true)
+        a.CompareTo(b)
+    interface IComparable with
+        member this.CompareTo(o: obj) =
+            match o with
+            | :? LNECDSASignature as e -> this.CompareTo(e)
+            | _ -> -1
+            
+    member this.ToDER() =
+        this.Value.ToDER()
+        
+    /// Read 64 bytes as r(32 bytes) and s(32 bytes) value
+    /// If `withRecId` is `true`, skip first 1 byte
+    static member FromBytesCompact(bytes: byte [], ?withRecId: bool) =
+        let withRecId = defaultArg withRecId false
+        if withRecId && bytes.Length <> 65 then
+            invalidArg "bytes" "ECDSASignature specified to have recovery id, but it was not 65 bytes length"
+        else if (not withRecId) && bytes.Length <> 64 then
+            invalidArg "bytes" "ECDSASignature was not specified to have recovery id, but it was not 64 bytes length."
+        else
+            let data = if withRecId then bytes.[1..] else bytes
+            match NBitcoin.Crypto.ECDSASignature.TryParseFromCompact data with
+            | true, x -> LNECDSASignature x
+            | _ -> failwith "failed to parse compact ecdsa signature __" //data
+
+    static member op_Implicit (ec: NBitcoin.Crypto.ECDSASignature) =
+        ec |> LNECDSASignature
+
+
+[<CLIMutable>]
+type CommitmentSignedMsg = {
+    mutable ChannelId: GChannelId
+    mutable Signature: LNECDSASignature
+    mutable HTLCSignatures: LNECDSASignature list
+}
+
+type WaitingForRevocation = {
+    NextRemoteCommit: RemoteCommit
+    Sent: CommitmentSignedMsg
+    SentAfterLocalCommitmentIndex: DotNetLightning.Utils.Primitives.CommitmentNumber
+    ReSignASAP: bool
+}
+
+type RemoteNextCommitInfo =
+    | Waiting of WaitingForRevocation
+    | Revoked of DotNetLightning.Utils.Primitives.CommitmentPubKey
+
 type SerializedCommitments =
     {
         ChannelId: ChannelIdentifier
@@ -371,7 +454,7 @@ type SerializedCommitments =
         OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
         RemoteChanges: DotNetLightning.Channel.RemoteChanges
         RemoteCommit: RemoteCommit
-        RemoteNextCommitInfo: DotNetLightning.Channel.RemoteNextCommitInfo
+        RemoteNextCommitInfo: RemoteNextCommitInfo
         RemoteNextHTLCId: HTLCId
         RemoteParams: RemoteParams
         RemotePerCommitmentSecrets: GRevocationSet
@@ -389,7 +472,7 @@ type Commitments = {
     LocalNextHTLCId: HTLCId
     RemoteNextHTLCId: HTLCId
     OriginChannels: Map<HTLCId, DotNetLightning.Channel.HTLCSource>
-    RemoteNextCommitInfo: DotNetLightning.Channel.RemoteNextCommitInfo
+    RemoteNextCommitInfo: RemoteNextCommitInfo
     RemotePerCommitmentSecrets: GRevocationSet
     ChannelId: GChannelId
 }
@@ -483,69 +566,6 @@ type ShortChannelId = {
             } |> Ok
         | _ -> err
 
-
-[<CustomEquality;CustomComparison;StructuredFormatDisplay("{AsString}")>]
-type LNECDSASignature = LNECDSASignature of NBitcoin.Crypto.ECDSASignature | Empty with
-    member x.Value = match x with LNECDSASignature s -> s | Empty -> failwith "Unreachable!"
-    override this.GetHashCode() = hash this.Value
-    override this.Equals(obj: obj) =
-        match obj with
-        | :? LNECDSASignature as o -> (this :> IEquatable<LNECDSASignature>).Equals(o)
-        | _ -> false
-    interface IEquatable<LNECDSASignature> with
-        member this.Equals(o: LNECDSASignature) =
-            Utils.ArrayEqual(o.ToBytesCompact(), this.ToBytesCompact())
-            
-
-    override this.ToString() =
-        SPrintF1 "LNECDSASignature (%A)" (this.ToBytesCompact())
-    member this.AsString = this.ToString()
-
-    /// ** Description **
-    ///
-    /// Bitcoin Layer 1 forces (by consensus) DER encoding for the signatures.
-    /// This is not optimal, but remaining as a rule since changing consensus is not easy.
-    /// However in layer2, there are no such rules. So we use more optimal serialization by
-    /// This function.
-    /// Note it does not include the recovery id. so its always 64 bytes
-    ///
-    /// **Output**
-    ///
-    /// (serialized R value + S value) in byte array.
-    member this.ToBytesCompact() =
-        this.Value.ToCompact()
-
-    /// Logic does not really matter here. This is just for making life easier by enabling automatic implementation
-    /// of `StructuralComparison` for wrapper types.
-    member this.CompareTo(e: LNECDSASignature) =
-        let a = this.ToBytesCompact() |> fun x -> Utils.ToUInt64(x, true)
-        let b = e.ToBytesCompact() |>  fun x -> Utils.ToUInt64(x, true)
-        a.CompareTo(b)
-    interface IComparable with
-        member this.CompareTo(o: obj) =
-            match o with
-            | :? LNECDSASignature as e -> this.CompareTo(e)
-            | _ -> -1
-            
-    member this.ToDER() =
-        this.Value.ToDER()
-        
-    /// Read 64 bytes as r(32 bytes) and s(32 bytes) value
-    /// If `withRecId` is `true`, skip first 1 byte
-    static member FromBytesCompact(bytes: byte [], ?withRecId: bool) =
-        let withRecId = defaultArg withRecId false
-        if withRecId && bytes.Length <> 65 then
-            invalidArg "bytes" "ECDSASignature specified to have recovery id, but it was not 65 bytes length"
-        else if (not withRecId) && bytes.Length <> 64 then
-            invalidArg "bytes" "ECDSASignature was not specified to have recovery id, but it was not 64 bytes length."
-        else
-            let data = if withRecId then bytes.[1..] else bytes
-            match NBitcoin.Crypto.ECDSASignature.TryParseFromCompact data with
-            | true, x -> LNECDSASignature x
-            | _ -> failwith "failed to parse compact ecdsa signature __" //data
-
-    static member op_Implicit (ec: NBitcoin.Crypto.ECDSASignature) =
-        ec |> LNECDSASignature
 
         (*  
 module BitArrayEx =
