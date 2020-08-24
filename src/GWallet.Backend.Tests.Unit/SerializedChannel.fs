@@ -203,7 +203,7 @@ type SerializedChannelTest() =
             },
             "remoteParams": {
               "nodeId": {
-                "case": "NodeId",
+                "case": "GNodeId",
                 "fields": [
                   "02323d281f323fc7513660602736a7bcd90d9d06057c9fa9e8d2deb0de5aeb2231"
                 ]

@@ -315,6 +315,23 @@ type LocalParams = {
     Features: DotNetLightning.Serialize.FeatureBit
 }
 
+type RemoteParams = {
+    NodeId: GNodeId
+    DustLimitSatoshis: Money
+    MaxHTLCValueInFlightMSat: LNMoney
+    ChannelReserveSatoshis: Money
+    HTLCMinimumMSat: LNMoney
+    ToSelfDelay: BlockHeightOffset16
+    MaxAcceptedHTLCs: uint16
+    PaymentBasePoint: PubKey
+    FundingPubKey: PubKey
+    RevocationBasePoint: PubKey
+    DelayedPaymentBasePoint: PubKey
+    HTLCBasePoint: PubKey
+    Features: DotNetLightning.Serialize.FeatureBit
+    MinimumDepth: BlockHeightOffset32
+}
+
 type SerializedCommitments =
     {
         ChannelId: ChannelIdentifier
@@ -329,13 +346,13 @@ type SerializedCommitments =
         RemoteCommit: DotNetLightning.Channel.RemoteCommit
         RemoteNextCommitInfo: DotNetLightning.Channel.RemoteNextCommitInfo
         RemoteNextHTLCId: HTLCId
-        RemoteParams: DotNetLightning.Channel.RemoteParams
+        RemoteParams: RemoteParams
         RemotePerCommitmentSecrets: GRevocationSet
     }
 
 type Commitments = {
     LocalParams: LocalParams
-    RemoteParams: DotNetLightning.Channel.RemoteParams
+    RemoteParams: RemoteParams
     ChannelFlags: uint8
     FundingScriptCoin: ScriptCoin
     LocalCommit: LocalCommit
