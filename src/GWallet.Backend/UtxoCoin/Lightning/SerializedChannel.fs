@@ -290,8 +290,9 @@ type CommitmentSpec = {
             this.ToLocal + this.ToRemote + (this.HTLCs |> Seq.sumBy(fun h -> h.Value.Add.Amount))
 
 
+
 type LocalCommit = {
-    Index: DotNetLightning.Utils.Primitives.CommitmentNumber
+    Index: CommitmentNumber
     Spec: CommitmentSpec
     PublishableTxs: PublishableTxs
     /// These are not redeemable on-chain until we get a corresponding preimage.
@@ -305,9 +306,8 @@ type GTxId = | GTxId of uint256 with
 
 
 
-
 type RemoteCommit = {
-    Index: DotNetLightning.Utils.Primitives.CommitmentNumber
+    Index: CommitmentNumber
     Spec: CommitmentSpec
     TxId: GTxId
     RemotePerCommitmentPoint: DotNetLightning.Utils.Primitives.CommitmentPubKey
@@ -440,10 +440,11 @@ type CommitmentSignedMsg = {
     mutable HTLCSignatures: LNECDSASignature list
 }
 
+
 type WaitingForRevocation = {
     NextRemoteCommit: RemoteCommit
     Sent: CommitmentSignedMsg
-    SentAfterLocalCommitmentIndex: DotNetLightning.Utils.Primitives.CommitmentNumber
+    SentAfterLocalCommitmentIndex: CommitmentNumber
     ReSignASAP: bool
 }
 
