@@ -329,9 +329,17 @@ type NodeId = | NodeId of PubKey with
     override this.GetHashCode() =
         this.Value.GetHashCode()
 
+type ChannelPubKeys = {
+    FundingPubKey: PubKey
+    RevocationBasePubKey: PubKey
+    PaymentBasePubKey: PubKey
+    DelayedPaymentBasePubKey: PubKey
+    HTLCBasePubKey: PubKey
+}
+
 type LocalParams = {
     NodeId: NodeId
-    ChannelPubKeys: DotNetLightning.Chain.ChannelPubKeys
+    ChannelPubKeys: ChannelPubKeys
     DustLimitSatoshis: Money
     MaxHTLCValueInFlightMSat: LNMoney
     ChannelReserveSatoshis: Money
