@@ -258,28 +258,6 @@ module internal FeatureInternal =
         | None ->
             isFeatureOn(features) (f.OptionalBitPosition) || isFeatureOn(features) (f.Mandatory)
         
-    let private printDeps (deps: #seq<Feature>) (features) =
-        deps
-        |> Seq.filter(fun d -> not <| (hasFeature(features) (d) (None) ))
-        |> Seq.map(fun d -> d.ToString())
-        |> String.concat " and "
-    let validateFeatureGraph(features: BitArray) =
-        ResultCEExtensions.result {
-            for kvp in featuresDependency do
-                let f = kvp.Key
-                let deps = kvp.Value
-                if hasFeature(features) (f) (None) && deps |> List.exists(fun d -> not <| hasFeature(features) (d) (None)) then
-                    return!
-                        sprintf
-                            "%s sets %s but is missing a dependency %s "
-                            (BclEx.PrintBits features)
-                            (f.ToString())
-                            (printDeps deps features)
-                        |> FeatureError.BogusFeatureDependency
-                        |> Error
-                else
-                    return ()
-        }
         
     let private supportedMandatoryFeatures =
         seq { yield Feature.OptionDataLossProtect
@@ -342,7 +320,6 @@ type FeatureBit private (bitArray: BitArray) =
     static member TryParse(str: string): Result<FeatureBit,string> =
         let tryCreate(ba: BitArray): Result<FeatureBit,FeatureError> =
             ResultCEExtensions.result {
-                do! FeatureInternal.validateFeatureGraph(ba)
                 if not <| FeatureInternal.areSupported(ba) then
                     return!
                         sprintf "feature bits (%s) contains a mandatory flag that we don't know!" (BclEx.PrintBits ba)
