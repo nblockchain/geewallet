@@ -362,7 +362,6 @@ type RemoteParams = {
     RevocationBasePoint: PubKey
     DelayedPaymentBasePoint: PubKey
     HTLCBasePoint: PubKey
-    Features: DotNetLightning.Serialize.FeatureBit
     MinimumDepth: BlockHeightOffset32
 }
 
