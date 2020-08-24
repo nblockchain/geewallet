@@ -41,10 +41,16 @@ module BclEx =
         let array = Array.zeroCreate(str.Length)
         let mutable hasFunnyChar = -1
         for i in 0..str.Length - 1 do
-            if hasFunnyChar <> -1 then () else
-            if str.[i] = '0' then array.[i] <- false else
-            if str.[i] = '1' then array.[i] <- true else
-            hasFunnyChar <- i
+            if hasFunnyChar <> -1 then
+                ()
+            else
+                if str.[i] = '0' then
+                    array.[i] <- false
+                else
+                    if str.[i] = '1' then
+                        array.[i] <- true
+                    else
+                        hasFunnyChar <- i
         if hasFunnyChar <> -1 then
             sprintf "Failed to parse BitArray! it must have only '0' or '1' but we found %A" str.[hasFunnyChar]
             |> Error
