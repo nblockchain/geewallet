@@ -315,22 +315,22 @@ type RemoteCommit = {
 
 
 [<CustomEquality;CustomComparison>]
-type GNodeId = | GNodeId of PubKey with
-    member x.Value = let (GNodeId v) = x in v
+type NodeId = | NodeId of PubKey with
+    member x.Value = let (NodeId v) = x in v
     interface IComparable with
         override this.CompareTo(other) =
             match other with
-            | :? GNodeId as n -> this.Value.CompareTo(n.Value)
+            | :? NodeId as n -> this.Value.CompareTo(n.Value)
             | _ -> -1
     override this.Equals(other) =
         match other with
-        | :? GNodeId as n -> this.Value.Equals(n.Value)
+        | :? NodeId as n -> this.Value.Equals(n.Value)
         | _              -> false
     override this.GetHashCode() =
         this.Value.GetHashCode()
 
 type LocalParams = {
-    NodeId: GNodeId
+    NodeId: NodeId
     ChannelPubKeys: DotNetLightning.Chain.ChannelPubKeys
     DustLimitSatoshis: Money
     MaxHTLCValueInFlightMSat: LNMoney
@@ -344,7 +344,7 @@ type LocalParams = {
 }
 
 type RemoteParams = {
-    NodeId: GNodeId
+    NodeId: NodeId
     DustLimitSatoshis: Money
     MaxHTLCValueInFlightMSat: LNMoney
     ChannelReserveSatoshis: Money
@@ -805,20 +805,6 @@ type FeatureBit private (bitArray) =
     // --------
 *)
 
-[<CustomEquality;CustomComparison>]
-type NodeId = | NodeId of PubKey with
-    member x.Value = let (NodeId v) = x in v
-    interface IComparable with
-        override this.CompareTo(other) =
-            match other with
-            | :? NodeId as n -> this.Value.CompareTo(n.Value)
-            | _ -> -1
-    override this.Equals(other) =
-        match other with
-        | :? NodeId as n -> this.Value.Equals(n.Value)
-        | _              -> false
-    override this.GetHashCode() =
-        this.Value.GetHashCode()
 
 [<CustomEquality;CustomComparison>]
 type ComparablePubKey = ComparablePubKey of PubKey with
@@ -966,7 +952,7 @@ type SerializedChannel =
         AccountFileName: string
         // FIXME: should store just RemoteNodeEndPoint instead of CounterpartyIP+RemoteNodeId?
         //CounterpartyIP: IPEndPoint
-        RemoteNodeId: GNodeId
+        RemoteNodeId: NodeId
         // this is the amount of confirmations that the counterparty told us that the funding transaction needs
         //MinSafeDepth: BlockHeightOffset32
     }
