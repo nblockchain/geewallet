@@ -6,7 +6,6 @@ open System.Collections
 
 open DotNetLightning.Serialize
 open DotNetLightning.Utils
-open DotNetLightning.Crypto
 
 open GWallet.Backend
 open FSharpUtil
@@ -120,17 +119,6 @@ module ResultCE =
         : Result<'T, 'TError> =
       generator ()
 
-    member this.Combine
-        (result: Result<unit, 'TError>, binder: unit -> Result<'T, 'TError>)
-        : Result<'T, 'TError> =
-      this.Bind(result, binder)
-
-    member this.TryWith
-        (generator: unit -> Result<'T, 'TError>,
-         handler: exn -> Result<'T, 'TError>)
-        : Result<'T, 'TError> =
-      try this.Run generator with | e -> handler e
-
     member this.TryFinally
         (generator: unit -> Result<'T, 'TError>, compensation: unit -> unit)
         : Result<'T, 'TError> =
@@ -236,11 +224,6 @@ type Feature = private {
         RfcName = "basic_mpp"
         Mandatory = 16
     }
-    
-    static member OptionSupportLargeChannel = {
-        RfcName = "option_support_large_channel"
-        Mandatory = 18
-    }
 
 module internal FeatureInternal =
     /// Features may depend on other features, as specified in BOLT 9
@@ -314,21 +297,7 @@ module internal FeatureInternal =
             reversed.[i] && not <| supportedMandatoryFeatures.Contains(i)
             )
         |> not
-        
-    let allFeatures =
-        seq {
-            yield Feature.OptionDataLossProtect
-            yield Feature.InitialRoutingSync
-            yield Feature.OptionUpfrontShutdownScript
-            yield Feature.ChannelRangeQueries
-            yield Feature.VariableLengthOnion
-            yield Feature.ChannelRangeQueriesExtended
-            yield Feature.OptionStaticRemoteKey
-            yield Feature.PaymentSecret
-            yield Feature.BasicMultiPartPayment
-            yield Feature.OptionSupportLargeChannel
-        }
-        |> Set
+
 
 [<StructuredFormatDisplay("{PrettyPrint}")>]
 type FeatureBit private (bitArray: BitArray) =
@@ -342,27 +311,8 @@ type FeatureBit private (bitArray: BitArray) =
 
     override this.ToString() =
         BclEx.PrintBits this.BitArray
-        
-    member this.SetFeature(feature: Feature) (support: FeaturesSupport) (on: bool): unit =
-        let index = feature.BitPosition support
-        let length = this.BitArray.Length
-        if length <= index then
-            this.BitArray.Length <- index + 1
 
-            //this.BitArray.RightShift(index - length + 1)
 
-            // NOTE: Calling RightShift gives me:
-            // "The field, constructor or member 'RightShift' is not defined."
-            // So I just re-implement it here
-            for i in (length - 1) .. -1 .. 0 do
-                this.BitArray.[i + index - length + 1] <- this.BitArray.[i]
-
-            // NOTE: this probably wouldn't be necessary if we were using
-            // RightShift, but the dotnet docs don't actualy specify that
-            // RightShift sets the leading bits to zero.
-            for i in 0 .. (index - length) do
-                this.BitArray.[i] <- false
-        this.BitArray.[this.BitArray.Length - index - 1] <- on
 
     // --- equality and comparison members ----
     member this.Equals(o: FeatureBit) =
@@ -512,10 +462,6 @@ type CommitmentNumber(index: UInt48) =
     member this.NextCommitment: CommitmentNumber =
         CommitmentNumber(this.Index - UInt48.One)
 
-    member this.Subsumes(other: CommitmentNumber): bool =
-        let trailingZeros = this.Index.TrailingZeros
-        (this.Index >>> trailingZeros) = (other.Index >>> trailingZeros)
-
     member this.PreviousUnsubsumed: Option<CommitmentNumber> =
         let trailingZeros = this.Index.TrailingZeros
         let prev = this.Index.UInt64 + (1UL <<< trailingZeros)
@@ -529,30 +475,8 @@ type CommitmentNumber(index: UInt48) =
 type RevocationKey(key: Key) =
     member this.Key = key
 
-    static member BytesLength: int = Key.BytesLength
-
-    static member FromBytes(bytes: array<byte>): RevocationKey =
-        RevocationKey <| new Key(bytes)
-
     member this.ToByteArray(): array<byte> =
         this.Key.ToBytes()
-
-    member this.DeriveChild (thisCommitmentNumber: CommitmentNumber)
-                            (childCommitmentNumber: CommitmentNumber)
-                                : Option<RevocationKey> =
-        if thisCommitmentNumber.Subsumes childCommitmentNumber then
-            let commonBits = thisCommitmentNumber.Index.TrailingZeros
-            let index = childCommitmentNumber.Index
-            let mutable secret = this.ToByteArray()
-            for bit in (commonBits - 1) .. -1 .. 0 do
-                if (index >>> bit) &&& UInt48.One = UInt48.One then
-                    let byteIndex = bit / 8
-                    let bitIndex = bit % 8
-                    secret.[byteIndex] <- secret.[byteIndex] ^^^ (1uy <<< bitIndex)
-                    secret <- NBitcoin.Crypto.Hashes.SHA256 secret
-            Some <| RevocationKey(new Key(secret))
-        else
-            None
 
     member this.CommitmentPubKey: CommitmentPubKey =
         CommitmentPubKey this.Key.PubKey
@@ -593,37 +517,9 @@ type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
             let prevCommitmentNumber, _ = this.Keys.Head
             prevCommitmentNumber.NextCommitment
 
-    member this.GetRevocationKey (commitmentNumber: CommitmentNumber)
-                                     : Option<RevocationKey> =
-        let rec fold (keys: list<CommitmentNumber * RevocationKey>) =
-            if keys.IsEmpty then
-                None
-            else
-                let storedCommitmentNumber, storedRevocationKey = keys.Head
-                match storedRevocationKey.DeriveChild storedCommitmentNumber commitmentNumber with
-                | Some revocationKey -> Some revocationKey
-                | None -> fold keys.Tail
-        fold this.Keys
-
-    member this.LastRevocationKey(): Option<RevocationKey> =
-        if this.Keys.IsEmpty then
-            None
-        else
-            let _, revocationKey = this.Keys.Head
-            Some revocationKey
-
 
 type [<StructAttribute>] CommitmentPubKey(pubKey: PubKey) =
         member this.PubKey = pubKey
-
-        static member BytesLength: int =
-            failwith "tmp:NIE"
-
-        static member FromBytes(bytes: array<byte>): CommitmentPubKey =
-            CommitmentPubKey <| PubKey bytes
-
-        member this.ToByteArray(): array<byte> =
-            this.PubKey.ToBytes()
 
 module JsonMarshalling =
     type internal CommitmentPubKeyConverter() =
