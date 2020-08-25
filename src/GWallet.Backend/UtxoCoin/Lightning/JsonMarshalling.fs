@@ -238,58 +238,6 @@ type FeatureError =
         | UnknownRequiredFeature msg
         | BogusFeatureDependency msg -> msg
 
-module internal FeatureInternal =
-    /// Features may depend on other features, as specified in BOLT 9
-    let private featuresDependency =
-        Map.empty
-        |> Map.add (Feature.ChannelRangeQueriesExtended) ([Feature.ChannelRangeQueries])
-        |> Map.add (Feature.BasicMultiPartPayment) ([Feature.PaymentSecret])
-        |> Map.add (Feature.PaymentSecret) ([Feature.VariableLengthOnion])
-        
-    let isFeatureOn(features: BitArray) (bit: int) =
-        (features.Length > bit) && (BclEx.Reverse features).[bit]
-        
-    let hasFeature(features: BitArray) (f: Feature) (support: FeaturesSupport option) =
-        match support with
-        | Some(Mandatory) ->
-            isFeatureOn(features) (f.Mandatory)
-        | Some(Optional) ->
-            isFeatureOn(features) (f.OptionalBitPosition)
-        | None ->
-            isFeatureOn(features) (f.OptionalBitPosition) || isFeatureOn(features) (f.Mandatory)
-        
-        
-    let private supportedMandatoryFeatures =
-        seq { yield Feature.OptionDataLossProtect
-              yield Feature.InitialRoutingSync
-              yield Feature.OptionUpfrontShutdownScript
-              yield Feature.ChannelRangeQueries
-              yield Feature.VariableLengthOnion
-              // TODO: support this feature
-              // Feature.ChannelRangeQueriesExtended
-              yield Feature.OptionStaticRemoteKey
-              yield Feature.PaymentSecret
-              // TODO: support this feature
-              // Feature.BasicMultiPartPayment
-          }
-        |> Seq.map(fun f -> f.Mandatory)
-        |> Set
-    /// Check that the features that we understand are correctly specified, and that there are no mandatory features
-    /// we don't understand
-    let areSupported(features: BitArray) =
-
-        let reversed = BclEx.Reverse features
-        seq {
-            for i in 0..reversed.Length - 1 do
-                if (i % 2 = 0) then
-                    yield i
-        }
-        |> Seq.exists(fun i ->
-            reversed.[i] && not <| supportedMandatoryFeatures.Contains(i)
-            )
-        |> not
-
-
 type FeatureBit (bitArray: BitArray) =
     member val BitArray = bitArray
     member this.ByteArray
