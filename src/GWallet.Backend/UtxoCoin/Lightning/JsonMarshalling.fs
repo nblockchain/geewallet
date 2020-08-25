@@ -173,12 +173,12 @@ type InsertRevocationKeyError =
                     (previousCommitmentNumber.ToString())
 
 
-type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
-    new() = GRevocationSet(List.empty)
+type RevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
+    new() = RevocationSet(List.empty)
 
     member this.Keys = keys
 
-    static member FromKeys (keys: list<CommitmentNumber * RevocationKey>): GRevocationSet =
+    static member FromKeys (keys: list<CommitmentNumber * RevocationKey>): RevocationSet =
         let rec sanityCheck (commitmentNumbers: list<CommitmentNumber>): bool =
             if commitmentNumbers.IsEmpty then
                 true
@@ -199,7 +199,7 @@ type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
         let commitmentNumbers, _ = List.unzip keys
         if not (sanityCheck commitmentNumbers) then
             failwith <| SPrintF1 "commitment number list is malformed: %A" commitmentNumbers
-        GRevocationSet keys
+        RevocationSet keys
 
     member this.NextCommitmentNumber: CommitmentNumber =
         if this.Keys.IsEmpty then
@@ -210,16 +210,16 @@ type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
 
     member this.InsertRevocationKey (commitmentNumber: CommitmentNumber)
                                     (revocationKey: RevocationKey)
-                                        : Result<GRevocationSet, InsertRevocationKeyError> =
+                                        : Result<RevocationSet, InsertRevocationKeyError> =
         let nextCommitmentNumber = this.NextCommitmentNumber
         if commitmentNumber <> nextCommitmentNumber then
             Error <| UnexpectedCommitmentNumber (commitmentNumber, nextCommitmentNumber)
         else
             let rec fold (keys: list<CommitmentNumber * RevocationKey>)
-                             : Result<GRevocationSet, InsertRevocationKeyError> =
+                             : Result<RevocationSet, InsertRevocationKeyError> =
                 if keys.IsEmpty then
                     let res = [commitmentNumber, revocationKey]
-                    Ok <| GRevocationSet res
+                    Ok <| RevocationSet res
                 else
                     let storedCommitmentNumber, storedRevocationKey = keys.Head
                     match revocationKey.DeriveChild commitmentNumber storedCommitmentNumber with
@@ -230,7 +230,7 @@ type GRevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
                             fold keys.Tail
                     | None ->
                         let res = (commitmentNumber, revocationKey) :: keys
-                        Ok <| GRevocationSet res
+                        Ok <| RevocationSet res
             fold this.Keys
 
     member this.GetRevocationKey (commitmentNumber: CommitmentNumber)
@@ -290,13 +290,13 @@ module JsonMarshalling =
             serializer.Serialize(writer, serializedCommitmentNumber)
 
     type internal RevocationSetConverter() =
-        inherit JsonConverter<GRevocationSet>()
+        inherit JsonConverter<RevocationSet>()
 
-        override this.ReadJson(reader: JsonReader, _: Type, _: GRevocationSet, _: bool, serializer: JsonSerializer) =
+        override this.ReadJson(reader: JsonReader, _: Type, _: RevocationSet, _: bool, serializer: JsonSerializer) =
             let keys = serializer.Deserialize<list<CommitmentNumber * RevocationKey>> reader
-            GRevocationSet.FromKeys keys
+            RevocationSet.FromKeys keys
 
-        override this.WriteJson(writer: JsonWriter, state: GRevocationSet, serializer: JsonSerializer) =
+        override this.WriteJson(writer: JsonWriter, state: RevocationSet, serializer: JsonSerializer) =
             let keys: list<CommitmentNumber * RevocationKey> = state.Keys
             serializer.Serialize(writer, keys)
 
