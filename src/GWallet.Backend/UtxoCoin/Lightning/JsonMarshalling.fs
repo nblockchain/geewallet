@@ -157,20 +157,6 @@ type RevocationKey(key: Key) =
 type InsertRevocationKeyError =
     | UnexpectedCommitmentNumber of CommitmentNumber * CommitmentNumber
     | KeyMismatch of previousCommitmentNumber: CommitmentNumber * CommitmentNumber
-    with
-        member this.Message: string =
-            match this with
-            | UnexpectedCommitmentNumber(got, expected) ->
-                sprintf
-                    "Unexpected commitment number. Got %s, expected %s"
-                    (got.ToString())
-                    (expected.ToString())
-            | KeyMismatch(previousCommitmentNumber, newCommitmentNumber) ->
-                sprintf
-                    "Revocation key for commitment %s derives a key for commitment %s which does \
-                    not match the recorded key"
-                    (newCommitmentNumber.ToString())
-                    (previousCommitmentNumber.ToString())
 
 
 type RevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
