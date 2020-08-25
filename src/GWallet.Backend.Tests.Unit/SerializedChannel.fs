@@ -144,7 +144,7 @@ type SerializedChannelTest() =
               "maxAcceptedHTLCs": 10,
               "isFunder": true,
               "defaultFinalScriptPubKey": "a914ee63c76cda9f5a4928a24710e3b950f2bed0bcc787",
-              "features": "10"
+              "features": "00"
             },
             "originChannels": {},
             "remoteChanges": {
@@ -234,7 +234,7 @@ type SerializedChannelTest() =
               "revocationBasePoint": "03f1590ac91a6a78c4dc41b5d8caed115c51a9c1b87b6d43a73a5f5502a3ab20cf",
               "delayedPaymentBasePoint": "0291698f62ba42f26f9fe61fd9509119ff671659410d8d3e3682860f7f5d760645",
               "htlcBasePoint": "02579a84cb68f6fd41e864d6b5a9b130187584cd338bfd3fc45921b5acfee075fb",
-              "features": "000000101010001010100001",
+              "features": "000000000000000000000000",
               "minimumDepth": {
                 "case": "BlockHeightOffset32",
                 "fields": [

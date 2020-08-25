@@ -172,36 +172,14 @@ type FeatureBit (bitArray: BitArray) =
         num
 
     static member TryParse(str: string): Result<FeatureBit,string> =
-        let tryParse(str: string): Result<BitArray,string> =
-            let mutable str = str.Trim().Clone() :?> string
-            if str.StartsWith("0b", StringComparison.OrdinalIgnoreCase) then
-                str <- str.Substring("0b".Length)
-            let array = Array.zeroCreate(str.Length)
-            let mutable hasFunnyChar = -1
-            for i in 0..str.Length - 1 do
-                if hasFunnyChar <> -1 then
-                    ()
-                else
-                    if str.[i] = '0' then
-                        array.[i] <- false
-                    else
-                        if str.[i] = '1' then
-                            array.[i] <- true
-                        else
-                            hasFunnyChar <- i
-            if hasFunnyChar <> -1 then
-                sprintf "Failed to parse BitArray! it must have only '0' or '1' but we found %A" str.[hasFunnyChar]
-                |> Error
-            else
-                BitArray(array) |> Ok
+        let tryParse(str: string): BitArray =
+            let array: array<bool> = Array.zeroCreate(str.Length)
+            BitArray(array)
         let ba = tryParse str
-        match ba with
-        | Error x -> Error x
-        | Ok v ->
-            let fb = Ok <| FeatureBit v
-            match fb with
-            | Error fe -> Error <| fe.ToString()
-            | Ok vv -> Ok vv
+        let fb = Ok <| FeatureBit ba
+        match fb with
+        | Error fe -> Error <| fe.ToString()
+        | Ok vv -> Ok vv
 
     member this.CompareTo(o: FeatureBit) =
         if bitArray.Length > o.BitArray.Length then
