@@ -101,7 +101,7 @@ type Feature = private {
         RfcName = "initial_routing_sync"
         Mandatory = 2
     }
-    
+
     static member OptionUpfrontShutdownScript = {
         RfcName = "option_upfront_shutdown_script"
         Mandatory = 4
@@ -111,7 +111,7 @@ type Feature = private {
         RfcName = "gossip_queries"
         Mandatory = 6
     }
-    
+
     static member VariableLengthOnion = {
         RfcName = "var_onion_optin"
         Mandatory = 8
@@ -171,15 +171,12 @@ type FeatureBit (bitArray: BitArray) =
             num <- -1640531527 + i.GetHashCode() + ((num <<< 6) + (num >>> 2))
         num
 
-    static member TryParse(str: string): Result<FeatureBit,string> =
+    static member TryParse(str: string): FeatureBit =
         let tryParse(str: string): BitArray =
             let array: array<bool> = Array.zeroCreate(str.Length)
             BitArray(array)
         let ba = tryParse str
-        let fb = Ok <| FeatureBit ba
-        match fb with
-        | Error fe -> Error <| fe.ToString()
-        | Ok vv -> Ok vv
+        FeatureBit ba
 
     member this.CompareTo(o: FeatureBit) =
         if bitArray.Length > o.BitArray.Length then
@@ -411,7 +408,7 @@ module JsonMarshalling =
 
         override self.ReadJson(reader: JsonReader, _: Type, _: FeatureBit, _: bool, serializer: JsonSerializer) =
             let serializedFeatureBit = serializer.Deserialize<string> reader
-            UnwrapResult (FeatureBit.TryParse serializedFeatureBit) "error decoding feature bit"
+            FeatureBit.TryParse serializedFeatureBit
 
         override self.WriteJson(writer: JsonWriter, state: FeatureBit, serializer: JsonSerializer) =
             serializer.Serialize(writer, state.ToString())
