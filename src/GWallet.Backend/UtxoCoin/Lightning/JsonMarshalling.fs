@@ -94,58 +94,6 @@ module BclEx =
             bitArray.CopyTo(byteArray, 0)
             byteArray |> Array.map (fun b -> FlipBit b)
 
-module ResultCE =
-  type ResultBuilder() =
-    member __.Return (v: 'T) : Result<'T, 'TError> =
-      Ok v
-
-    member __.ReturnFrom (result: Result<'T, 'TError>) : Result<'T, 'TError> =
-      result
-
-    member this.Zero () : Result<unit, 'TError> =
-      this.Return ()
-
-    member __.Bind
-        (result: Result<'T, 'TError>, binder: 'T -> Result<'U, 'TError>)
-        : Result<'U, 'TError> =
-      Result.bind binder result
-
-    member __.Delay
-        (generator: unit -> Result<'T, 'TError>)
-        : unit -> Result<'T, 'TError> =
-      generator
-
-    member __.Run
-        (generator: unit -> Result<'T, 'TError>)
-        : Result<'T, 'TError> =
-      generator ()
-
-    member this.TryFinally
-        (generator: unit -> Result<'T, 'TError>, compensation: unit -> unit)
-        : Result<'T, 'TError> =
-      try this.Run generator finally compensation ()
-
-    member this.Using
-        (resource: 'T when 'T :> IDisposable, binder: 'T -> Result<'U, 'TError>)
-        : Result<'U, 'TError> =
-      this.TryFinally (
-        (fun () -> binder resource),
-        (fun () -> if not <| obj.ReferenceEquals(resource, null) then resource.Dispose ())
-      )
-
-    member this.While
-        (guard: unit -> bool, generator: unit -> Result<unit, 'TError>)
-        : Result<unit, 'TError> =
-      if not <| guard () then this.Zero ()
-      else this.Bind(this.Run generator, fun () -> this.While (guard, generator))
-
-    member this.For
-        (sequence: #seq<'T>, binder: 'T -> Result<unit, 'TError>)
-        : Result<unit, 'TError> =
-      this.Using(sequence.GetEnumerator (), fun enum ->
-        this.While(enum.MoveNext,
-          this.Delay(fun () -> binder enum.Current)))
-
 
 type FeaturesSupport =
     | Mandatory
