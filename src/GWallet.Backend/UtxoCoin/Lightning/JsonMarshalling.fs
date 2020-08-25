@@ -34,29 +34,6 @@ module BclEx =
     let FromBytes(ba: byte[]) =
         ba |> Array.map(fun b -> FlipBit b) |> BitArray
 
-    let TryParse(str: string): Result<BitArray,string> =
-        let mutable str = str.Trim().Clone() :?> string
-        if str.StartsWith("0b", StringComparison.OrdinalIgnoreCase) then
-            str <- str.Substring("0b".Length)
-        let array = Array.zeroCreate(str.Length)
-        let mutable hasFunnyChar = -1
-        for i in 0..str.Length - 1 do
-            if hasFunnyChar <> -1 then
-                ()
-            else
-                if str.[i] = '0' then
-                    array.[i] <- false
-                else
-                    if str.[i] = '1' then
-                        array.[i] <- true
-                    else
-                        hasFunnyChar <- i
-        if hasFunnyChar <> -1 then
-            sprintf "Failed to parse BitArray! it must have only '0' or '1' but we found %A" str.[hasFunnyChar]
-            |> Error
-        else
-            BitArray(array) |> Ok
-
     let Reverse this =
         let boolArray: array<bool> = Array.ofSeq (Seq.cast this)
         Array.Reverse boolArray
@@ -139,7 +116,7 @@ type Feature = private {
         RfcName = "var_onion_optin"
         Mandatory = 8
     }
-    
+
     static member ChannelRangeQueriesExtended = {
         RfcName = "gossip_queries_ex"
         Mandatory = 10
@@ -195,7 +172,29 @@ type FeatureBit (bitArray: BitArray) =
         num
 
     static member TryParse(str: string): Result<FeatureBit,string> =
-        let ba = BclEx.TryParse str
+        let tryParse(str: string): Result<BitArray,string> =
+            let mutable str = str.Trim().Clone() :?> string
+            if str.StartsWith("0b", StringComparison.OrdinalIgnoreCase) then
+                str <- str.Substring("0b".Length)
+            let array = Array.zeroCreate(str.Length)
+            let mutable hasFunnyChar = -1
+            for i in 0..str.Length - 1 do
+                if hasFunnyChar <> -1 then
+                    ()
+                else
+                    if str.[i] = '0' then
+                        array.[i] <- false
+                    else
+                        if str.[i] = '1' then
+                            array.[i] <- true
+                        else
+                            hasFunnyChar <- i
+            if hasFunnyChar <> -1 then
+                sprintf "Failed to parse BitArray! it must have only '0' or '1' but we found %A" str.[hasFunnyChar]
+                |> Error
+            else
+                BitArray(array) |> Ok
+        let ba = tryParse str
         match ba with
         | Error x -> Error x
         | Ok v ->
