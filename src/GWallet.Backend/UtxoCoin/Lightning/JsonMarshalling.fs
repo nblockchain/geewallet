@@ -147,24 +147,6 @@ module ResultCE =
           this.Delay(fun () -> binder enum.Current)))
 
 
-module ResultCEExtensions =
-
-  // Having Choice<_> members as extensions gives them lower priority in
-  // overload resolution and allows skipping more type annotations.
-    type ResultCE.ResultBuilder with
-
-        member __.ReturnFrom (result: Choice<'T, 'TError>) : Result<'T, 'TError> =
-            BclEx.ResOfChoice result
-
-        member __.Bind (result: Choice<'T, 'TError>, binder: 'T -> Result<'U, 'TError>)
-                       : Result<'U, 'TError> =
-            result
-            |> BclEx.ResOfChoice
-            |> Result.bind binder 
-
-    let result = ResultCE.ResultBuilder()
-
-
 type FeaturesSupport =
     | Mandatory
     | Optional
@@ -275,7 +257,7 @@ type FeatureBit (bitArray: BitArray) =
             match fb with
             | Error fe -> Error <| fe.ToString()
             | Ok vv -> Ok vv
-        
+
     member this.CompareTo(o: FeatureBit) =
         if bitArray.Length > o.BitArray.Length then
             -1
