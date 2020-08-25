@@ -195,13 +195,11 @@ type FeatureBit (bitArray: BitArray) =
         num
 
     static member TryParse(str: string): Result<FeatureBit,string> =
-        let tryCreate(ba: BitArray): Result<FeatureBit,FeatureError> =
-            Ok <| FeatureBit ba
         let ba = BclEx.TryParse str
         match ba with
         | Error x -> Error x
         | Ok v ->
-            let fb = v |> tryCreate
+            let fb = Ok <| FeatureBit v
             match fb with
             | Error fe -> Error <| fe.ToString()
             | Ok vv -> Ok vv
