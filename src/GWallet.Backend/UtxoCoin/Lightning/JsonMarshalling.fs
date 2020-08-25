@@ -155,8 +155,8 @@ type RevocationKey(key: Key) =
         CommitmentPubKey this.Key.PubKey
 
 type InsertRevocationKeyError =
-    | UnexpectedCommitmentNumber of got: CommitmentNumber * expected: CommitmentNumber
-    | KeyMismatch of previousCommitmentNumber: CommitmentNumber * newCommitmentNumber: CommitmentNumber
+    | UnexpectedCommitmentNumber of CommitmentNumber * CommitmentNumber
+    | KeyMismatch of previousCommitmentNumber: CommitmentNumber * CommitmentNumber
     with
         member this.Message: string =
             match this with
