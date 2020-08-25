@@ -154,11 +154,6 @@ type RevocationKey(key: Key) =
     member this.CommitmentPubKey: CommitmentPubKey =
         CommitmentPubKey this.Key.PubKey
 
-type InsertRevocationKeyError =
-    | UnexpectedCommitmentNumber of CommitmentNumber * CommitmentNumber
-    | KeyMismatch of previousCommitmentNumber: CommitmentNumber * CommitmentNumber
-
-
 type RevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
     new() = RevocationSet(List.empty)
 
@@ -197,16 +192,8 @@ type RevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
     member this.InsertRevocationKey (commitmentNumber: CommitmentNumber)
                                     (revocationKey: RevocationKey)
                                         : Result<RevocationSet, unit> =
-        let storedCommitmentNumber, storedRevocationKey = this.Keys.Head
-        match revocationKey.DeriveChild commitmentNumber storedCommitmentNumber with
-        | Some derivedRevocationKey ->
-            if derivedRevocationKey <> storedRevocationKey then
-                Error ()
-            else
-                failwith "meh"
-        | None ->
-            let res = (commitmentNumber, revocationKey) :: keys
-            Ok <| RevocationSet res
+        let res = (commitmentNumber, revocationKey) :: keys
+        Ok <| RevocationSet res
 
     member this.GetRevocationKey (commitmentNumber: CommitmentNumber)
                                      : Option<RevocationKey> =
