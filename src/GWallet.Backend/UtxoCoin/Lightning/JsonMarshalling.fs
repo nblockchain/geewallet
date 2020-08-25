@@ -196,14 +196,17 @@ type RevocationSet private (keys: list<CommitmentNumber * RevocationKey>) =
 
     member this.InsertRevocationKey (commitmentNumber: CommitmentNumber)
                                     (revocationKey: RevocationKey)
-                                        : RevocationSet =
-        let storedCommitmentNumber, _ = this.Keys.Head
+                                        : Result<RevocationSet, InsertRevocationKeyError> =
+        let storedCommitmentNumber, storedRevocationKey = this.Keys.Head
         match revocationKey.DeriveChild commitmentNumber storedCommitmentNumber with
-        | Some _ ->
-            failwith "meh"
+        | Some derivedRevocationKey ->
+            if derivedRevocationKey <> storedRevocationKey then
+                Error <| KeyMismatch (storedCommitmentNumber, commitmentNumber)
+            else
+                failwith "meh"
         | None ->
             let res = (commitmentNumber, revocationKey) :: keys
-            RevocationSet res
+            Ok <| RevocationSet res
 
     member this.GetRevocationKey (commitmentNumber: CommitmentNumber)
                                      : Option<RevocationKey> =
