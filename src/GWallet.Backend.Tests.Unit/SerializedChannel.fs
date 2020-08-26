@@ -235,6 +235,11 @@ type SerializedChannelTest() =
 """
     [<Test>]
     member __.``deserialized and reserialize without change``() =
+
+        printf "1\n"
+        printf "%A" (Marshalling.GetSDU ())
+        printf "2\n"
+
         let serializedChannel = 
             Marshalling.DeserializeCustom<SerializedChannel> (
                 serializedChannelJson,

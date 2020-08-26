@@ -69,6 +69,11 @@ type RequireAllPropertiesContractResolver() =
 
 module Marshalling =
 
+    [<Struct>]
+    type SDU =
+        | CaseInt of CaseInt : int
+        | CaseString of CaseString : string
+
     let private DefaultFormatting =
 #if DEBUG
         Formatting.Indented
@@ -89,6 +94,9 @@ module Marshalling =
     let ExtractType(json: string): Type =
         let fullTypeName = (JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json).TypeName
         Type.GetType(fullTypeName)
+
+    let GetSDU () =
+        "hi" |> CaseString
 
     let DeserializeCustom<'T>(json: string, settings: JsonSerializerSettings): 'T =
         if (json = null) then
