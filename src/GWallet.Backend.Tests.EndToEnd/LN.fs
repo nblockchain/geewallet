@@ -25,12 +25,11 @@ open NBitcoin // For ExtKey
 
 open DotNetLightning.Utils
 open DotNetLightning.Utils.Primitives
+open ResultUtils.Portability
 open GWallet.Backend.UtxoCoin // For NormalUtxoAccount
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
-
-open FSharp.Core
 
 type ProcessWrapper = {
     Name: string

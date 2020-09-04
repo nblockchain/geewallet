@@ -100,6 +100,12 @@
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
+
+    <!-- FIXME: we should not need to reference ResultUtils at all when we can upgrade to F#v4.5 across the board (all CI lanes) -->
+    <Reference Include="ResultUtils">
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200902-1110-git-a4a59d0\lib\netstandard2.0\ResultUtils.dll</HintPath>
+    </Reference>
+
     <Reference Include="BouncyCastle.Crypto">
       <HintPath>..\..\packages\Portable.BouncyCastle.1.8.5.2\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
