@@ -1,11 +1,13 @@
 ﻿namespace GWallet.Frontend.XF.Mac
 
-open System
 open Foundation
 open AppKit
 
 open Xamarin.Forms
 open Xamarin.Forms.Platform.MacOS
+
+module AppSingleton =
+    let internal Instance = GWallet.Frontend.XF.App ()
 
 [<Register ("AppDelegate")>]
 type AppDelegate () =
@@ -27,6 +29,6 @@ type AppDelegate () =
 
         ZXing.Net.Mobile.Forms.macOS.Platform.Init()
 
-        this.LoadApplication(new GWallet.Frontend.XF.App())
+        this.LoadApplication AppSingleton.Instance
 
         base.DidFinishLaunching(notification)

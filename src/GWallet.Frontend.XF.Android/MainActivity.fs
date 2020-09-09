@@ -3,15 +3,15 @@
 open System
 
 open Android.App
-open Android.Content
 open Android.Content.PM
-open Android.Runtime
-open Android.Views
-open Android.Widget
 open Android.OS
+
 open Xamarin.Forms.Platform.Android
 
 type Resources = GWallet.Frontend.XF.Android.Resource
+
+module AppSingleton =
+    let internal Instance = GWallet.Frontend.XF.App ()
 
 [<Activity (LaunchMode = LaunchMode.SingleTask, 
             Label = "geewallet", 
@@ -21,6 +21,7 @@ type Resources = GWallet.Frontend.XF.Android.Resource
             ConfigurationChanges = (ConfigChanges.ScreenSize ||| ConfigChanges.Orientation))>]
 type MainActivity() =
     inherit FormsAppCompatActivity()
+
 
     override this.OnRequestPermissionsResult(requestCode: int, permissions: string[], grantResults: Permission[]) =
         ZXing.Net.Mobile.Android.PermissionsHandler.OnRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -35,4 +36,4 @@ type MainActivity() =
 
         ZXing.Net.Mobile.Forms.Android.Platform.Init()
 
-        this.LoadApplication (new GWallet.Frontend.XF.App ())
+        this.LoadApplication AppSingleton.Instance

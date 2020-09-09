@@ -23,14 +23,15 @@ namespace GWallet.Frontend.XamForms.UWP
     /// </summary>
     public sealed partial class MainPage
     {
+        static GWallet.Frontend.XF.App formsApp;
+
         public MainPage()
         {
             this.InitializeComponent();
 
             ZXing.Net.Mobile.Forms.WindowsUniversal.ZXingScannerViewRenderer.Init();
 
-            var app = new GWallet.Frontend.XF.App();
-            LoadApplication(app);
+            LoadApplication(formsApp ??= new GWallet.Frontend.XF.App());
         }
     }
 }
