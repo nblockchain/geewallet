@@ -7,6 +7,9 @@ open Xamarin.Forms
 open Xamarin.Forms.Platform.MacOS
 
 module AppSingleton =
+    do
+        Xamarin.Forms.Forms.Init()
+
     let internal Instance = GWallet.Frontend.XF.App ()
 
 [<Register ("AppDelegate")>]

@@ -8,6 +8,9 @@ open Xamarin.Forms.Platform.GTK
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 module AppSingleton =
+    do
+        Xamarin.Forms.Forms.Init()
+
     let internal Instance = GWallet.Frontend.XF.App ()
 
 module Main =
@@ -16,7 +19,6 @@ module Main =
     [<STAThread>]
     let main argv =
         Gtk.Application.Init()
-        Forms.Init()
 
         // TODO: detect Windows/UWP too
         if GWallet.Backend.Config.IsMacPlatform() then

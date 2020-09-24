@@ -6,11 +6,16 @@ open Android.App
 open Android.Content.PM
 open Android.OS
 
+open Xamarin.Forms
 open Xamarin.Forms.Platform.Android
 
 type Resources = GWallet.Frontend.XF.Android.Resource
 
 module AppSingleton =
+    // strangely enough, Android doesn't have an empty Init() method like other platforms...
+    //do
+    //    Xamarin.Forms.Forms.Init()
+
     let internal Instance = GWallet.Frontend.XF.App ()
 
 [<Activity (LaunchMode = LaunchMode.SingleTask, 
