@@ -48,7 +48,6 @@ type ChannelInfo =
         FundingTxId: TransactionIdentifier
         Status: ChannelStatus
         Currency: Currency
-        FundingTransaction: TransactionIdentifier
     }
     static member internal FromSerializedChannel (serializedChannel: SerializedChannel)
                                                  (currency: Currency)
@@ -63,7 +62,6 @@ type ChannelInfo =
         FundingTxId =
             TransactionIdentifier.FromHash (ChannelSerialization.Commitments serializedChannel).FundingScriptCoin.Outpoint.Hash
         Currency = currency
-        FundingTransaction = TransactionIdentifier.FromHash serializedChannel.Commitments.FundingScriptCoin.Outpoint.Hash
         Status =
             match serializedChannel.ChanState with
             | ChannelState.Negotiating _
