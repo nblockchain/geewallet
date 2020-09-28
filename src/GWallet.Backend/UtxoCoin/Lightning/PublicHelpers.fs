@@ -6,6 +6,7 @@
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
+open ResultUtils.Portability
 
 module public ChannelId =
     let ToString (channelId: ChannelIdentifier): string =
@@ -26,7 +27,7 @@ module public Network =
     let public AcceptCloseChannel (lightningNode: Node) = lightningNode.AcceptCloseChannel
     let public CheckClosingFinished (channel: ChannelInfo): Async<bool> =
         async {
-            let! resCheck = ClosedChannel.CheckClosingFinished channel.FundingTransaction.DnlTxId
+            let! resCheck = ClosedChannel.CheckClosingFinished channel.FundingTxId.DnlTxId
             match resCheck with
             | Ok res ->
                 return res
