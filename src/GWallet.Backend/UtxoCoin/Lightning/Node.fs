@@ -291,7 +291,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
 
     member internal self.InitiateCloseChannel (channelId: ChannelIdentifier): Async<Result<unit, IErrorMsg>> =
         async {
-            let! connectRes = ActiveChannel.ConnectReestablish self.ChannelStore self.SecretKey channelId
+            let! connectRes = ActiveChannel.ConnectReestablish self.ChannelStore self.TransportListener channelId
             match connectRes with
             | Error connectError ->
                 return failwith <| SPrintF1 "Error reestablishing channel: %s" (connectError :> IErrorMsg).Message
