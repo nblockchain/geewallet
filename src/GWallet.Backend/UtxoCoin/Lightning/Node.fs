@@ -261,10 +261,14 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
             match recvChannelMsgRes with
             | Error err ->
                 return failwith <| SPrintF1 "Received error while waiting for lightning message: %s" (err :> IErrorMsg).Message
-            | Ok (_, channelMsg) ->
+            | Ok (peerNodeAfterMsgReceived, channelMsg) ->
                 match channelMsg with
                 | :? DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
-                    return! self.HandleMonoHopUnidirectionalPaymentMsg activeChannel channelId monoHopUnidirectionalPaymentMsg
+                    let activeChannelAfterMsgReceived = { activeChannel with
+                                                            ConnectedChannel = { activeChannel.ConnectedChannel with
+                                                                                    PeerNode = peerNodeAfterMsgReceived }}
+
+                    return! self.HandleMonoHopUnidirectionalPaymentMsg activeChannelAfterMsgReceived channelId monoHopUnidirectionalPaymentMsg
                 | msg ->
                     return failwith <| SPrintF1 "Unexpected msg while waiting for monohop payment message: %As" msg
     }
