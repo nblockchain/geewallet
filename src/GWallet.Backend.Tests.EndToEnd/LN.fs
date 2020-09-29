@@ -655,6 +655,11 @@ type LN() =
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
+        let! closeChannelRes = Lightning.Network.AcceptCloseChannel walletInstance.Node channelId
+        match closeChannelRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
+
         return ()
     }
 
