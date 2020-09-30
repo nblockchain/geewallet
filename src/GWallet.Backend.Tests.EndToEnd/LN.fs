@@ -394,6 +394,26 @@ type Lnd = {
         | err -> return Error err
     }
 
+    member this.CloseChannel (nodeEndPoint: NodeEndPoint) fundingTxId outputIndex : Async<Result<unit, CloseChannelResult>> = async {
+        let client = this.Client()
+        let nodeInfo =
+            let pubKey =
+                let stringified = nodeEndPoint.NodeId.ToString()
+                let unstringified = PubKey stringified
+                unstringified
+            NodeInfo (pubKey, nodeEndPoint.IPEndPoint.Address.ToString(), nodeEndPoint.IPEndPoint.Port)
+        let closeChannelReq =
+            new CloseChannelRequest (
+                NodeInfo = nodeInfo,
+                ChannelPointFundingTxIdStr = fundingTxId, 
+                ChannelPointOutputIndex = outputIndex
+            )
+        let! closeChannelResponse = Async.AwaitTask <| client.CloseChannel (closeChannelReq, CancellationToken.None)
+        match closeChannelResponse.Result with
+        | CloseChannelResult.Ok -> return Ok ()
+        | err -> return Error err
+    }
+
 type WalletInstance private (password: string, channelStore: ChannelStore, node: Node) =
     static let oneWalletAtATime: Semaphore = new Semaphore(1, 1)
 
@@ -505,167 +525,7 @@ type LN() =
 
     [<Category("GeewalletToGeewalletFunder")>]
     [<Test>]
-    member __.``can open channel with geewallet (funder)``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.New None None
-        use bitcoind = Bitcoind.Start()
-        use _electrumServer = ElectrumServer.Start bitcoind
-        use! lnd = Lnd.Start bitcoind
-
-        // As explained in the other test, geewallet cannot use coinbase outputs.
-        // To work around that we mine a block to a LND instance and afterwards tell
-        // it to send funds to the funder geewallet instance
-        let! address = lnd.GetDepositAddress()
-        let blocksMinedToLnd = BlockHeightOffset32 1u
-        bitcoind.GenerateBlocks blocksMinedToLnd address
-
-        let maturityDurationInNumberOfBlocks = BlockHeightOffset32 (uint32 NBitcoin.Consensus.RegTest.CoinbaseMaturity)
-        bitcoind.GenerateBlocks maturityDurationInNumberOfBlocks walletInstance.Address
-
-        // We confirm the one block mined to LND, by waiting for LND to see the chain
-        // at a height which has that block matured. The height at which the block will
-        // be matured is 100 on regtest. Since we initialally mined one block for LND,
-        // this will wait until the block height of LND reaches 1 (initial blocks mined)
-        // plus 100 blocks (coinbase maturity). This test has been parameterized
-        // to use the constants defined in NBitcoin, but you have to keep in mind that
-        // the coinbase maturity may be defined differently in other coins.
-        do! lnd.WaitForBlockHeight (BlockHeight.Zero + blocksMinedToLnd + maturityDurationInNumberOfBlocks)
-        do! lnd.WaitForBalance (Money(50UL, MoneyUnit.BTC))
-
-        // fund geewallet
-        let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
-        let feeRate = FeeRatePerKw 2500u
-        let! _txid = lnd.SendCoins geewalletAccountAmount walletInstance.Address feeRate
-
-        // wait for lnd's transaction to appear in mempool
-        while bitcoind.GetTxIdsInMempool().Length = 0 do
-            Thread.Sleep 500
-
-        // We want to make sure Geewallet consideres the money received.
-        // A typical number of blocks that is almost universally considered
-        // 100% confirmed, is 6. Therefore we mine 7 blocks. Because we have
-        // waited for the transaction to appear in bitcoind's mempool, we
-        // can assume that the first of the 7 blocks will include the
-        // transaction sending money to Geewallet. The next 6 blocks will
-        // bury the first block, so that the block containing the transaction
-        // will be 6 deep at the end of the following call to generateBlocks.
-        // At that point, the 0.25 regtest coins from the above call to sendcoins
-        // are considered arrived to Geewallet.
-        let consideredConfirmedAmountOfBlocksPlusOne = BlockHeightOffset32 7u
-        bitcoind.GenerateBlocks consideredConfirmedAmountOfBlocksPlusOne walletInstance.Address
-
-        let fundingAmount = Money(0.1m, MoneyUnit.BTC)
-        let! transferAmount = async {
-            let! accountBalance = walletInstance.WaitForBalance fundingAmount
-            return TransferAmount (fundingAmount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
-        }
-        let! metadata = ChannelManager.EstimateChannelOpeningFee (walletInstance.Account :?> NormalUtxoAccount) transferAmount
-        let! pendingChannelRes =
-            Lightning.Network.OpenChannel
-                walletInstance.Node
-                FundeeNodeEndpoint
-                transferAmount
-                metadata
-                walletInstance.Password
-        let pendingChannel = UnwrapResult pendingChannelRes "OpenChannel failed"
-        let minimumDepth = (pendingChannel :> IChannelToBeOpened).ConfirmationsRequired
-        let channelId = (pendingChannel :> IChannelToBeOpened).ChannelId
-        let! fundingTxIdRes = pendingChannel.Accept()
-        let _fundingTxId = UnwrapResult fundingTxIdRes "pendingChannel.Accept failed"
-        bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) walletInstance.Address
-
-        do!
-            let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
-            let fundingBroadcastButNotLockedData =
-                match channelInfo.Status with
-                | ChannelStatus.FundingBroadcastButNotLocked fundingBroadcastButNotLockedData
-                    -> fundingBroadcastButNotLockedData
-                | status -> failwith (SPrintF1 "Unexpected channel status. Expected FundingBroadcastButNotLocked, got %A" status)
-            let rec waitForFundingConfirmed() = async {
-                let! remainingConfirmations = fundingBroadcastButNotLockedData.GetRemainingConfirmations()
-                if remainingConfirmations > 0u then
-                    do! Async.Sleep 1000
-                    return! waitForFundingConfirmed()
-                else
-                    // TODO: the backend API doesn't give us any way to avoid
-                    // the FundingOnChainLocationUnknown error, so just sleep
-                    // to avoid the race condition. This waiting should really
-                    // be implemented on the backend anyway.
-                    do! Async.Sleep 10000
-                    return ()
-            }
-            waitForFundingConfirmed()
-
-        let! lockFundingRes = Lightning.Network.LockChannelFunding walletInstance.Node channelId
-        UnwrapResult lockFundingRes "LockChannelFunding failed"
-
-        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
-        match channelInfo.Status with
-        | ChannelStatus.Active -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
-
-        let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.Node channelId
-        match closeChannelRes with
-        | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "error when closing channel: %s" err.Message)
-
-        match (walletInstance.ChannelStore.ChannelInfo channelId).Status with
-        | ChannelStatus.Closing -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
-
-        // Mine 10 blocks to make sure closing tx is confirmed
-        bitcoind.GenerateBlocks (BlockHeightOffset32 (uint32 10)) walletInstance.Address
-        
-        let rec waitForClosingTxConfirmed attempt = async {
-            Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
-            if attempt = 10 then
-                return Error "Closing tx not confirmed after maximum attempts"
-            else
-                let! txIsConfirmed = Lightning.Network.CheckClosingFinished (walletInstance.ChannelStore.ChannelInfo channelId)
-                if txIsConfirmed then
-                    return Ok ()
-                else
-                    do! Async.Sleep 1000
-                    return! waitForClosingTxConfirmed (attempt + 1)
-                    
-        }
-
-        let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
-        match closingTxConfirmedRes with
-        | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
-
-        return ()
-    }
-
-    [<Category("GeewalletToGeewalletFundee")>]
-    [<Test>]
-    member __.``can open channel with geewallet (fundee)``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.New (Some FundeeLightningIPEndpoint) (Some FundeeAccountsPrivateKey)
-        let! pendingChannelRes =
-            Lightning.Network.AcceptChannel
-                walletInstance.Node
-
-        let (channelId, _) = UnwrapResult pendingChannelRes "OpenChannel failed"
-
-        let! lockFundingRes = Lightning.Network.LockChannelFunding walletInstance.Node channelId
-        UnwrapResult lockFundingRes "LockChannelFunding failed"
-
-        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
-        match channelInfo.Status with
-        | ChannelStatus.Active -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
-
-        let! closeChannelRes = Lightning.Network.AcceptCloseChannel walletInstance.Node channelId
-        match closeChannelRes with
-        | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
-
-        return ()
-    }
-
-    [<Category("MonoHopPaymentsFunder")>]
-    [<Test>]
-    member __.``can send/receive monohop payments (funder)``() = Async.RunSynchronously <| async {
+    member __.``can send/receive monohop payments and close channel (funder)``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
         use _electrumServer = ElectrumServer.Start bitcoind
@@ -802,12 +662,43 @@ type LN() =
         if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount - WalletToWalletTestPayment0Amount - WalletToWalletTestPayment1Amount then
             failwith "incorrect balance after payment 1"
 
+        let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.Node channelId
+        match closeChannelRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "error when closing channel: %s" err.Message)
+
+        match (walletInstance.ChannelStore.ChannelInfo channelId).Status with
+        | ChannelStatus.Closing -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
+
+        // Mine 10 blocks to make sure closing tx is confirmed
+        bitcoind.GenerateBlocks (BlockHeightOffset32 (uint32 10)) walletInstance.Address
+        
+        let rec waitForClosingTxConfirmed attempt = async {
+            Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
+            if attempt = 10 then
+                return Error "Closing tx not confirmed after maximum attempts"
+            else
+                let! txIsConfirmed = Lightning.Network.CheckClosingFinished (walletInstance.ChannelStore.ChannelInfo channelId)
+                if txIsConfirmed then
+                    return Ok ()
+                else
+                    do! Async.Sleep 1000
+                    return! waitForClosingTxConfirmed (attempt + 1)
+                    
+        }
+
+        let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
+        match closingTxConfirmedRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
+
         return ()
     }
 
-    [<Category("MonoHopPaymentsFundee")>]
+    [<Category("GeewalletToGeewalletFundee")>]
     [<Test>]
-    member __.``can send/receive monohop payments (fundee)``() = Async.RunSynchronously <| async {
+    member __.``can send/receive monohop payments and close channel (fundee)``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New (Some FundeeLightningIPEndpoint) (Some FundeeAccountsPrivateKey)
         let! pendingChannelRes =
             Lightning.Network.AcceptChannel
@@ -850,11 +741,16 @@ type LN() =
         if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> WalletToWalletTestPayment0Amount + WalletToWalletTestPayment1Amount then
             failwith "incorrect balance after receiving payment 1"
 
+        let! closeChannelRes = Lightning.Network.AcceptCloseChannel walletInstance.Node channelId
+        match closeChannelRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
+
         return ()
     }
 
     [<Test>]
-    member __.``can open channel with LND``() = Async.RunSynchronously <| async {
+    member __.``can open and close channel with LND``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
         use _electrumServer = ElectrumServer.Start bitcoind
@@ -936,11 +832,42 @@ type LN() =
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
+        let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.Node channelId
+        match closeChannelRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "error when closing channel: %s" err.Message)
+
+        match (walletInstance.ChannelStore.ChannelInfo channelId).Status with
+        | ChannelStatus.Closing -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
+
+        // Mine 10 blocks to make sure closing tx is confirmed
+        bitcoind.GenerateBlocks (BlockHeightOffset32 (uint32 10)) walletInstance.Address
+        
+        let rec waitForClosingTxConfirmed attempt = async {
+            Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
+            if attempt = 10 then
+                return Error "Closing tx not confirmed after maximum attempts"
+            else
+                let! txIsConfirmed = Lightning.Network.CheckClosingFinished (walletInstance.ChannelStore.ChannelInfo channelId)
+                if txIsConfirmed then
+                    return Ok ()
+                else
+                    do! Async.Sleep 1000
+                    return! waitForClosingTxConfirmed (attempt + 1)
+                    
+        }
+
+        let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
+        match closingTxConfirmedRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
+
         return ()
     }
 
     [<Test>]
-    member __.``can accept channel from LND``() = Async.RunSynchronously <| async {
+    member __.``can accept and close channel from LND``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
         use _electrumServer = ElectrumServer.Start bitcoind
@@ -1000,6 +927,30 @@ type LN() =
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        let fundingTxId = (walletInstance.ChannelStore.ChannelInfo channelId).ToString()
+        let closeChannelTask = lnd.CloseChannel walletInstance.NodeEndPoint fundingTxId (int64 0)
+        let awaitCloseTask = async {
+            let rec receiveEvent () = async {
+                let! receivedEvent = Lightning.Network.ReceiveLightningEvent walletInstance.Node channelId
+                match receivedEvent with
+                | Error err -> return Error (SPrintF1 "Failed to receive shutdown msg from LND: %A" err)
+                | Ok event when event = IncomingChannelEvent.Shutdown -> return Ok ()
+                | _ -> return! receiveEvent ()
+            }
+
+            return! receiveEvent ()
+        }
+
+        let! closeChannelRes, awaitCloseRes = AsyncExtensions.MixedParallel2 closeChannelTask awaitCloseTask
+
+        match closeChannelRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "failed to make LND close the channel: %A" err)
+
+        match awaitCloseRes with
+        | Ok _ -> ()
+        | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
 
         return ()
     }
