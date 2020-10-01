@@ -361,7 +361,7 @@ type Lnd = {
         return TxId <| uint256 sendCoinsResp.Txid
     }
 
-    member this.ConnectTo (nodeEndPoint: NodeEndPoint) : Async<unit> =
+    member this.ConnectTo (nodeEndPoint: NodeEndPoint) : Async<ConnectionResult> =
         let client = this.Client()
         let nodeInfo =
             let pubKey =
@@ -369,7 +369,7 @@ type Lnd = {
                 let unstringified = PubKey stringified
                 unstringified
             NodeInfo (pubKey, nodeEndPoint.IPEndPoint.Address.ToString(), nodeEndPoint.IPEndPoint.Port)
-        (Async.AwaitTask: Task -> Async<unit>) <| (client :> ILightningClient).ConnectTo nodeInfo
+        (Async.AwaitTask: Task<ConnectionResult> -> Async<ConnectionResult>) <| (client :> ILightningClient).ConnectTo nodeInfo
 
     member this.OpenChannel (nodeEndPoint: NodeEndPoint)
                             (amount: Money)
@@ -971,7 +971,10 @@ type LN() =
 
         let acceptChannelTask = Lightning.Network.AcceptChannel walletInstance.Node
         let openChannelTask = async {
-            do! lnd.ConnectTo walletInstance.NodeEndPoint
+            let! connectionResult = lnd.ConnectTo walletInstance.NodeEndPoint
+            match connectionResult with
+            | ConnectionResult.CouldNotConnect -> failwith "could not connect"
+            | _ -> ()
             return!
                 lnd.OpenChannel
                     walletInstance.NodeEndPoint
