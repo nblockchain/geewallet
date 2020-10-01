@@ -85,6 +85,7 @@ type IChannelToBeOpened =
 type IncomingChannelEvent =
     | MonoHopUnidirectionalPayment
     | Shutdown
+    | Unknown
 
 type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) =
     member internal self.OutgoingUnfundedChannel = outgoingUnfundedChannel
@@ -415,7 +416,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                         match res with
                         | Error err -> return Error err
                         | Ok _ -> return Ok IncomingChannelEvent.Shutdown
-                    | msg -> return failwith <| SPrintF1 "Received invalid msg while waiting for lightning event: %A" msg
+                    | _ -> return Ok IncomingChannelEvent.Unknown
         }
 
 module public Connection =
