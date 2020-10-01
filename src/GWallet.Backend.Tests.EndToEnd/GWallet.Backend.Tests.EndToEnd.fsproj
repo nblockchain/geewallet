@@ -110,25 +110,25 @@
       <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.All">
-      <HintPath>..\..\packages\BTCPayServer.Lightning.All.1.1.13\lib\netstandard2.0\BTCPayServer.Lightning.All.dll</HintPath>
+      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.All.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.Common">
-      <HintPath>..\..\packages\BTCPayServer.Lightning.Common.1.1.0.22\lib\netstandard2.0\BTCPayServer.Lightning.Common.dll</HintPath>
+      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Common.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.LND">
-      <HintPath>..\..\packages\BTCPayServer.Lightning.LND.1.1.0.29\lib\netstandard2.0\BTCPayServer.Lightning.LND.dll</HintPath>
+      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.LND.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.Charge">
-      <HintPath>..\..\packages\BTCPayServer.Lightning.Charge.1.1.0.22\lib\netstandard2.0\BTCPayServer.Lightning.Charge.dll</HintPath>
+      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Charge.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.CLightning">
-      <HintPath>..\..\packages\BTCPayServer.Lightning.CLightning.1.1.7\lib\netstandard2.0\BTCPayServer.Lightning.CLightning.dll</HintPath>
+      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.CLightning.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.Eclair">
-      <HintPath>..\..\packages\BTCPayServer.Lightning.Eclair.1.1.0.10\lib\netstandard2.0\BTCPayServer.Lightning.Eclair.dll</HintPath>
+      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Eclair.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.Ptarmigan">
-      <HintPath>..\..\packages\BTCPayServer.Lightning.Ptarmigan.1.0.0.8\lib\netstandard2.0\BTCPayServer.Lightning.Ptarmigan.dll</HintPath>
+      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Ptarmigan.dll</HintPath>
     </Reference>
     <Reference Include="DotNetLightning.Core">
       <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20200902-1110-git-a4a59d0\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
