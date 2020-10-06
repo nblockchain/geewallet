@@ -394,7 +394,9 @@ type Lnd = {
         | err -> return Error err
     }
 
-    member this.CloseChannel (nodeEndPoint: NodeEndPoint) fundingTxId outputIndex : Async<Result<unit, CloseChannelResult>> = async {
+    member this.CloseChannel (nodeEndPoint: NodeEndPoint)
+                             (fundingOutPoint: OutPoint)
+                                 : Async<Result<unit, CloseChannelResult>> = async {
         let client = this.Client()
         let nodeInfo =
             let pubKey =
@@ -405,8 +407,8 @@ type Lnd = {
         let closeChannelReq =
             new CloseChannelRequest (
                 NodeInfo = nodeInfo,
-                ChannelPointFundingTxIdStr = fundingTxId, 
-                ChannelPointOutputIndex = outputIndex
+                ChannelPointFundingTxIdStr = fundingOutPoint.Hash.ToString(),
+                ChannelPointOutputIndex = int64 fundingOutPoint.N
             )
         let! closeChannelResponse = Async.AwaitTask <| client.CloseChannel (closeChannelReq, CancellationToken.None)
         match closeChannelResponse.Result with
@@ -931,8 +933,11 @@ type LN() =
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
-        let fundingTxId = (walletInstance.ChannelStore.ChannelInfo channelId).ToString()
-        let closeChannelTask = lnd.CloseChannel walletInstance.NodeEndPoint fundingTxId (int64 0)
+        let fundingOutPoint =
+            let fundingTxId = uint256(channelInfo.FundingTxId.ToString())
+            let fundingOutPointIndex = channelInfo.FundingOutPointIndex
+            OutPoint(fundingTxId, fundingOutPointIndex)
+        let closeChannelTask = lnd.CloseChannel walletInstance.NodeEndPoint fundingOutPoint
         let awaitCloseTask = async {
             let rec receiveEvent () = async {
                 let! receivedEvent = Lightning.Network.ReceiveLightningEvent walletInstance.Node channelId
