@@ -298,8 +298,11 @@ module Server =
         | ServerSelectionMode.Fast -> 3u
         | ServerSelectionMode.Analysis -> 2u
 
+    let etcEcosystemIsMomentarilyCentralized = true
+
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
                                                          (mode: ServerSelectionMode)
+                                                         currency
                                                          maybeConsistencyConfig =
 
         let consistencyConfig =
@@ -307,10 +310,15 @@ module Server =
             | None -> SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired
             | Some specificConsistencyConfig -> specificConsistencyConfig
 
+        let retries =
+            match currency with
+            | Currency.ETC when etcEcosystemIsMomentarilyCentralized -> Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS * 2u
+            | _ -> Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS
+
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
-            NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
-            NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            NumberOfRetries = retries
+            NumberOfRetriesForInconsistency = retries
             ExceptionHandler = Some
                 (
                     fun ex ->
@@ -325,8 +333,6 @@ module Server =
                     }
         }
 
-    let etcEcosystemIsMomentarilyCentralized = true
-
     let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode) (currency: Currency) =
         let numberOfConsistentResponsesRequired =
             if (etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC) || not Networking.Tls12Support then
@@ -335,6 +341,7 @@ module Server =
                 2u
         FaultTolerantParallelClientInnerSettings numberOfConsistentResponsesRequired
                                                  mode
+                                                 currency
 
     let private FaultTolerantParallelClientSettingsForBalanceCheck (mode: ServerSelectionMode)
                                                                    (currency: Currency)
@@ -348,8 +355,8 @@ module Server =
                 None
         FaultTolerantParallelClientDefaultSettings mode currency consistencyConfig
 
-    let private FaultTolerantParallelClientSettingsForBroadcast () =
-        FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast None
+    let private FaultTolerantParallelClientSettingsForBroadcast currency =
+        FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast currency None
 
     let private faultTolerantEtherClient =
         JsonRpcSharp.Client.HttpClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
@@ -643,7 +650,7 @@ module Server =
                 GetRandomizedFuncs currency web3Func
             try
                 return! faultTolerantEtherClient.Query
-                            (FaultTolerantParallelClientSettingsForBroadcast ())
+                            (FaultTolerantParallelClientSettingsForBroadcast currency)
                             web3Funcs
             with
             | ex ->
