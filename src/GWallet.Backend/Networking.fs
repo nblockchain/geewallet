@@ -8,6 +8,7 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
 type CloudFlareError =
+    | OriginError = 520
     | ConnectionTimeOut = 522
     | WebServerDown = 521
     | OriginUnreachable = 523

@@ -139,6 +139,8 @@ module Server =
 
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
                 raise <| ServerUnreachableException(exMsg, CloudFlareError.WebServerDown, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginError) then
+                raise <| ServerUnreachableException(exMsg, CloudFlareError.OriginError, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
                 raise <| ServerUnreachableException(exMsg, HttpStatusCode.BadGateway, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
