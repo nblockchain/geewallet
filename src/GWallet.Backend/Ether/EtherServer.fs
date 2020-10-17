@@ -161,6 +161,12 @@ module Server =
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.NotFound) then
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
 
+            // this happened once with ETC (www.ethercluster.com/etc) when trying to broadcast a transaction
+            // (not sure if it's correct to ignore it but I can't fathom how the tx could be a bad request:
+            //  https://sentry.io/organizations/nblockchain/issues/1937781114/ )
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadRequest) then
+                raise <| ServerMisconfiguredException(exMsg, HttpStatusCode.BadRequest, httpReqEx)
+
             if HttpRequestExceptionMatchesErrorCode
                 httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
                     raise <| ServerRestrictiveException(exMsg, httpReqEx)

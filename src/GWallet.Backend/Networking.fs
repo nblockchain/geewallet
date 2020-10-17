@@ -73,6 +73,11 @@ type ServerMisconfiguredException =
         { inherit CommunicationUnsuccessfulException (message, innerException) }
     new (message: string) =
         { inherit CommunicationUnsuccessfulException (message) }
+    new(message: string, httpStatusCode: HttpStatusCode, innerException: Exception) =
+        {
+            inherit CommunicationUnsuccessfulException(SPrintF2 "%s (HttpErr: %s)" message (httpStatusCode.ToString()),
+                                                                innerException)
+        }
 
 module Networking =
 
