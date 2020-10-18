@@ -7,6 +7,8 @@ open Nethereum.Hex.HexTypes
 open Nethereum.StandardTokenEIP20
 open Nethereum.StandardTokenEIP20.ContractDefinition
 
+open GWallet.Backend
+
 module TokenManager =
 
     let internal SAI_CONTRACT_ADDRESS = "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359"
@@ -39,5 +41,5 @@ module TokenManager =
 
     // this is a dummy instance we need in order to pass it to base class of StandardTokenService, but not
     // really used online; FIXME: propose "Web3-less" overload to Nethereum
-    let private dummyOfflineWeb3 = Web3()
+    let private dummyOfflineWeb3 = Web3 Config.DEFAULT_NETWORK_TIMEOUT
     let internal OfflineDaiContract = DaiContract(dummyOfflineWeb3)

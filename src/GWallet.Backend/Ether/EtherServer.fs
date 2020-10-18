@@ -19,8 +19,8 @@ type BalanceType =
     | Unconfirmed
     | Confirmed
 
-type SomeWeb3(url: string) =
-    inherit Web3(url)
+type SomeWeb3 (connectionTimeOut, url: string) =
+    inherit Web3 (connectionTimeOut, url)
 
     member val Url = url with get
 
@@ -66,7 +66,7 @@ module Web3ServerSeedList =
 
 module Server =
 
-    let private Web3Server (serverDetails: ServerDetails) =
+    let private Web3Server (connectionTimeOut, serverDetails: ServerDetails) =
         match serverDetails.ServerInfo.ConnectionType with
         | { Protocol = Tcp _ ; Encrypted = _ } ->
             failwith <| SPrintF1 "Ether server of TCP connection type?: %s" serverDetails.ServerInfo.NetworkPath
@@ -77,7 +77,7 @@ module Server =
                 else
                     "http"
             let uri = SPrintF2 "%s://%s" protocol serverDetails.ServerInfo.NetworkPath
-            SomeWeb3 uri
+            SomeWeb3 (connectionTimeOut, uri)
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
         ex.Message.StartsWith(SPrintF1 "%i " errorCode) || ex.Message.Contains(SPrintF1 " %i " errorCode)
@@ -359,12 +359,12 @@ module Server =
         FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast currency None
 
     let private faultTolerantEtherClient =
-        JsonRpcSharp.Client.HttpClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
         FaultTolerantParallelClient<ServerDetails,ServerDiscardedException> Caching.Instance.SaveServerLastStat
 
 
     let Web3ServerToRetrievalFunc (server: ServerDetails)
                                   (web3ClientFunc: SomeWeb3->Async<'R>)
+                                  currency
                                       : Async<'R> =
 
         let HandlePossibleEtherFailures (job: Async<'R>): Async<'R> =
@@ -378,8 +378,16 @@ module Server =
 
                     return raise <| FSharpUtil.ReRaise ex
             }
+
+        let connectionTimeout =
+            match currency with
+            | Currency.ETC when etcEcosystemIsMomentarilyCentralized ->
+                Config.DEFAULT_NETWORK_TIMEOUT + Config.DEFAULT_NETWORK_TIMEOUT
+            | _ ->
+                Config.DEFAULT_NETWORK_TIMEOUT
+
         async {
-            let web3Server = Web3Server server
+            let web3Server = Web3Server (connectionTimeout, server)
             try
                 return! HandlePossibleEtherFailures (web3ClientFunc web3Server)
 
@@ -397,13 +405,14 @@ module Server =
     //        and room for simplification to not pass a new ad-hoc delegate?
     let GetServerFuncs<'R> (web3Func: SomeWeb3->Async<'R>)
                            (etherServers: seq<ServerDetails>)
+                           (currency: Currency)
                                : seq<Server<ServerDetails,'R>> =
         let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
                                       (etherServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
             {
                 Details = etherServer
-                Retrieval = Web3ServerToRetrievalFunc etherServer web3ClientFunc
+                Retrieval = Web3ServerToRetrievalFunc etherServer web3ClientFunc currency
             }
 
         let serverFuncs =
@@ -415,7 +424,7 @@ module Server =
                                        (web3Func: SomeWeb3->Async<'R>)
                                            : List<Server<ServerDetails,'R>> =
         let etherServers = Web3ServerSeedList.Randomize currency
-        GetServerFuncs web3Func etherServers
+        GetServerFuncs web3Func etherServers currency
             |> List.ofSeq
 
     let GetTransactionCount (currency: Currency) (address: string)
