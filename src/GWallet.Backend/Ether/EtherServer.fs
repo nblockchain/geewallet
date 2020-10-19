@@ -626,7 +626,10 @@ module Server =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task = web3.Eth.GasPrice.SendRequestAsync(null, cancelToken)
-                            return! Async.AwaitTask task
+                            let! hexBigInteger = Async.AwaitTask task
+                            if hexBigInteger.Value = BigInteger 0 then
+                                return failwith "Some server returned zero for gas price, which is invalid"
+                            return hexBigInteger
                         }
                 GetRandomizedFuncs currency web3Func
             let minResponsesRequired =

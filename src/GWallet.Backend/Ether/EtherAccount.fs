@@ -157,15 +157,24 @@ module internal Account =
 
     let EstimateEtherTransferFee (account: IAccount) (amount: TransferAmount): Async<TransactionMetadata> = async {
         let! gasPrice64 = GetGasPrice account.Currency
-        let ethMinerFee = MinerFee(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION, gasPrice64, DateTime.UtcNow, account.Currency)
+        let initialEthMinerFee = MinerFee(GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION, gasPrice64, DateTime.UtcNow, account.Currency)
         let! txCount = GetTransactionCount account.Currency account.PublicAddress
 
-        let feeValue = ethMinerFee.CalculateAbsoluteValue()
+        let! maybeExchangeRate = FiatValueEstimation.UsdValue amount.Currency
+        let maybeBetterFee =
+            match maybeExchangeRate with
+            | NotFresh NotAvailable -> initialEthMinerFee
+            | NotFresh (Cached (exchangeRate,_)) | Fresh exchangeRate ->
+                MinerFee.GetHigherFeeThanRidiculousFee exchangeRate
+                                                       initialEthMinerFee
+                                                       0.01m
+
+        let feeValue = maybeBetterFee.CalculateAbsoluteValue()
         if (amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&
             feeValue > (amount.BalanceAtTheMomentOfSending - amount.ValueToSend)) then
             raise <| InsufficientBalanceForFee (Some feeValue)
 
-        return { Ether.Fee = ethMinerFee; Ether.TransactionCount = txCount }
+        return { Ether.Fee = maybeBetterFee; Ether.TransactionCount = txCount }
     }
 
     // FIXME: this should raise InsufficientBalanceForFee

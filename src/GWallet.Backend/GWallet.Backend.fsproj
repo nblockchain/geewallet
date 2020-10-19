@@ -70,6 +70,7 @@
     <Compile Include="Caching.fs" />
     <Compile Include="Transaction.fs" />
     <Compile Include="FaultTolerantParallelClient.fs" />
+    <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="UtxoCoin\ElectrumServer.fs" />
     <Compile Include="UtxoCoin\StratumClient.fs" />
     <Compile Include="UtxoCoin\ElectrumClient.fs" />
@@ -86,7 +87,6 @@
     <Compile Include="BlockExplorer.fs" />
     <Compile Include="WarpKey.fs" />
     <Compile Include="Account.fs" />
-    <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="Formatting.fs" />
     <Compile Include="ServerManager.fs" />
     <Content Include="packages.config" />
