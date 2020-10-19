@@ -21,8 +21,8 @@ module BlockExplorer =
                   // most popular one...
                   "https://etherscan.io/address/"
               | Currency.ETC ->
-                  // the only one? minergate.com seems to only show blocks, not addresses
-                  "https://gastracker.io/addr/"
+                  // maybe blockscout is better? minergate.com seems to only show blocks, not addresses
+                  "https://etcblockexplorer.com/address/addr/"
               | Currency.SAI | Currency.DAI ->
                   SPrintF1 "https://etherscan.io/token/%s?a=" (TokenManager.GetTokenContractAddress account.Currency)
         Uri(baseUrl + account.PublicAddress)
@@ -37,7 +37,7 @@ module BlockExplorer =
               | Currency.ETH ->
                   "https://etherscan.io/tx/"
               | Currency.ETC ->
-                  "https://gastracker.io/tx/"
+                  "https://etcblockexplorer.com/tx/"
               | Currency.DAI | Currency.SAI ->
                   "https://etherscan.io/tx/"
         Uri(baseUrl + txHash)

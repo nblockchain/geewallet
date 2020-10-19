@@ -19,8 +19,8 @@ type BalanceType =
     | Unconfirmed
     | Confirmed
 
-type SomeWeb3(url: string) =
-    inherit Web3(url)
+type SomeWeb3 (connectionTimeOut, url: string) =
+    inherit Web3 (connectionTimeOut, url)
 
     member val Url = url with get
 
@@ -66,7 +66,7 @@ module Web3ServerSeedList =
 
 module Server =
 
-    let private Web3Server (serverDetails: ServerDetails) =
+    let private Web3Server (connectionTimeOut, serverDetails: ServerDetails) =
         match serverDetails.ServerInfo.ConnectionType with
         | { Protocol = Tcp _ ; Encrypted = _ } ->
             failwith <| SPrintF1 "Ether server of TCP connection type?: %s" serverDetails.ServerInfo.NetworkPath
@@ -77,7 +77,7 @@ module Server =
                 else
                     "http"
             let uri = SPrintF2 "%s://%s" protocol serverDetails.ServerInfo.NetworkPath
-            SomeWeb3 uri
+            SomeWeb3 (connectionTimeOut, uri)
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
         ex.Message.StartsWith(SPrintF1 "%i " errorCode) || ex.Message.Contains(SPrintF1 " %i " errorCode)
@@ -134,6 +134,8 @@ module Server =
 
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.WebServerDown) then
                 raise <| ServerUnreachableException(exMsg, CloudFlareError.WebServerDown, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginError) then
+                raise <| ServerUnreachableException(exMsg, CloudFlareError.OriginError, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadGateway) then
                 raise <| ServerUnreachableException(exMsg, HttpStatusCode.BadGateway, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.GatewayTimeout) then
@@ -153,6 +155,12 @@ module Server =
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.NotFound) then
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
+
+            // this happened once with ETC (www.ethercluster.com/etc) when trying to broadcast a transaction
+            // (not sure if it's correct to ignore it but I can't fathom how the tx could be a bad request:
+            //  https://sentry.io/organizations/nblockchain/issues/1937781114/ )
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.BadRequest) then
+                raise <| ServerMisconfiguredException(exMsg, HttpStatusCode.BadRequest, httpReqEx)
 
             if HttpRequestExceptionMatchesErrorCode
                 httpReqEx (int HttpStatusCodeNotPresentInTheBcl.TooManyRequests) then
@@ -285,8 +293,11 @@ module Server =
         | ServerSelectionMode.Fast -> 3u
         | ServerSelectionMode.Analysis -> 2u
 
+    let etcEcosystemIsMomentarilyCentralized = true
+
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
                                                          (mode: ServerSelectionMode)
+                                                         currency
                                                          maybeConsistencyConfig =
 
         let consistencyConfig =
@@ -294,10 +305,15 @@ module Server =
             | None -> SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired
             | Some specificConsistencyConfig -> specificConsistencyConfig
 
+        let retries =
+            match currency with
+            | Currency.ETC when etcEcosystemIsMomentarilyCentralized -> Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS * 2u
+            | _ -> Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS
+
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
-            NumberOfRetries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
-            NumberOfRetriesForInconsistency = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS;
+            NumberOfRetries = retries
+            NumberOfRetriesForInconsistency = retries
             ExceptionHandler = Some
                 (
                     fun ex ->
@@ -312,8 +328,6 @@ module Server =
                     }
         }
 
-    let etcEcosystemIsMomentarilyCentralized = true
-
     let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode) (currency: Currency) =
         let numberOfConsistentResponsesRequired =
             if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
@@ -322,6 +336,7 @@ module Server =
                 2u
         FaultTolerantParallelClientInnerSettings numberOfConsistentResponsesRequired
                                                  mode
+                                                 currency
 
     let private FaultTolerantParallelClientSettingsForBalanceCheck (mode: ServerSelectionMode)
                                                                    (currency: Currency)
@@ -335,16 +350,16 @@ module Server =
                 None
         FaultTolerantParallelClientDefaultSettings mode currency consistencyConfig
 
-    let private FaultTolerantParallelClientSettingsForBroadcast () =
-        FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast None
+    let private FaultTolerantParallelClientSettingsForBroadcast currency =
+        FaultTolerantParallelClientInnerSettings 1u ServerSelectionMode.Fast currency None
 
     let private faultTolerantEtherClient =
-        JsonRpcSharp.Client.HttpClient.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
         FaultTolerantParallelClient<ServerDetails,ServerDiscardedException> Caching.Instance.SaveServerLastStat
 
 
     let Web3ServerToRetrievalFunc (server: ServerDetails)
                                   (web3ClientFunc: SomeWeb3->Async<'R>)
+                                  currency
                                       : Async<'R> =
 
         let HandlePossibleEtherFailures (job: Async<'R>): Async<'R> =
@@ -358,8 +373,16 @@ module Server =
 
                     return raise <| FSharpUtil.ReRaise ex
             }
+
+        let connectionTimeout =
+            match currency with
+            | Currency.ETC when etcEcosystemIsMomentarilyCentralized ->
+                Config.DEFAULT_NETWORK_TIMEOUT + Config.DEFAULT_NETWORK_TIMEOUT
+            | _ ->
+                Config.DEFAULT_NETWORK_TIMEOUT
+
         async {
-            let web3Server = Web3Server server
+            let web3Server = Web3Server (connectionTimeout, server)
             try
                 return! HandlePossibleEtherFailures (web3ClientFunc web3Server)
 
@@ -377,13 +400,14 @@ module Server =
     //        and room for simplification to not pass a new ad-hoc delegate?
     let GetServerFuncs<'R> (web3Func: SomeWeb3->Async<'R>)
                            (etherServers: seq<ServerDetails>)
+                           (currency: Currency)
                                : seq<Server<ServerDetails,'R>> =
         let Web3ServerToGenericServer (web3ClientFunc: SomeWeb3->Async<'R>)
                                       (etherServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
             {
                 Details = etherServer
-                Retrieval = Web3ServerToRetrievalFunc etherServer web3ClientFunc
+                Retrieval = Web3ServerToRetrievalFunc etherServer web3ClientFunc currency
             }
 
         let serverFuncs =
@@ -395,7 +419,7 @@ module Server =
                                        (web3Func: SomeWeb3->Async<'R>)
                                            : List<Server<ServerDetails,'R>> =
         let etherServers = Web3ServerSeedList.Randomize currency
-        GetServerFuncs web3Func etherServers
+        GetServerFuncs web3Func etherServers currency
             |> List.ofSeq
 
     let GetTransactionCount (currency: Currency) (address: string)
@@ -600,7 +624,10 @@ module Server =
                         async {
                             let! cancelToken = Async.CancellationToken
                             let task = web3.Eth.GasPrice.SendRequestAsync(null, cancelToken)
-                            return! Async.AwaitTask task
+                            let! hexBigInteger = Async.AwaitTask task
+                            if hexBigInteger.Value = BigInteger 0 then
+                                return failwith "Some server returned zero for gas price, which is invalid"
+                            return hexBigInteger
                         }
                 GetRandomizedFuncs currency web3Func
             let minResponsesRequired =
@@ -633,7 +660,7 @@ module Server =
                 GetRandomizedFuncs currency web3Func
             try
                 return! faultTolerantEtherClient.Query
-                            (FaultTolerantParallelClientSettingsForBroadcast ())
+                            (FaultTolerantParallelClientSettingsForBroadcast currency)
                             web3Funcs
             with
             | ex ->

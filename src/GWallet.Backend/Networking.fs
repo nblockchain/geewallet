@@ -8,6 +8,7 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare
 type CloudFlareError =
+    | OriginError = 520
     | ConnectionTimeOut = 522
     | WebServerDown = 521
     | OriginUnreachable = 523
@@ -72,6 +73,11 @@ type ServerMisconfiguredException =
         { inherit CommunicationUnsuccessfulException (message, innerException) }
     new (message: string) =
         { inherit CommunicationUnsuccessfulException (message) }
+    new(message: string, httpStatusCode: HttpStatusCode, innerException: Exception) =
+        {
+            inherit CommunicationUnsuccessfulException(SPrintF2 "%s (HttpErr: %s)" message (httpStatusCode.ToString()),
+                                                                innerException)
+        }
 
 module Networking =
 

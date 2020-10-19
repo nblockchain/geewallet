@@ -131,7 +131,8 @@ module ServerManager =
                         return balance.Value |> decimal
                     }
 
-                Ether.Server.GetServerFuncs web3Func servers |> Some
+                Ether.Server.GetServerFuncs web3Func servers currency
+                    |> Some
 
             else
                 None

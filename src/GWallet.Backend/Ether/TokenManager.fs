@@ -47,7 +47,6 @@ module TokenManager =
 
     // this is a dummy instance we need in order to pass it to base class of StandardTokenService, but not
     // really used online; FIXME: propose "Web3-less" overload to Nethereum
-    let private dummyOfflineWeb3 = Web3()
+    let private dummyOfflineWeb3 = Web3 Config.DEFAULT_NETWORK_TIMEOUT
     type OfflineTokenServiceWrapper(currency: Currency) = 
         inherit TokenServiceWrapper(dummyOfflineWeb3, currency)
-
