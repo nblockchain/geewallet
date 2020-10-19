@@ -1,16 +1,10 @@
 ﻿namespace GWallet.Frontend.XF.iOS
 
+open System
 open UIKit
 open Foundation
-
 open Xamarin.Forms
 open Xamarin.Forms.Platform.iOS
-
-module AppSingleton =
-    do
-        Xamarin.Forms.Forms.Init()
-
-    let internal Instance = GWallet.Frontend.XF.App ()
 
 [<Register ("AppDelegate")>]
 type AppDelegate () =
@@ -21,7 +15,7 @@ type AppDelegate () =
 
         ZXing.Net.Mobile.Forms.iOS.Platform.Init()
 
-        this.LoadApplication AppSingleton.Instance
+        this.LoadApplication (new GWallet.Frontend.XF.App())
         base.FinishedLaunching(app, options)
 
 module Main =

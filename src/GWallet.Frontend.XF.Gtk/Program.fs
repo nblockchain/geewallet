@@ -7,26 +7,22 @@ open Xamarin.Forms.Platform.GTK
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-module AppSingleton =
-    do
-        Xamarin.Forms.Forms.Init()
-
-    let internal Instance = GWallet.Frontend.XF.App ()
-
 module Main =
 
     [<EntryPoint>]
     [<STAThread>]
     let main argv =
         Gtk.Application.Init()
+        Forms.Init()
 
         // TODO: detect Windows/UWP too
         if GWallet.Backend.Config.IsMacPlatform() then
             failwith "The GTK frontend is only officially supported for the Linux OS"
 
         ZXing.Net.Mobile.Forms.GTK.Platform.Init()
+        let app = GWallet.Frontend.XF.App()
         use window = new FormsWindow()
-        window.LoadApplication AppSingleton.Instance
+        window.LoadApplication(app)
         window.SetApplicationTitle "geewallet"
         let snapEnvVar = Environment.GetEnvironmentVariable "SNAP"
         let logoFileName = "logo.png"

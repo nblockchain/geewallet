@@ -3,20 +3,15 @@
 open System
 
 open Android.App
+open Android.Content
 open Android.Content.PM
+open Android.Runtime
+open Android.Views
+open Android.Widget
 open Android.OS
-
-open Xamarin.Forms
 open Xamarin.Forms.Platform.Android
 
 type Resources = GWallet.Frontend.XF.Android.Resource
-
-module AppSingleton =
-    // strangely enough, Android doesn't have an empty Init() method like other platforms...
-    //do
-    //    Xamarin.Forms.Forms.Init()
-
-    let internal Instance = GWallet.Frontend.XF.App ()
 
 [<Activity (LaunchMode = LaunchMode.SingleTask, 
             Label = "geewallet", 
@@ -26,7 +21,6 @@ module AppSingleton =
             ConfigurationChanges = (ConfigChanges.ScreenSize ||| ConfigChanges.Orientation))>]
 type MainActivity() =
     inherit FormsAppCompatActivity()
-
 
     override this.OnRequestPermissionsResult(requestCode: int, permissions: string[], grantResults: Permission[]) =
         ZXing.Net.Mobile.Android.PermissionsHandler.OnRequestPermissionsResult(requestCode, permissions, grantResults)
@@ -41,4 +35,4 @@ type MainActivity() =
 
         ZXing.Net.Mobile.Forms.Android.Platform.Init()
 
-        this.LoadApplication AppSingleton.Instance
+        this.LoadApplication (new GWallet.Frontend.XF.App ())
