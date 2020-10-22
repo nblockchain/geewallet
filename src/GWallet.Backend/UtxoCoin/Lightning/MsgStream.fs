@@ -7,6 +7,7 @@ open NBitcoin
 open DotNetLightning.Serialize.Msgs
 open DotNetLightning.Serialize
 open DotNetLightning.Utils
+open DotNetLightning.Crypto
 open ResultUtils.Portability
 
 open GWallet.Backend
@@ -161,8 +162,8 @@ type internal MsgStream =
     member internal self.NodeEndPoint: NodeEndPoint =
         self.TransportStream.NodeEndPoint
 
-    member internal self.NodeSecret =
-        self.TransportStream.NodeSecret
+    member internal self.NodeMasterPrivKey(): NodeMasterPrivKey =
+        self.TransportStream.NodeMasterPrivKey
 
     member internal self.SendMsg (msg: ILightningMsg): Async<MsgStream> = async {
         let bytes = msg.ToBytes()

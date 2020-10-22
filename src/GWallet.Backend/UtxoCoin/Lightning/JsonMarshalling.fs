@@ -14,6 +14,7 @@ open NBitcoin
 open Newtonsoft.Json
 
 module JsonMarshalling =
+    (*
     type internal CommitmentPubKeyConverter() =
         inherit JsonConverter<CommitmentPubKey>()
 
@@ -25,6 +26,7 @@ module JsonMarshalling =
         override this.WriteJson(writer: JsonWriter, state: CommitmentPubKey, serializer: JsonSerializer) =
             let serializedCommitmentPubKey: string = state.PubKey.ToHex()
             serializer.Serialize(writer, serializedCommitmentPubKey)
+    *)
 
     type internal CommitmentNumberConverter() =
         inherit JsonConverter<CommitmentNumber>()
@@ -37,15 +39,15 @@ module JsonMarshalling =
             let serializedCommitmentNumber: uint64 = (UInt48.MaxValue - state.Index).UInt64
             serializer.Serialize(writer, serializedCommitmentNumber)
 
-    type internal RevocationSetConverter() =
-        inherit JsonConverter<RevocationSet>()
+    type internal PerCommitmentSecretStoreConverter() =
+        inherit JsonConverter<PerCommitmentSecretStore>()
 
-        override this.ReadJson(reader: JsonReader, _: Type, _: RevocationSet, _: bool, serializer: JsonSerializer) =
-            let keys = serializer.Deserialize<list<CommitmentNumber * RevocationKey>> reader
-            RevocationSet.FromKeys keys
+        override this.ReadJson(reader: JsonReader, _: Type, _: PerCommitmentSecretStore, _: bool, serializer: JsonSerializer) =
+            let keys = serializer.Deserialize<list<CommitmentNumber * PerCommitmentSecret>> reader
+            PerCommitmentSecretStore.FromSecrets keys
 
-        override this.WriteJson(writer: JsonWriter, state: RevocationSet, serializer: JsonSerializer) =
-            let keys: list<CommitmentNumber * RevocationKey> = state.Keys
+        override this.WriteJson(writer: JsonWriter, state: PerCommitmentSecretStore, serializer: JsonSerializer) =
+            let keys: list<CommitmentNumber * PerCommitmentSecret> = state.Secrets
             serializer.Serialize(writer, keys)
 
     type internal ChannelIdentifierConverter() =
@@ -106,15 +108,15 @@ module JsonMarshalling =
         let featureBitConverter = FeatureBitJsonConverter()
         let channelIdentifierConverter = ChannelIdentifierConverter()
         let commitmentNumberConverter = CommitmentNumberConverter()
-        let commitmentPubKeyConverter = CommitmentPubKeyConverter()
-        let revocationSetConverter = RevocationSetConverter()
+        //let commitmentPubKeyConverter = CommitmentPubKeyConverter()
+        let perCommitmentSecretStoreConverter = PerCommitmentSecretStoreConverter()
         settings.Converters.Add ipAddressConverter
         settings.Converters.Add ipEndPointConverter
         settings.Converters.Add featureBitConverter
         settings.Converters.Add channelIdentifierConverter
         settings.Converters.Add commitmentNumberConverter
-        settings.Converters.Add commitmentPubKeyConverter
-        settings.Converters.Add revocationSetConverter
+        //settings.Converters.Add commitmentPubKeyConverter
+        settings.Converters.Add perCommitmentSecretStoreConverter
         NBitcoin.JsonConverters.Serializer.RegisterFrontConverters settings
         settings
 

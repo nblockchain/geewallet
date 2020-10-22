@@ -5,6 +5,7 @@ open System
 open NBitcoin
 open DotNetLightning.Channel
 open DotNetLightning.Chain
+open DotNetLightning.Crypto
 open DotNetLightning.Utils
 open ResultUtils.Portability
 
@@ -59,7 +60,7 @@ type MonoHopUnidirectionalChannel =
     }
     static member internal Create (nodeId: NodeId)
                                   (account: UtxoCoin.NormalUtxoAccount)
-                                  (nodeSecret: ExtKey)
+                                  (nodeMasterPrivKey: NodeMasterPrivKey)
                                   (channelIndex: int)
                                   (fundingTxProvider: ProvideFundingTx)
                                   (initialState: ChannelState)
@@ -80,16 +81,15 @@ type MonoHopUnidirectionalChannel =
                 PeerChannelConfigLimits = Settings.PeerLimits
                 ChannelOptions = channelOptions
             }
-        let keyRepo = DefaultKeyRepository(nodeSecret, channelIndex)
         let currency = (account :> IAccount).Currency
         let! feeEstimator = FeeEstimator.Create currency
         let network = UtxoCoin.Account.GetNetwork currency
         let channel =
             Channel.Create(
                 channelConfig,
-                keyRepo,
+                nodeMasterPrivKey,
+                channelIndex,
                 feeEstimator,
-                nodeSecret.PrivateKey,
                 fundingTxProvider,
                 network,
                 nodeId
@@ -111,9 +111,9 @@ type MonoHopUnidirectionalChannel =
                 Some <| ChannelIdentifier.FromDnl channelId
             | None -> None
 
-    member internal self.ChannelKeys
-        with get(): ChannelKeys =
-            self.Channel.KeysRepository.GetChannelKeys false
+    member internal self.ChannelPrivKeys
+        with get(): ChannelPrivKeys =
+            self.Channel.ChannelPrivKeys
 
     member self.FundingTxId
         with get(): Option<TransactionIdentifier> =
@@ -137,11 +137,12 @@ type MonoHopUnidirectionalChannel =
                                 defaultFinalScriptPubKey
                                 isFunder
                                 self.RemoteNodeId
-                                self.ChannelKeys
+                                self.ChannelPrivKeys
 
     member internal self.ExecuteCommand<'T> (channelCmd: ChannelCommand)
                                             (eventFilter: List<ChannelEvent> -> Option<'T>)
                                                 : Result<'T, ChannelError> * MonoHopUnidirectionalChannel =
+        Console.WriteLine(sprintf "BLAH: executing command: %A" channelCmd)
         match Channel.executeCommand self.Channel channelCmd with
         | Error channelError -> (Error channelError), self
         | Ok evtList ->

@@ -6,6 +6,7 @@ open System.Net
 
 open NBitcoin
 open DotNetLightning.Utils
+open DotNetLightning.Crypto
 open ResultUtils.Portability
 
 open GWallet.Backend
@@ -122,13 +123,13 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
         member self.Dispose() =
             (self.TransportListener :> IDisposable).Dispose()
 
-    static member AccountPrivateKeyToNodeSecret (accountKey: Key) =
+    static member AccountPrivateKeyToNodeMasterPrivKey (accountKey: Key): NodeMasterPrivKey =
         let privateKeyBytesLength = 32
         let bytes: array<byte> = Array.zeroCreate privateKeyBytesLength
         use bytesStream = new MemoryStream(bytes)
         let stream = NBitcoin.BitcoinStream(bytesStream, true)
         accountKey.ReadWrite stream
-        NBitcoin.ExtKey bytes
+        NodeMasterPrivKey <| NBitcoin.ExtKey bytes
 
     member internal self.OpenChannel (nodeEndPoint: NodeEndPoint)
                                      (channelCapacity: TransferAmount)
@@ -436,7 +437,7 @@ module public Connection =
                      (bindAddress: IPEndPoint)
                          : Node =
         let privateKey = Account.GetPrivateKey channelStore.Account password
-        let secretKey: ExtKey = Node.AccountPrivateKeyToNodeSecret privateKey
-        let transportListener = TransportListener.Bind secretKey bindAddress
+        let nodeMasterPrivKey: NodeMasterPrivKey = Node.AccountPrivateKeyToNodeMasterPrivKey privateKey
+        let transportListener = TransportListener.Bind nodeMasterPrivKey bindAddress
         new Node (channelStore, transportListener)
 

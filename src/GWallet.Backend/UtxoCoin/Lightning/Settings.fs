@@ -7,6 +7,7 @@ open DotNetLightning.Utils
 open DotNetLightning.Serialize
 open DotNetLightning.Chain
 open DotNetLightning.Channel
+open DotNetLightning.Crypto
 
 open GWallet.Backend
 
@@ -38,11 +39,11 @@ module Settings =
                                 (defaultFinalScriptPubKey: Script)
                                 (isFunder: bool)
                                 (remoteNodeId: NodeId)
-                                (channelPubKeys: ChannelKeys)
+                                (channelPrivKeys: ChannelPrivKeys)
                                     : LocalParams =
         {
             NodeId = remoteNodeId
-            ChannelPubKeys = channelPubKeys.ToChannelPubKeys()
+            ChannelPubKeys = channelPrivKeys.ToChannelPubKeys()
             DustLimitSatoshis = Money 200UL
             MaxHTLCValueInFlightMSat = LNMoney 10000L
             ChannelReserveSatoshis = funding / 100L

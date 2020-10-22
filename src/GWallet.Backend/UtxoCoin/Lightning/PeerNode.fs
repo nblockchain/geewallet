@@ -6,6 +6,7 @@ open System.Net
 open NBitcoin
 open DotNetLightning.Serialize.Msgs
 open DotNetLightning.Utils
+open DotNetLightning.Crypto
 open ResultUtils.Portability
 
 open GWallet.Backend
@@ -101,8 +102,8 @@ and internal PeerNode =
     member internal self.NodeEndPoint: NodeEndPoint =
         self.MsgStream.NodeEndPoint
 
-    member internal self.NodeSecret: ExtKey =
-        self.MsgStream.NodeSecret
+    member internal self.NodeMasterPrivKey(): NodeMasterPrivKey =
+        self.MsgStream.NodeMasterPrivKey()
 
     member internal self.SendMsg (msg: ILightningMsg): Async<PeerNode> = async {
         let! msgStream = self.MsgStream.SendMsg msg

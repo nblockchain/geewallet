@@ -508,8 +508,8 @@ type LN() =
         // the same in each process.
         new Key(uint256.Parse("9d1ee30acb68716ed5f4e25b3c052c6078f1813f45d33a47e46615bfd05fa6fe").ToBytes())
     let FundeeNodePubKey =
-        let extKey = Node.AccountPrivateKeyToNodeSecret FundeeAccountsPrivateKey
-        extKey.PrivateKey.PubKey
+        let nodeMasterPrivKey = Node.AccountPrivateKeyToNodeMasterPrivKey FundeeAccountsPrivateKey
+        nodeMasterPrivKey.NodeId().Value
     let FundeeLightningIPEndpoint = IPEndPoint (IPAddress.Parse "127.0.0.1", 9735)
     let FundeeNodeEndpoint =
         NodeEndPoint.Parse
@@ -750,6 +750,7 @@ type LN() =
         return ()
     }
 
+    (*
     [<Test>]
     member __.``can open and close channel with LND``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
@@ -976,3 +977,4 @@ type LN() =
 
         return ()
     }
+    *)
