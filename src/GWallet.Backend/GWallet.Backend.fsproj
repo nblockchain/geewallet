@@ -117,7 +117,7 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.5.0.41\lib\net461\NBitcoin.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.5.0.54\lib\net461\NBitcoin.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
