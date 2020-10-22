@@ -72,7 +72,7 @@ This list is the (intended) order of preference for new features:
 - Decentralized currency exchange? (e.g. eth2dai.com)
 - NFC support.
 - Tizen frontend (no QR scanning due to missing camera in most Tizen watches, but could use NFC).
-- Passwordless login infrastructure (see https://twitter.com/VitalikButerin/status/1118405098449903617 ).
+- Passwordless login infrastructure (e.g. https://www.reddit.com/r/ethereum/comments/7hn3fq/using_your_blockchain_identity_for_passwordless/ ).
 - flatpak packaging.
 - In mobile, allow usage when camera permissions have not been granted, by letting the user redirect him to his camera app and take a picture (see https://youtu.be/k1Ssz1dvcpk?t=63).
 - Use of 'bits' instead of BTC as default unit.
