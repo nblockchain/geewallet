@@ -14,19 +14,91 @@ open NBitcoin
 open Newtonsoft.Json
 
 module JsonMarshalling =
-    (*
-    type internal CommitmentPubKeyConverter() =
-        inherit JsonConverter<CommitmentPubKey>()
+    type internal PerCommitmentSecretConverter() =
+        inherit JsonConverter<PerCommitmentSecret>()
 
-        override this.ReadJson(reader: JsonReader, _: Type, _: CommitmentPubKey, _: bool, serializer: JsonSerializer) =
-            let serializedCommitmentPubKey = serializer.Deserialize<string> reader
+        override this.ReadJson(reader: JsonReader, _: Type, _: PerCommitmentSecret, _: bool, serializer: JsonSerializer) =
+            let serializedPerCommitmentSecret = serializer.Deserialize<string> reader
             let hex = NBitcoin.DataEncoders.HexEncoder()
-            serializedCommitmentPubKey |> hex.DecodeData |> PubKey |> CommitmentPubKey
+            let bytes = hex.DecodeData serializedPerCommitmentSecret
+            let key = new Key(bytes)
+            PerCommitmentSecret key
 
-        override this.WriteJson(writer: JsonWriter, state: CommitmentPubKey, serializer: JsonSerializer) =
-            let serializedCommitmentPubKey: string = state.PubKey.ToHex()
-            serializer.Serialize(writer, serializedCommitmentPubKey)
-    *)
+        override this.WriteJson(writer: JsonWriter, state: PerCommitmentSecret, serializer: JsonSerializer) =
+            let serializedPerCommitmentSecret: string = state.RawKey().ToHex()
+            serializer.Serialize(writer, serializedPerCommitmentSecret)
+
+    type internal PerCommitmentPointConverter() =
+        inherit JsonConverter<PerCommitmentPoint>()
+
+        override this.ReadJson(reader: JsonReader, _: Type, _: PerCommitmentPoint, _: bool, serializer: JsonSerializer) =
+            let serializedPerCommitmentPoint = serializer.Deserialize<string> reader
+            let hex = NBitcoin.DataEncoders.HexEncoder()
+            serializedPerCommitmentPoint |> hex.DecodeData |> PubKey |> PerCommitmentPoint
+
+        override this.WriteJson(writer: JsonWriter, state: PerCommitmentPoint, serializer: JsonSerializer) =
+            let serializedPerCommitmentPoint: string = state.RawPubKey().ToHex()
+            serializer.Serialize(writer, serializedPerCommitmentPoint)
+
+    type internal FundingPubKeyConverter() =
+        inherit JsonConverter<FundingPubKey>()
+
+        override this.ReadJson(reader: JsonReader, _: Type, _: FundingPubKey, _: bool, serializer: JsonSerializer) =
+            let serializedFundingPubKey = serializer.Deserialize<string> reader
+            let hex = NBitcoin.DataEncoders.HexEncoder()
+            serializedFundingPubKey |> hex.DecodeData |> PubKey |> FundingPubKey
+
+        override this.WriteJson(writer: JsonWriter, state: FundingPubKey, serializer: JsonSerializer) =
+            let serializedFundingPubKey: string = state.RawPubKey().ToHex()
+            serializer.Serialize(writer, serializedFundingPubKey)
+
+    type internal RevocationBasepointConverter() =
+        inherit JsonConverter<RevocationBasepoint>()
+
+        override this.ReadJson(reader: JsonReader, _: Type, _: RevocationBasepoint, _: bool, serializer: JsonSerializer) =
+            let serializedRevocationBasepoint = serializer.Deserialize<string> reader
+            let hex = NBitcoin.DataEncoders.HexEncoder()
+            serializedRevocationBasepoint |> hex.DecodeData |> PubKey |> RevocationBasepoint
+
+        override this.WriteJson(writer: JsonWriter, state: RevocationBasepoint, serializer: JsonSerializer) =
+            let serializedRevocationBasepoint: string = state.RawPubKey().ToHex()
+            serializer.Serialize(writer, serializedRevocationBasepoint)
+
+    type internal PaymentBasepointConverter() =
+        inherit JsonConverter<PaymentBasepoint>()
+
+        override this.ReadJson(reader: JsonReader, _: Type, _: PaymentBasepoint, _: bool, serializer: JsonSerializer) =
+            let serializedPaymentBasepoint = serializer.Deserialize<string> reader
+            let hex = NBitcoin.DataEncoders.HexEncoder()
+            serializedPaymentBasepoint |> hex.DecodeData |> PubKey |> PaymentBasepoint
+
+        override this.WriteJson(writer: JsonWriter, state: PaymentBasepoint, serializer: JsonSerializer) =
+            let serializedPaymentBasepoint: string = state.RawPubKey().ToHex()
+            serializer.Serialize(writer, serializedPaymentBasepoint)
+
+    type internal DelayedPaymentBasepointConverter() =
+        inherit JsonConverter<DelayedPaymentBasepoint>()
+
+        override this.ReadJson(reader: JsonReader, _: Type, _: DelayedPaymentBasepoint, _: bool, serializer: JsonSerializer) =
+            let serializedDelayedPaymentBasepoint = serializer.Deserialize<string> reader
+            let hex = NBitcoin.DataEncoders.HexEncoder()
+            serializedDelayedPaymentBasepoint |> hex.DecodeData |> PubKey |> DelayedPaymentBasepoint
+
+        override this.WriteJson(writer: JsonWriter, state: DelayedPaymentBasepoint, serializer: JsonSerializer) =
+            let serializedDelayedPaymentBasepoint: string = state.RawPubKey().ToHex()
+            serializer.Serialize(writer, serializedDelayedPaymentBasepoint)
+
+    type internal HtlcBasepointConverter() =
+        inherit JsonConverter<HtlcBasepoint>()
+
+        override this.ReadJson(reader: JsonReader, _: Type, _: HtlcBasepoint, _: bool, serializer: JsonSerializer) =
+            let serializedHtlcBasepoint = serializer.Deserialize<string> reader
+            let hex = NBitcoin.DataEncoders.HexEncoder()
+            serializedHtlcBasepoint |> hex.DecodeData |> PubKey |> HtlcBasepoint
+
+        override this.WriteJson(writer: JsonWriter, state: HtlcBasepoint, serializer: JsonSerializer) =
+            let serializedHtlcBasepoint: string = state.RawPubKey().ToHex()
+            serializer.Serialize(writer, serializedHtlcBasepoint)
 
     type internal CommitmentNumberConverter() =
         inherit JsonConverter<CommitmentNumber>()
@@ -109,6 +181,13 @@ module JsonMarshalling =
         let channelIdentifierConverter = ChannelIdentifierConverter()
         let commitmentNumberConverter = CommitmentNumberConverter()
         //let commitmentPubKeyConverter = CommitmentPubKeyConverter()
+        let perCommitmentSecretConverter = PerCommitmentSecretConverter()
+        let perCommitmentPointConverter = PerCommitmentPointConverter()
+        let fundingPubKeyConverter = FundingPubKeyConverter()
+        let revocationBasepointConverter = RevocationBasepointConverter()
+        let paymentBasepointConverter = PaymentBasepointConverter()
+        let delayedPaymentBasepointConverter = DelayedPaymentBasepointConverter()
+        let htlcBasepointConverter = HtlcBasepointConverter()
         let perCommitmentSecretStoreConverter = PerCommitmentSecretStoreConverter()
         settings.Converters.Add ipAddressConverter
         settings.Converters.Add ipEndPointConverter
@@ -116,6 +195,13 @@ module JsonMarshalling =
         settings.Converters.Add channelIdentifierConverter
         settings.Converters.Add commitmentNumberConverter
         //settings.Converters.Add commitmentPubKeyConverter
+        settings.Converters.Add perCommitmentSecretConverter
+        settings.Converters.Add perCommitmentPointConverter
+        settings.Converters.Add fundingPubKeyConverter
+        settings.Converters.Add revocationBasepointConverter
+        settings.Converters.Add paymentBasepointConverter
+        settings.Converters.Add delayedPaymentBasepointConverter
+        settings.Converters.Add htlcBasepointConverter
         settings.Converters.Add perCommitmentSecretStoreConverter
         NBitcoin.JsonConverters.Serializer.RegisterFrontConverters settings
         settings
