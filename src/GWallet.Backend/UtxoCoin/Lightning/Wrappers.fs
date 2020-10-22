@@ -142,6 +142,7 @@ type MonoHopUnidirectionalChannel =
     member internal self.ExecuteCommand<'T> (channelCmd: ChannelCommand)
                                             (eventFilter: List<ChannelEvent> -> Option<'T>)
                                                 : Result<'T, ChannelError> * MonoHopUnidirectionalChannel =
+        Async.RunSynchronously <| Async.Sleep(1000 + Random().Next(1000))
         Console.WriteLine(sprintf "BLAH: executing command: %A" channelCmd)
         match Channel.executeCommand self.Channel channelCmd with
         | Error channelError -> (Error channelError), self

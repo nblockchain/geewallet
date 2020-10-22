@@ -44,6 +44,8 @@ type private CommitmentsJsonConverter() =
 
     override __.ReadJson(reader: JsonReader, _: Type, _: Commitments, _: bool, serializer: JsonSerializer) =
         let serializedCommitments = serializer.Deserialize<SerializedCommitments> reader
+        Async.RunSynchronously <| Async.Sleep(1000 + Random().Next(1000))
+        Console.WriteLine(sprintf "BLAH: localParams == %A" serializedCommitments.LocalParams)
         let commitments: Commitments = {
             RemotePerCommitmentSecrets = serializedCommitments.RemotePerCommitmentSecrets
             RemoteParams = serializedCommitments.RemoteParams

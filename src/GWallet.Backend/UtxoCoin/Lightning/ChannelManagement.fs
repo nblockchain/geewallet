@@ -1,6 +1,7 @@
 ﻿namespace GWallet.Backend.UtxoCoin.Lightning
 
 open System.IO
+open System
 
 open DotNetLightning.Channel
 
@@ -129,6 +130,8 @@ type ChannelStore(account: NormalUtxoAccount) =
     member internal self.LoadChannel (channelId: ChannelIdentifier): SerializedChannel =
         let fileName = self.ChannelFileName channelId
         let json = File.ReadAllText fileName
+        Async.RunSynchronously <| Async.Sleep(1000 + Random().Next(1000))
+        Console.WriteLine(sprintf "BLAH: json == %A" json)
         Marshalling.DeserializeCustom<SerializedChannel> (
             json,
             SerializedChannel.LightningSerializerSettings self.Currency
