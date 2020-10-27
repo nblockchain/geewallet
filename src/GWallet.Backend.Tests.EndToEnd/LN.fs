@@ -750,7 +750,6 @@ type LN() =
         return ()
     }
 
-    (*
     [<Test>]
     member __.``can open and close channel with LND``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
@@ -977,4 +976,3 @@ type LN() =
 
         return ()
     }
-    *)
