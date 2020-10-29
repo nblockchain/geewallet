@@ -82,6 +82,10 @@ foo.Baz <- baz
 of adding them programmatically with code.
 * The `open` keyword should be used to open namespaces if and only if the
 element used from it is used more than once in the same file.
+* The `open` statements should be grouped in three buckets: the first for the
+namespaces that come from .NET base class libraries, the second one for external
+libraries (e.g. nugets), and the last for the namespaces that belong to the
+source code that lives in this repository.
 * We prefer the short F# syntax to declare exception types (just
 `exception Foo of Bar*Baz`) except when constructors need to be used (e.g. for
 passing the inner exception to the base class).
