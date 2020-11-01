@@ -2,11 +2,13 @@
 
 open System.IO
 open System
+open NBitcoin
 
 open DotNetLightning.Channel
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type FundingBroadcastButNotLockedData =
@@ -159,6 +161,14 @@ type ChannelStore(account: NormalUtxoAccount) =
                channelInfo.Status <> ChannelStatus.Closed then
                 yield channelInfo
     }
+
+    member self.GetCommitmentTx (channelId: ChannelIdentifier): string =
+        let commitments =
+            let serializedChannel = self.LoadChannel channelId
+            UnwrapOption
+                serializedChannel.ChanState.Commitments
+                "A channel can only end up in the wallet if it has commitments."
+        commitments.LocalCommit.PublishableTxs.CommitTx.Value.ToHex()
 
 
 module ChannelManager =

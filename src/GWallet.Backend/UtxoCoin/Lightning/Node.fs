@@ -3,8 +3,10 @@ namespace GWallet.Backend.UtxoCoin.Lightning
 open System
 open System.IO
 open System.Net
+open System.Linq
 
 open NBitcoin
+open DotNetLightning.Channel
 open DotNetLightning.Utils
 open DotNetLightning.Crypto
 open ResultUtils.Portability
@@ -429,6 +431,74 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 Infrastructure.ReportWarningMessage msg
             return Error <| (NodeReceiveLightningEventError.Reconnect reconnectActiveChannelError :> IErrorMsg)
         | Ok activeChannel -> return! receiveEvent activeChannel
+    }
+
+    member internal self.CheckForClosingTx (channelId: ChannelIdentifier)
+                                               : Async<Option<string>> = async {
+        let serializedChannel = self.ChannelStore.LoadChannel channelId
+        let currency = (self.Account :> IAccount).Currency
+        let commitments = ChannelSerialization.Commitments serializedChannel
+        let fundingScriptCoin = commitments.FundingScriptCoin
+        let fundingDestination: TxDestination = fundingScriptCoin.ScriptPubKey.GetDestination()
+        let network = UtxoCoin.Account.GetNetwork currency
+        let fundingAddress: BitcoinAddress = fundingDestination.GetAddress network
+        let fundingAddressString: string = fundingAddress.ToString()
+        let scriptHash =
+            Account.GetElectrumScriptHashFromPublicAddress
+                currency
+                fundingAddressString
+        let! historyList =
+            Server.Query currency
+                         (QuerySettings.Default ServerSelectionMode.Fast)
+                         (ElectrumClient.GetBlockchainScriptHashHistory scriptHash)
+                         None
+        match Seq.tryItem 1 historyList with
+        | None -> return None
+        | Some spendingTxInfo ->
+            let spendingTxId = spendingTxInfo.TxHash
+            let! spendingTxString =
+                Server.Query
+                    currency
+                    (QuerySettings.Default ServerSelectionMode.Fast)
+                    (ElectrumClient.GetBlockchainTransaction spendingTxId)
+                    None
+            let spendingTx = Transaction.Parse(spendingTxString, network)
+            let transactionBuilder = 
+                let channelPrivKeys =
+                    let channelIndex = serializedChannel.ChannelIndex
+                    let nodeMasterPrivKey = self.TransportListener.NodeMasterPrivKey
+                    nodeMasterPrivKey.ChannelPrivKeys channelIndex
+                RemoteForceClose.getFundsFromForceClosingTransaction
+                    commitments
+                    channelPrivKeys
+                    network
+                    spendingTx
+
+            let changeAddress =
+                let originAddress = (self.Account :> IAccount).PublicAddress
+                BitcoinAddress.Create(originAddress, Account.GetNetwork currency)
+            transactionBuilder.SetChange changeAddress |> ignore
+
+            let! btcPerKiloByteForFastTrans =
+                let averageFee (feesFromDifferentServers: List<decimal>): decimal =
+                    feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
+                let estimateFeeJob = ElectrumClient.EstimateFee Account.CONFIRMATION_BLOCK_TARGET
+                Server.Query
+                    currency
+                    (QuerySettings.FeeEstimation averageFee)
+                    estimateFeeJob
+                    None
+            let fee =
+                let feeRate = Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC) |> FeeRate
+                transactionBuilder.EstimateFees feeRate
+            transactionBuilder.SendFees fee |> ignore
+
+            let transaction = transactionBuilder.BuildTransaction true
+            let! txIdString =
+                let transactionString = transaction.ToHex()
+                Account.BroadcastRawTransaction currency transactionString
+
+            return Some txIdString
     }
 
 module public Connection =

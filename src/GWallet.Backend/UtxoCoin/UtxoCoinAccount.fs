@@ -417,7 +417,7 @@ module Account =
     let internal CheckValidPassword (account: NormalAccount) (password: string) =
         GetPrivateKey account password |> ignore
 
-    let internal BroadcastRawTransaction currency (rawTx: string): Async<string> =
+    let BroadcastRawTransaction currency (rawTx: string): Async<string> =
         let job = ElectrumClient.BroadcastTransaction rawTx
         Server.Query currency QuerySettings.Broadcast job None
 
