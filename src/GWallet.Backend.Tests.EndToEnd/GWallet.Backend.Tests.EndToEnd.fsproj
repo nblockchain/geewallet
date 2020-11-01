@@ -131,10 +131,10 @@
       <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Ptarmigan.dll</HintPath>
     </Reference>
     <Reference Include="DotNetLightning.Core">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201028-1722-git-f9d9863\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201101-1507-git-e9228f1\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
     </Reference>
     <Reference Include="ResultUtils">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201028-1722-git-f9d9863\lib\netstandard2.0\ResultUtils.dll</HintPath>
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201101-1507-git-e9228f1\lib\netstandard2.0\ResultUtils.dll</HintPath>
     </Reference>
     <Reference Include="System.Memory">
       <HintPath>..\..\packages\System.Memory.4.5.3\lib\netstandard2.0\System.Memory.dll</HintPath>
