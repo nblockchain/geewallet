@@ -13,6 +13,7 @@ open ResultUtils.Portability
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type internal NodeOpenChannelError =
@@ -463,7 +464,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                     (ElectrumClient.GetBlockchainTransaction spendingTxId)
                     None
             let spendingTx = Transaction.Parse(spendingTxString, network)
-            let transactionBuilder = 
+            let transactionBuilderOpt =
                 let channelPrivKeys =
                     let channelIndex = serializedChannel.ChannelIndex
                     let nodeMasterPrivKey = self.TransportListener.NodeMasterPrivKey
@@ -473,11 +474,15 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                     channelPrivKeys
                     network
                     spendingTx
+            let transactionBuilder =
+                UnwrapOption
+                    transactionBuilderOpt
+                    "Failed to interpret tx which spends the channel funds. Channel funds have been lost!"
 
-            let changeAddress =
+            let targetAddress =
                 let originAddress = (self.Account :> IAccount).PublicAddress
                 BitcoinAddress.Create(originAddress, Account.GetNetwork currency)
-            transactionBuilder.SetChange changeAddress |> ignore
+            transactionBuilder.SendAll targetAddress |> ignore
 
             let! btcPerKiloByteForFastTrans =
                 let averageFee (feesFromDifferentServers: List<decimal>): decimal =
@@ -494,11 +499,9 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
             transactionBuilder.SendFees fee |> ignore
 
             let transaction = transactionBuilder.BuildTransaction true
-            let! txIdString =
-                let transactionString = transaction.ToHex()
-                Account.BroadcastRawTransaction currency transactionString
-
-            return Some txIdString
+            let transactionString = transaction.ToHex()
+            
+            return Some transactionString
     }
 
 module public Connection =
