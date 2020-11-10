@@ -7,6 +7,7 @@ open NUnit.Framework
 open BTCPayServer.Lightning
 open BTCPayServer.Lightning.LND
 open NBitcoin // For ExtKey
+open DotNetLightning.Utils
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin.Lightning
@@ -26,6 +27,8 @@ module Config =
 
     let WalletToWalletTestPayment0Amount = Money(0.01m, MoneyUnit.BTC)
     let WalletToWalletTestPayment1Amount = Money(0.015m, MoneyUnit.BTC)
+
+    let MinimumDepth = (BlockHeightOffset32 (uint32 7))
 
     let FundeeNodeEndpoint =
         NodeEndPoint.Parse

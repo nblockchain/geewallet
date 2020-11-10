@@ -59,8 +59,7 @@ module ChannelManagement =
             // will be 6 deep at the end of the following call to generateBlocks.
             // At that point, the 0.25 regtest coins from the above call to sendcoins
             // are considered arrived to Geewallet.
-            let consideredConfirmedAmountOfBlocksPlusOne = BlockHeightOffset32 7u
-            bitcoind.GenerateBlocks consideredConfirmedAmountOfBlocksPlusOne walletInstance.Address
+            bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
 
             let! lndEndPoint = lnd.GetEndPoint()
             let! transferAmount = async {
@@ -143,8 +142,7 @@ module ChannelManagement =
                 Thread.Sleep 500
 
             // Mine blocks on top of the funding transaction to make it confirmed.
-            let minimumDepth = BlockHeightOffset32 6u
-            bitcoind.GenerateBlocks minimumDepth walletInstance.Address
+            bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
 
             do! walletInstance.WaitForFundingConfirmed channelId
 

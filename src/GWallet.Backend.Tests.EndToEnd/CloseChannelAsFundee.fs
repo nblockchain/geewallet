@@ -71,8 +71,7 @@ type CloseChannelAsFundee() =
                     Thread.Sleep 500
 
                 // Mine blocks on top of the closing transaction to make it confirmed.
-                let minimumDepth = BlockHeightOffset32 6u
-                bitcoind.GenerateBlocks minimumDepth walletInstance.Address
+                bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
                 return ()
             }
             let! (), () = AsyncExtensions.MixedParallel2 closeChannelTask awaitCloseTask
