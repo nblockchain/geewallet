@@ -534,7 +534,6 @@ type LN() =
     let WalletToWalletTestPayment0Amount = Money(0.01m, MoneyUnit.BTC)
     let WalletToWalletTestPayment1Amount = Money(0.015m, MoneyUnit.BTC)
 
-    (*
     [<Category("GeewalletToGeewalletFunder")>]
     [<Test>]
     member __.``can send/receive monohop payments and close channel (funder)``() = Async.RunSynchronously <| async {
@@ -987,7 +986,6 @@ type LN() =
 
         return ()
     }
-    *)
 
     [<Category("RevocationFunder")>]
     [<Test>]
