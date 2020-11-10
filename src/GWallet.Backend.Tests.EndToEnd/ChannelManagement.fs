@@ -47,7 +47,7 @@ module ChannelManagement =
 
             // wait for lnd's transaction to appear in mempool
             while bitcoind.GetTxIdsInMempool().Length = 0 do
-                Thread.Sleep 500
+                do! Async.Sleep 500
 
             // We want to make sure Geewallet consideres the money received.
             // A typical number of blocks that is almost universally considered
@@ -139,7 +139,7 @@ module ChannelManagement =
 
             // Wait for the funding transaction to appear in mempool
             while bitcoind.GetTxIdsInMempool().Length = 0 do
-                Thread.Sleep 500
+                do! Async.Sleep 500
 
             // Mine blocks on top of the funding transaction to make it confirmed.
             bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address

@@ -68,7 +68,7 @@ type CloseChannelAsFundee() =
 
                 // Wait for the closing transaction to appear in mempool
                 while bitcoind.GetTxIdsInMempool().Length = 0 do
-                    Thread.Sleep 500
+                    do! Async.Sleep 500
 
                 // Mine blocks on top of the closing transaction to make it confirmed.
                 bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
