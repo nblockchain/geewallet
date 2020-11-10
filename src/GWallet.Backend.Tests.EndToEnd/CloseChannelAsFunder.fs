@@ -5,6 +5,7 @@ open DotNetLightning.Utils
 open ResultUtils.Portability
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.UtxoCoin // For NormalUtxoAccount
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Backend.FSharpUtil.UwpHacks
@@ -38,9 +39,7 @@ type CloseChannelAsFunder() =
         | None -> Assert.Inconclusive "test cannot be run because channel opening failed"
         | Some channelId ->
             let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.Node channelId
-            match closeChannelRes with
-            | Ok _ -> ()
-            | Error err -> failwith (SPrintF1 "error when closing channel: %s" err.Message)
+            UnwrapResult closeChannelRes "error when closing channel"
 
             match (walletInstance.ChannelStore.ChannelInfo channelId).Status with
             | ChannelStatus.Closing -> ()
@@ -64,7 +63,5 @@ type CloseChannelAsFunder() =
             }
 
             let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
-            match closingTxConfirmedRes with
-            | Ok _ -> ()
-            | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
+            UnwrapResult closingTxConfirmedRes "error when waiting for closing tx to confirm"
         }
