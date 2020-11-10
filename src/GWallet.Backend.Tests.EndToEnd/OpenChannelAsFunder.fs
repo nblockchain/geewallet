@@ -20,8 +20,8 @@ type OpenChannelAsFunder() =
             use bitcoind = Bitcoind.Start()
             use _electrumServer = ElectrumServer.Start bitcoind
             use! lnd = Lnd.Start bitcoind
-        
-            ChannelManagement.OpenChannel walletInstance bitcoind lnd 
-                |> ignore
+            
+            let! _openChannelResult = ChannelManagement.OpenChannel walletInstance bitcoind lnd
 
+            return ()
         } |> Async.RunSynchronously
