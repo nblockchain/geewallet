@@ -456,8 +456,6 @@ and internal ActiveChannel =
                     Channel = channelAfterMonoHopPayment
             }
             connectedChannelAfterMonoHopPaymentSent.SaveToWallet()
-            do! Async.Sleep(1000 + Random().Next(1000))
-            Console.WriteLine(sprintf "BLAH: connectedChannel == %A" connectedChannelAfterMonoHopPaymentSent)
             let activeChannel = { ConnectedChannel = connectedChannelAfterMonoHopPaymentSent }
             let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
             match activeChannelAfterCommitSentRes with
