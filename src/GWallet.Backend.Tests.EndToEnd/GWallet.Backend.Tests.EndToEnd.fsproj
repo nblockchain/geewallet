@@ -59,8 +59,8 @@
     <Compile Include="LN.fs" />
     <Compile Include="ChannelManagement.fs" />
     <Compile Include="Config.fs" />
-    <Compile Include="OpenChannelAsFunder.fs" />
-    <Compile Include="OpenChannelAsFundee.fs" />
+    <Compile Include="OpenChannelToLNDAsFunder.fs" />
+    <Compile Include="OpenChannelToLNDAsFundee.fs" />
     <Compile Include="GeewalletToGeewalletFunder.fs" />
     <Compile Include="GeewalletToGeewalletFundee.fs" />
     <Compile Include="CloseChannelAsFunder.fs" />
