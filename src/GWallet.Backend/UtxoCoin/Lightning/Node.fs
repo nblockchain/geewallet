@@ -126,7 +126,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
         member self.Dispose() =
             (self.TransportListener :> IDisposable).Dispose()
 
-    static member AccountPrivateKeyToNodeMasterPrivKey (accountKey: Key): NodeMasterPrivKey =
+    static member internal AccountPrivateKeyToNodeMasterPrivKey (accountKey: Key): NodeMasterPrivKey =
         let privateKeyBytesLength = 32
         let bytes: array<byte> = Array.zeroCreate privateKeyBytesLength
         use bytesStream = new MemoryStream(bytes)
@@ -513,4 +513,8 @@ module public Connection =
         let nodeMasterPrivKey: NodeMasterPrivKey = Node.AccountPrivateKeyToNodeMasterPrivKey privateKey
         let transportListener = TransportListener.Bind nodeMasterPrivKey bindAddress
         new Node (channelStore, transportListener)
+
+    let public NodeIdAsPubKeyFromAccountPrivKey (accountPrivKey: Key): PubKey =
+        let nodeMasterPrivKey = Node.AccountPrivateKeyToNodeMasterPrivKey accountPrivKey
+        nodeMasterPrivKey.NodeId().Value
 
