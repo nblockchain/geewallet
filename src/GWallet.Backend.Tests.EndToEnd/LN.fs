@@ -91,9 +91,11 @@ type ProcessWrapper = {
                         firstStreamEnded := true
                     else
                         Console.WriteLine(SPrintF2 "%s (%i) <exited>" name proc.Id)
+                        Console.Out.Flush()
                         semaphore.Release() |> ignore
                 | text ->
                     Console.WriteLine(SPrintF3 "%s (%i): %s" name proc.Id text)
+                    Console.Out.Flush()
                     queue.Enqueue text
                     semaphore.Release() |> ignore
         proc.OutputDataReceived.AddHandler(DataReceivedEventHandler outputHandler)
