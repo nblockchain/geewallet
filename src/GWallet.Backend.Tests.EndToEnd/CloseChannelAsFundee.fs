@@ -28,13 +28,15 @@ type CloseChannelAsFundee() =
         use _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
 
-        let! channelId, fundingOutPoint = 
+        let! channelId, fundingOutPoint = async {
             try 
-                ChannelManagement.AcceptChannel walletInstance bitcoind lnd
+                let! channelId, fundingOutPoint = ChannelManagement.AcceptChannel walletInstance bitcoind lnd
+                return channelId, fundingOutPoint
             with
-            | ex ->
+            | _ex ->
                 Assert.Inconclusive "test cannot be run because channel opening failed"
-                failwith "unreachable"
+                return failwith "unreachable"
+        }
 
         let closeChannelTask = async {
             let! connectionResult = lnd.ConnectTo walletInstance.NodeEndPoint

@@ -25,14 +25,15 @@ type CloseChannelAsFunder() =
         use _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
 
-        
-        let! channelId = 
+        let! channelId = async {
             try 
-                ChannelManagement.OpenChannel walletInstance bitcoind lnd
+                let! channelId = ChannelManagement.OpenChannel walletInstance bitcoind lnd
+                return channelId
             with
-            | ex ->
+            | _ex ->
                 Assert.Inconclusive "test cannot be run because channel opening failed"
-                failwith "unreachable"
+                return failwith "unreachable"
+        }
 
         let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.Node channelId
         UnwrapResult closeChannelRes "error when closing channel"
