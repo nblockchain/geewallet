@@ -15,7 +15,7 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 
 module ChannelManagement =
-    let OpenChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<Option<ChannelIdentifier>> =
+    let OpenChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<ChannelIdentifier> =
         async {
             let! address = lnd.GetDepositAddress()
             let blocksMinedToLnd = BlockHeightOffset32 1u
@@ -92,10 +92,10 @@ module ChannelManagement =
             | ChannelStatus.Active -> channelId |> ignore
             | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
-            return channelId |> Some
+            return channelId
         }
 
-    let AcceptChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<Option<ChannelIdentifier> * OutPoint> =
+    let AcceptChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<ChannelIdentifier * OutPoint> =
         async {
             let! address = lnd.GetDepositAddress()
             let blocksMinedToLnd = BlockHeightOffset32 1u
@@ -161,5 +161,5 @@ module ChannelManagement =
                 let fundingOutPointIndex = channelInfo.FundingOutPointIndex
                 OutPoint(fundingTxId, fundingOutPointIndex)
 
-            return ((channelId |> Some), fundingOutPoint);
+            return (channelId , fundingOutPoint)
         }

@@ -25,43 +25,39 @@ type CloseChannelAsFunder() =
         use _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
 
-        let! maybeChannelId  =
+        
+        let! channelId = 
             try 
                 ChannelManagement.OpenChannel walletInstance bitcoind lnd
             with
             | ex ->
-                async {
-                    let res: Option<ChannelIdentifier> = None
-                    return res
-                }
+                Assert.Inconclusive "test cannot be run because channel opening failed"
+                failwith "unreachable"
 
-        match maybeChannelId with 
-        | None -> Assert.Inconclusive "test cannot be run because channel opening failed"
-        | Some channelId ->
-            let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.Node channelId
-            UnwrapResult closeChannelRes "error when closing channel"
+        let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.Node channelId
+        UnwrapResult closeChannelRes "error when closing channel"
 
-            match (walletInstance.ChannelStore.ChannelInfo channelId).Status with
-            | ChannelStatus.Closing -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
+        match (walletInstance.ChannelStore.ChannelInfo channelId).Status with
+        | ChannelStatus.Closing -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
 
-            // Mine 7 blocks to make sure closing tx is confirmed
-            bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
+        // Mine 7 blocks to make sure closing tx is confirmed
+        bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
         
-            let rec waitForClosingTxConfirmed attempt = async {
-                Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
-                if attempt = 10 then
-                    return Error "Closing tx not confirmed after maximum attempts"
+        let rec waitForClosingTxConfirmed attempt = async {
+            Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
+            if attempt = 10 then
+                return Error "Closing tx not confirmed after maximum attempts"
+            else
+                let! txIsConfirmed = Lightning.Network.CheckClosingFinished (walletInstance.ChannelStore.ChannelInfo channelId)
+                if txIsConfirmed then
+                    return Ok ()
                 else
-                    let! txIsConfirmed = Lightning.Network.CheckClosingFinished (walletInstance.ChannelStore.ChannelInfo channelId)
-                    if txIsConfirmed then
-                        return Ok ()
-                    else
-                        do! Async.Sleep 1000
-                        return! waitForClosingTxConfirmed (attempt + 1)
+                    do! Async.Sleep 1000
+                    return! waitForClosingTxConfirmed (attempt + 1)
                     
-            }
-
-            let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
-            UnwrapResult closingTxConfirmedRes "error when waiting for closing tx to confirm"
         }
+
+        let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
+        UnwrapResult closingTxConfirmedRes "error when waiting for closing tx to confirm"
+    }
