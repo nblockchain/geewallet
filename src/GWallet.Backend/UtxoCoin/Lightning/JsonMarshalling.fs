@@ -3,7 +3,7 @@ namespace GWallet.Backend.UtxoCoin.Lightning
 open System
 open System.Net
 
-open DotNetLightning.Serialize
+open DotNetLightning.Serialization
 open DotNetLightning.Utils
 open DotNetLightning.Crypto
 
@@ -136,14 +136,14 @@ module JsonMarshalling =
             let serializedChannelId: string = state.DnlChannelId.Value.ToString()
             serializer.Serialize(writer, serializedChannelId)
 
-    type internal FeatureBitJsonConverter() =
-        inherit JsonConverter<FeatureBit>()
+    type internal FeatureBitsJsonConverter() =
+        inherit JsonConverter<FeatureBits>()
 
-        override self.ReadJson(reader: JsonReader, _: Type, _: FeatureBit, _: bool, serializer: JsonSerializer) =
-            let serializedFeatureBit = serializer.Deserialize<string> reader
-            UnwrapResult (FeatureBit.TryParse serializedFeatureBit) "error decoding feature bit"
+        override self.ReadJson(reader: JsonReader, _: Type, _: FeatureBits, _: bool, serializer: JsonSerializer) =
+            let serializedFeatureBits = serializer.Deserialize<string> reader
+            UnwrapResult (FeatureBits.TryParse serializedFeatureBits) "error decoding feature bit"
 
-        override self.WriteJson(writer: JsonWriter, state: FeatureBit, serializer: JsonSerializer) =
+        override self.WriteJson(writer: JsonWriter, state: FeatureBits, serializer: JsonSerializer) =
             serializer.Serialize(writer, state.ToString())
 
     type internal IPAddressJsonConverter() =
@@ -177,7 +177,7 @@ module JsonMarshalling =
         let settings = Marshalling.DefaultSettings ()
         let ipAddressConverter = IPAddressJsonConverter()
         let ipEndPointConverter = IPEndPointJsonConverter()
-        let featureBitConverter = FeatureBitJsonConverter()
+        let featureBitConverter = FeatureBitsJsonConverter()
         let channelIdentifierConverter = ChannelIdentifierConverter()
         let commitmentNumberConverter = CommitmentNumberConverter()
         //let commitmentPubKeyConverter = CommitmentPubKeyConverter()

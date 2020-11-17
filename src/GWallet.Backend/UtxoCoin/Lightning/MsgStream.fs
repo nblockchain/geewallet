@@ -4,8 +4,8 @@ open System
 open System.Net
 
 open NBitcoin
-open DotNetLightning.Serialize.Msgs
-open DotNetLightning.Serialize
+open DotNetLightning.Serialization.Msgs
+open DotNetLightning.Serialization
 open DotNetLightning.Utils
 open DotNetLightning.Crypto
 open ResultUtils.Portability
@@ -70,8 +70,8 @@ type internal MsgStream =
         member self.Dispose() =
             (self.TransportStream :> IDisposable).Dispose()
 
-    static member internal SupportedFeatures: FeatureBit =
-        let featureBits = FeatureBit.Zero
+    static member internal SupportedFeatures: FeatureBits =
+        let featureBits = FeatureBits.Zero
         featureBits.SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true
         featureBits
 

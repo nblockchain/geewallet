@@ -4,7 +4,7 @@ open System
 open System.Net
 
 open NBitcoin
-open DotNetLightning.Serialize.Msgs
+open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Utils
 open DotNetLightning.Crypto
 open ResultUtils.Portability

@@ -131,7 +131,7 @@ type internal TransportListener =
 
 type PeerErrorMessage =
     {
-        ErrorMsg: DotNetLightning.Serialize.Msgs.ErrorMsg
+        ErrorMsg: DotNetLightning.Serialization.Msgs.ErrorMsg
     }
     interface IErrorMsg with
         member self.Message =

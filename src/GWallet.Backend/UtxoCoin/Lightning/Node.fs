@@ -267,7 +267,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 return failwith <| SPrintF1 "Received error while waiting for lightning message: %s" (err :> IErrorMsg).Message
             | Ok (peerNodeAfterMsgReceived, channelMsg) ->
                 match channelMsg with
-                | :? DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
+                | :? DotNetLightning.Serialization.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
                     let activeChannelAfterMsgReceived = { activeChannel with
                                                             ConnectedChannel = { activeChannel.ConnectedChannel with
                                                                                     PeerNode = peerNodeAfterMsgReceived }}
@@ -279,7 +279,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
 
     member private self.HandleMonoHopUnidirectionalPaymentMsg (activeChannel: ActiveChannel)
                                                               (channelId: ChannelIdentifier)
-                                                              (monoHopUnidirectionalPaymentMsg: DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg)
+                                                              (monoHopUnidirectionalPaymentMsg: DotNetLightning.Serialization.Msgs.MonoHopUnidirectionalPaymentMsg)
                                                                   : Async<Result<unit, IErrorMsg>> = async {
         let! paymentRes = activeChannel.RecvMonoHopUnidirectionalPayment monoHopUnidirectionalPaymentMsg
         match paymentRes with
@@ -335,7 +335,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 return failwith <| SPrintF1 "Received error while waiting for lightning message: %s" (err :> IErrorMsg).Message
             | Ok (peerNodeAfterMsgReceived, channelMsg) ->
                 match channelMsg with
-                | :? DotNetLightning.Serialize.Msgs.ShutdownMsg as shutdownMsg ->
+                | :? DotNetLightning.Serialization.Msgs.ShutdownMsg as shutdownMsg ->
                     let activeChannelAfterMsgReceived = { activeChannel with
                                                             ConnectedChannel = { activeChannel.ConnectedChannel with
                                                                                     PeerNode = peerNodeAfterMsgReceived }}
@@ -346,7 +346,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
     }
 
     member private self.HandleShutdownMsg (activeChannel: ActiveChannel)
-                                          (shutdownMsg: DotNetLightning.Serialize.Msgs.ShutdownMsg)
+                                          (shutdownMsg: DotNetLightning.Serialization.Msgs.ShutdownMsg)
                                               : Async<Result<unit, IErrorMsg>> = async {
         let! closeRes = ClosedChannel.AcceptCloseChannel (activeChannel.ConnectedChannel, shutdownMsg)
         match closeRes with
@@ -406,12 +406,12 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                         ConnectedChannel = connectedChannelAfterMsgReceived
                 }
                 match channelMsg with
-                | :? DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
+                | :? DotNetLightning.Serialization.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
                     let! res = self.HandleMonoHopUnidirectionalPaymentMsg activeChannelAfterMsgReceived channelId monoHopUnidirectionalPaymentMsg
                     match res with
                     | Error err -> return Error err
                     | Ok () -> return Ok IncomingChannelEvent.MonoHopUnidirectionalPayment
-                | :? DotNetLightning.Serialize.Msgs.ShutdownMsg as shutdownMsg ->
+                | :? DotNetLightning.Serialization.Msgs.ShutdownMsg as shutdownMsg ->
                     let! res = self.HandleShutdownMsg activeChannelAfterMsgReceived shutdownMsg
                     match res with
                     | Error err -> return Error err

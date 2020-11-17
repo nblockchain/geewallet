@@ -3,7 +3,7 @@ namespace GWallet.Backend.UtxoCoin.Lightning
 open System
 
 open NBitcoin
-open DotNetLightning.Serialize.Msgs
+open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Channel
 open DotNetLightning.Utils
 open ResultUtils.Portability

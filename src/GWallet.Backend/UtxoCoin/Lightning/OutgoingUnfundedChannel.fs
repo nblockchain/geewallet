@@ -4,7 +4,7 @@ open System
 open System.Diagnostics
 
 open NBitcoin
-open DotNetLightning.Serialize.Msgs
+open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Chain
 open DotNetLightning.Channel
 open DotNetLightning.Transactions

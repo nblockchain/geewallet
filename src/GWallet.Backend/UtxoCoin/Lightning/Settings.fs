@@ -4,7 +4,7 @@ open System
 
 open NBitcoin
 open DotNetLightning.Utils
-open DotNetLightning.Serialize
+open DotNetLightning.Serialization
 open DotNetLightning.Chain
 open DotNetLightning.Channel
 open DotNetLightning.Crypto
@@ -31,7 +31,7 @@ module Settings =
     }
 
     let private SupportedFeatures =
-        let featureBits = FeatureBit.Zero
+        let featureBits = FeatureBits.Zero
         featureBits.SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true
         featureBits
 
