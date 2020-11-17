@@ -108,7 +108,7 @@ module JsonMarshalling =
             CommitmentNumber <| (UInt48.MaxValue - UInt48.FromUInt64 serializedCommitmentNumber)
 
         override this.WriteJson(writer: JsonWriter, state: CommitmentNumber, serializer: JsonSerializer) =
-            let serializedCommitmentNumber: uint64 = (UInt48.MaxValue - state.Index).UInt64
+            let serializedCommitmentNumber: uint64 = (UInt48.MaxValue - state.Index()).UInt64
             serializer.Serialize(writer, serializedCommitmentNumber)
 
     type internal PerCommitmentSecretStoreConverter() =
