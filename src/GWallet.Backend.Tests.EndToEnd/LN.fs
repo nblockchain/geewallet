@@ -394,7 +394,7 @@ type Lnd = {
         | err -> return Error err
     }
 
-type WalletInstance private (password: string, channelStore: ChannelStore, node: Node) =
+type WalletInstance private (password: string, channelStore: ChannelStore, nodeServer: NodeServer) =
     static let oneWalletAtATime: Semaphore = new Semaphore(1, 1)
 
     static member New (listenEndpointOpt: Option<IPEndPoint>) (privateKeyOpt: Option<Key>) = async {
@@ -417,13 +417,13 @@ type WalletInstance private (password: string, channelStore: ChannelStore, node:
             let account = Account.GetAllActiveAccounts() |> Seq.filter (fun x -> x.Currency = Currency.BTC) |> Seq.head
             account :?> NormalUtxoAccount
         let channelStore = ChannelStore btcAccount
-        let node =
+        let nodeServer =
             let listenEndpoint =
                 match listenEndpointOpt with
                 | Some listenEndpoint -> listenEndpoint
                 | None -> IPEndPoint(IPAddress.Parse "127.0.0.1", 0)
-            Connection.Start channelStore password listenEndpoint
-        return new WalletInstance(password, channelStore, node)
+            Connection.StartServer channelStore password listenEndpoint
+        return new WalletInstance(password, channelStore, nodeServer)
     }
 
     interface IDisposable with
@@ -439,8 +439,8 @@ type WalletInstance private (password: string, channelStore: ChannelStore, node:
 
     member self.Password: string = password
     member self.ChannelStore: ChannelStore = channelStore
-    member self.Node: Node = node
-    member self.NodeEndPoint = Lightning.Network.EndPoint self.Node
+    member self.NodeServer: NodeServer = nodeServer
+    member self.NodeEndPoint = Lightning.Network.EndPoint self.NodeServer
 
     member self.WaitForBalance(minAmount: Money): Async<Money> = async {
         let btcAccount = self.Account :?> NormalUtxoAccount
@@ -487,7 +487,7 @@ type LN() =
         // the same in each process.
         new Key(uint256.Parse("9d1ee30acb68716ed5f4e25b3c052c6078f1813f45d33a47e46615bfd05fa6fe").ToBytes())
     let FundeeNodePubKey =
-        let extKey = Node.AccountPrivateKeyToNodeSecret FundeeAccountsPrivateKey
+        let extKey = NodeClient.AccountPrivateKeyToNodeSecret FundeeAccountsPrivateKey
         extKey.PrivateKey.PubKey
     let FundeeLightningIPEndpoint = IPEndPoint (IPAddress.Parse "127.0.0.1", 9735)
     let FundeeNodeEndpoint =
@@ -561,7 +561,7 @@ type LN() =
         let! metadata = ChannelManager.EstimateChannelOpeningFee (walletInstance.Account :?> NormalUtxoAccount) transferAmount
         let! pendingChannelRes =
             Lightning.Network.OpenChannel
-                walletInstance.Node
+                walletInstance.NodeServer.NodeClient
                 FundeeNodeEndpoint
                 transferAmount
                 metadata
@@ -595,7 +595,7 @@ type LN() =
             }
             waitForFundingConfirmed()
 
-        let! lockFundingRes = Lightning.Network.LockChannelFunding walletInstance.Node channelId
+        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding walletInstance.NodeServer.NodeClient channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
@@ -612,11 +612,11 @@ type LN() =
         use! walletInstance = WalletInstance.New (Some FundeeLightningIPEndpoint) (Some FundeeAccountsPrivateKey)
         let! pendingChannelRes =
             Lightning.Network.AcceptChannel
-                walletInstance.Node
+                walletInstance.NodeServer
 
         let (channelId, _) = UnwrapResult pendingChannelRes "OpenChannel failed"
 
-        let! lockFundingRes = Lightning.Network.LockChannelFunding walletInstance.Node channelId
+        let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding walletInstance.NodeServer channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
@@ -685,7 +685,7 @@ type LN() =
         let! metadata = ChannelManager.EstimateChannelOpeningFee (walletInstance.Account :?> NormalUtxoAccount) transferAmount
         let! pendingChannelRes =
             Lightning.Network.OpenChannel
-                walletInstance.Node
+                walletInstance.NodeServer.NodeClient
                 FundeeNodeEndpoint
                 transferAmount
                 metadata
@@ -719,7 +719,7 @@ type LN() =
             }
             waitForFundingConfirmed()
 
-        let! lockFundingRes = Lightning.Network.LockChannelFunding walletInstance.Node channelId
+        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding walletInstance.NodeServer.NodeClient channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
@@ -735,7 +735,7 @@ type LN() =
                 let accountBalance = Money(channelInfo.SpendableBalance, MoneyUnit.BTC)
                 TransferAmount (WalletToWalletTestPayment0Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
             Lightning.Network.SendMonoHopPayment
-                walletInstance.Node
+                walletInstance.NodeServer.NodeClient
                 channelId
                 transferAmount
         UnwrapResult sendMonoHopPayment0Res "SendMonoHopPayment failed"
@@ -753,7 +753,7 @@ type LN() =
                 let accountBalance = Money(channelInfo.SpendableBalance, MoneyUnit.BTC)
                 TransferAmount (WalletToWalletTestPayment1Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
             Lightning.Network.SendMonoHopPayment
-                walletInstance.Node
+                walletInstance.NodeServer.NodeClient
                 channelId
                 transferAmount
         UnwrapResult sendMonoHopPayment1Res "SendMonoHopPayment failed"
@@ -775,11 +775,11 @@ type LN() =
         use! walletInstance = WalletInstance.New (Some FundeeLightningIPEndpoint) (Some FundeeAccountsPrivateKey)
         let! pendingChannelRes =
             Lightning.Network.AcceptChannel
-                walletInstance.Node
+                walletInstance.NodeServer
 
         let (channelId, _) = UnwrapResult pendingChannelRes "OpenChannel failed"
 
-        let! lockFundingRes = Lightning.Network.LockChannelFunding walletInstance.Node channelId
+        let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding walletInstance.NodeServer channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
@@ -791,7 +791,7 @@ type LN() =
             failwith "incorrect balance after accepting channel"
 
         let! receiveMonoHopPaymentRes =
-            Lightning.Network.ReceiveMonoHopPayment walletInstance.Node channelId
+            Lightning.Network.ReceiveMonoHopPayment walletInstance.NodeServer channelId
         UnwrapResult receiveMonoHopPaymentRes "ReceiveMonoHopPayment failed"
 
         let channelInfoAfterPayment0 = walletInstance.ChannelStore.ChannelInfo channelId
@@ -803,7 +803,7 @@ type LN() =
             failwith "incorrect balance after receiving payment 0"
 
         let! receiveMonoHopPaymentRes =
-            Lightning.Network.ReceiveMonoHopPayment walletInstance.Node channelId
+            Lightning.Network.ReceiveMonoHopPayment walletInstance.NodeServer channelId
         UnwrapResult receiveMonoHopPaymentRes "ReceiveMonoHopPayment failed"
 
         let channelInfoAfterPayment1 = walletInstance.ChannelStore.ChannelInfo channelId
@@ -878,7 +878,7 @@ type LN() =
         let! metadata = ChannelManager.EstimateChannelOpeningFee (walletInstance.Account :?> NormalUtxoAccount) transferAmount
         let! pendingChannelRes =
             Lightning.Network.OpenChannel
-                walletInstance.Node
+                walletInstance.NodeServer.NodeClient
                 lndEndPoint
                 transferAmount
                 metadata
@@ -892,7 +892,7 @@ type LN() =
 
         do! walletInstance.WaitForFundingConfirmed channelId
 
-        let! lockFundingRes = Lightning.Network.LockChannelFunding walletInstance.Node channelId
+        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding walletInstance.NodeServer.NodeClient channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
@@ -933,7 +933,7 @@ type LN() =
         do! lnd.WaitForBlockHeight (BlockHeight.Zero + blocksMinedToLnd + maturityDurationInNumberOfBlocks)
         do! lnd.WaitForBalance (Money(50UL, MoneyUnit.BTC))
 
-        let acceptChannelTask = Lightning.Network.AcceptChannel walletInstance.Node
+        let acceptChannelTask = Lightning.Network.AcceptChannel walletInstance.NodeServer
         let openChannelTask = async {
             do! lnd.ConnectTo walletInstance.NodeEndPoint
             return!
@@ -957,7 +957,7 @@ type LN() =
 
         do! walletInstance.WaitForFundingConfirmed channelId
 
-        let! lockFundingRes = Lightning.Network.LockChannelFunding walletInstance.Node channelId
+        let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding walletInstance.NodeServer channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId

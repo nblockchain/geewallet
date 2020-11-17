@@ -86,17 +86,11 @@ type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) 
             with get(): ChannelIdentifier =
                 self.OutgoingUnfundedChannel.ChannelId
 
-type Node internal (channelStore: ChannelStore, transportListener: TransportListener) =
+type NodeClient internal (channelStore: ChannelStore, nodeSecret: ExtKey) =
     member val ChannelStore = channelStore
-    member val internal TransportListener = transportListener
-    member val internal SecretKey = transportListener.NodeSecret
-    member val internal NodeId = transportListener.NodeId
-    member val EndPoint = transportListener.EndPoint
+    member val internal NodeSecret = nodeSecret
+    member val internal NodeId = nodeSecret.PrivateKey.PubKey |> NodeId
     member val Account = channelStore.Account
-
-    interface IDisposable with
-        member self.Dispose() =
-            (self.TransportListener :> IDisposable).Dispose()
 
     static member AccountPrivateKeyToNodeSecret (accountKey: Key) =
         let privateKeyBytesLength = 32
@@ -114,7 +108,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
         let peerId = PeerId (nodeEndPoint.IPEndPoint :> EndPoint)
         let nodeId = nodeEndPoint.NodeId.ToString() |> NBitcoin.PubKey |> NodeId
         let! connectRes =
-            PeerNode.ConnectFromTransportListener self.TransportListener nodeId peerId
+            PeerNode.Connect self.NodeSecret nodeId peerId
         match connectRes with
         | Error connectError ->
             if connectError.PossibleBug then
@@ -149,6 +143,78 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 return Ok <| PendingChannel(outgoingUnfundedChannel)
     }
 
+    member internal self.SendMonoHopPayment (channelId: ChannelIdentifier)
+                                            (transferAmount: TransferAmount)
+                                                : Async<Result<unit, IErrorMsg>> = async {
+        let amount =
+            let btcAmount = transferAmount.ValueToSend
+            let lnAmount = int64(btcAmount * decimal DotNetLightning.Utils.LNMoneyUnit.BTC)
+            DotNetLightning.Utils.LNMoney lnAmount
+        let! activeChannelRes =
+            ActiveChannel.ConnectReestablish self.ChannelStore self.NodeSecret channelId
+        match activeChannelRes with
+        | Error reconnectActiveChannelError ->
+            if reconnectActiveChannelError.PossibleBug then
+                let msg =
+                    SPrintF2
+                        "error connecting to peer to send monohop payment on channel %s: %s"
+                        (channelId.ToString())
+                        (reconnectActiveChannelError :> IErrorMsg).Message
+                Infrastructure.ReportWarningMessage msg
+            return Error <| (NodeSendMonoHopPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
+        | Ok activeChannel ->
+            let! paymentRes = activeChannel.SendMonoHopUnidirectionalPayment amount
+            match paymentRes with
+            | Error sendMonoHopPaymentError ->
+                if sendMonoHopPaymentError.PossibleBug then
+                    let msg =
+                        SPrintF2
+                            "error sending monohop payment on channel %s: %s"
+                            (channelId.ToString())
+                            (sendMonoHopPaymentError :> IErrorMsg).Message
+                    Infrastructure.ReportWarningMessage msg
+                return Error <| (NodeSendMonoHopPaymentError.SendPayment sendMonoHopPaymentError :> IErrorMsg)
+            | Ok activeChannelAfterPayment ->
+                (activeChannelAfterPayment :> IDisposable).Dispose()
+                return Ok ()
+    }
+
+    member internal self.ConnectLockChannelFunding (channelId: ChannelIdentifier)
+                                                       : Async<Result<unit, IErrorMsg>> =
+        async {
+            let! activeChannelRes =
+                ActiveChannel.ConnectReestablish
+                    self.ChannelStore
+                    self.NodeSecret
+                    channelId
+            match activeChannelRes with
+            | Error reconnectActiveChannelError ->
+                if reconnectActiveChannelError.PossibleBug then
+                    let msg =
+                        SPrintF2
+                            "error reconnecting to peer to lock channel %s: %s"
+                            (channelId.ToString())
+                            (reconnectActiveChannelError :> IErrorMsg).Message
+                    Infrastructure.ReportWarningMessage msg
+                return Error (reconnectActiveChannelError :> IErrorMsg)
+            | Ok activeChannel ->
+                (activeChannel :> IDisposable).Dispose()
+                return Ok ()
+        }
+
+type NodeServer internal (nodeClient: NodeClient, transportListener: TransportListener) =
+    member val NodeClient = nodeClient
+    member val ChannelStore = nodeClient.ChannelStore
+    member val internal TransportListener = transportListener
+    member val internal NodeSecret = transportListener.NodeSecret
+    member val internal NodeId = transportListener.NodeId
+    member val EndPoint = transportListener.EndPoint
+    member val Account = nodeClient.ChannelStore.Account
+
+    interface IDisposable with
+        member self.Dispose() =
+            (self.TransportListener :> IDisposable).Dispose()
+
     member internal self.AcceptChannel (): Async<Result<(ChannelIdentifier * TransactionIdentifier), IErrorMsg>> = async {
         let! acceptPeerRes =
             PeerNode.AcceptAnyFromTransportListener self.TransportListener
@@ -178,42 +244,6 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 let txId = fundedChannel.FundingTxId
                 (fundedChannel :> IDisposable).Dispose()
                 return Ok (channelId, txId)
-    }
-
-    member internal self.SendMonoHopPayment (channelId: ChannelIdentifier)
-                                            (transferAmount: TransferAmount)
-                                                : Async<Result<unit, IErrorMsg>> = async {
-        let amount =
-            let btcAmount = transferAmount.ValueToSend
-            let lnAmount = int64(btcAmount * decimal DotNetLightning.Utils.LNMoneyUnit.BTC)
-            DotNetLightning.Utils.LNMoney lnAmount
-        let! activeChannelRes =
-            ActiveChannel.ConnectReestablish self.ChannelStore self.TransportListener channelId
-        match activeChannelRes with
-        | Error reconnectActiveChannelError ->
-            if reconnectActiveChannelError.PossibleBug then
-                let msg =
-                    SPrintF2
-                        "error connecting to peer to send monohop payment on channel %s: %s"
-                        (channelId.ToString())
-                        (reconnectActiveChannelError :> IErrorMsg).Message
-                Infrastructure.ReportWarningMessage msg
-            return Error <| (NodeSendMonoHopPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
-        | Ok activeChannel ->
-            let! paymentRes = activeChannel.SendMonoHopUnidirectionalPayment amount
-            match paymentRes with
-            | Error sendMonoHopPaymentError ->
-                if sendMonoHopPaymentError.PossibleBug then
-                    let msg =
-                        SPrintF2
-                            "error sending monohop payment on channel %s: %s"
-                            (channelId.ToString())
-                            (sendMonoHopPaymentError :> IErrorMsg).Message
-                    Infrastructure.ReportWarningMessage msg
-                return Error <| (NodeSendMonoHopPaymentError.SendPayment sendMonoHopPaymentError :> IErrorMsg)
-            | Ok activeChannelAfterPayment ->
-                (activeChannelAfterPayment :> IDisposable).Dispose()
-                return Ok ()
     }
 
     member internal self.ReceiveMonoHopPayment (channelId: ChannelIdentifier)
@@ -246,21 +276,14 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 return Ok ()
     }
 
-    member internal self.LockChannelFunding (channelId: ChannelIdentifier)
-                                                : Async<Result<unit, IErrorMsg>> =
+    member internal self.AcceptLockChannelFunding (channelId: ChannelIdentifier)
+                                                      : Async<Result<unit, IErrorMsg>> =
         async {
-            let channelInfo = self.ChannelStore.ChannelInfo channelId
             let! activeChannelRes =
-                if channelInfo.IsFunder then
-                    ActiveChannel.ConnectReestablish
-                        self.ChannelStore
-                        self.TransportListener
-                        channelId
-                else
-                    ActiveChannel.AcceptReestablish
-                        self.ChannelStore
-                        self.TransportListener
-                        channelId
+                ActiveChannel.AcceptReestablish
+                    self.ChannelStore
+                    self.TransportListener
+                    channelId
             match activeChannelRes with
             | Error reconnectActiveChannelError ->
                 if reconnectActiveChannelError.PossibleBug then
@@ -277,12 +300,19 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
         }
 
 module public Connection =
-    let public Start (channelStore: ChannelStore)
-                     (password: string)
-                     (bindAddress: IPEndPoint)
-                         : Node =
+    let public StartClient (channelStore: ChannelStore)
+                           (password: string)
+                               : NodeClient =
         let privateKey = Account.GetPrivateKey channelStore.Account password
-        let secretKey: ExtKey = Node.AccountPrivateKeyToNodeSecret privateKey
-        let transportListener = TransportListener.Bind secretKey bindAddress
-        new Node (channelStore, transportListener)
+        let nodeSecret: ExtKey = NodeClient.AccountPrivateKeyToNodeSecret privateKey
+        new NodeClient (channelStore, nodeSecret)
+
+    let public StartServer (channelStore: ChannelStore)
+                           (password: string)
+                           (bindAddress: IPEndPoint)
+                               : NodeServer =
+        let nodeClient = StartClient channelStore password
+        let nodeSecret = nodeClient.NodeSecret
+        let transportListener = TransportListener.Bind nodeSecret bindAddress
+        new NodeServer (nodeClient, transportListener)
 
