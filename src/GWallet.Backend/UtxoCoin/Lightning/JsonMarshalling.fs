@@ -180,7 +180,6 @@ module JsonMarshalling =
         let featureBitConverter = FeatureBitsJsonConverter()
         let channelIdentifierConverter = ChannelIdentifierConverter()
         let commitmentNumberConverter = CommitmentNumberConverter()
-        //let commitmentPubKeyConverter = CommitmentPubKeyConverter()
         let perCommitmentSecretConverter = PerCommitmentSecretConverter()
         let perCommitmentPointConverter = PerCommitmentPointConverter()
         let fundingPubKeyConverter = FundingPubKeyConverter()
@@ -194,7 +193,6 @@ module JsonMarshalling =
         settings.Converters.Add featureBitConverter
         settings.Converters.Add channelIdentifierConverter
         settings.Converters.Add commitmentNumberConverter
-        //settings.Converters.Add commitmentPubKeyConverter
         settings.Converters.Add perCommitmentSecretConverter
         settings.Converters.Add perCommitmentPointConverter
         settings.Converters.Add fundingPubKeyConverter
