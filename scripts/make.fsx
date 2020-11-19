@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Linq
 open System.Diagnostics
+open System.Globalization
 
 #r "System.Configuration"
 #load "InfraLib/Misc.fs"
@@ -192,23 +193,112 @@ let GetTestAssembly suite =
 
     testAssembly
 
+let RandomStr() =
+    let random = new Random()
+    random.Next().ToString("x8")
+
+type LogData = Map<DateTime, array<string * string>>
+
+let CollateLogs (logDir: string) =
+    // NOTE: This must be the same format string used by the EndToEnd tests
+    let dateTimeFormat = "yyyy-MM-dd:HH:mm:ss.ffff"
+    let splitTimeStamp (line: string): Option<DateTime * string> =
+        try
+            let timestampStr = line.Substring(0, dateTimeFormat.Length)
+            let timestamp =
+                DateTime.ParseExact(
+                    timestampStr,
+                    dateTimeFormat,
+                    CultureInfo.InvariantCulture
+                )
+            let text = line.Substring(dateTimeFormat.Length + ": ".Length)
+            Some (timestamp, text)
+        with
+        | :? ArgumentOutOfRangeException
+        | :? FormatException ->
+            Console.WriteLine("non-timestamped line in log file: " + line)
+            None
+
+    // NOTE: This must be the same file name extension used by the EndToEnd tests
+    let logFilenameFormat = ".????????.log"
+    let readLogFile (lines: LogData) (logFile: string): LogData =
+        let filePrefix =
+            let withoutSuffix =
+                logFile.Substring(0, logFile.Length - logFilenameFormat.Length)
+            let index = withoutSuffix.LastIndexOfAny([| '\\'; '/' |])
+            withoutSuffix.Substring(index + 1)
+        use reader = new StreamReader(logFile)
+        let rec readAll (lines: LogData): LogData =
+            match reader.ReadLine() with
+            | null -> lines
+            | line ->
+                match splitTimeStamp line with
+                | None -> readAll lines
+                | Some (timestamp, text) ->
+                    readAll <|
+                        match Map.tryFind timestamp lines with
+                        | None ->
+                            Map.add
+                                timestamp
+                                [| filePrefix, text |]
+                                lines
+                        | Some currentLines ->
+                            Map.add
+                                timestamp
+                                (Array.append currentLines [| filePrefix, text |])
+                                lines
+        readAll lines
+
+    let logFiles = Directory.GetFiles(logDir, "*" + logFilenameFormat)
+    let lines =
+        Seq.fold readLogFile Map.empty logFiles
+        |> Map.toSeq
+        |> Seq.map
+            (fun (timestamp, textLines) ->
+                textLines
+                |> Seq.map
+                    (fun (filePrefix, text) ->
+                        sprintf
+                            "%s (%s): %s"
+                            (timestamp.ToString(dateTimeFormat))
+                            filePrefix
+                            text
+                    )
+            )
+        |> Seq.concat
+    use writer = File.CreateText(logDir + "/collated." + (RandomStr()) + ".log")
+    for line in lines do
+        writer.WriteLine line
+
 let TwoProcessTestNames = ["GeewalletToGeewallet"; "Revocation"]
 
 let RunTwoProcessTests() =
     let testAssembly = GetTestAssembly "EndToEnd"
 
     for testName in TwoProcessTestNames do
+        let testDirName = "test-output/" + testName + "." + (RandomStr())
+        Directory.CreateDirectory testDirName |> ignore
         let funderRunnerCommand =
             match Misc.GuessPlatform() with
             | Misc.Platform.Linux ->
                 let nunitCommand = "nunit-console"
                 MakeCheckCommand nunitCommand
 
-                let arguments = "-include " + testName + "Funder " + testAssembly.FullName
+                let arguments =
+                    "-output " + testName + "Funder.out." + (RandomStr()) + ".log " +
+                    "-err " + testName + "Funder.err." + (RandomStr()) + ".log " +
+                    "-work " + testDirName + "/ " +
+                    "-include " + testName + "Funder " +
+                    testAssembly.FullName
 
                 { Command = nunitCommand; Arguments = arguments }
             | _ ->
-                let arguments = "/include:" + testName + "Funder " + testAssembly.FullName
+                let arguments =
+                    "/output:" + testName + "Funder.out." + (RandomStr()) + ".log " +
+                    "/err:" + testName + "Funder.err." + (RandomStr()) + ".log " +
+                    "/work:" + testDirName + "/ " +
+                    "/include:" + testName + "Funder " +
+                    testAssembly.FullName
                 {
                     Command = Path.Combine(nugetPackagesSubDirName,
                                            sprintf "NUnit.Runners.%s" nunitVersion,
@@ -223,11 +313,21 @@ let RunTwoProcessTests() =
                 let nunitCommand = "nunit-console"
                 MakeCheckCommand nunitCommand
 
-                let arguments = "-include " + testName + "Fundee " + testAssembly.FullName
+                let arguments =
+                    "-output " + testName + "Fundee.out." + (RandomStr()) + ".log " +
+                    "-err " + testName + "Fundee.err." + (RandomStr()) + ".log " +
+                    "-work " + testDirName + "/ " +
+                    "-include " + testName + "Fundee " +
+                    testAssembly.FullName
 
                 { Command = nunitCommand; Arguments = arguments }
             | _ ->
-                let arguments = "/include:" + testName + "Fundee " + testAssembly.FullName
+                let arguments =
+                    "/output:" + testName + "Fundee.out." + (RandomStr()) + ".log " +
+                    "/err:" + testName + "Fundee.err." + (RandomStr()) + ".log " +
+                    "/work:" + testDirName + "/ " +
+                    "/include:" + testName + "Fundee " +
+                    testAssembly.FullName
                 {
                     Command = Path.Combine(nugetPackagesSubDirName,
                                            sprintf "NUnit.Runners.%s" nunitVersion,
@@ -239,21 +339,22 @@ let RunTwoProcessTests() =
         let funderRun = async {
             let res = Process.Execute(funderRunnerCommand, Echo.All)
             if res.ExitCode <> 0 then
-                Console.Error.WriteLine (testName + "Funder test failed")
-                Environment.Exit 1
+                failwith (testName + "Funder test failed")
         }
 
         let fundeeRun = async {
             let res = Process.Execute(fundeeRunnerCommand, Echo.All)
             if res.ExitCode <> 0 then
-                Console.Error.WriteLine (testName + "Fundee test failed")
-                Environment.Exit 1
+                failwith (testName + "Fundee test failed")
         }
 
-        [funderRun; fundeeRun]
-        |> Async.Parallel
-        |> Async.RunSynchronously
-        |> ignore
+        try
+            [funderRun; fundeeRun]
+            |> Async.Parallel
+            |> Async.RunSynchronously
+            |> ignore
+        finally
+            CollateLogs testDirName
 
 let RunTests(suite: string) =
     let testAssembly = GetTestAssembly suite

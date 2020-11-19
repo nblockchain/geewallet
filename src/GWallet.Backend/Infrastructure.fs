@@ -16,19 +16,27 @@ module Infrastructure =
     let private ReportInner (sentryEvent: SentryEvent) =
         ravenClient.Capture sentryEvent |> ignore
 
+    let private timestamp(log: string): string =
+        let now = DateTime.Now.ToString("yyyy-MM-dd:HH:mm:ss.ffff")
+        log.Split([| "\r\n"; "\r"; "\n" |], StringSplitOptions.None)
+        |> Seq.map(fun line -> now + ": " + line)
+        |> String.concat Environment.NewLine
+
     let internal Flush () =
         Console.Out.Flush ()
         Console.Error.Flush ()
         Debug.Flush ()
 
     let LogInfo (log: string) =
-        Console.WriteLine log
-        Debug.WriteLine log
+        let timestamped = timestamp log
+        Console.WriteLine timestamped
+        Debug.WriteLine timestamped
         Flush ()
 
     let LogError (log: string) =
-        Console.Error.WriteLine log
-        Debug.WriteLine log
+        let timestamped = timestamp log
+        Console.Error.WriteLine timestamped
+        Debug.WriteLine timestamped
         Flush ()
 
     let LogDebug (log: string) =
@@ -61,8 +69,9 @@ module Infrastructure =
                        =
 
         // TODO: log this in a file (log4net?), as well as printing to the console, before sending to sentry
-        Console.Error.WriteLine ex
-        Debug.WriteLine ex
+        let timestamped = timestamp (ex.ToString())
+        Console.Error.WriteLine timestamped
+        Debug.WriteLine timestamped
         Flush ()
 
 #if DEBUG

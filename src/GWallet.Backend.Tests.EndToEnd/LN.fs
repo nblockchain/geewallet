@@ -38,11 +38,23 @@ type ProcessWrapper = {
     Semaphore: Semaphore
 } with
     static member New (name: string)
+                      (workDir: string)
                       (arguments: string)
                       (environment: Map<string, string>)
                       (isPython: bool)
                           : ProcessWrapper =
-
+        let timestamp() =
+            // NOTE: this must be the same format used in scripts/make.fsx
+            let dateTimeFormat = "yyyy-MM-dd:HH:mm:ss.ffff"
+            DateTime.Now.ToString(dateTimeFormat)
+        let outputFileStream =
+            let outputFileName =
+                let rand = new Random()
+                // NOTE: the file name must end in .????????.log for the sake of scripts/make.fsx
+                SPrintF3 "%s/%s.%s.log" workDir name (rand.Next().ToString("x8"))
+            Infrastructure.LogDebug (SPrintF1 "Starting subprocess: %s" name)
+            File.CreateText outputFileName
+        outputFileStream.WriteLine(SPrintF1 "%s: <started>" (timestamp()))
         let fileName =
             let environmentPath = System.Environment.GetEnvironmentVariable "PATH"
             let pathSeparator = Path.PathSeparator
@@ -90,12 +102,12 @@ type ProcessWrapper = {
                     if not !firstStreamEnded then
                         firstStreamEnded := true
                     else
-                        Console.WriteLine(SPrintF2 "%s (%i) <exited>" name proc.Id)
-                        Console.Out.Flush()
+                        outputFileStream.WriteLine(SPrintF1 "%s: <exited>" (timestamp()))
+                        outputFileStream.Flush()
                         semaphore.Release() |> ignore
                 | text ->
-                    Console.WriteLine(SPrintF3 "%s (%i): %s" name proc.Id text)
-                    Console.Out.Flush()
+                    outputFileStream.WriteLine(SPrintF2 "%s: %s" (timestamp()) text)
+                    outputFileStream.Flush()
                     queue.Enqueue text
                     semaphore.Release() |> ignore
         proc.OutputDataReceived.AddHandler(DataReceivedEventHandler outputHandler)
@@ -141,6 +153,7 @@ type ProcessWrapper = {
         fold List.empty
 
 type Bitcoind = {
+    WorkDir: string
     DataDir: string
     RpcUser: string
     RpcPassword: string
@@ -153,6 +166,7 @@ type Bitcoind = {
             Directory.Delete(this.DataDir, true)
 
     static member Start(): Bitcoind =
+        let workDir = TestContext.CurrentContext.WorkDirectory
         let dataDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         Directory.CreateDirectory dataDir |> ignore
         let rpcUser = Path.GetRandomFileName()
@@ -180,11 +194,13 @@ type Bitcoind = {
         let processWrapper =
             ProcessWrapper.New
                 "bitcoind"
+                workDir
                 (SPrintF1 "-regtest -datadir=%s" dataDir)
                 Map.empty
                 false
         processWrapper.WaitForMessage (fun msg -> msg.EndsWith "init message: Done loading")
         {
+            WorkDir = workDir
             DataDir = dataDir
             RpcUser = rpcUser
             RpcPassword = rpcPassword
@@ -195,6 +211,7 @@ type Bitcoind = {
         let bitcoinCli =
             ProcessWrapper.New
                 "bitcoin-cli"
+                this.WorkDir
                 (SPrintF3 "-regtest -datadir=%s generatetoaddress %i %s" this.DataDir number.Value (address.ToString()))
                 Map.empty
                 false
@@ -204,6 +221,7 @@ type Bitcoind = {
         let bitcoinCli =
             ProcessWrapper.New
                 "bitcoin-cli"
+                this.WorkDir
                 (SPrintF1 "-regtest -datadir=%s getrawmempool" this.DataDir)
                 Map.empty
                 false
@@ -231,6 +249,7 @@ type ElectrumServer = {
         let processWrapper =
             ProcessWrapper.New
                 "electrumx_server"
+                bitcoind.WorkDir
                 ""
                 (Map.ofList <| [
                     "SERVICES", "tcp://[::1]:50001";
@@ -278,6 +297,7 @@ type Lnd = {
                 + " --lnddir=" + lndDir
             ProcessWrapper.New
                 "lnd"
+                bitcoind.WorkDir
                 args
                 Map.empty
                 false
