@@ -15,6 +15,7 @@ build.config
 
 # nunit results:
 TestResult.xml
+end-to-end-test-output/
 
 # macOS users:
 .DS_Store

@@ -781,6 +781,7 @@ type LN() =
         return ()
     }
 
+    [<Category("GeewalletToLndFunder")>]
     [<Test>]
     member __.``can open and close channel with LND``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
@@ -898,6 +899,7 @@ type LN() =
         return ()
     }
 
+    [<Category("GeewalletToLndFundee")>]
     [<Test>]
     member __.``can accept and close channel from LND``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None

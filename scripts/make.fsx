@@ -270,114 +270,70 @@ let CollateLogs (logDir: string) =
     for line in lines do
         writer.WriteLine line
 
-let TwoProcessTestNames = ["GeewalletToGeewallet"; "Revocation"]
+let EndToEndTests = [
+    "GeewalletToGeewallet", [ "GeewalletToGeewalletFunder"; "GeewalletToGeewalletFundee" ]
+    "Revocation", [ "RevocationFundee"; "RevocationFunder" ]
+    "GeewalletToLndFunder", [ "GeewalletToLndFunder" ]
+    "GeewalletToLndFundee", [ "GeewalletToLndFundee" ]
+]
 
-let RunTwoProcessTests() =
+let RunEndToEndTestProcess (testDirName: string) (testProcess: string) =
     let testAssembly = GetTestAssembly "EndToEnd"
-
-    for testName in TwoProcessTestNames do
-        let testDirName = "test-output/" + testName + "." + (RandomStr())
-        Directory.CreateDirectory testDirName |> ignore
-        let funderRunnerCommand =
-            match Misc.GuessPlatform() with
-            | Misc.Platform.Linux ->
-                let nunitCommand = "nunit-console"
-                MakeCheckCommand nunitCommand
-
-                let arguments =
-                    "-output " + testName + "Funder.out." + (RandomStr()) + ".log " +
-                    "-err " + testName + "Funder.err." + (RandomStr()) + ".log " +
-                    "-work " + testDirName + "/ " +
-                    "-include " + testName + "Funder " +
-                    testAssembly.FullName
-
-                { Command = nunitCommand; Arguments = arguments }
-            | _ ->
-                let arguments =
-                    "/output:" + testName + "Funder.out." + (RandomStr()) + ".log " +
-                    "/err:" + testName + "Funder.err." + (RandomStr()) + ".log " +
-                    "/work:" + testDirName + "/ " +
-                    "/include:" + testName + "Funder " +
-                    testAssembly.FullName
-                {
-                    Command = Path.Combine(nugetPackagesSubDirName,
-                                           sprintf "NUnit.Runners.%s" nunitVersion,
-                                           "tools",
-                                           "nunit-console.exe")
-                    Arguments = arguments
-                }
-
-        let fundeeRunnerCommand =
-            match Misc.GuessPlatform() with
-            | Misc.Platform.Linux ->
-                let nunitCommand = "nunit-console"
-                MakeCheckCommand nunitCommand
-
-                let arguments =
-                    "-output " + testName + "Fundee.out." + (RandomStr()) + ".log " +
-                    "-err " + testName + "Fundee.err." + (RandomStr()) + ".log " +
-                    "-work " + testDirName + "/ " +
-                    "-include " + testName + "Fundee " +
-                    testAssembly.FullName
-
-                { Command = nunitCommand; Arguments = arguments }
-            | _ ->
-                let arguments =
-                    "/output:" + testName + "Fundee.out." + (RandomStr()) + ".log " +
-                    "/err:" + testName + "Fundee.err." + (RandomStr()) + ".log " +
-                    "/work:" + testDirName + "/ " +
-                    "/include:" + testName + "Fundee " +
-                    testAssembly.FullName
-                {
-                    Command = Path.Combine(nugetPackagesSubDirName,
-                                           sprintf "NUnit.Runners.%s" nunitVersion,
-                                           "tools",
-                                           "nunit-console.exe")
-                    Arguments = arguments
-                }
-
-        let funderRun = async {
-            let res = Process.Execute(funderRunnerCommand, Echo.All)
-            if res.ExitCode <> 0 then
-                failwith (testName + "Funder test failed")
-        }
-
-        let fundeeRun = async {
-            let res = Process.Execute(fundeeRunnerCommand, Echo.All)
-            if res.ExitCode <> 0 then
-                failwith (testName + "Fundee test failed")
-        }
-
-        try
-            [funderRun; fundeeRun]
-            |> Async.Parallel
-            |> Async.RunSynchronously
-            |> ignore
-        finally
-            CollateLogs testDirName
-
-let RunTests(suite: string) =
-    let testAssembly = GetTestAssembly suite
-    let exclude =
-        TwoProcessTestNames
-        |> Seq.ofList
-        |> Seq.map (fun testName -> [testName + "Funder"; testName + "Fundee"])
-        |> Seq.concat
-        |> String.concat ","
-
     let runnerCommand =
         match Misc.GuessPlatform() with
         | Misc.Platform.Linux ->
             let nunitCommand = "nunit-console"
             MakeCheckCommand nunitCommand
 
-            let arguments = 
-                if suite = "EndToEnd" then
-                    "-exclude " + exclude + " " + testAssembly.FullName
-                else
-                    testAssembly.FullName
+            let arguments =
+                "-output " + testProcess + ".out." + (RandomStr()) + ".log " +
+                "-err " + testProcess + ".err." + (RandomStr()) + ".log " +
+                "-work " + testDirName + "/ " +
+                "-include " + testProcess + " " +
+                testAssembly.FullName
 
             { Command = nunitCommand; Arguments = arguments }
+        | _ ->
+            let arguments =
+                "/output:" + testProcess + ".out." + (RandomStr()) + ".log " +
+                "/err:" + testProcess + ".err." + (RandomStr()) + ".log " +
+                "/work:" + testDirName + "/ " +
+                "/include:" + testProcess + " " +
+                testAssembly.FullName
+            {
+                Command = Path.Combine(nugetPackagesSubDirName,
+                                       sprintf "NUnit.Runners.%s" nunitVersion,
+                                       "tools",
+                                       "nunit-console.exe")
+                Arguments = arguments
+            }
+    async {
+        let res = Process.Execute(runnerCommand, Echo.All)
+        if res.ExitCode <> 0 then
+            failwith (testProcess + " test failed")
+    }
+
+let RunEndToEndTests() =
+    for (testName, testProcesses) in EndToEndTests do
+        let testDirName = "end-to-end-test-output/" + testName + "." + (RandomStr())
+        Directory.CreateDirectory testDirName |> ignore
+        try
+            testProcesses
+            |> Seq.map (RunEndToEndTestProcess testDirName)
+            |> Async.Parallel
+            |> Async.RunSynchronously
+            |> ignore
+        finally
+            CollateLogs testDirName
+
+let RunUnitTests() =
+    let testAssembly = GetTestAssembly "Unit"
+    let runnerCommand =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Linux ->
+            let nunitCommand = "nunit-console"
+            MakeCheckCommand nunitCommand
+            { Command = nunitCommand; Arguments = testAssembly.FullName }
         | _ ->
             if not nugetExe.Exists then
                 MakeAll None |> ignore
@@ -389,12 +345,6 @@ let RunTests(suite: string) =
                                         nunitVersion nugetPackagesSubDirName
                 }
 
-            let arguments = 
-                if suite = "EndToEnd" then
-                    "/exclude:" + exclude + " " + testAssembly.FullName
-                else
-                    testAssembly.FullName
-
             Process.SafeExecute(nugetInstallCommand, Echo.All)
                 |> ignore
 
@@ -403,7 +353,7 @@ let RunTests(suite: string) =
                                        sprintf "NUnit.Runners.%s" nunitVersion,
                                        "tools",
                                        "nunit-console.exe")
-                Arguments = arguments
+                Arguments = testAssembly.FullName
             }
 
     let nunitRun = Process.Execute(runnerCommand,
@@ -411,9 +361,6 @@ let RunTests(suite: string) =
     if (nunitRun.ExitCode <> 0) then
         Console.Error.WriteLine "Tests failed"
         Environment.Exit 1
-
-    if suite = "EndToEnd" then
-        RunTwoProcessTests()
 
 let maybeTarget = GatherTarget (Misc.FsxArguments(), None)
 match maybeTarget with
@@ -473,12 +420,12 @@ match maybeTarget with
 | Some("check") ->
     Console.WriteLine "Running unit tests..."
     Console.WriteLine ()
-    RunTests "Unit"
+    RunUnitTests()
 
 | Some("check-end-to-end") ->
     Console.WriteLine "Running end-to-end tests..."
     Console.WriteLine ()
-    RunTests "EndToEnd"
+    RunEndToEndTests()
 
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
