@@ -5,6 +5,7 @@ open System.IO
 open System.Linq
 open System.Diagnostics
 open System.Globalization
+open System.Xml
 
 #r "System.Configuration"
 #load "InfraLib/Misc.fs"
@@ -288,6 +289,7 @@ let RunEndToEndTestProcess (testDirName: string) (testProcess: string) =
             let arguments =
                 "-output " + testProcess + ".out." + (RandomStr()) + ".log " +
                 "-err " + testProcess + ".err." + (RandomStr()) + ".log " +
+                "-result " + testProcess + ".TestResult.xml " +
                 "-work " + testDirName + "/ " +
                 "-include " + testProcess + " " +
                 testAssembly.FullName
@@ -297,6 +299,7 @@ let RunEndToEndTestProcess (testDirName: string) (testProcess: string) =
             let arguments =
                 "/output:" + testProcess + ".out." + (RandomStr()) + ".log " +
                 "/err:" + testProcess + ".err." + (RandomStr()) + ".log " +
+                "/result:" + testProcess + ".TestResult.xml " +
                 "/work:" + testDirName + "/ " +
                 "/include:" + testProcess + " " +
                 testAssembly.FullName
@@ -310,7 +313,23 @@ let RunEndToEndTestProcess (testDirName: string) (testProcess: string) =
     async {
         let res = Process.Execute(runnerCommand, Echo.All)
         if res.ExitCode <> 0 then
-            failwith (testProcess + " test failed")
+            let error =
+                let doc = new XmlDocument()
+                doc.Load(testDirName + "/" + testProcess + ".TestResult.xml")
+                let nodes = doc.GetElementsByTagName("message").GetEnumerator()
+                let rec fold (error: string): string =
+                    let thisError =
+                        match nodes.Current with
+                        | null -> ""
+                        | node -> (node :?> XmlNode).InnerText
+                    let combinedErrors = error + "\n" + thisError
+                    if nodes.MoveNext() then
+                        fold combinedErrors
+                    else
+                        combinedErrors
+                fold ""
+            do! Async.AwaitTask (File.AppendAllTextAsync(testDirName + "/FAILURE", error))
+            failwith error
     }
 
 let RunEndToEndTests() =
