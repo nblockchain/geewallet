@@ -58,6 +58,9 @@ type MonoHopUnidirectionalChannel =
     internal {
         Channel: Channel
     }
+
+    static member internal DefaultMaxFeeRateMismatchRatio: float = 1.
+
     static member internal Create (nodeId: NodeId)
                                   (account: UtxoCoin.NormalUtxoAccount)
                                   (nodeMasterPrivKey: NodeMasterPrivKey)
@@ -73,7 +76,8 @@ type MonoHopUnidirectionalChannel =
             let channelOptions: DotNetLightning.Utils.ChannelOptions = {
                 AnnounceChannel = false
                 FeeProportionalMillionths = 100u
-                MaxFeeRateMismatchRatio = 1.
+                MaxFeeRateMismatchRatio =
+                    MonoHopUnidirectionalChannel.DefaultMaxFeeRateMismatchRatio
                 ShutdownScriptPubKey = Some shutdownScriptPubKey
             }
             {
@@ -171,3 +175,4 @@ type MonoHopUnidirectionalChannel =
         match self.Channel.State.Commitments with
         | Some commitments -> Some <| commitments.SpendableBalance()
         | None -> None
+

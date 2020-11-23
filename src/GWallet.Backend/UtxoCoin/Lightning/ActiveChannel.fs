@@ -156,6 +156,17 @@ and internal RecvMonoHopPaymentError =
         | InvalidMonoHopPayment _
         | ExpectedMonoHopPayment _ -> false
 
+and internal UpdateFeeError =
+    | SendCommit of SendCommitError
+    | RecvCommit of RecvCommitError
+    interface IErrorMsg with
+        member self.Message =
+            match self with
+            | SendCommit err ->
+                SPrintF1 "Error sending commitment: %s" (err :> IErrorMsg).Message
+            | RecvCommit err ->
+                SPrintF1 "Error receiving commitment: %s" (err :> IErrorMsg).Message
+
 and internal ActiveChannel =
     {
         ConnectedChannel: ConnectedChannel
@@ -518,6 +529,65 @@ and internal ActiveChannel =
                 match activeChannelAfterCommitSentRes with
                 | Error err -> return Error <| RecvMonoHopPaymentError.SendCommit err
                 | Ok activeChannelAfterCommitSent -> return Ok activeChannelAfterCommitSent
+    }
+
+    member internal self.UpdateFee (newFeeRate: FeeRatePerKw)
+                                       : Async<Result<ActiveChannel, UpdateFeeError>> = async {
+        let connectedChannel = self.ConnectedChannel
+        let channelWrapper = connectedChannel.Channel
+        let res, channelWrapperAfterUpdateFee =
+            let channelCmd = UpdateFee {
+                FeeRatePerKw = newFeeRate
+            }
+            channelWrapper.ExecuteCommand channelCmd <| function
+                | (WeAcceptedUpdateFee updateFeeMsg)::[] -> Some updateFeeMsg
+                | _ -> None
+        let connectedChannelAfterUpdateFee = {
+            connectedChannel with
+                Channel = channelWrapperAfterUpdateFee
+        }
+        match res with
+        | Error (WeCannotAffordFee(localChannelReserve, requiredFee, missingAmount)) ->
+            Infrastructure.LogDebug
+            <| SPrintF4
+                "cannot afford to update channel fee to %s: \
+                    local channel reserve == %s, \
+                    required fee == %s, \
+                    missing amount == %s"
+                (newFeeRate.ToString())
+                (localChannelReserve.ToString())
+                (requiredFee.ToString())
+                (missingAmount.ToString())
+            let activeChannelAfterUpdateFeeAttempt = {
+                self with
+                    ConnectedChannel = connectedChannelAfterUpdateFee
+            }
+            return Ok activeChannelAfterUpdateFeeAttempt
+        | Error err ->
+            return
+                SPrintF1 "error executing update fee command: %s" err.Message
+                |> failwith
+        | Ok updateFeeMsg ->
+            let peerNode = connectedChannelAfterUpdateFee.PeerNode
+            let! peerNodeAfterUpdateFeeMsgSent =
+                peerNode.SendMsg updateFeeMsg
+            let connectedChannelAfterUpdateFeeMsgSent = {
+                connectedChannelAfterUpdateFee with
+                    PeerNode = peerNodeAfterUpdateFeeMsgSent
+            }
+            connectedChannelAfterUpdateFeeMsgSent.SaveToWallet()
+            let activeChannelAfterUpdateFeeMsgSent = {
+                self with
+                    ConnectedChannel = connectedChannelAfterUpdateFeeMsgSent
+            }
+            let! activeChannelAfterCommitSentRes = activeChannelAfterUpdateFeeMsgSent.SendCommit()
+            match activeChannelAfterCommitSentRes with
+            | Error err -> return Error <| UpdateFeeError.SendCommit err
+            | Ok activeChannelAfterCommitSent ->
+                let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
+                match activeChannelAfterCommitReceivedRes with
+                | Error err -> return Error <| UpdateFeeError.RecvCommit err
+                | Ok activeChannelAfterCommitReceived -> return Ok activeChannelAfterCommitReceived
     }
 
     // The Commitments field will always be Some when we have established a channel
