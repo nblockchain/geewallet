@@ -20,6 +20,7 @@ open System.Threading // For AutoResetEvent and CancellationToken
 open System.Threading.Tasks // For Task
 open System.Collections.Concurrent
 open System.Collections.Generic
+open System.Linq
 
 open NBitcoin // For ExtKey
 
@@ -172,9 +173,10 @@ type Bitcoind = {
         let rpcUser = Path.GetRandomFileName()
         let rpcPassword = Path.GetRandomFileName()
         let confPath = Path.Combine(dataDir, "bitcoin.conf")
+        let fakeFeeRate = !UtxoCoin.ElectrumClient.RegTestFakeFeeRate
         File.WriteAllText(
             confPath,
-            SPrintF2
+            SPrintF3
                 "\
                 txindex=1\n\
                 printtoconsole=1\n\
@@ -183,12 +185,13 @@ type Bitcoind = {
                 rpcallowip=127.0.0.1\n\
                 zmqpubrawblock=tcp://127.0.0.1:28332\n\
                 zmqpubrawtx=tcp://127.0.0.1:28333\n\
-                fallbackfee=0.00001\n\
+                fallbackfee=%f\n\
                 [regtest]\n\
                 rpcbind=127.0.0.1\n\
                 rpcport=18554"
                 rpcUser
                 rpcPassword
+                fakeFeeRate
         )
 
         let processWrapper =
@@ -264,6 +267,31 @@ type ElectrumServer = {
             DbDir = dbDir
             ProcessWrapper = processWrapper
         }
+
+    static member EstimateFeeRate(): Async<FeeRatePerKw> = async {
+        let! btcPerKB =
+            let averageFee (feesFromDifferentServers: list<decimal>): decimal =
+                feesFromDifferentServers.Sum() / decimal (List.length feesFromDifferentServers)
+            let estimateFeeJob = ElectrumClient.EstimateFee 6
+            Server.Query
+                Currency.BTC
+                (QuerySettings.FeeEstimation averageFee)
+                estimateFeeJob
+                None
+        let satPerKB = (Money (btcPerKB, MoneyUnit.BTC)).ToUnit MoneyUnit.Satoshi
+        // 4 weight units per byte. See segwit specs.
+        let kwPerKB = 4m
+        let satPerKw = satPerKB / kwPerKB
+        let feeRatePerKw = FeeRatePerKw (uint32 satPerKw)
+        return feeRatePerKw
+    }
+
+    static member SetEstimatedFeeRate(feeRatePerKw: FeeRatePerKw) =
+        let satPerKw = decimal feeRatePerKw.Value
+        let kwPerKB = 4m
+        let satPerKB = satPerKw * kwPerKB
+        let btcPerKB = (Money (satPerKB, MoneyUnit.Satoshi)).ToUnit MoneyUnit.BTC
+        ElectrumClient.SetRegTestFakeFeeRate btcPerKB
 
 type Lnd = {
     LndDir: string
@@ -585,7 +613,7 @@ type LN() =
 
         // fund geewallet
         let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
-        let feeRate = FeeRatePerKw 2500u
+        let! feeRate = ElectrumServer.EstimateFeeRate()
         let! _txid = lnd.SendCoins geewalletAccountAmount walletInstance.Address feeRate
 
         // wait for lnd's transaction to appear in mempool
@@ -694,6 +722,11 @@ type LN() =
         if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount - WalletToWalletTestPayment0Amount - WalletToWalletTestPayment1Amount then
             failwith "incorrect balance after payment 1"
 
+        ElectrumServer.SetEstimatedFeeRate (feeRate * 4u)
+        let! updateFeeRes =
+            Lightning.Network.MaybeUpdateFee walletInstance.Node channelId
+        UnwrapResult updateFeeRes "MaybeUpdateFee failed"
+
         let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.Node channelId
         match closeChannelRes with
         | Ok _ -> ()
@@ -732,6 +765,7 @@ type LN() =
     [<Test>]
     member __.``can send/receive monohop payments and close channel (fundee)``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New (Some FundeeLightningIPEndpoint) (Some FundeeAccountsPrivateKey)
+        let! feeRate = ElectrumServer.EstimateFeeRate()
         let! pendingChannelRes =
             Lightning.Network.AcceptChannel
                 walletInstance.Node
@@ -772,6 +806,11 @@ type LN() =
 
         if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> WalletToWalletTestPayment0Amount + WalletToWalletTestPayment1Amount then
             failwith "incorrect balance after receiving payment 1"
+
+        ElectrumServer.SetEstimatedFeeRate (feeRate * 4u)
+        let! acceptUpdateFeeRes =
+            Lightning.Network.AcceptUpdateFee walletInstance.Node channelId
+        UnwrapResult acceptUpdateFeeRes "AcceptUpdateFee failed"
 
         let! closeChannelRes = Lightning.Network.AcceptCloseChannel walletInstance.Node channelId
         match closeChannelRes with
@@ -814,7 +853,7 @@ type LN() =
 
         // fund geewallet
         let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
-        let feeRate = FeeRatePerKw 2500u
+        let! feeRate = ElectrumServer.EstimateFeeRate()
         let! _txid = lnd.SendCoins geewalletAccountAmount walletInstance.Address feeRate
 
         // wait for lnd's transaction to appear in mempool
@@ -930,6 +969,7 @@ type LN() =
         do! lnd.WaitForBlockHeight (BlockHeight.Zero + blocksMinedToLnd + maturityDurationInNumberOfBlocks)
         do! lnd.WaitForBalance (Money(50UL, MoneyUnit.BTC))
 
+        let! feeRate = ElectrumServer.EstimateFeeRate()
         let acceptChannelTask = Lightning.Network.AcceptChannel walletInstance.Node
         let openChannelTask = async {
             let! connectionResult = lnd.ConnectTo walletInstance.NodeEndPoint
@@ -940,7 +980,7 @@ type LN() =
                 lnd.OpenChannel
                     walletInstance.NodeEndPoint
                     (Money(0.002m, MoneyUnit.BTC))
-                    (FeeRatePerKw 666u)
+                    feeRate
         }
 
         let! acceptChannelRes, openChannelRes = AsyncExtensions.MixedParallel2 acceptChannelTask openChannelTask
@@ -1040,7 +1080,7 @@ type LN() =
 
         // fund geewallet
         let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
-        let feeRate = FeeRatePerKw 2500u
+        let! feeRate = ElectrumServer.EstimateFeeRate()
         let! _txid = lnd.SendCoins geewalletAccountAmount walletInstance.Address feeRate
 
         // wait for lnd's transaction to appear in mempool

@@ -95,6 +95,17 @@ type internal NodeUpdateFeeError =
             | UpdateFee updateFeeError ->
                 SPrintF1 "error updating fee: %s" (updateFeeError :> IErrorMsg).Message
 
+type internal NodeAcceptUpdateFeeError =
+    | Reconnect of ReconnectActiveChannelError
+    | AcceptUpdateFee of AcceptUpdateFeeError
+    interface IErrorMsg with
+        member self.Message =
+            match self with
+            | Reconnect reconnectActiveChannelError ->
+                SPrintF1 "error reconnecting channel: %s" (reconnectActiveChannelError :> IErrorMsg).Message
+            | AcceptUpdateFee acceptUpdateFeeError ->
+                SPrintF1 "error accepting updating fee: %s" (acceptUpdateFeeError :> IErrorMsg).Message
+
 type IChannelToBeOpened =
     abstract member ConfirmationsRequired: uint32 with get
     abstract member ChannelId: ChannelIdentifier with get
@@ -515,6 +526,36 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
             let transactionString = transaction.ToHex()
             
             return Some transactionString
+    }
+
+    member internal self.AcceptUpdateFee (channelId: ChannelIdentifier): Async<Result<unit, IErrorMsg>> = async {
+        let serializedChannel = self.ChannelStore.LoadChannel channelId
+        if ChannelSerialization.IsFunder serializedChannel then
+            return failwith "AcceptUpdateFee called on non-fundee channel"
+        else
+            let! activeChannelRes =
+                ActiveChannel.AcceptReestablish
+                    self.ChannelStore
+                    self.TransportListener
+                    channelId
+            match activeChannelRes with
+            | Error reconnectActiveChannelError ->
+                if reconnectActiveChannelError.PossibleBug then
+                    let msg =
+                        SPrintF2
+                            "error connecting to peer to accept update fee %s: %s"
+                            (channelId.ToString())
+                            (reconnectActiveChannelError :> IErrorMsg).Message
+                    Infrastructure.ReportWarningMessage msg
+                return Error (NodeAcceptUpdateFeeError.Reconnect reconnectActiveChannelError :> IErrorMsg)
+            | Ok activeChannel ->
+                let! activeChannelAfterUpdateFeeRes = activeChannel.AcceptUpdateFee()
+                match activeChannelAfterUpdateFeeRes with
+                | Error acceptUpdateFeeError ->
+                    return Error (NodeAcceptUpdateFeeError.AcceptUpdateFee acceptUpdateFeeError :> IErrorMsg)
+                | Ok activeChannelAfterUpdateFee ->
+                    (activeChannelAfterUpdateFee :> IDisposable).Dispose()
+                    return Ok ()
     }
 
     member internal self.MaybeUpdateFee (channelId: ChannelIdentifier): Async<Result<unit, IErrorMsg>> = async {

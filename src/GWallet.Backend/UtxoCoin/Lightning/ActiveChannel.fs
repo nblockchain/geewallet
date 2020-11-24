@@ -156,6 +156,29 @@ and internal RecvMonoHopPaymentError =
         | InvalidMonoHopPayment _
         | ExpectedMonoHopPayment _ -> false
 
+and internal AcceptUpdateFeeError =
+    | RecvUpdateFee of RecvMsgError
+    | PeerErrorMessageInsteadOfUpdateFee of BrokenChannel * PeerErrorMessage
+    | ExpectedUpdateFee of ILightningMsg
+    | InvalidUpdateFee of BrokenChannel * ChannelError
+    | RecvCommit of RecvCommitError
+    | SendCommit of SendCommitError
+    interface IErrorMsg with
+        member self.Message =
+            match self with
+            | RecvUpdateFee err ->
+                SPrintF1 "Error receiving update fee message: %s" (err :> IErrorMsg).Message
+            | PeerErrorMessageInsteadOfUpdateFee (_, err) ->
+                SPrintF1 "Peer sent us an error message instead of an update fee message: %s" (err :> IErrorMsg).Message
+            | ExpectedUpdateFee msg ->
+                SPrintF1 "Expected update fee msg, got %A" (msg.GetType())
+            | InvalidUpdateFee (_, err) ->
+                SPrintF1 "Invalid update fee message: %s" err.Message
+            | RecvCommit err ->
+                SPrintF1 "Error receiving commitment: %s" (err :> IErrorMsg).Message
+            | SendCommit err ->
+                SPrintF1 "Error sending commitment: %s" (err :> IErrorMsg).Message
+
 and internal UpdateFeeError =
     | SendCommit of SendCommitError
     | RecvCommit of RecvCommitError
@@ -531,6 +554,59 @@ and internal ActiveChannel =
                 | Ok activeChannelAfterCommitSent -> return Ok activeChannelAfterCommitSent
     }
 
+    member internal self.AcceptUpdateFee (): Async<Result<ActiveChannel, AcceptUpdateFeeError>> = async {
+        let connectedChannel = self.ConnectedChannel
+        let channelWrapper = connectedChannel.Channel
+        let peerNode = connectedChannel.PeerNode
+
+        let! recvChannelMsgRes = peerNode.RecvChannelMsg()
+        match recvChannelMsgRes with
+        | Error (RecvMsg recvMsgError) ->
+            return Error <| AcceptUpdateFeeError.RecvUpdateFee recvMsgError
+        | Error (ReceivedPeerErrorMessage (peerNodeAfterUpdateFeeReceived, errorMessage)) ->
+            let connectedChannelAfterError = {
+                connectedChannel with
+                    PeerNode = peerNodeAfterUpdateFeeReceived
+                    Channel = channelWrapper
+            }
+            let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+            return Error <| AcceptUpdateFeeError.PeerErrorMessageInsteadOfUpdateFee
+                (brokenChannel, errorMessage)
+        | Ok (peerNodeAfterAcceptUpdateFeeReceived, channelMsg) ->
+            match channelMsg with
+            | :? UpdateFeeMsg as updateFeeMsg ->
+                let res, channelWrapperAfterUpdateFeeReceived =
+                    let channelCmd =
+                        ChannelCommand.ApplyUpdateFee
+                            updateFeeMsg
+                    channelWrapper.ExecuteCommand channelCmd <| function
+                        | (WeAcceptedUpdateFee(_))::[] -> Some ()
+                        | _ -> None
+                let connectedChannelAfterUpdateFeeReceived = {
+                    connectedChannel with
+                        Channel = channelWrapperAfterUpdateFeeReceived
+                        PeerNode = peerNodeAfterAcceptUpdateFeeReceived
+                }
+                match res with
+                | Error err ->
+                    let! connectedChannelAfterError = connectedChannelAfterUpdateFeeReceived.SendError err.Message
+                    let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+                    return Error <| AcceptUpdateFeeError.InvalidUpdateFee
+                        (brokenChannel, err)
+                | Ok () ->
+                    connectedChannelAfterUpdateFeeReceived.SaveToWallet()
+                    let activeChannel = { ConnectedChannel = connectedChannelAfterUpdateFeeReceived }
+                    let! activeChannelAfterCommitReceivedRes = activeChannel.RecvCommit()
+                    match activeChannelAfterCommitReceivedRes with
+                    | Error err -> return Error <| AcceptUpdateFeeError.RecvCommit err
+                    | Ok activeChannelAfterCommitReceived ->
+                        let! activeChannelAfterCommitSentRes = activeChannelAfterCommitReceived.SendCommit()
+                        match activeChannelAfterCommitSentRes with
+                        | Error err -> return Error <| AcceptUpdateFeeError.SendCommit err
+                        | Ok activeChannelAfterCommitSent -> return Ok activeChannelAfterCommitSent
+            | _ -> return Error <| AcceptUpdateFeeError.ExpectedUpdateFee channelMsg
+    }
+
     member internal self.UpdateFee (newFeeRate: FeeRatePerKw)
                                        : Async<Result<ActiveChannel, UpdateFeeError>> = async {
         let connectedChannel = self.ConnectedChannel
@@ -540,7 +616,7 @@ and internal ActiveChannel =
                 FeeRatePerKw = newFeeRate
             }
             channelWrapper.ExecuteCommand channelCmd <| function
-                | (WeAcceptedUpdateFee updateFeeMsg)::[] -> Some updateFeeMsg
+                | (WeAcceptedOperationUpdateFee(updateFeeMsg, _))::[] -> Some updateFeeMsg
                 | _ -> None
         let connectedChannelAfterUpdateFee = {
             connectedChannel with
