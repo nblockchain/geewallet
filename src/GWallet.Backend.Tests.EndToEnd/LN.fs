@@ -585,6 +585,7 @@ type LN() =
 
     [<Category("GeewalletToGeewalletFunder")>]
     [<Test>]
+    [<Timeout(200000)>]
     member __.``can send/receive monohop payments and close channel (funder)``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
@@ -763,6 +764,7 @@ type LN() =
 
     [<Category("GeewalletToGeewalletFundee")>]
     [<Test>]
+    [<Timeout(200000)>]
     member __.``can send/receive monohop payments and close channel (fundee)``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New (Some FundeeLightningIPEndpoint) (Some FundeeAccountsPrivateKey)
         let! feeRate = ElectrumServer.EstimateFeeRate()
@@ -822,6 +824,7 @@ type LN() =
 
     [<Category("GeewalletToLndFunder")>]
     [<Test>]
+    [<Timeout(500000)>]
     member __.``can open and close channel with LND``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
@@ -940,6 +943,7 @@ type LN() =
 
     [<Category("GeewalletToLndFundee")>]
     [<Test>]
+    [<Timeout(500000)>]
     member __.``can accept and close channel from LND``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
@@ -1052,6 +1056,7 @@ type LN() =
 
     [<Category("RevocationFunder")>]
     [<Test>]
+    [<Timeout(200000)>]
     member __.``can revoke commitment tx (funder)``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
         use bitcoind = Bitcoind.Start()
@@ -1246,6 +1251,7 @@ type LN() =
 
     [<Category("RevocationFundee")>]
     [<Test>]
+    [<Timeout(200000)>]
     member __.``can revoke commitment tx (fundee)``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New (Some FundeeLightningIPEndpoint) (Some FundeeAccountsPrivateKey)
         let! pendingChannelRes =
