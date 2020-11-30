@@ -227,9 +227,9 @@ type internal TransportStream =
                 true
             )
             client.Client.Bind(localEndPoint)
-            Console.WriteLine(SPrintF2 "Connecting over TCP from %A to %A..." localEndPoint remoteEndPoint)
+            Infrastructure.LogDebug(SPrintF2 "Connecting over TCP from %A to %A..." localEndPoint remoteEndPoint)
         | None ->
-            Console.WriteLine(SPrintF1 "Connecting over TCP to %A..." remoteEndPoint)
+            Infrastructure.LogDebug(SPrintF1 "Connecting over TCP to %A..." remoteEndPoint)
         try
             do! client.ConnectAsync(remoteEndPoint.Address, remoteEndPoint.Port) |> Async.AwaitTask
             return Ok client
