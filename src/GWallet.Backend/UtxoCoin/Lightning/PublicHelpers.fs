@@ -42,6 +42,6 @@ module public Network =
         lightningNode.CheckForChannelFraudAndSendRevocationTx
     let public CheckForClosingTx (lightningNode: Node) = lightningNode.CheckForClosingTx
     let public EndPoint (lightningNode: Node) = lightningNode.EndPoint
-    let public MaybeUpdateFee (lightningNode: Node) = lightningNode.MaybeUpdateFee
+    let public UpdateFee (lightningNode: Node) = lightningNode.UpdateFee
     let public AcceptUpdateFee (lightningNode: Node) = lightningNode.AcceptUpdateFee
 
