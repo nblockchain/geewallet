@@ -165,7 +165,7 @@ let AcceptLightningEvent(): Async<unit> = async {
 
 let LockChannel (channelStore: ChannelStore)
                 (channelInfo: ChannelInfo)
-                    : Async<seq<string>> =
+                    : Async<seq<string>> = async {
     let channelId = channelInfo.ChannelId
     Console.WriteLine(sprintf "Funding for channel %s confirmed" (ChannelId.ToString channelId))
     Console.WriteLine "In order to continue the funding for the channel needs to be locked"
@@ -181,19 +181,18 @@ let LockChannel (channelStore: ChannelStore)
             UserInteraction.AskBindAddress()
     let password = UserInteraction.AskPassword false
     use lightningNode = Lightning.Connection.Start channelStore password bindAddress
-    async {
-        let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
-        let! lockFundingRes = Lightning.Network.LockChannelFunding lightningNode channelId
-        match lockFundingRes with
-        | Error lockFundingError ->
-            Console.WriteLine(sprintf "Error reestablishing channel: %s" lockFundingError.Message)
-        | Ok () ->
-            Console.WriteLine(sprintf "funding locked for channel %s" (ChannelId.ToString channelId))
-        return seq {
-            yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
-            yield "        funding locked - channel is now active"
-        }
+    let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
+    let! lockFundingRes = Lightning.Network.LockChannelFunding lightningNode channelId
+    match lockFundingRes with
+    | Error lockFundingError ->
+        Console.WriteLine(sprintf "Error reestablishing channel: %s" lockFundingError.Message)
+    | Ok () ->
+        Console.WriteLine(sprintf "funding locked for channel %s" (ChannelId.ToString channelId))
+    return seq {
+        yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
+        yield "        funding locked - channel is now active"
     }
+}
 
 let LockChannelIfFundingConfirmed (channelStore: ChannelStore)
                                   (channelInfo: ChannelInfo)
@@ -210,6 +209,40 @@ let LockChannelIfFundingConfirmed (channelStore: ChannelStore)
                 yield sprintf "        waiting for %i more confirmations" remainingConfirmations
             }
         }
+}
+
+let UpdateFeeIfNecessary (channelStore: ChannelStore)
+                         (channelInfo: ChannelInfo)
+                             : Async<Async<seq<string>>> = async {
+    let channelId = channelInfo.ChannelId
+    let! feeUpdateRequired, maybeUsdValue =
+        AsyncExtensions.MixedParallel2
+            (channelStore.FeeUpdateRequired channelId)
+            (FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency)
+    return async {
+        match feeUpdateRequired with
+        | None -> ()
+        | Some feeRate ->
+            Console.WriteLine(sprintf "Fee update required for channel %s" (ChannelId.ToString channelId))
+            let bindAddress =
+                Console.WriteLine
+                    "Ensure the fundee is ready to accept a connection to update the fee, \
+                    then press any key to continue."
+                Console.ReadKey true |> ignore
+                IPEndPoint(IPAddress.Parse "127.0.0.1", 0)
+            let password = UserInteraction.AskPassword false
+            use lightningNode = Lightning.Connection.Start channelStore password bindAddress
+            let! updateFeeRes = Lightning.Network.UpdateFee lightningNode channelId feeRate
+            match updateFeeRes with
+            | Error updateFeeError ->
+                Console.WriteLine(sprintf "Error updating fee: %s" updateFeeError.Message)
+            | Ok () ->
+                Console.WriteLine(sprintf "fee updated for channel %s" (ChannelId.ToString channelId))
+        return seq {
+            yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
+            yield "        channel is active"
+        }
+    }
 }
 
 let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>> = seq {

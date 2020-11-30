@@ -724,9 +724,11 @@ type LN() =
             failwith "incorrect balance after payment 1"
 
         ElectrumServer.SetEstimatedFeeRate (feeRate * 4u)
+        let! newFeeRateOpt = walletInstance.ChannelStore.FeeUpdateRequired channelId
+        let newFeeRate = UnwrapOption newFeeRateOpt "Fee update should be required"
         let! updateFeeRes =
-            Lightning.Network.MaybeUpdateFee walletInstance.Node channelId
-        UnwrapResult updateFeeRes "MaybeUpdateFee failed"
+            Lightning.Network.UpdateFee walletInstance.Node channelId newFeeRate
+        UnwrapResult updateFeeRes "UpdateFee failed"
 
         let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.Node channelId
         match closeChannelRes with
