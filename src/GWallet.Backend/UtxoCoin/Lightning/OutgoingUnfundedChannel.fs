@@ -34,6 +34,10 @@ type internal OpenChannelError =
                 SPrintF1 "Expected accept_channel, got %A" (msg.GetType())
             | InvalidAcceptChannel (_, err) ->
                 SPrintF1 "Invalid accept_channel message: %s" err.Message
+
+        member self.ChannelBreakdown: bool =
+            false
+
     member internal self.PossibleBug =
         match self with
         | RecvAcceptChannel err -> err.PossibleBug

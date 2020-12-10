@@ -23,6 +23,9 @@ type internal NodeOpenChannelError =
             | OpenChannel openChannelError ->
                 SPrintF1 "error opening channel: %s" (openChannelError :> IErrorMsg).Message
 
+        member self.ChannelBreakdown: bool =
+            false
+
 type internal NodeAcceptChannelError =
     | AcceptPeer of ConnectError
     | AcceptChannel of AcceptChannelError
@@ -33,6 +36,9 @@ type internal NodeAcceptChannelError =
                 SPrintF1 "error accepting connection: %s" (connectError :> IErrorMsg).Message
             | AcceptChannel acceptChannelError ->
                 SPrintF1 "error accepting channel: %s" (acceptChannelError :> IErrorMsg).Message
+
+        member self.ChannelBreakdown: bool =
+            false
 
 type internal NodeSendMonoHopPaymentError =
     | Reconnect of ReconnectActiveChannelError
@@ -46,6 +52,13 @@ type internal NodeSendMonoHopPaymentError =
                 SPrintF1 "error sending payment on reconnected channel: %s"
                          (sendMonoHopPaymentError :> IErrorMsg).Message
 
+        member self.ChannelBreakdown: bool =
+            match self with
+            | Reconnect reconnectActiveChannelError ->
+                (reconnectActiveChannelError :> IErrorMsg).ChannelBreakdown
+            | SendPayment sendMonoHopPaymentError ->
+                (sendMonoHopPaymentError :> IErrorMsg).ChannelBreakdown
+
 type internal NodeReceiveMonoHopPaymentError =
     | Reconnect of ReconnectActiveChannelError
     | ReceivePayment of RecvMonoHopPaymentError
@@ -57,6 +70,13 @@ type internal NodeReceiveMonoHopPaymentError =
             | ReceivePayment recvMonoHopPaymentError ->
                 SPrintF1 "error receiving payment on reconnected channel: %s"
                          (recvMonoHopPaymentError :> IErrorMsg).Message
+
+        member self.ChannelBreakdown: bool =
+            match self with
+            | Reconnect reconnectActiveChannelError ->
+                (reconnectActiveChannelError :> IErrorMsg).ChannelBreakdown
+            | ReceivePayment recvMonoHopPaymentError ->
+                (recvMonoHopPaymentError :> IErrorMsg).ChannelBreakdown
 
 type internal NodeAcceptCloseChannelError =
     | Reconnect of ReconnectActiveChannelError
@@ -70,6 +90,13 @@ type internal NodeAcceptCloseChannelError =
                 SPrintF1 "error accepting channel close on reconnected channel: %s"
                          (acceptCloseChannelError :> IErrorMsg).Message
 
+        member self.ChannelBreakdown: bool =
+            match self with
+            | Reconnect reconnectActiveChannelError ->
+                (reconnectActiveChannelError :> IErrorMsg).ChannelBreakdown
+            | AcceptCloseChannel acceptCloseChannelError ->
+                (acceptCloseChannelError :> IErrorMsg).ChannelBreakdown
+
 type internal NodeReceiveLightningEventError =
     | Reconnect of ReconnectActiveChannelError
     interface IErrorMsg with
@@ -77,6 +104,11 @@ type internal NodeReceiveLightningEventError =
             match self with
             | Reconnect reconnectActiveChannelError ->
                 SPrintF1 "error reconnecting channel: %s" (reconnectActiveChannelError :> IErrorMsg).Message
+
+        member self.ChannelBreakdown: bool =
+            match self with
+            | Reconnect reconnectActiveChannelError ->
+                (reconnectActiveChannelError :> IErrorMsg).ChannelBreakdown
 
 type IChannelToBeOpened =
     abstract member ConfirmationsRequired: uint32 with get
