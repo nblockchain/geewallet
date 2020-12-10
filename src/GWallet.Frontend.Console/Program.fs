@@ -645,11 +645,14 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
 let rec ProgramMainLoop() =
     let accounts = Account.GetAllActiveAccounts()
     let channelStatusJobs: seq<Async<Async<seq<string>>>> = GetChannelStatuses accounts
+    let revokedTxCheckJobs: seq<Async<Option<string>>> =
+        ChainWatcher.CheckForChannelFraudsAndSendRevocationTx <| accounts.OfType<UtxoCoin.NormalUtxoAccount>()
+    let revokedTxCheckJob: Async<array<Option<string>>> = Async.Parallel revokedTxCheckJobs
     let channelInfoInteractionsJob: Async<array<Async<seq<string>>>> = Async.Parallel channelStatusJobs
     let displayAccountStatusesJob =
         UserInteraction.DisplayAccountStatuses(WhichAccount.All accounts)
-    let channelInfoInteractions, accountStatusesLines =
-        AsyncExtensions.MixedParallel2 channelInfoInteractionsJob displayAccountStatusesJob
+    let channelInfoInteractions, accountStatusesLines, _ =
+        AsyncExtensions.MixedParallel3 channelInfoInteractionsJob displayAccountStatusesJob revokedTxCheckJob
         |> Async.RunSynchronously
 
     Console.WriteLine ()

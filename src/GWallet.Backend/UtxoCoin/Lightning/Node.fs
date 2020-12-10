@@ -504,6 +504,11 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
             return Some transactionString
     }
 
+    member internal self.CheckForChannelFraudAndSendRevocationTx (channelId: ChannelIdentifier)
+                                                                     : Async<Option<string>> =
+        ChainWatcher.CheckForChannelFraudAndSendRevocationTx channelId
+                                                             self.ChannelStore
+
 module public Connection =
     let public Start (channelStore: ChannelStore)
                      (password: string)

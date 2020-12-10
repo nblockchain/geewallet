@@ -1228,13 +1228,12 @@ type LN() =
             failwith "incorrect balance after receiving payment 1"
 
         let rec checkForClosingTx() = async {
-            let! txStringOpt = Lightning.Network.CheckForClosingTx walletInstance.Node channelId
-            match txStringOpt with
+            let! txIdOpt = Lightning.Network.CheckForChannelFraudAndSendRevocationTx walletInstance.Node channelId
+            match txIdOpt with
             | None ->
                 do! Async.Sleep 500
                 return! checkForClosingTx()
-            | Some txString ->
-                let! _txIdString = UtxoCoin.Account.BroadcastRawTransaction Currency.BTC txString
+            | Some _ ->
                 return ()
         }
         do! checkForClosingTx()
