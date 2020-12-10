@@ -25,6 +25,14 @@ type InitializeError =
                 SPrintF1 "Error deserializing init message: %s" err.Message
             | UnexpectedMsg msg ->
                 SPrintF1 "Expected init message, got %A" (msg.GetType())
+
+        member self.ChannelBreakdown: bool =
+            match self with
+            | ReceiveInit recvBytesError ->
+                (recvBytesError :> IErrorMsg).ChannelBreakdown
+            | DeserializeInit _ -> true
+            | UnexpectedMsg _ -> false
+
     member internal self.PossibleBug =
         match self with
         | ReceiveInit err -> err.PossibleBug
@@ -41,6 +49,14 @@ type ConnectError =
                 SPrintF1 "Handshake failed: %s" (err :> IErrorMsg).Message
             | Initialize err ->
                 SPrintF1 "Message stream initialization failed: %s" (err :> IErrorMsg).Message
+
+        member self.ChannelBreakdown: bool =
+            match self with
+            | Handshake handshakeError ->
+                (handshakeError :> IErrorMsg).ChannelBreakdown
+            | Initialize initializeError ->
+                (initializeError :> IErrorMsg).ChannelBreakdown
+
     member internal self.PossibleBug =
         match self with
         | Handshake err -> err.PossibleBug
@@ -56,6 +72,13 @@ type RecvMsgError =
                 SPrintF1 "Error receiving raw data from peer: %s" (err :> IErrorMsg).Message
             | DeserializeMsg err ->
                 SPrintF1 "Error deserializing message from peer: %s" err.Message
+
+        member self.ChannelBreakdown: bool =
+            match self with
+            | RecvBytes recvBytesError ->
+                (recvBytesError :> IErrorMsg).ChannelBreakdown
+            | DeserializeMsg _ -> true
+
     member internal self.PossibleBug =
         match self with
         | RecvBytes err -> err.PossibleBug

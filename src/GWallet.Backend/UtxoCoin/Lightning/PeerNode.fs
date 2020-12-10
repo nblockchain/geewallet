@@ -23,6 +23,11 @@ type internal RecvChannelMsgError =
             | ReceivedPeerErrorMessage (_, err) ->
                 SPrintF1 "Error message from peer: %s" (err :> IErrorMsg).Message
 
+        member self.ChannelBreakdown: bool =
+            match self with
+            | RecvMsg recvMsgError -> (recvMsgError :> IErrorMsg).ChannelBreakdown
+            | ReceivedPeerErrorMessage _ -> true
+
 and internal PeerNode =
     {
         InitMsg: InitMsg
