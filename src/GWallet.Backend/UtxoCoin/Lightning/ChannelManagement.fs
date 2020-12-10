@@ -6,6 +6,7 @@ open DotNetLightning.Channel
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type FundingBroadcastButNotLockedData =
@@ -155,6 +156,20 @@ type ChannelStore(account: NormalUtxoAccount) =
             if channelInfo.Status <> ChannelStatus.Closing &&
                channelInfo.Status <> ChannelStatus.Closed then
                 yield channelInfo
+    }
+
+    member self.GetCommitmentTx (channelId: ChannelIdentifier): string =
+        let commitments =
+            let serializedChannel = self.LoadChannel channelId
+            UnwrapOption
+                serializedChannel.ChanState.Commitments
+                "A channel can only end up in the wallet if it has commitments."
+        commitments.LocalCommit.PublishableTxs.CommitTx.Value.ToHex()
+
+    member self.ForceClose (channelId: ChannelIdentifier): Async<string> = async {
+        let commitmentTx = self.GetCommitmentTx channelId
+        let! txId = UtxoCoin.Account.BroadcastRawTransaction self.Currency commitmentTx
+        return txId
     }
 
 
