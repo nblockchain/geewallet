@@ -29,6 +29,10 @@ type internal FundChannelError =
                 SPrintF1 "Invalid funding_signed message: %s" err.Message
             | ExpectedFundingSigned msg ->
                 SPrintF1 "Expected funding_signed msg, got %A" (msg.GetType())
+
+        member self.ChannelBreakdown: bool =
+            false
+
     member internal self.PossibleBug =
         match self with
         | RecvFundingSigned err -> err.PossibleBug
@@ -64,6 +68,10 @@ type internal AcceptChannelError =
                 SPrintF1 "Invalid funding_created message: %s" err.Message
             | ExpectedFundingCreated msg ->
                 SPrintF1 "Expected funding_created message, got %A" (msg.GetType())
+
+        member self.ChannelBreakdown: bool =
+            false
+
     member internal self.PossibleBug =
         match self with
         | RecvOpenChannel err -> err.PossibleBug

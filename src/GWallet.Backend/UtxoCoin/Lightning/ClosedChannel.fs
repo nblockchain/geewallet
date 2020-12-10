@@ -41,6 +41,16 @@ type internal CloseChannelError =
             | ApplyClosingSignedFailed err ->
                 SPrintF1 "Failed to apply ClosingSigned command to the channel: %s" err.Message
 
+        member self.ChannelBreakdown: bool =
+            match self with
+            | CloseCommandFailed _ -> true
+            | RecvFailed recvMsgError -> (recvMsgError :> IErrorMsg).ChannelBreakdown
+            | RecvPeerError _ -> true
+            | ExpectedShutdownMsg _ -> false
+            | RemoteShutdownCommandFailed _ -> true
+            | ExpectedClosingSignedMsg _ -> false
+            | ApplyClosingSignedFailed _ -> true
+
 
 (*
     +-------+                              +-------+
