@@ -10,7 +10,10 @@ open GWallet.Backend.Ether
 
 module MarshallingData =
 
-    let private version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+    let private executingAssembly = Assembly.GetExecutingAssembly()
+    let private version = executingAssembly.GetName().Version.ToString()
+    let private binPath = executingAssembly.Location |> FileInfo
+    let private prjPath = Path.Combine(binPath.Directory.FullName, "..") |> DirectoryInfo
 
     let private RemoveJsonFormatting (jsonContent: string): string =
         jsonContent.Replace("\r", String.Empty)
@@ -20,8 +23,11 @@ module MarshallingData =
     let private InjectCurrentVersion (jsonContent: string): string =
         jsonContent.Replace("{version}", version)
 
+    let private InjectCurrentDir (jsonContent: string): string =
+        jsonContent.Replace("{prjDirAbsolutePath}", prjPath.FullName)
+
     let internal Sanitize =
-        RemoveJsonFormatting >> InjectCurrentVersion
+        RemoveJsonFormatting >> InjectCurrentVersion >> InjectCurrentDir
 
     let private ReadEmbeddedResource resourceName =
         let assembly = Assembly.GetExecutingAssembly()
@@ -37,6 +43,21 @@ module MarshallingData =
 
     let SignedSaiTransactionExampleInJson =
         ReadEmbeddedResource "signedAndFormattedSaiTransaction.json"
+
+    let BasicExceptionExampleInJson =
+        ReadEmbeddedResource "basicException.json"
+
+    let RealExceptionExampleInJson =
+        ReadEmbeddedResource "realException.json"
+
+    let InnerExceptionExampleInJson =
+        ReadEmbeddedResource "innerException.json"
+
+    let CustomExceptionExampleInJson =
+        ReadEmbeddedResource "customException.json"
+
+    let FullExceptionExampleInJson =
+        ReadEmbeddedResource "fullException.json"
 
     let internal SomeDate = DateTime.Parse "2018-06-14T16:50:09.133411"
 

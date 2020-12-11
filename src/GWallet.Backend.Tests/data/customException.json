@@ -1,0 +1,17 @@
+{
+  "Version": "{version}",
+  "TypeName": "GWallet.Backend.Tests.CustomException",
+  "Value": {
+    "ClassName": "GWallet.Backend.Tests.CustomException",
+    "Message": "msg",
+    "Data": null,
+    "InnerException": null,
+    "HelpURL": null,
+    "StackTraceString": null,
+    "RemoteStackTraceString": null,
+    "RemoteStackIndex": 0,
+    "ExceptionMethod": null,
+    "HResult": -2146233088,
+    "Source": null
+  }
+}

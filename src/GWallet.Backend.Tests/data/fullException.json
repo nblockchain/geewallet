@@ -1,0 +1,29 @@
+{
+  "Version": "{version}",
+  "TypeName": "GWallet.Backend.Tests.CustomException",
+  "Value": {
+    "ClassName": "GWallet.Backend.Tests.CustomException",
+    "Message": "msg",
+    "Data": null,
+    "InnerException": {
+      "ClassName": "GWallet.Backend.Tests.CustomException",
+      "Message": "innerMsg",
+      "Data": null,
+      "InnerException": null,
+      "HelpURL": null,
+      "StackTraceString": null,
+      "RemoteStackTraceString": null,
+      "RemoteStackIndex": 0,
+      "ExceptionMethod": null,
+      "HResult": -2146233088,
+      "Source": null
+    },
+    "HelpURL": null,
+    "StackTraceString": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize full exceptions (all previous features combined) () [0x00016] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:68 ",
+    "RemoteStackTraceString": null,
+    "RemoteStackIndex": 0,
+    "ExceptionMethod": null,
+    "HResult": -2146233088,
+    "Source": "GWallet.Backend.Tests"
+  }
+}

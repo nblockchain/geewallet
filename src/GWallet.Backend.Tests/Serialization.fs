@@ -81,3 +81,11 @@ type Serialization() =
         Assert.That(json, Is.Not.Empty)
         Assert.That(json|> MarshallingData.Sanitize,
                     Is.EqualTo MarshallingData.SignedSaiTransactionExampleInJson)
+
+    [<Test>]
+    member __.``can serialize exceptions``() =
+        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedSaiTransactionExample
+        Assert.That(json, Is.Not.Null)
+        Assert.That(json, Is.Not.Empty)
+        Assert.That(json|> MarshallingData.Sanitize,
+                    Is.EqualTo MarshallingData.SignedSaiTransactionExampleInJson)

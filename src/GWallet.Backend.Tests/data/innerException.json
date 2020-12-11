@@ -1,0 +1,29 @@
+{
+  "Version": "{version}",
+  "TypeName": "System.Exception",
+  "Value": {
+    "ClassName": "System.Exception",
+    "Message": "msg",
+    "Data": null,
+    "InnerException": {
+      "ClassName": "System.Exception",
+      "Message": "innerMsg",
+      "Data": null,
+      "InnerException": null,
+      "HelpURL": null,
+      "StackTraceString": null,
+      "RemoteStackTraceString": null,
+      "RemoteStackIndex": 0,
+      "ExceptionMethod": null,
+      "HResult": -2146233088,
+      "Source": null
+    },
+    "HelpURL": null,
+    "StackTraceString": null,
+    "RemoteStackTraceString": null,
+    "RemoteStackIndex": 0,
+    "ExceptionMethod": null,
+    "HResult": -2146233088,
+    "Source": null
+  }
+}
