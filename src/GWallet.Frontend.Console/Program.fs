@@ -12,6 +12,15 @@ open GWallet.Backend.UtxoCoin
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Frontend.Console
 
+let MaybeForceCloseChannel (channelStore: ChannelStore)
+                           (channelId: ChannelIdentifier)
+                           (error: IErrorMsg): Async<unit> = async {
+    if error.ChannelBreakdown then
+        let! forceCloseTxId =
+            channelStore.ForceClose channelId
+        Console.WriteLine(sprintf "Channel %s force-closed. txid == %s" (ChannelId.ToString channelId) forceCloseTxId)
+}
+
 let OpenChannel(): Async<unit> = async {
     let account = UserInteraction.AskBitcoinAccount()
     let currency = (account :> IAccount).Currency
@@ -113,6 +122,7 @@ let SendLightningPayment(): Async<unit> = async {
             match paymentRes with
             | Error nodeSendMonoHopPaymentError ->
                 Console.WriteLine(sprintf "Error sending monohop payment: %s" nodeSendMonoHopPaymentError.Message)
+                do! MaybeForceCloseChannel channelStore channelId nodeSendMonoHopPaymentError
             | Ok () ->
                 Console.WriteLine "Payment sent."
             UserInteraction.PressAnyKeyToContinue()
@@ -132,7 +142,8 @@ let CloseChannel(): Async<unit> =
             let! closeRes = Lightning.Network.CloseChannel lightningNode channelId
             match closeRes with
             | Error closeError ->
-                return failwithf "Error closing channel: %s" closeError.Message
+                Console.WriteLine(sprintf "Error closing channel: %s" closeError.Message)
+                do! MaybeForceCloseChannel channelStore channelId closeError
             | Ok () ->
                 Console.WriteLine "Channel closed."
             UserInteraction.PressAnyKeyToContinue()
@@ -154,6 +165,7 @@ let AcceptLightningEvent(): Async<unit> = async {
         match receiveLightningEventRes with
         | Error nodeReceiveLightningEventError ->
             Console.WriteLine(sprintf "Error receiving lightning event: %s" nodeReceiveLightningEventError.Message)
+            do! MaybeForceCloseChannel channelStore channelId nodeReceiveLightningEventError
         | Ok msg ->
             match msg with
             | IncomingChannelEvent.MonoHopUnidirectionalPayment ->
@@ -187,6 +199,7 @@ let LockChannel (channelStore: ChannelStore)
         match lockFundingRes with
         | Error lockFundingError ->
             Console.WriteLine(sprintf "Error reestablishing channel: %s" lockFundingError.Message)
+            do! MaybeForceCloseChannel channelStore channelId lockFundingError
         | Ok () ->
             Console.WriteLine(sprintf "funding locked for channel %s" (ChannelId.ToString channelId))
         return seq {
