@@ -16,14 +16,16 @@
       "RemoteStackIndex": 0,
       "ExceptionMethod": null,
       "HResult": -2146233088,
-      "Source": null
+      "Source": null,
+      "WatsonBuckets": null
     },
     "HelpURL": null,
-    "StackTraceString": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize full exceptions (all previous features combined) () [0x00016] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:67 ",
+    "StackTraceString": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize full exceptions (all previous features combined) () [0x00016] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:line 68",
     "RemoteStackTraceString": null,
     "RemoteStackIndex": 0,
-    "ExceptionMethod": null,
+    "ExceptionMethod": "8\ncan serialize full exceptions (all previous features combined)\nGWallet.Backend.Tests, Version={version}, Culture=neutral, PublicKeyToken=null\nGWallet.Backend.Tests.ExceptionMarshalling\nVoid can serialize full exceptions (all previous features combined)()",
     "HResult": -2146233088,
-    "Source": "GWallet.Backend.Tests"
+    "Source": "GWallet.Backend.Tests",
+    "WatsonBuckets": null
   }
 }

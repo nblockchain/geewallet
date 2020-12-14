@@ -7,11 +7,12 @@
     "Data": null,
     "InnerException": null,
     "HelpURL": null,
-    "StackTraceString": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize real exceptions () [0x0000c] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:34 ",
+    "StackTraceString": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize real exceptions () [0x0000c] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:line 35",
     "RemoteStackTraceString": null,
     "RemoteStackIndex": 0,
-    "ExceptionMethod": null,
+    "ExceptionMethod": "8\ncan serialize real exceptions\nGWallet.Backend.Tests, Version={version}, Culture=neutral, PublicKeyToken=null\nGWallet.Backend.Tests.ExceptionMarshalling\nVoid can serialize real exceptions()",
     "HResult": -2146233088,
-    "Source": "GWallet.Backend.Tests"
+    "Source": "GWallet.Backend.Tests",
+    "WatsonBuckets": null
   }
 }

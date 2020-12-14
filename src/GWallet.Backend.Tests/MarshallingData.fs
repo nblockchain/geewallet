@@ -29,17 +29,43 @@ module MarshallingData =
     let private InjectCurrentDir (jsonContent: string): string =
         jsonContent.Replace("{prjDirAbsolutePath}", prjPath.FullName.Replace("\\", "/"))
 
+    let private NormalizeExceptions (jsonContent: string): string =
+        if System.IO.Path.DirectorySeparatorChar <> '\\' then
+            let weirdWindowsProperty = "\"WatsonBuckets\": null"
+            Assert.That(jsonContent, Is.StringContaining weirdWindowsProperty)
+            let removeWindowsProperty = jsonContent.Replace(",    " + weirdWindowsProperty, String.Empty)
+                                                   .Replace(",      " + weirdWindowsProperty, String.Empty)
+
+            removeWindowsProperty.Replace(":line 35", ":34 ").Replace(":line 68", ":67 ")
+                                 .Replace("\"8\\ncan serialize real exceptions\\nGWallet.Backend.Tests, Version={version}, Culture=neutral, PublicKeyToken=null\\nGWallet.Backend.Tests.ExceptionMarshalling\\nVoid can serialize real exceptions()\"",
+                                          "null")
+                                 .Replace("\"8\\ncan serialize full exceptions (all previous features combined)\\nGWallet.Backend.Tests, Version={version}, Culture=neutral, PublicKeyToken=null\\nGWallet.Backend.Tests.ExceptionMarshalling\\nVoid can serialize full exceptions (all previous features combined)()\"",
+                                          "null")
+        else
+            jsonContent
+
     let internal Sanitize =
         RemoveJsonFormatting >> InjectCurrentVersion >> InjectCurrentDir
 
-    let private ReadEmbeddedResource resourceName =
+    let internal SanitizeExceptions =
+        RemoveJsonFormatting >> NormalizeExceptions >> InjectCurrentVersion >> InjectCurrentDir
+
+    let private ReadEmbeddedResourceInternal resourceName exceptions =
+        let sanitizeFunc =
+            if exceptions then
+                SanitizeExceptions
+            else
+                Sanitize
         let assembly = Assembly.GetExecutingAssembly()
         use stream = assembly.GetManifestResourceStream resourceName
         if (stream = null) then
             failwithf "Embedded resource %s not found" resourceName
         use reader = new StreamReader(stream)
         reader.ReadToEnd()
-            |> Sanitize
+            |> sanitizeFunc
+
+    let private ReadEmbeddedResource resourceName =
+        ReadEmbeddedResourceInternal resourceName false
 
     let UnsignedSaiTransactionExampleInJson =
         ReadEmbeddedResource "unsignedAndFormattedSaiTransaction.json"
@@ -47,20 +73,23 @@ module MarshallingData =
     let SignedSaiTransactionExampleInJson =
         ReadEmbeddedResource "signedAndFormattedSaiTransaction.json"
 
+    let private ReadException fileName =
+        ReadEmbeddedResourceInternal fileName true
+
     let BasicExceptionExampleInJson =
-        ReadEmbeddedResource "basicException.json"
+        ReadException "basicException.json"
 
     let RealExceptionExampleInJson =
-        ReadEmbeddedResource "realException.json"
+        ReadException "realException.json"
 
     let InnerExceptionExampleInJson =
-        ReadEmbeddedResource "innerException.json"
+        ReadException "innerException.json"
 
     let CustomExceptionExampleInJson =
-        ReadEmbeddedResource "customException.json"
+        ReadException "customException.json"
 
     let FullExceptionExampleInJson =
-        ReadEmbeddedResource "fullException.json"
+        ReadException "fullException.json"
 
     let SerializedExceptionsAreSame jsonExString1 jsonExString2 =
         let stackTracePath = "Value.StackTraceString"
