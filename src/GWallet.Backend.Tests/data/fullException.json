@@ -19,7 +19,7 @@
       "Source": null
     },
     "HelpURL": null,
-    "StackTraceString": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize full exceptions (all previous features combined) () [0x00016] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:68 ",
+    "StackTraceString": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize full exceptions (all previous features combined) () [0x00016] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:67 ",
     "RemoteStackTraceString": null,
     "RemoteStackIndex": 0,
     "ExceptionMethod": null,

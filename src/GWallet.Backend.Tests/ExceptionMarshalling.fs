@@ -39,8 +39,7 @@ type ExceptionMarshalling () =
         let json = Marshalling.Serialize ex
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.Sanitize,
-                    Is.EqualTo MarshallingData.RealExceptionExampleInJson)
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionExampleInJson)
 
     [<Test>]
     member __.``can serialize inner exceptions``() =
@@ -73,5 +72,5 @@ type ExceptionMarshalling () =
         let json = Marshalling.Serialize ex
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.Sanitize,
-                    Is.EqualTo MarshallingData.FullExceptionExampleInJson)
+
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionExampleInJson)

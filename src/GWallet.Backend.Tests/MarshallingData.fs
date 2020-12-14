@@ -4,6 +4,9 @@ open System
 open System.IO
 open System.Reflection
 
+open NUnit.Framework
+open Newtonsoft.Json.Linq
+
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 open GWallet.Backend.Ether
@@ -58,6 +61,30 @@ module MarshallingData =
 
     let FullExceptionExampleInJson =
         ReadEmbeddedResource "fullException.json"
+
+    let SerializedExceptionsAreSame jsonExString1 jsonExString2 =
+        let stackTracePath = "Value.StackTraceString"
+        let stackTraceFragment = "ExceptionMarshalling.fs"
+
+        let jsonEx1 = JObject.Parse jsonExString1
+        let jToken1 = jsonEx1.SelectToken stackTracePath
+        let initialJToken1 = jToken1.ToString()
+        Assert.That(initialJToken1, Is.StringContaining stackTraceFragment)
+        let endOfStackTrace1 = initialJToken1.Substring(initialJToken1.IndexOf stackTraceFragment)
+                               |> JToken.op_Implicit
+        jToken1.Replace endOfStackTrace1
+
+        let jsonEx2 = JObject.Parse jsonExString2
+        let jToken2 = jsonEx2.SelectToken stackTracePath
+        let initialJToken2 = jToken2.ToString()
+        Assert.That(initialJToken2, Is.StringContaining stackTraceFragment)
+        let endOfStackTrace2 = initialJToken2.Substring(initialJToken2.IndexOf stackTraceFragment)
+                               |> JToken.op_Implicit
+        jToken2.Replace endOfStackTrace2
+
+        Assert.That(jsonEx1.ToString(), Is.EqualTo (jsonEx2.ToString()))
+
+        true
 
     let internal SomeDate = DateTime.Parse "2018-06-14T16:50:09.133411"
 
