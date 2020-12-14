@@ -27,7 +27,7 @@ module MarshallingData =
         jsonContent.Replace("{version}", version)
 
     let private InjectCurrentDir (jsonContent: string): string =
-        jsonContent.Replace("{prjDirAbsolutePath}", prjPath.FullName)
+        jsonContent.Replace("{prjDirAbsolutePath}", prjPath.FullName.Replace("\\", "/"))
 
     let internal Sanitize =
         RemoveJsonFormatting >> InjectCurrentVersion >> InjectCurrentDir
