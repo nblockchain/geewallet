@@ -110,7 +110,9 @@ module Marshalling =
                         let msg = SPrintF2 "Incompatible marshalling version found (%s vs. current %s) while trying to deserialize JSON"
                                           version currentVersion
                         raise <| VersionMismatchDuringDeserializationException(msg, ex)
-                raise <| DeserializationException(SPrintF1 "Exception when trying to deserialize '%s'" json, ex)
+
+                let targetTypeName = typeof<'T>.FullName
+                raise <| DeserializationException(SPrintF2 "Exception when trying to deserialize (to type '%s') from string '%s'" targetTypeName json, ex)
 
 
         if Object.ReferenceEquals(deserialized, null) then
