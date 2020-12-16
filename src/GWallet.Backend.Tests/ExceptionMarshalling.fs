@@ -27,6 +27,16 @@ type ExceptionMarshalling () =
                     Is.EqualTo MarshallingData.BasicExceptionExampleInJson)
 
     [<Test>]
+    member __.``can deserialize basic exceptions``() =
+        let ex: Exception = Marshalling.Deserialize MarshallingData.BasicExceptionExampleInJson
+        Assert.That(ex, Is.Not.Null)
+        Assert.That(ex, Is.InstanceOf<Exception>())
+        Assert.That(ex.Message, Is.EqualTo "msg")
+        Assert.That(ex.InnerException, Is.Null)
+        Assert.That(ex.StackTrace, Is.Null)
+
+    [<Test>]
+    [<Ignore "NIE">]
     member __.``can serialize real exceptions``() =
         let someEx = Exception "msg"
         let ex =
@@ -42,6 +52,7 @@ type ExceptionMarshalling () =
         Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionExampleInJson)
 
     [<Test>]
+    [<Ignore "NIE">]
     member __.``can serialize inner exceptions``() =
         let ex = Exception("msg", Exception "innerMsg")
         let json = Marshalling.Serialize ex
@@ -51,6 +62,7 @@ type ExceptionMarshalling () =
                     Is.EqualTo MarshallingData.InnerExceptionExampleInJson)
 
     [<Test>]
+    [<Ignore "NIE">]
     member __.``can serialize custom exceptions``() =
         let ex = CustomException "msg"
         let json = Marshalling.Serialize ex
@@ -60,6 +72,7 @@ type ExceptionMarshalling () =
                     Is.EqualTo MarshallingData.CustomExceptionExampleInJson)
 
     [<Test>]
+    [<Ignore "NIE">]
     member __.``can serialize full exceptions (all previous features combined)``() =
         let someCEx = CustomException("msg", CustomException "innerMsg")
         let ex =
@@ -74,3 +87,4 @@ type ExceptionMarshalling () =
         Assert.That(json, Is.Not.Empty)
 
         Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionExampleInJson)
+

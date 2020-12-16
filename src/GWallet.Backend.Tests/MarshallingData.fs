@@ -29,43 +29,31 @@ module MarshallingData =
     let private InjectCurrentDir (jsonContent: string): string =
         jsonContent.Replace("{prjDirAbsolutePath}", prjPath.FullName.Replace("\\", "/"))
 
-    let private NormalizeExceptions (jsonContent: string): string =
-        if System.IO.Path.DirectorySeparatorChar <> '\\' then
-            let weirdWindowsProperty = "\"WatsonBuckets\": null"
-            Assert.That(jsonContent, Is.StringContaining weirdWindowsProperty)
-            let removeWindowsProperty = jsonContent.Replace(",    " + weirdWindowsProperty, String.Empty)
-                                                   .Replace(",      " + weirdWindowsProperty, String.Empty)
+    let private InjectExceptionsMarshalledInBinary (isUnix: bool) (jsonContent: string): string =
+        let marshalledEx =
+            if isUnix then
+                "AAEAAAD/////AQAAAAAAAAAEAQAAABBTeXN0ZW0uRXhjZXB0aW9uCwAAAAlDbGFzc05hbWUHTWVzc2FnZQREYXRhDklubmVyRXhjZXB0aW9uB0hlbHBVUkwQU3RhY2tUcmFjZVN0cmluZxZSZW1vdGVTdGFja1RyYWNlU3RyaW5nEFJlbW90ZVN0YWNrSW5kZXgPRXhjZXB0aW9uTWV0aG9kB0hSZXN1bHQGU291cmNlAQEDAwEBAQACAAEeU3lzdGVtLkNvbGxlY3Rpb25zLklEaWN0aW9uYXJ5EFN5c3RlbS5FeGNlcHRpb24ICAYCAAAAEFN5c3RlbS5FeGNlcHRpb24GAwAAAANtc2cKCgoKCgAAAAAKABUTgAoL"
+            else
+                "AAEAAAD/////AQAAAAAAAAAEAQAAABBTeXN0ZW0uRXhjZXB0aW9uDAAAAAlDbGFzc05hbWUHTWVzc2FnZQREYXRhDklubmVyRXhjZXB0aW9uB0hlbHBVUkwQU3RhY2tUcmFjZVN0cmluZxZSZW1vdGVTdGFja1RyYWNlU3RyaW5nEFJlbW90ZVN0YWNrSW5kZXgPRXhjZXB0aW9uTWV0aG9kB0hSZXN1bHQGU291cmNlDVdhdHNvbkJ1Y2tldHMBAQMDAQEBAAEAAQceU3lzdGVtLkNvbGxlY3Rpb25zLklEaWN0aW9uYXJ5EFN5c3RlbS5FeGNlcHRpb24ICAIGAgAAABBTeXN0ZW0uRXhjZXB0aW9uBgMAAAADbXNnCgoKCgoAAAAACgAVE4AKCgs="
 
-            removeWindowsProperty.Replace(":line 35", ":34 ").Replace(":line 68", ":67 ")
-                                 .Replace("\"8\\ncan serialize real exceptions\\nGWallet.Backend.Tests, Version={version}, Culture=neutral, PublicKeyToken=null\\nGWallet.Backend.Tests.ExceptionMarshalling\\nVoid can serialize real exceptions()\"",
-                                          "null")
-                                 .Replace("\"8\\ncan serialize full exceptions (all previous features combined)\\nGWallet.Backend.Tests, Version={version}, Culture=neutral, PublicKeyToken=null\\nGWallet.Backend.Tests.ExceptionMarshalling\\nVoid can serialize full exceptions (all previous features combined)()\"",
-                                          "null")
-        else
-            jsonContent
+        jsonContent.Replace("{binaryMarshalledException}", marshalledEx)
 
     let internal Sanitize =
-        RemoveJsonFormatting >> InjectCurrentVersion >> InjectCurrentDir
+        let isUnix = Path.DirectorySeparatorChar <> '\\'
 
-    let internal SanitizeExceptions =
-        RemoveJsonFormatting >> NormalizeExceptions >> InjectCurrentVersion >> InjectCurrentDir
+        RemoveJsonFormatting
+        >> InjectCurrentVersion
+        >> InjectCurrentDir
+        >> (InjectExceptionsMarshalledInBinary isUnix)
 
-    let private ReadEmbeddedResourceInternal resourceName exceptions =
-        let sanitizeFunc =
-            if exceptions then
-                SanitizeExceptions
-            else
-                Sanitize
+    let private ReadEmbeddedResource resourceName =
         let assembly = Assembly.GetExecutingAssembly()
         use stream = assembly.GetManifestResourceStream resourceName
         if (stream = null) then
             failwithf "Embedded resource %s not found" resourceName
         use reader = new StreamReader(stream)
         reader.ReadToEnd()
-            |> sanitizeFunc
-
-    let private ReadEmbeddedResource resourceName =
-        ReadEmbeddedResourceInternal resourceName false
+            |> Sanitize
 
     let UnsignedSaiTransactionExampleInJson =
         ReadEmbeddedResource "unsignedAndFormattedSaiTransaction.json"
@@ -73,23 +61,20 @@ module MarshallingData =
     let SignedSaiTransactionExampleInJson =
         ReadEmbeddedResource "signedAndFormattedSaiTransaction.json"
 
-    let private ReadException fileName =
-        ReadEmbeddedResourceInternal fileName true
-
     let BasicExceptionExampleInJson =
-        ReadException "basicException.json"
+        ReadEmbeddedResource "basicException.json"
 
     let RealExceptionExampleInJson =
-        ReadException "realException.json"
+        ReadEmbeddedResource "realException.json"
 
     let InnerExceptionExampleInJson =
-        ReadException "innerException.json"
+        ReadEmbeddedResource "innerException.json"
 
     let CustomExceptionExampleInJson =
-        ReadException "customException.json"
+        ReadEmbeddedResource "customException.json"
 
     let FullExceptionExampleInJson =
-        ReadException "fullException.json"
+        ReadEmbeddedResource "fullException.json"
 
     let SerializedExceptionsAreSame jsonExString1 jsonExString2 =
         let stackTracePath = "Value.StackTraceString"
