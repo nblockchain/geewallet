@@ -8,6 +8,6 @@
       "StackTrace": "",
       "InnerException": null
     },
-    "FullBinaryForm": "{binaryMarshalledException}"
+    "FullBinaryForm": "{binaryMarshalledBasicException}"
   }
 }

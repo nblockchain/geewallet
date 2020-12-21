@@ -1,18 +1,13 @@
 {
   "Version": "{version}",
-  "TypeName": "System.Exception",
+  "TypeName": "GWallet.Backend.MarshalledException",
   "Value": {
-    "ClassName": "System.Exception",
-    "Message": "msg",
-    "Data": null,
-    "InnerException": null,
-    "HelpURL": null,
-    "StackTraceString": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize real exceptions () [0x0000c] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:line 35",
-    "RemoteStackTraceString": null,
-    "RemoteStackIndex": 0,
-    "ExceptionMethod": "8\ncan serialize real exceptions\nGWallet.Backend.Tests, Version={version}, Culture=neutral, PublicKeyToken=null\nGWallet.Backend.Tests.ExceptionMarshalling\nVoid can serialize real exceptions()",
-    "HResult": -2146233088,
-    "Source": "GWallet.Backend.Tests",
-    "WatsonBuckets": null
+    "HumanReadableSummary": {
+      "ExceptionType": "System.Exception",
+      "Message": "msg",
+      "StackTrace": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize real exceptions () [0x0000c] in /Users/knocte/Documents/Code/geewalletMASTERCLEAN/src/GWallet.Backend.Tests/ExceptionMarshalling.fs:line 46",
+      "InnerException": null
+    },
+    "FullBinaryForm": "{binaryMarshalledRealException}"
   }
 }
