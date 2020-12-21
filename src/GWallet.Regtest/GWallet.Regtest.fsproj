@@ -6,12 +6,12 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{976C2EC9-C37C-4B9C-A854-5F08F9665D5B}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>GWallet.Backend.Tests.EndToEnd</RootNamespace>
-    <AssemblyName>GWallet.Backend.Tests.EndToEnd</AssemblyName>
+    <RootNamespace>GWallet.Regtest</RootNamespace>
+    <AssemblyName>GWallet.Regtest</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <TargetFSharpCoreVersion>4.7.0.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <Name>GWallet.Backend.Tests.EndToEnd</Name>
+    <Name>GWallet.Regtest</Name>
     <TargetFrameworkProfile />
     <OtherFlags>
         /warnon:1182
@@ -56,23 +56,16 @@
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
       <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
-    <Compile Include="LN.fs" />
-    <Compile Include="Config.fs" />
-    <Compile Include="GwalletToLndChannelManagement.fs" />
-    <Compile Include="OpenChannelToLNDAsFunder.fs" />
-    <Compile Include="OpenChannelToLNDAsFundee.fs" />
-    <Compile Include="GeewalletToGeewalletFunder.fs" />
-    <Compile Include="GeewalletToGeewalletFundee.fs" />
-    <Compile Include="CloseChannelAsFunder.fs" />
-    <Compile Include="CloseChannelAsFundee.fs" />
-    <Compile Include="GeewalletForceCloseFunder.fs" />
-    <Compile Include="GeewalletForceCloseFundee.fs" />
+    <Compile Include="ProcessWrapper.fs" />
+    <Compile Include="Bitcoind.fs" />
+    <Compile Include="ElectrumServer.fs" />
+    <Compile Include="Lnd.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
     <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.5.0.54\lib\net461\NBitcoin.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.5.0.60\lib\net461\NBitcoin.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
@@ -91,10 +84,6 @@
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
       <Project>{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}</Project>
       <Name>GWallet.Backend</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\GWallet.Regtest\GWallet.Regtest.fsproj">
-      <Project>{226AC22C-435E-11EB-B378-0242AC130002}</Project>
-      <Name>GWallet.Regtest</Name>
     </ProjectReference>
     <Reference Include="System.Buffers">
       <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard1.1\System.Buffers.dll</HintPath>
@@ -145,10 +134,10 @@
       <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Ptarmigan.dll</HintPath>
     </Reference>
     <Reference Include="DotNetLightning.Core">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201230-1951-git-cab85ec\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201217-1735-git-5d96d8b\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
     </Reference>
     <Reference Include="ResultUtils">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201230-1951-git-cab85ec\lib\netstandard2.0\ResultUtils.dll</HintPath>
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201217-1735-git-5d96d8b\lib\netstandard2.0\ResultUtils.dll</HintPath>
     </Reference>
     <Reference Include="System.Memory">
       <HintPath>..\..\packages\System.Memory.4.5.3\lib\netstandard2.0\System.Memory.dll</HintPath>

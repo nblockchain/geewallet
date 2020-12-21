@@ -11,13 +11,13 @@ open GWallet.Backend.UtxoCoin // For NormalUtxoAccount
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
-
+open GWallet.Regtest
 
 
 module GwalletToLndChannelManagement =
     let OpenChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<ChannelIdentifier> =
         async {
-            do! lnd.FundByMining bitcoind walletInstance
+            do! walletInstance.FundByMining bitcoind lnd
 
             // fund geewallet
             let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
@@ -76,7 +76,7 @@ module GwalletToLndChannelManagement =
 
     let AcceptChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<ChannelIdentifier * OutPoint> =
         async {
-            do! lnd.FundByMining bitcoind walletInstance
+            do! walletInstance.FundByMining bitcoind lnd
 
             let acceptChannelTask = Lightning.Network.AcceptChannel walletInstance.Node
             let openChannelTask = async {
