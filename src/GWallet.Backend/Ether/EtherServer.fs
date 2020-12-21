@@ -187,9 +187,10 @@ module Server =
                 if rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound then
                     if (not (rpcResponseEx.RpcError.Message.Contains "pruning=archive")) &&
                        (not (rpcResponseEx.RpcError.Message.Contains "header not found")) &&
+                       (not (rpcResponseEx.RpcError.Message.Contains "error: no suitable peers available")) &&
                        (not (rpcResponseEx.RpcError.Message.Contains "missing trie node")) then
                         raise <| Exception(
-                                     SPrintF2 "Expecting 'pruning=archive' or 'missing trie node' or 'header not found' in message of a %d code, but got '%s'"
+                                     SPrintF2 "Expecting 'pruning=archive' or 'missing trie node' or 'error: no suitable peers available' or 'header not found' in message of a %d code, but got '%s'"
                                              (int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound)
                                              rpcResponseEx.RpcError.Message,
                                      rpcResponseEx)
