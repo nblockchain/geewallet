@@ -4,6 +4,7 @@ open NUnit.Framework
 open DotNetLightning.Utils
 
 open GWallet.Backend
+open GWallet.Regtest
 
 [<TestFixture>]
 type OpenChannelAsFundee() =
