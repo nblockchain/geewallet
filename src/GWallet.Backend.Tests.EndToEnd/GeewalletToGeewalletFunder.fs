@@ -12,6 +12,7 @@ open GWallet.Backend.UtxoCoin // For NormalUtxoAccount
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
+open GWallet.Regtest
 
 
 [<TestFixture>]
