@@ -6,7 +6,6 @@ open System.Reflection
 
 open NUnit.Framework
 open Newtonsoft.Json.Linq
-open FSX.Infrastructure
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
@@ -31,31 +30,10 @@ module MarshallingData =
     let private InjectCurrentDir (jsonContent: string): string =
         jsonContent.Replace("{prjDirAbsolutePath}", prjPath.FullName.Replace("\\", "/"))
 
-    let private InjectExceptionsMarshalledInBinary (jsonContent: string): string =
-        let marshalledBasicEx =
-            if isUnix then
-                "AAEAAAD/////AQAAAAAAAAAEAQAAABBTeXN0ZW0uRXhjZXB0aW9uCwAAAAlDbGFzc05hbWUHTWVzc2FnZQREYXRhDklubmVyRXhjZXB0aW9uB0hlbHBVUkwQU3RhY2tUcmFjZVN0cmluZxZSZW1vdGVTdGFja1RyYWNlU3RyaW5nEFJlbW90ZVN0YWNrSW5kZXgPRXhjZXB0aW9uTWV0aG9kB0hSZXN1bHQGU291cmNlAQEDAwEBAQACAAEeU3lzdGVtLkNvbGxlY3Rpb25zLklEaWN0aW9uYXJ5EFN5c3RlbS5FeGNlcHRpb24ICAYCAAAAEFN5c3RlbS5FeGNlcHRpb24GAwAAAANtc2cKCgoKCgAAAAAKABUTgAoL"
-            else
-                "AAEAAAD/////AQAAAAAAAAAEAQAAABBTeXN0ZW0uRXhjZXB0aW9uDAAAAAlDbGFzc05hbWUHTWVzc2FnZQREYXRhDklubmVyRXhjZXB0aW9uB0hlbHBVUkwQU3RhY2tUcmFjZVN0cmluZxZSZW1vdGVTdGFja1RyYWNlU3RyaW5nEFJlbW90ZVN0YWNrSW5kZXgPRXhjZXB0aW9uTWV0aG9kB0hSZXN1bHQGU291cmNlDVdhdHNvbkJ1Y2tldHMBAQMDAQEBAAEAAQceU3lzdGVtLkNvbGxlY3Rpb25zLklEaWN0aW9uYXJ5EFN5c3RlbS5FeGNlcHRpb24ICAIGAgAAABBTeXN0ZW0uRXhjZXB0aW9uBgMAAAADbXNnCgoKCgoAAAAACgAVE4AKCgs="
-
-        let marshalledRealEx =
-            match Misc.GuessPlatform() with
-            | Misc.Platform.Linux ->
-                "AAEAAAD/////AQAAAAAAAAAEAQAAABBTeXN0ZW0uRXhjZXB0aW9uCwAAAAlDbGFzc05hbWUHTWVzc2FnZQREYXRhDklubmVyRXhjZXB0aW9uB0hlbHBVUkwQU3RhY2tUcmFjZVN0cmluZxZSZW1vdGVTdGFja1RyYWNlU3RyaW5nEFJlbW90ZVN0YWNrSW5kZXgPRXhjZXB0aW9uTWV0aG9kB0hSZXN1bHQGU291cmNlAQEDAwEBAQACAAEeU3lzdGVtLkNvbGxlY3Rpb25zLklEaWN0aW9uYXJ5EFN5c3RlbS5FeGNlcHRpb24ICAYCAAAAEFN5c3RlbS5FeGNlcHRpb24GAwAAAANtc2cKCgoGBAAAALEBICBhdCBHV2FsbGV0LkJhY2tlbmQuVGVzdHMuRXhjZXB0aW9uTWFyc2hhbGxpbmcuY2FuIHNlcmlhbGl6ZSByZWFsIGV4Y2VwdGlvbnMgKCkgWzB4MDAwMGVdIGluIC9idWlsZHMvbmJsb2NrY2hhaW4vZ2Vld2FsbGV0L3NyYy9HV2FsbGV0LkJhY2tlbmQuVGVzdHMvRXhjZXB0aW9uTWFyc2hhbGxpbmcuZnM6NDUgCgAAAAAKABUTgAYFAAAAFUdXYWxsZXQuQmFja2VuZC5UZXN0cws="
-            | Misc.Platform.Mac ->
-                "AAEAAAD/////AQAAAAAAAAAEAQAAABBTeXN0ZW0uRXhjZXB0aW9uCwAAAAlDbGFzc05hbWUHTWVzc2FnZQREYXRhDklubmVyRXhjZXB0aW9uB0hlbHBVUkwQU3RhY2tUcmFjZVN0cmluZxZSZW1vdGVTdGFja1RyYWNlU3RyaW5nEFJlbW90ZVN0YWNrSW5kZXgPRXhjZXB0aW9uTWV0aG9kB0hSZXN1bHQGU291cmNlAQEDAwEBAQACAAEeU3lzdGVtLkNvbGxlY3Rpb25zLklEaWN0aW9uYXJ5EFN5c3RlbS5FeGNlcHRpb24ICAYCAAAAEFN5c3RlbS5FeGNlcHRpb24GAwAAAANtc2cKCgoGBAAAALoBICBhdCBHV2FsbGV0LkJhY2tlbmQuVGVzdHMuRXhjZXB0aW9uTWFyc2hhbGxpbmcuY2FuIHNlcmlhbGl6ZSByZWFsIGV4Y2VwdGlvbnMgKCkgWzB4MDAwMGNdIGluIC9Vc2Vycy9ydW5uZXIvd29yay9nZWV3YWxsZXQvZ2Vld2FsbGV0L3NyYy9HV2FsbGV0LkJhY2tlbmQuVGVzdHMvRXhjZXB0aW9uTWFyc2hhbGxpbmcuZnM6NDUgCgAAAAAKABUTgAYFAAAAFUdXYWxsZXQuQmFja2VuZC5UZXN0cws="
-                //Andres' macOS: "AAEAAAD/////AQAAAAAAAAAEAQAAABBTeXN0ZW0uRXhjZXB0aW9uCwAAAAlDbGFzc05hbWUHTWVzc2FnZQREYXRhDklubmVyRXhjZXB0aW9uB0hlbHBVUkwQU3RhY2tUcmFjZVN0cmluZxZSZW1vdGVTdGFja1RyYWNlU3RyaW5nEFJlbW90ZVN0YWNrSW5kZXgPRXhjZXB0aW9uTWV0aG9kB0hSZXN1bHQGU291cmNlAQEDAwEBAQACAAEeU3lzdGVtLkNvbGxlY3Rpb25zLklEaWN0aW9uYXJ5EFN5c3RlbS5FeGNlcHRpb24ICAYCAAAAEFN5c3RlbS5FeGNlcHRpb24GAwAAAANtc2cKCgoGBAAAAMUBICBhdCBHV2FsbGV0LkJhY2tlbmQuVGVzdHMuRXhjZXB0aW9uTWFyc2hhbGxpbmcuY2FuIHNlcmlhbGl6ZSByZWFsIGV4Y2VwdGlvbnMgKCkgWzB4MDAwMGNdIGluIC9Vc2Vycy9rbm9jdGUvRG9jdW1lbnRzL0NvZGUvZ2Vld2FsbGV0TUFTVEVSQ0xFQU4vc3JjL0dXYWxsZXQuQmFja2VuZC5UZXN0cy9FeGNlcHRpb25NYXJzaGFsbGluZy5mczo0NSAKAAAAAAoAFROABgUAAAAVR1dhbGxldC5CYWNrZW5kLlRlc3RzCw=="
-            | Misc.Platform.Windows ->
-                "AAEAAAD/////AQAAAAAAAAAEAQAAABBTeXN0ZW0uRXhjZXB0aW9uDAAAAAlDbGFzc05hbWUHTWVzc2FnZQREYXRhDklubmVyRXhjZXB0aW9uB0hlbHBVUkwQU3RhY2tUcmFjZVN0cmluZxZSZW1vdGVTdGFja1RyYWNlU3RyaW5nEFJlbW90ZVN0YWNrSW5kZXgPRXhjZXB0aW9uTWV0aG9kB0hSZXN1bHQGU291cmNlDVdhdHNvbkJ1Y2tldHMBAQMDAQEBAAEAAQceU3lzdGVtLkNvbGxlY3Rpb25zLklEaWN0aW9uYXJ5EFN5c3RlbS5FeGNlcHRpb24ICAIGAgAAABBTeXN0ZW0uRXhjZXB0aW9uBgMAAAADbXNnCgoKBgQAAACmASAgIGF0IEdXYWxsZXQuQmFja2VuZC5UZXN0cy5FeGNlcHRpb25NYXJzaGFsbGluZy5jYW4gc2VyaWFsaXplIHJlYWwgZXhjZXB0aW9ucygpIGluIEQ6XGFcZ2Vld2FsbGV0XGdlZXdhbGxldFxzcmNcR1dhbGxldC5CYWNrZW5kLlRlc3RzXEV4Y2VwdGlvbk1hcnNoYWxsaW5nLmZzOmxpbmUgNDYKAAAAAAYFAAAAvgE4CmNhbiBzZXJpYWxpemUgcmVhbCBleGNlcHRpb25zCkdXYWxsZXQuQmFja2VuZC5UZXN0cywgVmVyc2lvbj0wLjMuMjMxLjAsIEN1bHR1cmU9bmV1dHJhbCwgUHVibGljS2V5VG9rZW49bnVsbApHV2FsbGV0LkJhY2tlbmQuVGVzdHMuRXhjZXB0aW9uTWFyc2hhbGxpbmcKVm9pZCBjYW4gc2VyaWFsaXplIHJlYWwgZXhjZXB0aW9ucygpABUTgAYGAAAAFUdXYWxsZXQuQmFja2VuZC5UZXN0cwoL"
-
-        jsonContent.Replace("{binaryMarshalledBasicException}", marshalledBasicEx)
-                   .Replace("{binaryMarshalledRealException}", marshalledRealEx)
-
     let internal Sanitize =
         RemoveJsonFormatting
         >> InjectCurrentVersion
         >> InjectCurrentDir
-        >> InjectExceptionsMarshalledInBinary
 
     let private ReadEmbeddedResource resourceName =
         let assembly = Assembly.GetExecutingAssembly()
@@ -93,33 +71,40 @@ module MarshallingData =
         let actualJsonException = JObject.Parse actualJsonString
         let expectedJsonException = JObject.Parse expectedJsonString
 
+        let fullBinaryFormPath = "Value.FullBinaryForm"
         let tweakStackTraces () =
 
+            let fullBinaryFormBeginning = "AAEAAAD/////AQAAAAAAAAAEAQAAABBTeXN"
             let stackTracePath = "Value.HumanReadableSummary.StackTrace"
             let stackTraceFragment = "ExceptionMarshalling.fs"
 
-            let tweakStackTrace (jsonEx: JObject) =
-                let jToken = jsonEx.SelectToken stackTracePath
-                let initialJToken = jToken.ToString()
-                Assert.That(initialJToken, Is.StringContaining stackTraceFragment)
-                let endOfStackTrace = initialJToken.Substring(initialJToken.IndexOf stackTraceFragment)
-                let tweakedEndOfStackTrace =
-                    if isUnix then
-                        endOfStackTrace.Replace(":line 46", ":45 ")
-                    else
-                        endOfStackTrace
-                jToken.Replace (tweakedEndOfStackTrace |> JToken.op_Implicit)
+            let tweakStackTraceAndBinaryForm (jsonEx: JObject) (assertBinaryForm: bool) =
+                let stackTraceJToken = jsonEx.SelectToken stackTracePath
+                let initialStackTraceJToken = stackTraceJToken.ToString()
+                if initialStackTraceJToken.Length > 0 then
+                    Assert.That(initialStackTraceJToken, Is.StringContaining stackTraceFragment)
+                    let endOfStackTrace = initialStackTraceJToken.Substring(initialStackTraceJToken.IndexOf stackTraceFragment)
+                    let tweakedEndOfStackTrace =
+                        if isUnix then
+                            endOfStackTrace.Replace(":line 29", ":28 ")
+                        else
+                            endOfStackTrace
+                    stackTraceJToken.Replace (tweakedEndOfStackTrace |> JToken.op_Implicit)
 
-            tweakStackTrace actualJsonException
-            tweakStackTrace expectedJsonException
+                let binaryFormToken = jsonEx.SelectToken fullBinaryFormPath
+                let initialBinaryFormJToken = binaryFormToken.ToString()
+                if assertBinaryForm then
+                    Assert.That(initialBinaryFormJToken, Is.StringStarting fullBinaryFormBeginning)
+                binaryFormToken.Replace (fullBinaryFormBeginning |> JToken.op_Implicit)
+
+            tweakStackTraceAndBinaryForm actualJsonException true
+            tweakStackTraceAndBinaryForm expectedJsonException false
 
         tweakStackTraces()
 
-        let actualBinaryForm = (actualJsonException.SelectToken "Value.FullBinaryForm").ToString()
-        let expectedBinaryForm = (expectedJsonException.SelectToken "Value.FullBinaryForm").ToString()
-
-        Assert.That(actualBinaryForm, Is.EqualTo expectedBinaryForm, sprintf "Got %s" actualBinaryForm)
-        Assert.That(actualJsonException.ToString(), Is.EqualTo (expectedJsonException.ToString()))
+        let actualBinaryForm = (actualJsonException.SelectToken fullBinaryFormPath).ToString()
+        Assert.That(actualJsonException.ToString(), Is.EqualTo (expectedJsonException.ToString()),
+                    sprintf "Exceptions didn't match. Full binary form was %s" actualBinaryForm)
 
         true
 

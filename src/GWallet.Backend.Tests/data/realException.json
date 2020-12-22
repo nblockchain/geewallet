@@ -5,9 +5,9 @@
     "HumanReadableSummary": {
       "ExceptionType": "System.Exception",
       "Message": "msg",
-      "StackTrace": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize real exceptions () [0x0000c] in /Users/knocte/Documents/Code/geewalletMASTERCLEAN/src/GWallet.Backend.Tests/ExceptionMarshalling.fs:line 46",
+      "StackTrace": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize real exceptions () [0x0000c] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:line 29",
       "InnerException": null
     },
-    "FullBinaryForm": "{binaryMarshalledRealException}"
+    "FullBinaryForm": "{binaryMarshalledException}"
   }
 }

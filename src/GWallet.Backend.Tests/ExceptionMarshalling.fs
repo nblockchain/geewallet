@@ -17,26 +17,11 @@ type CustomException =
 [<TestFixture>]
 type ExceptionMarshalling () =
 
-    [<Test>]
-    member __.``can serialize basic exceptions``() =
+    let SerializeBasicException () =
         let ex = Exception "msg"
-        let json = Marshalling.Serialize ex
-        Assert.That(json, Is.Not.Null)
-        Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.Sanitize,
-                    Is.EqualTo MarshallingData.BasicExceptionExampleInJson)
+        Marshalling.Serialize ex
 
-    [<Test>]
-    member __.``can deserialize basic exceptions``() =
-        let ex: Exception = Marshalling.Deserialize MarshallingData.BasicExceptionExampleInJson
-        Assert.That(ex, Is.Not.Null)
-        Assert.That(ex, Is.InstanceOf<Exception>())
-        Assert.That(ex.Message, Is.EqualTo "msg")
-        Assert.That(ex.InnerException, Is.Null)
-        Assert.That(ex.StackTrace, Is.Null)
-
-    [<Test>]
-    member __.``can serialize real exceptions``() =
+    let SerializeRealException () =
         let someEx = Exception "msg"
         let ex =
             try
@@ -45,14 +30,50 @@ type ExceptionMarshalling () =
             with
             | ex ->
                 ex
-        let json = Marshalling.Serialize ex
+        Marshalling.Serialize ex
+
+    [<Test>]
+    member __.``can serialize basic exceptions``() =
+        let json = SerializeBasicException ()
+        Assert.That(json, Is.Not.Null)
+        Assert.That(json, Is.Not.Empty)
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.BasicExceptionExampleInJson)
+
+    [<Test>]
+    member __.``can deserialize basic exceptions``() =
+        let basicExSerialized =
+            try
+                SerializeBasicException ()
+            with
+            | _ ->
+                Assert.Inconclusive "Fix the serialization test first"
+                failwith "unreachable"
+
+        let ex: Exception = Marshalling.Deserialize basicExSerialized
+        Assert.That(ex, Is.Not.Null)
+        Assert.That(ex, Is.InstanceOf<Exception>())
+        Assert.That(ex.Message, Is.EqualTo "msg")
+        Assert.That(ex.InnerException, Is.Null)
+        Assert.That(ex.StackTrace, Is.Null)
+
+    [<Test>]
+    member __.``can serialize real exceptions``() =
+        let json = SerializeRealException ()
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionExampleInJson)
 
     [<Test>]
     member __.``can deserialize real exceptions``() =
-        let ex: Exception = Marshalling.Deserialize MarshallingData.RealExceptionExampleInJson
+        let realExceptionSerialized =
+            try
+                SerializeRealException ()
+            with
+            | _ ->
+                Assert.Inconclusive "Fix the serialization test first"
+                failwith "unreachable"
+
+        let ex: Exception = Marshalling.Deserialize realExceptionSerialized
         Assert.That(ex, Is.Not.Null)
         Assert.That(ex, Is.InstanceOf<Exception>())
         Assert.That(ex.Message, Is.EqualTo "msg")
