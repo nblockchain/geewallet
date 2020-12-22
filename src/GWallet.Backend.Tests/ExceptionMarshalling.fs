@@ -32,6 +32,10 @@ type ExceptionMarshalling () =
                 ex
         Marshalling.Serialize ex
 
+    let SerializeInnerException () =
+        let ex = Exception("msg", Exception "innerMsg")
+        Marshalling.Serialize ex
+
     [<Test>]
     member __.``can serialize basic exceptions``() =
         let json = SerializeBasicException ()
@@ -82,14 +86,32 @@ type ExceptionMarshalling () =
         Assert.That(ex.StackTrace, Is.Not.Empty)
 
     [<Test>]
-    [<Ignore "NIE">]
     member __.``can serialize inner exceptions``() =
-        let ex = Exception("msg", Exception "innerMsg")
-        let json = Marshalling.Serialize ex
+        let json = SerializeInnerException ()
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.Sanitize,
-                    Is.EqualTo MarshallingData.InnerExceptionExampleInJson)
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.InnerExceptionExampleInJson)
+
+    [<Test>]
+    member __.``can deserialize inner exceptions``() =
+        let innerExceptionSerialized =
+            try
+                SerializeInnerException ()
+            with
+            | _ ->
+                Assert.Inconclusive "Fix the serialization test first"
+                failwith "unreachable"
+
+        let ex: Exception = Marshalling.Deserialize innerExceptionSerialized
+        Assert.That (ex, Is.Not.Null)
+        Assert.That (ex, Is.InstanceOf<Exception>())
+        Assert.That (ex.Message, Is.EqualTo "msg")
+        Assert.That (ex.StackTrace, Is.Null)
+        Assert.That (ex.InnerException, Is.Not.Null)
+
+        Assert.That (ex.InnerException, Is.InstanceOf<Exception>())
+        Assert.That (ex.InnerException.Message, Is.EqualTo "innerMsg")
+        Assert.That (ex.InnerException.StackTrace, Is.Null)
 
     [<Test>]
     [<Ignore "NIE">]
