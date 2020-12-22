@@ -3,6 +3,7 @@
 open System
 open System.Reflection
 open System.Text.RegularExpressions
+open System.Runtime.Serialization
 
 open Newtonsoft.Json
 open Newtonsoft.Json.Serialization
@@ -58,12 +59,26 @@ type DeserializationException =
 
     new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
     new(message: string) = { inherit Exception(message) }
+    new(info: SerializationInfo, context: StreamingContext) =
+        { inherit Exception(info, context) }
 
 type SerializationException(message:string, innerException: Exception) =
     inherit Exception (message, innerException)
 
-type VersionMismatchDuringDeserializationException (message:string, innerException: Exception) =
-    inherit DeserializationException (message, innerException)
+type MarshallingCompatibilityException =
+    inherit Exception
+
+    new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
+    new(info: SerializationInfo, context: StreamingContext) =
+        { inherit Exception(info, context) }
+
+type VersionMismatchDuringDeserializationException =
+    inherit DeserializationException
+
+    new (message: string, innerException: Exception) =
+        { inherit DeserializationException (message, innerException) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit DeserializationException (info, context) }
 
 module internal VersionHelper =
     let internal CURRENT_VERSION =
@@ -169,7 +184,7 @@ module Marshalling =
 
     let Deserialize<'T>(json: string): 'T =
         match typeof<'T> with
-        | t when t = typeof<Exception> ->
+        | theType when typeof<Exception>.IsAssignableFrom theType ->
             let marshalledException: MarshalledException = DeserializeCustom(json, DefaultSettings)
             BinaryMarshalling.DeserializeFromString marshalledException.FullBinaryForm :?> 'T
         | _ ->
@@ -191,7 +206,20 @@ module Marshalling =
     let Serialize<'T>(value: 'T): string =
         match box value with
         | :? Exception as ex ->
-            let serializedEx = MarshalledException.Create ex
-            SerializeCustom(serializedEx, DefaultSettings)
+            let exToSerialize = MarshalledException.Create ex
+            let serializedEx = SerializeCustom(exToSerialize, DefaultSettings)
+
+            try
+                let _deserializedEx: 'T = Deserialize serializedEx
+                ()
+            with
+            | ex ->
+                raise
+                <| MarshallingCompatibilityException (
+                    SPrintF1
+                        "Exception type '%s' could not be serialized. Maybe it lacks the required '(info: SerializationInfo, context: StreamingContext)' constructor?"
+                        typeof<'T>.FullName, ex)
+
+            serializedEx
         | _ ->
             SerializeCustom(value, DefaultSettings)

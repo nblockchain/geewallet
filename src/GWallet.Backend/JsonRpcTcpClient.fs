@@ -3,6 +3,7 @@
 open System
 open System.Net
 open System.Net.Sockets
+open System.Runtime.Serialization
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -13,15 +14,23 @@ type ProtocolGlitchException =
     new (message: string, innerException: Exception) = {
         inherit CommunicationUnsuccessfulException (message, innerException)
     }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 type ServerCannotBeResolvedException =
     inherit CommunicationUnsuccessfulException
 
     new(message) = { inherit CommunicationUnsuccessfulException(message) }
     new(message:string, innerException: Exception) = { inherit CommunicationUnsuccessfulException(message, innerException) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
-type ServerNameResolvedToInvalidAddressException(message: string) =
-    inherit CommunicationUnsuccessfulException (message)
+type ServerNameResolvedToInvalidAddressException =
+    inherit CommunicationUnsuccessfulException
+
+    new (message) = { inherit CommunicationUnsuccessfulException (message) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 
 type JsonRpcTcpClient (host: string, port: uint32) =

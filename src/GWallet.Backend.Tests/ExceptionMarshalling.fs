@@ -1,18 +1,31 @@
 ﻿namespace GWallet.Backend.Tests
 
 open System
+open System.Runtime.Serialization
 
 open NUnit.Framework
 
 open GWallet.Backend
 
+
+type CustomExceptionWithoutSerializationCtor =
+   inherit Exception
+
+   new(message) =
+       { inherit Exception(message) }
+
 type CustomException =
    inherit Exception
 
+   new(info: SerializationInfo, context: StreamingContext) =
+       { inherit Exception(info, context) }
    new(message: string, innerException: CustomException) =
        { inherit Exception(message, innerException) }
    new(message) =
        { inherit Exception(message) }
+
+exception CustomFSharpException
+
 
 [<TestFixture>]
 type ExceptionMarshalling () =
@@ -34,6 +47,14 @@ type ExceptionMarshalling () =
 
     let SerializeInnerException () =
         let ex = Exception("msg", Exception "innerMsg")
+        Marshalling.Serialize ex
+
+    let SerializeCustomException () =
+        let ex = CustomException "msg"
+        Marshalling.Serialize ex
+
+    let SerializeCustomFSharpException () =
+        let ex = CustomFSharpException
         Marshalling.Serialize ex
 
     [<Test>]
@@ -114,14 +135,62 @@ type ExceptionMarshalling () =
         Assert.That (ex.InnerException.StackTrace, Is.Null)
 
     [<Test>]
-    [<Ignore "NIE">]
     member __.``can serialize custom exceptions``() =
-        let ex = CustomException "msg"
-        let json = Marshalling.Serialize ex
+        let json = SerializeCustomException ()
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(json |> MarshallingData.Sanitize,
-                    Is.EqualTo MarshallingData.CustomExceptionExampleInJson)
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.CustomExceptionExampleInJson)
+
+    [<Test>]
+    member __.``serializing custom exception not prepared for binary serialization, throws``() =
+        let exToSerialize = CustomExceptionWithoutSerializationCtor "msg"
+        let ex: MarshallingCompatibilityException = Assert.Throws(fun _ -> Marshalling.Serialize exToSerialize |> ignore)
+        Assert.That(ex, Is.TypeOf<MarshallingCompatibilityException>())
+        Assert.That(ex.Message, Is.StringContaining "GWallet.Backend.Tests.CustomExceptionWithoutSerializationCtor")
+
+    [<Test>]
+    member __.``can deserialize custom exceptions``() =
+        let customExceptionSerialized =
+            try
+                SerializeCustomException ()
+            with
+            | _ ->
+                Assert.Inconclusive "Fix the serialization test first"
+                failwith "unreachable"
+
+        let ex: Exception = Marshalling.Deserialize customExceptionSerialized
+        Assert.That(ex, Is.Not.Null)
+        Assert.That(ex, Is.InstanceOf<CustomException>())
+        Assert.That(ex.Message, Is.EqualTo "msg")
+        Assert.That(ex.InnerException, Is.Null)
+        Assert.That(ex.StackTrace, Is.Null)
+
+    [<Test>]
+    member __.``can serialize F# custom exceptions``() =
+        let json = SerializeCustomFSharpException ()
+        Assert.That(json, Is.Not.Null)
+        Assert.That(json, Is.Not.Empty)
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.CustomFSharpExceptionExampleInJson)
+
+    [<Test>]
+    member __.``can deserialize F# custom exceptions``() =
+        let customExceptionSerialized =
+            try
+                SerializeCustomFSharpException ()
+            with
+            | _ ->
+                Assert.Inconclusive "Fix the serialization test first"
+                failwith "unreachable"
+
+        let ex: Exception = Marshalling.Deserialize customExceptionSerialized
+        Assert.That(ex, Is.Not.Null)
+        Assert.That(ex, Is.InstanceOf<CustomFSharpException>())
+        Assert.That(ex.Message, Is.Not.Null)
+        Assert.That(ex.Message, Is.Not.Empty)
+        Assert.That(ex.InnerException, Is.Null)
+        Assert.That(ex.StackTrace, Is.Null)
+
+    // TODO: test marshalling custom exceptions with custom properties/fields, and custom F# exception with subtypes
 
     [<Test>]
     [<Ignore "NIE">]

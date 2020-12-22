@@ -74,6 +74,7 @@
     <EmbeddedResource Include="data\realException.json" />
     <EmbeddedResource Include="data\innerException.json" />
     <EmbeddedResource Include="data\customException.json" />
+    <EmbeddedResource Include="data\customFSharpException.json" />
     <EmbeddedResource Include="data\fullException.json" />
     <Compile Include="ElectrumIntegrationTests.fs" />
     <Compile Include="WarpWallet.fs" />
