@@ -194,6 +194,10 @@ type ChannelStore(account: NormalUtxoAccount) =
                 yield channelInfo
     }
 
+    member self.DeleteChannel (channelId: ChannelIdentifier): unit =
+        let fileName = self.ChannelFileName channelId
+        File.Delete fileName
+
     member self.GetCommitmentTx (channelId: ChannelIdentifier): string =
         let commitments =
             let serializedChannel = self.LoadChannel channelId
