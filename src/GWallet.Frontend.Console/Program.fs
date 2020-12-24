@@ -192,8 +192,8 @@ let LockChannel (channelStore: ChannelStore)
             Console.WriteLine "Listening for connection from peer"
             UserInteraction.AskBindAddress()
     let password = UserInteraction.AskPassword false
-    use lightningNode = Lightning.Connection.Start channelStore password bindAddress
     async {
+        use lightningNode = Lightning.Connection.Start channelStore password bindAddress
         let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
         let! lockFundingRes = Lightning.Network.LockChannelFunding lightningNode channelId
         match lockFundingRes with
