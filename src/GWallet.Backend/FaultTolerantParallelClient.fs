@@ -267,6 +267,12 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
         if typeof<'E> = typeof<Exception> then
             raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
 
+    let DefaultNumberOfConsistentResponsesRequired(): uint32 =
+        if Config.BitcoinNet() = NBitcoin.Network.RegTest then
+            1u
+        else
+            2u
+
     let MeasureConsistency (results: List<'R>) =
         results |> Seq.countBy id |> Seq.sortByDescending (fun (_,count: int) -> count) |> List.ofSeq
 
@@ -390,7 +396,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             | Some (SpecificNumberOfConsistentResponsesRequired number) ->
                 return! returnWithConsistencyOf (Some number) ((fun _ -> false) |> Some)
             | Some (OneServerConsistentWithCertainValueOrTwoServers cacheMatchFunc) ->
-                return! returnWithConsistencyOf (Some 2u) (Some cacheMatchFunc)
+                return! returnWithConsistencyOf (Some (DefaultNumberOfConsistentResponsesRequired())) (Some cacheMatchFunc)
             | None ->
                 if newRestOfTasks.Length = 0 then
 
@@ -583,7 +589,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 let wrappedSettings =
                     match consistencyConfig with
                     | Some (OneServerConsistentWithCertainValueOrTwoServers _) ->
-                        Some (SpecificNumberOfConsistentResponsesRequired 2u)
+                        Some (SpecificNumberOfConsistentResponsesRequired (DefaultNumberOfConsistentResponsesRequired()))
                     | _ -> consistencyConfig
 
                 match wrappedSettings with
