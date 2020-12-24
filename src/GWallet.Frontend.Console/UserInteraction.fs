@@ -27,6 +27,7 @@ type internal Operations =
     | SendLightningPayment    = 12
     | AcceptLightningEvent    = 13
     | CloseChannel            = 14
+    | ForceCloseChannel       = 15
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -99,7 +100,8 @@ module UserInteraction =
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
             ).Any(fun channelInfo -> not channelInfo.IsFunder)
-        | Operations.CloseChannel ->
+        | Operations.CloseChannel
+        | Operations.ForceCloseChannel ->
             accounts.OfType<UtxoCoin.NormalUtxoAccount>().SelectMany(fun account ->
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
