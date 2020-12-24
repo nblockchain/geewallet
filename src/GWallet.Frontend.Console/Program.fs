@@ -637,11 +637,18 @@ let rec RetryOptionFunctionUntilSome (functionToRetry: unit -> Option<'T>): 'T =
     | None ->
         RetryOptionFunctionUntilSome functionToRetry
 
+let BootstrapServerStats(): Async<unit> = async {
+    if Config.BitcoinNet() = NBitcoin.Network.RegTest then
+        return ()
+    else
+        return! Caching.Instance.BootstrapServerStatsFromTrustedSource()
+}
+
 let rec PerformOperation (accounts: seq<IAccount>): unit =
     match UserInteraction.AskOperation accounts with
     | Operations.Exit -> exit 0
     | Operations.CreateAccounts ->
-        let bootstrapTask = Caching.Instance.BootstrapServerStatsFromTrustedSource() |> Async.StartAsTask
+        let bootstrapTask = BootstrapServerStats() |> Async.StartAsTask
         let passphrase,dob,email = UserInteraction.AskBrainSeed true
         if null <> bootstrapTask.Exception then
             raise bootstrapTask.Exception
