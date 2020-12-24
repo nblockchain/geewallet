@@ -150,6 +150,23 @@ let CloseChannel(): Async<unit> =
             return ()
     }
 
+let ForceCloseChannel(): Async<unit> = async {
+    let account = UserInteraction.AskBitcoinAccount()
+    let channelStore = ChannelStore account
+    let channelIdOpt = UserInteraction.AskChannelId channelStore None
+    match channelIdOpt with
+    | None -> return ()
+    | Some channelId ->
+        let password = UserInteraction.AskPassword false
+        let bindAddress = IPEndPoint(IPAddress.Parse "127.0.0.1", 0)
+        use lightningNode = Lightning.Connection.Start channelStore password bindAddress
+        let! forceCloseTxId = Lightning.Network.ForceClose lightningNode channelId
+        Console.WriteLine "Channel force closed"
+        Console.WriteLine (sprintf "Force close txid == %s" forceCloseTxId)
+        UserInteraction.PressAnyKeyToContinue()
+        return ()
+}
+
 let AcceptLightningEvent(): Async<unit> = async {
     let account = UserInteraction.AskBitcoinAccount()
     let channelStore = ChannelStore account
@@ -236,6 +253,7 @@ let ClaimFundsIfTimelockExpired (channelStore: ChannelStore)
             UtxoCoin.Account.BroadcastRawTransaction
                 locallyForceClosedData.Currency
                 locallyForceClosedData.SpendingTransactionString
+        channelStore.DeleteChannel channelInfo.ChannelId
         return seq {
             yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
             yield sprintf "        channel force-closed"
@@ -664,6 +682,8 @@ let rec PerformOperation (accounts: seq<IAccount>): unit =
         AcceptLightningEvent() |> Async.RunSynchronously
     | Operations.CloseChannel ->
         CloseChannel() |> Async.RunSynchronously
+    | Operations.ForceCloseChannel ->
+        ForceCloseChannel() |> Async.RunSynchronously
     | _ -> failwith "Unreachable"
 
 let rec GetAccountOfSameCurrency currency =
