@@ -749,7 +749,7 @@ let main argv =
         Config.SetRunModeNormal()
         NormalStartWithNoParameters()
     | 2 when argv.[0] = "--regtest-on-localhost" ->
-        Config.SetRunModeTesting()
+        Config.SetRunModeRegTest()
         NormalStartWithNoParameters()
     | 1 when argv.[0] = "--update-servers-file" ->
         Config.SetRunModeNormal()

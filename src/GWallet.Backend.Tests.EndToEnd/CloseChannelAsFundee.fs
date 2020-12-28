@@ -20,7 +20,7 @@ type CloseChannelAsFundee() =
     
     [<SetUp>]
     member __.SetUp () =
-        do Config.SetRunModeTesting()
+        do Config.SetRunModeRegTest()
 
     [<Test>]
     member __.``can close channel from LND (as fundee)``() = Async.RunSynchronously <| async {
