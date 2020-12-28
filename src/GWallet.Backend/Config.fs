@@ -15,6 +15,7 @@ module Config =
     type RunMode =
         | Normal
         | Testing of DirectoryInfo
+        | RegTest of DirectoryInfo
 
 #if DEBUG
     let mutable runModeOpt: Option<RunMode> = None
@@ -36,13 +37,25 @@ module Config =
             let testDir = DirectoryInfo <| Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
             runModeOpt <- Some <| RunMode.Testing testDir
         | Some (RunMode.Testing _) -> ()
-        | Some RunMode.Normal ->
-            failwith "Run mode cannot be set to testing because it is already set to normal"
+        | Some runMode ->
+            failwith <| SPrintF1 "Run mode cannot be set to testing because it is already set to %A" runMode
+
+    let public SetRunModeRegTest() =
+        match runModeOpt with
+        | None ->
+            let testDir = DirectoryInfo <| Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
+            runModeOpt <- Some <| RunMode.RegTest testDir
+        | Some (RunMode.RegTest _) -> ()
+        | Some runMode ->
+            failwith <| SPrintF1 "Run mode cannot be set to regtest because it is already set to %A" runMode
 #else
     let public SetRunModeNormal() = ()
 
     let public SetRunModeTesting() =
         failwith "Run mode cannot be set to testing when built in release mode"
+
+    let public SetRunModeRegTest() =
+        failwith "Run mode cannot be set to regtest when built in release mode"
 #endif
 
     let public GetRunMode(): RunMode =
@@ -55,8 +68,8 @@ module Config =
     // (but we would need to get a seed list of testnet electrum servers, and testnet(/ropsten/rinkeby?), first...)
     let BitcoinNet() =
         match GetRunMode() with
-        | Normal -> NBitcoin.Network.Main
-        | Testing _ -> NBitcoin.Network.RegTest
+        | RunMode.RegTest _ -> NBitcoin.Network.RegTest
+        | _ -> NBitcoin.Network.Main
 
     let LitecoinNet = NBitcoin.Altcoins.Litecoin.Instance.Mainnet
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
@@ -131,7 +144,8 @@ module Config =
             | RunMode.Normal ->
                 let configPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
                 DirectoryInfo(Path.Combine(configPath, "gwallet"))
-            | RunMode.Testing configDir -> configDir
+            | RunMode.Testing configDir
+            | RunMode.RegTest configDir -> configDir
         if not configDir.Exists then
             configDir.Create()
         configDir
