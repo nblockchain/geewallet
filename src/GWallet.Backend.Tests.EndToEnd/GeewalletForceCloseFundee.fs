@@ -18,7 +18,7 @@ type GeewalletForceCloseFundee() =
     
     [<SetUp>]
     member __.SetUp () =
-        Config.SetRunModeTesting()
+        Config.SetRunModeRegTest()
     
     [<Category("GeewalletForceCloseFundee")>]
     [<Test>]

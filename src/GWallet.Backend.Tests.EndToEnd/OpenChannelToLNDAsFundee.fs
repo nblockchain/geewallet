@@ -11,7 +11,7 @@ type OpenChannelAsFundee() =
 
     [<SetUp>]
     member __.SetUp () =
-        do Config.SetRunModeTesting()
+        do Config.SetRunModeRegTest()
 
     [<Test>]
     member __.``can accept channel from LND``() =

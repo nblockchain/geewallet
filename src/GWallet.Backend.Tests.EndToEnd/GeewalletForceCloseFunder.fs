@@ -18,7 +18,7 @@ open GWallet.Regtest
 type GeewalletForceCloseFunder() =
     [<SetUp>]
     member __.SetUp () =
-        Config.SetRunModeTesting()
+        Config.SetRunModeRegTest()
 
     [<Category("GeewalletForceCloseFunder")>]
     [<Test>]

@@ -12,7 +12,7 @@ type OpenChannelAsFunder() =
 
     [<SetUp>]
     member __.SetUp () =
-        do Config.SetRunModeTesting()
+        do Config.SetRunModeRegTest()
 
     [<Test>]
     member __.``can open channel to LND``() =
