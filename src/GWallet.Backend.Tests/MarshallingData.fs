@@ -17,7 +17,7 @@ module MarshallingData =
     let private version = executingAssembly.GetName().Version.ToString()
     let private binPath = executingAssembly.Location |> FileInfo
     let private prjPath = Path.Combine(binPath.Directory.FullName, "..") |> DirectoryInfo
-    let private isUnix = Path.DirectorySeparatorChar <> '\\'
+    let private isUnix = not <| Config.IsWindowsPlatform()
 
     let private RemoveJsonFormatting (jsonContent: string): string =
         jsonContent.Replace("\r", String.Empty)
