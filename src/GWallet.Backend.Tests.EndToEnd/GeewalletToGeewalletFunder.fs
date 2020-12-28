@@ -20,7 +20,7 @@ type GeewalletToGeewalletFunder() =
 
     [<SetUp>]
     member __.SetUp () =
-        do Config.SetRunModeTesting()
+        do Config.SetRunModeRegTest()
 
 
     [<Category("GeewalletToGeewalletFunder")>]
