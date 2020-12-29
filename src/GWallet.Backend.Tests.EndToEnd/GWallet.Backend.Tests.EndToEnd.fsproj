@@ -65,6 +65,8 @@
     <Compile Include="GeewalletToGeewalletFundee.fs" />
     <Compile Include="CloseChannelAsFunder.fs" />
     <Compile Include="CloseChannelAsFundee.fs" />
+    <Compile Include="GeewalletForceCloseFunder.fs" />
+    <Compile Include="GeewalletForceCloseFundee.fs" />
     <Content Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
