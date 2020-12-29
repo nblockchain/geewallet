@@ -3,7 +3,7 @@ namespace GWallet.Backend.UtxoCoin.Lightning
 open System
 open System.Net
 
-open DotNetLightning.Serialize
+open DotNetLightning.Serialization
 open DotNetLightning.Utils
 open DotNetLightning.Crypto
 
@@ -14,18 +14,6 @@ open NBitcoin
 open Newtonsoft.Json
 
 module JsonMarshalling =
-    type internal CommitmentPubKeyConverter() =
-        inherit JsonConverter<CommitmentPubKey>()
-
-        override this.ReadJson(reader: JsonReader, _: Type, _: CommitmentPubKey, _: bool, serializer: JsonSerializer) =
-            let serializedCommitmentPubKey = serializer.Deserialize<string> reader
-            let hex = NBitcoin.DataEncoders.HexEncoder()
-            serializedCommitmentPubKey |> hex.DecodeData |> PubKey |> CommitmentPubKey
-
-        override this.WriteJson(writer: JsonWriter, state: CommitmentPubKey, serializer: JsonSerializer) =
-            let serializedCommitmentPubKey: string = state.PubKey.ToHex()
-            serializer.Serialize(writer, serializedCommitmentPubKey)
-
     type internal CommitmentNumberConverter() =
         inherit JsonConverter<CommitmentNumber>()
 
@@ -34,18 +22,18 @@ module JsonMarshalling =
             CommitmentNumber <| (UInt48.MaxValue - UInt48.FromUInt64 serializedCommitmentNumber)
 
         override this.WriteJson(writer: JsonWriter, state: CommitmentNumber, serializer: JsonSerializer) =
-            let serializedCommitmentNumber: uint64 = (UInt48.MaxValue - state.Index).UInt64
+            let serializedCommitmentNumber: uint64 = (UInt48.MaxValue - state.Index()).UInt64
             serializer.Serialize(writer, serializedCommitmentNumber)
 
-    type internal RevocationSetConverter() =
-        inherit JsonConverter<RevocationSet>()
+    type internal PerCommitmentSecretStoreConverter() =
+        inherit JsonConverter<PerCommitmentSecretStore>()
 
-        override this.ReadJson(reader: JsonReader, _: Type, _: RevocationSet, _: bool, serializer: JsonSerializer) =
-            let keys = serializer.Deserialize<list<CommitmentNumber * RevocationKey>> reader
-            RevocationSet.FromKeys keys
+        override this.ReadJson(reader: JsonReader, _: Type, _: PerCommitmentSecretStore, _: bool, serializer: JsonSerializer) =
+            let keys = serializer.Deserialize<list<CommitmentNumber * PerCommitmentSecret>> reader
+            PerCommitmentSecretStore.FromSecrets keys
 
-        override this.WriteJson(writer: JsonWriter, state: RevocationSet, serializer: JsonSerializer) =
-            let keys: list<CommitmentNumber * RevocationKey> = state.Keys
+        override this.WriteJson(writer: JsonWriter, state: PerCommitmentSecretStore, serializer: JsonSerializer) =
+            let keys: list<CommitmentNumber * PerCommitmentSecret> = state.Secrets
             serializer.Serialize(writer, keys)
 
     type internal ChannelIdentifierConverter() =
@@ -63,13 +51,13 @@ module JsonMarshalling =
             serializer.Serialize(writer, serializedChannelId)
 
     type internal FeatureBitJsonConverter() =
-        inherit JsonConverter<FeatureBit>()
+        inherit JsonConverter<FeatureBits>()
 
-        override self.ReadJson(reader: JsonReader, _: Type, _: FeatureBit, _: bool, serializer: JsonSerializer) =
+        override self.ReadJson(reader: JsonReader, _: Type, _: FeatureBits, _: bool, serializer: JsonSerializer) =
             let serializedFeatureBit = serializer.Deserialize<string> reader
-            UnwrapResult (FeatureBit.TryParse serializedFeatureBit) "error decoding feature bit"
+            UnwrapResult (FeatureBits.TryParse serializedFeatureBit) "error decoding feature bit"
 
-        override self.WriteJson(writer: JsonWriter, state: FeatureBit, serializer: JsonSerializer) =
+        override self.WriteJson(writer: JsonWriter, state: FeatureBits, serializer: JsonSerializer) =
             serializer.Serialize(writer, state.ToString())
 
     type internal IPAddressJsonConverter() =
@@ -106,15 +94,13 @@ module JsonMarshalling =
         let featureBitConverter = FeatureBitJsonConverter()
         let channelIdentifierConverter = ChannelIdentifierConverter()
         let commitmentNumberConverter = CommitmentNumberConverter()
-        let commitmentPubKeyConverter = CommitmentPubKeyConverter()
-        let revocationSetConverter = RevocationSetConverter()
+        let perCommitmentSecretStoreConverter = PerCommitmentSecretStoreConverter()
         settings.Converters.Add ipAddressConverter
         settings.Converters.Add ipEndPointConverter
         settings.Converters.Add featureBitConverter
         settings.Converters.Add channelIdentifierConverter
         settings.Converters.Add commitmentNumberConverter
-        settings.Converters.Add commitmentPubKeyConverter
-        settings.Converters.Add revocationSetConverter
+        settings.Converters.Add perCommitmentSecretStoreConverter
         NBitcoin.JsonConverters.Serializer.RegisterFrontConverters settings
         settings
 

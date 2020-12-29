@@ -6,7 +6,7 @@ open System.Linq
 open NBitcoin
 
 open DotNetLightning.Utils
-open DotNetLightning.Serialize.Msgs
+open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Channel
 open ResultUtils.Portability
 

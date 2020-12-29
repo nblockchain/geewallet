@@ -12,33 +12,32 @@ type SerializedChannelTest() =
   "version": "0.3.211.0",
   "typeName": "GWallet.Backend.UtxoCoin.Lightning.SerializedChannel",
   "value": {
-    "channelIndex": 672938070,
+    "channelIndex": 903692971,
     "network": "RegTest",
     "chanState": {
       "case": "Normal",
       "fields": [
         {
           "commitments": {
-            "channelId": "2c0e386c42c30b0c4032e8406ab632d6916636df1e5edf66eb083badda023afa",
-            "channelFlags": 0,
+            "channelId": "ac5ce55b5d8ae0fa06a58a645300e35ea436eae8bcb3211e87e9023cb8c82f23",
+            "channelFlags": 1,
             "fundingScriptCoin": {
               "isP2SH": false,
               "redeemType": 1,
-              "redeem": "522102fdcf55c55324c7ddf78e5491a2efb2745e465180ff1c905c171cb08293644bb421038bfc09a2b108e8f63f3377b9374bd4642e9e57c2b8e53b08f7ab18dee284eba452ae",
+              "redeem": "5221025ec158997cbe74136495ac172df99ea003e7e94042ade06590991bfacafce4bf21036e220d166adf482b4311704f3517ff5f32688096a566add72535484d6f02bcc652ae",
               "canGetScriptCode": true,
-              "outpoint": "fa3a02daad3b08eb66df5e1edf366691d632b66a40e832400c0bc3426c380e2c00000000",
+              "outpoint": "232fc8b83c02e9871e21b3bce8ea36a45ee30053648aa506fae08a5d5be55cac00000000",
               "txOut": {
-                "scriptPubKey": "0020725a67d7c34f41ef89dd52a3171c4d13f6e1840186e5d7fb6693f3e179a36bf6",
+                "scriptPubKey": "0020c11ba76a3d4c52c8dd6c55b69f3bc7c494922cadc70ed297a4af443383c5db71",
                 "value": 200000
               },
               "amount": 200000,
-              "scriptPubKey": "0020725a67d7c34f41ef89dd52a3171c4d13f6e1840186e5d7fb6693f3e179a36bf6"
+              "scriptPubKey": "0020c11ba76a3d4c52c8dd6c55b69f3bc7c494922cadc70ed297a4af443383c5db71"
             },
             "localChanges": {
               "proposed": [],
               "signed": [],
-              "acKed": [],
-              "all": []
+              "acKed": []
             },
             "localCommit": {
               "index": 0,
@@ -53,13 +52,13 @@ type SerializedChannelTest() =
                 "toLocal": {
                   "case": "LNMoney",
                   "fields": [
-                    200000000
+                    0
                   ]
                 },
                 "toRemote": {
                   "case": "LNMoney",
                   "fields": [
-                    0
+                    200000000
                   ]
                 },
                 "totalFunds": {
@@ -77,19 +76,19 @@ type SerializedChannelTest() =
                       "rbf": true,
                       "version": 2,
                       "totalOut": 190950,
-                      "lockTime": 546235839,
+                      "lockTime": 541687920,
                       "inputs": [
                         {
-                          "sequence": 2154815875,
-                          "prevOut": "fa3a02daad3b08eb66df5e1edf366691d632b66a40e832400c0bc3426c380e2c00000000",
+                          "sequence": 2163014744,
+                          "prevOut": "232fc8b83c02e9871e21b3bce8ea36a45ee30053648aa506fae08a5d5be55cac00000000",
                           "scriptSig": "",
-                          "witScript": "040047304402205bb63f4aabe600d429ef13cf542daf2aed29611534e5f0b14610634fb4f484d602205ffb16408f7f6b5dca3fa4ecf605845bd1156042d19c92e0f6e7be896ac73a8601473044022033f44c97d22dc09682008d1439cc26f2f60b2aeded58fd7b16fff2e31e7f59d0022058f22d55e22090ca3b01bcf71313d1cbfcc1459908a238243e75e6fd000b529f0147522102fdcf55c55324c7ddf78e5491a2efb2745e465180ff1c905c171cb08293644bb421038bfc09a2b108e8f63f3377b9374bd4642e9e57c2b8e53b08f7ab18dee284eba452ae",
+                          "witScript": "040047304402205f54247e4a3036a9c9cdb31fa88e8c6681b0c2ce3d73f90be73a3e324187991202207bb1c7ef8f9eeb98494a9d2f0bbc738dde85881320713126feb07d526680a1d90147304402200f86f9f0ecc97f0db06fa2cc5df15662b0c16c758b41472bb6419b3e4249bdf502204360d3b7677fdd94865445002a417995c1932d5787a099ddbf55b93779bb5bee01475221025ec158997cbe74136495ac172df99ea003e7e94042ade06590991bfacafce4bf21036e220d166adf482b4311704f3517ff5f32688096a566add72535484d6f02bcc652ae",
                           "isFinal": false
                         }
                       ],
                       "outputs": [
                         {
-                          "scriptPubKey": "0020362e380f0665c3062b97933931c2f176204cd26873763694b0689c2a19369b87",
+                          "scriptPubKey": "0014f649d8ab6a723a59b830b789e299b58f5c40caef",
                           "value": 190950
                         }
                       ],
@@ -112,15 +111,40 @@ type SerializedChannelTest() =
               "nodeId": {
                 "case": "NodeId",
                 "fields": [
-                  "02323d281f323fc7513660602736a7bcd90d9d06057c9fa9e8d2deb0de5aeb2231"
+                  "02359f49a1f8314274bd6b389c0408a77772f6339ac15bf6c30f12e88670e94d1e"
                 ]
               },
               "channelPubKeys": {
-                "fundingPubKey": "02fdcf55c55324c7ddf78e5491a2efb2745e465180ff1c905c171cb08293644bb4",
-                "revocationBasePubKey": "03408d1c4a0db3671695bc31b8a7528bdafc91af0a6a208507ef7bcdb2133d6397",
-                "paymentBasePubKey": "021ca7cbadc640a6aba7aa62e976a53a9d79bd8181aa30700c8c486580efa3365b",
-                "delayedPaymentBasePubKey": "02a6c7282ee4c98d7caea59a78b55e5d7a8797fdec9fa97107b39e48d234a37084",
-                "htlcBasePubKey": "031f8050b624096531a0c9f3bba7e5bc7c571ad3eaba1a7587202b067d3986cd81"
+                "fundingPubKey": {
+                  "case": "FundingPubKey",
+                  "fields": [
+                    "036e220d166adf482b4311704f3517ff5f32688096a566add72535484d6f02bcc6"
+                  ]
+                },
+                "revocationBasepoint": {
+                  "case": "RevocationBasepoint",
+                  "fields": [
+                    "02b991bcec8eb90cca4df3b2623e60cfe0ba7b9aea243f1c6b1cacd4323bad5141"
+                  ]
+                },
+                "paymentBasepoint": {
+                  "case": "PaymentBasepoint",
+                  "fields": [
+                    "0377f77a5e50a309483ff5a73016d18b51b9340414d1999da84f4be73af16fa69d"
+                  ]
+                },
+                "delayedPaymentBasepoint": {
+                  "case": "DelayedPaymentBasepoint",
+                  "fields": [
+                    "022500be5526d6ef578566950b3788ac575ad1e69fb74f9523bc9bf891553bb7c7"
+                  ]
+                },
+                "htlcBasepoint": {
+                  "case": "HtlcBasepoint",
+                  "fields": [
+                    "025b97f531c44485d19ae4c459ebd18273ae1c168373df09286337ea304959ba46"
+                  ]
+                }
               },
               "dustLimitSatoshis": 200,
               "maxHTLCValueInFlightMSat": {
@@ -143,8 +167,8 @@ type SerializedChannelTest() =
                 ]
               },
               "maxAcceptedHTLCs": 10,
-              "isFunder": true,
-              "defaultFinalScriptPubKey": "a914ee63c76cda9f5a4928a24710e3b950f2bed0bcc787",
+              "isFunder": false,
+              "defaultFinalScriptPubKey": "a914ac351a902327793cb7fdcda4c024ec90ef45e8fa87",
               "features": "10"
             },
             "originChannels": {},
@@ -166,13 +190,13 @@ type SerializedChannelTest() =
                 "toLocal": {
                   "case": "LNMoney",
                   "fields": [
-                    0
+                    200000000
                   ]
                 },
                 "toRemote": {
                   "case": "LNMoney",
                   "fields": [
-                    200000000
+                    0
                   ]
                 },
                 "totalFunds": {
@@ -185,15 +209,25 @@ type SerializedChannelTest() =
               "txId": {
                 "case": "TxId",
                 "fields": [
-                  "2ce238b4fe973636e02004a6af2dd434a4221b1757ea62b0b0abac810674f3e8"
+                  "3b18008b7e82ed5c6cc48974deae21ab61ea95012de946564f44fc7889d85489"
                 ]
               },
-              "remotePerCommitmentPoint": "032451f412d0ff745d333c50a32d35444c8f88f24b6348c5bbf4f20a6df70ce2ae"
+              "remotePerCommitmentPoint": {
+                "case": "PerCommitmentPoint",
+                "fields": [
+                  "0348445245bc5b0d4c003b0ed6c00dc34c4096dd8dbee55508a4f618080f9f8376"
+                ]
+              }
             },
             "remoteNextCommitInfo": {
               "case": "Revoked",
               "fields": [
-                "0272cbf08b7f138e5d07cefa136f154ba619143c4c87b8333c14ef6057e7df7e1a"
+                {
+                  "case": "PerCommitmentPoint",
+                  "fields": [
+                    "03ae10084012d3ff29e7fc45b0a93e5233a1abb38a4f3c1b96c9788c688333709a"
+                  ]
+                }
               ]
             },
             "remoteNextHTLCId": {
@@ -206,7 +240,7 @@ type SerializedChannelTest() =
               "nodeId": {
                 "case": "NodeId",
                 "fields": [
-                  "02323d281f323fc7513660602736a7bcd90d9d06057c9fa9e8d2deb0de5aeb2231"
+                  "02359f49a1f8314274bd6b389c0408a77772f6339ac15bf6c30f12e88670e94d1e"
                 ]
               },
               "dustLimitSatoshis": 573,
@@ -230,16 +264,43 @@ type SerializedChannelTest() =
                 ]
               },
               "maxAcceptedHTLCs": 483,
-              "paymentBasePoint": "034badd7bcd0cdaaae7a099d24e4966a42e9088b8fd9575435428e2ce52ce40132",
-              "fundingPubKey": "038bfc09a2b108e8f63f3377b9374bd4642e9e57c2b8e53b08f7ab18dee284eba4",
-              "revocationBasePoint": "03f1590ac91a6a78c4dc41b5d8caed115c51a9c1b87b6d43a73a5f5502a3ab20cf",
-              "delayedPaymentBasePoint": "0291698f62ba42f26f9fe61fd9509119ff671659410d8d3e3682860f7f5d760645",
-              "htlcBasePoint": "02579a84cb68f6fd41e864d6b5a9b130187584cd338bfd3fc45921b5acfee075fb",
+              "channelPubKeys": {
+                "fundingPubKey": {
+                  "case": "FundingPubKey",
+                  "fields": [
+                    "025ec158997cbe74136495ac172df99ea003e7e94042ade06590991bfacafce4bf"
+                  ]
+                },
+                "revocationBasepoint": {
+                  "case": "RevocationBasepoint",
+                  "fields": [
+                    "03ea5cb6a7a314ebc2f0a5298c206786c718486e4708df361b81529b3aa50d1ad9"
+                  ]
+                },
+                "paymentBasepoint": {
+                  "case": "PaymentBasepoint",
+                  "fields": [
+                    "024dd54d57bc292e5778ca440aab0748115ea06a6bbc90367df16824d7f2e6a77c"
+                  ]
+                },
+                "delayedPaymentBasepoint": {
+                  "case": "DelayedPaymentBasepoint",
+                  "fields": [
+                    "024a2b9de1a687ce31f5422fbe01f0bcc898bd7c4413404df17b3c80575f44d8d8"
+                  ]
+                },
+                "htlcBasepoint": {
+                  "case": "HtlcBasepoint",
+                  "fields": [
+                    "026089e7eeaa8c5a92f0ae369b502fd11087888919622e2bcd6d4e457a4e9a9f3b"
+                  ]
+                }
+              },
               "features": "000000101010001010100001",
               "minimumDepth": {
                 "case": "BlockHeightOffset32",
                 "fields": [
-                  3
+                  1
                 ]
               }
             },
@@ -249,7 +310,7 @@ type SerializedChannelTest() =
             "blockHeight": {
               "case": "BlockHeight",
               "fields": [
-                109
+                102
               ]
             },
             "blockIndex": {
@@ -264,7 +325,7 @@ type SerializedChannelTest() =
                 0
               ]
             },
-            "asString": "109x1x0"
+            "asString": "102x1x0"
           },
           "buried": true,
           "channelAnnouncement": null,
@@ -272,16 +333,16 @@ type SerializedChannelTest() =
             "signature@": {
               "case": "LNECDSASignature",
               "fields": [
-                "30440220769a6c21a0cacb27fca747b98f6637878164c21c35b6d33131469ba13fed290d02201552dfc5db9980996064a9d432ac28563c6c347b66ef4bd99ad3d0a3873efdf2"
+                "30440220460d44f1e0c7363d29bf055b2c788dd9e66cf05bc36e90e19fcbb9454f5789fc022019944e53046a0f3de29c5945ac8b9692b39e76d6270f9ec6c6ab9b4d552427f2"
               ]
             },
             "contents@": {
-              "chainHash@": "06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f",
+              "chainHash@": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
               "shortChannelId@": {
                 "blockHeight": {
                   "case": "BlockHeight",
                   "fields": [
-                    109
+                    102
                   ]
                 },
                 "blockIndex": {
@@ -296,9 +357,9 @@ type SerializedChannelTest() =
                     0
                   ]
                 },
-                "asString": "109x1x0"
+                "asString": "102x1x0"
               },
-              "timestamp@": 1597127189,
+              "timestamp@": 1609236445,
               "messageFlags@": 0,
               "channelFlags@": 2,
               "cltvExpiryDelta@": {
@@ -316,17 +377,17 @@ type SerializedChannelTest() =
               "feeBaseMSat@": {
                 "case": "LNMoney",
                 "fields": [
-                  11424000
+                  9274000
                 ]
               },
               "feeProportionalMillionths@": 100,
               "htlcMaximumMSat@": null,
-              "chainHash": "06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f",
+              "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
               "shortChannelId": {
                 "blockHeight": {
                   "case": "BlockHeight",
                   "fields": [
-                    109
+                    102
                   ]
                 },
                 "blockIndex": {
@@ -341,9 +402,9 @@ type SerializedChannelTest() =
                     0
                   ]
                 },
-                "asString": "109x1x0"
+                "asString": "102x1x0"
               },
-              "timestamp": 1597127189,
+              "timestamp": 1609236445,
               "messageFlags": 0,
               "channelFlags": 2,
               "cltvExpiryDelta": {
@@ -361,7 +422,7 @@ type SerializedChannelTest() =
               "feeBaseMSat": {
                 "case": "LNMoney",
                 "fields": [
-                  11424000
+                  9274000
                 ]
               },
               "feeProportionalMillionths": 100,
@@ -370,16 +431,16 @@ type SerializedChannelTest() =
             "signature": {
               "case": "LNECDSASignature",
               "fields": [
-                "30440220769a6c21a0cacb27fca747b98f6637878164c21c35b6d33131469ba13fed290d02201552dfc5db9980996064a9d432ac28563c6c347b66ef4bd99ad3d0a3873efdf2"
+                "30440220460d44f1e0c7363d29bf055b2c788dd9e66cf05bc36e90e19fcbb9454f5789fc022019944e53046a0f3de29c5945ac8b9692b39e76d6270f9ec6c6ab9b4d552427f2"
               ]
             },
             "contents": {
-              "chainHash@": "06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f",
+              "chainHash@": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
               "shortChannelId@": {
                 "blockHeight": {
                   "case": "BlockHeight",
                   "fields": [
-                    109
+                    102
                   ]
                 },
                 "blockIndex": {
@@ -394,9 +455,9 @@ type SerializedChannelTest() =
                     0
                   ]
                 },
-                "asString": "109x1x0"
+                "asString": "102x1x0"
               },
-              "timestamp@": 1597127189,
+              "timestamp@": 1609236445,
               "messageFlags@": 0,
               "channelFlags@": 2,
               "cltvExpiryDelta@": {
@@ -414,17 +475,17 @@ type SerializedChannelTest() =
               "feeBaseMSat@": {
                 "case": "LNMoney",
                 "fields": [
-                  11424000
+                  9274000
                 ]
               },
               "feeProportionalMillionths@": 100,
               "htlcMaximumMSat@": null,
-              "chainHash": "06226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f",
+              "chainHash": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206",
               "shortChannelId": {
                 "blockHeight": {
                   "case": "BlockHeight",
                   "fields": [
-                    109
+                    102
                   ]
                 },
                 "blockIndex": {
@@ -439,9 +500,9 @@ type SerializedChannelTest() =
                     0
                   ]
                 },
-                "asString": "109x1x0"
+                "asString": "102x1x0"
               },
-              "timestamp": 1597127189,
+              "timestamp": 1609236445,
               "messageFlags": 0,
               "channelFlags": 2,
               "cltvExpiryDelta": {
@@ -459,7 +520,7 @@ type SerializedChannelTest() =
               "feeBaseMSat": {
                 "case": "LNMoney",
                 "fields": [
-                  11424000
+                  9274000
                 ]
               },
               "feeProportionalMillionths": 100,
@@ -472,27 +533,27 @@ type SerializedChannelTest() =
           "channelId": {
             "case": "ChannelId",
             "fields": [
-              "2c0e386c42c30b0c4032e8406ab632d6916636df1e5edf66eb083badda023afa"
+              "ac5ce55b5d8ae0fa06a58a645300e35ea436eae8bcb3211e87e9023cb8c82f23"
             ]
           }
         }
       ]
     },
-    "accountFileName": "0284bf7562262bbd6940085748f3be6afa52ae317155181ece31b66351ccffa4b0",
+    "accountFileName": "0252b4e4866425fc57691094c2629794aba6c48667d46d865ac2cbe543c86051f1",
     "counterpartyIP": [
-      "127.0.0.2",
-      9735
+      "127.0.0.1",
+      55106
     ],
     "remoteNodeId": {
       "case": "NodeId",
       "fields": [
-        "02323d281f323fc7513660602736a7bcd90d9d06057c9fa9e8d2deb0de5aeb2231"
+        "02359f49a1f8314274bd6b389c0408a77772f6339ac15bf6c30f12e88670e94d1e"
       ]
     },
     "minSafeDepth": {
       "case": "BlockHeightOffset32",
       "fields": [
-        3
+        1
       ]
     }
   }
