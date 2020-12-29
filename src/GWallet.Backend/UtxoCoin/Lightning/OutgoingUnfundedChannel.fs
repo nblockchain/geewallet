@@ -4,7 +4,7 @@ open System
 open System.Diagnostics
 
 open NBitcoin
-open DotNetLightning.Serialize.Msgs
+open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Chain
 open DotNetLightning.Channel
 open DotNetLightning.Transactions
@@ -61,7 +61,7 @@ type internal OutgoingUnfundedChannel =
 
         let network = Account.GetNetwork (account:>IAccount).Currency
         let nodeId = peerNode.RemoteNodeId
-        let nodeSecret = peerNode.NodeSecret
+        let nodeMasterPrivKey = peerNode.NodeMasterPrivKey()
         let channelIndex =
             let random = Org.BouncyCastle.Security.SecureRandom() :> Random
             random.Next(1, Int32.MaxValue / 2)
@@ -88,7 +88,7 @@ type internal OutgoingUnfundedChannel =
             MonoHopUnidirectionalChannel.Create
                 nodeId
                 account
-                nodeSecret
+                nodeMasterPrivKey
                 channelIndex
                 fundingTxProvider
                 WaitForInitInternal
@@ -110,7 +110,7 @@ type internal OutgoingUnfundedChannel =
                     LocalParams = localParams
                     RemoteInit = peerNode.InitMsg
                     ChannelFlags = 0uy
-                    ChannelKeys = channel.ChannelKeys
+                    ChannelPrivKeys = channel.ChannelPrivKeys
                 }
                 ChannelCommand.CreateOutbound inputInitFunder
             channel.ExecuteCommand channelCommand <| function

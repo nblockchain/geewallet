@@ -145,7 +145,6 @@ type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) 
 type Node internal (channelStore: ChannelStore, transportListener: TransportListener) =
     member val ChannelStore = channelStore
     member val internal TransportListener = transportListener
-    member val internal SecretKey = transportListener.NodeSecret
     member val internal NodeId = transportListener.NodeId
     member val EndPoint = transportListener.EndPoint
     member val Account = channelStore.Account
@@ -154,13 +153,17 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
         member self.Dispose() =
             (self.TransportListener :> IDisposable).Dispose()
 
-    static member AccountPrivateKeyToNodeSecret (accountKey: Key) =
+    static member internal AccountPrivateKeyToNodeMasterPrivKey (accountKey: Key): NodeMasterPrivKey =
         let privateKeyBytesLength = 32
         let bytes: array<byte> = Array.zeroCreate privateKeyBytesLength
         use bytesStream = new MemoryStream(bytes)
         let stream = NBitcoin.BitcoinStream(bytesStream, true)
         accountKey.ReadWrite stream
-        NBitcoin.ExtKey bytes
+        NodeMasterPrivKey <| NBitcoin.ExtKey bytes
+
+    static member AccountPrivateKeyToNodePubKey (accountKey: Key): PubKey =
+        let nodeMasterPrivKey = Node.AccountPrivateKeyToNodeMasterPrivKey accountKey
+        nodeMasterPrivKey.NodeId().Value
 
     member internal self.OpenChannel (nodeEndPoint: NodeEndPoint)
                                      (channelCapacity: TransferAmount)
@@ -295,7 +298,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 return failwith <| SPrintF1 "Received error while waiting for lightning message: %s" (err :> IErrorMsg).Message
             | Ok (peerNodeAfterMsgReceived, channelMsg) ->
                 match channelMsg with
-                | :? DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
+                | :? DotNetLightning.Serialization.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
                     let activeChannelAfterMsgReceived = { activeChannel with
                                                             ConnectedChannel = { activeChannel.ConnectedChannel with
                                                                                     PeerNode = peerNodeAfterMsgReceived }}
@@ -307,7 +310,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
 
     member private self.HandleMonoHopUnidirectionalPaymentMsg (activeChannel: ActiveChannel)
                                                               (channelId: ChannelIdentifier)
-                                                              (monoHopUnidirectionalPaymentMsg: DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg)
+                                                              (monoHopUnidirectionalPaymentMsg: DotNetLightning.Serialization.Msgs.MonoHopUnidirectionalPaymentMsg)
                                                                   : Async<Result<unit, IErrorMsg>> = async {
         let! paymentRes = activeChannel.RecvMonoHopUnidirectionalPayment monoHopUnidirectionalPaymentMsg
         match paymentRes with
@@ -363,7 +366,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 return failwith <| SPrintF1 "Received error while waiting for lightning message: %s" (err :> IErrorMsg).Message
             | Ok (peerNodeAfterMsgReceived, channelMsg) ->
                 match channelMsg with
-                | :? DotNetLightning.Serialize.Msgs.ShutdownMsg as shutdownMsg ->
+                | :? DotNetLightning.Serialization.Msgs.ShutdownMsg as shutdownMsg ->
                     let activeChannelAfterMsgReceived = { activeChannel with
                                                             ConnectedChannel = { activeChannel.ConnectedChannel with
                                                                                     PeerNode = peerNodeAfterMsgReceived }}
@@ -374,7 +377,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
     }
 
     member private self.HandleShutdownMsg (activeChannel: ActiveChannel)
-                                          (shutdownMsg: DotNetLightning.Serialize.Msgs.ShutdownMsg)
+                                          (shutdownMsg: DotNetLightning.Serialization.Msgs.ShutdownMsg)
                                               : Async<Result<unit, IErrorMsg>> = async {
         let! closeRes = ClosedChannel.AcceptCloseChannel (activeChannel.ConnectedChannel, shutdownMsg)
         match closeRes with
@@ -434,12 +437,12 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                         ConnectedChannel = connectedChannelAfterMsgReceived
                 }
                 match channelMsg with
-                | :? DotNetLightning.Serialize.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
+                | :? DotNetLightning.Serialization.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
                     let! res = self.HandleMonoHopUnidirectionalPaymentMsg activeChannelAfterMsgReceived channelId monoHopUnidirectionalPaymentMsg
                     match res with
                     | Error err -> return Error err
                     | Ok () -> return Ok IncomingChannelEvent.MonoHopUnidirectionalPayment
-                | :? DotNetLightning.Serialize.Msgs.ShutdownMsg as shutdownMsg ->
+                | :? DotNetLightning.Serialization.Msgs.ShutdownMsg as shutdownMsg ->
                     let! res = self.HandleShutdownMsg activeChannelAfterMsgReceived shutdownMsg
                     match res with
                     | Error err -> return Error err
@@ -468,7 +471,7 @@ module public Connection =
                      (bindAddress: IPEndPoint)
                          : Node =
         let privateKey = Account.GetPrivateKey channelStore.Account password
-        let secretKey: ExtKey = Node.AccountPrivateKeyToNodeSecret privateKey
-        let transportListener = TransportListener.Bind secretKey bindAddress
+        let nodeMasterPrivKey: NodeMasterPrivKey = Node.AccountPrivateKeyToNodeMasterPrivKey privateKey
+        let transportListener = TransportListener.Bind nodeMasterPrivKey bindAddress
         new Node (channelStore, transportListener)
 

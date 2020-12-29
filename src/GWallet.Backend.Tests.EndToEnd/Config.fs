@@ -20,8 +20,7 @@ module Config =
         // the same in each process.
         new Key(uint256.Parse("9d1ee30acb68716ed5f4e25b3c052c6078f1813f45d33a47e46615bfd05fa6fe").ToBytes())
     let FundeeNodePubKey =
-        let extKey = Node.AccountPrivateKeyToNodeSecret FundeeAccountsPrivateKey
-        extKey.PrivateKey.PubKey
+        Node.AccountPrivateKeyToNodePubKey FundeeAccountsPrivateKey
     let FundeeLightningIPEndpoint = IPEndPoint (IPAddress.Parse "127.0.0.1", 9735)
 
 
