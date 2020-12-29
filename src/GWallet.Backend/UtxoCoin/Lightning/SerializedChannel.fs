@@ -91,6 +91,7 @@ type SerializedChannel =
         RemoteNodeId: NodeId
         // this is the amount of confirmations that the counterparty told us that the funding transaction needs
         MinSafeDepth: BlockHeightOffset32
+        LocalForceCloseSpendingTxOpt: Option<string>
     }
 
     static member LightningSerializerSettings currency: JsonSerializerSettings =

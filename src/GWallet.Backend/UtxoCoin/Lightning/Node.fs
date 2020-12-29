@@ -5,11 +5,14 @@ open System.IO
 open System.Net
 
 open NBitcoin
+open DotNetLightning.Channel
+open DotNetLightning.Crypto
 open DotNetLightning.Utils
 open ResultUtils.Portability
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type internal NodeOpenChannelError =
@@ -463,6 +466,62 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 Infrastructure.ReportWarningMessage msg
             return Error <| (NodeReceiveLightningEventError.Reconnect reconnectActiveChannelError :> IErrorMsg)
         | Ok activeChannel -> return! receiveEvent activeChannel
+    }
+
+    member self.ForceCloseUsingCommitmentTx (commitmentTxString: string)
+                                            (channelId: ChannelIdentifier)
+                                                : Async<string> = async {
+        let account = self.Account :> IAccount
+        let currency = account.Currency
+        let serializedChannel = self.ChannelStore.LoadChannel channelId
+        let! spendingTransaction = async {
+            let network =
+                UtxoCoin.Account.GetNetwork currency
+            let commitmentTx =
+                Transaction.Parse(commitmentTxString, network)
+            let commitments = 
+                ChannelSerialization.Commitments serializedChannel
+            let channelPrivKeys =
+                let channelIndex = serializedChannel.ChannelIndex
+                let nodeMasterPrivKey = self.TransportListener.NodeMasterPrivKey
+                nodeMasterPrivKey.ChannelPrivKeys channelIndex
+            let targetAddress =
+                let originAddress = account.PublicAddress
+                BitcoinAddress.Create(originAddress, network)
+            let! feeRate = async {
+                let! feeEstimator = FeeEstimator.Create currency
+                return feeEstimator.FeeRatePerKw
+            }
+            let spendingTransactionOpt =
+                ForceCloseFundsRecovery.tryGetFundsFromLocalCommitmentTx
+                    commitments
+                    channelPrivKeys
+                    network
+                    commitmentTx
+                    targetAddress
+                    feeRate
+            return UnwrapOption
+                spendingTransactionOpt
+                "Failed to get funds from our own commitment tx! This is a bug."
+        }
+        return spendingTransaction.ToHex()
+    }
+
+    member self.ForceClose (channelId: ChannelIdentifier)
+                               : Async<string> = async {
+        let commitmentTxString = self.ChannelStore.GetCommitmentTx channelId
+        let serializedChannel = self.ChannelStore.LoadChannel channelId
+        let! spendingTxString = self.ForceCloseUsingCommitmentTx commitmentTxString channelId
+        let currency =
+            let account = self.Account :> IAccount
+            account.Currency
+        let! forceCloseTxId = UtxoCoin.Account.BroadcastRawTransaction currency commitmentTxString
+        let newSerializedChannel = {
+            serializedChannel with
+                LocalForceCloseSpendingTxOpt = Some spendingTxString
+        }
+        self.ChannelStore.SaveChannel newSerializedChannel
+        return forceCloseTxId
     }
 
 module public Connection =

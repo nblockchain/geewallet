@@ -12,12 +12,12 @@ open GWallet.Backend.UtxoCoin
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Frontend.Console
 
-let MaybeForceCloseChannel (channelStore: ChannelStore)
+let MaybeForceCloseChannel (lightningNode: Node)
                            (channelId: ChannelIdentifier)
                            (error: IErrorMsg): Async<unit> = async {
     if error.ChannelBreakdown then
         let! forceCloseTxId =
-            channelStore.ForceClose channelId
+            Lightning.Network.ForceClose lightningNode channelId
         Console.WriteLine(sprintf "Channel %s force-closed. txid == %s" (ChannelId.ToString channelId) forceCloseTxId)
 }
 
@@ -122,7 +122,7 @@ let SendLightningPayment(): Async<unit> = async {
             match paymentRes with
             | Error nodeSendMonoHopPaymentError ->
                 Console.WriteLine(sprintf "Error sending monohop payment: %s" nodeSendMonoHopPaymentError.Message)
-                do! MaybeForceCloseChannel channelStore channelId nodeSendMonoHopPaymentError
+                do! MaybeForceCloseChannel lightningNode channelId nodeSendMonoHopPaymentError
             | Ok () ->
                 Console.WriteLine "Payment sent."
             UserInteraction.PressAnyKeyToContinue()
@@ -143,7 +143,7 @@ let CloseChannel(): Async<unit> =
             match closeRes with
             | Error closeError ->
                 Console.WriteLine(sprintf "Error closing channel: %s" closeError.Message)
-                do! MaybeForceCloseChannel channelStore channelId closeError
+                do! MaybeForceCloseChannel lightningNode channelId closeError
             | Ok () ->
                 Console.WriteLine "Channel closed."
             UserInteraction.PressAnyKeyToContinue()
@@ -165,7 +165,7 @@ let AcceptLightningEvent(): Async<unit> = async {
         match receiveLightningEventRes with
         | Error nodeReceiveLightningEventError ->
             Console.WriteLine(sprintf "Error receiving lightning event: %s" nodeReceiveLightningEventError.Message)
-            do! MaybeForceCloseChannel channelStore channelId nodeReceiveLightningEventError
+            do! MaybeForceCloseChannel lightningNode channelId nodeReceiveLightningEventError
         | Ok msg ->
             match msg with
             | IncomingChannelEvent.MonoHopUnidirectionalPayment ->
@@ -199,7 +199,7 @@ let LockChannel (channelStore: ChannelStore)
         match lockFundingRes with
         | Error lockFundingError ->
             Console.WriteLine(sprintf "Error reestablishing channel: %s" lockFundingError.Message)
-            do! MaybeForceCloseChannel channelStore channelId lockFundingError
+            do! MaybeForceCloseChannel lightningNode channelId lockFundingError
         | Ok () ->
             Console.WriteLine(sprintf "funding locked for channel %s" (ChannelId.ToString channelId))
         return seq {
@@ -225,6 +225,33 @@ let LockChannelIfFundingConfirmed (channelStore: ChannelStore)
         }
 }
 
+let ClaimFundsIfTimelockExpired (channelStore: ChannelStore)
+                                (channelInfo: ChannelInfo)
+                                (locallyForceClosedData: LocallyForceClosedData)
+                                    : Async<seq<string>> = async {
+    let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
+    let! remainingConfirmations = locallyForceClosedData.GetRemainingConfirmations()
+    if remainingConfirmations = 0us then
+        let! txId =
+            UtxoCoin.Account.BroadcastRawTransaction
+                locallyForceClosedData.Currency
+                locallyForceClosedData.SpendingTransactionString
+        return seq {
+            yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
+            yield sprintf "        channel force-closed"
+            yield sprintf "        funds have been recovered and returned to the wallet"
+            yield sprintf "        txid of recovery transaction is %s" txId
+        }
+    else
+        return seq {
+            yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
+            yield sprintf "        channel force-closed"
+            yield sprintf 
+                "        waiting for %i more confirmations before funds are recovered"
+                remainingConfirmations
+        }
+}
+
 let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>> = seq {
     let normalUtxoAccounts = accounts.OfType<UtxoCoin.NormalUtxoAccount>()
     for account in normalUtxoAccounts do
@@ -244,7 +271,19 @@ let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>>
                 let channelInfo = channelStore.ChannelInfo channelId
                 match channelInfo.Status with
                 | ChannelStatus.FundingBroadcastButNotLocked fundingBroadcastButNotLockedData ->
-                    yield LockChannelIfFundingConfirmed channelStore channelInfo fundingBroadcastButNotLockedData
+                    yield
+                        LockChannelIfFundingConfirmed
+                            channelStore
+                            channelInfo
+                            fundingBroadcastButNotLockedData
+                | ChannelStatus.LocallyForceClosed locallyForceClosedData ->
+                    yield async {
+                        return
+                            ClaimFundsIfTimelockExpired
+                                channelStore
+                                channelInfo
+                                locallyForceClosedData
+                    }
                 | ChannelStatus.Active ->
                     yield async {
                         return async {

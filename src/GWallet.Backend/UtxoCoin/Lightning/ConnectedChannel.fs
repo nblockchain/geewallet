@@ -241,6 +241,7 @@ type internal ConnectedChannel =
             AccountFileName = self.Account.AccountFile.Name
             CounterpartyIP = self.PeerNode.PeerId.Value :?> IPEndPoint
             MinSafeDepth = self.MinimumDepth
+            LocalForceCloseSpendingTxOpt = None
         }
         channelStore.SaveChannel serializedChannel
 
