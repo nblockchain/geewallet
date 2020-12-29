@@ -12,27 +12,27 @@ type SerializedChannelTest() =
   "version": "0.3.211.0",
   "typeName": "GWallet.Backend.UtxoCoin.Lightning.SerializedChannel",
   "value": {
-    "channelIndex": 903692971,
+    "channelIndex": 303655427,
     "network": "RegTest",
     "chanState": {
       "case": "Normal",
       "fields": [
         {
           "commitments": {
-            "channelId": "ac5ce55b5d8ae0fa06a58a645300e35ea436eae8bcb3211e87e9023cb8c82f23",
+            "channelId": "665448ef7f783d6b775f1655ff2aa5237c5dd9909ada5e42cbca8dbf5c6d8169",
             "channelFlags": 1,
             "fundingScriptCoin": {
               "isP2SH": false,
               "redeemType": 1,
-              "redeem": "5221025ec158997cbe74136495ac172df99ea003e7e94042ade06590991bfacafce4bf21036e220d166adf482b4311704f3517ff5f32688096a566add72535484d6f02bcc652ae",
+              "redeem": "5221035fc98b7dc5b66d6bb9bfeb8216018387db3513a9b44daa7ff5f0c58663909edc2103dd76abbf83dd23dd4a9bb7b18eca1c6ea6255335c105dc04ed00ba454814804c52ae",
               "canGetScriptCode": true,
-              "outpoint": "232fc8b83c02e9871e21b3bce8ea36a45ee30053648aa506fae08a5d5be55cac00000000",
+              "outpoint": "69816d5cbf8dcacb425eda9a90d95d7c23a52aff55165f776b3d787fef48546600000000",
               "txOut": {
-                "scriptPubKey": "0020c11ba76a3d4c52c8dd6c55b69f3bc7c494922cadc70ed297a4af443383c5db71",
+                "scriptPubKey": "0020c4833fdbf6323d74fd40b8dc90d76090e52a92fc495559472423528917311872",
                 "value": 200000
               },
               "amount": 200000,
-              "scriptPubKey": "0020c11ba76a3d4c52c8dd6c55b69f3bc7c494922cadc70ed297a4af443383c5db71"
+              "scriptPubKey": "0020c4833fdbf6323d74fd40b8dc90d76090e52a92fc495559472423528917311872"
             },
             "localChanges": {
               "proposed": [],
@@ -76,19 +76,19 @@ type SerializedChannelTest() =
                       "rbf": true,
                       "version": 2,
                       "totalOut": 190950,
-                      "lockTime": 541687920,
+                      "lockTime": 544455406,
                       "inputs": [
                         {
-                          "sequence": 2163014744,
-                          "prevOut": "232fc8b83c02e9871e21b3bce8ea36a45ee30053648aa506fae08a5d5be55cac00000000",
+                          "sequence": 2150073653,
+                          "prevOut": "69816d5cbf8dcacb425eda9a90d95d7c23a52aff55165f776b3d787fef48546600000000",
                           "scriptSig": "",
-                          "witScript": "040047304402205f54247e4a3036a9c9cdb31fa88e8c6681b0c2ce3d73f90be73a3e324187991202207bb1c7ef8f9eeb98494a9d2f0bbc738dde85881320713126feb07d526680a1d90147304402200f86f9f0ecc97f0db06fa2cc5df15662b0c16c758b41472bb6419b3e4249bdf502204360d3b7677fdd94865445002a417995c1932d5787a099ddbf55b93779bb5bee01475221025ec158997cbe74136495ac172df99ea003e7e94042ade06590991bfacafce4bf21036e220d166adf482b4311704f3517ff5f32688096a566add72535484d6f02bcc652ae",
+                          "witScript": "040047304402207d586ba70e3355e6861c6e83bc1b21f33faaecd6617802fc47ee22ccd5aca6a20220237262357650d1be3eabf4fbc8602b7f957f3991632dfcdad74d96181f404f140147304402200445260c98b69ab57287c4cccbfc25ff75d8dd9bd87c5149d17a313793b7d92b02200d7a3861d57a244296c7b1687ee531c755f36c2f02479dd35f2799559e9dd9a001475221035fc98b7dc5b66d6bb9bfeb8216018387db3513a9b44daa7ff5f0c58663909edc2103dd76abbf83dd23dd4a9bb7b18eca1c6ea6255335c105dc04ed00ba454814804c52ae",
                           "isFinal": false
                         }
                       ],
                       "outputs": [
                         {
-                          "scriptPubKey": "0014f649d8ab6a723a59b830b789e299b58f5c40caef",
+                          "scriptPubKey": "0014f2a369d9d497bc84a1b6beb75c9bfa5e89ed1c2f",
                           "value": 190950
                         }
                       ],
@@ -111,38 +111,38 @@ type SerializedChannelTest() =
               "nodeId": {
                 "case": "NodeId",
                 "fields": [
-                  "02359f49a1f8314274bd6b389c0408a77772f6339ac15bf6c30f12e88670e94d1e"
+                  "02531631e8c6035917f74967c2c5ab7c747030123819e2155112bf54660e7318ff"
                 ]
               },
               "channelPubKeys": {
                 "fundingPubKey": {
                   "case": "FundingPubKey",
                   "fields": [
-                    "036e220d166adf482b4311704f3517ff5f32688096a566add72535484d6f02bcc6"
+                    "035fc98b7dc5b66d6bb9bfeb8216018387db3513a9b44daa7ff5f0c58663909edc"
                   ]
                 },
                 "revocationBasepoint": {
                   "case": "RevocationBasepoint",
                   "fields": [
-                    "02b991bcec8eb90cca4df3b2623e60cfe0ba7b9aea243f1c6b1cacd4323bad5141"
+                    "03a2ca70d1d75d04c872f0aa779c54fd1d97c1cf49657e51d2b77c7aeeb858c0b7"
                   ]
                 },
                 "paymentBasepoint": {
                   "case": "PaymentBasepoint",
                   "fields": [
-                    "0377f77a5e50a309483ff5a73016d18b51b9340414d1999da84f4be73af16fa69d"
+                    "020de8025a483b7aa22d7d95e29c245bf9e4c1d0db6df1a7ef5471234fb0828b41"
                   ]
                 },
                 "delayedPaymentBasepoint": {
                   "case": "DelayedPaymentBasepoint",
                   "fields": [
-                    "022500be5526d6ef578566950b3788ac575ad1e69fb74f9523bc9bf891553bb7c7"
+                    "023ffb464454459bacc952b31158f6f243579435f72de27110a396c914247fbee8"
                   ]
                 },
                 "htlcBasepoint": {
                   "case": "HtlcBasepoint",
                   "fields": [
-                    "025b97f531c44485d19ae4c459ebd18273ae1c168373df09286337ea304959ba46"
+                    "0234b85dc90eb9d2440689f97727378fa7f8ce3bc5f1aa0c9fa1a807fe04d6e238"
                   ]
                 }
               },
@@ -168,7 +168,7 @@ type SerializedChannelTest() =
               },
               "maxAcceptedHTLCs": 10,
               "isFunder": false,
-              "defaultFinalScriptPubKey": "a914ac351a902327793cb7fdcda4c024ec90ef45e8fa87",
+              "defaultFinalScriptPubKey": "a91439cb278a6d43742808ee6d1ef8ebca5d5805202087",
               "features": "10"
             },
             "originChannels": {},
@@ -209,13 +209,13 @@ type SerializedChannelTest() =
               "txId": {
                 "case": "TxId",
                 "fields": [
-                  "3b18008b7e82ed5c6cc48974deae21ab61ea95012de946564f44fc7889d85489"
+                  "77af2e789a1cd752c633389d84cd4e19bc97254c04295138068d28d8d8466b4a"
                 ]
               },
               "remotePerCommitmentPoint": {
                 "case": "PerCommitmentPoint",
                 "fields": [
-                  "0348445245bc5b0d4c003b0ed6c00dc34c4096dd8dbee55508a4f618080f9f8376"
+                  "03209f80716bfaefa9d37453497c29f40cd94c6ef9c862771f87f1a4154cf8c8b3"
                 ]
               }
             },
@@ -225,7 +225,7 @@ type SerializedChannelTest() =
                 {
                   "case": "PerCommitmentPoint",
                   "fields": [
-                    "03ae10084012d3ff29e7fc45b0a93e5233a1abb38a4f3c1b96c9788c688333709a"
+                    "03a890b39e0de045dc2c19c2a8ff9f46a0e79517686f9655793704680e62a0f8f4"
                   ]
                 }
               ]
@@ -240,7 +240,7 @@ type SerializedChannelTest() =
               "nodeId": {
                 "case": "NodeId",
                 "fields": [
-                  "02359f49a1f8314274bd6b389c0408a77772f6339ac15bf6c30f12e88670e94d1e"
+                  "02531631e8c6035917f74967c2c5ab7c747030123819e2155112bf54660e7318ff"
                 ]
               },
               "dustLimitSatoshis": 573,
@@ -268,31 +268,31 @@ type SerializedChannelTest() =
                 "fundingPubKey": {
                   "case": "FundingPubKey",
                   "fields": [
-                    "025ec158997cbe74136495ac172df99ea003e7e94042ade06590991bfacafce4bf"
+                    "03dd76abbf83dd23dd4a9bb7b18eca1c6ea6255335c105dc04ed00ba454814804c"
                   ]
                 },
                 "revocationBasepoint": {
                   "case": "RevocationBasepoint",
                   "fields": [
-                    "03ea5cb6a7a314ebc2f0a5298c206786c718486e4708df361b81529b3aa50d1ad9"
+                    "03a16572214b45b8568c0ea2e60ac77143df4b0c9d388014341971e34f26b7001f"
                   ]
                 },
                 "paymentBasepoint": {
                   "case": "PaymentBasepoint",
                   "fields": [
-                    "024dd54d57bc292e5778ca440aab0748115ea06a6bbc90367df16824d7f2e6a77c"
+                    "03ad3095101965bd5050fbfa54888579fc22831622a45901e70ba281c17df3c973"
                   ]
                 },
                 "delayedPaymentBasepoint": {
                   "case": "DelayedPaymentBasepoint",
                   "fields": [
-                    "024a2b9de1a687ce31f5422fbe01f0bcc898bd7c4413404df17b3c80575f44d8d8"
+                    "02dbd2d4ee2bf059335452c9e8dd101316b5b3e0e5c203ee7f904e8f9012a09d68"
                   ]
                 },
                 "htlcBasepoint": {
                   "case": "HtlcBasepoint",
                   "fields": [
-                    "026089e7eeaa8c5a92f0ae369b502fd11087888919622e2bcd6d4e457a4e9a9f3b"
+                    "034e945128ac878ed10f630acd3d4267f31d30855907926203028d6cc48f0e8418"
                   ]
                 }
               },
@@ -333,7 +333,7 @@ type SerializedChannelTest() =
             "signature@": {
               "case": "LNECDSASignature",
               "fields": [
-                "30440220460d44f1e0c7363d29bf055b2c788dd9e66cf05bc36e90e19fcbb9454f5789fc022019944e53046a0f3de29c5945ac8b9692b39e76d6270f9ec6c6ab9b4d552427f2"
+                "30440220735696a3515c80b97562ae01bf4a1c1e4ccd6a44193a00002d4df2093618672302201c37cc298829cbcfcdabe8f13b021399a90745767cd8710acc5e8bbe67e3587e"
               ]
             },
             "contents@": {
@@ -359,7 +359,7 @@ type SerializedChannelTest() =
                 },
                 "asString": "102x1x0"
               },
-              "timestamp@": 1609236445,
+              "timestamp@": 1609240018,
               "messageFlags@": 0,
               "channelFlags@": 2,
               "cltvExpiryDelta@": {
@@ -404,7 +404,7 @@ type SerializedChannelTest() =
                 },
                 "asString": "102x1x0"
               },
-              "timestamp": 1609236445,
+              "timestamp": 1609240018,
               "messageFlags": 0,
               "channelFlags": 2,
               "cltvExpiryDelta": {
@@ -431,7 +431,7 @@ type SerializedChannelTest() =
             "signature": {
               "case": "LNECDSASignature",
               "fields": [
-                "30440220460d44f1e0c7363d29bf055b2c788dd9e66cf05bc36e90e19fcbb9454f5789fc022019944e53046a0f3de29c5945ac8b9692b39e76d6270f9ec6c6ab9b4d552427f2"
+                "30440220735696a3515c80b97562ae01bf4a1c1e4ccd6a44193a00002d4df2093618672302201c37cc298829cbcfcdabe8f13b021399a90745767cd8710acc5e8bbe67e3587e"
               ]
             },
             "contents": {
@@ -457,7 +457,7 @@ type SerializedChannelTest() =
                 },
                 "asString": "102x1x0"
               },
-              "timestamp@": 1609236445,
+              "timestamp@": 1609240018,
               "messageFlags@": 0,
               "channelFlags@": 2,
               "cltvExpiryDelta@": {
@@ -502,7 +502,7 @@ type SerializedChannelTest() =
                 },
                 "asString": "102x1x0"
               },
-              "timestamp": 1609236445,
+              "timestamp": 1609240018,
               "messageFlags": 0,
               "channelFlags": 2,
               "cltvExpiryDelta": {
@@ -533,21 +533,21 @@ type SerializedChannelTest() =
           "channelId": {
             "case": "ChannelId",
             "fields": [
-              "ac5ce55b5d8ae0fa06a58a645300e35ea436eae8bcb3211e87e9023cb8c82f23"
+              "665448ef7f783d6b775f1655ff2aa5237c5dd9909ada5e42cbca8dbf5c6d8169"
             ]
           }
         }
       ]
     },
-    "accountFileName": "0252b4e4866425fc57691094c2629794aba6c48667d46d865ac2cbe543c86051f1",
+    "accountFileName": "035e5a215294ee353b8f23536684c0a589567a8eedf9d62e45986a50f73ff4fc6b",
     "counterpartyIP": [
       "127.0.0.1",
-      55106
+      57944
     ],
     "remoteNodeId": {
       "case": "NodeId",
       "fields": [
-        "02359f49a1f8314274bd6b389c0408a77772f6339ac15bf6c30f12e88670e94d1e"
+        "02531631e8c6035917f74967c2c5ab7c747030123819e2155112bf54660e7318ff"
       ]
     },
     "minSafeDepth": {
@@ -555,7 +555,8 @@ type SerializedChannelTest() =
       "fields": [
         1
       ]
-    }
+    },
+    "localForceCloseSpendingTxOpt": null
   }
 }
 """

@@ -38,4 +38,6 @@ module public Network =
     let public ReceiveMonoHopPayment (lightningNode: Node) = lightningNode.ReceiveMonoHopPayment
     let public ReceiveLightningEvent (lightningNode: Node) = lightningNode.ReceiveLightningEvent
     let public LockChannelFunding (lightningNode: Node) = lightningNode.LockChannelFunding
+    let public ForceCloseUsingCommitmentTx (lightningNode: Node) = lightningNode.ForceCloseUsingCommitmentTx
     let public EndPoint (lightningNode: Node) = lightningNode.EndPoint
+    let public ForceClose (lightningNode: Node) = lightningNode.ForceClose
