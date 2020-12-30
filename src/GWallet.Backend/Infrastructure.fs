@@ -4,11 +4,19 @@ open System
 open System.IO
 open System.Text
 open System.Diagnostics
+open System.Runtime.Serialization
 
 open SharpRaven
 open SharpRaven.Data
 
 open GWallet.Backend.FSharpUtil.UwpHacks
+
+type SentryReportingException =
+    inherit Exception
+
+    new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit Exception (info, context) }
 
 module Infrastructure =
 
@@ -64,7 +72,8 @@ module Infrastructure =
             )
         with
         | ex ->
-            LogCrash ex true |> ignore
+            let newEx = SentryReportingException("Error while trying to send Sentry report", ex)
+            LogCrash newEx true |> ignore
             false
 
     let internal Flush () =
