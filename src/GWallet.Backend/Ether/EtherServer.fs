@@ -319,6 +319,7 @@ module Server =
                 (
                     fun ex ->
                         Infrastructure.ReportWarning ex
+                        |> ignore
                 )
             ResultSelectionMode =
                 Selective
