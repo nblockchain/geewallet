@@ -90,7 +90,9 @@ module MarshallingData =
                     let endOfStackTrace = initialStackTraceJToken.Substring(initialStackTraceJToken.IndexOf stackTraceFragment)
                     let tweakedEndOfStackTrace =
                         if isUnix then
-                            endOfStackTrace.Replace(":line 42", ":41 ")
+                            endOfStackTrace
+                                .Replace(":line 42", ":41 ")
+                                .Replace(":line 65", ":64 ")
                         else
                             endOfStackTrace
                     stackTraceJToken.Replace (tweakedEndOfStackTrace |> JToken.op_Implicit)

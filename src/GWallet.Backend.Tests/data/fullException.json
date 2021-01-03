@@ -1,31 +1,23 @@
 {
   "Version": "{version}",
-  "TypeName": "GWallet.Backend.Tests.CustomException",
+  "TypeName": "GWallet.Backend.MarshalledException",
   "Value": {
-    "ClassName": "GWallet.Backend.Tests.CustomException",
-    "Message": "msg",
-    "Data": null,
-    "InnerException": {
-      "ClassName": "GWallet.Backend.Tests.CustomException",
-      "Message": "innerMsg",
-      "Data": null,
-      "InnerException": null,
-      "HelpURL": null,
-      "StackTraceString": null,
-      "RemoteStackTraceString": null,
-      "RemoteStackIndex": 0,
-      "ExceptionMethod": null,
-      "HResult": -2146233088,
-      "Source": null,
-      "WatsonBuckets": null
+    "HumanReadableSummary": {
+      "ExceptionType": "GWallet.Backend.Tests.CustomException",
+      "Message": "msg",
+      "StackTrace": "  at GWallet.Backend.Tests.ExceptionMarshalling.SerializeFullException () [0x00016] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:line 65",
+      "InnerException": {
+        "Case": "Some",
+        "Fields": [
+          {
+            "ExceptionType": "GWallet.Backend.Tests.CustomException",
+            "Message": "innerMsg",
+            "StackTrace": "",
+            "InnerException": null
+          }
+        ]
+      }
     },
-    "HelpURL": null,
-    "StackTraceString": "  at GWallet.Backend.Tests.ExceptionMarshalling.can serialize full exceptions (all previous features combined) () [0x00016] in {prjDirAbsolutePath}/ExceptionMarshalling.fs:line 68",
-    "RemoteStackTraceString": null,
-    "RemoteStackIndex": 0,
-    "ExceptionMethod": "8\ncan serialize full exceptions (all previous features combined)\nGWallet.Backend.Tests, Version={version}, Culture=neutral, PublicKeyToken=null\nGWallet.Backend.Tests.ExceptionMarshalling\nVoid can serialize full exceptions (all previous features combined)()",
-    "HResult": -2146233088,
-    "Source": "GWallet.Backend.Tests",
-    "WatsonBuckets": null
+    "FullBinaryForm": "{binaryMarshalledException}"
   }
 }

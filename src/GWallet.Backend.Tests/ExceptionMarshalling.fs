@@ -57,6 +57,18 @@ type ExceptionMarshalling () =
         let ex = CustomFSharpException
         Marshalling.Serialize ex
 
+    let SerializeFullException () =
+        let someCEx = CustomException("msg", CustomException "innerMsg")
+        let ex =
+            try
+                raise someCEx
+                someCEx
+            with
+            | :? CustomException as cex ->
+                cex
+        Marshalling.Serialize someCEx
+
+
     [<Test>]
     member __.``can serialize basic exceptions``() =
         let json = SerializeBasicException ()
@@ -193,19 +205,30 @@ type ExceptionMarshalling () =
     // TODO: test marshalling custom exceptions with custom properties/fields, and custom F# exception with subtypes
 
     [<Test>]
-    [<Ignore "NIE">]
     member __.``can serialize full exceptions (all previous features combined)``() =
-        let someCEx = CustomException("msg", CustomException "innerMsg")
-        let ex =
-            try
-                raise someCEx
-                someCEx
-            with
-            | :? CustomException as cex ->
-                cex
-        let json = Marshalling.Serialize ex
+        let json = SerializeFullException ()
+
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
         Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionExampleInJson)
+
+    [<Test>]
+    member __.``can deserialize full exceptions (all previous features combined)``() =
+        let fullExceptionSerialized =
+            try
+                SerializeFullException ()
+            with
+            | _ ->
+                Assert.Inconclusive "Fix the serialization test first"
+                failwith "unreachable"
+
+        let ex: Exception = Marshalling.Deserialize fullExceptionSerialized
+        Assert.That(ex, Is.Not.Null)
+        Assert.That(ex, Is.InstanceOf<CustomException> ())
+        Assert.That(ex.Message, Is.Not.Null)
+        Assert.That(ex.Message, Is.Not.Empty)
+        Assert.That(ex.InnerException, Is.Not.Null)
+        Assert.That(ex.StackTrace, Is.Not.Null)
+        Assert.That(ex.StackTrace, Is.Not.Empty)
 
