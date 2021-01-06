@@ -160,6 +160,12 @@ type ProcessWrapper = {
                 lines
         fold List.empty
 
+type EstimateSmartFeeResponse = {
+    feerate: decimal
+    errors: list<string>
+    blocks: uint64
+}
+
 type Bitcoind = {
     WorkDir: string
     DataDir: string
@@ -240,6 +246,125 @@ type Bitcoind = {
         let output = String.concat "\n" lines
         let txIdList = JsonConvert.DeserializeObject<list<string>> output
         List.map (fun (txIdString: string) -> TxId <| uint256 txIdString) txIdList
+
+    member this.EstimateSmartFee (confirmationTarget: BlockHeightOffset16): Option<FeeRatePerKw> =
+        use bitcoinCli =
+            ProcessWrapper.New
+                "bitcoin-cli"
+                this.WorkDir
+                (SPrintF2 "-regtest -datadir=%s estimatesmartfee %i" this.DataDir confirmationTarget.Value)
+                Map.empty
+                false
+        let lines = bitcoinCli.ReadToEnd()
+        let output = String.concat "\n" lines
+        let estimateSmartFeeResponse = JsonConvert.DeserializeObject<EstimateSmartFeeResponse> output
+
+        if Object.ReferenceEquals(null, estimateSmartFeeResponse.errors) || estimateSmartFeeResponse.errors.Length = 0 then
+            let btcPerKB = estimateSmartFeeResponse.feerate
+            let satPerKB = (Money (btcPerKB, MoneyUnit.BTC)).ToUnit MoneyUnit.Satoshi
+            // 4 weight units per byte. See segwit specs.
+            let kwPerKB = 4m
+            let satPerKw = satPerKB / kwPerKB
+            let feeRatePerKw = FeeRatePerKw (uint32 satPerKw)
+            Some feeRatePerKw
+        else
+            None
+
+    member this.GetBalance(): Money =
+        use bitcoinCli =
+            ProcessWrapper.New
+                "bitcoin-cli"
+                this.WorkDir
+                (SPrintF1 "-regtest -datadir=%s getbalance" this.DataDir)
+                Map.empty
+                false
+        let lines = bitcoinCli.ReadToEnd()
+        let output = String.concat "\n" lines
+        let balance = JsonConvert.DeserializeObject<decimal> output
+        Money(balance, MoneyUnit.BTC)
+
+    member this.GetNewAddress(): BitcoinAddress =
+        use bitcoinCli =
+            ProcessWrapper.New
+                "bitcoin-cli"
+                this.WorkDir
+                (SPrintF1 "-regtest -datadir=%s getnewaddress" this.DataDir)
+                Map.empty
+                false
+        let lines = bitcoinCli.ReadToEnd()
+        let address = (String.concat "\n" lines).Trim()
+        BitcoinAddress.Create(address, Network.RegTest)
+
+    member this.FundByMining (amount: Money): unit =
+        let address = this.GetNewAddress()
+        let rec fund() =
+            let balance = this.GetBalance()
+            if balance < amount then
+                this.GenerateBlocks (BlockHeightOffset32 (uint32 1)) address
+                fund()
+        fund()
+
+    member this.SendToAddress (address: BitcoinAddress) (amount: Money): TxId =
+        use bitcoinCli =
+            ProcessWrapper.New
+                "bitcoin-cli"
+                this.WorkDir
+                (SPrintF3 "-regtest -datadir=%s sendtoaddress %s %M" this.DataDir (address.ToString()) (amount.ToUnit MoneyUnit.BTC))
+                Map.empty
+                false
+        let lines = bitcoinCli.ReadToEnd()
+        let txIdString = (String.concat "\n" lines).Trim()
+        let wowzers =
+            try
+                uint256 txIdString
+            with
+            | _ ->
+                failwithf "got this from sendtoaddress == %s" txIdString
+        TxId <| wowzers
+
+    member this.Burn (amount: Money): TxId =
+        let address =
+            let key = new Key()
+            let pubKey = key.PubKey
+            pubKey.GetAddress(ScriptPubKeyType.Segwit, Network.RegTest)
+        this.SendToAddress address amount
+
+    member this.SetFeeRate (feeRate: FeeRatePerKw): unit =
+        let feeRateDecimal =
+            let satPerKw = decimal feeRate.Value
+            let kwPerKB = 4m
+            let satPerKB = satPerKw * kwPerKB
+            let btcPerKB = (Money (satPerKB, MoneyUnit.Satoshi)).ToUnit MoneyUnit.BTC
+            btcPerKB
+        use bitcoinCli =
+            ProcessWrapper.New
+                "bitcoin-cli"
+                this.WorkDir
+                (SPrintF2 "-regtest -datadir=%s settxfee %M" this.DataDir feeRateDecimal)
+                Map.empty
+                false
+        let lines = bitcoinCli.ReadToEnd()
+        let output = String.concat "\n" lines
+        let success = JsonConvert.DeserializeObject<bool> output
+        assert success
+
+        let sinkAddress = this.GetNewAddress()
+        let rec fillBlocksUntilFeeRateSet() =
+            let rec fillBlock (txCount: int) =
+                let _txId = this.Burn(Money(0.0001m, MoneyUnit.BTC))
+                let newTxCount = this.GetTxIdsInMempool().Length
+                if newTxCount > txCount then
+                    fillBlock newTxCount
+            this.GenerateBlocks (BlockHeightOffset32 (uint32 1)) sinkAddress
+            fillBlock 0
+
+            let reportedFeeRateOpt = this.EstimateSmartFee (BlockHeightOffset16 (uint16 1))
+            match reportedFeeRateOpt with
+            | Some reportedFeeRate when reportedFeeRate >= feeRate -> ()
+            | _ ->
+                fillBlocksUntilFeeRateSet()
+        fillBlocksUntilFeeRateSet()
+        this.GenerateBlocks (BlockHeightOffset32 (uint32 1)) sinkAddress
 
     member this.RpcUrl: string =
         SPrintF2 "http://%s:%s@127.0.0.1:18554" this.RpcUser this.RpcPassword
