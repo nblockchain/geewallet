@@ -7,10 +7,6 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 module ElectrumClient =
 
-    let RegTestFakeFeeRate = ref 0.0002m
-    let SetRegTestFakeFeeRate (newFeeRate: decimal) =
-        RegTestFakeFeeRate := newFeeRate
-
     let private Init (fqdn: string) (port: uint32): Async<StratumClient> =
         let jsonRpcClient = new JsonRpcTcpClient(fqdn, port)
         let stratumClient = new StratumClient(jsonRpcClient)
@@ -142,23 +138,20 @@ module ElectrumClient =
     }
 
     let EstimateFee (numBlocksTarget: int) (stratumServer: Async<StratumClient>): Async<decimal> = async {
-        if Config.BitcoinNet() = NBitcoin.Network.RegTest then
-            return !RegTestFakeFeeRate
-        else
-            let! stratumClient = stratumServer
-            let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
-            if estimateFeeResult.Result = -1m then
-                return raise <| ServerMisconfiguredException("Fee estimation returned a -1 error code")
-            elif estimateFeeResult.Result <= 0m then
-                return raise <| ServerMisconfiguredException(SPrintF1 "Fee estimation returned an invalid non-positive value %M"
-                                                                      estimateFeeResult.Result)
+        let! stratumClient = stratumServer
+        let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
+        if estimateFeeResult.Result = -1m then
+            return raise <| ServerMisconfiguredException("Fee estimation returned a -1 error code")
+        elif estimateFeeResult.Result <= 0m then
+            return raise <| ServerMisconfiguredException(SPrintF1 "Fee estimation returned an invalid non-positive value %M"
+                                                                  estimateFeeResult.Result)
 
-            let btcPerKB = estimateFeeResult.Result
-            let satPerKB = (NBitcoin.Money(btcPerKB, NBitcoin.MoneyUnit.BTC)).ToUnit NBitcoin.MoneyUnit.Satoshi
-            let satPerB = satPerKB / decimal(1000)
-            Infrastructure.LogDebug <| SPrintF2
-                "Electrum server gave us a fee rate of %M BTC per KB = %M sat per B" btcPerKB satPerB
-            return btcPerKB
+        let btcPerKB = estimateFeeResult.Result
+        let satPerKB = (NBitcoin.Money(btcPerKB, NBitcoin.MoneyUnit.BTC)).ToUnit NBitcoin.MoneyUnit.Satoshi
+        let satPerB = satPerKB / decimal(1000)
+        Infrastructure.LogDebug <| SPrintF2
+            "Electrum server gave us a fee rate of %M BTC per KB = %M sat per B" btcPerKB satPerB
+        return btcPerKB
     }
 
     let BroadcastTransaction (transactionInHex: string) (stratumServer: Async<StratumClient>) = async {
