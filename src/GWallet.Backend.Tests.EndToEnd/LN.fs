@@ -37,7 +37,13 @@ type ProcessWrapper = {
     Process: Process
     Queue: ConcurrentQueue<string>
     Semaphore: Semaphore
+    OutputFileStream: StreamWriter
 } with
+    interface IDisposable with
+        member this.Dispose() =
+            (this.OutputFileStream :> IDisposable).Dispose()
+            (this.Process :> IDisposable).Dispose()
+
     static member New (name: string)
                       (workDir: string)
                       (arguments: string)
@@ -124,6 +130,7 @@ type ProcessWrapper = {
             Process = proc
             Queue = queue
             Semaphore = semaphore
+            OutputFileStream = outputFileStream
         }
 
     member this.WaitForMessage(msgFilter: string -> bool) =
@@ -164,6 +171,7 @@ type Bitcoind = {
         member this.Dispose() =
             this.ProcessWrapper.Process.Kill()
             this.ProcessWrapper.WaitForExit()
+            (this.ProcessWrapper :> IDisposable).Dispose()
             Directory.Delete(this.DataDir, true)
 
     static member Start(): Bitcoind =
@@ -211,7 +219,7 @@ type Bitcoind = {
         }
 
     member this.GenerateBlocks (number: BlockHeightOffset32) (address: BitcoinAddress) =
-        let bitcoinCli =
+        use bitcoinCli =
             ProcessWrapper.New
                 "bitcoin-cli"
                 this.WorkDir
@@ -221,7 +229,7 @@ type Bitcoind = {
         bitcoinCli.WaitForExit()
 
     member this.GetTxIdsInMempool(): list<TxId> =
-        let bitcoinCli =
+        use bitcoinCli =
             ProcessWrapper.New
                 "bitcoin-cli"
                 this.WorkDir
@@ -244,6 +252,7 @@ type ElectrumServer = {
         member this.Dispose() =
             this.ProcessWrapper.Process.Kill()
             this.ProcessWrapper.WaitForExit()
+            (this.ProcessWrapper :> IDisposable).Dispose()
             Directory.Delete(this.DbDir, true)
 
     static member Start(bitcoind: Bitcoind): ElectrumServer =
@@ -303,6 +312,7 @@ type Lnd = {
         member this.Dispose() =
             this.ProcessWrapper.Process.Kill()
             this.ProcessWrapper.WaitForExit()
+            (this.ProcessWrapper :> IDisposable).Dispose()
             Directory.Delete(this.LndDir, true)
 
     static member Start(bitcoind: Bitcoind): Async<Lnd> = async {
@@ -372,7 +382,8 @@ type Lnd = {
 
     member this.GetBlockHeight(): Async<BlockHeight> = async {
         let client = this.Client()
-        let! getInfo = Async.AwaitTask (client.SwaggerClient.GetInfoAsync())
+        use task = client.SwaggerClient.GetInfoAsync()
+        let! getInfo = Async.AwaitTask task
         return BlockHeight (uint32 getInfo.Block_height.Value)
     }
 
@@ -386,7 +397,8 @@ type Lnd = {
 
     member this.Balance(): Async<Money> = async {
         let client = this.Client()
-        let! balance = Async.AwaitTask (client.SwaggerClient.WalletBalanceAsync ())
+        use task = client.SwaggerClient.WalletBalanceAsync ()
+        let! balance = Async.AwaitTask task
         return Money(uint64 balance.Confirmed_balance, MoneyUnit.Satoshi)
     }
 
@@ -407,7 +419,8 @@ type Lnd = {
                 Amount = (money.ToUnit MoneyUnit.Satoshi).ToString(),
                 Sat_per_byte = feerate.Value.ToString()
             )
-        let! sendCoinsResp = Async.AwaitTask (client.SwaggerClient.SendCoinsAsync sendCoinsReq)
+        use task = client.SwaggerClient.SendCoinsAsync sendCoinsReq
+        let! sendCoinsResp = Async.AwaitTask task
         return TxId <| uint256 sendCoinsResp.Txid
     }
 
