@@ -132,7 +132,7 @@
     <PackageReference Include="Nethereum" Version="0.93.0-date20200803-1151.git-eaea926" />
     <PackageReference Include="JsonRpcSharp" Version="0.93.0-date20200803-1106.git-5cb1461" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.24" />
-    <PackageReference Include="DotNetEssentials" Version="1.3.1-date20200206-0515.git-cdb9624" />
+    <PackageReference Include="DotNetEssentials" Version="1.5.9999--date20200930-1228.git-65adc40" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />

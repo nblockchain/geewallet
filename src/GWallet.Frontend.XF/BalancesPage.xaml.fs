@@ -388,6 +388,59 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             cancelSource.Cancel()
             cancelSource.Dispose()
 
+    member private this.OnFiatFrameClicked switchingToReadOnly
+                                           (totalCurrentFiatAmountFrame: Frame)
+                                           (currentChartView: View)
+                                           (totalOtherFiatAmountFrame: Frame)
+                                           (otherChartView: View)
+                                               =
+        Console.WriteLine ("___________ FIAT TAP HAPPENED YOU BASTARD ____________")
+        let shouldNotOpenNewPage =
+            if switchingToReadOnly then
+                readOnlyAccountsBalanceSets.Any()
+            else
+                true
+
+        if shouldNotOpenNewPage then
+            Device.BeginInvokeOnMainThread(fun _ ->
+                totalCurrentFiatAmountFrame.IsVisible <- false
+                currentChartView.IsVisible <- false
+                totalOtherFiatAmountFrame.IsVisible <- true
+                otherChartView.IsVisible <- true
+            )
+            let balancesStatesToPopulate =
+                if switchingToReadOnly then
+                    readOnlyBalanceStates
+                else
+                    normalBalanceStates
+            this.AssignColorLabels switchingToReadOnly
+            this.PopulateBalances switchingToReadOnly balancesStatesToPopulate
+            RedrawCircleView switchingToReadOnly balancesStatesToPopulate
+        else
+            // FIXME: save currentConnectivityInstance to cache at app startup, and if it has ever been connected to
+            // the internet, already consider it non-cold storage
+            let currentConnectivityInstance = Connectivity.NetworkAccess
+            if currentConnectivityInstance = NetworkAccess.Internet then
+                let newBalancesPageFunc = (fun (normalAccountsAndBalances,readOnlyAccountsAndBalances) ->
+                    BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
+                                 currencyImages, true) :> Page
+                )
+                let normalAccountsBalanceSets = normalAccountsBalanceSets
+                let page () =
+                    PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
+                        :> Page
+                FrontendHelpers.SwitchToNewPage this page false
+            else
+                match Account.GetNormalAccountsPairingInfoForWatchWallet() with
+                | None ->
+                    failwith "Should have ether and utxo accounts if running from the XF Frontend"
+                | Some walletInfo ->
+                    let walletInfoJson = Marshalling.Serialize walletInfo
+                    let page () =
+                        PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
+                            :> Page
+                    FrontendHelpers.SwitchToNewPage this page true
+
     member private this.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
         let totalCurrentFiatAmountFrameName,totalOtherFiatAmountFrameName =
             if readOnly then
@@ -413,53 +466,15 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Add(fun _ ->
-
-            let shouldNotOpenNewPage =
-                if switchingToReadOnly then
-                    readOnlyAccountsBalanceSets.Any()
-                else
-                    true
-
-            if shouldNotOpenNewPage then
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    totalCurrentFiatAmountFrame.IsVisible <- false
-                    currentChartView.IsVisible <- false
-                    totalOtherFiatAmountFrame.IsVisible <- true
-                    otherChartView.IsVisible <- true
-                )
-                let balancesStatesToPopulate =
-                    if switchingToReadOnly then
-                        readOnlyBalanceStates
-                    else
-                        normalBalanceStates
-                this.AssignColorLabels switchingToReadOnly
-                this.PopulateBalances switchingToReadOnly balancesStatesToPopulate
-                RedrawCircleView switchingToReadOnly balancesStatesToPopulate
-            else
-                // FIXME: save currentConnectivityInstance to cache at app startup, and if it has ever been connected to
-                // the internet, already consider it non-cold storage
-                let currentConnectivityInstance = Connectivity.NetworkAccess
-                if currentConnectivityInstance = NetworkAccess.Internet then
-                    let newBalancesPageFunc = (fun (normalAccountsAndBalances,readOnlyAccountsAndBalances) ->
-                        BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
-                                     currencyImages, true) :> Page
-                    )
-                    let normalAccountsBalanceSets = normalAccountsBalanceSets
-                    let page () =
-                        PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
-                            :> Page
-                    FrontendHelpers.SwitchToNewPage this page false
-                else
-                    match Account.GetNormalAccountsPairingInfoForWatchWallet() with
-                    | None ->
-                        failwith "Should have ether and utxo accounts if running from the XF Frontend"
-                    | Some walletInfo ->
-                        let walletInfoJson = Marshalling.Serialize walletInfo
-                        let page () =
-                            PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
-                                :> Page
-                        FrontendHelpers.SwitchToNewPage this page true
-
+            try
+                this.OnFiatFrameClicked switchingToReadOnly
+                                        totalCurrentFiatAmountFrame
+                                        currentChartView
+                                        totalOtherFiatAmountFrame
+                                        otherChartView
+            with
+            | ex ->
+                totalFiatAmountLabel.Text <- ex.ToString()
         )
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
         tapGestureRecognizer

@@ -23,7 +23,8 @@ type MainActivity() =
     inherit FormsAppCompatActivity()
 
     override this.OnRequestPermissionsResult(requestCode: int, permissions: string[], grantResults: Permission[]) =
-        ZXing.Net.Mobile.Android.PermissionsHandler.OnRequestPermissionsResult(requestCode, permissions, grantResults)
+        Xamarin.Essentials.Platform.OnRequestPermissionsResult(requestCode, permissions, grantResults)
+        base.OnRequestPermissionsResult(requestCode, permissions, grantResults)
 
     override this.OnCreate (bundle: Bundle) =
         FormsAppCompatActivity.TabLayoutResource <- Resources.Layout.Tabbar
@@ -32,6 +33,8 @@ type MainActivity() =
         base.OnCreate (bundle)
 
         Xamarin.Forms.Forms.Init (this, bundle)
+
+        Xamarin.Essentials.Platform.Init(this, bundle)
 
         ZXing.Net.Mobile.Forms.Android.Platform.Init()
 
