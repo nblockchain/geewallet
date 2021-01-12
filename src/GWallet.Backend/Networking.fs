@@ -3,6 +3,7 @@
 open System
 open System.Net
 open System.Net.Sockets
+open System.Runtime.Serialization
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -20,6 +21,8 @@ type internal UnhandledSocketException =
     new(socketErrorCode: int, innerException: Exception) =
         { inherit Exception(SPrintF1 "Backend not prepared for this SocketException with ErrorCode[%i]" socketErrorCode,
                                     innerException) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit Exception (info, context) }
 
 type CommunicationUnsuccessfulException =
     inherit Exception
@@ -27,18 +30,40 @@ type CommunicationUnsuccessfulException =
     new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
     new(message: string) = { inherit Exception(message) }
     new() = { inherit Exception() }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit Exception (info, context) }
 
-type ServerDiscardedException(message: string, innerException: CommunicationUnsuccessfulException) =
-   inherit Exception (message, innerException)
+type ServerDiscardedException =
+   inherit Exception
 
-type BuggyExceptionFromOldMonoVersion (message: string, innerException: Exception) =
-    inherit CommunicationUnsuccessfulException (message, innerException)
+   new (message: string, innerException: Exception) =
+       { inherit Exception (message, innerException) }
+   new (info: SerializationInfo, context: StreamingContext) =
+       { inherit Exception (info, context) }
 
-type ServerClosedConnectionEarlyException(message: string, innerException: Exception) =
-    inherit CommunicationUnsuccessfulException (message, innerException)
+type BuggyExceptionFromOldMonoVersion =
+    inherit CommunicationUnsuccessfulException
 
-type ServerRefusedException(message:string, innerException: Exception) =
-    inherit CommunicationUnsuccessfulException (message, innerException)
+    new (message: string, innerException: Exception) =
+        { inherit CommunicationUnsuccessfulException (message, innerException) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
+
+type ServerClosedConnectionEarlyException =
+    inherit CommunicationUnsuccessfulException
+
+    new (message: string, innerException: Exception) =
+        { inherit CommunicationUnsuccessfulException (message, innerException) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
+
+type ServerRefusedException =
+    inherit CommunicationUnsuccessfulException
+
+    new (message: string, innerException: Exception) =
+        { inherit CommunicationUnsuccessfulException (message, innerException) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 type ServerTimedOutException =
     inherit CommunicationUnsuccessfulException
@@ -47,6 +72,8 @@ type ServerTimedOutException =
         { inherit CommunicationUnsuccessfulException(message, innerException) }
     new(message) =
         { inherit CommunicationUnsuccessfulException(message) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 type ServerUnreachableException =
     inherit CommunicationUnsuccessfulException
@@ -65,6 +92,8 @@ type ServerUnreachableException =
             inherit CommunicationUnsuccessfulException(SPrintF2 "%s (CfErr: %s)" message (cloudFlareError.ToString()),
                                                     innerException)
         }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 type ServerMisconfiguredException =
     inherit CommunicationUnsuccessfulException
@@ -78,6 +107,8 @@ type ServerMisconfiguredException =
             inherit CommunicationUnsuccessfulException(SPrintF2 "%s (HttpErr: %s)" message (httpStatusCode.ToString()),
                                                                 innerException)
         }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 module Networking =
 

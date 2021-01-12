@@ -54,6 +54,7 @@
     <Compile Include="Properties\CommonAssemblyInfo.fs" />
     <Compile Include="FSharpUtil.fs" />
     <Compile Include="Shuffler.fs" />
+    <Compile Include="BinaryMarshalling.fs" />
     <Compile Include="Marshalling.fs" />
     <Compile Include="Currency.fs" />
     <Compile Include="Exceptions.fs" />

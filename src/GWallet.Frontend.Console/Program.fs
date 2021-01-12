@@ -372,7 +372,7 @@ let rec ProgramMainLoop() =
 
 let NormalStartWithNoParameters () =
 
-    Infrastructure.SetupSentryHook ()
+    Infrastructure.SetupExceptionHook ()
 
     let exitCode =
         try
@@ -380,7 +380,7 @@ let NormalStartWithNoParameters () =
             0
         with
         | ex ->
-            Infrastructure.ReportCrash ex
+            Infrastructure.LogOrReportCrash ex
             1
 
     exitCode

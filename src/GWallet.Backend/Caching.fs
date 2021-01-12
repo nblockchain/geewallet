@@ -71,17 +71,10 @@ type CacheFiles =
 
 module Caching =
 
-    let private GetCacheDir() =
-        let configPath = Config.GetConfigDirForThisProgram().FullName
-        let configDir = DirectoryInfo(Path.Combine(configPath, "cache"))
-        if not configDir.Exists then
-            configDir.Create()
-        configDir
-
     let private defaultCacheFiles =
         {
-            CachedNetworkData = FileInfo(Path.Combine(GetCacheDir().FullName, "networkdata.json"))
-            ServerStats = FileInfo(Path.Combine(GetCacheDir().FullName,
+            CachedNetworkData = FileInfo(Path.Combine(Config.GetCacheDir().FullName, "networkdata.json"))
+            ServerStats = FileInfo(Path.Combine(Config.GetCacheDir().FullName,
                                                 ServerRegistry.ServersEmbeddedResourceFileName))
         }
 
@@ -374,6 +367,7 @@ module Caching =
                                       currency
                                       address
                                       sessionCachedNetworkData
+                        |> ignore
                         // FIXME: should we return here just balance, or NotAvailable (as in there's no cache), and remove all transactions?
                         Cached(0.0m,time)
                     else
@@ -461,6 +455,7 @@ module Caching =
                                   currency
                                   address
                                   newCachedValueWithNewBalanceAndMaybeLessTransactions
+                    |> ignore
                     // FIXME: should we return here just newBalance, and remove all transactions?
                     0.0m,time
                 else
@@ -590,6 +585,7 @@ module Caching =
                     // should we specify HttpRequestException?
                     | ex ->
                         Infrastructure.ReportWarning ex
+                        |> ignore
                         return None
                 }
 

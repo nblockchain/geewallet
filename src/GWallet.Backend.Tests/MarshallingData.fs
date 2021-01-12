@@ -4,13 +4,20 @@ open System
 open System.IO
 open System.Reflection
 
+open NUnit.Framework
+open Newtonsoft.Json.Linq
+
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 open GWallet.Backend.Ether
 
 module MarshallingData =
 
-    let private version = Assembly.GetExecutingAssembly().GetName().Version.ToString()
+    let private executingAssembly = Assembly.GetExecutingAssembly()
+    let private version = executingAssembly.GetName().Version.ToString()
+    let private binPath = executingAssembly.Location |> FileInfo
+    let private prjPath = Path.Combine(binPath.Directory.FullName, "..") |> DirectoryInfo
+    let private isUnix = not <| Config.IsWindowsPlatform()
 
     let private RemoveJsonFormatting (jsonContent: string): string =
         jsonContent.Replace("\r", String.Empty)
@@ -20,8 +27,13 @@ module MarshallingData =
     let private InjectCurrentVersion (jsonContent: string): string =
         jsonContent.Replace("{version}", version)
 
+    let private InjectCurrentDir (jsonContent: string): string =
+        jsonContent.Replace("{prjDirAbsolutePath}", prjPath.FullName.Replace("\\", "/"))
+
     let internal Sanitize =
-        RemoveJsonFormatting >> InjectCurrentVersion
+        RemoveJsonFormatting
+        >> InjectCurrentVersion
+        >> InjectCurrentDir
 
     let private ReadEmbeddedResource resourceName =
         let assembly = Assembly.GetExecutingAssembly()
@@ -37,6 +49,71 @@ module MarshallingData =
 
     let SignedSaiTransactionExampleInJson =
         ReadEmbeddedResource "signedAndFormattedSaiTransaction.json"
+
+    let BasicExceptionExampleInJson =
+        ReadEmbeddedResource "basicException.json"
+
+    let RealExceptionExampleInJson =
+        ReadEmbeddedResource "realException.json"
+
+    let InnerExceptionExampleInJson =
+        ReadEmbeddedResource "innerException.json"
+
+    let CustomExceptionExampleInJson =
+        ReadEmbeddedResource "customException.json"
+
+    let CustomFSharpExceptionExampleInJson =
+        ReadEmbeddedResource "customFSharpException.json"
+
+    let FullExceptionExampleInJson =
+        ReadEmbeddedResource "fullException.json"
+
+
+    let SerializedExceptionsAreSame actualJsonString expectedJsonString =
+
+        let actualJsonException = JObject.Parse actualJsonString
+        let expectedJsonException = JObject.Parse expectedJsonString
+
+        let fullBinaryFormPath = "Value.FullBinaryForm"
+        let tweakStackTraces () =
+
+            let fullBinaryFormBeginning = "AAEAAAD/////AQAA"
+            let stackTracePath = "Value.HumanReadableSummary.StackTrace"
+            let stackTraceFragment = "ExceptionMarshalling.fs"
+
+            let tweakStackTraceAndBinaryForm (jsonEx: JObject) (assertBinaryForm: bool) =
+                let stackTraceJToken = jsonEx.SelectToken stackTracePath
+                Assert.That(stackTraceJToken, Is.Not.Null, sprintf "Path %s not found in %s" stackTracePath (jsonEx.ToString()))
+                let initialStackTraceJToken = stackTraceJToken.ToString()
+                if initialStackTraceJToken.Length > 0 then
+                    Assert.That(initialStackTraceJToken, Is.StringContaining stackTraceFragment)
+                    let endOfStackTrace = initialStackTraceJToken.Substring(initialStackTraceJToken.IndexOf stackTraceFragment)
+                    let tweakedEndOfStackTrace =
+                        if isUnix then
+                            endOfStackTrace
+                                .Replace(":line 42", ":41 ")
+                                .Replace(":line 65", ":64 ")
+                        else
+                            endOfStackTrace
+                    stackTraceJToken.Replace (tweakedEndOfStackTrace |> JToken.op_Implicit)
+
+                let binaryFormToken = jsonEx.SelectToken fullBinaryFormPath
+                Assert.That(binaryFormToken, Is.Not.Null, sprintf "Path %s not found in %s" fullBinaryFormPath (jsonEx.ToString()))
+                let initialBinaryFormJToken = binaryFormToken.ToString()
+                if assertBinaryForm then
+                    Assert.That(initialBinaryFormJToken, Is.StringStarting fullBinaryFormBeginning)
+                binaryFormToken.Replace (fullBinaryFormBeginning |> JToken.op_Implicit)
+
+            tweakStackTraceAndBinaryForm actualJsonException true
+            tweakStackTraceAndBinaryForm expectedJsonException false
+
+        tweakStackTraces()
+
+        let actualBinaryForm = (actualJsonException.SelectToken fullBinaryFormPath).ToString()
+        Assert.That(actualJsonException.ToString(), Is.EqualTo (expectedJsonException.ToString()),
+                    sprintf "Exceptions didn't match. Full binary form was %s" actualBinaryForm)
+
+        true
 
     let internal SomeDate = DateTime.Parse "2018-06-14T16:50:09.133411"
 

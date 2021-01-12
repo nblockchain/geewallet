@@ -3,23 +3,82 @@
 open System
 open System.Reflection
 open System.Text.RegularExpressions
+open System.Runtime.Serialization
 
 open Newtonsoft.Json
 open Newtonsoft.Json.Serialization
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
+type ExceptionDetails =
+    {
+        ExceptionType: string
+        Message: string
+        StackTrace: string
+        InnerException: Option<ExceptionDetails>
+    }
+
+type MarshalledException =
+    {
+        HumanReadableSummary: ExceptionDetails
+        FullBinaryForm: string
+    }
+    static member private ExtractBasicDetailsFromException (ex: Exception) =
+        let stackTrace =
+            if ex.StackTrace = null then
+                String.Empty
+            else
+                ex.StackTrace
+        let stub =
+            {
+                ExceptionType = ex.GetType().FullName
+                Message = ex.Message
+                StackTrace = stackTrace
+                InnerException = None
+            }
+
+        match ex.InnerException with
+        | null -> stub
+        | someNonNullInnerException ->
+            let innerExceptionDetails =
+                MarshalledException.ExtractBasicDetailsFromException someNonNullInnerException
+
+            {
+                stub with
+                    InnerException = Some innerExceptionDetails
+            }
+
+    static member Create (ex: Exception) =
+        {
+            HumanReadableSummary = MarshalledException.ExtractBasicDetailsFromException ex
+            FullBinaryForm = BinaryMarshalling.SerializeToString ex
+        }
+
 type DeserializationException =
     inherit Exception
 
     new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
     new(message: string) = { inherit Exception(message) }
+    new(info: SerializationInfo, context: StreamingContext) =
+        { inherit Exception(info, context) }
 
 type SerializationException(message:string, innerException: Exception) =
     inherit Exception (message, innerException)
 
-type VersionMismatchDuringDeserializationException (message:string, innerException: Exception) =
-    inherit DeserializationException (message, innerException)
+type MarshallingCompatibilityException =
+    inherit Exception
+
+    new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
+    new(info: SerializationInfo, context: StreamingContext) =
+        { inherit Exception(info, context) }
+
+type VersionMismatchDuringDeserializationException =
+    inherit DeserializationException
+
+    new (message: string, innerException: Exception) =
+        { inherit DeserializationException (message, innerException) }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit DeserializationException (info, context) }
 
 module internal VersionHelper =
     let internal CURRENT_VERSION =
@@ -124,7 +183,12 @@ module Marshalling =
         deserialized.Value
 
     let Deserialize<'T>(json: string): 'T =
-        DeserializeCustom(json, DefaultSettings)
+        match typeof<'T> with
+        | theType when typeof<Exception>.IsAssignableFrom theType ->
+            let marshalledException: MarshalledException = DeserializeCustom(json, DefaultSettings)
+            BinaryMarshalling.DeserializeFromString marshalledException.FullBinaryForm :?> 'T
+        | _ ->
+            DeserializeCustom(json, DefaultSettings)
 
     let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings): string =
         JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
@@ -140,4 +204,22 @@ module Marshalling =
                                                   (typeof<'T>.FullName) value, exn))
 
     let Serialize<'T>(value: 'T): string =
-        SerializeCustom(value, DefaultSettings)
+        match box value with
+        | :? Exception as ex ->
+            let exToSerialize = MarshalledException.Create ex
+            let serializedEx = SerializeCustom(exToSerialize, DefaultSettings)
+
+            try
+                let _deserializedEx: 'T = Deserialize serializedEx
+                ()
+            with
+            | ex ->
+                raise
+                <| MarshallingCompatibilityException (
+                    SPrintF1
+                        "Exception type '%s' could not be serialized. Maybe it lacks the required '(info: SerializationInfo, context: StreamingContext)' constructor?"
+                        typeof<'T>.FullName, ex)
+
+            serializedEx
+        | _ ->
+            SerializeCustom(value, DefaultSettings)
