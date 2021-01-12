@@ -159,6 +159,9 @@ module Infrastructure =
         let ex = args.ExceptionObject :?> Exception
         LogOrReportCrash ex
 
+    // TODO: Should report the meta exceptions too? but it may cause more meta exceptions... mmm
+    //       Maybe it should check number of meta exceptions at beginning, and check number of meta exceptions at the end?:
+    //       if number is equal, then report?
     let private ReportAllPastExceptions() =
         for loggedEx in ((GetTelemetryDir false).EnumerateFiles()) do
             let serializedException = File.ReadAllText loggedEx.FullName
