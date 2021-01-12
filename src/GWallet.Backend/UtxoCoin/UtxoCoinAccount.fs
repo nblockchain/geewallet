@@ -197,9 +197,7 @@ module Account =
         else
             transactionBuilder.SendAll destAddress |> ignore
 
-        // to enable RBF, see https://bitcoin.stackexchange.com/a/61038/2751
-        // FIXME: use the new API for this in NBitcoin 4.1.2.7 (see https://github.com/MetacoSA/NBitcoin/commit/67e00b00865271a029cd1e21fc2002a2d9f32fcd )
-        transactionBuilder.SetLockTime (LockTime 0) |> ignore
+        transactionBuilder.OptInRBF <- true
 
         transactionBuilder
 

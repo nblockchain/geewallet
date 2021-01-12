@@ -4,6 +4,7 @@ open System
 open System.IO
 
 #r "System.Configuration"
+open System.Configuration
 #load "fsx/InfraLib/Misc.fs"
 #load "fsx/InfraLib/Process.fs"
 #load "fsx/InfraLib/Unix.fs"

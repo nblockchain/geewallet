@@ -88,6 +88,13 @@ module Config =
             configDir.Create()
         configDir
 
+    let internal GetCacheDir() =
+        let configPath = GetConfigDirForThisProgram().FullName
+        let configDir = DirectoryInfo(Path.Combine(configPath, "cache"))
+        if not configDir.Exists then
+            configDir.Create()
+        configDir
+
     let private GetConfigDirForAccounts() =
         let configPath = GetConfigDirForThisProgram().FullName
         let configDir = DirectoryInfo(Path.Combine(configPath, "accounts"))

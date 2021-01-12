@@ -3,6 +3,7 @@
 open System
 open System.IO
 #r "System.Configuration"
+open System.Configuration
 #load "InfraLib/Misc.fs"
 #load "InfraLib/Process.fs"
 #load "InfraLib/Git.fs"

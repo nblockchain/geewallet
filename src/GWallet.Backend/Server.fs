@@ -45,6 +45,11 @@ type ServerInfo =
         ConnectionType: ConnectionType
     }
 
+// FIXME: create type 'CurrencyServer' that is a record of Currency*ServerDetails which is rather used instead
+// of ServerDetails, so that functions that use a server also know which currency they're dealing with (this
+// way we can, for example, retry if NoneAvailable exception in case ETC is used, cause there's a lack of servers
+// in that ecosystem at the moment)
+
 [<CustomEquality; NoComparison>]
 type ServerDetails =
     {

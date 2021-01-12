@@ -166,6 +166,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
                 let newEx = ElectrumServerReturningImproperJsonResponseException(failedDeserMsg, serEx)
 #if !DEBUG
                 Infrastructure.ReportWarning newEx
+                |> ignore
 #endif
                 raise newEx
             | ex -> raise <| Exception(failedDeserMsg, ex)

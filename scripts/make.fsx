@@ -6,6 +6,7 @@ open System.Linq
 open System.Diagnostics
 
 #r "System.Configuration"
+open System.Configuration
 #load "InfraLib/Misc.fs"
 #load "InfraLib/Process.fs"
 #load "InfraLib/Git.fs"
@@ -293,6 +294,9 @@ match maybeTarget with
 | Some("check") ->
     Console.WriteLine "Running tests..."
     Console.WriteLine ()
+
+    // so that we get file names in stack traces
+    Environment.SetEnvironmentVariable("MONO_ENV_OPTIONS", "--debug")
 
     let testAssemblyName = "GWallet.Backend.Tests"
     let testAssembly = Path.Combine(rootDir.FullName, "src", testAssemblyName, "bin",

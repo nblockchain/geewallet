@@ -70,6 +70,12 @@
     <EmbeddedResource Include="data\unsignedAndFormattedBtcTransaction.json" />
     <EmbeddedResource Include="data\signedAndFormattedEtherTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedEtherTransaction.json" />
+    <EmbeddedResource Include="data\basicException.json" />
+    <EmbeddedResource Include="data\realException.json" />
+    <EmbeddedResource Include="data\innerException.json" />
+    <EmbeddedResource Include="data\customException.json" />
+    <EmbeddedResource Include="data\customFSharpException.json" />
+    <EmbeddedResource Include="data\fullException.json" />
     <Compile Include="ElectrumIntegrationTests.fs" />
     <Compile Include="WarpWallet.fs" />
     <Compile Include="CompoundBalanceCaching.fs" />
@@ -77,6 +83,7 @@
     <Compile Include="AsyncExtensions.fs" />
     <Compile Include="ServerReference.fs" />
     <Compile Include="FSharpUtil.fs" />
+    <Compile Include="ExceptionMarshalling.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />

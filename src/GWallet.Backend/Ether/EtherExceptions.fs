@@ -2,6 +2,7 @@
 
 open System
 open System.Net
+open System.Runtime.Serialization
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
@@ -34,6 +35,8 @@ type ServerCannotBeResolvedException =
         {
             inherit CommunicationUnsuccessfulException(message, innerException)
         }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 type ServerUnavailableException =
     inherit CommunicationUnsuccessfulException
@@ -42,6 +45,8 @@ type ServerUnavailableException =
         {
             inherit CommunicationUnsuccessfulException(message, innerException)
         }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 type ServerChannelNegotiationException =
     inherit CommunicationUnsuccessfulException
@@ -60,6 +65,8 @@ type ServerChannelNegotiationException =
             inherit CommunicationUnsuccessfulException(SPrintF2 "%s (CfErr: %s)" message (cloudFlareError.ToString()),
                                                     innerException)
         }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 type ServerRestrictiveException =
     inherit CommunicationUnsuccessfulException
@@ -68,6 +75,8 @@ type ServerRestrictiveException =
         {
             inherit CommunicationUnsuccessfulException (message, innerException)
         }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }
 
 type UnhandledWebException =
     inherit Exception
@@ -78,3 +87,5 @@ type UnhandledWebException =
                                        (int status),
                                        innerException)
         }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit Exception (info, context) }
