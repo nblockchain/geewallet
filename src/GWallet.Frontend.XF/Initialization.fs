@@ -11,7 +11,7 @@ module Initialization =
     let internal GlobalState = GlobalState()
 
     let private GlobalInit () =
-        Infrastructure.SetupSentryHook ()
+        Infrastructure.SetupExceptionHook ()
 
     let internal LandingPage(): NavigationPage =
         let state = GlobalInit ()
