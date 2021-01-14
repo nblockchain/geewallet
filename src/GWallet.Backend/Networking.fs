@@ -149,6 +149,11 @@ module Networking =
             elif socketException.ErrorCode = int SocketError.HostNotFound then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
 
+            // we mark it as "buggy from old mono" because this sounds like it would be fixed in .NET6
+            // (the version when Xamarin will work the .NETCore BCL)
+            elif socketException.ErrorCode = int SocketError.InvalidArgument then
+                BuggyExceptionFromOldMonoVersion(newExceptionMsg, ex) :> Exception |> Some
+
             else
                 UnhandledSocketException(socketException.ErrorCode, ex) :> Exception |> Some
 
