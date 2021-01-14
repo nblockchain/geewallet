@@ -23,10 +23,10 @@ type DatePickerYearFirstRenderer (context) =
         let maybeLayoutA = dialog.DatePicker.GetChildAt 0
         match maybeLayoutA with
         | :? LinearLayout as layoutA ->
-            let maybeLayoutB = dialog.DatePicker.GetChildAt 0
+            let maybeLayoutB = layoutA.GetChildAt 0
             match maybeLayoutB with
             | :? LinearLayout as layoutB ->
-                let maybeLayoutC = dialog.DatePicker.GetChildAt 0
+                let maybeLayoutC = layoutB.GetChildAt 0
                 match maybeLayoutC with
                 | :? LinearLayout as layoutC ->
                     let yearText = layoutC.GetChildAt 0
