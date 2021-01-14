@@ -10,6 +10,7 @@ if [ -e snapcraft.login ]; then
     echo "snapcraft.login found, skipping log-in"
 else
     if [[ $SNAPCRAFT_LOGIN ]]; then
+        echo "Automatic login about to begin..."
         echo "$SNAPCRAFT_LOGIN" > snapcraft.login
     else
         echo "No login details found, initiating manual logging-in..."
@@ -17,6 +18,8 @@ else
     fi
 fi
 
+# if this fails, use `snapcraft export-login` to generate a new token
 snapcraft login --with snapcraft.login
 
+echo "Login successfull. Upload starting..."
 snapcraft push snap/*.snap --release=stable
