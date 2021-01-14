@@ -1,5 +1,7 @@
 namespace GWallet.Frontend.XF.Android
 
+open Android.Widget
+
 open Xamarin.Forms
 open Xamarin.Forms.Platform.Android
 
@@ -10,17 +12,40 @@ type DatePickerYearFirstRenderer (context) =
 
     override self.CreateDatePickerDialog (year, month, day) =
         let dialog = base.CreateDatePickerDialog (year, month, day)
+
         // Below is a hack
         // The mono DatePicker implementation does not expose the underlying
         // Android.Widget.DatePicker implementation
         // We navigate through multiple layers of child elements until we arrive
         // at the text element which displays the year and emit a click on it
-        let layoutA = dialog.DatePicker.GetChildAt 0 :?> Android.Widget.LinearLayout
-        let layoutB = layoutA.GetChildAt 0 :?> Android.Widget.LinearLayout
-        let layoutC = layoutB.GetChildAt 0 :?> Android.Widget.LinearLayout
-        let yearText = layoutC.GetChildAt 0
-        yearText.PerformClick () |> ignore
-        dialog
+        let maybeLayoutA = dialog.DatePicker.GetChildAt 0
+        match maybeLayoutA with
+        | :? LinearLayout as layoutA ->
+            let maybeLayoutB = dialog.DatePicker.GetChildAt 0
+            match maybeLayoutB with
+            | :? LinearLayout as layoutB ->
+                let maybeLayoutC = dialog.DatePicker.GetChildAt 0
+                match maybeLayoutC with
+                | :? LinearLayout as layoutC ->
+                    let yearText = layoutC.GetChildAt 0
+                    yearText.PerformClick () |> ignore
+                    dialog
+                | null ->
+                    failwith "Unexpected DatePicker layout when trying to find layoutC (got null)"
+                | _ ->
+                    failwithf "Unexpected DatePicker layout when trying to find layoutC (got %s)"
+                        (maybeLayoutC.GetType().FullName)
+            | null ->
+                failwith "Unexpected DatePicker layout when trying to find layoutB (got null)"
+            | _ ->
+                failwithf "Unexpected DatePicker layout when trying to find layoutB (got %s)"
+                    (maybeLayoutB.GetType().FullName)
+        | null ->
+            failwith "Unexpected DatePicker layout when trying to find layoutA (got null)"
+        | _ ->
+            failwithf "Unexpected DatePicker layout when trying to find layoutA (got %s)"
+                (maybeLayoutA.GetType().FullName)
+
 
 [<assembly:ExportRenderer(typeof<DatePicker>, typeof<DatePickerYearFirstRenderer>)>]
 do ()
