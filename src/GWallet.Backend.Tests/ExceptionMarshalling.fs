@@ -66,7 +66,7 @@ type ExceptionMarshalling () =
             with
             | :? CustomException as cex ->
                 cex
-        Marshalling.Serialize someCEx
+        Marshalling.Serialize ex
 
 
     [<Test>]
