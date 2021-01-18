@@ -194,24 +194,24 @@ let AcceptLightningEvent(): Async<unit> = async {
 
 let LockChannel (channelStore: ChannelStore)
                 (channelInfo: ChannelInfo)
-                    : Async<seq<string>> =
+                    : Async<Async<seq<string>>> = async {
+    let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
     let channelId = channelInfo.ChannelId
-    Console.WriteLine(sprintf "Funding for channel %s confirmed" (ChannelId.ToString channelId))
-    Console.WriteLine "In order to continue the funding for the channel needs to be locked"
-    let bindAddress =
-        if channelInfo.IsFunder then
-            Console.WriteLine
-                "Ensure the fundee is ready to accept a connection to lock the funding, \
-                then press any key to continue."
-            Console.ReadKey true |> ignore
-            IPEndPoint(IPAddress.Parse "127.0.0.1", 0)
-        else
-            Console.WriteLine "Listening for connection from peer"
-            UserInteraction.AskBindAddress()
-    let password = UserInteraction.AskPassword false
-    async {
+    return async {
+        Console.WriteLine(sprintf "Funding for channel %s confirmed" (ChannelId.ToString channelId))
+        Console.WriteLine "In order to continue the funding for the channel needs to be locked"
+        let bindAddress =
+            if channelInfo.IsFunder then
+                Console.WriteLine
+                    "Ensure the fundee is ready to accept a connection to lock the funding, \
+                    then press any key to continue."
+                Console.ReadKey true |> ignore
+                IPEndPoint(IPAddress.Parse "127.0.0.1", 0)
+            else
+                Console.WriteLine "Listening for connection from peer"
+                UserInteraction.AskBindAddress()
+        let password = UserInteraction.AskPassword false
         use lightningNode = Lightning.Connection.Start channelStore password bindAddress
-        let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
         let! lockFundingRes = Lightning.Network.LockChannelFunding lightningNode channelId
         match lockFundingRes with
         | Error lockFundingError ->
@@ -224,6 +224,7 @@ let LockChannel (channelStore: ChannelStore)
             yield "        funding locked - channel is now active"
         }
     }
+}
 
 let LockChannelIfFundingConfirmed (channelStore: ChannelStore)
                                   (channelInfo: ChannelInfo)
@@ -232,7 +233,7 @@ let LockChannelIfFundingConfirmed (channelStore: ChannelStore)
     let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
     let! remainingConfirmations = fundingBroadcastButNotLockedData.GetRemainingConfirmations()
     if remainingConfirmations = 0u then
-        return LockChannel channelStore channelInfo
+        return! LockChannel channelStore channelInfo
     else
         return async {
             return seq {
@@ -270,6 +271,47 @@ let ClaimFundsIfTimelockExpired (channelStore: ChannelStore)
         }
 }
 
+let ClaimFundsIfRemoteForceClosed (channelStore: ChannelStore)
+                                  (channelInfo: ChannelInfo)
+                                      : Async<Async<seq<string>>> = async {
+    let! maybeUsdValue = FiatValueEstimation.UsdValue (channelStore.Account :> IAccount).Currency
+    let! closingTxInfoOpt = channelStore.CheckForClosingTx channelInfo.ChannelId
+    match closingTxInfoOpt with
+    | None ->
+        return async {
+            return seq {
+                yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
+                yield "        channel is active"
+            }
+        }
+    | Some (closingTxId, closingTxHeightOpt) ->
+        let requiresCpfp = closingTxHeightOpt.IsNone
+        let bindAddress = IPEndPoint(IPAddress.Parse "127.0.0.1", 0)
+        return async {
+            Console.WriteLine(sprintf "Channel %s has been force-closed by the counterparty.")
+            Console.WriteLine("Account must be unlocked to recover funds.")
+            let password = UserInteraction.AskPassword false
+            use lightningNode = Lightning.Connection.Start channelStore password bindAddress
+            let! recoveryTxString =
+                Lightning.Network.CreateRecoveryTxForRemoteForceClose
+                    lightningNode
+                    channelInfo.ChannelId
+                    closingTxId
+                    requiresCpfp
+            let! txIdString =
+                UtxoCoin.Account.BroadcastRawTransaction
+                    channelStore.Currency
+                    recoveryTxString
+            channelStore.DeleteChannel channelInfo.ChannelId
+            return seq {
+                yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
+                yield "        channel closed by counterparty"
+                yield "        funds have been returned to wallet"
+                yield sprintf "        txid of recovery transaction is %s" txIdString
+            }
+        }
+}
+
 let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>> = seq {
     let normalUtxoAccounts = accounts.OfType<UtxoCoin.NormalUtxoAccount>()
     for account in normalUtxoAccounts do
@@ -296,21 +338,17 @@ let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>>
                             fundingBroadcastButNotLockedData
                 | ChannelStatus.LocallyForceClosed locallyForceClosedData ->
                     yield async {
-                        return
+                        let! displayed =
                             ClaimFundsIfTimelockExpired
                                 channelStore
                                 channelInfo
                                 locallyForceClosedData
-                    }
-                | ChannelStatus.Active ->
-                    yield async {
                         return async {
-                            return seq {
-                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
-                                yield "        channel is active"
-                            }
+                            return displayed
                         }
                     }
+                | ChannelStatus.Active ->
+                    yield ClaimFundsIfRemoteForceClosed channelStore channelInfo
                 | ChannelStatus.Broken ->
                     yield async {
                         return async {

@@ -41,3 +41,4 @@ module public Network =
     let public ForceCloseUsingCommitmentTx (lightningNode: Node) = lightningNode.ForceCloseUsingCommitmentTx
     let public EndPoint (lightningNode: Node) = lightningNode.EndPoint
     let public ForceClose (lightningNode: Node) = lightningNode.ForceClose
+    let public CreateRecoveryTxForRemoteForceClose (lightningNode: Node) = lightningNode.CreateRecoveryTxForRemoteForceClose
