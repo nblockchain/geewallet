@@ -500,6 +500,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                     commitmentTx
                     targetAddress
                     feeRate
+                    true
             return UnwrapOption
                 spendingTransactionOpt
                 "Failed to get funds from our own commitment tx! This is a bug."
@@ -522,6 +523,49 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
         }
         self.ChannelStore.SaveChannel newSerializedChannel
         return forceCloseTxId
+    }
+
+    member self.CreateRecoveryTxForRemoteForceClose (channelId: ChannelIdentifier)
+                                                    (closingTxId: string)
+                                                    (requiresCpfp: bool)
+                                                        : Async<string> = async {
+        let serializedChannel = self.ChannelStore.LoadChannel channelId
+        let commitments = ChannelSerialization.Commitments serializedChannel
+        let account = self.Account :> IAccount
+        let currency = account.Currency
+        let network = UtxoCoin.Account.GetNetwork currency
+        let! closingTxHex =
+            Server.Query
+                currency
+                (QuerySettings.Default ServerSelectionMode.Fast)
+                (ElectrumClient.GetBlockchainTransaction (closingTxId.ToString()))
+                None
+        let closingTx = Transaction.Parse(closingTxHex, network)
+        let channelPrivKeys =
+            let channelIndex = serializedChannel.ChannelIndex
+            let nodeMasterPrivKey = self.TransportListener.NodeMasterPrivKey
+            nodeMasterPrivKey.ChannelPrivKeys channelIndex
+        let targetAddress =
+            let originAddress = account.PublicAddress
+            BitcoinAddress.Create(originAddress, network)
+        let! feeRate = async {
+            let! feeEstimator = FeeEstimator.Create currency
+            return feeEstimator.FeeRatePerKw
+        }
+        let recoveryTxOpt =
+            ForceCloseFundsRecovery.tryGetFundsFromRemoteCommitmentTx
+                commitments
+                channelPrivKeys
+                network
+                closingTx
+                targetAddress
+                feeRate
+                requiresCpfp
+        let recoveryTx =
+            UnwrapOption
+                recoveryTxOpt
+                "Failed to get funds from remote commitment tx! This is a bug."
+        return recoveryTx.ToHex()
     }
 
 module public Connection =
