@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>GWallet.Backend</id>
+    <version>0.3.211-beta2</version>
+    <title>GWallet.Backend</title>
+    <authors>NBlockchain</authors>
+    <owners>NBlockchain</owners>
+	<license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Description</description>
+    <copyright>Copyright ©  2017</copyright>
+    <dependencies>
+      <dependency id="DotNetLightning.Kiss" version="1.1.2-date20201209-0617-git-7589d58" />
+      <dependency id="FSharp.Core" version="4.7.0" />
+      <dependency id="FSharp.Data" version="3.0.0" />
+      <dependency id="HtmlAgilityPack" version="1.11.9" />
+      <dependency id="Microsoft.Extensions.Logging.Abstractions" version="1.0.2" />
+      <dependency id="NBitcoin" version="5.0.60" />
+      <dependency id="NBitcoin.Altcoins" version="2.0.5.1" />
+      <dependency id="Nethereum" version="0.93.0-date20200803-1151.git-eaea926" />
+      <dependency id="Newtonsoft.Json" version="11.0.2" />
+      <dependency id="SharpRaven" version="2.4.0" />
+      <dependency id="System.Buffers" version="4.5.0" />
+      <dependency id="System.Collections" version="4.3.0" />
+      <dependency id="System.Collections.Concurrent" version="4.3.0" />
+      <dependency id="System.Diagnostics.Debug" version="4.3.0" />
+      <dependency id="System.Globalization" version="4.3.0" />
+      <dependency id="System.IO.Pipes" version="4.3.0" />
+      <dependency id="System.Linq" version="4.3.0" />
+      <dependency id="System.Linq.Expressions" version="4.3.0" />
+      <dependency id="System.Memory" version="4.5.3" />
+      <dependency id="System.Net.WebSockets.Client" version="4.3.2" />
+      <dependency id="System.Numerics.Vectors" version="4.5.0" />
+      <dependency id="System.ObjectModel" version="4.3.0" />
+      <dependency id="System.Reflection" version="4.3.0" />
+      <dependency id="System.Reflection.Extensions" version="4.3.0" />
+      <dependency id="System.Reflection.Primitives" version="4.3.0" />
+      <dependency id="System.Resources.ResourceManager" version="4.3.0" />
+      <dependency id="System.Runtime" version="4.3.0" />
+      <dependency id="System.Runtime.CompilerServices.Unsafe" version="4.5.2" />
+      <dependency id="System.Runtime.Extensions" version="4.3.0" />
+      <dependency id="System.Runtime.InteropServices" version="4.3.0" />
+      <dependency id="System.Threading" version="4.3.0" />
+      <dependency id="System.Threading.Tasks.Extensions" version="4.5.1" />
+      <dependency id="Xamarin.Essentials" version="1.0.0" />
+    </dependencies>
+  </metadata>
+</package>
