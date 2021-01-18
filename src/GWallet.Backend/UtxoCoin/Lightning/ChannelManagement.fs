@@ -206,6 +206,38 @@ type ChannelStore(account: NormalUtxoAccount) =
                 "A channel can only end up in the wallet if it has commitments."
         commitments.LocalCommit.PublishableTxs.CommitTx.Value.ToHex()
 
+    member self.CheckForClosingTx (channelId: ChannelIdentifier)
+                                      : Async<Option<string * Option<uint32>>> = async {
+        let serializedChannel = self.LoadChannel channelId
+        let commitments = ChannelSerialization.Commitments serializedChannel
+        let currency = self.Currency
+        let network = UtxoCoin.Account.GetNetwork currency
+        let fundingAddressString: string =
+            let fundingAddress: BitcoinAddress =
+                let fundingDestination: TxDestination =
+                    commitments.FundingScriptCoin.ScriptPubKey.GetDestination()
+                fundingDestination.GetAddress network
+            fundingAddress.ToString()
+        let scriptHash = Account.GetElectrumScriptHashFromPublicAddress currency fundingAddressString
+        let! historyList =
+            Server.Query
+                currency
+                (QuerySettings.Default ServerSelectionMode.Fast)
+                (ElectrumClient.GetBlockchainScriptHashHistory scriptHash)
+                None
+        if historyList.Length = 2 then
+            let closingTxId = historyList.[2].TxHash
+            let closingTxHeightOpt =
+                let reportedHeight = historyList.[2].Height
+                if reportedHeight = 0u then
+                    None
+                else
+                    Some reportedHeight
+            return Some (closingTxId, closingTxHeightOpt)
+        else
+            return None
+    }
+
 module ChannelManager =
     // difference from fee estimation in UtxoCoinAccount.fs: this is for P2WSH
     let EstimateChannelOpeningFee (account: UtxoCoin.NormalUtxoAccount) (amount: TransferAmount) =
