@@ -62,3 +62,59 @@ module public ForceCloseTransaction =
 
             return transactionBuilder.BuildTransaction true
         }
+
+    let internal CreateTowerTx (perCommitmentSecret: PerCommitmentSecret)
+                               (commitments: Commitments)
+                               (localChannelPrivKeys: ChannelPrivKeys)
+                               (network: Network)
+                               (account: NormalUtxoAccount)
+                               (rewardAddress: string)
+                                   : Async<Transaction> =
+        async {
+            let transactionBuilder =
+                RemoteForceClose.createPunishmentTx 
+                    perCommitmentSecret 
+                    commitments 
+                    localChannelPrivKeys 
+                    network
+
+            let targetAddress =
+                let originAddress = (account :> IAccount).PublicAddress
+                BitcoinAddress.Create(originAddress, network)
+
+            let rewardAddress = 
+                BitcoinAddress.Create(rewardAddress, network)
+
+            let reward =
+                //TODO: MOVE Hardcoded value                   
+                commitments.RemoteCommitAmount().ToLocal.ToDecimal(MoneyUnit.Satoshi) * (decimal 0.001)
+                |> Money.Satoshis
+                    
+            
+            transactionBuilder.Send (rewardAddress, reward)
+            |> ignore
+
+            transactionBuilder.SendAllRemaining targetAddress
+            |> ignore
+
+            let! btcPerKiloByteForFastTrans =
+                let averageFee (feesFromDifferentServers: List<decimal>): decimal =
+                    feesFromDifferentServers.Sum()
+                    / decimal feesFromDifferentServers.Length
+
+                let estimateFeeJob =
+                    ElectrumClient.EstimateFee Account.CONFIRMATION_BLOCK_TARGET
+
+                Server.Query (account :> IAccount).Currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob None
+
+            let fee =
+                let feeRate =
+                    Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC)
+                    |> FeeRate
+
+                transactionBuilder.EstimateFees feeRate
+
+            transactionBuilder.SendFees fee |> ignore
+
+            return transactionBuilder.BuildTransaction true
+        }
