@@ -103,7 +103,7 @@
 
     <!-- FIXME: we should not need to reference ResultUtils at all when we can upgrade to F#v4.5 across the board (all CI lanes) -->
     <Reference Include="ResultUtils">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201209-0617-git-7589d58\lib\netstandard2.0\ResultUtils.dll</HintPath>
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20210118-1112-git-ba83427\lib\netstandard2.0\ResultUtils.dll</HintPath>
     </Reference>
 
     <Reference Include="BouncyCastle.Crypto">
