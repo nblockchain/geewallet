@@ -41,7 +41,7 @@ module public ForceCloseTransaction =
 
             let rewardAddressOpt = 
                 match rewardAddressOpt with 
-                | Some (rewardAddress) -> 
+                | Some rewardAddress -> 
                     BitcoinAddress.Create(rewardAddress, network) |> Some
                 | None -> None
 
@@ -51,11 +51,11 @@ module public ForceCloseTransaction =
                 |> Money.Satoshis
 
             match rewardAddressOpt with 
-            | Some (rewardAddress) ->
+            | Some rewardAddress ->
                 transactionBuilder.Send (rewardAddress, reward) |> ignore
-                transactionBuilder.SendAllRemaining(targetAddress) |> ignore
+                transactionBuilder.SendAllRemaining targetAddress |> ignore
             | None -> 
-                transactionBuilder.SendAll(targetAddress) |> ignore
+                transactionBuilder.SendAll targetAddress |> ignore
 
             let! btcPerKiloByteForFastTrans =
                 let averageFee (feesFromDifferentServers: List<decimal>): decimal =
