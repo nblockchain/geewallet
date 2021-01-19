@@ -156,7 +156,8 @@ type ExceptionMarshalling () =
     [<Test>]
     member __.``serializing custom exception not prepared for binary serialization, throws``() =
         let exToSerialize = CustomExceptionWithoutSerializationCtor "msg"
-        let ex: MarshallingCompatibilityException = Assert.Throws(fun _ -> Marshalling.Serialize exToSerialize |> ignore)
+        let ex: MarshallingCompatibilityException =
+            Assert.Throws(fun _ -> Marshalling.Serialize exToSerialize |> ignore<string>)
         Assert.That(ex, Is.TypeOf<MarshallingCompatibilityException>())
         Assert.That(ex.Message, Is.StringContaining "GWallet.Backend.Tests.CustomExceptionWithoutSerializationCtor")
 

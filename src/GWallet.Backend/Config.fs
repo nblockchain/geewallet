@@ -148,7 +148,7 @@ module Config =
 
     let public Wipe (): unit =
         let configDirForAccounts = GetConfigDirForAccounts()
-        Directory.Delete(configDirForAccounts.FullName, true) |> ignore
+        Directory.Delete(configDirForAccounts.FullName, true)
 
     // we don't expose this as public because we don't want to allow removing archived accounts
     let private RemoveAccount (account: BaseAccount): unit =

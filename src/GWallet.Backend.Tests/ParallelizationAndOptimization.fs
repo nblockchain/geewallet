@@ -62,7 +62,8 @@ type ParallelizationAndOptimization() =
         let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
         client.Query settings [ func1; func2 ]
-            |> Async.RunSynchronously |> ignore
+        |> Async.RunSynchronously
+        |> ignore<int>
 
         Assert.That(job1Done, Is.True)
         Assert.That(job2Done, Is.True)
@@ -72,7 +73,8 @@ type ParallelizationAndOptimization() =
 
         //same as before, but with different order now
         client.Query settings [ func2; func1 ]
-            |> Async.RunSynchronously |> ignore
+        |> Async.RunSynchronously
+        |> ignore<int>
 
         Assert.That(job1Done, Is.True)
         Assert.That(job2Done, Is.True)
@@ -209,8 +211,8 @@ type ParallelizationAndOptimization() =
             fun _ -> client.Query
                                 settings
                                 List.Empty
-                                    |> Async.RunSynchronously |> ignore
-        ) |> ignore
+                                    |> Async.RunSynchronously |> ignore<int>
+        ) |> ignore<ArgumentException>
 
     [<Test>]
     member __.``ordering: chooses fastest option first``() =
@@ -389,14 +391,16 @@ type ParallelizationAndOptimization() =
         let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
         client.Query settings [ func1; func2; func3 ]
-            |> Async.RunSynchronously |> ignore
+        |> Async.RunSynchronously
+        |> ignore<int>
         stopWatch.Stop()
         Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
 
         stopWatch.Start()
         //same as before, but with different order now
         client.Query settings [ func1; func3; func2 ]
-            |> Async.RunSynchronously |> ignore
+        |> Async.RunSynchronously
+        |> ignore<int>
         stopWatch.Stop()
         Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
 
@@ -409,21 +413,24 @@ type ParallelizationAndOptimization() =
         stopWatch.Start()
         //same as before, but with different order now
         client.Query settings [ func2; func1; func3 ]
-            |> Async.RunSynchronously |> ignore
+        |> Async.RunSynchronously
+        |> ignore<int>
         stopWatch.Stop()
         Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
 
         stopWatch.Start()
         //same as before, but with different order now
         client.Query settings [ func3; func1; func2 ]
-            |> Async.RunSynchronously |> ignore
+        |> Async.RunSynchronously
+        |> ignore<int>
         stopWatch.Stop()
         Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
 
         stopWatch.Start()
         //same as before, but with different order now
         client.Query settings [ func3; func2; func1 ]
-            |> Async.RunSynchronously |> ignore
+        |> Async.RunSynchronously
+        |> ignore<int>
         stopWatch.Stop()
         Assert.That(stopWatch.Elapsed, Is.LessThan (TimeSpan.FromSeconds 1.0))
 
@@ -463,5 +470,7 @@ type ParallelizationAndOptimization() =
 
 
         let allJobs = Async.Parallel (createRunners 10000u 30u)
-        allJobs |> Async.RunSynchronously |> ignore
+        allJobs
+        |> Async.RunSynchronously
+        |> ignore<array<int>>
 

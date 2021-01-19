@@ -20,6 +20,7 @@ type StratumParsing() =
         let errorResponse = "{\"jsonrpc\": \"2.0\", \"id\": 0, \"error\": {\"message\": \"internal error processing request\", \"code\": -32603}}"
         
         let ex = Assert.Throws<ElectrumServerReturningErrorInJsonResponseException>(fun _ ->
-            StratumClient.Deserialize<BlockchainScriptHashGetBalanceResult> errorResponse |> ignore
+            StratumClient.Deserialize<BlockchainScriptHashGetBalanceResult> errorResponse
+            |> ignore<BlockchainScriptHashGetBalanceResult>
         )
         Assert.That(ex.ErrorCode, Is.EqualTo(-32603))

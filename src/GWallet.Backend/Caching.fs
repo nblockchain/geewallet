@@ -232,7 +232,7 @@ module Caching =
 
         // we return back the rankings because the serialization process could remove dupes (and deserialization time
         // is basically negligible, i.e. took 15 milliseconds max in my MacBook in Debug mode)
-        let SaveServerRankingsToDisk (serverStats: ServerRanking) =
+        let SaveServerRankingsToDisk (serverStats: ServerRanking): ServerRanking =
             let serverStatsInJson = ServerRegistry.Serialize serverStats
 
             // it is assumed that SaveToDisk is being run under a lock() block
@@ -302,7 +302,7 @@ module Caching =
         member __.ClearAll () =
             SaveNetworkDataToDisk CachedNetworkData.Empty
             SaveServerRankingsToDisk Map.empty
-                |> ignore
+            |> ignore<ServerRanking>
 
         member __.SaveSnapshot(newDietCachedData: DietCache) =
             let newCachedData = CachedNetworkData.FromDietCache newDietCachedData
@@ -367,7 +367,7 @@ module Caching =
                                       currency
                                       address
                                       sessionCachedNetworkData
-                        |> ignore
+                        |> ignore<bool>
                         // FIXME: should we return here just balance, or NotAvailable (as in there's no cache), and remove all transactions?
                         Cached(0.0m,time)
                     else
@@ -455,7 +455,7 @@ module Caching =
                                   currency
                                   address
                                   newCachedValueWithNewBalanceAndMaybeLessTransactions
-                    |> ignore
+                    |> ignore<bool>
                     // FIXME: should we return here just newBalance, and remove all transactions?
                     0.0m,time
                 else
@@ -585,7 +585,7 @@ module Caching =
                     // should we specify HttpRequestException?
                     | ex ->
                         Infrastructure.ReportWarning ex
-                        |> ignore
+                        |> ignore<bool>
                         return None
                 }
 

@@ -108,8 +108,9 @@ type FaultTolerance() =
             fun _ -> client.Query
                             (defaultSettingsForNoConsistencyNoParallelismAndNoRetries None)
                             List.Empty
-                                |> Async.RunSynchronously |> ignore
-        ) |> ignore
+                            |> Async.RunSynchronously
+                            |> ignore<unit>
+        ) |> ignore<ArgumentException>
 
     [<Test>]
     member __.``can retrieve one if 1 of the funcs throws``() =
@@ -190,7 +191,7 @@ type FaultTolerance() =
                 .Query
                     (defaultSettingsForNoConsistencyNoParallelismAndNoRetries None) [ func1; func2 ]
                         |> Async.RunSynchronously
-                            |> ignore )
+                        |> ignore<int> )
 
         Assert.That((FSharpUtil.FindException<SomeOtherException> ex).IsSome, Is.True)
 
@@ -246,7 +247,7 @@ type FaultTolerance() =
         Assert.Throws<ArgumentException>(fun _ ->
             (FaultTolerantParallelClient<ServerDetails, Exception>
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
-                |> ignore ) |> ignore
+                |> ignore<FaultTolerantParallelClient<ServerDetails, Exception>> ) |> ignore<ArgumentException>
 
     [<Test>]
     member __.``makes sure data is consistent across N funcs``() =
@@ -309,7 +310,7 @@ type FaultTolerance() =
                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test)
                     .Query invalidSettings dummyServers
                         |> Async.RunSynchronously
-                            |> ignore ) |> ignore
+                        |> ignore<unit> ) |> ignore<ArgumentException>
 
     [<Test>]
     member __.``consistency precondition > funcs``() =
@@ -336,7 +337,7 @@ type FaultTolerance() =
                 settings
                 [ func1; func2 ]
                     |> Async.RunSynchronously
-                        |> ignore ) |> ignore
+                    |> ignore<int> ) |> ignore<ArgumentException>
 
     [<Test>]
     member __.``if consistency is not found, throws inconsistency exception``() =
@@ -371,7 +372,7 @@ type FaultTolerance() =
                                       settings
                                       [ func1; func2; func3; func4 ]
                                           |> Async.RunSynchronously
-                                          |> ignore )
+                                          |> ignore<int> )
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
 
     [<Test>]
@@ -477,7 +478,7 @@ type FaultTolerance() =
                      [ func1; func2 ]
             |> Async.RunSynchronously
             // enough to know that it doesn't throw
-            |> ignore
+            |> ignore<int>
 
     [<Test>]
     member __.``it retries before throwing inconsistency exception``() =
@@ -535,14 +536,14 @@ type FaultTolerance() =
             settings
             [ func1; func2; func3whichGetsConsistentAtSecondTry; func4 ]
                 |> Async.RunSynchronously
-                |> ignore
+                |> ignore<int>
 
         let inconsistencyEx = Assert.Throws<ResultInconsistencyException>(fun _ ->
                                   client.Query
                                       settings
                                       [ func1; func2; func3whichGetsConsistentAtThirdTry; func4 ]
                                           |> Async.RunSynchronously
-                                          |> ignore )
+                                          |> ignore<int> )
         Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
 
     [<Test>]
@@ -1072,7 +1073,7 @@ type FaultTolerance() =
                                     saveServerLastStat).Query
                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries None) [ func ]
                 |> Async.RunSynchronously
-                |> ignore
+                |> ignore<int>
 
         Assert.That(someFlag, Is.EqualTo true)
 
@@ -1112,7 +1113,7 @@ type FaultTolerance() =
                 (defaultSettingsForNoConsistencyNoParallelismAndNoRetries None)
                 [ server1; server2 ]
                 |> Async.RunSynchronously
-                |> ignore
+                |> ignore<int>
 
         Assert.That(someTotalCounter, Is.EqualTo 2)
         Assert.That(someNonFailingCounter, Is.EqualTo 1)

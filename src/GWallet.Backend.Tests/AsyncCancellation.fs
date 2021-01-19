@@ -299,7 +299,9 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
         let client = FaultTolerantParallelClient<ServerDetails, SomeExceptionDuringParallelWork>
                          dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
-        client.QueryWithCancellation cancelSource settings allFuncs |> Async.StartAsTask |> ignore
+        client.QueryWithCancellation cancelSource settings allFuncs
+        |> Async.StartAsTask
+        |> ignore<Task<int>>
 
         Assert.That(longFuncFinishedExecution, Is.EqualTo false)
         Thread.Sleep someShortTime
@@ -820,7 +822,7 @@ type DotNetAsyncCancellation() =
         cancelSource.Dispose()
         Assert.Throws<ObjectDisposedException>(fun _ ->
             cancelSource.Cancel()
-        ) |> ignore
+        ) |> ignore<ObjectDisposedException>
 
     [<Test>]
     member __.``cancel token of a nested async job is the same as parent's (so F# is awesome at propagating)``() =

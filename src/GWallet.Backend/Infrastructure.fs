@@ -63,7 +63,8 @@ module Infrastructure =
                 let mutable exceptionWhenReporting: Option<Exception> = None
                 ravenClient.ErrorOnCapture <-
                     fun ex -> exceptionWhenReporting <- Some ex
-                ravenClient.Capture sentryEvent |> ignore
+                ravenClient.Capture sentryEvent
+                |> ignore<string>
                 match exceptionWhenReporting with
                 | Some ex ->
                     // strangely enough this cannot be raised (doesn't have any effect) in the delegate assigned to ErrorOnCapture
@@ -73,7 +74,8 @@ module Infrastructure =
         with
         | ex ->
             let newEx = SentryReportingException("Error while trying to send Sentry report", ex)
-            LogCrash newEx true |> ignore
+            LogCrash newEx true
+            |> ignore<FileInfo>
             false
 
     let internal Flush () =
@@ -148,7 +150,7 @@ module Infrastructure =
             Report ex ErrorLevel.Fatal
 
 #if DEBUG
-            |> ignore
+            |> ignore<bool>
 #else
         if reported then
             loggedEx.Delete()

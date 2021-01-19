@@ -169,8 +169,8 @@ module ServerManager =
                     | Some job -> yield job
         }
         Async.Parallel jobs
-            |> Async.RunSynchronously
-            |> ignore
+        |> Async.RunSynchronously
+        |> ignore<array<unit>>
 
         UpdateBaseline()
 
