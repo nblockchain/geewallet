@@ -1,5 +1,6 @@
 ﻿namespace GWallet.Backend.UtxoCoin.Lightning
 
+open System
 open System.IO
 
 open DotNetLightning.Channel
@@ -225,6 +226,9 @@ type ChannelStore(account: NormalUtxoAccount) =
                 (QuerySettings.Default ServerSelectionMode.Fast)
                 (ElectrumClient.GetBlockchainScriptHashHistory scriptHash)
                 None
+        let fundingTxId = TransactionIdentifier.FromHash (ChannelSerialization.Commitments serializedChannel).FundingScriptCoin.Outpoint.Hash
+        Console.WriteLine(SPrintF1 "** WOW ** - fundingTxId == %A" fundingTxId)
+        Console.WriteLine(SPrintF1 "** WOW ** - historyList == %A" historyList)
         if historyList.Length = 2 then
             let closingTxId = historyList.[2].TxHash
             let closingTxHeightOpt =
