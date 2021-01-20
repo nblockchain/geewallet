@@ -206,6 +206,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
     member private self.Request<'R> (jsonRequest: string): Async<'R*string> = async {
         let! rawResponse = jsonRpcClient.Request jsonRequest
 
+        Console.WriteLine(sprintf "For this request: %s" jsonRequest)
+        Console.WriteLine(sprintf "Got this response: %s" rawResponse)
+
         // FIXME: we should actually fix this bug in JsonRpcSharp (https://github.com/nblockchain/JsonRpcSharp/issues/9)
         if String.IsNullOrEmpty rawResponse then
             return raise <| ProtocolGlitchException(SPrintF2 "Server '%s' returned a null/empty JSON response to the request '%s'??"
