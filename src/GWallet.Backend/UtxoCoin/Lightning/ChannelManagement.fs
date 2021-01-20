@@ -229,10 +229,18 @@ type ChannelStore(account: NormalUtxoAccount) =
         let fundingTxId = TransactionIdentifier.FromHash (ChannelSerialization.Commitments serializedChannel).FundingScriptCoin.Outpoint.Hash
         Console.WriteLine(SPrintF1 "** WOW ** - fundingTxId == %A" fundingTxId)
         Console.WriteLine(SPrintF1 "** WOW ** - historyList == %A" historyList)
+        let! balance =
+            Server.Query
+                currency
+                (QuerySettings.Default ServerSelectionMode.Fast)
+                (ElectrumClient.GetBalance scriptHash)
+                None
+        Console.WriteLine(SPrintF1 "** WOW ** - balance == %A" balance)
+
         if historyList.Length = 2 then
-            let closingTxId = historyList.[2].TxHash
+            let closingTxId = historyList.[1].TxHash
             let closingTxHeightOpt =
-                let reportedHeight = historyList.[2].Height
+                let reportedHeight = historyList.[1].Height
                 if reportedHeight = 0u then
                     None
                 else
