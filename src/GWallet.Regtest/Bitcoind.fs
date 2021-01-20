@@ -29,6 +29,7 @@ type Bitcoind = {
         let rpcUser = Path.GetRandomFileName()
         let rpcPassword = Path.GetRandomFileName()
         let confPath = Path.Combine(dataDir, "bitcoin.conf")
+        (*
         File.WriteAllText(
             confPath,
             SPrintF2
@@ -46,6 +47,20 @@ type Bitcoind = {
                 rpcport=18554"
                 rpcUser
                 rpcPassword
+        )
+        *)
+        File.WriteAllText(
+            confPath,
+            "\
+            txindex=1\n\
+            printtoconsole=1\n\
+            rpcallowip=127.0.0.1\n\
+            zmqpubrawblock=tcp://127.0.0.1:28332\n\
+            zmqpubrawtx=tcp://127.0.0.1:28333\n\
+            fallbackfee=0.00001\n\
+            [regtest]\n\
+            rpcbind=127.0.0.1\n\
+            rpcport=18554"
         )
 
         let processWrapper =
@@ -83,6 +98,9 @@ type Bitcoind = {
         let txIdList = JsonConvert.DeserializeObject<list<string>> output
         List.map (fun (txIdString: string) -> TxId <| uint256 txIdString) txIdList
 
-    member this.RpcUrl: string =
-        SPrintF2 "http://%s:%s@127.0.0.1:18554" this.RpcUser this.RpcPassword
+    member this.RpcAddr(): string =
+        "127.0.0.1:18554"
+
+    member this.RpcUrl(): string =
+        SPrintF3 "http://%s:%s@%s" this.RpcUser this.RpcPassword (this.RpcAddr())
 
