@@ -470,11 +470,11 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
 
     member self.ForceCloseUsingCommitmentTx (commitmentTxString: string)
                                             (channelId: ChannelIdentifier)
-                                                : Async<string> = async {
+                                                : Async<Option<string>> = async {
         let account = self.Account :> IAccount
         let currency = account.Currency
         let serializedChannel = self.ChannelStore.LoadChannel channelId
-        let! spendingTransaction = async {
+        let! recoveryTransactionStringOpt = async {
             let network =
                 UtxoCoin.Account.GetNetwork currency
             let commitmentTx =
@@ -492,7 +492,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 let! feeEstimator = FeeEstimator.Create currency
                 return feeEstimator.FeeRatePerKw
             }
-            let spendingTransactionOpt =
+            let recoveryTransactionOpt =
                 ForceCloseFundsRecovery.tryGetFundsFromLocalCommitmentTx
                     commitments
                     channelPrivKeys
@@ -501,39 +501,46 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                     targetAddress
                     feeRate
                     true
-            return UnwrapOption
-                spendingTransactionOpt
-                "Failed to get funds from our own commitment tx! This is a bug."
+            match recoveryTransactionOpt with
+            | Some recoveryTransaction -> return Some <| recoveryTransaction.ToHex()
+            | None -> return None
         }
-        return spendingTransaction.ToHex()
+        return recoveryTransactionStringOpt
     }
 
     member self.ForceClose (channelId: ChannelIdentifier)
-                               : Async<string> = async {
+                               : Async<Option<string>> = async {
         let commitmentTxString = self.ChannelStore.GetCommitmentTx channelId
         let serializedChannel = self.ChannelStore.LoadChannel channelId
-        let! spendingTxString = self.ForceCloseUsingCommitmentTx commitmentTxString channelId
-        let currency =
-            let account = self.Account :> IAccount
-            account.Currency
-        let! forceCloseTxId = UtxoCoin.Account.BroadcastRawTransaction currency commitmentTxString
-        let newSerializedChannel = {
-            serializedChannel with
-                LocalForceCloseSpendingTxOpt = Some spendingTxString
-        }
-        self.ChannelStore.SaveChannel newSerializedChannel
-        return forceCloseTxId
+        let! forceCloseTxId =
+            let currency =
+                let account = self.Account :> IAccount
+                account.Currency
+            UtxoCoin.Account.BroadcastRawTransaction currency commitmentTxString
+        let! recoveryTxStringOpt = self.ForceCloseUsingCommitmentTx commitmentTxString channelId
+        match recoveryTxStringOpt with
+        | None ->
+            self.ChannelStore.DeleteChannel channelId
+            return None
+        | Some recoveryTxString ->
+            let newSerializedChannel = {
+                serializedChannel with
+                    LocalForceCloseSpendingTxOpt = Some recoveryTxString
+            }
+            self.ChannelStore.SaveChannel newSerializedChannel
+            return Some forceCloseTxId
     }
 
     member self.CreateRecoveryTxForRemoteForceClose (channelId: ChannelIdentifier)
                                                     (closingTxId: string)
                                                     (requiresCpfp: bool)
-                                                        : Async<string> = async {
+                                                        : Async<Option<string>> = async {
         let serializedChannel = self.ChannelStore.LoadChannel channelId
         let commitments = ChannelSerialization.Commitments serializedChannel
         let account = self.Account :> IAccount
         let currency = account.Currency
         let network = UtxoCoin.Account.GetNetwork currency
+        Console.WriteLine(SPrintF1 "creating recovery tx for closing txid %s" closingTxId)
         let! closingTxHex =
             Server.Query
                 currency
@@ -561,11 +568,9 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 targetAddress
                 feeRate
                 requiresCpfp
-        let recoveryTx =
-            UnwrapOption
-                recoveryTxOpt
-                "Failed to get funds from remote commitment tx! This is a bug."
-        return recoveryTx.ToHex()
+        match recoveryTxOpt with
+        | Some recoveryTx -> return Some <| recoveryTx.ToHex()
+        | None -> return None
     }
 
 module public Connection =
