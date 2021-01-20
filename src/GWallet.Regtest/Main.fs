@@ -13,6 +13,7 @@ let rec keepSlowlyMining<'T> (bitcoind: Bitcoind) (lndAddress: BitcoinAddress): 
 
 let mainJob (walletAddress: BitcoinAddress): Async<unit> = async {
     use bitcoind = Bitcoind.Start()
+    do! Async.Sleep 5000
     use _electrumServer = ElectrumServer.Start bitcoind
     use! lnd = Lnd.Start bitcoind
     

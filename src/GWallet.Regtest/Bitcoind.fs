@@ -83,6 +83,9 @@ type Bitcoind = {
         let txIdList = JsonConvert.DeserializeObject<list<string>> output
         List.map (fun (txIdString: string) -> TxId <| uint256 txIdString) txIdList
 
-    member this.RpcUrl: string =
-        SPrintF2 "http://%s:%s@127.0.0.1:18554" this.RpcUser this.RpcPassword
+    member this.RpcAddr(): string =
+        "127.0.0.1:18554"
+
+    member this.RpcUrl(): string =
+        SPrintF3 "http://%s:%s@%s" this.RpcUser this.RpcPassword (this.RpcAddr())
 
