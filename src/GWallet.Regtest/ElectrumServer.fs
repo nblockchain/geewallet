@@ -2,6 +2,7 @@ namespace GWallet.Regtest
 
 open System
 open System.IO // For File.WriteAllText
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type ElectrumServer = {
     DbDir: string
@@ -18,17 +19,22 @@ type ElectrumServer = {
         Directory.CreateDirectory dbDir |> ignore
         let processWrapper =
             ProcessWrapper.New
-                "electrumx_server"
-                ""
-                (Map.ofList <| [
-                    "SERVICES", "tcp://[::1]:50001";
-                    "COIN", "BitcoinSegwit";
-                    "NET", "regtest";
-                    "DAEMON_URL", bitcoind.RpcUrl;
-                    "DB_DIRECTORY", dbDir
-                ])
-                true
-        processWrapper.WaitForMessage (fun msg -> msg.EndsWith "TCP server listening on [::1]:50001")
+                "electrs"
+                (SPrintF3
+                    "\
+                    --db-dir %s \
+                    --daemon-dir %s \
+                    --network regtest \
+                    --electrum-rpc-addr [::1]:50001 \
+                    --daemon-rpc-addr %s \
+                    "
+                    dbDir
+                    bitcoind.DataDir
+                    (bitcoind.RpcAddr())
+                )
+                Map.empty
+                false
+        processWrapper.WaitForMessage (fun msg -> msg.Contains "Electrum Rust Server")
         {
             DbDir = dbDir
             ProcessWrapper = processWrapper
