@@ -338,7 +338,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let obj = {
             Id = 0;
             Method = "blockchain.transaction.get_merkle";
-            Params = Map.ofList ["tx_hash", txHash :> obj; "height", height :> obj]
+            Params = [txHash :> obj; height :> obj]
         }
         let json = Serialize obj
         async {
@@ -362,7 +362,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let obj = {
             Id = 0
             Method = "blockchain.transaction.get"
-            Params = Map.ofList ["tx_hash", txHash :> obj; "verbose", true :> obj]
+            Params = [txHash :> obj; true :> obj]
         }
         let json = Serialize obj
         async {
