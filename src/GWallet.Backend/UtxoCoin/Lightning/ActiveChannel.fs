@@ -430,7 +430,7 @@ and internal ActiveChannel =
                                                          account
                     breachStore.SaveBreachData breachData
                     
-                    let client = {TowerClient.TowerHost = Config.DEFAULT_WATCHTOWER_HOST; TowerPort = Config.DEFAULT_WATCHTOWER_POST}
+                    let client = {TowerClient.TowerHost = Config.DEFAULT_WATCHTOWER_HOST; TowerPort = Config.DEFAULT_WATCHTOWER_PORT}
                     do! client.CreateAndSendPunishmentTx perCommitmentSecret
                                                          commitments
                                                          channelPrivKeys
