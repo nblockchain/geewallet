@@ -16,9 +16,14 @@ let MaybeForceCloseChannel (lightningNode: Node)
                            (channelId: ChannelIdentifier)
                            (error: IErrorMsg): Async<unit> = async {
     if error.ChannelBreakdown then
-        let! forceCloseTxId =
+        let! forceCloseTxIdOpt =
             Lightning.Network.ForceClose lightningNode channelId
-        Console.WriteLine(sprintf "Channel %s force-closed. txid == %s" (ChannelId.ToString channelId) forceCloseTxId)
+        Console.WriteLine(sprintf "Channel %s force-closed." (ChannelId.ToString channelId))
+        match forceCloseTxIdOpt with
+        | Some forceCloseTxId ->
+            Console.WriteLine(sprintf "Funds recovered in transaction %s" forceCloseTxId)
+        | None ->
+            Console.WriteLine("No funds were recovered.")
 }
 
 let OpenChannel(): Async<unit> = async {
@@ -160,9 +165,13 @@ let ForceCloseChannel(): Async<unit> = async {
         let password = UserInteraction.AskPassword false
         let bindAddress = IPEndPoint(IPAddress.Parse "127.0.0.1", 0)
         use lightningNode = Lightning.Connection.Start channelStore password bindAddress
-        let! forceCloseTxId = Lightning.Network.ForceClose lightningNode channelId
+        let! forceCloseTxIdOpt = Lightning.Network.ForceClose lightningNode channelId
         Console.WriteLine "Channel force closed"
-        Console.WriteLine (sprintf "Force close txid == %s" forceCloseTxId)
+        match forceCloseTxIdOpt with
+        | Some forceCloseTxId ->
+            Console.WriteLine (sprintf "Funds recovered in transaction %s" forceCloseTxId)
+        | None ->
+            Console.WriteLine "No funds were recovered"
         UserInteraction.PressAnyKeyToContinue()
         return ()
 }
@@ -292,23 +301,32 @@ let ClaimFundsIfRemoteForceClosed (channelStore: ChannelStore)
             Console.WriteLine("Account must be unlocked to recover funds.")
             let password = UserInteraction.AskPassword false
             use lightningNode = Lightning.Connection.Start channelStore password bindAddress
-            let! recoveryTxString =
+            let! recoveryTxStringOpt =
                 Lightning.Network.CreateRecoveryTxForRemoteForceClose
                     lightningNode
                     channelInfo.ChannelId
                     closingTxId
                     requiresCpfp
-            let! txIdString =
-                UtxoCoin.Account.BroadcastRawTransaction
-                    channelStore.Currency
-                    recoveryTxString
-            channelStore.DeleteChannel channelInfo.ChannelId
-            return seq {
-                yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
-                yield "        channel closed by counterparty"
-                yield "        funds have been returned to wallet"
-                yield sprintf "        txid of recovery transaction is %s" txIdString
-            }
+            match recoveryTxStringOpt with
+            | Some recoveryTxString ->
+                let! txIdString =
+                    UtxoCoin.Account.BroadcastRawTransaction
+                        channelStore.Currency
+                        recoveryTxString
+                channelStore.DeleteChannel channelInfo.ChannelId
+                return seq {
+                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
+                    yield "        channel closed by counterparty"
+                    yield "        funds have been returned to wallet"
+                    yield sprintf "        txid of recovery transaction is %s" txIdString
+                }
+            | None ->
+                channelStore.DeleteChannel channelInfo.ChannelId
+                return seq {
+                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
+                    yield "        channel closed by counterparty"
+                    yield "        no funds were recovered"
+                }
         }
 }
 
