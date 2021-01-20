@@ -13,6 +13,12 @@ type internal TowerClient =
     { TowerHost: string
       TowerPort: int }
 
+    static member Default =
+        { 
+            TowerHost = Config.DEFAULT_WATCHTOWER_HOST
+            TowerPort = Config.DEFAULT_WATCHTOWER_PORT
+        }
+               
     member internal self.CreateAndSendPunishmentTx
         (perCommitmentSecret: PerCommitmentSecret)
         (commitments: Commitments)
