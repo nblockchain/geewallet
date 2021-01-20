@@ -12,14 +12,14 @@ open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
-
+open System.Security.Cryptography
 
 type CommitmentBreachData = 
     {
         CommitmentNumber: UInt48
         PenaltyTx: string
     }
-
+    
 type ChannelBreachData = 
     {
         ChannelId: ChannelIdentifier

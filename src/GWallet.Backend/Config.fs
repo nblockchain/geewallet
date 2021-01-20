@@ -121,6 +121,10 @@ module Config =
 
     let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = 3u
 
+    //TODO: Add watchetower url here
+    let internal DEFAULT_WATCHTOWER_HOST = "127.0.0.1"
+    let internal DEFAULT_WATCHTOWER_POST = 8080
+
     let internal GetConfigDirForThisProgram() =
         let configDir =
             match GetRunMode() with
