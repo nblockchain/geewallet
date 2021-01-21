@@ -97,7 +97,7 @@
       <HintPath>..\..\packages\Portable.BouncyCastle.1.8.5.2\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
       <Project>{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}</Project>
@@ -158,7 +158,7 @@
       <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20210118-1112-git-ba83427\lib\netstandard2.0\ResultUtils.dll</HintPath>
     </Reference>
     <Reference Include="System.Memory">
-      <HintPath>..\..\packages\System.Memory.4.5.3\lib\netstandard2.0\System.Memory.dll</HintPath>
+      <HintPath>..\..\packages\System.Memory.4.5.4\lib\netstandard2.0\System.Memory.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
       <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.2\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
