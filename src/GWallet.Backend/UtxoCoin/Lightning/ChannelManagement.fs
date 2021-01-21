@@ -237,17 +237,25 @@ type ChannelStore(account: NormalUtxoAccount) =
                 None
         Console.WriteLine(SPrintF1 "** WOW ** - balance == %A" balance)
 
-        if historyList.Length = 2 then
-            let closingTxId = historyList.[1].TxHash
+        let closingTxItemOpt =
+            List.tryFind
+                (fun historyItem ->
+                    let thisTxId = TransactionIdentifier.FromHash <| uint256 historyItem.TxHash
+                    thisTxId <> fundingTxId
+                )
+                historyList
+
+        match closingTxItemOpt with
+        | None -> return None
+        | Some closingTxItem ->
+            let closingTxIdString = closingTxItem.TxHash
             let closingTxHeightOpt =
-                let reportedHeight = historyList.[1].Height
+                let reportedHeight = closingTxItem.Height
                 if reportedHeight = 0u then
                     None
                 else
                     Some reportedHeight
-            return Some (closingTxId, closingTxHeightOpt)
-        else
-            return None
+            return Some (closingTxIdString, closingTxHeightOpt)
     }
 
 module ChannelManager =
