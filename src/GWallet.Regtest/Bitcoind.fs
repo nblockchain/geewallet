@@ -51,19 +51,16 @@ type Bitcoind = {
         *)
         File.WriteAllText(
             confPath,
-            SPrintF2
-                "\
-                txindex=1\n\
-                printtoconsole=1\n\
-                rpcallowip=127.0.0.1\n\
-                zmqpubrawblock=tcp://127.0.0.1:28332\n\
-                zmqpubrawtx=tcp://127.0.0.1:28333\n\
-                fallbackfee=0.00001\n\
-                [regtest]\n\
-                rpcbind=127.0.0.1\n\
-                rpcport=18554"
-                rpcUser
-                rpcPassword
+            "\
+            txindex=1\n\
+            printtoconsole=1\n\
+            rpcallowip=127.0.0.1\n\
+            zmqpubrawblock=tcp://127.0.0.1:28332\n\
+            zmqpubrawtx=tcp://127.0.0.1:28333\n\
+            fallbackfee=0.00001\n\
+            [regtest]\n\
+            rpcbind=127.0.0.1\n\
+            rpcport=18554"
         )
 
         let processWrapper =
