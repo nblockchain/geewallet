@@ -27,23 +27,25 @@ type internal TowerClient =
         (account: NormalUtxoAccount)
         : Async<unit> =
         async {
+            try 
+                let! rewardAdderss = self.GetRewardAddress()
 
-            let! rewardAdderss = self.GetRewardAddress()
+                let! punishmentTx =
+                    ForceCloseTransaction.CreatePunishmentTx
+                        perCommitmentSecret
+                        commitments
+                        localChannelPrivKeys
+                        network
+                        account
+                        (rewardAdderss |> Some)
 
-            let! punishmentTx =
-                ForceCloseTransaction.CreatePunishmentTx
-                    perCommitmentSecret
-                    commitments
-                    localChannelPrivKeys
-                    network
-                    account
-                    (rewardAdderss |> Some)
+                let towerRequest =
+                    { AddPunishmentTxRequest.TransactionHex = punishmentTx.ToHex()
+                      CommitmentTxHash = commitments.RemoteCommit.TxId.Value.ToString() }
 
-            let towerRequest =
-                { AddPunishmentTxRequest.TransactionHex = punishmentTx.ToHex()
-                  CommitmentTxHash = commitments.RemoteCommit.TxId.Value.ToString() }
-
-            do! self.AddPunishmentTx towerRequest |> Async.Ignore //for now we ignore the response beacuse we have no way of handling it
+                do! self.AddPunishmentTx towerRequest |> Async.Ignore //for now we ignore the response beacuse we have no way of handling it
+            with
+            | :? System.Exception -> ignore //for now we ignore the response beacuse we have no way of handling it
         }
 
 
