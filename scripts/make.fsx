@@ -271,7 +271,7 @@ let RunTests(suite: string) =
             MakeCheckCommand nunitCommand
 
             let arguments = 
-                if suite = "EndToEnd" then
+                if suite = "EndToEnd" && exclude <> "" then
                     "-exclude " + exclude + " " + testAssembly.FullName
                 else
                     testAssembly.FullName
@@ -289,7 +289,7 @@ let RunTests(suite: string) =
                 }
 
             let arguments = 
-                if suite = "EndToEnd" then
+                if suite = "EndToEnd" && exclude <> "" then
                     "/exclude:" + exclude + " " + testAssembly.FullName
                 else
                     testAssembly.FullName
