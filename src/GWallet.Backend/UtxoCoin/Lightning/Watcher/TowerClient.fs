@@ -45,7 +45,7 @@ type internal TowerClient =
 
                 do! self.AddPunishmentTx towerRequest |> Async.Ignore //for now we ignore the response beacuse we have no way of handling it
             with
-            | :? System.Exception -> ignore //for now we ignore the response beacuse we have no way of handling it
+            | _ -> () //for now we ignore the response beacuse we have no way of handling it
         }
 
 
