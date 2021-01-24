@@ -1,4 +1,5 @@
 [*.fs]
+end_of_line=lf
 indent_size=4
 max_line_length=80
 fsharp_semicolon_at_end_of_line=false
@@ -20,5 +21,5 @@ fsharp_max_function_binding_width=0
 fsharp_max_value_binding_width=80
 fsharp_multiline_block_brackets_on_same_column=true
 fsharp_newline_between_type_definition_and_members=true
-fsharp_keep_if_then_in_same_line=true
 fsharp_strict_mode=false
+fsharp_multi_line_lambda_closing_newline=true
