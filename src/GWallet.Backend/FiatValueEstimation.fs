@@ -28,9 +28,12 @@ module FiatValueEstimation =
         | CoinCap
         | CoinGecko
 
-    let private QueryOnlineInternal currency (provider: PriceProvider): Async<Option<string * string>> =
+    let private QueryOnlineInternal
+        currency
+        (provider: PriceProvider)
+        : Async<Option<string * string>> =
         async {
-            use webClient = new WebClient()
+            use webClient = new WebClient ()
 
             let tickerName =
                 match currency, provider with
@@ -45,9 +48,12 @@ module FiatValueEstimation =
             try
                 let baseUrl =
                     match provider with
-                    | PriceProvider.CoinCap -> SPrintF1 "https://api.coincap.io/v2/rates/%s" tickerName
+                    | PriceProvider.CoinCap ->
+                        SPrintF1 "https://api.coincap.io/v2/rates/%s" tickerName
                     | PriceProvider.CoinGecko ->
-                        SPrintF1 "https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd" tickerName
+                        SPrintF1
+                            "https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd"
+                            tickerName
 
                 let uri = Uri baseUrl
                 let task = webClient.DownloadStringTaskAsync uri
@@ -80,7 +86,8 @@ module FiatValueEstimation =
 
     let private QueryCoinGecko currency =
         async {
-            let! maybeJson = QueryOnlineInternal currency PriceProvider.CoinGecko
+            let! maybeJson =
+                QueryOnlineInternal currency PriceProvider.CoinGecko
 
             match maybeJson with
             | None -> return None
@@ -103,11 +110,17 @@ module FiatValueEstimation =
         async {
             let coinGeckoJob = QueryCoinGecko currency
             let coinCapJob = QueryCoinCap currency
-            let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 coinGeckoJob coinCapJob
+
+            let bothJobs =
+                FSharpUtil.AsyncExtensions.MixedParallel2
+                    coinGeckoJob
+                    coinCapJob
+
             let! maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap = bothJobs
 
             if maybeUsdPriceFromCoinCap.IsSome && currency = Currency.ETC then
-                Infrastructure.ReportWarningMessage "Currency ETC can now be queried from CoinCap provider?"
+                Infrastructure.ReportWarningMessage
+                    "Currency ETC can now be queried from CoinCap provider?"
 
             let result =
                 match maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap with
@@ -115,7 +128,9 @@ module FiatValueEstimation =
                 | Some usdPriceFromCoinGecko, None -> Some usdPriceFromCoinGecko
                 | None, Some usdPriceFromCoinCap -> Some usdPriceFromCoinCap
                 | Some usdPriceFromCoinGecko, Some usdPriceFromCoinCap ->
-                    let average = (usdPriceFromCoinGecko + usdPriceFromCoinCap) / 2m
+                    let average =
+                        (usdPriceFromCoinGecko + usdPriceFromCoinCap) / 2m
+
                     Some average
 
             let realResult =
@@ -137,7 +152,9 @@ module FiatValueEstimation =
 
     let UsdValue (currency: Currency): Async<MaybeCached<decimal>> =
         async {
-            let maybeUsdPrice = Caching.Instance.RetrieveLastKnownUsdPrice currency
+            let maybeUsdPrice =
+                Caching.Instance.RetrieveLastKnownUsdPrice currency
+
             match maybeUsdPrice with
             | NotAvailable ->
                 let! maybeOnlineUsdPrice = RetrieveOnline currency

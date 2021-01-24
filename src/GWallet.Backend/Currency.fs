@@ -38,7 +38,9 @@ type Currency =
 #endif
 
     static member Parse (currencyString: string): Currency =
-        Currency.GetAll().First(fun currency -> currencyString = currency.ToString ())
+        Currency
+            .GetAll()
+            .First(fun currency -> currencyString = currency.ToString ())
 
     member self.IsEther () =
         self = Currency.ETC || self = Currency.ETH
@@ -60,7 +62,8 @@ type Currency =
         elif self = Currency.SAI then
             18
         else
-            failwith <| SPrintF1 "Unable to determine decimal places for %A" self
+            failwith
+            <| SPrintF1 "Unable to determine decimal places for %A" self
 
     override self.ToString () =
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
@@ -80,12 +83,17 @@ type Currency =
 // the reason we have used "and" is because of the circular reference
 // between StringTypeConverter and Currency
 and private StringTypeConverter () =
-    inherit TypeConverter()
+    inherit TypeConverter ()
 
     override __.CanConvertFrom (context, sourceType) =
         sourceType = typeof<string> || base.CanConvertFrom (context, sourceType)
 
     override __.ConvertFrom (context, culture, value) =
         match value with
-        | :? string as stringValue -> Seq.find (fun cur -> cur.ToString () = stringValue) (Currency.GetAll ()) :> obj
+        | :? string as stringValue ->
+            Seq.find
+                (fun cur -> cur.ToString () = stringValue
+                )
+                (Currency.GetAll ())
+            :> obj
         | _ -> base.ConvertFrom (context, culture, value)

@@ -25,7 +25,9 @@ module BlockExplorer =
                 "https://gastracker.io/addr/"
             | Currency.SAI
             | Currency.DAI ->
-                SPrintF1 "https://etherscan.io/token/%s?a=" (TokenManager.GetTokenContractAddress account.Currency)
+                SPrintF1
+                    "https://etherscan.io/token/%s?a="
+                    (TokenManager.GetTokenContractAddress account.Currency)
 
         Uri (baseUrl + account.PublicAddress)
 

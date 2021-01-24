@@ -44,9 +44,12 @@ type IAccount =
     abstract PublicAddress: string
 
 [<AbstractClass>]
-type BaseAccount (currency: Currency,
-                  accountFile: FileRepresentation,
-                  fromAccountFileToPublicAddress: FileRepresentation -> string) =
+type BaseAccount
+    (
+        currency: Currency,
+        accountFile: FileRepresentation,
+        fromAccountFileToPublicAddress: FileRepresentation -> string
+    ) =
     member val AccountFile = accountFile
 
     abstract Kind: AccountKind
@@ -56,27 +59,36 @@ type BaseAccount (currency: Currency,
         member val PublicAddress = fromAccountFileToPublicAddress accountFile
 
 
-type NormalAccount (currency: Currency,
-                    accountFile: FileRepresentation,
-                    fromAccountFileToPublicAddress: FileRepresentation -> string) =
-    inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
+type NormalAccount
+    (
+        currency: Currency,
+        accountFile: FileRepresentation,
+        fromAccountFileToPublicAddress: FileRepresentation -> string
+    ) =
+    inherit BaseAccount (currency, accountFile, fromAccountFileToPublicAddress)
 
     member internal __.GetEncryptedPrivateKey () =
         accountFile.Content ()
 
     override __.Kind = AccountKind.Normal
 
-type ReadOnlyAccount (currency: Currency,
-                      accountFile: FileRepresentation,
-                      fromAccountFileToPublicAddress: FileRepresentation -> string) =
-    inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
+type ReadOnlyAccount
+    (
+        currency: Currency,
+        accountFile: FileRepresentation,
+        fromAccountFileToPublicAddress: FileRepresentation -> string
+    ) =
+    inherit BaseAccount (currency, accountFile, fromAccountFileToPublicAddress)
 
     override __.Kind = AccountKind.ReadOnly
 
-type ArchivedAccount (currency: Currency,
-                      accountFile: FileRepresentation,
-                      fromAccountFileToPublicAddress: FileRepresentation -> string) =
-    inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
+type ArchivedAccount
+    (
+        currency: Currency,
+        accountFile: FileRepresentation,
+        fromAccountFileToPublicAddress: FileRepresentation -> string
+    ) =
+    inherit BaseAccount (currency, accountFile, fromAccountFileToPublicAddress)
 
     member internal __.GetUnencryptedPrivateKey () =
         accountFile.Content ()

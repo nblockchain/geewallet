@@ -8,8 +8,8 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 module ElectrumClient =
 
     let private Init (fqdn: string) (port: uint32): Async<StratumClient> =
-        let jsonRpcClient = new JsonRpcTcpClient(fqdn, port)
-        let stratumClient = new StratumClient(jsonRpcClient)
+        let jsonRpcClient = new JsonRpcTcpClient (fqdn, port)
+        let stratumClient = new StratumClient (jsonRpcClient)
 
         // this is the last version of Electrum released at the time of writing this module
         let CLIENT_NAME_SENT_TO_STRATUM_SERVER_WHEN_HELLO = "geewallet"
@@ -26,37 +26,53 @@ module ElectrumClient =
         async {
             let! versionSupportedByServer =
                 try
-                    stratumClient.ServerVersion CLIENT_NAME_SENT_TO_STRATUM_SERVER_WHEN_HELLO PROTOCOL_VERSION_SUPPORTED
+                    stratumClient.ServerVersion
+                        CLIENT_NAME_SENT_TO_STRATUM_SERVER_WHEN_HELLO
+                        PROTOCOL_VERSION_SUPPORTED
                 with :? ElectrumServerReturningErrorException as ex ->
                     if (ex.ErrorCode = 1
                         && ex.Message.StartsWith "unsupported protocol version"
-                        && ex.Message.EndsWith (PROTOCOL_VERSION_SUPPORTED.ToString ())) then
+                        && ex.Message.EndsWith (
+                            PROTOCOL_VERSION_SUPPORTED.ToString ()
+                        )) then
 
                         // FIXME: even if this ex is already handled to ignore the server, we should report to sentry as WARN
                         raise
-                        <| ServerTooNewException
-                            (SPrintF1
+                        <| ServerTooNewException (
+                            SPrintF1
                                 "Version of server rejects our client version (%s)"
-                                 (PROTOCOL_VERSION_SUPPORTED.ToString ()))
+                                (PROTOCOL_VERSION_SUPPORTED.ToString ())
+                        )
                     else
                         reraise ()
 
             if versionSupportedByServer < PROTOCOL_VERSION_SUPPORTED then
-                raise
-                    (ServerTooOldException
-                        (SPrintF2
+                raise (
+                    ServerTooOldException (
+                        SPrintF2
                             "Version of server is older (%s) than the client (%s)"
-                             (versionSupportedByServer.ToString ())
-                             (PROTOCOL_VERSION_SUPPORTED.ToString ())))
+                            (versionSupportedByServer.ToString ())
+                            (PROTOCOL_VERSION_SUPPORTED.ToString ())
+                    )
+                )
 
             return stratumClient
         }
 
     let StratumServer (electrumServer: ServerDetails): Async<StratumClient> =
         match electrumServer.ServerInfo.ConnectionType with
-        | { Encrypted = true; Protocol = _ } -> failwith "Incompatibility filter for non-encryption didn't work?"
-        | { Encrypted = false; Protocol = Http } -> failwith "HTTP server for UtxoCoin?"
-        | { Encrypted = false; Protocol = Tcp port } -> Init electrumServer.ServerInfo.NetworkPath port
+        | {
+              Encrypted = true
+              Protocol = _
+          } -> failwith "Incompatibility filter for non-encryption didn't work?"
+        | {
+              Encrypted = false
+              Protocol = Http
+          } -> failwith "HTTP server for UtxoCoin?"
+        | {
+              Encrypted = false
+              Protocol = Tcp port
+          } -> Init electrumServer.ServerInfo.NetworkPath port
 
     let GetBalance (scriptHash: string) (stratumServer: Async<StratumClient>) =
         async {
@@ -75,44 +91,74 @@ module ElectrumClient =
             //    [ see https://www.youtube.com/watch?v=hjYCXOyDy7Y&feature=youtu.be&t=1171 for more information ]
             // * -> although that would be fixing only half of the problem, we also need proof of completeness
             let! stratumClient = stratumServer
-            let! balanceResult = stratumClient.BlockchainScriptHashGetBalance scriptHash
+
+            let! balanceResult =
+                stratumClient.BlockchainScriptHashGetBalance scriptHash
+
             return balanceResult.Result
         }
 
-    let GetUnspentTransactionOutputs scriptHash (stratumServer: Async<StratumClient>) =
+    let GetUnspentTransactionOutputs
+        scriptHash
+        (stratumServer: Async<StratumClient>)
+        =
         async {
             let! stratumClient = stratumServer
-            let! unspentListResult = stratumClient.BlockchainScriptHashListUnspent scriptHash
+
+            let! unspentListResult =
+                stratumClient.BlockchainScriptHashListUnspent scriptHash
+
             return unspentListResult.Result
         }
 
     let GetBlockchainTransaction txHash (stratumServer: Async<StratumClient>) =
         async {
             let! stratumClient = stratumServer
-            let! blockchainTransactionResult = stratumClient.BlockchainTransactionGet txHash
+
+            let! blockchainTransactionResult =
+                stratumClient.BlockchainTransactionGet txHash
+
             return blockchainTransactionResult.Result
         }
 
-    let EstimateFee (numBlocksTarget: int) (stratumServer: Async<StratumClient>): Async<decimal> =
+    let EstimateFee
+        (numBlocksTarget: int)
+        (stratumServer: Async<StratumClient>)
+        : Async<decimal> =
         async {
             let! stratumClient = stratumServer
-            let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget
+
+            let! estimateFeeResult =
+                stratumClient.BlockchainEstimateFee numBlocksTarget
 
             if estimateFeeResult.Result = -1m then
-                return raise
-                       <| ServerMisconfiguredException ("Fee estimation returned a -1 error code")
+                return
+                    raise
+                    <| ServerMisconfiguredException (
+                        "Fee estimation returned a -1 error code"
+                    )
             elif estimateFeeResult.Result <= 0m then
-                return raise
-                       <| ServerMisconfiguredException
-                           (SPrintF1 "Fee estimation returned an invalid non-positive value %M" estimateFeeResult.Result)
+                return
+                    raise
+                    <| ServerMisconfiguredException (
+                        SPrintF1
+                            "Fee estimation returned an invalid non-positive value %M"
+                            estimateFeeResult.Result
+                    )
 
 
             return estimateFeeResult.Result
         }
 
-    let BroadcastTransaction (transactionInHex: string) (stratumServer: Async<StratumClient>) =
+    let BroadcastTransaction
+        (transactionInHex: string)
+        (stratumServer: Async<StratumClient>)
+        =
         async {
             let! stratumClient = stratumServer
-            let! blockchainTransactionBroadcastResult = stratumClient.BlockchainTransactionBroadcast transactionInHex
+
+            let! blockchainTransactionBroadcastResult =
+                stratumClient.BlockchainTransactionBroadcast transactionInHex
+
             return blockchainTransactionBroadcastResult.Result
         }

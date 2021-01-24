@@ -13,7 +13,8 @@ module Infrastructure =
     let private sentryUrl =
         "https://4d1c6170ee37412fab20f8c63a2ade24:fc5e2c50990e48929d190fc283513f87@sentry.io/187797"
 
-    let private ravenClient = RavenClient (sentryUrl, Release = VersionHelper.CURRENT_VERSION)
+    let private ravenClient =
+        RavenClient (sentryUrl, Release = VersionHelper.CURRENT_VERSION)
 
     let private ReportInner (sentryEvent: SentryEvent) =
         ravenClient.Capture sentryEvent |> ignore
@@ -48,7 +49,9 @@ module Infrastructure =
 #if DEBUG
         failwith message
 #else
-        let sentryEvent = SentryEvent (SentryMessage message, Level = errorLevel)
+        let sentryEvent =
+            SentryEvent (SentryMessage message, Level = errorLevel)
+
         ReportInner sentryEvent
 #endif
 
@@ -85,8 +88,13 @@ module Infrastructure =
     let ReportCrash (ex: Exception) =
         Report ex ErrorLevel.Fatal
 
-    let private OnUnhandledException (_: obj) (args: UnhandledExceptionEventArgs) =
+    let private OnUnhandledException
+        (_: obj)
+        (args: UnhandledExceptionEventArgs)
+        =
         ReportCrash (args.ExceptionObject :?> Exception)
 
     let public SetupSentryHook () =
-        AppDomain.CurrentDomain.UnhandledException.AddHandler (UnhandledExceptionEventHandler (OnUnhandledException))
+        AppDomain.CurrentDomain.UnhandledException.AddHandler (
+            UnhandledExceptionEventHandler (OnUnhandledException)
+        )

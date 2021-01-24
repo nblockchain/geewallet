@@ -90,32 +90,48 @@ type RpcErrorCode =
     // see https://gitlab.gnome.org/World/geewallet/issues/112
     | UnknownMethod = -32601
 
-type public ElectrumServerReturningErrorInJsonResponseException (message: string, code: int) =
-    inherit CommunicationUnsuccessfulException(message)
+type public ElectrumServerReturningErrorInJsonResponseException
+    (
+        message: string,
+        code: int
+    ) =
+    inherit CommunicationUnsuccessfulException (message)
 
     member val ErrorCode: int = code
 
-type public ElectrumServerReturningErrorException (message: string,
-                                                   code: int,
-                                                   originalRequest: string,
-                                                   originalResponse: string) =
-    inherit ElectrumServerReturningErrorInJsonResponseException(message, code)
+type public ElectrumServerReturningErrorException
+    (
+        message: string,
+        code: int,
+        originalRequest: string,
+        originalResponse: string
+    ) =
+    inherit ElectrumServerReturningErrorInJsonResponseException (message, code)
 
     member val OriginalRequest: string = originalRequest
 
     member val OriginalResponse: string = originalResponse
 
-type public ElectrumServerReturningInternalErrorException (message: string,
-                                                           code: int,
-                                                           originalRequest: string,
-                                                           originalResponse: string) =
-    inherit ElectrumServerReturningErrorException(message, code, originalRequest, originalResponse)
+type public ElectrumServerReturningInternalErrorException
+    (
+        message: string,
+        code: int,
+        originalRequest: string,
+        originalResponse: string
+    ) =
+    inherit ElectrumServerReturningErrorException (message,
+                                                   code,
+                                                   originalRequest,
+                                                   originalResponse)
 
 type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
     let Serialize (req: Request): string =
-        JsonConvert.SerializeObject
-            (req, Formatting.None, Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+        JsonConvert.SerializeObject (
+            req,
+            Formatting.None,
+            Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings
+        )
 
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R * string> =
@@ -124,29 +140,50 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
             // FIXME: we should actually fix this bug in JsonRpcSharp (https://github.com/nblockchain/JsonRpcSharp/issues/9)
             if String.IsNullOrEmpty rawResponse then
-                return raise
-                       <| ProtocolGlitchException
-                           (SPrintF2
-                               "Server '%s' returned a null/empty JSON response to the request '%s'??"
-                                jsonRpcClient.Host
-                                jsonRequest)
+                return
+                    raise
+                    <| ProtocolGlitchException (
+                        SPrintF2
+                            "Server '%s' returned a null/empty JSON response to the request '%s'??"
+                            jsonRpcClient.Host
+                            jsonRequest
+                    )
 
             try
                 return (StratumClient.Deserialize<'R> rawResponse, rawResponse)
             with :? ElectrumServerReturningErrorInJsonResponseException as ex ->
                 if ex.ErrorCode = int RpcErrorCode.InternalError then
-                    return raise
-                               (ElectrumServerReturningInternalErrorException
-                                   (ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
-                if ex.ErrorCode = int RpcErrorCode.UnknownMethod then
-                    return raise <| ServerMisconfiguredException (ex.Message, ex)
-                if ex.ErrorCode = int RpcErrorCode.ServerBusy then
-                    return raise <| ServerUnavailabilityException (ex.Message, ex)
-                if ex.ErrorCode = int RpcErrorCode.ExcessiveResourceUsage then
-                    return raise <| ServerUnavailabilityException (ex.Message, ex)
+                    return
+                        raise (
+                            ElectrumServerReturningInternalErrorException (
+                                ex.Message,
+                                ex.ErrorCode,
+                                jsonRequest,
+                                rawResponse
+                            )
+                        )
 
-                return raise
-                           (ElectrumServerReturningErrorException (ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
+                if ex.ErrorCode = int RpcErrorCode.UnknownMethod then
+                    return
+                        raise <| ServerMisconfiguredException (ex.Message, ex)
+
+                if ex.ErrorCode = int RpcErrorCode.ServerBusy then
+                    return
+                        raise <| ServerUnavailabilityException (ex.Message, ex)
+
+                if ex.ErrorCode = int RpcErrorCode.ExcessiveResourceUsage then
+                    return
+                        raise <| ServerUnavailabilityException (ex.Message, ex)
+
+                return
+                    raise (
+                        ElectrumServerReturningErrorException (
+                            ex.Message,
+                            ex.ErrorCode,
+                            jsonRequest,
+                            rawResponse
+                        )
+                    )
         }
 
     static member public Deserialize<'T> (result: string): 'T =
@@ -154,45 +191,57 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         let maybeError =
             try
-                JsonConvert.DeserializeObject<ErrorResult>
-                    (resultTrimmed, Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+                JsonConvert.DeserializeObject<ErrorResult> (
+                    resultTrimmed,
+                    Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings
+                )
             with ex ->
                 raise
-                <| Exception
-                    (SPrintF2
+                <| Exception (
+                    SPrintF2
                         "Failed deserializing JSON response (to check for error) '%s' to type '%s'"
-                         resultTrimmed
-                         typedefof<'T>.FullName,
-                     ex)
+                        resultTrimmed
+                        typedefof<'T>.FullName,
+                    ex
+                )
 
         if (not (Object.ReferenceEquals (maybeError, null)))
            && (not (Object.ReferenceEquals (maybeError.Error, null))) then
-            raise
-                (ElectrumServerReturningErrorInJsonResponseException (maybeError.Error.Message, maybeError.Error.Code))
+            raise (
+                ElectrumServerReturningErrorInJsonResponseException (
+                    maybeError.Error.Message,
+                    maybeError.Error.Code
+                )
+            )
 
         let deserializedValue =
             try
-                JsonConvert.DeserializeObject<'T>
-                    (resultTrimmed, Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
+                JsonConvert.DeserializeObject<'T> (
+                    resultTrimmed,
+                    Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings
+                )
             with ex ->
                 raise
-                <| Exception
-                    (SPrintF2
+                <| Exception (
+                    SPrintF2
                         "Failed deserializing JSON response '%s' to type '%s'"
-                         resultTrimmed
-                         typedefof<'T>.FullName,
-                     ex)
+                        resultTrimmed
+                        typedefof<'T>.FullName,
+                    ex
+                )
 
         if Object.ReferenceEquals (deserializedValue, null) then
             failwith
             <| SPrintF2
                 "Failed deserializing JSON response '%s' to type '%s' (result was null)"
-                   resultTrimmed
-                   typedefof<'T>.FullName
+                resultTrimmed
+                typedefof<'T>.FullName
 
         deserializedValue
 
-    member self.BlockchainScriptHashGetBalance address: Async<BlockchainScriptHashGetBalanceResult> =
+    member self.BlockchainScriptHashGetBalance
+        address
+        : Async<BlockchainScriptHashGetBalanceResult> =
         let obj =
             {
                 Id = 0
@@ -203,7 +252,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
 
         async {
-            let! resObj, _ = self.Request<BlockchainScriptHashGetBalanceResult> json
+            let! resObj, _ =
+                self.Request<BlockchainScriptHashGetBalanceResult> json
+
             return resObj
         }
 
@@ -216,9 +267,19 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
         try
             Version (correctedVersion)
-        with exn -> raise (Exception ("Electrum Server's version disliked by .NET Version class: " + versionStr, exn))
+        with exn ->
+            raise (
+                Exception (
+                    "Electrum Server's version disliked by .NET Version class: "
+                    + versionStr,
+                    exn
+                )
+            )
 
-    member self.ServerVersion (clientName: string) (protocolVersion: Version): Async<Version> =
+    member self.ServerVersion
+        (clientName: string)
+        (protocolVersion: Version)
+        : Async<Version> =
         async {
             let obj =
                 {
@@ -237,10 +298,14 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             let! resObj, rawResponse = self.Request<ServerVersionResult> json
 
             if Object.ReferenceEquals (resObj, null) then
-                failwith <| SPrintF1 "resObj is null?? raw response was %s" rawResponse
+                failwith
+                <| SPrintF1 "resObj is null?? raw response was %s" rawResponse
 
             if Object.ReferenceEquals (resObj.Result, null) then
-                failwith <| SPrintF1 "resObj.Result is null?? raw response was %s" rawResponse
+                failwith
+                <| SPrintF1
+                    "resObj.Result is null?? raw response was %s"
+                    rawResponse
 
             // resObj.Result.[0] is e.g. "ElectrumX 1.4.3"
             // e.g. "1.1"
@@ -249,7 +314,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             return StratumClient.CreateVersion (serverProtocolVersion)
         }
 
-    member self.BlockchainScriptHashListUnspent address: Async<BlockchainScriptHashListUnspentResult> =
+    member self.BlockchainScriptHashListUnspent
+        address
+        : Async<BlockchainScriptHashListUnspentResult> =
         let obj =
             {
                 Id = 0
@@ -258,12 +325,17 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             }
 
         let json = Serialize obj
+
         async {
-            let! resObj, _ = self.Request<BlockchainScriptHashListUnspentResult> json
+            let! resObj, _ =
+                self.Request<BlockchainScriptHashListUnspentResult> json
+
             return resObj
         }
 
-    member self.BlockchainTransactionGet txHash: Async<BlockchainTransactionGetResult> =
+    member self.BlockchainTransactionGet
+        txHash
+        : Async<BlockchainTransactionGetResult> =
         let obj =
             {
                 Id = 0
@@ -272,12 +344,15 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             }
 
         let json = Serialize obj
+
         async {
             let! resObj, _ = self.Request<BlockchainTransactionGetResult> json
             return resObj
         }
 
-    member self.BlockchainEstimateFee (numBlocksTarget: int): Async<BlockchainEstimateFeeResult> =
+    member self.BlockchainEstimateFee
+        (numBlocksTarget: int)
+        : Async<BlockchainEstimateFeeResult> =
         let obj =
             {
                 Id = 0
@@ -292,7 +367,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             return resObj
         }
 
-    member self.BlockchainTransactionBroadcast txInHex: Async<BlockchainTransactionBroadcastResult> =
+    member self.BlockchainTransactionBroadcast
+        txInHex
+        : Async<BlockchainTransactionBroadcastResult> =
         let obj =
             {
                 Id = 0
@@ -303,6 +380,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
 
         async {
-            let! resObj, _ = self.Request<BlockchainTransactionBroadcastResult> json
+            let! resObj, _ =
+                self.Request<BlockchainTransactionBroadcastResult> json
+
             return resObj
         }

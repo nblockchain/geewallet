@@ -32,12 +32,21 @@ module FSharpUtil =
                         "%A"
                     |]
 
-                let formatsFound = supportedFormats.Where (fun format -> innerFmt.IndexOf (format) >= 0)
+                let formatsFound =
+                    supportedFormats.Where (fun format ->
+                        innerFmt.IndexOf (format) >= 0
+                    )
+
                 if formatsFound.Any () then
-                    let firstIndexWhereFormatFound = formatsFound.Min (fun format -> innerFmt.IndexOf (format))
+                    let firstIndexWhereFormatFound =
+                        formatsFound.Min (fun format ->
+                            innerFmt.IndexOf (format)
+                        )
 
                     let firstFormat =
-                        formatsFound.First (fun format -> innerFmt.IndexOf (format) = firstIndexWhereFormatFound)
+                        formatsFound.First (fun format ->
+                            innerFmt.IndexOf (format) = firstIndexWhereFormatFound
+                        )
 
                     let subEnd = innerFmt.IndexOf (firstFormat) + "%x".Length
                     let sub = innerFmt.Substring (0, subEnd)
@@ -61,10 +70,23 @@ module FSharpUtil =
         let SPrintF3 (fmt: string) (a: Object) (b: Object) (c: Object) =
             String.Format (ToStringFormat fmt, a, b, c)
 
-        let SPrintF4 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) =
+        let SPrintF4
+            (fmt: string)
+            (a: Object)
+            (b: Object)
+            (c: Object)
+            (d: Object)
+            =
             String.Format (ToStringFormat fmt, a, b, c, d)
 
-        let SPrintF5 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) =
+        let SPrintF5
+            (fmt: string)
+            (a: Object)
+            (b: Object)
+            (c: Object)
+            (d: Object)
+            (e: Object)
+            =
             String.Format (ToStringFormat fmt, a, b, c, d, e)
 
 
@@ -94,17 +116,30 @@ module FSharpUtil =
         let SPrintF3 (fmt: string) (a: Object) (b: Object) (c: Object) =
             ReflectionlessPrint.SPrintF3 fmt a b c
 
-        let SPrintF4 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) =
+        let SPrintF4
+            (fmt: string)
+            (a: Object)
+            (b: Object)
+            (c: Object)
+            (d: Object)
+            =
             ReflectionlessPrint.SPrintF4 fmt a b c d
 
-        let SPrintF5 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) =
+        let SPrintF5
+            (fmt: string)
+            (a: Object)
+            (b: Object)
+            (c: Object)
+            (d: Object)
+            (e: Object)
+            =
             ReflectionlessPrint.SPrintF5 fmt a b c d e
 #endif
 
     type internal ResultWrapper<'T> (value: 'T) =
 
         // hack?
-        inherit Exception()
+        inherit Exception ()
 
         member __.Value = value
 
@@ -125,7 +160,11 @@ module FSharpUtil =
                 return aJobResult, bJobResult
             }
 
-        let MixedParallel3 (a: Async<'T1>) (b: Async<'T2>) (c: Async<'T3>): Async<'T1 * 'T2 * 'T3> =
+        let MixedParallel3
+            (a: Async<'T1>)
+            (b: Async<'T2>)
+            (c: Async<'T3>)
+            : Async<'T1 * 'T2 * 'T3> =
             async {
                 let aJob = Async.StartChild a
                 let bJob = Async.StartChild b
@@ -177,7 +216,8 @@ module FSharpUtil =
                 }
 
             async {
-                let allJobsInParallel = jobs |> Seq.map wrap |> Async.Parallel |> Async.StartChild
+                let allJobsInParallel =
+                    jobs |> Seq.map wrap |> Async.Parallel |> Async.StartChild
 
                 let! allJobsStarted = allJobsInParallel
 
@@ -192,11 +232,25 @@ module FSharpUtil =
         | _, [] -> List.append (List.rev acc) list1
         | head1 :: tail1, head2 :: tail2 ->
             if currentIndex % (int offset) = 0 then
-                ListIntersectInternal list1 tail2 offset (head2 :: acc) (currentIndex + 1)
+                ListIntersectInternal
+                    list1
+                    tail2
+                    offset
+                    (head2 :: acc)
+                    (currentIndex + 1)
             else
-                ListIntersectInternal tail1 list2 offset (head1 :: acc) (currentIndex + 1)
+                ListIntersectInternal
+                    tail1
+                    list2
+                    offset
+                    (head1 :: acc)
+                    (currentIndex + 1)
 
-    let ListIntersect<'T> (list1: List<'T>) (list2: List<'T>) (offset: uint32): List<'T> =
+    let ListIntersect<'T>
+        (list1: List<'T>)
+        (list2: List<'T>)
+        (offset: uint32)
+        : List<'T> =
         ListIntersectInternal list1 list2 offset [] 1
 
     let WithTimeout (timeSpan: TimeSpan) (job: Async<'R>): Async<Option<'R>> =
@@ -233,11 +287,14 @@ module FSharpUtil =
         failwith "Should be unreachable"
         ex
 
-    let rec public FindException<'T when 'T :> Exception> (ex: Exception): Option<'T> =
+    let rec public FindException<'T when 'T :> Exception>
+        (ex: Exception)
+        : Option<'T> =
         let rec findExInSeq (sq: seq<Exception>) =
             match Seq.tryHead sq with
             | Some head ->
                 let found = FindException head
+
                 match found with
                 | Some ex -> Some ex
                 | None -> findExInSeq <| Seq.tail sq
@@ -248,7 +305,8 @@ module FSharpUtil =
         else
             match ex with
             | :? 'T as specificEx -> Some (specificEx)
-            | :? AggregateException as aggEx -> findExInSeq aggEx.InnerExceptions
+            | :? AggregateException as aggEx ->
+                findExInSeq aggEx.InnerExceptions
             | _ -> FindException<'T> (ex.InnerException)
 
 
@@ -262,7 +320,8 @@ module FSharpUtil =
         (Construct<'T> caseInfo)
 
     let GetAllElementsFromDiscriminatedUnion<'T> () =
-        FSharpType.GetUnionCases (typeof<'T>) |> Seq.map GetUnionCaseInfoAndInstance<'T>
+        FSharpType.GetUnionCases (typeof<'T>)
+        |> Seq.map GetUnionCaseInfoAndInstance<'T>
 #endif
 
     type OptionBuilder () =

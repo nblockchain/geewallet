@@ -82,8 +82,7 @@ module ServerRegistry =
     let internal TryFindValue
         (map: ServerRanking)
         (serverPredicate: ServerDetails -> bool)
-        : Option<Currency * ServerDetails>
-        =
+        : Option<Currency * ServerDetails> =
         let rec tryFind currencyAndServers server =
             match currencyAndServers with
             | [] -> None
@@ -96,16 +95,21 @@ module ServerRegistry =
         tryFind listMap serverPredicate
 
     let internal RemoveDupes (servers: seq<ServerDetails>) =
-        let rec removeDupesInternal (servers: seq<ServerDetails>) (serversMap: Map<string, ServerDetails>) =
+        let rec removeDupesInternal
+            (servers: seq<ServerDetails>)
+            (serversMap: Map<string, ServerDetails>)
+            =
             match Seq.tryHead servers with
             | None -> Seq.empty
             | Some server ->
                 let tail = Seq.tail servers
+
                 match serversMap.TryGetValue server.ServerInfo.NetworkPath with
                 | false, _ -> removeDupesInternal tail serversMap
                 | true, serverInMap ->
                     let serverToAppend =
-                        match server.CommunicationHistory, serverInMap.CommunicationHistory with
+                        match server.CommunicationHistory,
+                              serverInMap.CommunicationHistory with
                         | None, _ -> serverInMap
                         | _, None -> server
                         | Some (_, lastComm), Some (_, lastCommInMap) ->
@@ -114,8 +118,12 @@ module ServerRegistry =
                             else
                                 serverInMap
 
-                    let newMap = serversMap.Remove serverToAppend.ServerInfo.NetworkPath
-                    Seq.append (seq { yield serverToAppend }) (removeDupesInternal tail newMap)
+                    let newMap =
+                        serversMap.Remove serverToAppend.ServerInfo.NetworkPath
+
+                    Seq.append
+                        (seq { yield serverToAppend })
+                        (removeDupesInternal tail newMap)
 
         let initialServersMap =
             servers
@@ -124,7 +132,9 @@ module ServerRegistry =
 
         removeDupesInternal servers initialServersMap
 
-    let internal RemoveBlackListed (cs: Currency * seq<ServerDetails>): seq<ServerDetails> =
+    let internal RemoveBlackListed
+        (cs: Currency * seq<ServerDetails>)
+        : seq<ServerDetails> =
         let isBlackListed currency server =
             // as these servers can only serve very limited set of queries (e.g. only balance?) their stats are skewed and
             // they create exception when being queried for advanced ones (e.g. latest block)
@@ -151,9 +161,11 @@ module ServerRegistry =
                 match history.Status with
                 | Fault faultInfo ->
                     let success = false
+
                     match faultInfo.LastSuccessfulCommunication with
                     | None -> Some (success, invertOrder history.TimeSpan, None)
-                    | Some lsc -> Some (success, invertOrder history.TimeSpan, Some lsc)
+                    | Some lsc ->
+                        Some (success, invertOrder history.TimeSpan, Some lsc)
                 | Success ->
                     let success = true
                     Some (success, invertOrder history.TimeSpan, Some lastComm)
@@ -164,7 +176,9 @@ module ServerRegistry =
         let rearrangedServers =
             servers
             |> Map.toSeq
-            |> Seq.map (fun (currency, servers) -> currency, ((currency, servers) |> RemoveCruft |> Sort))
+            |> Seq.map (fun (currency, servers) ->
+                currency, ((currency, servers) |> RemoveCruft |> Sort)
+            )
             |> Map.ofSeq
 
         Marshalling.Serialize rearrangedServers
@@ -172,11 +186,15 @@ module ServerRegistry =
     let Deserialize (json: string): ServerRanking =
         Marshalling.Deserialize json
 
-    let Merge (ranking1: ServerRanking) (ranking2: ServerRanking): ServerRanking =
+    let Merge
+        (ranking1: ServerRanking)
+        (ranking2: ServerRanking)
+        : ServerRanking =
         let allKeys =
             seq {
                 for KeyValue (key, _) in ranking1 do
                     yield key
+
                 for KeyValue (key, _) in ranking2 do
                     yield key
             }
@@ -194,14 +212,20 @@ module ServerRegistry =
                     | None -> Seq.empty
                     | Some servers -> servers
 
-                let allServers = (currency, Seq.append allServersFrom1 allServersFrom2) |> RemoveCruft |> Sort
+                let allServers =
+                    (currency, Seq.append allServersFrom1 allServersFrom2)
+                    |> RemoveCruft
+                    |> Sort
 
                 yield currency, allServers
         }
         |> Map.ofSeq
 
     let private ServersRankingBaseline =
-        Deserialize (Config.ExtractEmbeddedResourceFileContents ServersEmbeddedResourceFileName)
+        Deserialize (
+            Config.ExtractEmbeddedResourceFileContents
+                ServersEmbeddedResourceFileName
+        )
 
     let MergeWithBaseline (ranking: ServerRanking): ServerRanking =
         Merge ranking ServersRankingBaseline

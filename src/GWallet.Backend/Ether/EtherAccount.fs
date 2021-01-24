@@ -25,9 +25,13 @@ module internal Account =
     let GetPublicAddressFromUnencryptedPrivateKey (privateKey: string) =
         EthECKey(privateKey).GetPublicAddress()
 
-    let internal GetPublicAddressFromNormalAccountFile (accountFile: FileRepresentation): string =
+    let internal GetPublicAddressFromNormalAccountFile
+        (accountFile: FileRepresentation)
+        : string =
         let encryptedPrivateKey = accountFile.Content ()
-        let rawPublicAddress = KeyStoreService.GetAddressFromKeyStore encryptedPrivateKey
+
+        let rawPublicAddress =
+            KeyStoreService.GetAddressFromKeyStore encryptedPrivateKey
 
         let publicAddress =
             if (rawPublicAddress.StartsWith ("0x")) then
@@ -37,14 +41,32 @@ module internal Account =
 
         publicAddress
 
-    let internal GetAccountFromFile (accountFile: FileRepresentation) (currency: Currency) kind: IAccount =
+    let internal GetAccountFromFile
+        (accountFile: FileRepresentation)
+        (currency: Currency)
+        kind
+        : IAccount =
         if not (currency.IsEtherBased ()) then
             failwith
-            <| SPrintF1 "Assertion failed: currency %A should be Ether-type" currency
+            <| SPrintF1
+                "Assertion failed: currency %A should be Ether-type"
+                currency
+
         match kind with
         | AccountKind.ReadOnly ->
-            ReadOnlyAccount (currency, accountFile, (fun accountFile -> accountFile.Name)) :> IAccount
-        | AccountKind.Normal -> NormalAccount (currency, accountFile, GetPublicAddressFromNormalAccountFile) :> IAccount
+            ReadOnlyAccount (
+                currency,
+                accountFile,
+                (fun accountFile -> accountFile.Name)
+            )
+            :> IAccount
+        | AccountKind.Normal ->
+            NormalAccount (
+                currency,
+                accountFile,
+                GetPublicAddressFromNormalAccountFile
+            )
+            :> IAccount
         | _ -> failwith <| SPrintF1 "Kind (%A) not supported for this API" kind
 
     let private GetBalance
@@ -56,12 +78,24 @@ module internal Account =
         async {
             let! balance =
                 if (account.Currency.IsEther ()) then
-                    Server.GetEtherBalance account.Currency account.PublicAddress balType mode cancelSourceOption
+                    Server.GetEtherBalance
+                        account.Currency
+                        account.PublicAddress
+                        balType
+                        mode
+                        cancelSourceOption
                 elif (account.Currency.IsEthToken ()) then
-                    Server.GetTokenBalance account.Currency account.PublicAddress balType mode cancelSourceOption
+                    Server.GetTokenBalance
+                        account.Currency
+                        account.PublicAddress
+                        balType
+                        mode
+                        cancelSourceOption
                 else
                     failwith
-                    <| SPrintF1 "Assertion failed: currency %A should be Ether or Ether token" account.Currency
+                    <| SPrintF1
+                        "Assertion failed: currency %A should be Ether or Ether token"
+                        account.Currency
 
             return balance
         }
@@ -71,32 +105,47 @@ module internal Account =
         (balType: BalanceType)
         (mode: ServerSelectionMode)
         (cancelSourceOption: Option<CustomCancelSource>)
-        : Async<Option<decimal>>
-        =
+        : Async<Option<decimal>> =
         async {
             try
-                let! balance = GetBalance account mode balType cancelSourceOption
+                let! balance =
+                    GetBalance account mode balType cancelSourceOption
+
                 return Some balance
-            with ex when (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome -> return None
+            with ex when
+                (FSharpUtil.FindException<ResourceUnavailabilityException> ex)
+                    .IsSome -> return None
         }
 
     let internal GetShowableBalance
         (account: IAccount)
         (mode: ServerSelectionMode)
         (cancelSourceOption: Option<CustomCancelSource>)
-        : Async<Option<decimal>>
-        =
-        let getBalanceWithoutCaching (maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>): Async<Option<decimal>> =
+        : Async<Option<decimal>> =
+        let getBalanceWithoutCaching
+            (maybeUnconfirmedBalanceTaskAlreadyStarted: Option<Task<Option<decimal>>>)
+            : Async<Option<decimal>> =
             async {
-                let! confirmed = GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
+                let! confirmed =
+                    GetBalanceFromServer
+                        account
+                        BalanceType.Confirmed
+                        mode
+                        cancelSourceOption
 
                 if mode = ServerSelectionMode.Fast then
                     return confirmed
                 else
                     let! unconfirmed =
                         match maybeUnconfirmedBalanceTaskAlreadyStarted with
-                        | None -> GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
-                        | Some unconfirmedBalanceTask -> Async.AwaitTask unconfirmedBalanceTask
+                        | None ->
+                            GetBalanceFromServer
+                                account
+                                BalanceType.Confirmed
+                                mode
+                                cancelSourceOption
+                        | Some unconfirmedBalanceTask ->
+                            Async.AwaitTask unconfirmedBalanceTask
 
                     match unconfirmed, confirmed with
                     | Some unconfirmedAmount, Some confirmedAmount ->
@@ -111,15 +160,29 @@ module internal Account =
             if Caching.Instance.FirstRun then
                 return! getBalanceWithoutCaching None
             else
-                let unconfirmedJob = GetBalanceFromServer account BalanceType.Confirmed mode cancelSourceOption
+                let unconfirmedJob =
+                    GetBalanceFromServer
+                        account
+                        BalanceType.Confirmed
+                        mode
+                        cancelSourceOption
+
                 let! cancellationToken = Async.CancellationToken
-                let unconfirmedTask = Async.StartAsTask (unconfirmedJob, ?cancellationToken = Some cancellationToken)
+
+                let unconfirmedTask =
+                    Async.StartAsTask (
+                        unconfirmedJob,
+                        ?cancellationToken = Some cancellationToken
+                    )
 
                 let maybeCachedBalance =
-                    Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
+                    Caching.Instance.RetrieveLastCompoundBalance
+                        account.PublicAddress
+                        account.Currency
 
                 match maybeCachedBalance with
-                | NotAvailable -> return! getBalanceWithoutCaching (Some unconfirmedTask)
+                | NotAvailable ->
+                    return! getBalanceWithoutCaching (Some unconfirmedTask)
                 | Cached (cachedBalance, _) ->
                     let! unconfirmed = Async.AwaitTask unconfirmedTask
 
@@ -128,8 +191,10 @@ module internal Account =
                         if unconfirmedAmount <= cachedBalance then
                             return unconfirmed
                         else
-                            return! getBalanceWithoutCaching (Some unconfirmedTask)
-                    | None -> return! getBalanceWithoutCaching (Some unconfirmedTask)
+                            return!
+                                getBalanceWithoutCaching (Some unconfirmedTask)
+                    | None ->
+                        return! getBalanceWithoutCaching (Some unconfirmedTask)
         }
 
     let ValidateAddress (currency: Currency) (address: string) =
@@ -146,23 +211,33 @@ module internal Account =
             if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
                 raise <| AddressWithInvalidLength [ ETHEREUM_ADDRESSES_LENGTH ]
 
-            do! Ether.Server.CheckIfAddressIsAValidPaymentDestination currency address
+            do!
+                Ether.Server.CheckIfAddressIsAValidPaymentDestination
+                    currency
+                    address
 
             if (not (addressUtil.IsChecksumAddress (address))) then
-                let validCheckSumAddress = addressUtil.ConvertToChecksumAddress (address)
+                let validCheckSumAddress =
+                    addressUtil.ConvertToChecksumAddress (address)
+
                 raise (AddressWithInvalidChecksum (Some validCheckSumAddress))
         }
 
-    let private GetTransactionCount (currency: Currency) (publicAddress: string): Async<int64> =
+    let private GetTransactionCount
+        (currency: Currency)
+        (publicAddress: string)
+        : Async<int64> =
         async {
-            let! result = Ether.Server.GetTransactionCount currency publicAddress
+            let! result =
+                Ether.Server.GetTransactionCount currency publicAddress
+
             let value = result.Value
 
             if (value > BigInteger (Int64.MaxValue)) then
                 failwith
                 <| SPrintF1
                     "Serialization doesn't support such a big integer (%s) for the nonce, please report this issue."
-                       (result.ToString ())
+                    (result.ToString ())
 
             let int64result: Int64 = BigInteger.op_Explicit value
 
@@ -177,7 +252,7 @@ module internal Account =
                 failwith
                 <| SPrintF1
                     "Serialization doesn't support such a big integer (%s) for the gas, please report this issue."
-                       (gasPrice.Value.ToString ())
+                    (gasPrice.Value.ToString ())
 
             let gasPrice64: Int64 = BigInteger.op_Explicit gasPrice.Value
 
@@ -186,30 +261,44 @@ module internal Account =
 
     let private GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION: int64 = 21000L
 
-    let EstimateEtherTransferFee (account: IAccount) (amount: TransferAmount): Async<TransactionMetadata> =
+    let EstimateEtherTransferFee
+        (account: IAccount)
+        (amount: TransferAmount)
+        : Async<TransactionMetadata> =
         async {
             let! gasPrice64 = GetGasPrice account.Currency
 
             let ethMinerFee =
-                MinerFee (GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION, gasPrice64, DateTime.UtcNow, account.Currency)
+                MinerFee (
+                    GAS_COST_FOR_A_NORMAL_ETHER_TRANSACTION,
+                    gasPrice64,
+                    DateTime.UtcNow,
+                    account.Currency
+                )
 
-            let! txCount = GetTransactionCount account.Currency account.PublicAddress
+            let! txCount =
+                GetTransactionCount account.Currency account.PublicAddress
 
             let feeValue = ethMinerFee.CalculateAbsoluteValue ()
 
-            if (amount.ValueToSend
-                <> amount.BalanceAtTheMomentOfSending
-                && feeValue > (amount.BalanceAtTheMomentOfSending - amount.ValueToSend)) then
+            if (amount.ValueToSend <> amount.BalanceAtTheMomentOfSending
+                && feeValue > (amount.BalanceAtTheMomentOfSending
+                               - amount.ValueToSend)) then
                 raise <| InsufficientBalanceForFee (Some feeValue)
 
-            return {
-                       Ether.Fee = ethMinerFee
-                       Ether.TransactionCount = txCount
-                   }
+            return
+                {
+                    Ether.Fee = ethMinerFee
+                    Ether.TransactionCount = txCount
+                }
         }
 
     // FIXME: this should raise InsufficientBalanceForFee
-    let EstimateTokenTransferFee (account: IAccount) amount destination: Async<TransactionMetadata> =
+    let EstimateTokenTransferFee
+        (account: IAccount)
+        amount
+        destination
+        : Async<TransactionMetadata> =
         async {
             let! gasPrice64 = GetGasPrice account.Currency
 
@@ -219,49 +308,69 @@ module internal Account =
                 | SAI -> ETH
                 | _ -> failwith <| SPrintF1 "Unknown token %A" account.Currency
 
-            let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination
+            let! tokenTransferFee =
+                Ether.Server.EstimateTokenTransferFee account amount destination
 
             if (tokenTransferFee.Value > BigInteger (Int64.MaxValue)) then
                 failwith
                 <| SPrintF1
                     "Serialization doesn't support such a big integer (%s) for the gas cost of the token transfer, please report this issue."
-                       (tokenTransferFee.Value.ToString ())
+                    (tokenTransferFee.Value.ToString ())
 
             let gasCost64: Int64 = BigInteger.op_Explicit tokenTransferFee.Value
 
-            let ethMinerFee = MinerFee (gasCost64, gasPrice64, DateTime.UtcNow, baseCurrency)
+            let ethMinerFee =
+                MinerFee (gasCost64, gasPrice64, DateTime.UtcNow, baseCurrency)
 
-            let! txCount = GetTransactionCount account.Currency account.PublicAddress
+            let! txCount =
+                GetTransactionCount account.Currency account.PublicAddress
 
-            return {
-                       Ether.Fee = ethMinerFee
-                       Ether.TransactionCount = txCount
-                   }
+            return
+                {
+                    Ether.Fee = ethMinerFee
+                    Ether.TransactionCount = txCount
+                }
         }
 
-    let EstimateFee (account: IAccount) (amount: TransferAmount) destination: Async<TransactionMetadata> =
+    let EstimateFee
+        (account: IAccount)
+        (amount: TransferAmount)
+        destination
+        : Async<TransactionMetadata> =
         async {
             if account.Currency.IsEther () then
                 return! EstimateEtherTransferFee account amount
             elif account.Currency.IsEthToken () then
-                return! EstimateTokenTransferFee account amount.ValueToSend destination
+                return!
+                    EstimateTokenTransferFee
+                        account
+                        amount.ValueToSend
+                        destination
             else
-                return failwith
-                       <| SPrintF1 "Assertion failed: currency %A should be Ether or Ether token" account.Currency
+                return
+                    failwith
+                    <| SPrintF1
+                        "Assertion failed: currency %A should be Ether or Ether token"
+                        account.Currency
         }
 
     let private BroadcastRawTransaction (currency: Currency) trans =
         Ether.Server.BroadcastTransaction currency ("0x" + trans)
 
     let BroadcastTransaction (trans: SignedTransaction<_>) =
-        BroadcastRawTransaction trans.TransactionInfo.Proposal.Amount.Currency trans.RawTransaction
+        BroadcastRawTransaction
+            trans.TransactionInfo.Proposal.Amount.Currency
+            trans.RawTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
         let encryptedPrivateKey = account.GetEncryptedPrivateKey ()
 
         let privKeyInBytes =
             try
-                KeyStoreService.DecryptKeyStoreFromJson (password, encryptedPrivateKey)
+                KeyStoreService.DecryptKeyStoreFromJson (
+                    password,
+                    encryptedPrivateKey
+                )
             with :? DecryptionException -> raise (InvalidPassword)
 
         EthECKey (privKeyInBytes, true)
@@ -269,14 +378,19 @@ module internal Account =
     let private GetNetwork (currency: Currency) =
         if not (currency.IsEtherBased ()) then
             failwith
-            <| SPrintF1 "Assertion failed: currency %A should be Ether-type" currency
+            <| SPrintF1
+                "Assertion failed: currency %A should be Ether-type"
+                currency
+
         if currency.IsEthToken () || currency = ETH then
             Config.EthNet
         elif currency = ETC then
             Config.EtcNet
         else
             failwith
-            <| SPrintF1 "Assertion failed: Ether currency %A not supported?" currency
+            <| SPrintF1
+                "Assertion failed: Ether currency %A not supported?"
+                currency
 
     let private SignEtherTransaction
         (currency: Currency)
@@ -287,13 +401,14 @@ module internal Account =
         =
 
         let chain = GetNetwork currency
+
         if (GetNetwork txMetadata.Fee.Currency <> chain) then
             invalidArg
                 "chain"
                 (SPrintF2
                     "Assertion failed: fee currency (%A) chain doesn't match with passed chain (%A)"
-                     txMetadata.Fee.Currency
-                     chain)
+                    txMetadata.Fee.Currency
+                    chain)
 
         let amountToSendConsideringMinerFee =
             if (amount.ValueToSend = amount.BalanceAtTheMomentOfSending) then
@@ -302,24 +417,28 @@ module internal Account =
                 amount.ValueToSend
 
         let amountInWei =
-            UnitConversion.Convert.ToWei (amountToSendConsideringMinerFee, UnitConversion.EthUnit.Ether)
+            UnitConversion.Convert.ToWei (
+                amountToSendConsideringMinerFee,
+                UnitConversion.EthUnit.Ether
+            )
 
         let privKeyInBytes = privateKey.GetPrivateKeyAsBytes ()
 
         let trans =
-            signer.SignTransaction
-                (privKeyInBytes,
-                 chain,
-                 destination,
-                 amountInWei,
-                 BigInteger (txMetadata.TransactionCount),
+            signer.SignTransaction (
+                privKeyInBytes,
+                chain,
+                destination,
+                amountInWei,
+                BigInteger (txMetadata.TransactionCount),
 
-                 // we use the SignTransaction() overload that has these 2 arguments because if we don't, we depend on
-                 // how well the defaults are of Geth node we're connected to, e.g. with the myEtherWallet server I
-                 // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
-                 // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
-                 BigInteger (txMetadata.Fee.GasPriceInWei),
-                 BigInteger (txMetadata.Fee.GasLimit))
+                // we use the SignTransaction() overload that has these 2 arguments because if we don't, we depend on
+                // how well the defaults are of Geth node we're connected to, e.g. with the myEtherWallet server I
+                // was trying to spend 0.002ETH from an account that had 0.01ETH and it was always failing with the
+                // "Insufficient Funds" error saying it needed 212,000,000,000,000,000 wei (0.212 ETH)...
+                BigInteger (txMetadata.Fee.GasPriceInWei),
+                BigInteger (txMetadata.Fee.GasLimit)
+            )
 
         trans
 
@@ -335,19 +454,36 @@ module internal Account =
         let chain = GetNetwork currency
         let privKeyInBytes = privateKey.GetPrivateKeyAsBytes ()
 
-        let amountInWei = UnitConversion.Convert.ToWei (amount.ValueToSend, UnitConversion.EthUnit.Ether)
+        let amountInWei =
+            UnitConversion.Convert.ToWei (
+                amount.ValueToSend,
+                UnitConversion.EthUnit.Ether
+            )
+
         let gasLimit = BigInteger (txMetadata.Fee.GasLimit)
 
         let data =
             (TokenManager.OfflineTokenServiceWrapper currency)
-                .ComposeInputDataForTransferTransaction(origin, destination, amountInWei, gasLimit)
+                .ComposeInputDataForTransferTransaction(origin,
+                                                        destination,
+                                                        amountInWei,
+                                                        gasLimit)
 
         let etherValue = BigInteger (0)
         let nonce = BigInteger (txMetadata.TransactionCount)
         let gasPrice = BigInteger (txMetadata.Fee.GasPriceInWei)
         let contractAddress = TokenManager.GetTokenContractAddress currency
 
-        signer.SignTransaction (privKeyInBytes, chain, contractAddress, etherValue, nonce, gasPrice, gasLimit, data)
+        signer.SignTransaction (
+            privKeyInBytes,
+            chain,
+            contractAddress,
+            etherValue,
+            nonce,
+            gasPrice,
+            gasLimit,
+            data
+        )
 
     let private SignTransactionWithPrivateKey
         (account: IAccount)
@@ -371,16 +507,26 @@ module internal Account =
                     failwith
                     <| SPrintF2
                         "Assertion failed: fee currency (%A) doesn't match with passed chain (%A)"
-                           txMetadata.Fee.Currency
-                           account.Currency
-                SignEtherTransaction account.Currency txMetadata destination amount privateKey
+                        txMetadata.Fee.Currency
+                        account.Currency
+
+                SignEtherTransaction
+                    account.Currency
+                    txMetadata
+                    destination
+                    amount
+                    privateKey
             else
                 failwith
-                <| SPrintF1 "Assertion failed: Ether currency %A not supported?" account.Currency
+                <| SPrintF1
+                    "Assertion failed: Ether currency %A not supported?"
+                    account.Currency
 
         let chain = GetNetwork account.Currency
+
         if not (signer.VerifyTransaction (trans, chain)) then
             failwith "Transaction could not be verified?"
+
         trans
 
     let SignTransaction
@@ -392,7 +538,13 @@ module internal Account =
         =
 
         let privateKey = GetPrivateKey account password
-        SignTransactionWithPrivateKey account txMetadata destination amount privateKey
+
+        SignTransactionWithPrivateKey
+            account
+            txMetadata
+            destination
+            amount
+            privateKey
 
     let CheckValidPassword (account: NormalAccount) (password: string) =
         GetPrivateKey account password |> ignore
@@ -408,7 +560,12 @@ module internal Account =
         let ecPrivKey = EthECKey (account.GetUnencryptedPrivateKey ())
 
         let signedTrans =
-            SignTransactionWithPrivateKey account txMetadata destination.PublicAddress amount ecPrivKey
+            SignTransactionWithPrivateKey
+                account
+                txMetadata
+                destination.PublicAddress
+                amount
+                ecPrivKey
 
         BroadcastRawTransaction accountFrom.Currency signedTrans
 
@@ -420,32 +577,52 @@ module internal Account =
         (password: string)
         =
         let baseAccount = account :> IAccount
-        if (baseAccount.PublicAddress.Equals (destination, StringComparison.InvariantCultureIgnoreCase)) then
+
+        if (baseAccount.PublicAddress.Equals (
+                destination,
+                StringComparison.InvariantCultureIgnoreCase
+            )) then
             raise DestinationEqualToOrigin
 
         let currency = baseAccount.Currency
 
-        let trans = SignTransaction account txMetadata destination amount password
+        let trans =
+            SignTransaction account txMetadata destination amount password
 
         BroadcastRawTransaction currency trans
 
-    let private CreateInternal (password: string) (seed: array<byte>): FileRepresentation =
+    let private CreateInternal
+        (password: string)
+        (seed: array<byte>)
+        : FileRepresentation =
         let privateKey = EthECKey (seed, true)
         let publicAddress = privateKey.GetPublicAddress ()
+
         if not (addressUtil.IsChecksumAddress (publicAddress)) then
-            failwith ("Nethereum's GetPublicAddress gave a non-checksum address: " + publicAddress)
+            failwith (
+                "Nethereum's GetPublicAddress gave a non-checksum address: "
+                + publicAddress
+            )
 
         let accountSerializedJson =
-            KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson (password, seed, publicAddress)
+            KeyStoreService.EncryptAndGenerateDefaultKeyStoreAsJson (
+                password,
+                seed,
+                publicAddress
+            )
 
-        let fileNameForAccount = KeyStoreService.GenerateUTCFileName (publicAddress)
+        let fileNameForAccount =
+            KeyStoreService.GenerateUTCFileName (publicAddress)
 
         {
             Name = fileNameForAccount
             Content = fun _ -> accountSerializedJson
         }
 
-    let Create (password: string) (seed: array<byte>): Async<FileRepresentation> =
+    let Create
+        (password: string)
+        (seed: array<byte>)
+        : Async<FileRepresentation> =
         async { return CreateInternal password seed }
 
     let public ExportUnsignedTransactionToJson trans =
@@ -455,13 +632,15 @@ module internal Account =
         (transProposal: UnsignedTransactionProposal)
         (txMetadata: TransactionMetadata)
         (readOnlyAccounts: seq<ReadOnlyAccount>)
-        : string
-        =
+        : string =
 
         let unsignedTransaction =
             {
                 Proposal = transProposal
-                Cache = Caching.Instance.GetLastCachedData().ToDietCache readOnlyAccounts
+                Cache =
+                    Caching
+                        .Instance
+                        .GetLastCachedData().ToDietCache readOnlyAccounts
                 Metadata = txMetadata
             }
 
