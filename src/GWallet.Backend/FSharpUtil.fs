@@ -146,7 +146,8 @@ module FSharpUtil =
             let wrap (job: Async<'T>) =
                 async {
                     let! res = job
-                    taskSource.TrySetResult() |> ignore
+                    taskSource.TrySetResult()
+                    |> ignore<bool>
                     return res
                 }
             async {

@@ -97,7 +97,7 @@ module FiatValueEstimation =
         let! maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap = bothJobs
         if maybeUsdPriceFromCoinCap.IsSome && currency = Currency.ETC then
             Infrastructure.ReportWarningMessage "Currency ETC can now be queried from CoinCap provider?"
-            |> ignore
+            |> ignore<bool>
         let result =
             match maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap with
             | None, None -> None

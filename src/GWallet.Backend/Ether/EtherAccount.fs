@@ -353,7 +353,8 @@ module internal Account =
         SignTransactionWithPrivateKey account txMetadata destination amount privateKey
 
     let CheckValidPassword (account: NormalAccount) (password: string) =
-        GetPrivateKey account password |> ignore
+        GetPrivateKey account password
+        |> ignore<EthECKey>
 
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)

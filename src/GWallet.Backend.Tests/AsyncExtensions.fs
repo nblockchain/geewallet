@@ -149,7 +149,9 @@ type AsyncExtensions() =
 
         // the below is to make sure that the jobs don't get executed a second time!
         let stopWatch = Stopwatch.StartNew()
-        subJobs |> Async.RunSynchronously |> ignore
+        subJobs
+        |> Async.RunSynchronously
+        |> ignore<array<int>>
         Assert.That(asyncJobsPerformedCount, Is.EqualTo 2)
         Assert.That(stopWatch.Elapsed, Is.LessThan shortTime)
 

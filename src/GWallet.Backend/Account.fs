@@ -341,7 +341,8 @@ module Account =
                 privKey.GetPrivateKey()
             else
                 failwith <| SPrintF1 "Unknown currency %A" currency
-        CreateArchivedAccount currency privateKeyAsString |> ignore
+        CreateArchivedAccount currency privateKeyAsString
+        |> ignore<ArchivedAccount>
         Config.RemoveNormalAccount account
 
     let SweepArchivedFunds (account: ArchivedAccount)
@@ -472,7 +473,8 @@ module Account =
                 FileRepresentation = { Name = watchWalletInfo.EtherPublicAddress; Content = fun _ -> String.Empty }
                 ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
             }
-            Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly |> ignore
+            Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
+            |> ignore<FileRepresentation>
 
         for utxoCurrency in Currency.GetAll().Where(fun currency -> currency.IsUtxo()) do
             let address =
@@ -484,7 +486,8 @@ module Account =
                 FileRepresentation = { Name = address; Content = fun _ -> watchWalletInfo.UtxoCoinPublicKey }
                 ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
             }
-            Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly |> ignore
+            Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
+            |> ignore<FileRepresentation>
     }
 
     let Remove (account: ReadOnlyAccount) =
@@ -588,7 +591,8 @@ module Account =
     let CreateAllAccounts (privateKeyBytes: array<byte>) (encryptionPassword: string): Async<unit> = async {
         let! allConceptAccounts = CreateAllConceptAccounts privateKeyBytes encryptionPassword
         for conceptAccount in allConceptAccounts do
-            CreateNormalAccount conceptAccount |> ignore
+            CreateNormalAccount conceptAccount
+            |> ignore<NormalAccount>
     }
 
     let CheckValidSeed (passphrase: string)

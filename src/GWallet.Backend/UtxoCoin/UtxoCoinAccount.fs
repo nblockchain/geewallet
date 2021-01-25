@@ -183,19 +183,23 @@ module Account =
         let coins = List.map (ConvertToICoin account) transactionInputs
 
         let transactionBuilder = (GetNetwork account.Currency).CreateTransactionBuilder()
-        transactionBuilder.AddCoins coins |> ignore
+        transactionBuilder.AddCoins coins
+        |> ignore<TransactionBuilder>
 
         let currency = account.Currency
         let destAddress = BitcoinAddress.Create(destination, GetNetwork currency)
 
         if amount.BalanceAtTheMomentOfSending <> amount.ValueToSend then
             let moneyAmount = Money(amount.ValueToSend, MoneyUnit.BTC)
-            transactionBuilder.Send(destAddress, moneyAmount) |> ignore
+            transactionBuilder.Send(destAddress, moneyAmount)
+            |> ignore<TransactionBuilder>
             let originAddress = (account :> IAccount).PublicAddress
             let changeAddress = BitcoinAddress.Create(originAddress, GetNetwork currency)
-            transactionBuilder.SetChange changeAddress |> ignore
+            transactionBuilder.SetChange changeAddress
+            |> ignore<TransactionBuilder>
         else
-            transactionBuilder.SendAll destAddress |> ignore
+            transactionBuilder.SendAll destAddress
+            |> ignore<TransactionBuilder>
 
         transactionBuilder.OptInRBF <- true
 
@@ -353,7 +357,8 @@ module Account =
         let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs destination amount
 
         finalTransactionBuilder.AddKeys privateKey |> ignore
-        finalTransactionBuilder.SendFees (Money.Satoshis(btcMinerFee.EstimatedFeeInSatoshis)) |> ignore
+        finalTransactionBuilder.SendFees (Money.Satoshis btcMinerFee.EstimatedFeeInSatoshis)
+        |> ignore<TransactionBuilder>
 
         let finalTransaction = finalTransactionBuilder.BuildTransaction true
         let transCheckResultAfterSigning = finalTransaction.Check()
@@ -529,7 +534,8 @@ module Account =
 
         let network = GetNetwork currency
         try
-            BitcoinAddress.Create(address, network) |> ignore
+            BitcoinAddress.Create(address, network)
+            |> ignore<BitcoinAddress>
         with
         // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
         | :? FormatException ->
