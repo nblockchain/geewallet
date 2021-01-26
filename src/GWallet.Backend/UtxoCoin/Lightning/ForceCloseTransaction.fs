@@ -46,9 +46,20 @@ module public ForceCloseTransaction =
                 | None -> None
 
             let reward =
-                //TODO: MOVE Hardcoded value                   
-                commitments.RemoteCommitAmount().ToLocal.ToDecimal(MoneyUnit.Satoshi) * (decimal 0.001)
+                //TODO: MOVE Hardcoded value
+                let toLocal =
+                    commitments
+                        .RemoteCommitAmount()
+                        .ToLocal.ToDecimal(MoneyUnit.Satoshi)
+
+                let toRemote =
+                    commitments
+                        .RemoteCommitAmount()
+                        .ToRemote.ToDecimal(MoneyUnit.Satoshi)
+
+                (toLocal + toRemote) * (decimal 0.001)
                 |> Money.Satoshis
+
 
             match rewardAddressOpt with 
             | Some rewardAddress ->
