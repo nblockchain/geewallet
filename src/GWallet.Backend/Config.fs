@@ -123,7 +123,7 @@ module Config =
 
     //TODO: Add watchetower url here
     let internal DEFAULT_WATCHTOWER_HOST = "127.0.0.1"
-    let internal DEFAULT_WATCHTOWER_PORT = 8080
+    let internal DEFAULT_WATCHTOWER_PORT = 18666
 
     let internal GetConfigDirForThisProgram() =
         let configDir =
