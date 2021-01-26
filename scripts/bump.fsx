@@ -41,17 +41,18 @@ let isReleaseManual = false
 let filesToBumpMiniVersion: seq<string> =
     [
     ] :> seq<string>
-
+let gitLabCiYml = ".gitlab-ci.yml"
 let filesToBumpFullVersion: seq<string> =
     Seq.append filesToBumpMiniVersion [
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
         "snap/snapcraft.yaml"
-    ]
-let gitLabCiYml = ".gitlab-ci.yml"
-let filesToGitAdd: seq<string> =
-    Seq.append filesToBumpFullVersion [
         gitLabCiYml
     ]
+// filesToGitAdd used to be different from filesToBumpFullVersion because we
+// changed the expiry date of some artifacts while we didn't bump any version
+// in the gitlab pipeline YML file, now we change a version too so they're same
+let filesToGitAdd: seq<string> =
+    filesToBumpFullVersion
 
 let Replace file fromStr toStr =
     let replaceScript = Path.Combine(rootDir.FullName, "scripts", "replace.fsx")
