@@ -25,11 +25,12 @@ type internal TowerClient =
         (localChannelPrivKeys: ChannelPrivKeys)
         (network: Network)
         (account: NormalUtxoAccount)
+        (quietMode: bool)
         : Async<unit> =
         async {
-            try 
+            try
                 let! rewardAdderss = self.GetRewardAddress()
-
+            
                 let! punishmentTx =
                     ForceCloseTransaction.CreatePunishmentTx
                         perCommitmentSecret
@@ -38,14 +39,18 @@ type internal TowerClient =
                         network
                         account
                         (rewardAdderss |> Some)
-
+            
                 let towerRequest =
-                    { AddPunishmentTxRequest.TransactionHex = punishmentTx.ToHex()
-                      CommitmentTxHash = commitments.RemoteCommit.TxId.Value.ToString() }
+                    {
+                        AddPunishmentTxRequest.TransactionHex = punishmentTx.ToHex()
+                        CommitmentTxHash = commitments.RemoteCommit.TxId.Value.ToString() 
+                    }
 
                 do! self.AddPunishmentTx towerRequest |> Async.Ignore //for now we ignore the response beacuse we have no way of handling it
-            with
-            | _ -> () //for now we ignore the response beacuse we have no way of handling it
+            with 
+            | ex -> 
+                if not quietMode then
+                    raise <| FSharpUtil.ReRaise ex
         }
 
 
@@ -56,8 +61,8 @@ type internal TowerClient =
             do!
                 client.ConnectAsync(self.TowerHost, self.TowerPort)
                 |> Async.AwaitTask
-
-            use jsonRpc: JsonRpc = new JsonRpc(client.GetStream())
+            
+            let mutable jsonRpc: JsonRpc = new JsonRpc(client.GetStream())
             jsonRpc.StartListening()
 
             return!
@@ -73,7 +78,7 @@ type internal TowerClient =
                 client.ConnectAsync(self.TowerHost, self.TowerPort)
                 |> Async.AwaitTask
 
-            use jsonRpc: JsonRpc = new JsonRpc(client.GetStream())
+            let mutable jsonRpc: JsonRpc = new JsonRpc(client.GetStream())
             jsonRpc.StartListening()
 
             return!

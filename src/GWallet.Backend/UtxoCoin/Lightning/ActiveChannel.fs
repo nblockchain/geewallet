@@ -435,6 +435,7 @@ and internal ActiveChannel =
                                                                       channelPrivKeys
                                                                       network
                                                                       account
+                                                                      true
 
                     connectedChannelAfterRevokeAndAck.SaveToWallet()
                     let activeChannel = { ConnectedChannel = connectedChannelAfterRevokeAndAck }
