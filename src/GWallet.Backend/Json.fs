@@ -7,6 +7,12 @@ type ParseJsonError =
     | UnexpectedToken of JsonToken
     | UnexpectedEOF
     | MalformedObject
+    with
+    override self.ToString() =
+        match self with
+        | UnexpectedToken token -> "unexpected token: " + (token.ToString())
+        | UnexpectedEOF -> "unexpected EOF"
+        | MalformedObject -> "malformed object"
 
 type JsonValue =
     | Null
@@ -23,9 +29,10 @@ type JsonValue =
                 Ok JsonValue.Null
             | JsonToken.Boolean ->
                 Ok <| JsonValue.Bool (reader.Value :?> bool)
-            | JsonToken.Integer
+            | JsonToken.Integer ->
+                Ok <| JsonValue.Number (decimal (reader.Value :?> int64))
             | JsonToken.Float ->
-                Ok <| JsonValue.Number (reader.Value :?> decimal)
+                Ok <| JsonValue.Number (decimal (reader.Value :?> double))
             | JsonToken.String ->
                 Ok <| JsonValue.String (reader.Value :?> string)
             | JsonToken.StartArray ->
