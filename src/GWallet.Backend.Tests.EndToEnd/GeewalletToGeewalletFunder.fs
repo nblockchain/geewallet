@@ -38,7 +38,7 @@ type GeewalletToGeewalletFunder() =
         bitcoind.GenerateBlocks blocksMinedToLnd address
 
         let maturityDurationInNumberOfBlocks = BlockHeightOffset32 (uint32 NBitcoin.Consensus.RegTest.CoinbaseMaturity)
-        bitcoind.GenerateBlocks maturityDurationInNumberOfBlocks walletInstance.Address
+        bitcoind.GenerateBlocksToBurnAddress maturityDurationInNumberOfBlocks
 
         // We confirm the one block mined to LND, by waiting for LND to see the chain
         // at a height which has that block matured. The height at which the block will
@@ -69,7 +69,7 @@ type GeewalletToGeewalletFunder() =
         // will be 6 deep at the end of the following call to generateBlocks.
         // At that point, the 0.25 regtest coins from the above call to sendcoins
         // are considered arrived to Geewallet.
-        bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
+        bitcoind.GenerateBlocksToBurnAddress Config.MinimumDepth
 
         let fundingAmount = Money(0.1m, MoneyUnit.BTC)
         let! transferAmount = async {
@@ -89,7 +89,7 @@ type GeewalletToGeewalletFunder() =
         let channelId = (pendingChannel :> IChannelToBeOpened).ChannelId
         let! fundingTxIdRes = pendingChannel.Accept()
         let _fundingTxId = UnwrapResult fundingTxIdRes "pendingChannel.Accept failed"
-        bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) walletInstance.Address
+        bitcoind.GenerateBlocksToBurnAddress (BlockHeightOffset32 minimumDepth)
 
         do!
             let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
@@ -170,7 +170,7 @@ type GeewalletToGeewalletFunder() =
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
 
         // Mine 7 blocks to make sure closing tx is confirmed
-        bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
+        bitcoind.GenerateBlocksToBurnAddress Config.MinimumDepth
     
         let rec waitForClosingTxConfirmed attempt = async {
             Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)

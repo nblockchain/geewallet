@@ -38,7 +38,7 @@ module GwalletToLndChannelManagement =
             // will be 6 deep at the end of the following call to generateBlocks.
             // At that point, the 0.25 regtest coins from the above call to sendcoins
             // are considered arrived to Geewallet.
-            bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
+            bitcoind.GenerateBlocksToBurnAddress Config.MinimumDepth
 
             let! lndEndPoint = lnd.GetEndPoint()
             let! transferAmount = async {
@@ -59,7 +59,7 @@ module GwalletToLndChannelManagement =
             let channelId = (pendingChannel :> IChannelToBeOpened).ChannelId
             let! fundingTxIdRes = pendingChannel.Accept()
             let _fundingTxId = UnwrapResult fundingTxIdRes "pendingChannel.Accept failed"
-            bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) walletInstance.Address
+            bitcoind.GenerateBlocksToBurnAddress (BlockHeightOffset32 minimumDepth)
 
             do! walletInstance.WaitForFundingConfirmed channelId
 
@@ -100,7 +100,7 @@ module GwalletToLndChannelManagement =
                 do! Async.Sleep 500
 
             // Mine blocks on top of the funding transaction to make it confirmed.
-            bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
+            bitcoind.GenerateBlocksToBurnAddress Config.MinimumDepth
 
             do! walletInstance.WaitForFundingConfirmed channelId
 
