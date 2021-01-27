@@ -174,16 +174,21 @@ module Server =
         | _ ->
             ()
 
+    let private err32kPossibleMessages =
+        [
+            "pruning=archive"
+            "header not found"
+            "error: no suitable peers available"
+            "missing trie node"
+        ]
+
     let MaybeRethrowRpcResponseException (ex: Exception): unit =
         let maybeRpcResponseEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex
         match maybeRpcResponseEx with
         | Some rpcResponseEx ->
             if rpcResponseEx.RpcError <> null then
                 if rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound then
-                    if (not (rpcResponseEx.RpcError.Message.Contains "pruning=archive")) &&
-                       (not (rpcResponseEx.RpcError.Message.Contains "header not found")) &&
-                       (not (rpcResponseEx.RpcError.Message.Contains "error: no suitable peers available")) &&
-                       (not (rpcResponseEx.RpcError.Message.Contains "missing trie node")) then
+                    if not (err32kPossibleMessages.Any (fun msg -> rpcResponseEx.RpcError.Message.Contains msg)) then
                         raise <| Exception(
                                      SPrintF2 "Expecting 'pruning=archive' or 'missing trie node' or 'error: no suitable peers available' or 'header not found' in message of a %d code, but got '%s'"
                                              (int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound)
