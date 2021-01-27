@@ -9,10 +9,10 @@ open Nethereum.Util
 
 type MinerFee(gasLimit: Int64, gasPriceInWei: Int64, estimationTime: DateTime, currency: Currency) =
 
-    member val GasLimit = gasLimit with get
-    member val GasPriceInWei = gasPriceInWei with get
-    member val Currency = currency with get
-    member val EstimationTime = estimationTime with get
+    member val GasLimit = gasLimit
+    member val GasPriceInWei = gasPriceInWei
+    member val Currency = currency
+    member val EstimationTime = estimationTime
 
     member __.CalculateAbsoluteValue() =
         let gasPriceInWei = BigInteger(gasPriceInWei)

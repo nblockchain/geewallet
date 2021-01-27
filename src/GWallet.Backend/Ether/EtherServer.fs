@@ -22,7 +22,7 @@ type BalanceType =
 type SomeWeb3 (connectionTimeOut, url: string) =
     inherit Web3 (connectionTimeOut, url)
 
-    member val Url = url with get
+    member val Url = url
 
 type TransactionStatusDetails =
     {

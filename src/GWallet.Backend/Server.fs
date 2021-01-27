@@ -31,7 +31,7 @@ type ConnectionType =
     }
 
 type ICommunicationHistory =
-    abstract member CommunicationHistory: Option<HistoryInfo> with get
+    abstract CommunicationHistory: Option<HistoryInfo>
 
 type HistoryFact =
     {
@@ -67,7 +67,7 @@ type ServerDetails =
         self.ServerInfo.GetHashCode()
     interface ICommunicationHistory with
         member self.CommunicationHistory
-            with get() =
+            =
                 match self.CommunicationHistory with
                 | None -> None
                 | Some (h,_) -> Some h

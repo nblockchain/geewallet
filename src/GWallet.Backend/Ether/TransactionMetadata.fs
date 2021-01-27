@@ -10,6 +10,6 @@ type TransactionMetadata =
         TransactionCount: int64;
     }
     interface IBlockchainFeeInfo with
-        member self.FeeEstimationTime with get() = self.Fee.EstimationTime
-        member self.FeeValue with get() = self.Fee.CalculateAbsoluteValue()
-        member self.Currency with get() = self.Fee.Currency
+        member self.FeeEstimationTime = self.Fee.EstimationTime
+        member self.FeeValue = self.Fee.CalculateAbsoluteValue()
+        member self.Currency = self.Fee.Currency

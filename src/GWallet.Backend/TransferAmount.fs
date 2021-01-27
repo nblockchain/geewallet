@@ -10,11 +10,11 @@ type TransferAmount(valueToSend: decimal, balanceAtTheMomentOfSending: decimal, 
             invalidArg "balanceAtTheMomentOfSending" "balance has to be equal or higher than valueToSend"
 
     member __.ValueToSend
-        with get() = Math.Round(valueToSend, currency.DecimalPlaces())
+        = Math.Round(valueToSend, currency.DecimalPlaces())
 
     member __.BalanceAtTheMomentOfSending
-        with get() = balanceAtTheMomentOfSending
+        = balanceAtTheMomentOfSending
 
     member __.Currency
-        with get() = currency
+        = currency
 

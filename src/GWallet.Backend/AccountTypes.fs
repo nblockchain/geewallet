@@ -38,20 +38,20 @@ type AccountKind =
         }
 
 type IAccount =
-    abstract member Currency: Currency with get
-    abstract member PublicAddress: string with get
+    abstract Currency: Currency
+    abstract PublicAddress: string
 
 [<AbstractClass>]
 type BaseAccount(currency: Currency, accountFile: FileRepresentation,
                  fromAccountFileToPublicAddress: FileRepresentation -> string) =
-    member val AccountFile = accountFile with get
+    member val AccountFile = accountFile
 
-    abstract member Kind: AccountKind
+    abstract Kind: AccountKind
 
     interface IAccount with
-        member val Currency = currency with get
+        member val Currency = currency
         member val PublicAddress =
-            fromAccountFileToPublicAddress accountFile with get
+            fromAccountFileToPublicAddress accountFile
 
 
 type NormalAccount(currency: Currency, accountFile: FileRepresentation,

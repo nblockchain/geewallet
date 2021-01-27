@@ -627,6 +627,6 @@ module Caching =
             }
 
         member __.FirstRun
-            with get() = firstRun
+            = firstRun
 
     let Instance = MainCache (None, TimeSpan.FromDays 1.0)
