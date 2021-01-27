@@ -5,6 +5,7 @@ open System
 open Newtonsoft.Json
 
 open GWallet.Backend
+open GWallet.Backend.Json
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 // can't make this type below private, or else Newtonsoft.Json will serialize it incorrectly
@@ -141,11 +142,14 @@ type RpcErrorCode =
 type public ElectrumServerReturningImproperJsonResponseException(message: string, innerEx: Exception) =
     inherit ServerMisconfiguredException (message, innerEx)
 
-type public ElectrumServerReturningErrorInJsonResponseException(message: string, code: int) =
+type public ElectrumServerReturningErrorInJsonResponseException(message: string, code: Option<int>) =
     inherit CommunicationUnsuccessfulException(message)
 
-    member val ErrorCode: int =
+    member val ErrorCode: Option<int> =
         code with get
+
+    member val ErrorMessage: string =
+        message with get
 
     member __.InternalErrors(): seq<ElectrumServerReturningErrorInJsonResponseException> =
         let rec searchForOpenBracketFrom(openSearchIndex: int) = seq {
@@ -175,14 +179,14 @@ type public ElectrumServerReturningErrorInJsonResponseException(message: string,
                             Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings
                         )
                     if (not (Object.ReferenceEquals(maybeError, null))) then
-                        Some <| ElectrumServerReturningErrorInJsonResponseException(maybeError.Message, maybeError.Code)
+                        Some <| ElectrumServerReturningErrorInJsonResponseException(maybeError.Message, Some maybeError.Code)
                     else
                         None
                 with
                 | ex -> None
         )
 
-type public ElectrumServerReturningErrorException(message: string, code: int,
+type public ElectrumServerReturningErrorException(message: string, code: Option<int>,
                                                   originalRequest: string, originalResponse: string) =
     inherit ElectrumServerReturningErrorInJsonResponseException(message, code)
 
@@ -192,9 +196,9 @@ type public ElectrumServerReturningErrorException(message: string, code: int,
     member val OriginalResponse: string =
         originalResponse with get
 
-type public ElectrumServerReturningInternalErrorException(message: string, code: int,
+type public ElectrumServerReturningInternalErrorException(message: string,
                                                           originalRequest: string, originalResponse: string) =
-    inherit ElectrumServerReturningErrorException(message, code, originalRequest, originalResponse)
+    inherit ElectrumServerReturningErrorException(message, Some (int RpcErrorCode.InternalError), originalRequest, originalResponse)
 
 type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
@@ -215,13 +219,13 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             return (StratumClient.Deserialize<'R> rawResponse, rawResponse)
         with
         | :? ElectrumServerReturningErrorInJsonResponseException as ex ->
-            if ex.ErrorCode = int RpcErrorCode.InternalError then
-                return raise(ElectrumServerReturningInternalErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
-            if ex.ErrorCode = int RpcErrorCode.UnknownMethod then
+            if ex.ErrorCode = Some (int RpcErrorCode.InternalError) then
+                return raise(ElectrumServerReturningInternalErrorException(ex.Message, jsonRequest, rawResponse))
+            if ex.ErrorCode = Some (int RpcErrorCode.UnknownMethod) then
                 return raise <| ServerMisconfiguredException(ex.Message, ex)
-            if ex.ErrorCode = int RpcErrorCode.ServerBusy then
+            if ex.ErrorCode = Some (int RpcErrorCode.ServerBusy) then
                 return raise <| ServerUnavailabilityException(ex.Message, ex)
-            if ex.ErrorCode = int RpcErrorCode.ExcessiveResourceUsage then
+            if ex.ErrorCode = Some (int RpcErrorCode.ExcessiveResourceUsage) then
                 return raise <| ServerUnavailabilityException(ex.Message, ex)
 
             return raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
@@ -229,16 +233,70 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
     static member public Deserialize<'T> (result: string): 'T =
         let resultTrimmed = result.Trim()
-        let maybeError =
-            try
-                JsonConvert.DeserializeObject<ErrorResult>(resultTrimmed,
-                                                           Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
-            with
-            | ex -> raise <| Exception(SPrintF2 "Failed deserializing JSON response (to check for error) '%s' to type '%s'"
-                                               resultTrimmed typedefof<'T>.FullName, ex)
-
-        if (not (Object.ReferenceEquals(maybeError, null))) && (not (Object.ReferenceEquals(maybeError.Error, null))) then
-            raise(ElectrumServerReturningErrorInJsonResponseException(maybeError.Error.Message, maybeError.Error.Code))
+        let json =
+            match JsonValue.Parse resultTrimmed with
+            | Ok json -> json
+            | Error err ->
+                let msg = 
+                    SPrintF1
+                        "Failed deserializing JSON response (invalid JSON) '%s'"
+                        resultTrimmed
+                let ex = Exception(err.ToString())
+                raise <| ElectrumServerReturningImproperJsonResponseException(msg, ex)
+        let responseMap =
+            match json with
+            | JsonValue.Object responseMap -> responseMap
+            | _ ->
+                let msg =
+                    SPrintF1
+                        "Invalid JSON response (expected a JSON object) '%s"
+                        resultTrimmed
+                let ex = Exception("expected a JSON object")
+                raise <| ElectrumServerReturningImproperJsonResponseException(msg, ex)
+        match Map.tryFind "error" responseMap with
+        | Some jsonError ->
+            match jsonError with
+            | JsonValue.Object jsonErrorMap ->
+                match Map.tryFind "message" jsonErrorMap with
+                | Some jsonErrorMsgField -> 
+                    match jsonErrorMsgField with
+                    | JsonValue.String jsonErrorMsg ->
+                        match Map.tryFind "code" jsonErrorMap with
+                        | Some (JsonValue.Number jsonErrorCode) ->
+                            raise <| ElectrumServerReturningErrorInJsonResponseException(jsonErrorMsg, Some (int jsonErrorCode))
+                        | None ->
+                            raise <| ElectrumServerReturningErrorInJsonResponseException(jsonErrorMsg, None)
+                        | _ -> 
+                            let msg =
+                                SPrintF1
+                                    "Invalid JSON response (error object's code field is not a number) '%s"
+                                    resultTrimmed
+                            let ex = Exception("error object's code field is not a number")
+                            raise <| ElectrumServerReturningImproperJsonResponseException(msg, ex)
+                    | _ ->
+                        let msg =
+                            SPrintF1
+                                "Invalid JSON response (error object's message field is not a string) '%s"
+                                resultTrimmed
+                        let ex = Exception("error object's message field is not a string")
+                        raise <| ElectrumServerReturningImproperJsonResponseException(msg, ex)
+                | None ->
+                    let msg =
+                        SPrintF1
+                            "Invalid JSON response (error object does not contain a message field) '%s"
+                            resultTrimmed
+                    let ex = Exception("error object does not contain a message field")
+                    raise <| ElectrumServerReturningImproperJsonResponseException(msg, ex)
+            | JsonValue.String jsonErrorMsg ->
+                raise <| ElectrumServerReturningErrorInJsonResponseException(jsonErrorMsg, None)
+            | _ ->
+                let msg =
+                    SPrintF1
+                        "Invalid JSON response (error niether an object or string) '%s"
+                        resultTrimmed
+                let ex = Exception("error niether an object or string")
+                raise <| ElectrumServerReturningImproperJsonResponseException(msg, ex)
+        | None -> ()
 
         let failedDeserMsg = SPrintF2 "Failed deserializing JSON response '%s' to type '%s'"
                                       resultTrimmed typedefof<'T>.FullName
