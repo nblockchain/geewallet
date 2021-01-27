@@ -44,7 +44,7 @@ type CloseChannelAsFunder() =
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
 
         // Mine 7 blocks to make sure closing tx is confirmed
-        bitcoind.GenerateBlocks Config.MinimumDepth walletInstance.Address
+        bitcoind.GenerateBlocksToBurnAddress Config.MinimumDepth
         
         let rec waitForClosingTxConfirmed attempt = async {
             Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)

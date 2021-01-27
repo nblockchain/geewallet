@@ -79,6 +79,12 @@ type Bitcoind = {
         }
     }
 
+    member this.GenerateBlocksToBurnAddress (number: BlockHeightOffset32) =
+        let address =
+            let key = new Key()
+            key.PubKey.GetScriptAddress(Network.RegTest)
+        this.GenerateBlocks number address
+
     member this.GenerateBlocks (number: BlockHeightOffset32) (address: BitcoinAddress) =
         let bitcoinCli =
             ProcessWrapper.New
