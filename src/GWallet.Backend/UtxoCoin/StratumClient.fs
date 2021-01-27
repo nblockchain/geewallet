@@ -95,17 +95,17 @@ type public ElectrumServerReturningErrorInJsonResponseException(message: string,
     inherit CommunicationUnsuccessfulException(message)
 
     member val ErrorCode: int =
-        code with get
+        code
 
 type public ElectrumServerReturningErrorException(message: string, code: int,
                                                   originalRequest: string, originalResponse: string) =
     inherit ElectrumServerReturningErrorInJsonResponseException(message, code)
 
     member val OriginalRequest: string =
-        originalRequest with get
+        originalRequest
 
     member val OriginalResponse: string =
-        originalResponse with get
+        originalResponse
 
 type public ElectrumServerReturningInternalErrorException(message: string, code: int,
                                                           originalRequest: string, originalResponse: string) =

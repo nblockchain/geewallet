@@ -23,7 +23,7 @@ type internal TransactionOutpoint =
 type internal IUtxoAccount =
     inherit IAccount
 
-    abstract member PublicKey: PubKey with get
+    abstract PublicKey: PubKey
 
 
 type NormalUtxoAccount(currency: Currency, accountFile: FileRepresentation,
@@ -32,7 +32,7 @@ type NormalUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     inherit GWallet.Backend.NormalAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
     interface IUtxoAccount with
-        member val PublicKey = fromAccountFileToPublicKey accountFile with get
+        member val PublicKey = fromAccountFileToPublicKey accountFile
 
 type ReadOnlyUtxoAccount(currency: Currency, accountFile: FileRepresentation,
                          fromAccountFileToPublicAddress: FileRepresentation -> string,
@@ -40,7 +40,7 @@ type ReadOnlyUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     inherit GWallet.Backend.ReadOnlyAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
     interface IUtxoAccount with
-        member val PublicKey = fromAccountFileToPublicKey accountFile with get
+        member val PublicKey = fromAccountFileToPublicKey accountFile
 
 type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
                          fromAccountFileToPublicAddress: FileRepresentation -> string,
@@ -48,7 +48,7 @@ type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     inherit GWallet.Backend.ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
     interface IUtxoAccount with
-        member val PublicKey = fromAccountFileToPublicKey accountFile with get
+        member val PublicKey = fromAccountFileToPublicKey accountFile
 
 module Account =
 

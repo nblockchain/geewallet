@@ -18,9 +18,9 @@ type TransactionMetadata =
         Inputs: List<TransactionInputOutpointInfo>;
     }
     interface IBlockchainFeeInfo with
-        member self.FeeEstimationTime with get() = self.Fee.EstimationTime
+        member self.FeeEstimationTime = self.Fee.EstimationTime
         member self.FeeValue
-            with get() =
+            =
                 (Money.Satoshis self.Fee.EstimatedFeeInSatoshis).ToUnit MoneyUnit.BTC
-        member self.Currency with get() = self.Fee.Currency
+        member self.Currency = self.Fee.Currency
 

@@ -78,7 +78,7 @@ type JsonRpcTcpClient (host: string, port: uint32) =
                 JsonRpcSharp.TcpClient.JsonRpcClient(ResolveHost, int port, Config.DEFAULT_NETWORK_CONNECT_TIMEOUT)
             fun jsonRequest -> tcpClient.RequestAsync jsonRequest
 
-    member __.Host with get() = host
+    member __.Host = host
 
     member __.Request (request: string): Async<string> = async {
         try
