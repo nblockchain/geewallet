@@ -190,8 +190,11 @@ module Server =
                 match rpcResponseEx.RpcError.Code with
                 | a when a = int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound ->
                     if not (err32kPossibleMessages.Any (fun msg -> rpcResponseEx.RpcError.Message.Contains msg)) then
+                        let possibleErrMessages =
+                            SPrintF1 "'%s'" (String.Join("' or '", err32kPossibleMessages))
                         raise <| Exception(
-                                     SPrintF2 "Expecting 'pruning=archive' or 'missing trie node' or 'error: no suitable peers available' or 'header not found' in message of a %d code, but got '%s'"
+                                     SPrintF3 "Expecting %s in message of a %d code, but got '%s'"
+                                             possibleErrMessages
                                              (int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound)
                                              rpcResponseEx.RpcError.Message,
                                      rpcResponseEx)
