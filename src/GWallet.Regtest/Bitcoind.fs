@@ -23,7 +23,7 @@ type Bitcoind = {
             this.ProcessWrapper.WaitForExit()
             Directory.Delete(this.DataDir, true)
 
-    static member Start(): Bitcoind =
+    static member Start(): Async<Bitcoind> = async {
         let dataDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         Directory.CreateDirectory dataDir |> ignore
         let rpcUser = Path.GetRandomFileName()
@@ -70,12 +70,14 @@ type Bitcoind = {
                 Map.empty
                 false
         processWrapper.WaitForMessage (fun msg -> msg.EndsWith "init message: Done loading")
-        {
+        do! Async.Sleep 2000
+        return {
             DataDir = dataDir
             RpcUser = rpcUser
             RpcPassword = rpcPassword
             ProcessWrapper = processWrapper
         }
+    }
 
     member this.GenerateBlocks (number: BlockHeightOffset32) (address: BitcoinAddress) =
         let bitcoinCli =
