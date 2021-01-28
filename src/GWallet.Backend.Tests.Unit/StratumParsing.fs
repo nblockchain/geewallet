@@ -22,4 +22,4 @@ type StratumParsing() =
         let ex = Assert.Throws<ElectrumServerReturningErrorInJsonResponseException>(fun _ ->
             StratumClient.Deserialize<BlockchainScriptHashGetBalanceResult> errorResponse |> ignore
         )
-        Assert.That(ex.ErrorCode, Is.EqualTo(-32603))
+        Assert.That(ex.ErrorCode, Is.EqualTo(Some -32603))
