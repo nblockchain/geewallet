@@ -65,5 +65,33 @@ type GeewalletForceCloseFundee() =
         if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> Config.WalletToWalletTestPayment0Amount + Config.WalletToWalletTestPayment1Amount then
             failwith "incorrect balance after receiving payment 1"
 
+        let! balanceBeforeFundsReclaimed = walletInstance.GetBalance()
+
+        let rec waitForRemoteForceClose() = async {
+            let! closingInfoOpt = walletInstance.ChannelStore.CheckForClosingTx channelId
+            match closingInfoOpt with
+            | Some (closingTxIdString, Some _closingTxHeight) ->
+                return!
+                    Lightning.Network.CreateRecoveryTxForRemoteForceClose
+                        walletInstance.Node
+                        channelId
+                        closingTxIdString
+                        false
+            | _ ->
+                do! Async.Sleep 2000
+                return! waitForRemoteForceClose()
+        }
+        let! recoveryTxStringOpt = waitForRemoteForceClose()
+        let recoveryTxString = UnwrapOption recoveryTxStringOpt "no funds could be recovered"
+        let! _recoveryTxId =
+            UtxoCoin.Account.BroadcastRawTransaction
+                Currency.BTC
+                recoveryTxString
+
+        Infrastructure.LogDebug ("waiting for our wallet balance to increase")
+        let! _balanceAfterFundsReclaimed =
+            let amount = balanceBeforeFundsReclaimed+ Money(1.0m, MoneyUnit.Satoshi)
+            walletInstance.WaitForBalance amount
+
         return ()
     }
