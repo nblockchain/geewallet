@@ -130,7 +130,7 @@ type WalletInstance private (password: string, channelStore: ChannelStore, node:
         // do not use Geewallet. If the coins were to be detected by geewallet,
         // this test would still work. This comment is just here to avoid confusion.
         let maturityDurationInNumberOfBlocks = BlockHeightOffset32 (uint32 NBitcoin.Consensus.RegTest.CoinbaseMaturity)
-        bitcoind.GenerateBlocks maturityDurationInNumberOfBlocks address
+        bitcoind.GenerateBlocksToBurnAddress maturityDurationInNumberOfBlocks
 
         // We confirm the one block mined to LND, by waiting for LND to see the chain
         // at a height which has that block matured. The height at which the block will
