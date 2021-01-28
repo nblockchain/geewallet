@@ -18,8 +18,8 @@ type OpenChannelAsFunder() =
     member __.``can open channel to LND``() =
         async {
             use! walletInstance = WalletInstance.New None None
-            use bitcoind = Bitcoind.Start()
-            use _electrumServer = ElectrumServer.Start bitcoind
+            use! bitcoind = Bitcoind.Start()
+            use! _electrumServer = ElectrumServer.Start bitcoind
             use! lnd = Lnd.Start bitcoind
             
             let! _channelId = GwalletToLndChannelManagement.OpenChannel walletInstance bitcoind lnd

@@ -25,8 +25,8 @@ type CloseChannelAsFundee() =
     [<Test>]
     member __.``can close channel from LND (as fundee)``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
-        use bitcoind = Bitcoind.Start()
-        use _electrumServer = ElectrumServer.Start bitcoind
+        use! bitcoind = Bitcoind.Start()
+        use! _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
 
         let! channelId, fundingOutPoint = async {
