@@ -24,8 +24,8 @@ type GeewalletForceCloseFunder() =
     [<Test>]
     member __.``can send/receive monohop payments and force-close channel (funder)``() = Async.RunSynchronously <| async {
         use! walletInstance = WalletInstance.New None None
-        use bitcoind = Bitcoind.Start()
-        use _electrumServer = ElectrumServer.Start bitcoind
+        use! bitcoind = Bitcoind.Start()
+        use! _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
 
         // As explained in the other test, geewallet cannot use coinbase outputs.
