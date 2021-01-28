@@ -14,7 +14,7 @@ type ElectrumServer = {
             this.ProcessWrapper.WaitForExit()
             Directory.Delete(this.DbDir, true)
 
-    static member Start(bitcoind: Bitcoind): ElectrumServer =
+    static member Start(bitcoind: Bitcoind): Async<ElectrumServer> = async {
         let dbDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         Directory.CreateDirectory dbDir |> ignore
         let processWrapper =
@@ -35,8 +35,10 @@ type ElectrumServer = {
                 Map.empty
                 false
         processWrapper.WaitForMessage (fun msg -> msg.Contains "Electrum Rust Server")
-        {
+        do! Async.Sleep 5000
+        return {
             DbDir = dbDir
             ProcessWrapper = processWrapper
         }
+    }
 
