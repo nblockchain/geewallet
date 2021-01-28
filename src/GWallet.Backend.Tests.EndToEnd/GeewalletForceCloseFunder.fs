@@ -178,26 +178,36 @@ type GeewalletForceCloseFunder() =
         // Mine the force-close tx into a block
         bitcoind.GenerateBlocksToBurnAddress (BlockHeightOffset32 1u)
 
+        // wait for fundee's recovery tx to appear in mempool
+        while bitcoind.GetTxIdsInMempool().Length = 0 do
+            do! Async.Sleep 500
+
+        // Mine the fundee's recovery tx
+        bitcoind.GenerateBlocksToBurnAddress (BlockHeightOffset32 1u)
+
         // Mine blocks to release time-lock
         bitcoind.GenerateBlocksToBurnAddress
             (BlockHeightOffset32 (uint32 locallyForceClosedData.ToSelfDelay))
         
-        let! _spendingTxId =
+        let! _recoveryTxId =
             UtxoCoin.Account.BroadcastRawTransaction
                 locallyForceClosedData.Currency
                 locallyForceClosedData.SpendingTransactionString
 
-        // wait for spending transaction to appear in mempool
+        // wait for recovery transaction to appear in mempool
         while bitcoind.GetTxIdsInMempool().Length = 0 do
             do! Async.Sleep 500
         
-        // Mine the spending tx into a block
+        // Mine the recovery tx into a block
         bitcoind.GenerateBlocksToBurnAddress (BlockHeightOffset32 1u)
 
         Infrastructure.LogDebug ("waiting for our wallet balance to increase")
         let! _balanceAfterFundsReclaimed =
             let amount = balanceBeforeFundsReclaimed + Money(1.0m, MoneyUnit.Satoshi)
             walletInstance.WaitForBalance amount
+
+        // Give the fundee time to see their funds recovered before closing bitcoind/electrum
+        do! Async.Sleep 3000
 
         return ()
     }
