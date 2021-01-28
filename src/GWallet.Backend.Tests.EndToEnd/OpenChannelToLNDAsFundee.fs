@@ -17,8 +17,8 @@ type OpenChannelAsFundee() =
     member __.``can accept channel from LND``() =
         async {
             use! walletInstance = WalletInstance.New None None
-            use bitcoind = Bitcoind.Start()
-            use _electrumServer = ElectrumServer.Start bitcoind
+            use! bitcoind = Bitcoind.Start()
+            use! _electrumServer = ElectrumServer.Start bitcoind
             use! lnd = Lnd.Start bitcoind
            
             let! _channelIdAndFundingOutPoint = GwalletToLndChannelManagement.AcceptChannel walletInstance bitcoind lnd
