@@ -36,7 +36,7 @@ type GeewalletForceCloseFunder() =
         bitcoind.GenerateBlocks blocksMinedToLnd lndAddress
 
         let maturityDurationInNumberOfBlocks = BlockHeightOffset32 (uint32 NBitcoin.Consensus.RegTest.CoinbaseMaturity)
-        bitcoind.GenerateBlocks maturityDurationInNumberOfBlocks walletInstance.Address
+        bitcoind.GenerateBlocksToBurnAddress maturityDurationInNumberOfBlocks
 
         // We confirm the one block mined to LND, by waiting for LND to see the chain
         // at a height which has that block matured. The height at which the block will
@@ -68,7 +68,7 @@ type GeewalletForceCloseFunder() =
         // At that point, the 0.25 regtest coins from the above call to sendcoins
         // are considered arrived to Geewallet.
         let consideredConfirmedAmountOfBlocksPlusOne = BlockHeightOffset32 7u
-        bitcoind.GenerateBlocks consideredConfirmedAmountOfBlocksPlusOne walletInstance.Address
+        bitcoind.GenerateBlocksToBurnAddress consideredConfirmedAmountOfBlocksPlusOne
 
         let fundingAmount = Money(0.1m, MoneyUnit.BTC)
         let! transferAmount = async {
@@ -88,7 +88,7 @@ type GeewalletForceCloseFunder() =
         let channelId = (pendingChannel :> IChannelToBeOpened).ChannelId
         let! fundingTxIdRes = pendingChannel.Accept()
         let _fundingTxId = UnwrapResult fundingTxIdRes "pendingChannel.Accept failed"
-        bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) walletInstance.Address
+        bitcoind.GenerateBlocksToBurnAddress (BlockHeightOffset32 minimumDepth)
 
         do!
             let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
@@ -176,12 +176,11 @@ type GeewalletForceCloseFunder() =
         let! balanceBeforeFundsReclaimed = walletInstance.GetBalance()
 
         // Mine the force-close tx into a block
-        bitcoind.GenerateBlocks (BlockHeightOffset32 1u) lndAddress
+        bitcoind.GenerateBlocksToBurnAddress (BlockHeightOffset32 1u)
 
         // Mine blocks to release time-lock
-        bitcoind.GenerateBlocks
+        bitcoind.GenerateBlocksToBurnAddress
             (BlockHeightOffset32 (uint32 locallyForceClosedData.ToSelfDelay))
-            lndAddress
         
         let! _spendingTxId =
             UtxoCoin.Account.BroadcastRawTransaction
@@ -193,7 +192,7 @@ type GeewalletForceCloseFunder() =
             do! Async.Sleep 500
         
         // Mine the spending tx into a block
-        bitcoind.GenerateBlocks (BlockHeightOffset32 1u) lndAddress
+        bitcoind.GenerateBlocksToBurnAddress (BlockHeightOffset32 1u)
 
         Infrastructure.LogDebug ("waiting for our wallet balance to increase")
         let! _balanceAfterFundsReclaimed =

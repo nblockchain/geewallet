@@ -18,7 +18,6 @@ module GwalletToLndChannelManagement =
     let OpenChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<ChannelIdentifier> =
         async {
             do! walletInstance.FundByMining bitcoind lnd
-            let! lndAddress = lnd.GetDepositAddress()
 
             // fund geewallet
             let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
@@ -39,7 +38,7 @@ module GwalletToLndChannelManagement =
             // will be 6 deep at the end of the following call to generateBlocks.
             // At that point, the 0.25 regtest coins from the above call to sendcoins
             // are considered arrived to Geewallet.
-            bitcoind.GenerateBlocks Config.MinimumDepth lndAddress
+            bitcoind.GenerateBlocksToBurnAddress Config.MinimumDepth
 
             let! lndEndPoint = lnd.GetEndPoint()
             let! transferAmount = async {
@@ -60,7 +59,7 @@ module GwalletToLndChannelManagement =
             let channelId = (pendingChannel :> IChannelToBeOpened).ChannelId
             let! fundingTxIdRes = pendingChannel.Accept()
             let _fundingTxId = UnwrapResult fundingTxIdRes "pendingChannel.Accept failed"
-            bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) lndAddress
+            bitcoind.GenerateBlocksToBurnAddress (BlockHeightOffset32 minimumDepth)
 
             do! walletInstance.WaitForFundingConfirmed channelId
 
@@ -78,7 +77,6 @@ module GwalletToLndChannelManagement =
     let AcceptChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<ChannelIdentifier * OutPoint> =
         async {
             do! walletInstance.FundByMining bitcoind lnd
-            let! lndAddress = lnd.GetDepositAddress()
 
             let acceptChannelTask = Lightning.Network.AcceptChannel walletInstance.Node
             let openChannelTask = async {
@@ -102,7 +100,7 @@ module GwalletToLndChannelManagement =
                 do! Async.Sleep 500
 
             // Mine blocks on top of the funding transaction to make it confirmed.
-            bitcoind.GenerateBlocks Config.MinimumDepth lndAddress
+            bitcoind.GenerateBlocksToBurnAddress Config.MinimumDepth
 
             do! walletInstance.WaitForFundingConfirmed channelId
 
