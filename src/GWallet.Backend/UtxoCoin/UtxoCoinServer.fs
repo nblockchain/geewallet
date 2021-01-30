@@ -22,11 +22,19 @@ module Server =
             | ServerSelectionMode.Fast -> 3u
             | ServerSelectionMode.Analysis -> 2u
 
+    let private DefaultNumberOfConsistentResponsesRequired(): uint32 =
+        if Config.BitcoinNet() = NBitcoin.Network.RegTest then
+            1u
+        else
+            2u
+
     let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode)
                                                            maybeConsistencyConfig =
         let consistencyConfig =
             match maybeConsistencyConfig with
-            | None -> SpecificNumberOfConsistentResponsesRequired 2u
+            | None ->
+                DefaultNumberOfConsistentResponsesRequired ()
+                |> SpecificNumberOfConsistentResponsesRequired
             | Some specificConsistencyConfig -> specificConsistencyConfig
 
         {
@@ -51,7 +59,10 @@ module Server =
                                                                    cacheOrInitialBalanceMatchFunc =
         let consistencyConfig =
             if mode = ServerSelectionMode.Fast then
-                Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
+                if Config.BitcoinNet() <> NBitcoin.Network.RegTest then
+                    Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
+                else
+                    None
             else
                 None
         FaultTolerantParallelClientDefaultSettings mode consistencyConfig

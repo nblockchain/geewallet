@@ -584,7 +584,7 @@ module Caching =
                 LoadFromDiskInner cacheFiles.ServerStats
             )
 
-        member __.BootstrapServerStatsFromTrustedSource(): Async<unit> =
+        member private __.BootstrapServerStatsFromTrustedSourceInternal(): Async<unit> =
             let downloadFile url: Async<Option<string>> =
                 let tryDownloadFile url: Async<string> =
                     async {
@@ -645,6 +645,14 @@ module Caching =
                         let savedServerStats = SaveServerRankingsToDisk lastServerStats
                         sessionServerRanking <- savedServerStats
                     )
+            }
+
+        member self.BootstrapServerStatsFromTrustedSource(): Async<unit> =
+            async {
+                if Config.BitcoinNet() = NBitcoin.Network.RegTest then
+                    return ()
+                else
+                    return! self.BootstrapServerStatsFromTrustedSourceInternal()
             }
 
         member __.FirstRun
