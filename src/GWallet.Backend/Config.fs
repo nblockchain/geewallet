@@ -52,12 +52,6 @@ module Config =
     //       balances, so you might find discrepancies (e.g. the donut-chart-view)
     let internal NoNetworkBalanceForDebuggingPurposes = false
 
-    let OneIfRegTestElse(elseValue: uint32) =
-        if BitcoinNet() = NBitcoin.Network.RegTest then
-            1u
-        else
-            elseValue
-
     let IsWindowsPlatform() =
         Path.DirectorySeparatorChar = '\\'
 

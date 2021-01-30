@@ -388,9 +388,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                              cancellationSource
                                              cancelState
             | Some (SpecificNumberOfConsistentResponsesRequired number) ->
-                return! returnWithConsistencyOf (Some (Config.OneIfRegTestElse number)) ((fun _ -> false) |> Some)
+                return! returnWithConsistencyOf (Some number) ((fun _ -> false) |> Some)
             | Some (OneServerConsistentWithCertainValueOrTwoServers cacheMatchFunc) ->
-                return! returnWithConsistencyOf (Some (Config.OneIfRegTestElse 2u)) (Some cacheMatchFunc)
+                return! returnWithConsistencyOf (Some 2u) (Some cacheMatchFunc)
             | None ->
                 if newRestOfTasks.Length = 0 then
 

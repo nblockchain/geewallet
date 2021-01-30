@@ -17,7 +17,9 @@ type QuerySettings<'R> =
 module Server =
 
     let private NumberOfParallelJobsForMode mode =
-        Config.OneIfRegTestElse <|
+        if Config.BitcoinNet() = NBitcoin.Network.RegTest then
+            1u
+        else
             match mode with
             | ServerSelectionMode.Fast -> 3u
             | ServerSelectionMode.Analysis -> 2u
