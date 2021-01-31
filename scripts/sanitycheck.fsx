@@ -84,7 +84,7 @@ let FindOffendingPrintfUsage () =
         String.Format (
             "scripts{0}" +
             "src{1}GWallet.Frontend.Console{0}" +
-            "src{1}GWallet.Backend.Tests{0}" +
+            "src{1}GWallet.Backend.Tests.Unit{0}" +
             "src{1}GWallet.Backend.Tests.End2End{0}" +
             "src{1}GWallet.Backend{1}FSharpUtil.fs",
             Path.PathSeparator,
