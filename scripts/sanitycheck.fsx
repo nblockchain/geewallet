@@ -106,9 +106,6 @@ let FindOffendingPrintfUsage () =
 
 let SanityCheckNugetPackages () =
 
-    let notBlacklist (projPath: string): bool =
-        not <| projPath.Contains "End2End"
-
     let notSubmodule (dir: DirectoryInfo): bool =
         let getSubmoduleDirsForThisRepo (): seq<DirectoryInfo> =
             let regex = Regex("path\s*=\s*([^\s]+)")
@@ -134,7 +131,7 @@ let SanityCheckNugetPackages () =
             let parsedSolution = SolutionFile.Parse sol.FullName
             seq {
                 for projPath in (parsedSolution.ProjectsInOrder.Select(fun proj -> normalizeDirSeparatorsPaths proj.AbsolutePath).ToList()) do
-                    if projPath.ToLower().EndsWith ".fsproj" && (notBlacklist projPath) then
+                    if projPath.ToLower().EndsWith ".fsproj" then
                         for file in ((FileInfo projPath).Directory).EnumerateFiles () do
                             if file.Name.ToLower () = "packages.config" then
                                 yield file
