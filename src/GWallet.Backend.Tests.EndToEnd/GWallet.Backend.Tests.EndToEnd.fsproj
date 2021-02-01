@@ -57,10 +57,13 @@
       <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
     <Compile Include="Config.fs" />
+    <Compile Include="Util.fs" />
     <Compile Include="LN.fs" />
     <Compile Include="GwalletToLndChannelManagement.fs" />
     <Compile Include="OpenChannelToLNDAsFunder.fs" />
     <Compile Include="OpenChannelToLNDAsFundee.fs" />
+    <Compile Include="CpfpForceCloseFunder.fs" />
+    <Compile Include="CpfpForceCloseFundee.fs" />
     <Compile Include="GeewalletToGeewalletFunder.fs" />
     <Compile Include="GeewalletToGeewalletFundee.fs" />
     <Compile Include="CloseChannelAsFunder.fs" />
