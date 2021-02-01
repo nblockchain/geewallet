@@ -29,26 +29,7 @@ type GeewalletToGeewalletFunder() =
         use! bitcoind = Bitcoind.Start()
         use! _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
-
-        // As explained in the other test, geewallet cannot use coinbase outputs.
-        // To work around that we mine a block to a LND instance and afterwards tell
-        // it to send funds to the funder geewallet instance
-        let! address = lnd.GetDepositAddress()
-        let blocksMinedToLnd = BlockHeightOffset32 1u
-        bitcoind.GenerateBlocks blocksMinedToLnd address
-
-        let maturityDurationInNumberOfBlocks = BlockHeightOffset32 (uint32 NBitcoin.Consensus.RegTest.CoinbaseMaturity)
-        bitcoind.GenerateBlocksToBurnAddress maturityDurationInNumberOfBlocks
-
-        // We confirm the one block mined to LND, by waiting for LND to see the chain
-        // at a height which has that block matured. The height at which the block will
-        // be matured is 100 on regtest. Since we initialally mined one block for LND,
-        // this will wait until the block height of LND reaches 1 (initial blocks mined)
-        // plus 100 blocks (coinbase maturity). This test has been parameterized
-        // to use the constants defined in NBitcoin, but you have to keep in mind that
-        // the coinbase maturity may be defined differently in other coins.
-        do! lnd.WaitForBlockHeight (BlockHeight.Zero + blocksMinedToLnd + maturityDurationInNumberOfBlocks)
-        do! lnd.WaitForBalance (Money(50UL, MoneyUnit.BTC))
+        do! lnd.FundByMining bitcoind
 
         // fund geewallet
         let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
