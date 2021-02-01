@@ -2,6 +2,7 @@ namespace GWallet.Backend.Json
 
 open System.IO
 open Newtonsoft.Json
+open ResultUtils.Portability
 
 type ParseJsonError =
     | UnexpectedToken of JsonToken
