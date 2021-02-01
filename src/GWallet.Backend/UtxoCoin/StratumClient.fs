@@ -7,6 +7,7 @@ open Newtonsoft.Json
 open GWallet.Backend
 open GWallet.Backend.Json
 open GWallet.Backend.FSharpUtil.UwpHacks
+open ResultUtils.Portability
 
 // can't make this type below private, or else Newtonsoft.Json will serialize it incorrectly
 type Request =
