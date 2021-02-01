@@ -289,6 +289,9 @@ match maybeTarget with
 | Some("check") ->
     RunTests "Unit"
 
+| Some "check-end2end" ->
+    RunTests "End2End"
+
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
     JustBuild buildConfig None
@@ -350,11 +353,10 @@ match maybeTarget with
                     failwith "FsxRunner env var should have been passed to make.sh"
                 fsxRunnerEnvVar
         let excludeFolders =
-            String.Format("scripts{0}" +
-                          "src{1}GWallet.Frontend.Console{0}" +
-                          "src{1}GWallet.Backend.Tests.Unit{0}" +
-                          "src{1}GWallet.Backend.Tests.End2End{0}" +
-                          "src{1}GWallet.Backend{1}FSharpUtil.fs",
+            String.Format("GWallet.Frontend.Console{0}" +
+                          "GWallet.Backend.Tests.Unit{0}" +
+                          "GWallet.Backend.Tests.End2End{0}" +
+                          "GWallet.Backend{1}FSharpUtil.fs",
                           Path.PathSeparator, Path.DirectorySeparatorChar)
 
         let proc =
@@ -365,7 +367,11 @@ match maybeTarget with
                                     excludeFolders
                                     "printf failwithf"
             }
+        let currentDir = Directory.GetCurrentDirectory()
+        let srcDir = Path.Combine(currentDir, "src")
+        Directory.SetCurrentDirectory srcDir
         let findProc = Process.SafeExecute (proc, Echo.All)
+        Directory.SetCurrentDirectory currentDir
         if findProc.Output.StdOut.Trim().Length > 0 then
             Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf detected"
             Environment.Exit 1
