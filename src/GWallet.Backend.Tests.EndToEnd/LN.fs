@@ -119,26 +119,27 @@ type WalletInstance private (password: string, channelStore: ChannelStore, node:
     member this.FundByMining (bitcoind: Bitcoind)
                              (lnd: Lnd)
                                 : Async<unit> = async {
-        let! address = lnd.GetDepositAddress()
-        let blocksMinedToLnd = BlockHeightOffset32 1u
-        bitcoind.GenerateBlocks blocksMinedToLnd address
+        do! lnd.FundByMining bitcoind
 
-        // Geewallet cannot use these outputs, even though they are encumbered with an output
-        // script from its wallet. This is because they come from coinbase. Coinbase outputs are
-        // the source of all bitcoin, and as of May 2020, Geewallet does not detect coins
-        // received straight from coinbase. In practice, this doesn't matter, since miners
-        // do not use Geewallet. If the coins were to be detected by geewallet,
-        // this test would still work. This comment is just here to avoid confusion.
-        let maturityDurationInNumberOfBlocks = BlockHeightOffset32 (uint32 NBitcoin.Consensus.RegTest.CoinbaseMaturity)
-        bitcoind.GenerateBlocksToBurnAddress maturityDurationInNumberOfBlocks
+        // fund geewallet
+        let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
+        let feeRate = FeeRatePerKw 2500u
+        let! _txid = lnd.SendCoins geewalletAccountAmount this.Address feeRate
 
-        // We confirm the one block mined to LND, by waiting for LND to see the chain
-        // at a height which has that block matured. The height at which the block will
-        // be matured is 100 on regtest. Since we initialally mined one block for LND,
-        // this will wait until the block height of LND reaches 1 (initial blocks mined)
-        // plus 100 blocks (coinbase maturity). This test has been parameterized
-        // to use the constants defined in NBitcoin, but you have to keep in mind that
-        // the coinbase maturity may be defined differently in other coins.
-        do! lnd.WaitForBlockHeight (BlockHeight.Zero + blocksMinedToLnd + maturityDurationInNumberOfBlocks)
-        do! lnd.WaitForBalance (Money(50UL, MoneyUnit.BTC))
+        // wait for lnd's transaction to appear in mempool
+        while bitcoind.GetTxIdsInMempool().Length = 0 do
+            do! Async.Sleep 500
+
+        // We want to make sure Geewallet consideres the money received.
+        // A typical number of blocks that is almost universally considered
+        // 100% confirmed, is 6. Therefore we mine 7 blocks. Because we have
+        // waited for the transaction to appear in bitcoind's mempool, we
+        // can assume that the first of the 7 blocks will include the
+        // transaction sending money to Geewallet. The next 6 blocks will
+        // bury the first block, so that the block containing the transaction
+        // will be 6 deep at the end of the following call to generateBlocks.
+        // At that point, the 0.25 regtest coins from the above call to sendcoins
+        // are considered arrived to Geewallet.
+        let consideredConfirmedAmountOfBlocksPlusOne = BlockHeightOffset32 7u
+        bitcoind.GenerateBlocksToBurnAddress consideredConfirmedAmountOfBlocksPlusOne
     }
