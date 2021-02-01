@@ -4,9 +4,9 @@ set -eux
 # Set up variables needed for the regtest test
 
 # This is needed to find lnd in PATH
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
+#export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
 # This is needed to convince electrum to run on CI as root
-export ALLOW_ROOT=1
+#export ALLOW_ROOT=1
 
 
 # Install bitcoin core
@@ -19,6 +19,10 @@ export ALLOW_ROOT=1
 #curl -L https://github.com/spesmilo/electrumx/archive/1.15.0.zip -o electrumx-1.15.0.zip
 #unzip electrumx-1.15.0.zip
 #pip3 install ./electrumx-1.15.0
+
+# required by apt-key
+apt install -y gnupg2
+apt install -y ca-certificates
 
 # Install "cryptoanarchy" debian repo. This contains packages for bitcoind, lnd and electrs
 gpg --keyserver hkp://keyserver.ubuntu.com --recv-keys 3D9E81D3CA76CDCBE768C4B4DC6B4F8E60B8CF4C
