@@ -34,13 +34,13 @@ echo 'deb https://deb.ln-ask.me/beta buster common local desktop' > /etc/apt/sou
 apt update
 
 # install bitcoin core
-apt install bitcoind
+apt install -y bitcoind bitcoin-cli
 
 # Install electrs
-apt install electrs
+apt install -y electrs
 
 # Install lnd
-apt install lnd
+apt install -y lnd
 
 # Install lnd
 # apt install -y curl tar gzip unzip make git
