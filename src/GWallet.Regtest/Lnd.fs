@@ -188,4 +188,30 @@ type Lnd = {
             | Some ex when ex.LineNumber = 2 && ex.LinePosition = 0 -> return ()
             | _ -> return raise <| FSharpUtil.ReRaise ex
     }
+   
+    member this.FundByMining (bitcoind: Bitcoind)
+                                : Async<unit> = async {
+        let! address = this.GetDepositAddress()
+        let blocksMinedToLnd = BlockHeightOffset32 1u
+        bitcoind.GenerateBlocks blocksMinedToLnd address
+
+        // Geewallet cannot use these outputs, even though they are encumbered with an output
+        // script from its wallet. This is because they come from coinbase. Coinbase outputs are
+        // the source of all bitcoin, and as of May 2020, Geewallet does not detect coins
+        // received straight from coinbase. In practice, this doesn't matter, since miners
+        // do not use Geewallet. If the coins were to be detected by geewallet,
+        // this test would still work. This comment is just here to avoid confusion.
+        let maturityDurationInNumberOfBlocks = BlockHeightOffset32 (uint32 NBitcoin.Consensus.RegTest.CoinbaseMaturity)
+        bitcoind.GenerateBlocksToBurnAddress maturityDurationInNumberOfBlocks
+
+        // We confirm the one block mined to LND, by waiting for LND to see the chain
+        // at a height which has that block matured. The height at which the block will
+        // be matured is 100 on regtest. Since we initialally mined one block for LND,
+        // this will wait until the block height of LND reaches 1 (initial blocks mined)
+        // plus 100 blocks (coinbase maturity). This test has been parameterized
+        // to use the constants defined in NBitcoin, but you have to keep in mind that
+        // the coinbase maturity may be defined differently in other coins.
+        do! this.WaitForBlockHeight (BlockHeight.Zero + blocksMinedToLnd + maturityDurationInNumberOfBlocks)
+        do! this.WaitForBalance (Money(50UL, MoneyUnit.BTC))
+    }
 
