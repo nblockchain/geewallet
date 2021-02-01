@@ -17,7 +17,7 @@ open GWallet.Regtest
 module GwalletToLndChannelManagement =
     let OpenChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<ChannelIdentifier> =
         async {
-            do! walletInstance.FundByMining bitcoind lnd
+            do! lnd.FundByMining bitcoind
 
             // fund geewallet
             let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
@@ -76,7 +76,7 @@ module GwalletToLndChannelManagement =
 
     let AcceptChannel(walletInstance: WalletInstance) (bitcoind: Bitcoind) (lnd : Lnd): Async<ChannelIdentifier * OutPoint> =
         async {
-            do! walletInstance.FundByMining bitcoind lnd
+            do! lnd.FundByMining bitcoind
 
             let acceptChannelTask = Lightning.Network.AcceptChannel walletInstance.Node
             let openChannelTask = async {
