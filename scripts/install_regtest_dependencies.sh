@@ -34,7 +34,7 @@ echo 'deb https://deb.ln-ask.me/beta buster common local desktop' > /etc/apt/sou
 apt update
 
 # install bitcoin core
-apt install -y bitcoind bitcoin-cli
+apt install -y bitcoin-fullchain-regtest bitcoind bitcoin-cli
 
 # Install electrs
 apt install -y electrs
