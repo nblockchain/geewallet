@@ -236,3 +236,47 @@ type WalletInstance private (password: string, channelStore: ChannelStore, node:
             failwith "incorrect balance after payment 1"
         return channelId
     }
+
+    member this.AcceptChannelFromFunder(): Async<ChannelIdentifier> = async {
+        let! pendingChannelRes =
+            Lightning.Network.AcceptChannel
+                this.Node
+
+        let (channelId, _fundingTxId) = UnwrapResult pendingChannelRes "OpenChannel failed"
+
+        let! lockFundingRes = Lightning.Network.LockChannelFunding this.Node channelId
+        UnwrapResult lockFundingRes "LockChannelFunding failed"
+
+        let channelInfo = this.ChannelStore.ChannelInfo channelId
+        match channelInfo.Status with
+        | ChannelStatus.Active -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        if Money(channelInfo.Balance, MoneyUnit.BTC) <> Money(0.0m, MoneyUnit.BTC) then
+            failwith "incorrect balance after accepting channel"
+
+        let! receiveMonoHopPaymentRes =
+            Lightning.Network.ReceiveMonoHopPayment this.Node channelId
+        UnwrapResult receiveMonoHopPaymentRes "ReceiveMonoHopPayment failed"
+
+        let channelInfoAfterPayment0 = this.ChannelStore.ChannelInfo channelId
+        match channelInfo.Status with
+        | ChannelStatus.Active -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        if Money(channelInfoAfterPayment0.Balance, MoneyUnit.BTC) <> Config.WalletToWalletTestPayment0Amount then
+            failwith "incorrect balance after receiving payment 0"
+
+        let! receiveMonoHopPaymentRes =
+            Lightning.Network.ReceiveMonoHopPayment this.Node channelId
+        UnwrapResult receiveMonoHopPaymentRes "ReceiveMonoHopPayment failed"
+
+        let channelInfoAfterPayment1 = this.ChannelStore.ChannelInfo channelId
+        match channelInfo.Status with
+        | ChannelStatus.Active -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> Config.WalletToWalletTestPayment0Amount + Config.WalletToWalletTestPayment1Amount then
+            failwith "incorrect balance after receiving payment 1"
+        return channelId
+    }
