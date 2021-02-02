@@ -7,6 +7,10 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 module ElectrumClient =
 
+    let RegTestFakeFeeRate = ref 0.0002m
+    let SetRegTestFakeFeeRate (newFeeRate: decimal) =
+        RegTestFakeFeeRate := newFeeRate
+
     let private Init (fqdn: string) (port: uint32): Async<StratumClient> =
         let jsonRpcClient = new JsonRpcTcpClient(fqdn, port)
         let stratumClient = new StratumClient(jsonRpcClient)
@@ -141,7 +145,7 @@ module ElectrumClient =
 
     let EstimateFee (numBlocksTarget: int) (stratumServer: Async<StratumClient>): Async<decimal> = async {
         if Config.BitcoinNet() = NBitcoin.Network.RegTest then
-            return 0.0005m
+            return !RegTestFakeFeeRate
         else
             let! stratumClient = stratumServer
             let! estimateFeeResult = stratumClient.BlockchainEstimateFee numBlocksTarget

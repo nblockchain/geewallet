@@ -57,6 +57,7 @@ module GwalletToLndChannelManagement =
         async {
             do! lnd.FundByMining bitcoind
 
+            let! feeRate = ElectrumServer.EstimateFeeRate()
             let acceptChannelTask = Lightning.Network.AcceptChannel walletInstance.Node
             let openChannelTask = async {
                 let! connectionResult = lnd.ConnectTo walletInstance.NodeEndPoint
@@ -67,7 +68,7 @@ module GwalletToLndChannelManagement =
                     lnd.OpenChannel
                         walletInstance.NodeEndPoint
                         (Money(0.002m, MoneyUnit.BTC))
-                        (FeeRatePerKw 666u)
+                        feeRate
             }
 
             let! acceptChannelRes, openChannelRes = AsyncExtensions.MixedParallel2 acceptChannelTask openChannelTask
