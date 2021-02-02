@@ -470,6 +470,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
 
     member self.ForceCloseUsingCommitmentTx (commitmentTxString: string)
                                             (channelId: ChannelIdentifier)
+                                            (requiresCpfp: bool)
                                                 : Async<Option<string>> = async {
         let account = self.Account :> IAccount
         let currency = account.Currency
@@ -500,7 +501,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                     commitmentTx
                     targetAddress
                     feeRate
-                    true
+                    requiresCpfp
             match recoveryTransactionOpt with
             | Some recoveryTransaction -> return Some <| recoveryTransaction.ToHex()
             | None -> return None
@@ -517,7 +518,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 let account = self.Account :> IAccount
                 account.Currency
             UtxoCoin.Account.BroadcastRawTransaction currency commitmentTxString
-        let! recoveryTxStringOpt = self.ForceCloseUsingCommitmentTx commitmentTxString channelId
+        let! recoveryTxStringOpt = self.ForceCloseUsingCommitmentTx commitmentTxString channelId true
         match recoveryTxStringOpt with
         | None ->
             self.ChannelStore.DeleteChannel channelId
