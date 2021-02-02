@@ -2,7 +2,12 @@ namespace GWallet.Regtest
 
 open System
 open System.IO // For File.WriteAllText
+open System.Linq
+open NBitcoin
+open GWallet.Backend
+open GWallet.Backend.UtxoCoin
 open GWallet.Backend.FSharpUtil.UwpHacks
+open DotNetLightning.Utils
 
 type ElectrumServer = {
     DbDir: string
@@ -41,4 +46,29 @@ type ElectrumServer = {
             ProcessWrapper = processWrapper
         }
     }
+
+    static member EstimateFeeRate(): Async<FeeRatePerKw> = async {
+        let! btcPerKB =
+            let averageFee (feesFromDifferentServers: list<decimal>): decimal =
+                feesFromDifferentServers.Sum() / decimal (List.length feesFromDifferentServers)
+            let estimateFeeJob = ElectrumClient.EstimateFee 6
+            Server.Query
+                Currency.BTC
+                (QuerySettings.FeeEstimation averageFee)
+                estimateFeeJob
+                None
+        let satPerKB = (Money (btcPerKB, MoneyUnit.BTC)).ToUnit MoneyUnit.Satoshi
+        // 4 weight units per byte. See segwit specs.
+        let kwPerKB = 4m
+        let satPerKw = satPerKB / kwPerKB
+        let feeRatePerKw = FeeRatePerKw (uint32 satPerKw)
+        return feeRatePerKw
+    }
+
+    static member SetEstimatedFeeRate(feeRatePerKw: FeeRatePerKw) =
+        let satPerKw = decimal feeRatePerKw.Value
+        let kwPerKB = 4m
+        let satPerKB = satPerKw * kwPerKB
+        let btcPerKB = (Money (satPerKB, MoneyUnit.Satoshi)).ToUnit MoneyUnit.BTC
+        ElectrumClient.SetRegTestFakeFeeRate btcPerKB
 
