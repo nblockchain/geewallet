@@ -192,7 +192,7 @@ let GetTestAssembly suite =
 
     testAssembly
 
-let TwoProcessTestNames = ["GeewalletToGeewallet"; "GeewalletForceClose"]
+let TwoProcessTestNames = ["GeewalletToGeewallet"; "GeewalletForceClose"; "CpfpForceClose"]
 
 let RunTwoProcessTests() =
     let testAssembly = GetTestAssembly "EndToEnd"
