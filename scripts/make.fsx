@@ -23,14 +23,6 @@ type BinaryConfig =
     override self.ToString() =
         sprintf "%A" self
 
-let rec private GatherTarget (args: string list, targetSet: Option<string>): Option<string> =
-    match args with
-    | [] -> targetSet
-    | head::tail ->
-        if (targetSet.IsSome) then
-            failwith "only one target can be passed to make"
-        GatherTarget (tail, Some (head))
-
 let scriptsDir = __SOURCE_DIRECTORY__ |> DirectoryInfo
 let rootDir = Path.Combine(scriptsDir.FullName, "..") |> DirectoryInfo
 
@@ -194,10 +186,12 @@ let GetTestAssembly suite =
 
 let TwoProcessTestNames = ["GeewalletToGeewallet"; "GeewalletForceClose"; "CpfpForceClose"]
 
-let RunTwoProcessTests() =
+let RunTwoProcessTests (tests: List<string>) =
     let testAssembly = GetTestAssembly "EndToEnd"
+    let filteredTests =
+        Seq.filter (fun test -> Seq.contains test TwoProcessTestNames) tests
 
-    for testName in TwoProcessTestNames do
+    for testName in tests do
         let funderRunnerCommand =
             match Misc.GuessPlatform() with
             | Misc.Platform.Linux ->
@@ -255,8 +249,13 @@ let RunTwoProcessTests() =
         |> Async.RunSynchronously
         |> ignore
 
-let RunTests(suite: string) =
+
+let RunTests(suite: string) (tests: List<string>) =
     let testAssembly = GetTestAssembly suite
+    let testsMinusExcluded =
+        tests
+        |> Seq.filter (fun test -> suite <> "EndToEnd" || not (Seq.contains test TwoProcessTestNames))
+        |> String.concat ","
     let exclude =
         TwoProcessTestNames
         |> Seq.ofList
@@ -269,12 +268,18 @@ let RunTests(suite: string) =
         | Misc.Platform.Linux ->
             let nunitCommand = "nunit-console"
             MakeCheckCommand nunitCommand
-
-            let arguments = 
-                if suite = "EndToEnd" && exclude <> "" then
-                    "-exclude " + exclude + " " + testAssembly.FullName
+            let includeArg =
+                if testsMinusExcluded <> "" then
+                    "-include " + testsMinusExcluded
                 else
-                    testAssembly.FullName
+                    ""
+            let excludeArg =
+                if suite = "EndToEnd" && exclude <> "" then
+                    "-exclude " + exclude
+                else
+                    ""
+            let arguments = 
+                excludeArg + " " + includeArg + " " + testAssembly.FullName
 
             { Command = nunitCommand; Arguments = arguments }
         | _ ->
@@ -287,12 +292,18 @@ let RunTests(suite: string) =
                     Arguments = sprintf "install NUnit.Runners -Version %s -OutputDirectory %s"
                                         nunitVersion nugetPackagesSubDirName
                 }
-
-            let arguments = 
-                if suite = "EndToEnd" && exclude <> "" then
-                    "/exclude:" + exclude + " " + testAssembly.FullName
+            let includeArg =
+                if testsMinusExcluded <> "" then
+                    "/include:" + testsMinusExcluded
                 else
-                    testAssembly.FullName
+                    ""
+            let excludeArg =
+                if suite = "EndToEnd" && exclude <> "" then
+                    "/exclude:" + exclude
+                else
+                    ""
+            let arguments = 
+                excludeArg + " " + includeArg + " " + testAssembly.FullName
 
             Process.SafeExecute(nugetInstallCommand, Echo.All)
                 |> ignore
@@ -312,24 +323,23 @@ let RunTests(suite: string) =
         Environment.Exit 1
 
     if suite = "EndToEnd" then
-        RunTwoProcessTests()
+        RunTwoProcessTests tests
 
-let maybeTarget = GatherTarget (Misc.FsxArguments(), None)
-match maybeTarget with
-| None ->
+match Misc.FsxArguments() with
+| [] ->
     MakeAll None |> ignore
 
-| Some("release") ->
+| "release"::[] ->
     JustBuild BinaryConfig.Release None
 
-| Some "nuget" ->
+| "nuget"::[] ->
     Console.WriteLine "This target is for debugging purposes."
 
     if not (PrintNugetVersion()) then
         Console.Error.WriteLine "Nuget executable has not been downloaded yet, try `make` alone first"
         Environment.Exit 1
 
-| Some("zip") ->
+| "zip"::[] ->
     let zipCommand = "zip"
     MakeCheckCommand zipCommand
 
@@ -369,17 +379,17 @@ match maybeTarget with
         Environment.Exit 1
     Directory.SetCurrentDirectory previousCurrentDir
 
-| Some("check") ->
+| "check"::tests ->
     Console.WriteLine "Running unit tests..."
     Console.WriteLine ()
-    RunTests "Unit"
+    RunTests "Unit" tests
 
-| Some("check-end-to-end") ->
+| "check-end-to-end"::tests ->
     Console.WriteLine "Running end-to-end tests..."
     Console.WriteLine ()
-    RunTests "EndToEnd"
+    RunTests "EndToEnd" tests
 
-| Some("install") ->
+| "install"::[] ->
     let buildConfig = BinaryConfig.Release
     JustBuild buildConfig None
 
@@ -408,12 +418,12 @@ match maybeTarget with
                         Echo.Off).ExitCode <> 0 then
         failwith "Unexpected chmod failure, please report this bug"
 
-| Some("run") ->
+| "run"::[] ->
     let buildConfig = MakeAll None
     RunFrontend buildConfig None
         |> ignore
 
-| Some "update-servers" ->
+| "update-servers"::[] ->
     let buildConfig = MakeAll None
     Directory.SetCurrentDirectory (GetPathToBackend())
     let proc1 = RunFrontend buildConfig (Some "--update-servers-file")
@@ -423,11 +433,11 @@ match maybeTarget with
         let proc2 = RunFrontend buildConfig (Some "--update-servers-stats")
         Environment.Exit proc2.ExitCode
 
-| Some "strict" ->
+| "strict"::[] ->
     MakeAll <| Some "STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME"
         |> ignore
 
-| Some "sanitycheck" ->
+| "sanitycheck"::[] ->
     let FindOffendingPrintfUsage () =
         let findScript = Path.Combine(rootDir.FullName, "scripts", "find.fsx")
         let fsxRunner =
@@ -465,6 +475,6 @@ match maybeTarget with
 
     FindOffendingPrintfUsage()
 
-| Some(someOtherTarget) ->
-    Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
+| unrecognizedArgs ->
+    Console.Error.WriteLine("Unrecognized target: " + (String.concat " " unrecognizedArgs))
     Environment.Exit 2
