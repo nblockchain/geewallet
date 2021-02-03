@@ -96,7 +96,7 @@
       <Name>GWallet.Backend</Name>
     </ProjectReference>
     <ProjectReference Include="..\GWallet.Regtest\GWallet.Regtest.fsproj">
-      <Project>{976C2EC9-C37C-4B9C-A854-5F08F9665D5B}</Project>
+      <Project>{226AC22C-435E-11EB-B378-0242AC130002}</Project>
       <Name>GWallet.Regtest</Name>
     </ProjectReference>
     <Reference Include="System.Buffers">
