@@ -11,8 +11,8 @@ type HttpStatusCodeNotPresentInTheBcl =
     | FrozenSite = 530
 
 type RpcErrorCode =
-    // "This request is not supported because your node is running with state pruning. Run with --pruning=archive."
-    | StatePruningNodeOrMissingTrieNodeOrHeaderNotFound = -32000
+    // so many different errors use this shitty error code... don't ask me why
+    | JackOfAllTradesErrorCode = -32000
 
     // ambiguous or generic because I've seen same code applied to two different error messages already:
     // "Transaction with the same hash was already imported. (Transaction with the same hash was already imported.)"

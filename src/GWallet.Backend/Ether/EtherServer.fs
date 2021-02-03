@@ -184,14 +184,15 @@ module Server =
         match maybeRpcResponseEx with
         | Some rpcResponseEx ->
             if rpcResponseEx.RpcError <> null then
-                if rpcResponseEx.RpcError.Code = int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound then
+                if rpcResponseEx.RpcError.Code = int RpcErrorCode.JackOfAllTradesErrorCode then
                     if (not (rpcResponseEx.RpcError.Message.Contains "pruning=archive")) &&
                        (not (rpcResponseEx.RpcError.Message.Contains "header not found")) &&
                        (not (rpcResponseEx.RpcError.Message.Contains "error: no suitable peers available")) &&
+                       (not (rpcResponseEx.RpcError.Message.Contains "getDeleteStateObject")) &&
                        (not (rpcResponseEx.RpcError.Message.Contains "missing trie node")) then
                         raise <| Exception(
-                                     SPrintF2 "Expecting 'pruning=archive' or 'missing trie node' or 'error: no suitable peers available' or 'header not found' in message of a %d code, but got '%s'"
-                                             (int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound)
+                                     SPrintF2 "Expecting 'pruning=archive' or 'header not found' or 'error: no suitable peers available' or ''getDeleteStateObject'' or 'missing trie node' in message of a %d code, but got '%s'"
+                                             (int RpcErrorCode.JackOfAllTradesErrorCode)
                                              rpcResponseEx.RpcError.Message,
                                      rpcResponseEx)
                     else
