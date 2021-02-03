@@ -66,7 +66,7 @@
   <ItemGroup>
     <Reference Include="mscorlib" />
     <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.5.0.60\lib\net461\NBitcoin.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.5.0.73\lib\net461\NBitcoin.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
@@ -77,7 +77,7 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Numerics" />
     <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.5.2\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.6.7\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -114,25 +114,25 @@
       <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.All">
-      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.All.dll</HintPath>
+      <HintPath>..\..\packages\BTCPayServer.Lightning.All.1.2.7\lib\netstandard2.0\BTCPayServer.Lightning.All.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.Common">
-      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Common.dll</HintPath>
+      <HintPath>..\..\packages\BTCPayServer.Lightning.Common.1.2.2\lib\netstandard2.0\BTCPayServer.Lightning.Common.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.LND">
-      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.LND.dll</HintPath>
+      <HintPath>..\..\packages\BTCPayServer.Lightning.LND.1.2.4\lib\netstandard2.0\BTCPayServer.Lightning.LND.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.Charge">
-      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Charge.dll</HintPath>
+      <HintPath>..\..\packages\BTCPayServer.Lightning.Charge.1.2.3\lib\netstandard2.0\BTCPayServer.Lightning.Charge.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.CLightning">
-      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.CLightning.dll</HintPath>
+      <HintPath>..\..\packages\BTCPayServer.Lightning.CLightning.1.2.3\lib\netstandard2.0\BTCPayServer.Lightning.CLightning.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.Eclair">
-      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Eclair.dll</HintPath>
+      <HintPath>..\..\packages\BTCPayServer.Lightning.Eclair.1.2.2\lib\netstandard2.0\BTCPayServer.Lightning.Eclair.dll</HintPath>
     </Reference>
     <Reference Include="BTCPayServer.Lightning.Ptarmigan">
-      <HintPath>..\..\BTCPayServer.Lightning\BTCPayServer.Lightning.Ptarmigan.dll</HintPath>
+      <HintPath>..\..\packages\BTCPayServer.Lightning.Ptarmigan.1.2.2\lib\netstandard2.0\BTCPayServer.Lightning.Ptarmigan.dll</HintPath>
     </Reference>
     <Reference Include="DotNetLightning.Core">
       <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20201217-1735-git-5d96d8b\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
@@ -145,6 +145,21 @@
     </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
       <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.2\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO">
+      <HintPath>..\..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.WebSockets">
+      <HintPath>..\..\packages\System.Net.WebSockets.4.3.0\lib\net46\System.Net.WebSockets.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.WebSockets.Client">
+      <HintPath>..\..\packages\System.Net.WebSockets.Client.4.3.2\lib\net46\System.Net.WebSockets.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions">
+      <HintPath>..\..\packages\System.Threading.Tasks.Extensions.4.5.0\lib\netstandard2.0\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Channels">
+      <HintPath>..\..\packages\System.Threading.Channels.4.5.0\lib\netstandard2.0\System.Threading.Channels.dll</HintPath>
     </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
