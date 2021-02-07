@@ -503,18 +503,30 @@ module Account =
         if String.IsNullOrEmpty address then
             raise <| ArgumentNullException "address"
 
-        let BITCOIN_ADDRESS_BECH32_PREFIX = "bc1"
+        let BITCOIN_ADDRESS_BECH32_PREFIX_MAIN = "bc1"
+        let BITCOIN_ADDRESS_BECH32_PREFIX_REGTEST = "tb1"
 
         let utxoCoinValidAddressPrefixes =
             match currency with
             | BTC ->
-                let BITCOIN_ADDRESS_PUBKEYHASH_PREFIX = "1"
-                let BITCOIN_ADDRESS_SCRIPTHASH_PREFIX = "3"
-                [
-                    BITCOIN_ADDRESS_PUBKEYHASH_PREFIX
-                    BITCOIN_ADDRESS_SCRIPTHASH_PREFIX
-                    BITCOIN_ADDRESS_BECH32_PREFIX
-                ]
+                if Config.BitcoinNet() = NBitcoin.Network.Main then
+                    let BITCOIN_ADDRESS_PUBKEYHASH_PREFIX = "1"
+                    let BITCOIN_ADDRESS_SCRIPTHASH_PREFIX = "3"
+                    [
+                        BITCOIN_ADDRESS_PUBKEYHASH_PREFIX
+                        BITCOIN_ADDRESS_SCRIPTHASH_PREFIX
+                        BITCOIN_ADDRESS_BECH32_PREFIX_MAIN
+                    ]
+                else
+                    let BITCOIN_ADDRESS_PUBKEYHASH_PREFIX_0 = "n"
+                    let BITCOIN_ADDRESS_PUBKEYHASH_PREFIX_1 = "m"
+                    let BITCOIN_ADDRESS_SCRIPTHASH_PREFIX = "2"
+                    [
+                        BITCOIN_ADDRESS_PUBKEYHASH_PREFIX_0
+                        BITCOIN_ADDRESS_PUBKEYHASH_PREFIX_1
+                        BITCOIN_ADDRESS_SCRIPTHASH_PREFIX
+                        BITCOIN_ADDRESS_BECH32_PREFIX_REGTEST
+                    ]
             | LTC ->
                 let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
                 let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
@@ -525,12 +537,15 @@ module Account =
             raise (AddressMissingProperPrefix(utxoCoinValidAddressPrefixes))
 
         let minLength,lenghtInBetweenAllowed,maxLength =
-            if currency = Currency.BTC && (address.StartsWith BITCOIN_ADDRESS_BECH32_PREFIX) then
+            let isBech32 =
+                (address.StartsWith BITCOIN_ADDRESS_BECH32_PREFIX_MAIN)
+                || (address.StartsWith BITCOIN_ADDRESS_BECH32_PREFIX_REGTEST)
+            if currency = Currency.BTC && isBech32 then
                 // taken from https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
                 // (FIXME: this is only valid for the first version of segwit, fix it!)
                 42,false,62
             else
-                27,true,34
+                27,true,35
         let limits = [ minLength; maxLength ]
         if address.Length > maxLength then
             raise <| AddressWithInvalidLength limits
