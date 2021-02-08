@@ -328,7 +328,7 @@ let RunEndToEndTestProcess (testDirName: string) (testProcess: string) =
                     else
                         combinedErrors
                 fold ""
-            do! Async.AwaitTask (File.AppendAllTextAsync(testDirName + "/FAILURE", error))
+            File.AppendAllText(testDirName + "/FAILURE", error)
             failwith error
     }
 
