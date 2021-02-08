@@ -512,7 +512,7 @@ let PairToWatchWallet() =
         Console.WriteLine ""
         Console.WriteLine "Copy/paste this JSON fragment in your watching wallet:"
         Console.WriteLine ""
-        let json = Marshalling.Serialize walletInfo
+        let json = Marshalling.SerializeOneLine walletInfo
         Console.WriteLine json
         Console.WriteLine ""
 

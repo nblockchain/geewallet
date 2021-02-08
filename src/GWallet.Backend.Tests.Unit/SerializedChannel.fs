@@ -509,10 +509,10 @@ type SerializedChannelTest() =
                 SerializedChannel.LightningSerializerSettings Currency.BTC
             )
         let reserializedChannelJson =
-            Marshalling.SerializeCustom(
-                serializedChannel,
-                SerializedChannel.LightningSerializerSettings Currency.BTC
-            )
+            Marshalling.SerializeCustom
+                serializedChannel
+                (SerializedChannel.LightningSerializerSettings Currency.BTC)
+                Newtonsoft.Json.Formatting.Indented
         if serializedChannelJson.Trim() <> reserializedChannelJson then
             failwith ("deserializing and reserializing a channel changed the json:\n" + reserializedChannelJson)
 

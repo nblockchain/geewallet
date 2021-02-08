@@ -143,10 +143,10 @@ type ChannelStore(account: NormalUtxoAccount) =
     member internal self.SaveChannel (serializedChannel: SerializedChannel) =
         let fileName = self.ChannelFileName (ChannelSerialization.ChannelId serializedChannel)
         let json =
-            Marshalling.SerializeCustom(
-                serializedChannel,
-                SerializedChannel.LightningSerializerSettings self.Currency
-            )
+            Marshalling.SerializeCustom
+                serializedChannel
+                (SerializedChannel.LightningSerializerSettings self.Currency)
+                Marshalling.DefaultFormatting
         if not self.ChannelDir.Exists then
             self.ChannelDir.Create()
         File.WriteAllText(fileName, json)

@@ -69,7 +69,7 @@ type RequireAllPropertiesContractResolver() =
 
 module Marshalling =
 
-    let private DefaultFormatting =
+    let DefaultFormatting =
 #if DEBUG
         Formatting.Indented
 #else
@@ -124,18 +124,24 @@ module Marshalling =
     let Deserialize<'T>(json: string): 'T =
         DeserializeCustom(json, DefaultSettings ())
 
-    let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings): string =
+    let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings) (formatting: Formatting): string =
         JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
-                                    DefaultFormatting,
+                                    formatting,
                                     settings)
 
-    let SerializeCustom<'T>(value: 'T, settings: JsonSerializerSettings): string =
+    let SerializeCustom<'T>(value: 'T)
+                           (settings: JsonSerializerSettings)
+                           (formatting: Formatting)
+                               : string =
         try
-            SerializeInternal value settings
+            SerializeInternal value settings formatting
         with
         | exn ->
             raise (SerializationException(SPrintF2 "Could not serialize object of type '%s' and value '%A'"
                                                   (typeof<'T>.FullName) value, exn))
 
     let Serialize<'T>(value: 'T): string =
-        SerializeCustom(value, DefaultSettings ())
+        SerializeCustom value (DefaultSettings ()) DefaultFormatting
+
+    let SerializeOneLine<'T>(value: 'T): string =
+        SerializeCustom value (DefaultSettings ()) Formatting.None

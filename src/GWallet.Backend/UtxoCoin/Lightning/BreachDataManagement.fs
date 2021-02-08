@@ -107,10 +107,10 @@ type internal BreachDataStore(account: NormalUtxoAccount) =
     member internal self.SaveBreachData (serializedBreachData: ChannelBreachData) =
         let fileName = self.BreachDataFileName serializedBreachData.ChannelId
         let json =
-            Marshalling.SerializeCustom(
-                serializedBreachData,
+            Marshalling.SerializeCustom
+                serializedBreachData
                 ChannelBreachData.LightningSerializerSettings
-            )
+                Marshalling.DefaultFormatting
         if not self.ChannelDir.Exists then
             self.ChannelDir.Create()
         File.WriteAllText(fileName, json)
