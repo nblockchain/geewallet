@@ -42,8 +42,7 @@ let GetIdealNugetVersion (initialVersion: string) =
     finalVersion
 
 let FindOrGenerateNugetPackages (): seq<FileInfo> =
-    let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, // Tools/
-                                             "..",                 // fsx root
+    let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, // scripts/
                                              "..")                 // repo root
                                )
     let nuspecFiles = rootDir.EnumerateFiles "*.nuspec"
@@ -144,9 +143,21 @@ let IsMasterBranch(): bool =
         else
             Git.GetCurrentBranch() = "master"
 
-(* if not (IsMasterBranch()) then
+let IsLightningBranch(): bool = 
+    let githubRef = Environment.GetEnvironmentVariable "GITHUB_REF"
+    if null <> githubRef then
+        githubRef.Contains("lightning")
+    else
+        // https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
+        let gitlabRef = Environment.GetEnvironmentVariable "CI_COMMIT_REF_NAME"
+        if null <> gitlabRef then
+            githubRef.Contains("lightning")
+        else
+            Git.GetCurrentBranch().Contains("lightning")
+
+if not (IsMasterBranch()) && not (IsLightningBranch()) then
     Console.WriteLine "Branch different than master, skipping upload..."
-    Environment.Exit 0 *)
+    Environment.Exit 0 
 
 for nugetPkg in nugetPkgs do
     NugetUpload nugetPkg nugetApiKey
