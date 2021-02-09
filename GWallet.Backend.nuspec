@@ -2,7 +2,8 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>GWallet.Backend</id>
-    <version>0.3.211-internal5</version>
+    <!-- nugetPush will not use this version number -->
+    <version>0.0.0.0</version>
     <title>GWallet.Backend</title>
     <authors>NBlockchain</authors>
     <owners>NBlockchain</owners>

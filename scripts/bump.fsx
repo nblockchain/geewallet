@@ -46,12 +46,10 @@ let filesToBumpFullVersion: seq<string> =
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
         "snap/snapcraft.yaml"
         ".github/workflows/ubuntu.yml"
+        ".gitlab-ci.yml"
     ]
-let gitLabCiYml = ".gitlab-ci.yml"
 let filesToGitAdd: seq<string> =
-    Seq.append filesToBumpFullVersion [
-        gitLabCiYml
-    ]
+    filesToBumpFullVersion
 
 let Replace file fromStr toStr =
     let replaceScript = Path.Combine(rootDir.FullName, "scripts", "replace.fsx")

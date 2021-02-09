@@ -37,9 +37,24 @@ let GetIdealNugetVersion (initialVersion: string) =
     let gitHashDefaultShortLength = 7
     let gitShortHash = gitHash.Substring(0, gitHashDefaultShortLength)
     let gitSegment = sprintf "git-%s" gitShortHash
-    let finalVersion = sprintf "%s.0--%s.%s"
+    let finalVersion = sprintf "%s--%s.%s"
                                initialVersion dateSegment gitSegment
     finalVersion
+
+let DownloadNuget() =
+    let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, // scripts
+                                             "..")             // repo root
+                                )  
+    let nugetTargetDir = Path.Combine(rootDir.FullName, ".nuget") |> DirectoryInfo
+    if not nugetTargetDir.Exists then
+        nugetTargetDir.Create()
+    let prevCurrentDir = Directory.GetCurrentDirectory()
+    Directory.SetCurrentDirectory nugetTargetDir.FullName
+    let nugetDownloadUri = Uri "https://dist.nuget.org/win-x86-commandline/v4.5.1/nuget.exe"
+    Network.DownloadFile nugetDownloadUri |> ignore
+    let nugetExe = Path.Combine(nugetTargetDir.FullName, "nuget.exe") |> FileInfo
+    Directory.SetCurrentDirectory prevCurrentDir
+    nugetExe.FullName
 
 let FindOrGenerateNugetPackages (): seq<FileInfo> =
     let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, // scripts/
@@ -52,18 +67,6 @@ let FindOrGenerateNugetPackages (): seq<FileInfo> =
             Environment.Exit 1
         let baseVersion = args.First()
 
-        // we need to download nuget.exe because `dotnet pack` doesn't support using standalone (i.e.
-        // without a project association) .nuspec files, see https://github.com/NuGet/Home/issues/4254
-        let nugetTargetDir = Path.Combine(rootDir.FullName, ".nuget") |> DirectoryInfo
-        if not nugetTargetDir.Exists then
-            nugetTargetDir.Create()
-        let prevCurrentDir = Directory.GetCurrentDirectory()
-        Directory.SetCurrentDirectory nugetTargetDir.FullName
-        let nugetDownloadUri = Uri "https://dist.nuget.org/win-x86-commandline/v4.5.1/nuget.exe"
-        Network.DownloadFile nugetDownloadUri |> ignore
-        let nugetExe = Path.Combine(nugetTargetDir.FullName, "nuget.exe") |> FileInfo
-        Directory.SetCurrentDirectory prevCurrentDir
-
         seq {
             for nuspecFile in nuspecFiles do
                 let packageName = Path.GetFileNameWithoutExtension nuspecFile.FullName
@@ -71,13 +74,18 @@ let FindOrGenerateNugetPackages (): seq<FileInfo> =
                 let nugetVersion = GetIdealNugetVersion baseVersion
                 let nugetPackCmd =
                     {
-                        Command = nugetExe.FullName
+                        Command = DownloadNuget()
                         Arguments = sprintf "pack %s -Version %s"
                                             nuspecFile.FullName nugetVersion
                     }
 
                 Process.SafeExecute (nugetPackCmd, Echo.All) |> ignore
-                yield FileInfo (sprintf "%s.%s.nupkg" packageName nugetVersion)
+
+                let nugetPackageFileName =
+                    rootDir.Refresh()
+                    rootDir.EnumerateFiles("*.nupkg").FirstOrDefault()
+
+                yield nugetPackageFileName
         }
     else
         let FindNugetPackages() =
@@ -91,13 +99,13 @@ let FindOrGenerateNugetPackages (): seq<FileInfo> =
             let baseVersion = args.First()
             let nugetVersion = GetIdealNugetVersion baseVersion
 
-            let dotnetPackCmd =
+            let nugetPackCmd =
                 {
-                    Command = "dotnet"
+                    Command = DownloadNuget()
                     Arguments = sprintf "pack -c Release -p:Version=%s"
                                         nugetVersion
                 }
-            Process.SafeExecute (dotnetPackCmd, Echo.All) |> ignore
+            Process.SafeExecute (nugetPackCmd, Echo.All) |> ignore
 
         FindNugetPackages()
 
@@ -107,8 +115,8 @@ let NugetUpload (packageFile: FileInfo) (nugetApiKey: string) =
     let defaultNugetFeedUrl = "https://api.nuget.org/v3/index.json"
     let nugetPushCmd =
         {
-            Command = "dotnet"
-            Arguments = sprintf "nuget push %s -k %s -s %s"
+            Command = DownloadNuget()
+            Arguments = sprintf "push %s -ApiKey %s -Source %s"
                                 packageFile.FullName nugetApiKey defaultNugetFeedUrl
         }
     Process.SafeExecute (nugetPushCmd, Echo.All) |> ignore
@@ -116,11 +124,11 @@ let NugetUpload (packageFile: FileInfo) (nugetApiKey: string) =
 if args.Length > 0 && args.[0] = "--output-version" then
     if args.Length < 2 then
         Console.Error.WriteLine "When using --output-version, pass the base version as the second argument"
-        Environment.Exit 4
+        Environment.Exit 4  
     let baseVersion = args.[1]
     Console.WriteLine (GetIdealNugetVersion baseVersion)
     Environment.Exit 0
-
+    
 let nugetPkgs = FindOrGenerateNugetPackages () |> List.ofSeq
 if not (nugetPkgs.Any()) then
     Console.Error.WriteLine "No nuget packages found or generated"
@@ -151,7 +159,7 @@ let IsLightningBranch(): bool =
         // https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
         let gitlabRef = Environment.GetEnvironmentVariable "CI_COMMIT_REF_NAME"
         if null <> gitlabRef then
-            githubRef.Contains("lightning")
+            gitlabRef.Contains("lightning")
         else
             Git.GetCurrentBranch().Contains("lightning")
 
