@@ -593,7 +593,8 @@ module public Connection =
                      (password: string)
                      (bindAddress: IPEndPoint)
                          : Node =
-        let privateKey = Account.GetPrivateKey channelStore.Account password
+        //let privateKey = Account.GetPrivateKey channelStore.Account password
+        let privateKey: Key = failwith "oh no"
         let nodeMasterPrivKey: NodeMasterPrivKey = Node.AccountPrivateKeyToNodeMasterPrivKey privateKey
         let transportListener = TransportListener.Bind nodeMasterPrivKey bindAddress
         new Node (channelStore, transportListener)

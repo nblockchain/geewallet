@@ -24,7 +24,7 @@ module public ForceCloseTransaction =
                                     (commitments: Commitments)
                                     (localChannelPrivKeys: ChannelPrivKeys)
                                     (network: Network)
-                                    (account: NormalUtxoAccount)
+                                    (account: IUtxoAccount)
                                     (rewardAddressOpt: Option<string>)
                                         : Async<Transaction> =
         async {

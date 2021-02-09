@@ -165,7 +165,7 @@ type internal FundedChannel =
     }
 
     static member internal AcceptChannel (peerNode: PeerNode)
-                                         (account: NormalUtxoAccount)
+                                         (account: IUtxoAccount)
                                              : Async<Result<FundedChannel, AcceptChannelError>> = async {
         let nodeMasterPrivKey = peerNode.NodeMasterPrivKey()
         let channelIndex =

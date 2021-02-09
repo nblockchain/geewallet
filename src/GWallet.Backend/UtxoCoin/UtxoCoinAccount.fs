@@ -20,7 +20,7 @@ type internal TransactionOutpoint =
     member self.ToCoin (): Coin =
         Coin(self.Transaction, uint32 self.OutputIndex)
 
-type internal IUtxoAccount =
+type IUtxoAccount =
     inherit IAccount
 
     abstract member PublicKey: PubKey with get

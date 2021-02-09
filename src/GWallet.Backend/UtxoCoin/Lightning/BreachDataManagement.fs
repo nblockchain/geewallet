@@ -44,7 +44,7 @@ type ChannelBreachData =
                                         (commitments: Commitments)
                                         (localChannelPrivKeys: ChannelPrivKeys)
                                         (network: Network)
-                                        (account: NormalUtxoAccount) 
+                                        (account: IUtxoAccount) 
                                             : Async<ChannelBreachData> = async {
 
         let! punishmentTx = 
@@ -64,7 +64,7 @@ type ChannelBreachData =
         return { self with CommmitmentBreachData = self.CommmitmentBreachData @ [ breachData ] }
     }
 
-type internal BreachDataStore(account: NormalUtxoAccount) =
+type internal BreachDataStore(account: IUtxoAccount) =
     static member BreachDataFilePrefix = "breach-"
     static member BreachDataFileEnding = ".json"
 
@@ -75,7 +75,7 @@ type internal BreachDataStore(account: NormalUtxoAccount) =
         Config.GetConfigDir self.Currency AccountKind.Normal
 
     member self.ChannelDir: DirectoryInfo =
-        let subdirectory = SPrintF2 "%s-%s" (self.Account :> BaseAccount).AccountFile.Name Settings.ConfigDirName
+        let subdirectory = SPrintF2 "%s-%s" (self.Account :> IAccount).AccountFile.Name Settings.ConfigDirName
         Path.Combine (self.AccountDir.FullName, subdirectory) |> DirectoryInfo
 
     member self.BreachDataFileName (channelId: ChannelIdentifier): string =

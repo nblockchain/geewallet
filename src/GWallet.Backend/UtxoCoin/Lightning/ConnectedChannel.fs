@@ -58,7 +58,7 @@ type internal ConnectedChannel =
     {
         PeerNode: PeerNode
         Channel: MonoHopUnidirectionalChannel
-        Account: NormalUtxoAccount
+        Account: IUtxoAccount
         MinimumDepth: BlockHeightOffset32
         ChannelIndex: int
     }

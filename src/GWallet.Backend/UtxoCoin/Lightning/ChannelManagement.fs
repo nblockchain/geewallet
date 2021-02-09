@@ -90,7 +90,7 @@ type ChannelInfo =
             | _ -> ChannelStatus.Broken
     }
 
-type ChannelStore(account: NormalUtxoAccount) =
+type ChannelStore(account: IUtxoAccount) =
     static member ChannelFilePrefix = "chan-"
     static member ChannelFileEnding = ".json"
 
@@ -101,7 +101,7 @@ type ChannelStore(account: NormalUtxoAccount) =
         Config.GetConfigDir self.Currency AccountKind.Normal
 
     member self.ChannelDir: DirectoryInfo =
-        let subdirectory = SPrintF2 "%s-%s" (self.Account :> BaseAccount).AccountFile.Name Settings.ConfigDirName
+        let subdirectory = SPrintF2 "%s-%s" (self.Account :> IAccount).AccountFile.Name Settings.ConfigDirName
         Path.Combine (self.AccountDir.FullName, subdirectory) |> DirectoryInfo
 
     member self.ListChannelIds(): seq<ChannelIdentifier> =
@@ -220,7 +220,7 @@ type ChannelStore(account: NormalUtxoAccount) =
 
 module ChannelManager =
     // difference from fee estimation in UtxoCoinAccount.fs: this is for P2WSH
-    let EstimateChannelOpeningFee (account: UtxoCoin.NormalUtxoAccount) (amount: TransferAmount) =
+    let EstimateChannelOpeningFee (account: IUtxoAccount) (amount: TransferAmount) =
         let witScriptIdLength = 32
         // this dummy address is only used for fee estimation
         let nullScriptId = NBitcoin.WitScriptId (Array.zeroCreate witScriptIdLength)
