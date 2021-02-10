@@ -53,4 +53,8 @@
       <dependency id="Xamarin.Essentials" version="1.0.0" />
     </dependencies>
   </metadata>
+  <files>
+    <file src="src\GWallet.Backend\bin\Release\GWallet.Backend.dll" target="lib\net472" />
+    <file src="src\GWallet.Backend\bin\Release\GWallet.Backend.XML" target="lib\net472" />
+  </files>
 </package>
