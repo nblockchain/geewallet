@@ -40,7 +40,7 @@ let isReleaseManual = false
 let filesToBumpMiniVersion: seq<string> =
     [
     ] :> seq<string>
-
+let gitLabCiYml = ".gitlab-ci.yml"
 let filesToBumpFullVersion: seq<string> =
     Seq.append filesToBumpMiniVersion [
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
