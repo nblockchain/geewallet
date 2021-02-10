@@ -658,13 +658,10 @@ type LN() =
                 walletInstance.Node
                 FundeeNodeEndpoint
                 transferAmount
-                metadata
-                walletInstance.Password
         let pendingChannel = UnwrapResult pendingChannelRes "OpenChannel failed"
         let minimumDepth = (pendingChannel :> IChannelToBeOpened).ConfirmationsRequired
-        let channelId = (pendingChannel :> IChannelToBeOpened).ChannelId
-        let! fundingTxIdRes = pendingChannel.Accept()
-        let _fundingTxId = UnwrapResult fundingTxIdRes "pendingChannel.Accept failed"
+        let! acceptRes = pendingChannel.Accept metadata walletInstance.Password
+        let (channelId, _fundingTxId) = UnwrapResult acceptRes "pendingChannel.Accept failed"
         bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) walletInstance.Address
 
         do!
@@ -903,13 +900,10 @@ type LN() =
                 walletInstance.Node
                 lndEndPoint
                 transferAmount
-                metadata
-                walletInstance.Password
         let pendingChannel = UnwrapResult pendingChannelRes "OpenChannel failed"
         let minimumDepth = (pendingChannel :> IChannelToBeOpened).ConfirmationsRequired
-        let channelId = (pendingChannel :> IChannelToBeOpened).ChannelId
-        let! fundingTxIdRes = pendingChannel.Accept()
-        let _fundingTxId = UnwrapResult fundingTxIdRes "pendingChannel.Accept failed"
+        let! acceptRes = pendingChannel.Accept metadata walletInstance.Password
+        let (channelId, _fundingTxId) = UnwrapResult acceptRes "pendingChannel.Accept failed"
         bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) walletInstance.Address
 
         do! walletInstance.WaitForFundingConfirmed channelId
@@ -1131,13 +1125,10 @@ type LN() =
                 walletInstance.Node
                 FundeeNodeEndpoint
                 transferAmount
-                metadata
-                walletInstance.Password
         let pendingChannel = UnwrapResult pendingChannelRes "OpenChannel failed"
         let minimumDepth = (pendingChannel :> IChannelToBeOpened).ConfirmationsRequired
-        let channelId = (pendingChannel :> IChannelToBeOpened).ChannelId
-        let! fundingTxIdRes = pendingChannel.Accept()
-        let _fundingTxId = UnwrapResult fundingTxIdRes "pendingChannel.Accept failed"
+        let! acceptRes = pendingChannel.Accept metadata walletInstance.Password
+        let (channelId, _fundingTxId) = UnwrapResult acceptRes "pendingChannel.Accept failed"
         bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) lndAddress
 
         do!

@@ -65,7 +65,6 @@ type MonoHopUnidirectionalChannel =
                                   (account: UtxoCoin.NormalUtxoAccount)
                                   (nodeMasterPrivKey: NodeMasterPrivKey)
                                   (channelIndex: int)
-                                  (fundingTxProvider: ProvideFundingTx)
                                   (initialState: ChannelState)
                                       : Async<MonoHopUnidirectionalChannel> = async {
         let shutdownScriptPubKey = ScriptManager.CreatePayoutScript account
@@ -94,7 +93,6 @@ type MonoHopUnidirectionalChannel =
                 nodeMasterPrivKey,
                 channelIndex,
                 feeEstimator,
-                fundingTxProvider,
                 network,
                 nodeId
             )
