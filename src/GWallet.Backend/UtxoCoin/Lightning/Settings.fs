@@ -14,7 +14,7 @@ open GWallet.Backend
 module Settings =
 
     // FIXME: this should return seq<> so that we can run Lightning on Litecoin too
-    let internal Currency = Currency.BTC
+    let Currencies = [| Currency.BTC; Currency.LTC |] :> seq<Currency>
 
     let internal ConfigDirName = "lightning"
 

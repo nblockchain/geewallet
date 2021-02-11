@@ -27,7 +27,7 @@ module public Network =
     let public AcceptCloseChannel (lightningNode: Node) = lightningNode.AcceptCloseChannel
     let public CheckClosingFinished (channel: ChannelInfo): Async<bool> =
         async {
-            let! resCheck = ClosedChannel.CheckClosingFinished channel.FundingTxId.DnlTxId
+            let! resCheck = ClosedChannel.CheckClosingFinished channel.Currency channel.FundingTxId.DnlTxId
             match resCheck with
             | Ok res ->
                 return res

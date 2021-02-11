@@ -287,8 +287,9 @@ type ClosedChannel()=
 
                                     let! _txid =
                                         let signedTx: string = finalizedTx.Value.ToHex()
+                                        let currency = (connectedChannel.Account :> IAccount).Currency
                                         Infrastructure.LogDebug(SPrintF1 "Broadcasting tx: %A" signedTx)
-                                        Account.BroadcastRawTransaction Currency.BTC signedTx
+                                        Account.BroadcastRawTransaction currency signedTx
 
                                     Infrastructure.LogDebug(SPrintF1 "Got tx: %A" _txid)
 
@@ -312,10 +313,9 @@ type ClosedChannel()=
             return result
         }
 
-    // FIXME: remove BTC hardcoding, ANE catch, array hardcoding
-    static member internal CheckClosingFinished(fundingTxId: TxId): Async<Result<bool, CloseChannelError>> =
+    // FIXME: ANE catch, array hardcoding
+    static member internal CheckClosingFinished (currency: Currency) (fundingTxId: TxId): Async<Result<bool, CloseChannelError>> =
         async {
-            let currency = Currency.BTC
             let fundingTxIdHash = fundingTxId.Value.ToString()
 
             let! fundingVerboseTransaction =
