@@ -76,11 +76,11 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.5.0.60\lib\net461\NBitcoin.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.5.0.65\lib\net461\NBitcoin.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers">
-      <HintPath>..\..\packages\System.Buffers.4.5.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
+      <HintPath>..\..\packages\System.Buffers.4.5.1\lib\netstandard2.0\System.Buffers.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
@@ -107,7 +107,7 @@
     </Reference>
 
     <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.5.2\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.6.7\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
     <Reference Include="System.Reflection">
       <Private>True</Private>
