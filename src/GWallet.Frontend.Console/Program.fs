@@ -62,8 +62,15 @@ let OpenChannel(): Async<unit> = async {
                                 (minimumDepth * 10u)
                         )
                         let acceptMinimumDepth = UserInteraction.AskYesNo "Do you accept?"
+                        let transactionHex =
+                            UtxoCoin.Account.SignTransactionForDestination
+                                account
+                                metadata
+                                pendingChannel.FundingDestination
+                                pendingChannel.TransferAmount
+                                password
                         if acceptMinimumDepth then
-                            let! acceptRes = pendingChannel.Accept metadata password
+                            let! acceptRes = pendingChannel.Accept transactionHex
                             match acceptRes with
                             | Error fundChannelError ->
                                 Console.WriteLine(sprintf "Error funding channel: %s" fundChannelError.Message)
@@ -677,7 +684,7 @@ let rec ProgramMainLoop() =
     let accounts = Account.GetAllActiveAccounts()
     let channelStatusJobs: seq<Async<Async<seq<string>>>> = GetChannelStatuses accounts
     let revokedTxCheckJobs: seq<Async<Option<string>>> =
-        ChainWatcher.CheckForChannelFraudsAndSendRevocationTx <| accounts.OfType<UtxoCoin.NormalUtxoAccount>()
+        ChainWatcher.CheckForChannelFraudsAndSendRevocationTx <| accounts.OfType<UtxoCoin.IUtxoAccount>()
     let revokedTxCheckJob: Async<array<Option<string>>> = Async.Parallel revokedTxCheckJobs
     let channelInfoInteractionsJob: Async<array<Async<seq<string>>>> = Async.Parallel channelStatusJobs
     let displayAccountStatusesJob =

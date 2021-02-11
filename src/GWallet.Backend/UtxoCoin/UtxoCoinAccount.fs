@@ -382,11 +382,11 @@ module Account =
         | :? SecurityException ->
             raise (InvalidPassword)
 
-    let internal SignTransactionForDestination (account: NormalUtxoAccount)
-                                               (txMetadata: TransactionMetadata)
-                                               (destination: IDestination)
-                                               (amount: TransferAmount)
-                                               (password: string) =
+    let SignTransactionForDestination (account: NormalUtxoAccount)
+                                      (txMetadata: TransactionMetadata)
+                                      (destination: IDestination)
+                                      (amount: TransferAmount)
+                                      (password: string) =
 
         let privateKey = GetPrivateKey account password
 

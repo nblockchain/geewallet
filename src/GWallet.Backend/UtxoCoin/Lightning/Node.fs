@@ -115,12 +115,20 @@ type IncomingChannelEvent =
 
 type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) =
     member internal self.OutgoingUnfundedChannel = outgoingUnfundedChannel
+    member self.FundingDestination: IDestination = outgoingUnfundedChannel.FundingDestination
+    member self.TransferAmount: TransferAmount = outgoingUnfundedChannel.TransferAmount
 
-    member public self.Accept (metadata: TransactionMetadata)
-                              (password: string)
+    member public self.Accept (fundingTransactionHex: string)
                                   : Async<Result<ChannelIdentifier * TransactionIdentifier, IErrorMsg>> = async {
         let! fundedChannelRes =
-            FundedChannel.FundChannel self.OutgoingUnfundedChannel metadata password
+            let connectedChannel = self.OutgoingUnfundedChannel.ConnectedChannel
+            let account = connectedChannel.Account
+            let network = Account.GetNetwork (account :> IAccount).Currency
+            let hex = DataEncoders.HexEncoder()
+            let fundingTransaction =
+                Transaction.Load (hex.DecodeData fundingTransactionHex, network)
+            //FundedChannel.FundChannel self.OutgoingUnfundedChannel metadata password
+            FundedChannel.FundChannel self.OutgoingUnfundedChannel fundingTransaction
         match fundedChannelRes with
         | Error fundChannelError ->
             if fundChannelError.PossibleBug then
@@ -590,7 +598,7 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
 
 module public Connection =
     let public Start (channelStore: ChannelStore)
-                     (password: string)
+                     (_password: string)
                      (bindAddress: IPEndPoint)
                          : Node =
         //let privateKey = Account.GetPrivateKey channelStore.Account password

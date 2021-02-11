@@ -86,18 +86,18 @@ type internal FundedChannel =
             (self.ConnectedChannel :> IDisposable).Dispose()
 
     static member FundChannel (outgoingUnfundedChannel: OutgoingUnfundedChannel)
-                              (metadata: TransactionMetadata)
-                              (password: string)
+                              (fundingTransaction: Transaction)
                                   : Async<Result<FundedChannel, FundChannelError>> = async {
 
         let connectedChannel = outgoingUnfundedChannel.ConnectedChannel
         let currency = (connectedChannel.Account :> IAccount).Currency
         let peerNode = connectedChannel.PeerNode
         let channel = connectedChannel.Channel
-        let account = connectedChannel.Account
-        let network = Account.GetNetwork (account :> IAccount).Currency
+        //let account = connectedChannel.Account
+        //let network = Account.GetNetwork (account :> IAccount).Currency
 
         let fundingCreatedMsgRes, channelAfterFundingCreated =
+            (*
             let hex = DataEncoders.HexEncoder()
             let transactionHex =
                 UtxoCoin.Account.SignTransactionForDestination
@@ -107,6 +107,7 @@ type internal FundedChannel =
                     outgoingUnfundedChannel.TransferAmount
                     password
             let fundingTransaction = Transaction.Load (hex.DecodeData transactionHex, network)
+            *)
             let fundingOutputIndex =
                 let indexedOutputs = fundingTransaction.Outputs.AsIndexedOutputs()
                 let hasRightDestination (indexedOutput: IndexedTxOut): bool =
