@@ -13,6 +13,7 @@ module Main =
     [<STAThread>]
     let main argv =
         Gtk.Application.Init()
+        Forms.SetFlags("Shapes_Experimental");
         Forms.Init()
 
         // TODO: detect Windows/UWP too

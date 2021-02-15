@@ -62,13 +62,11 @@
             </Frame>
 
             <controls:CircleChartView x:Name="normalChartView"
-                                     Aspect="AspectFit"
                                      HorizontalOptions="FillAndExpand"
                                      VerticalOptions="FillAndExpand"/>
             
             <controls:CircleChartView x:Name="readonlyChartView"
                                      IsVisible="False"
-                                     Aspect="AspectFit"
                                      HorizontalOptions="FillAndExpand"
                                      VerticalOptions="FillAndExpand"/>
 

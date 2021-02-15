@@ -10,6 +10,8 @@ open SkiaSharp
 
 open GWallet.Frontend.XF
 open GWallet.Backend.FSharpUtil.UwpHacks
+open Xamarin.Forms.Shapes
+open System.Globalization
 
 type SegmentInfo = 
     {
@@ -18,7 +20,7 @@ type SegmentInfo =
     }
 
 type CircleChartView () =
-    inherit Image () 
+    inherit ContentView () 
 
     let svgMainImagePattern = @"<?xml version=""1.0"" encoding=""utf-8""?>
     <svg version=""1.1"" id=""Layer_1"" xmlns=""http://www.w3.org/2000/svg"" xmlns:xlink=""http://www.w3.org/1999/xlink"" x=""0px"" y=""0px""
@@ -31,6 +33,9 @@ type CircleChartView () =
     let degree360 = 360.
     let degree180 = 180.
     let degree90 = 90.
+    let smallArc = "0 0"
+    let largeArc = "0 1"
+    let shapesPath = @"M{0},{1}  L{3},{4}  A{2},{2} {7},1 {5},{6} z"
 
     let mutable firstWidth = None
     let mutable firstHeight = None
@@ -263,7 +268,8 @@ type CircleChartView () =
 
             use image = surface.Snapshot()
             let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
-            self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
+            let image = new Image(Source = ImageSource.FromStream(fun _ -> data.AsStream()), HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand, Aspect = Aspect.AspectFit)
+            self.Content <- image
 
     member self.DrawSvgBasedPie (width: float) (height: float) (items: seq<SegmentInfo>) =
         if not (items.Any()) then
@@ -357,7 +363,54 @@ type CircleChartView () =
         canvas.Save() |> ignore
         use image = SKImage.FromBitmap bitmap
         let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
-        self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
+        let image = new Image(Source = ImageSource.FromStream(fun _ -> data.AsStream()), HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand, Aspect = Aspect.AspectFit)
+        self.Content <- image
+
+    member self.DrawShapesBasedPie (width: float) (height: float) (items: seq<SegmentInfo>) =
+       if not (items.Any()) then
+           failwith "chart data should not be empty to draw the Shapes-based chart"
+
+       let halfWidth = float32 width / 2.f
+       let halfHeight = float32 height / 2.f
+       let radius = Math.Min(halfWidth, halfHeight) |> float
+
+       let total = items.Sum(fun i -> i.Percentage) |> float
+
+       let mutable startAngle = 0.
+       let mutable endAngle = 0.
+       let x = halfWidth |> float
+       let y = halfHeight |> float
+
+       let converter = new PathGeometryConverter()
+       let nfi = new NumberFormatInfo( NumberDecimalSeparator = ".");
+       let gridLayout = new Grid()
+
+       for item in items do
+           let sliceAngle = Math.Ceiling(degree360 * item.Percentage / total)
+
+           startAngle <- endAngle 
+           endAngle <- startAngle + sliceAngle
+
+           let x1 = x + (radius * Math.Cos(Math.PI * startAngle / degree180))
+           let y1 = y + (radius * Math.Sin(Math.PI * startAngle / degree180))          
+           let x2 = x + (radius * Math.Cos(Math.PI * endAngle / degree180))
+           let y2 = y + (radius * Math.Sin(Math.PI * endAngle / degree180))
+
+           let mutable arc = smallArc
+
+           if sliceAngle > 180.0 
+           then arc <- largeArc
+
+           let path = String.Format(shapesPath, x.ToString(nfi), y.ToString(nfi), radius.ToString(nfi), x1.ToString(nfi), y1.ToString(nfi), x2.ToString(nfi), y2.ToString(nfi), arc)
+       
+           let helperView = new Path()
+           helperView.Data <- converter.ConvertFromInvariantString(path) :?> Geometry
+           helperView.Fill <- new SolidColorBrush(item.Color)
+           gridLayout.Children.Add helperView    
+           |> ignore
+
+       self.Content <- gridLayout :> View
+       ()
 
     member self.Draw () =
         let width = 
@@ -387,13 +440,10 @@ type CircleChartView () =
             | Some items when items.Any() ->
                 // let's be careful about enabling the Pie for all platforms in the future (instead of Android
                 // exclusively) because there are bugs in macOS & GTK...
-                if Device.RuntimePlatform = Device.Android then
-                    self.DrawSkiaPieFallback width height items
-                else
-                    self.DrawSvgBasedPie width height items
+                self.DrawShapesBasedPie width height items
             | Some _ ->
-                self.Source <- self.DefaultImageSource
-
+                let defaultImage = new Image(Source = self.DefaultImageSource, HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand, Aspect = Aspect.AspectFit)
+                self.Content <- defaultImage
 
     override self.OnPropertyChanged(propertyName: string) =
         base.OnPropertyChanged(propertyName)
