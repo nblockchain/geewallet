@@ -38,46 +38,51 @@ module public ChainWatcher =
                          (ElectrumClient.GetBlockchainScriptHashHistory scriptHash)
                          None
 
-        match Seq.tryItem 1 historyList with
-        | None -> return None
-        | Some spendingTxInfo ->
-            let spendingTxId = spendingTxInfo.TxHash
-            let! spendingTxString =
-                Server.Query
-                    currency
-                    (QuerySettings.Default ServerSelectionMode.Fast)
-                    (ElectrumClient.GetBlockchainTransaction spendingTxId)
-                    None
-            let spendingTx = Transaction.Parse(spendingTxString, network)
-            
-            let obscuredCommitmentNumber =
-                let obscuredCommitmentNumberOpt =  
-                    RemoteForceClose.tryGetObscuredCommitmentNumber
-                        commitments.FundingScriptCoin.Outpoint
-                        spendingTx
-                UnwrapOption obscuredCommitmentNumberOpt "Tx isn't a commitmentTx"
-
-            let localChannelPubKeys = commitments.LocalParams.ChannelPubKeys
-            let remoteChannelPubKeys = commitments.RemoteParams.ChannelPubKeys
-
-            let commitmentNumber =
-                obscuredCommitmentNumber.Unobscure
-                    commitments.LocalParams.IsFunder
-                    localChannelPubKeys.PaymentBasepoint
-                    remoteChannelPubKeys.PaymentBasepoint
-
-            //TODO: or we could just search based on CommitmentTxHash
-            let breachDataOpt = (BreachDataStore channelStore.Account)
-                                   .LoadBreachData(channelId)
-                                   .GetBreachData(commitmentNumber)
-
-            match breachDataOpt with
-            | None -> return None
-            | Some breachData ->
-                let! txId = 
-                    UtxoCoin.Account.BroadcastRawTransaction currency breachData.PenaltyTx
-                return Some <| txId
-                
+        let checkIfRevokedCommitment (spendingTxInfo: BlockchainScriptHashHistoryInnerResult) : Async<Option<string>> =
+            async {
+                let spendingTxId = spendingTxInfo.TxHash
+        
+                let! spendingTxString =
+                    Server.Query
+                        currency
+                        (QuerySettings.Default ServerSelectionMode.Fast)
+                        (ElectrumClient.GetBlockchainTransaction spendingTxId)
+                        None
+        
+                let spendingTx =
+                    Transaction.Parse(spendingTxString, network)
+        
+        
+                let obscuredCommitmentNumberOpt =
+                    RemoteForceClose.tryGetObscuredCommitmentNumber commitments.FundingScriptCoin.Outpoint spendingTx
+        
+                match obscuredCommitmentNumberOpt with
+                | Some obscuredCommitmentNumber ->
+                    let localChannelPubKeys = commitments.LocalParams.ChannelPubKeys
+                    let remoteChannelPubKeys = commitments.RemoteParams.ChannelPubKeys
+        
+                    let commitmentNumber =
+                        obscuredCommitmentNumber.Unobscure
+                            commitments.LocalParams.IsFunder
+                            localChannelPubKeys.PaymentBasepoint
+                            remoteChannelPubKeys.PaymentBasepoint
+        
+                    //TODO: or we could just search based on CommitmentTxHash
+                    let breachDataOpt =
+                        (BreachDataStore channelStore.Account)
+                            .LoadBreachData(channelId)
+                            .GetBreachData(commitmentNumber)
+        
+                    match breachDataOpt with
+                    | None -> return None
+                    | Some breachData ->
+                        let! txId = UtxoCoin.Account.BroadcastRawTransaction currency breachData.PenaltyTx
+                        return Some <| txId
+                | None -> return None
+            }
+        
+        
+        return! ListAsyncTryPick historyList checkIfRevokedCommitment
     }
 
     let CheckForChannelFraudsAndSendRevocationTx (accounts: seq<UtxoCoin.NormalUtxoAccount>)

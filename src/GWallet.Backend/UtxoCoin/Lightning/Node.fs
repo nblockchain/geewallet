@@ -450,58 +450,68 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 fundingAddressString
         let! historyList =
             Server.Query currency
-                         (QuerySettings.Default ServerSelectionMode.Fast)
-                         (ElectrumClient.GetBlockchainScriptHashHistory scriptHash)
-                         None
-        match Seq.tryItem 1 historyList with
-        | None -> return None
-        | Some spendingTxInfo ->
-            let spendingTxId = spendingTxInfo.TxHash
-            let! spendingTxString =
-                Server.Query
-                    currency
-                    (QuerySettings.Default ServerSelectionMode.Fast)
-                    (ElectrumClient.GetBlockchainTransaction spendingTxId)
-                    None
-            let spendingTx = Transaction.Parse(spendingTxString, network)
-            let transactionBuilderOpt =
-                let channelPrivKeys =
-                    let channelIndex = serializedChannel.ChannelIndex
-                    let nodeMasterPrivKey = self.TransportListener.NodeMasterPrivKey
-                    nodeMasterPrivKey.ChannelPrivKeys channelIndex
-                RemoteForceClose.getFundsFromForceClosingTransaction
-                    commitments
-                    channelPrivKeys
-                    network
-                    spendingTx
-            let transactionBuilder =
-                UnwrapOption
-                    transactionBuilderOpt
-                    "Failed to interpret tx which spends the channel funds. Channel funds have been lost!"
+                            (QuerySettings.Default ServerSelectionMode.Fast)
+                            (ElectrumClient.GetBlockchainScriptHashHistory scriptHash)
+                            None
 
-            let targetAddress =
-                let originAddress = (self.Account :> IAccount).PublicAddress
-                BitcoinAddress.Create(originAddress, Account.GetNetwork currency)
-            transactionBuilder.SendAll targetAddress |> ignore
-
-            let! btcPerKiloByteForFastTrans =
-                let averageFee (feesFromDifferentServers: List<decimal>): decimal =
-                    feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
-                let estimateFeeJob = ElectrumClient.EstimateFee Account.CONFIRMATION_BLOCK_TARGET
-                Server.Query
-                    currency
-                    (QuerySettings.FeeEstimation averageFee)
-                    estimateFeeJob
-                    None
-            let fee =
-                let feeRate = Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC) |> FeeRate
-                transactionBuilder.EstimateFees feeRate
-            transactionBuilder.SendFees fee |> ignore
-
-            let transaction = transactionBuilder.BuildTransaction true
-            let transactionString = transaction.ToHex()
-            
-            return Some transactionString
+        let checkForClosingTx (spendingTxInfo: BlockchainScriptHashHistoryInnerResult) : Async<Option<string>> =
+            async {
+                let spendingTxId = spendingTxInfo.TxHash
+        
+                let! spendingTxString =
+                    Server.Query
+                        currency
+                        (QuerySettings.Default ServerSelectionMode.Fast)
+                        (ElectrumClient.GetBlockchainTransaction spendingTxId)
+                        None
+        
+                let spendingTx =
+                    Transaction.Parse(spendingTxString, network)
+        
+                let transactionBuilderOpt =
+                    let channelPrivKeys =
+                        let channelIndex = serializedChannel.ChannelIndex
+                        let nodeMasterPrivKey = self.TransportListener.NodeMasterPrivKey
+                        nodeMasterPrivKey.ChannelPrivKeys channelIndex
+        
+                    RemoteForceClose.getFundsFromForceClosingTransaction commitments channelPrivKeys network spendingTx
+        
+                match transactionBuilderOpt with
+                | Some transactionBuilder ->
+                    let targetAddress =
+                        let originAddress = (self.Account :> IAccount).PublicAddress
+                        BitcoinAddress.Create(originAddress, Account.GetNetwork currency)
+        
+                    transactionBuilder.SendAll targetAddress |> ignore
+        
+                    let! btcPerKiloByteForFastTrans =
+                        let averageFee (feesFromDifferentServers: List<decimal>) : decimal =
+                            feesFromDifferentServers.Sum()
+                            / decimal feesFromDifferentServers.Length
+        
+                        let estimateFeeJob =
+                            ElectrumClient.EstimateFee Account.CONFIRMATION_BLOCK_TARGET
+        
+                        Server.Query currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob None
+        
+                    let fee =
+                        let feeRate =
+                            Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC)
+                            |> FeeRate
+        
+                        transactionBuilder.EstimateFees feeRate
+        
+                    transactionBuilder.SendFees fee |> ignore
+        
+                    let transaction = transactionBuilder.BuildTransaction true
+                    let transactionString = transaction.ToHex()
+        
+                    return Some transactionString
+                | None -> return None
+            }
+        
+        return! ListAsyncTryPick historyList checkForClosingTx
+        
     }
 
     member internal self.CheckForChannelFraudAndSendRevocationTx (channelId: ChannelIdentifier)
