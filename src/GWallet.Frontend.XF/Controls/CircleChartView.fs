@@ -3,9 +3,11 @@
 open System
 open System.Text
 open System.Linq
+open System.Globalization
 open System.IO
 
 open Xamarin.Forms
+open Xamarin.Forms.Shapes
 open SkiaSharp
 
 open GWallet.Frontend.XF
@@ -18,7 +20,7 @@ type SegmentInfo =
     }
 
 type CircleChartView () =
-    inherit Image () 
+    inherit ContentView () 
 
     let svgMainImagePattern = @"<?xml version=""1.0"" encoding=""utf-8""?>
     <svg version=""1.1"" id=""Layer_1"" xmlns=""http://www.w3.org/2000/svg"" xmlns:xlink=""http://www.w3.org/1999/xlink"" x=""0px"" y=""0px""
@@ -31,6 +33,7 @@ type CircleChartView () =
     let degree360 = 360.
     let degree180 = 180.
     let degree90 = 90.
+    let shapesPath = @"M{0},{1} A{2},{2} 0 {3} 1 {4} {5} L {6} {7}"
 
     let mutable firstWidth = None
     let mutable firstHeight = None
@@ -263,7 +266,8 @@ type CircleChartView () =
 
             use image = surface.Snapshot()
             let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
-            self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
+            let source = ImageSource.FromStream(fun _ -> data.AsStream())
+            self.CreateAndSetImageSource source
 
     member self.DrawSvgBasedPie (width: float) (height: float) (items: seq<SegmentInfo>) =
         if not (items.Any()) then
@@ -357,7 +361,93 @@ type CircleChartView () =
         canvas.Save() |> ignore
         use image = SKImage.FromBitmap bitmap
         let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
-        self.Source <- ImageSource.FromStream(fun _ -> data.AsStream())
+        let source = ImageSource.FromStream(fun _ -> data.AsStream())
+        self.CreateAndSetImageSource source
+
+    member self.DrawShapesBasedPie (width: float) (height: float) (items: seq<SegmentInfo>) =
+       if not (items.Any()) then
+           failwith "chart data should not be empty to draw the Shapes-based chart"
+
+       let halfWidth = float32 width / 2.f
+       let halfHeight = float32 height / 2.f
+       let radius = Math.Min(halfWidth, halfHeight) |> float
+       let total = items.Sum(fun i -> i.Percentage) |> float
+
+       let x = float halfWidth
+       let y = float halfHeight
+
+       let converter = PathGeometryConverter ()
+       let nfi = NumberFormatInfo (NumberDecimalSeparator = ".")
+       let gridLayout = Grid ()
+
+       if items.Count() = 1 then
+            // this is a workaround (to create a circle instead) to a Xamarin.Forms' Shapes bug:
+            // https://github.com/xamarin/Xamarin.Forms/issues/13893
+            let size =  radius * 2.
+            let color = (items.ElementAt 0).Color
+            let pieCircle =
+                Ellipse (
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    HeightRequest = size,
+                    WidthRequest = size,
+                    Fill = SolidColorBrush color
+                )
+            gridLayout.Children.Add pieCircle
+       else
+            let rec addSliceToView items cumulativePercent =
+                match items with
+                | [] ->
+                    ()
+                | item::tail ->
+                    let startCoordinatesX = x + (radius * Math.Cos(2.0 * Math.PI * cumulativePercent))
+                    let startCoordinatesY = y + (radius * Math.Sin(2.0 * Math.PI * cumulativePercent))
+
+                    let endPercentage = item.Percentage + cumulativePercent
+
+                    let endCoordinatesX = x + (radius * Math.Cos(2.0 * Math.PI * endPercentage))
+                    let endCoordinatesY = y + (radius * Math.Sin(2.0 * Math.PI * endPercentage))
+                    
+                    let arc =
+                        if item.Percentage > 0.5 then
+                            "1"
+                        else
+                            "0"
+                    
+                    let path =
+                        String.Format (
+                            shapesPath,
+                            startCoordinatesX.ToString nfi,
+                            startCoordinatesY.ToString nfi,
+                            radius.ToString nfi,
+                            arc,
+                            endCoordinatesX.ToString nfi,
+                            endCoordinatesY.ToString nfi,
+                            x.ToString nfi,
+                            y.ToString nfi
+                        )                    
+
+                    let pathGeometry = converter.ConvertFromInvariantString path :?> Geometry
+                    let helperView = Path (Data = pathGeometry, Fill = SolidColorBrush item.Color)
+                    gridLayout.Children.Add helperView
+
+                    addSliceToView tail endPercentage
+                   
+            let itemsList = items |> Seq.toList
+            addSliceToView itemsList 0.
+
+       self.Content <- gridLayout :> View
+       ()         
+
+    member private self.CreateAndSetImageSource (imageSource : ImageSource) =
+        let image =
+            Image (
+                HorizontalOptions = LayoutOptions.FillAndExpand,
+                VerticalOptions = LayoutOptions.FillAndExpand,
+                Aspect = Aspect.AspectFit,
+                Source = imageSource
+            )
+        self.Content <- image
 
     member self.Draw () =
         let width = 
@@ -385,15 +475,13 @@ type CircleChartView () =
             match nonZeroItems with
             | None -> ()
             | Some items when items.Any() ->
-                // let's be careful about enabling the Pie for all platforms in the future (instead of Android
-                // exclusively) because there are bugs in macOS & GTK...
-                if Device.RuntimePlatform = Device.Android then
-                    self.DrawSkiaPieFallback width height items
-                else
+                // GTK doesn't have a Shapes implementation
+                if Device.RuntimePlatform = Device.GTK then
                     self.DrawSvgBasedPie width height items
+                else
+                    self.DrawShapesBasedPie width height items
             | Some _ ->
-                self.Source <- self.DefaultImageSource
-
+                self.CreateAndSetImageSource self.DefaultImageSource
 
     override self.OnPropertyChanged(propertyName: string) =
         base.OnPropertyChanged(propertyName)
