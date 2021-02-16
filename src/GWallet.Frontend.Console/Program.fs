@@ -160,6 +160,8 @@ let AcceptLightningEvent(): Async<unit> = async {
                 Console.WriteLine "Payment received."
             | IncomingChannelEvent.Shutdown ->
                 Console.WriteLine "Channel closed."
+            | IncomingChannelEvent.Unknown ->
+                failwith "Received unknown lightning event"
         UserInteraction.PressAnyKeyToContinue()
 }
 
