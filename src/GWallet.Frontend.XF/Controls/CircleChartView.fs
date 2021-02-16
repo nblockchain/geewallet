@@ -268,8 +268,8 @@ type CircleChartView () =
 
             use image = surface.Snapshot()
             let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
-            let image = new Image(Source = ImageSource.FromStream(fun _ -> data.AsStream()), HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand, Aspect = Aspect.AspectFit)
-            self.Content <- image
+            let source = ImageSource.FromStream(fun _ -> data.AsStream())
+            self.CreateAndSetImageSource source
 
     member self.DrawSvgBasedPie (width: float) (height: float) (items: seq<SegmentInfo>) =
         if not (items.Any()) then
@@ -363,8 +363,8 @@ type CircleChartView () =
         canvas.Save() |> ignore
         use image = SKImage.FromBitmap bitmap
         let data = image.Encode(SKEncodedImageFormat.Png, Int32.MaxValue)
-        let image = new Image(Source = ImageSource.FromStream(fun _ -> data.AsStream()), HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand, Aspect = Aspect.AspectFit)
-        self.Content <- image
+        let source = ImageSource.FromStream(fun _ -> data.AsStream())
+        self.CreateAndSetImageSource source
 
     member self.DrawShapesBasedPie (width: float) (height: float) (items: seq<SegmentInfo>) =
        if not (items.Any()) then
@@ -381,7 +381,7 @@ type CircleChartView () =
        let x = halfWidth |> float
        let y = halfHeight |> float
 
-       let converter = new PathGeometryConverter()
+       let converter = PathGeometryConverter()
        let nfi = new NumberFormatInfo( NumberDecimalSeparator = ".");
        let gridLayout = new Grid()
 
@@ -412,6 +412,11 @@ type CircleChartView () =
        self.Content <- gridLayout :> View
        ()
 
+    member self.CreateAndSetImageSource (imageSouce : ImageSource) =
+        let image = new Image(HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand, Aspect = Aspect.AspectFit)
+        image.Source <- imageSouce
+        self.Content <- image
+
     member self.Draw () =
         let width = 
             if base.WidthRequest > 0. then 
@@ -440,10 +445,12 @@ type CircleChartView () =
             | Some items when items.Any() ->
                 // let's be careful about enabling the Pie for all platforms in the future (instead of Android
                 // exclusively) because there are bugs in macOS & GTK...
-                self.DrawShapesBasedPie width height items
+                if Device.RuntimePlatform = Device.GTK then
+                    self.DrawSkiaPieFallback width height items
+                else
+                    self.DrawShapesBasedPie width height items
             | Some _ ->
-                let defaultImage = new Image(Source = self.DefaultImageSource, HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand, Aspect = Aspect.AspectFit)
-                self.Content <- defaultImage
+                self.CreateAndSetImageSource self.DefaultImageSource
 
     override self.OnPropertyChanged(propertyName: string) =
         base.OnPropertyChanged(propertyName)
