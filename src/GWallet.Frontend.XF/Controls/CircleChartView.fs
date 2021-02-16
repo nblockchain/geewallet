@@ -412,8 +412,11 @@ type CircleChartView () =
        self.Content <- gridLayout :> View
        ()
 
-    member self.CreateAndSetImageSource (imageSouce : ImageSource) =
-        let image = new Image(HorizontalOptions = LayoutOptions.FillAndExpand, VerticalOptions = LayoutOptions.FillAndExpand, Aspect = Aspect.AspectFit)
+    member private self.CreateAndSetImageSource (imageSouce : ImageSource) =
+        let image = new Image()
+        image.HorizontalOptions <- LayoutOptions.FillAndExpand
+        image.VerticalOptions <- LayoutOptions.FillAndExpand
+        image.Aspect <- Aspect.AspectFit
         image.Source <- imageSouce
         self.Content <- image
 
