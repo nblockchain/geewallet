@@ -180,6 +180,21 @@ module Config =
                     yield FileRepresentation.FromFile (FileInfo(filePath))
         }
 
+    let GetAnyAccountFileWithCurrency (currencies: seq<Currency>)
+                                      (accountKind: AccountKind)
+                                          : Option<FileRepresentation * Currency> =
+        currencies
+        |> Seq.map
+            (fun currency ->
+                Directory.GetFiles (GetConfigDir currency accountKind).FullName
+                |> Seq.map
+                    (fun filePath ->
+                        (FileRepresentation.FromFile (FileInfo filePath), currency)
+                    )
+            )
+        |> Seq.concat
+        |> Seq.tryHead
+
     let private GetFile (currency: Currency) (account: IAccount): FileInfo =
         let configDir, fileName = GetConfigDir currency account.Kind, account.AccountFile.Name
         Path.Combine(configDir.FullName, fileName) |> FileInfo

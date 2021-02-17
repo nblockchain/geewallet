@@ -166,6 +166,10 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
         accountKey.ReadWrite stream
         NodeMasterPrivKey <| NBitcoin.ExtKey bytes
 
+    static member internal AccountPrivateKeyToNodeSecret (accountKey: Key): NodeSecret =
+        let nodeMasterPrivKey = Node.AccountPrivateKeyToNodeMasterPrivKey accountKey
+        nodeMasterPrivKey.NodeSecret()
+
     member internal self.OpenChannel (nodeEndPoint: NodeEndPoint)
                                      (channelCapacity: TransferAmount)
                                          : Async<Result<PendingChannel, IErrorMsg>> = async {
