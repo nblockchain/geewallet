@@ -394,26 +394,25 @@ type Lnd = {
         | err -> return Error err
     }
 
-    member this.CloseChannel (nodeEndPoint: NodeEndPoint)
-                             (fundingOutPoint: OutPoint)
-                                 : Async<Result<unit, CloseChannelResult>> = async {
+    member this.CloseChannel (fundingOutPoint: OutPoint)
+                                 : Async<unit> = async {
         let client = this.Client()
-        let nodeInfo =
-            let pubKey =
-                let stringified = nodeEndPoint.NodeId.ToString()
-                let unstringified = PubKey stringified
-                unstringified
-            NodeInfo (pubKey, nodeEndPoint.IPEndPoint.Address.ToString(), nodeEndPoint.IPEndPoint.Port)
-        let closeChannelReq =
-            new CloseChannelRequest (
-                NodeInfo = nodeInfo,
-                ChannelPointFundingTxIdStr = fundingOutPoint.Hash.ToString(),
-                ChannelPointOutputIndex = int64 fundingOutPoint.N
-            )
-        let! closeChannelResponse = Async.AwaitTask <| client.CloseChannel (closeChannelReq, CancellationToken.None)
-        match closeChannelResponse.Result with
-        | CloseChannelResult.Ok -> return Ok ()
-        | err -> return Error err
+        let fundingTxIdStr = fundingOutPoint.Hash.ToString()
+        let fundingOutputIndex = fundingOutPoint.N
+        try
+            let! _response =
+                Async.AwaitTask
+                <| client.SwaggerClient.CloseChannelAsync(fundingTxIdStr, int64 fundingOutputIndex)
+            return ()
+        with
+        | ex ->
+            // BTCPayServer.Lightning is broken and doesn't handle the
+            // channel-closed reply from lnd properly. This catches the exception (and
+            // hopefully not other, unrelated exceptions).
+            // See: https://github.com/btcpayserver/BTCPayServer.Lightning/issues/38
+            match FSharpUtil.FindException<Newtonsoft.Json.JsonReaderException> ex with
+            | Some ex when ex.LineNumber = 2 && ex.LinePosition = 0 -> return ()
+            | _ -> return raise <| FSharpUtil.ReRaise ex
     }
 
 type WalletInstance private (password: string, channelStore: ChannelStore, node: Node) =
@@ -930,32 +929,47 @@ type LN() =
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
+        // Wait for lnd to realise we're offline
+        do! Async.Sleep 1000
         let fundingOutPoint =
             let fundingTxId = uint256(channelInfo.FundingTxId.ToString())
             let fundingOutPointIndex = channelInfo.FundingOutPointIndex
             OutPoint(fundingTxId, fundingOutPointIndex)
-        let closeChannelTask = lnd.CloseChannel walletInstance.NodeEndPoint fundingOutPoint
+        let closeChannelTask = async {
+            let! connectionResult = lnd.ConnectTo walletInstance.NodeEndPoint
+            match connectionResult with
+            | ConnectionResult.CouldNotConnect ->
+                failwith "lnd could not connect back to us"
+            | _ -> ()
+            do! Async.Sleep 1000
+            do! lnd.CloseChannel fundingOutPoint
+            return ()
+        }
         let awaitCloseTask = async {
             let rec receiveEvent () = async {
                 let! receivedEvent = Lightning.Network.ReceiveLightningEvent walletInstance.Node channelId
                 match receivedEvent with
-                | Error err -> return Error (SPrintF1 "Failed to receive shutdown msg from LND: %A" err)
-                | Ok event when event = IncomingChannelEvent.Shutdown -> return Ok ()
+                | Error err ->
+                    return Error (SPrintF1 "Failed to receive shutdown msg from LND: %A" err)
+                | Ok event when event = IncomingChannelEvent.Shutdown ->
+                    return Ok ()
                 | _ -> return! receiveEvent ()
             }
 
-            return! receiveEvent ()
+            let! receiveEventRes = receiveEvent()
+            UnwrapResult receiveEventRes "failed to accept close channel"
+
+            // Wait for the closing transaction to appear in mempool
+            while bitcoind.GetTxIdsInMempool().Length = 0 do
+                Thread.Sleep 500
+
+            // Mine blocks on top of the closing transaction to make it confirmed.
+            let minimumDepth = BlockHeightOffset32 6u
+            bitcoind.GenerateBlocks minimumDepth walletInstance.Address
+            return ()
         }
 
-        let! closeChannelRes, awaitCloseRes = AsyncExtensions.MixedParallel2 closeChannelTask awaitCloseTask
-
-        match closeChannelRes with
-        | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "failed to make LND close the channel: %A" err)
-
-        match awaitCloseRes with
-        | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
+        let! (), () = AsyncExtensions.MixedParallel2 closeChannelTask awaitCloseTask
 
         return ()
     }
