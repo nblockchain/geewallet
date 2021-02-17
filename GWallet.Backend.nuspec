@@ -54,7 +54,7 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="src\GWallet.Backend\bin\Release\GWallet.Backend.dll" target="lib\net472" />
-    <file src="src\GWallet.Backend\bin\Release\GWallet.Backend.XML" target="lib\net472" />
+    <file src="src\GWallet.Backend\bin\Debug\GWallet.Backend.dll" target="lib\net472" />
+    <file src="src\GWallet.Backend\bin\Debug\GWallet.Backend.XML" target="lib\net472" />
   </files>
 </package>
