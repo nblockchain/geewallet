@@ -101,7 +101,7 @@ newmono_package:
     - ./scripts/install_mono_from_microsoft_deb_packages.sh
     - ./configure.sh 
     - make
-    - ./scripts/nugetPush.fsx 0.2.15.0 $NUGET_API_KEY
+    - ./scripts/nugetPush.fsx 0.3.211.0 $NUGET_API_KEY
 
 # snap package generation is not working with GitLabCI; TODO: report bug
 #stockoldmono_package:
