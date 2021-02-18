@@ -936,11 +936,7 @@ type LN() =
             let fundingOutPointIndex = channelInfo.FundingOutPointIndex
             OutPoint(fundingTxId, fundingOutPointIndex)
         let closeChannelTask = async {
-            let! connectionResult = lnd.ConnectTo walletInstance.NodeEndPoint
-            match connectionResult with
-            | ConnectionResult.CouldNotConnect ->
-                failwith "lnd could not connect back to us"
-            | _ -> ()
+            do! lnd.ConnectTo walletInstance.NodeEndPoint
             do! Async.Sleep 1000
             do! lnd.CloseChannel fundingOutPoint
             return ()
