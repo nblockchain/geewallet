@@ -250,6 +250,8 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             return resObj
         }
 
+    // NOTE: despite Electrum-X official docs claiming that this method is deprecated... it's not! go read the official
+    //       non-shitcoin forked version of the docs: https://electrumx-spesmilo.readthedocs.io/en/latest/protocol-methods.html#blockchain-estimatefee
     member self.BlockchainEstimateFee (numBlocksTarget: int): Async<BlockchainEstimateFeeResult> =
         let obj = {
             Id = 0;

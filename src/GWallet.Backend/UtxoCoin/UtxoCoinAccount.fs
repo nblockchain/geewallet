@@ -60,7 +60,7 @@ module Account =
         | LTC -> Config.LitecoinNet
         | _ -> failwith <| SPrintF1 "Assertion failed: UTXO currency %A not supported?" currency
 
-    // technique taken from https://electrumx.readthedocs.io/en/latest/protocol-basics.html#script-hashes
+    // technique taken from https://electrumx-spesmilo.readthedocs.io/en/latest/protocol-basics.html#script-hashes
     let private GetElectrumScriptHashFromAddress (address: BitcoinAddress): string =
         let sha = NBitcoin.Crypto.Hashes.SHA256(address.ScriptPubKey.ToBytes())
         let reversedSha = sha.Reverse().ToArray()
