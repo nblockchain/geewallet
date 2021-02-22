@@ -6,7 +6,7 @@ type WatchWalletInfo =
     {
         UtxoCoinPublicKey: string
         EtherPublicAddress: string
-        LightningNodeSecret: Option<string>
+        LightningNodeSecret: string
     }
 
 type FileRepresentation =

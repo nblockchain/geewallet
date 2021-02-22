@@ -509,17 +509,8 @@ let ArchiveAccount() =
                   (account.GetType().FullName)
 
 let PairToWatchWallet() =
-    let allowActingAsLightningNode =
-        UserInteraction.AskYesNo
-            "Do you want to allow the watch wallet to act as a lightning node for your accounts? \
-            This does not give the watch wallet full access to your funds, only to funds held in \
-            lightning."
-    let allowLightningPasswordOpt =
-        if allowActingAsLightningNode then
-            Some (UserInteraction.AskPassword false)
-        else
-            None
-    match Account.GetNormalAccountsPairingInfoForWatchWallet allowLightningPasswordOpt with
+    let password = UserInteraction.AskPassword false
+    match Account.GetNormalAccountsPairingInfoForWatchWallet password with
     | None ->
         Presentation.Error
             "There needs to be both Ether-based accounts and Utxo-based accounts to be able to use this feature."

@@ -84,7 +84,7 @@ module Account =
                 utxoAccountPrivateKey
         nodeSecret.ToString()
 
-    let GetNormalAccountsPairingInfoForWatchWallet (passwordForLightningNodeSecret: Option<string>)
+    let GetNormalAccountsPairingInfoForWatchWallet (passwordForLightningNodeSecret: string)
                                                        : Option<WatchWalletInfo> =
         let allCurrencies = Currency.GetAll()
 
@@ -103,14 +103,10 @@ module Account =
             let utxoCoinPublicKey = UtxoCoin.Account.GetPublicKeyFromNormalAccountFile firstUtxoAccountFile
             let etherPublicAddress = Ether.Account.GetPublicAddressFromNormalAccountFile firstEtherAccountFile
             let lightningNodeSecret =
-                match passwordForLightningNodeSecret with
-                | None -> None
-                | Some password ->
-                    GetLightningNodeSecret
-                        password
-                        firstUtxoAccountFile
-                        utxoCurrency
-                    |> Some
+                GetLightningNodeSecret
+                    passwordForLightningNodeSecret
+                    firstUtxoAccountFile
+                    utxoCurrency
             Some {
                 UtxoCoinPublicKey = utxoCoinPublicKey.ToString()
                 EtherPublicAddress = etherPublicAddress
