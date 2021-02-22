@@ -68,6 +68,21 @@ module Account =
                         yield GetAccountFromFile accountFile currency kind
         }
 
+    let internal GetLightningNodeSecret (password: string)
+                                        (accountFile: FileRepresentation)
+                                        (currency: Currency)
+                                            : string =
+        let utxoAccount =
+            UtxoCoin.Account.GetAccountFromFile
+                accountFile
+                currency
+                AccountKind.Normal
+        let utxoAccountPrivateKey =
+            UtxoCoin.Account.GetPrivateKey (utxoAccount :?> NormalAccount) password
+        let nodeSecret = 
+            UtxoCoin.Lightning.Node.AccountPrivateKeyToNodeSecret
+                utxoAccountPrivateKey
+        nodeSecret.ToString()
 
     let GetNormalAccountsPairingInfoForWatchWallet (passwordForLightningNodeSecret: Option<string>)
                                                        : Option<WatchWalletInfo> =
@@ -91,17 +106,11 @@ module Account =
                 match passwordForLightningNodeSecret with
                 | None -> None
                 | Some password ->
-                    let utxoAccount =
-                        UtxoCoin.Account.GetAccountFromFile
-                            firstUtxoAccountFile
-                            utxoCurrency
-                            AccountKind.Normal
-                    let utxoAccountPrivateKey =
-                        UtxoCoin.Account.GetPrivateKey (utxoAccount :?> NormalAccount) password
-                    let nodeSecret = 
-                        UtxoCoin.Lightning.Node.AccountPrivateKeyToNodeSecret
-                            utxoAccountPrivateKey
-                    Some (nodeSecret.ToString())
+                    GetLightningNodeSecret
+                        password
+                        firstUtxoAccountFile
+                        utxoCurrency
+                    |> Some
             Some {
                 UtxoCoinPublicKey = utxoCoinPublicKey.ToString()
                 EtherPublicAddress = etherPublicAddress

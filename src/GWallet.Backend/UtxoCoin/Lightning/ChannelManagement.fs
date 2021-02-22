@@ -139,7 +139,8 @@ type ChannelStore(account: IUtxoAccount) =
             "node-secret"
         )
     
-    member internal self.AddNodeSecret (nodeSecret: NodeSecret) (password: string) =
+    member internal self.AddNodeSecret (nodeSecretString: string) (password: string) =
+        let nodeSecret = NodeSecret <| Key.Parse(nodeSecretString, self.Network)
         let encryptedNodeSecret =
             let secret = nodeSecret.RawKey().GetBitcoinSecret self.Network
             let encryptedSecret =
@@ -150,13 +151,13 @@ type ChannelStore(account: IUtxoAccount) =
             failwith "node secret has already been added"
         File.WriteAllText(path, encryptedNodeSecret)
 
-    member internal self.GetNodeSecretOpt (password: string): Option<NodeSecret> =
+    member internal self.GetNodeSecretOpt (password: string): Option<string> =
         let path = self.NodeSecretFileName()
         if File.Exists path then
             let encryptedNodeSecret = File.ReadAllText path
             let encryptedSecret =
                 BitcoinEncryptedSecretNoEC(encryptedNodeSecret, self.Network)
-            Some <| NodeSecret (encryptedSecret.GetKey(password))
+            Some <| (NodeSecret (encryptedSecret.GetKey(password))).ToString()
         else
             None
 
