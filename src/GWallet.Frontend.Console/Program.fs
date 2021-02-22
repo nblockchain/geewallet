@@ -25,7 +25,7 @@ let CreateFundingTx (account: UtxoCoin.IUtxoAccount)
             pendingChannel.FundingDestination
             pendingChannel.TransferAmount
             password
-    | :? UtxoCoin.ReadOnlyUtxoAccount as readOnlyAccount ->
+    | :? UtxoCoin.ReadOnlyUtxoAccount ->
         Console.WriteLine("To open a channel from a read-only account the paired wallet must \
                            sign the funding transaction")
         Console.Write("Introduce a file name to save the unsigned transaction: ")
