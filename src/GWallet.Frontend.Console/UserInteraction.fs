@@ -771,17 +771,15 @@ module UserInteraction =
                 | _ -> AskAccount()
             theAccountChosen
 
-    let rec AskBitcoinAccount(): UtxoCoin.NormalUtxoAccount =
+    let rec AskBitcoinAccount(): UtxoCoin.IUtxoAccount =
         let account = AskAccount()
         if account.Currency <> Currency.BTC then
             Console.WriteLine "You must select a BTC account"
             AskBitcoinAccount()
         else
             match account with
-            | :? UtxoCoin.NormalUtxoAccount as btcAccount -> btcAccount
-            | :? UtxoCoin.ReadOnlyUtxoAccount ->
-                Console.WriteLine "Read-only accounts cannot be used in lightning"
-                AskBitcoinAccount()
+            | :? UtxoCoin.NormalUtxoAccount as btcAccount -> btcAccount :> UtxoCoin.IUtxoAccount
+            | :? UtxoCoin.ReadOnlyUtxoAccount as btcAccount -> btcAccount :> UtxoCoin.IUtxoAccount
             | :? UtxoCoin.ArchivedUtxoAccount ->
                 Console.WriteLine "This account has been archived. You must select an active account"
                 AskBitcoinAccount()

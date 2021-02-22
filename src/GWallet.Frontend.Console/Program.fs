@@ -12,6 +12,44 @@ open GWallet.Backend.UtxoCoin
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Frontend.Console
 
+let CreateFundingTx (account: UtxoCoin.IUtxoAccount)
+                    (metadata: TransactionMetadata)
+                    (pendingChannel: PendingChannel)
+                    (password: string)
+                        : string =
+    match account with
+    | :? UtxoCoin.NormalUtxoAccount as normalAccount ->
+        UtxoCoin.Account.SignTransactionForDestination
+            normalAccount
+            metadata
+            pendingChannel.FundingDestination
+            pendingChannel.TransferAmount
+            password
+    | :? UtxoCoin.ReadOnlyUtxoAccount as readOnlyAccount ->
+        Console.WriteLine("To open a channel from a read-only account the paired wallet must \
+                           sign the funding transaction")
+        Console.Write("Introduce a file name to save the unsigned transaction: ")
+        let unsignedFilePath = Console.ReadLine()
+        let proposal = {
+            OriginAddress = account.PublicAddress
+            Amount = pendingChannel.TransferAmount
+            DestinationAddress = pendingChannel.FundingDestination.ToString()
+        }
+        Account.SaveUnsignedTransaction proposal metadata unsignedFilePath
+        Console.WriteLine("Transaction saved. Now copy it to the device with the private \
+                           key to sign it.")
+        let rec getSignedTransaction() =
+            let signedFilePath =
+                UserInteraction.AskFileNameToLoad("Enter file name to load the signed transaction: ")
+            let signedTransaction = Account.LoadSignedTransactionFromFile signedFilePath.FullName
+            if signedTransaction.TransactionInfo.Proposal <> proposal then
+                Console.WriteLine("Transaction data does not match. Incorrect file?")
+                getSignedTransaction()
+            else 
+                signedTransaction.RawTransaction
+        getSignedTransaction()
+    | _ -> failwith "invalid account type"
+
 let OpenChannel(): Async<unit> = async {
     let account = UserInteraction.AskBitcoinAccount()
     let currency = (account :> IAccount).Currency
@@ -62,14 +100,13 @@ let OpenChannel(): Async<unit> = async {
                                 (minimumDepth * 10u)
                         )
                         let acceptMinimumDepth = UserInteraction.AskYesNo "Do you accept?"
-                        let transactionHex =
-                            UtxoCoin.Account.SignTransactionForDestination
-                                account
-                                metadata
-                                pendingChannel.FundingDestination
-                                pendingChannel.TransferAmount
-                                password
                         if acceptMinimumDepth then
+                            let transactionHex =
+                                CreateFundingTx
+                                    account
+                                    metadata
+                                    pendingChannel
+                                    password
                             let! acceptRes = pendingChannel.Accept transactionHex
                             match acceptRes with
                             | Error fundChannelError ->

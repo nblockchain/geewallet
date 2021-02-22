@@ -249,7 +249,9 @@ type ChannelStore(account: IUtxoAccount) =
 
 module ChannelManager =
     // difference from fee estimation in UtxoCoinAccount.fs: this is for P2WSH
-    let EstimateChannelOpeningFee (account: IUtxoAccount) (amount: TransferAmount) =
+    let EstimateChannelOpeningFee (account: IUtxoAccount)
+                                  (amount: TransferAmount)
+                                      : Async<TransactionMetadata> =
         let witScriptIdLength = 32
         // this dummy address is only used for fee estimation
         let nullScriptId = NBitcoin.WitScriptId (Array.zeroCreate witScriptIdLength)
