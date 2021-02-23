@@ -90,7 +90,7 @@ module Account =
         let privateKey = Key.Parse(privateKey, GetNetwork currency)
         GetPublicAddressFromPublicKey currency privateKey.PubKey
 
-    let internal GetAccountFromFile (accountFile: FileRepresentation) (currency: Currency) kind: IAccount =
+    let internal GetAccountFromFile (accountFile: FileRepresentation) (currency: Currency) kind: IUtxoAccount =
         if not (currency.IsUtxo()) then
             failwith <| SPrintF1 "Assertion failed: currency %A should be UTXO-type" currency
         match kind with
@@ -99,13 +99,13 @@ module Account =
                                 accountFile,
                                 (fun accountFile -> accountFile.Name),
                                 GetPublicKeyFromReadOnlyAccountFile)
-                                            :> IAccount
+                                            :> IUtxoAccount
         | AccountKind.Normal ->
             let fromAccountFileToPublicAddress = GetPublicAddressFromNormalAccountFile currency
             let fromAccountFileToPublicKey = GetPublicKeyFromNormalAccountFile
             NormalUtxoAccount(currency, accountFile,
                               fromAccountFileToPublicAddress, fromAccountFileToPublicKey)
-            :> IAccount
+            :> IUtxoAccount
         | _ ->
             failwith <| SPrintF1 "Kind (%A) not supported for this API" kind
 

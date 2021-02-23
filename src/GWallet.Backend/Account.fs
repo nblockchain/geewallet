@@ -49,7 +49,7 @@ module Account =
 
     let internal GetAccountFromFile accountFile (currency: Currency) kind: IAccount =
         if currency.IsUtxo() then
-            UtxoCoin.Account.GetAccountFromFile accountFile currency kind
+            (UtxoCoin.Account.GetAccountFromFile accountFile currency kind) :> IAccount
         elif currency.IsEtherBased() then
             Ether.Account.GetAccountFromFile accountFile currency kind
         else
@@ -82,7 +82,8 @@ module Account =
         let nodeMasterPrivKey =
             UtxoCoin.Lightning.CryptoUtil.AccountPrivateKeyToNodeMasterPrivKey
                 utxoAccountPrivateKey
-        nodeMasterPrivKey.ToString()
+        let network = UtxoCoin.Account.GetNetwork currency
+        nodeMasterPrivKey.ToString network
 
     let GetNormalAccountsPairingInfoForWatchWallet (password: string)
                                                        : Option<WatchWalletInfo> =
@@ -443,7 +444,9 @@ module Account =
 
         File.WriteAllText(filePath, json)
 
-    let CreateReadOnlyAccounts (watchWalletInfo: WatchWalletInfo): Async<unit> = async {
+    let CreateReadOnlyAccounts (watchWalletInfo: WatchWalletInfo)
+                               (password: string)
+                                   : Async<unit> = async {
         for etherCurrency in Currency.GetAll().Where(fun currency -> currency.IsEtherBased()) do
             do! ValidateAddress etherCurrency watchWalletInfo.EtherPublicAddress
             let conceptAccountForReadOnlyAccount = {
@@ -463,7 +466,16 @@ module Account =
                 FileRepresentation = { Name = address; Content = fun _ -> watchWalletInfo.UtxoCoinPublicKey }
                 ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
             }
-            Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly |> ignore
+            let accountFile =
+                Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
+            let account =
+                UtxoCoin.Account.GetAccountFromFile accountFile utxoCurrency AccountKind.ReadOnly
+            let _channelStore =
+                UtxoCoin.Lightning.ChannelStore.InitializeWithNodeMasterPrivKey
+                    watchWalletInfo.LightningNodeMasterPrivKey
+                    account
+                    password
+            ()
     }
 
     let Remove (account: ReadOnlyAccount) =

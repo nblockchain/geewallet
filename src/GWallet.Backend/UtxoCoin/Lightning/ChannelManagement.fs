@@ -161,7 +161,8 @@ type ChannelStore(account: IUtxoAccount) =
         let channelStore = ChannelStore account
         let network = channelStore.Network
         let nodeMasterPrivKey =
-            NodeMasterPrivKey <| ExtKey.Parse(nodeMasterPrivKeyString, network)
+            Console.WriteLine(sprintf "WOW: nodeMasterPrivKeyString == %s" nodeMasterPrivKeyString)
+            NodeMasterPrivKey.Parse nodeMasterPrivKeyString network
         let encryptedNodeMasterPrivKey =
             let privateExtKey = nodeMasterPrivKey.RawExtKey()
             let privateKey = privateExtKey.PrivateKey
@@ -172,6 +173,8 @@ type ChannelStore(account: IUtxoAccount) =
             let encryptedSecretString = encryptedSecret.ToWif()
             let publicExtKeyString = publicExtKey.ToString()
             String.concat "\n" [encryptedSecretString; publicExtKeyString]
+        if not channelStore.ChannelDir.Exists then
+            channelStore.ChannelDir.Create()
         let path = channelStore.NodeMasterPrivKeyFileName()
         if File.Exists path then
             failwith "channel store for this account has already been initialised"

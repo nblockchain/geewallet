@@ -502,7 +502,8 @@ let rec AddReadOnlyAccounts() =
     Console.Write "JSON fragment from wallet to pair with: "
     let watchWalletInfoJson = Console.ReadLine().Trim()
     let watchWalletInfo = Marshalling.Deserialize watchWalletInfoJson
-    Account.CreateReadOnlyAccounts watchWalletInfo
+    let password = UserInteraction.AskPassword false
+    Account.CreateReadOnlyAccounts watchWalletInfo password
 
 let ArchiveAccount() =
     let account = UserInteraction.AskAccount()
