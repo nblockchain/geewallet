@@ -6,6 +6,7 @@ open NBitcoin
 
 open DotNetLightning.Chain
 open DotNetLightning.Channel
+open DotNetLightning.Crypto
 open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Utils
 
@@ -90,6 +91,20 @@ type ChannelInfo =
             | _ -> ChannelStatus.Broken
     }
 
+module public CryptoUtil =
+    let internal AccountPrivateKeyToNodeMasterPrivKey (accountKey: Key): NodeMasterPrivKey =
+        let privateKeyBytesLength = 32
+        let bytes: array<byte> = Array.zeroCreate privateKeyBytesLength
+        use bytesStream = new MemoryStream(bytes)
+        let stream = NBitcoin.BitcoinStream(bytesStream, true)
+        accountKey.ReadWrite stream
+        let hashed = NBitcoin.Crypto.Hashes.DoubleSHA256 bytes
+        NodeMasterPrivKey <| NBitcoin.ExtKey (hashed.ToString())
+
+    let public NodeIdAsPubKeyFromAccountPrivKey (accountPrivKey: Key): PubKey =
+        let nodeMasterPrivKey = AccountPrivateKeyToNodeMasterPrivKey accountPrivKey
+        nodeMasterPrivKey.NodeId().Value
+
 type ChannelStore(account: IUtxoAccount) =
     static member ChannelFilePrefix = "chan-"
     static member ChannelFileEnding = ".json"
@@ -133,33 +148,58 @@ type ChannelStore(account: IUtxoAccount) =
                 ChannelStore.ChannelFileEnding
         )
 
-    member self.NodeSecretFileName(): string =
+    member self.NodeMasterPrivKeyFileName(): string =
         Path.Combine(
             self.ChannelDir.FullName,
-            "node-secret"
+            "node-master-key"
         )
     
-    member internal self.AddNodeSecret (nodeSecretString: string) (password: string) =
-        let nodeSecret = NodeSecret <| Key.Parse(nodeSecretString, self.Network)
-        let encryptedNodeSecret =
-            let secret = nodeSecret.RawKey().GetBitcoinSecret self.Network
+    static member internal InitializeWithNodeMasterPrivKey (nodeMasterPrivKeyString: string)
+                                                           (account: IUtxoAccount)
+                                                           (password: string)
+                                                               : ChannelStore =
+        let channelStore = ChannelStore account
+        let network = channelStore.Network
+        let nodeMasterPrivKey =
+            NodeMasterPrivKey <| ExtKey.Parse(nodeMasterPrivKeyString, network)
+        let encryptedNodeMasterPrivKey =
+            let privateExtKey = nodeMasterPrivKey.RawExtKey()
+            let privateKey = privateExtKey.PrivateKey
+            let publicExtKey = privateExtKey.Neuter()
+            let secret = privateKey.GetBitcoinSecret network
             let encryptedSecret =
-                secret.PrivateKey.GetEncryptedBitcoinSecret(password, self.Network)
-            encryptedSecret.ToWif()
-        let path = self.NodeSecretFileName()
+                secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
+            let encryptedSecretString = encryptedSecret.ToWif()
+            let publicExtKeyString = publicExtKey.ToString()
+            String.concat "\n" [encryptedSecretString; publicExtKeyString]
+        let path = channelStore.NodeMasterPrivKeyFileName()
         if File.Exists path then
-            failwith "node secret has already been added"
-        File.WriteAllText(path, encryptedNodeSecret)
+            failwith "channel store for this account has already been initialised"
+        File.WriteAllText(path, encryptedNodeMasterPrivKey)
+        channelStore
 
-    member internal self.GetNodeSecretOpt (password: string): Option<string> =
-        let path = self.NodeSecretFileName()
-        if File.Exists path then
-            let encryptedNodeSecret = File.ReadAllText path
-            let encryptedSecret =
-                BitcoinEncryptedSecretNoEC(encryptedNodeSecret, self.Network)
-            Some <| (NodeSecret (encryptedSecret.GetKey(password))).ToString()
-        else
-            None
+    member internal self.GetNodeMasterPrivKey (password: string): string =
+        let nodeMasterPrivKey =
+            match self.Account with
+            | :? NormalUtxoAccount as normalAccount ->
+                let privateKey = Account.GetPrivateKey normalAccount password
+                CryptoUtil.AccountPrivateKeyToNodeMasterPrivKey privateKey
+            | :? ReadOnlyUtxoAccount ->
+                let path = self.NodeMasterPrivKeyFileName()
+                let encryptedNodeMasterPrivKey = File.ReadAllText path
+                let encryptedSecretString, publicExtKeyString =
+                    match List.ofSeq <| encryptedNodeMasterPrivKey.Split('\n') with
+                        | [encryptedSecretString; publicExtKeyString] ->
+                            encryptedSecretString, publicExtKeyString
+                        | _ -> failwith "malformed node master key file"
+                let encryptedSecret =
+                    BitcoinEncryptedSecretNoEC(encryptedSecretString, self.Network)
+                let privateKey = encryptedSecret.GetKey password
+                let publicExtKey = ExtPubKey.Parse(publicExtKeyString, self.Network)
+                let privateExtKey = ExtKey(publicExtKey, privateKey)
+                NodeMasterPrivKey privateExtKey
+            | _ -> failwith "invalid account type"
+        nodeMasterPrivKey.ToString()
 
     member internal self.LoadChannel (channelId: ChannelIdentifier): SerializedChannel =
         let fileName = self.ChannelFileName channelId

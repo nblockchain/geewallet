@@ -68,10 +68,10 @@ module Account =
                         yield GetAccountFromFile accountFile currency kind
         }
 
-    let internal GetLightningNodeSecret (password: string)
-                                        (accountFile: FileRepresentation)
-                                        (currency: Currency)
-                                            : string =
+    let internal GetLightningNodeMasterPrivKey (password: string)
+                                               (accountFile: FileRepresentation)
+                                               (currency: Currency)
+                                                   : string =
         let utxoAccount =
             UtxoCoin.Account.GetAccountFromFile
                 accountFile
@@ -79,12 +79,12 @@ module Account =
                 AccountKind.Normal
         let utxoAccountPrivateKey =
             UtxoCoin.Account.GetPrivateKey (utxoAccount :?> NormalAccount) password
-        let nodeSecret = 
-            UtxoCoin.Lightning.Node.AccountPrivateKeyToNodeSecret
+        let nodeMasterPrivKey =
+            UtxoCoin.Lightning.CryptoUtil.AccountPrivateKeyToNodeMasterPrivKey
                 utxoAccountPrivateKey
-        nodeSecret.ToString()
+        nodeMasterPrivKey.ToString()
 
-    let GetNormalAccountsPairingInfoForWatchWallet (passwordForLightningNodeSecret: string)
+    let GetNormalAccountsPairingInfoForWatchWallet (password: string)
                                                        : Option<WatchWalletInfo> =
         let allCurrencies = Currency.GetAll()
 
@@ -102,15 +102,15 @@ module Account =
         | (Some (firstUtxoAccountFile, utxoCurrency), Some (firstEtherAccountFile, _etherCurrency)) ->
             let utxoCoinPublicKey = UtxoCoin.Account.GetPublicKeyFromNormalAccountFile firstUtxoAccountFile
             let etherPublicAddress = Ether.Account.GetPublicAddressFromNormalAccountFile firstEtherAccountFile
-            let lightningNodeSecret =
-                GetLightningNodeSecret
-                    passwordForLightningNodeSecret
+            let lightningNodeMasterPrivKey =
+                GetLightningNodeMasterPrivKey
+                    password
                     firstUtxoAccountFile
                     utxoCurrency
             Some {
                 UtxoCoinPublicKey = utxoCoinPublicKey.ToString()
                 EtherPublicAddress = etherPublicAddress
-                LightningNodeSecret = lightningNodeSecret
+                LightningNodeMasterPrivKey = lightningNodeMasterPrivKey
             }
         | _ -> None
 
