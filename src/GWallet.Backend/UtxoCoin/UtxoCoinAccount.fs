@@ -60,7 +60,7 @@ module Account =
             failwith <| SPrintF1 "Assertion failed: currency %A should be UTXO-type" currency
         match currency with
         | BTC -> Config.BitcoinNet()
-        | LTC -> Config.LitecoinNet
+        | LTC -> Config.LitecoinNet()
         | _ -> failwith <| SPrintF1 "Assertion failed: UTXO currency %A not supported?" currency
 
     // technique taken from https://electrumx.readthedocs.io/en/latest/protocol-basics.html#script-hashes
@@ -406,6 +406,7 @@ module Account =
                                  (password: string) =
         let currency = (account :> IAccount).Currency
         let network = GetNetwork currency
+        Console.WriteLine(sprintf "WOW: signing tx for destination: %A" destination)
         let destAddress = BitcoinAddress.Create (destination, network)
         SignTransactionForDestination
             account
@@ -528,9 +529,23 @@ module Account =
                         BITCOIN_ADDRESS_BECH32_PREFIX_REGTEST
                     ]
             | LTC ->
-                let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
-                let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
-                [ LITECOIN_ADDRESS_PUBKEYHASH_PREFIX; LITECOIN_ADDRESS_SCRIPTHASH_PREFIX ]
+                if Config.LitecoinNet() = NBitcoin.Altcoins.Litecoin.Instance.Mainnet then
+                    let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
+                    let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
+                    [
+                        LITECOIN_ADDRESS_PUBKEYHASH_PREFIX
+                        LITECOIN_ADDRESS_SCRIPTHASH_PREFIX
+                    ]
+                else
+                    let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX_0 = "n"
+                    let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX_1 = "m"
+                    let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "Q"
+                    [
+                        LITECOIN_ADDRESS_PUBKEYHASH_PREFIX_0
+                        LITECOIN_ADDRESS_PUBKEYHASH_PREFIX_1
+                        LITECOIN_ADDRESS_SCRIPTHASH_PREFIX
+                    ]
+
             | _ -> failwith <| SPrintF1 "Unknown UTXO currency %A" currency
 
         if not (utxoCoinValidAddressPrefixes.Any(fun prefix -> address.StartsWith prefix)) then

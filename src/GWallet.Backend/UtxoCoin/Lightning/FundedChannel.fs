@@ -93,8 +93,8 @@ type internal FundedChannel =
         let currency = (connectedChannel.Account :> IAccount).Currency
         let peerNode = connectedChannel.PeerNode
         let channel = connectedChannel.Channel
-        //let account = connectedChannel.Account
-        //let network = Account.GetNetwork (account :> IAccount).Currency
+        let account = connectedChannel.Account
+        let network = Account.GetNetwork (account :> IAccount).Currency
 
         let fundingCreatedMsgRes, channelAfterFundingCreated =
             (*
@@ -110,7 +110,16 @@ type internal FundedChannel =
             *)
             let fundingOutputIndex =
                 let indexedOutputs = fundingTransaction.Outputs.AsIndexedOutputs()
+                Console.WriteLine(sprintf "WOW: number of outputs == %i" (Seq.length (fundingTransaction.Outputs.AsIndexedOutputs())))
+                Console.WriteLine(sprintf "WOW: destination == %A" outgoingUnfundedChannel.FundingDestination)
+                Console.WriteLine(sprintf "WOW: ie destination == %s" (outgoingUnfundedChannel.FundingDestination.ToString()))
+                let witScriptAddress = outgoingUnfundedChannel.FundingDestination.ScriptPubKey.GetWitScriptAddress network
+                let witScriptAddressString = witScriptAddress.ToString()
+                Console.WriteLine(sprintf "WOW: destination address == %A" witScriptAddress)
+                Console.WriteLine(sprintf "WOW: which as a string is == %s" witScriptAddressString)
                 let hasRightDestination (indexedOutput: IndexedTxOut): bool =
+                    Console.WriteLine(sprintf "WOW: checking output which spends to %A" indexedOutput.TxOut.ScriptPubKey)
+                    Console.WriteLine(sprintf "WOW: ie %s" (indexedOutput.TxOut.ScriptPubKey.ToString()))
                     indexedOutput.TxOut.IsTo outgoingUnfundedChannel.FundingDestination
                 let matchingOutput: IndexedTxOut =
                     Seq.find hasRightDestination indexedOutputs

@@ -71,7 +71,11 @@ module Config =
         | RunMode.RegTest _ -> NBitcoin.Network.RegTest
         | _ -> NBitcoin.Network.Main
 
-    let LitecoinNet = NBitcoin.Altcoins.Litecoin.Instance.Mainnet
+    let LitecoinNet() =
+        match GetRunMode() with
+        | RunMode.RegTest _ -> NBitcoin.Altcoins.Litecoin.Instance.Regtest
+        | _ -> NBitcoin.Altcoins.Litecoin.Instance.Mainnet
+
     let EtcNet = Nethereum.Signer.Chain.ClassicMainNet
     let EthNet = Nethereum.Signer.Chain.MainNet
 

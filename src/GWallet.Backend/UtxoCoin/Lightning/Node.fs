@@ -115,7 +115,12 @@ type IncomingChannelEvent =
 
 type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) =
     member internal self.OutgoingUnfundedChannel = outgoingUnfundedChannel
+    member self.Currency: Currency =
+        (outgoingUnfundedChannel.ConnectedChannel.Account :> IAccount).Currency
+    member self.Network: Network = UtxoCoin.Account.GetNetwork self.Currency
     member self.FundingDestination: IDestination = outgoingUnfundedChannel.FundingDestination
+    member self.FundingDestinationString: string = 
+        (self.FundingDestination.ScriptPubKey.GetWitScriptAddress self.Network).ToString()
     member self.TransferAmount: TransferAmount = outgoingUnfundedChannel.TransferAmount
 
     member public self.Accept (fundingTransactionHex: string)
