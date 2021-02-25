@@ -573,7 +573,7 @@ type WalletInstance private (password: string, channelStore: ChannelStore, node:
 
 [<TestFixture>]
 type LN() =
-    do Config.SetRunModeTesting()
+    do Config.SetRunModeRegTest()
 
     let FundeeAccountsPrivateKey =
         // Note: The key needs to be hard-coded, as opposed to randomly
