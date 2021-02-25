@@ -120,7 +120,7 @@ type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) 
     member self.Network: Network = UtxoCoin.Account.GetNetwork self.Currency
     member self.FundingDestination: IDestination = outgoingUnfundedChannel.FundingDestination
     member self.FundingDestinationString: string = 
-        (self.FundingDestination.ScriptPubKey.GetWitScriptAddress self.Network).ToString()
+        (self.FundingDestination.ScriptPubKey.GetDestinationAddress self.Network).ToString()
     member self.TransferAmount: TransferAmount = outgoingUnfundedChannel.TransferAmount
 
     member public self.Accept (fundingTransactionHex: string)
