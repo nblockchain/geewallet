@@ -161,40 +161,23 @@ type ChannelStore(account: IUtxoAccount) =
         let channelStore = ChannelStore account
         let network = channelStore.Network
         let nodeMasterPrivKey =
-            Console.WriteLine(sprintf "WOW: nodeMasterPrivKeyString == %s" nodeMasterPrivKeyString)
-            Console.WriteLine(sprintf "WOW: also == %A" nodeMasterPrivKeyString)
-            Console.WriteLine(sprintf "WOW: network == %A" network)
-            let wow = ExtKey.Parse(nodeMasterPrivKeyString, network)
-            (*
-            Console.WriteLine(sprintf "WOW: got the ExtKey")
             NodeMasterPrivKey.Parse nodeMasterPrivKeyString network
-            *)
-            NodeMasterPrivKey wow
-        Console.WriteLine(sprintf "WOW: got the NodeMasterPrivKey == %s" (nodeMasterPrivKey.ToString network))
         let encryptedNodeMasterPrivKey =
             let privateExtKey = nodeMasterPrivKey.RawExtKey()
-            Console.WriteLine(sprintf "WOW: got the private ext key")
             let privateKey = privateExtKey.PrivateKey
-            Console.WriteLine(sprintf "WOW: got the private key")
             let publicExtKey = privateExtKey.Neuter()
-            Console.WriteLine(sprintf "WOW: got the public ext key")
             let secret = privateKey.GetBitcoinSecret network
-            Console.WriteLine(sprintf "WOW: got the secret")
             let encryptedSecret =
                 secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
-            Console.WriteLine(sprintf "WOW: got the encrypted secret")
             let encryptedSecretString = encryptedSecret.ToWif()
-            Console.WriteLine(sprintf "WOW: got the encrypted secret string")
             let publicExtKeyString = publicExtKey.ToString network
             String.concat "\n" [encryptedSecretString; publicExtKeyString]
-        Console.WriteLine(sprintf "WOW: got the encrypted node master priv key")
         if not channelStore.ChannelDir.Exists then
             channelStore.ChannelDir.Create()
         let path = channelStore.NodeMasterPrivKeyFileName()
         if File.Exists path then
             failwith "channel store for this account has already been initialised"
         File.WriteAllText(path, encryptedNodeMasterPrivKey)
-        Console.WriteLine(sprintf "WOW: wrote the output")
         channelStore
 
     member internal self.GetNodeMasterPrivKey (password: string): string =
@@ -206,23 +189,16 @@ type ChannelStore(account: IUtxoAccount) =
             | :? ReadOnlyUtxoAccount ->
                 let path = self.NodeMasterPrivKeyFileName()
                 let encryptedNodeMasterPrivKey = File.ReadAllText path
-                Console.WriteLine(sprintf "WOW: encryptedNodeMasterPrivKey == %A" encryptedNodeMasterPrivKey)
                 let encryptedSecretString, publicExtKeyString =
                     match List.ofSeq <| encryptedNodeMasterPrivKey.Split('\n') with
                         | [encryptedSecretString; publicExtKeyString] ->
                             encryptedSecretString, publicExtKeyString
                         | _ -> failwith "malformed node master key file"
-                Console.WriteLine(sprintf "WOW: encryptedSecretString == %A" encryptedSecretString)
-                Console.WriteLine(sprintf "WOW: publicExtKeyString == %A" publicExtKeyString)
                 let encryptedSecret =
                     BitcoinEncryptedSecretNoEC(encryptedSecretString, self.Network)
-                Console.WriteLine(sprintf "WOW: encryptedSecret == %A" encryptedSecret)
                 let privateKey = encryptedSecret.GetKey password
-                Console.WriteLine(sprintf "WOW: privateKey == %A" privateKey)
                 let publicExtKey = ExtPubKey.Parse(publicExtKeyString, self.Network)
-                Console.WriteLine(sprintf "WOW: publicExtKey == %A" publicExtKey)
                 let privateExtKey = ExtKey(publicExtKey, privateKey)
-                Console.WriteLine(sprintf "WOW: privateExtKey == %A" privateExtKey)
                 NodeMasterPrivKey privateExtKey
             | _ -> failwith "invalid account type"
         nodeMasterPrivKey.ToString self.Network

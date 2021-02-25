@@ -406,7 +406,6 @@ module Account =
                                  (password: string) =
         let currency = (account :> IAccount).Currency
         let network = GetNetwork currency
-        Console.WriteLine(sprintf "WOW: signing tx for destination: %A" destination)
         let destAddress = BitcoinAddress.Create (destination, network)
         SignTransactionForDestination
             account
