@@ -90,7 +90,6 @@
     <Compile Include="UtxoCoin\Lightning\ForceCloseTransaction.fs" />
     <Compile Include="UtxoCoin\Lightning\BreachDataManagement.fs" />
     <Compile Include="UtxoCoin\Lightning\Watcher\AddPunishmentTxRequest.fs" />
-    <Compile Include="UtxoCoin\Lightning\Watcher\AddPunishmentTxResponse.fs" />
     <Compile Include="UtxoCoin\Lightning\Watcher\TowerClient.fs" />
     <Compile Include="UtxoCoin\Lightning\Network.fs" />
     <Compile Include="UtxoCoin\Lightning\MsgStream.fs" />

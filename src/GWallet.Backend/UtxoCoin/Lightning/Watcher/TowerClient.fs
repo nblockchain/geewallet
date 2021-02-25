@@ -46,7 +46,7 @@ type internal TowerClient =
                         CommitmentTxHash = commitments.RemoteCommit.TxId.Value.ToString() 
                     }
 
-                do! self.AddPunishmentTx towerRequest |> Async.Ignore //for now we ignore the response beacuse we have no way of handling it
+                do! self.AddPunishmentTx towerRequest
             with 
             | ex -> 
                 if not quietMode then
@@ -54,7 +54,7 @@ type internal TowerClient =
         }
 
 
-    member private self.AddPunishmentTx(request: AddPunishmentTxRequest): Async<AddPunishmentTxResponse> =
+    member private self.AddPunishmentTx(request: AddPunishmentTxRequest): Async<unit> =
         async {
             use client = new TcpClient()
 
@@ -66,7 +66,7 @@ type internal TowerClient =
             jsonRpc.StartListening()
 
             return!
-                jsonRpc.InvokeAsync<AddPunishmentTxResponse>("add_punishment_tx", request)
+                jsonRpc.NotifyAsync("add_punishment_tx", request)
                 |> Async.AwaitTask
         }
 
