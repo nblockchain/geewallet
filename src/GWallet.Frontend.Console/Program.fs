@@ -288,7 +288,7 @@ let UpdateFeeIfNecessary (channelStore: ChannelStore)
 }
 
 let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>> = seq {
-    let normalUtxoAccounts = accounts.OfType<UtxoCoin.NormalUtxoAccount>()
+    let normalUtxoAccounts = accounts.OfType<UtxoCoin.IUtxoAccount>()
     for account in normalUtxoAccounts do
         let maybeUsdValue =
             FiatValueEstimation.UsdValue (account :> IAccount).Currency
