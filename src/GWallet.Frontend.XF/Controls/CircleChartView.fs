@@ -373,51 +373,65 @@ type CircleChartView () =
        let halfWidth = float32 width / 2.f
        let halfHeight = float32 height / 2.f
        let radius = Math.Min(halfWidth, halfHeight) |> float
-
        let total = items.Sum(fun i -> i.Percentage) |> float
 
-       let mutable startAngle = 0.
-       let mutable endAngle = 0.
        let x = halfWidth |> float
        let y = halfHeight |> float
 
        let converter = PathGeometryConverter()
-       let nfi = new NumberFormatInfo( NumberDecimalSeparator = ".");
-       let gridLayout = new Grid()
+       let nfi = NumberFormatInfo( NumberDecimalSeparator = ".");
+       let gridLayout = Grid()
 
-       for item in items do
-           let sliceAngle = Math.Ceiling(degree360 * item.Percentage / total)
+       if items.Count() = 1 then
+            // workaround -> create a circle instead 
+            // https://github.com/xamarin/Xamarin.Forms/issues/13893
+            let size =  radius * 2.
+            let pieCircle = Ellipse (HorizontalOptions = LayoutOptions.Center, 
+                                    VerticalOptions = LayoutOptions.Center, 
+                                    HeightRequest = size, 
+                                    WidthRequest = size,
+                                    Fill = SolidColorBrush(items.ElementAt(0).Color))
+            gridLayout.Children.Add pieCircle
+       else
+            let rec addSliceToView items startAngle =
+                match items with
+                    | [] ->
+                        ()
+                    | item::tail ->
+                        let sliceAngle = Math.Ceiling(degree360 * item.Percentage / total)
+                        let endAngle = sliceAngle + startAngle
 
-           startAngle <- endAngle 
-           endAngle <- startAngle + sliceAngle
+                        let x1 = x + (radius * Math.Cos(Math.PI * startAngle / degree180))
+                        let y1 = y + (radius * Math.Sin(Math.PI * startAngle / degree180))          
+                        let x2 = x + (radius * Math.Cos(Math.PI * endAngle / degree180))
+                        let y2 = y + (radius * Math.Sin(Math.PI * endAngle / degree180))
+                        
+                        let arc =
+                            if  sliceAngle > 180. then largeArc
+                            else smallArc                            
 
-           let x1 = x + (radius * Math.Cos(Math.PI * startAngle / degree180))
-           let y1 = y + (radius * Math.Sin(Math.PI * startAngle / degree180))          
-           let x2 = x + (radius * Math.Cos(Math.PI * endAngle / degree180))
-           let y2 = y + (radius * Math.Sin(Math.PI * endAngle / degree180))
+                        let path = String.Format(shapesPath, x.ToString(nfi), 
+                                        y.ToString(nfi), radius.ToString(nfi), 
+                                        x1.ToString(nfi), y1.ToString(nfi), 
+                                        x2.ToString(nfi), y2.ToString(nfi), 
+                                        arc)
+                        let pathGeometry = converter.ConvertFromInvariantString(path) :?> Geometry
+                        let helperView = Path(Data = pathGeometry, Fill = SolidColorBrush(item.Color))  
+                        gridLayout.Children.Add helperView
 
-           let mutable arc = smallArc
-
-           if sliceAngle > 180.0 
-           then arc <- largeArc
-
-           let path = String.Format(shapesPath, x.ToString(nfi), y.ToString(nfi), radius.ToString(nfi), x1.ToString(nfi), y1.ToString(nfi), x2.ToString(nfi), y2.ToString(nfi), arc)
-       
-           let helperView = new Path()
-           helperView.Data <- converter.ConvertFromInvariantString(path) :?> Geometry
-           helperView.Fill <- new SolidColorBrush(item.Color)
-           gridLayout.Children.Add helperView    
-           |> ignore
+                        addSliceToView tail endAngle
+                   
+            let itemsList = items |> Seq.toList
+            addSliceToView itemsList 0.
 
        self.Content <- gridLayout :> View
-       ()
+       ()         
 
-    member private self.CreateAndSetImageSource (imageSouce : ImageSource) =
-        let image = new Image()
-        image.HorizontalOptions <- LayoutOptions.FillAndExpand
-        image.VerticalOptions <- LayoutOptions.FillAndExpand
-        image.Aspect <- Aspect.AspectFit
-        image.Source <- imageSouce
+    member private self.CreateAndSetImageSource (imageSource : ImageSource) =
+        let image = Image(HorizontalOptions = LayoutOptions.FillAndExpand,
+                            VerticalOptions = LayoutOptions.FillAndExpand,
+                            Aspect = Aspect.AspectFit,
+                            Source = imageSource)
         self.Content <- image
 
     member self.Draw () =
