@@ -89,7 +89,10 @@
     <Compile Include="UtxoCoin\Lightning\ChannelManagement.fs" />
     <Compile Include="UtxoCoin\Lightning\ForceCloseTransaction.fs" />
     <Compile Include="UtxoCoin\Lightning\BreachDataManagement.fs" />
+    <Compile Include="UtxoCoin\Lightning\Watcher\TowerUtxoCurrency.fs" />
+    <Compile Include="UtxoCoin\Lightning\Watcher\TowerApiResponseOrError.fs" />
     <Compile Include="UtxoCoin\Lightning\Watcher\AddPunishmentTxRequest.fs" />
+    <Compile Include="UtxoCoin\Lightning\Watcher\GetRewardAddressResponse.fs" />
     <Compile Include="UtxoCoin\Lightning\Watcher\TowerClient.fs" />
     <Compile Include="UtxoCoin\Lightning\Network.fs" />
     <Compile Include="UtxoCoin\Lightning\MsgStream.fs" />
