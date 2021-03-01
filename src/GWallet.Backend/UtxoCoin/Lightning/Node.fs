@@ -493,18 +493,38 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 let! feeEstimator = FeeEstimator.Create currency
                 return feeEstimator.FeeRatePerKw
             }
-            let recoveryTransactionOpt =
+            let transactionBuilderOpt =
                 ForceCloseFundsRecovery.tryGetFundsFromLocalCommitmentTx
                     commitments
                     channelPrivKeys
                     network
                     commitmentTx
-                    targetAddress
-                    feeRate
-                    requiresCpfp
-            match recoveryTransactionOpt with
-            | Some recoveryTransaction -> return Some <| recoveryTransaction.ToHex()
+            match transactionBuilderOpt with
             | None -> return None
+            | Some transactionBuilder ->
+                transactionBuilder.SendAll targetAddress |> ignore
+                let fee =
+                    let feeRate = feeRate.AsNBitcoinFeeRate()
+                    let recoveryTxFee = transactionBuilder.EstimateFees feeRate
+                    if requiresCpfp then
+                        let requiredCommitmentTxFee = feeRate.GetFee commitmentTx
+                        let actualCommitmentTxFee =
+                            let output =
+                                Seq.fold
+                                    (fun (total: Money) (txOut: TxOut) -> total + txOut.Value)
+                                    (Money(0m, MoneyUnit.BTC))
+                                    commitmentTx.Outputs
+                            let input = commitments.FundingScriptCoin.Amount
+                            input - output
+                        if requiredCommitmentTxFee > actualCommitmentTxFee then
+                            recoveryTxFee + requiredCommitmentTxFee - actualCommitmentTxFee
+                        else
+                            recoveryTxFee
+                    else
+                        recoveryTxFee
+                transactionBuilder.SendFees fee |> ignore
+                let recoveryTransaction = transactionBuilder.BuildTransaction true
+                return Some <| recoveryTransaction.ToHex() 
         }
         return recoveryTransactionStringOpt
     }
@@ -560,18 +580,39 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
             let! feeEstimator = FeeEstimator.Create currency
             return feeEstimator.FeeRatePerKw
         }
-        let recoveryTxOpt =
+        let transactionBuilderOpt =
             ForceCloseFundsRecovery.tryGetFundsFromRemoteCommitmentTx
                 commitments
                 channelPrivKeys
                 network
                 closingTx
-                targetAddress
-                feeRate
-                requiresCpfp
-        match recoveryTxOpt with
-        | Some recoveryTx -> return Some <| recoveryTx.ToHex()
+        match transactionBuilderOpt with
         | None -> return None
+        | Some transactionBuilder ->
+            transactionBuilder.SendAll targetAddress |> ignore
+            let fee =
+                let feeRate = feeRate.AsNBitcoinFeeRate()
+                let recoveryTxFee = transactionBuilder.EstimateFees feeRate
+                if requiresCpfp then
+                    let requiredCommitmentTxFee = feeRate.GetFee closingTx
+                    let actualCommitmentTxFee =
+                        let output =
+                            Seq.fold
+                                (fun (total: Money) (txOut: TxOut) -> total + txOut.Value)
+                                (Money(0m, MoneyUnit.BTC))
+                                closingTx.Outputs
+                        let input = commitments.FundingScriptCoin.Amount
+                        input - output
+                    if requiredCommitmentTxFee > actualCommitmentTxFee then
+                        recoveryTxFee + requiredCommitmentTxFee - actualCommitmentTxFee
+                    else
+                        recoveryTxFee
+                else
+                    recoveryTxFee
+            transactionBuilder.SendFees fee |> ignore
+
+            let recoveryTx = transactionBuilder.BuildTransaction true
+            return Some <| recoveryTx.ToHex()
     }
 
 module public Connection =
