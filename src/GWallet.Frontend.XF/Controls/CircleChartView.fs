@@ -375,51 +375,64 @@ type CircleChartView () =
        let radius = Math.Min(halfWidth, halfHeight) |> float
        let total = items.Sum(fun i -> i.Percentage) |> float
 
-       let x = halfWidth |> float
-       let y = halfHeight |> float
+       let x = float halfWidth
+       let y = float halfHeight
 
-       let converter = PathGeometryConverter()
-       let nfi = NumberFormatInfo( NumberDecimalSeparator = ".");
-       let gridLayout = Grid()
+       let converter = PathGeometryConverter ()
+       let nfi = NumberFormatInfo (NumberDecimalSeparator = ".")
+       let gridLayout = Grid ()
 
        if items.Count() = 1 then
-            // workaround -> create a circle instead 
+            // this is a workaround (to create a circle instead) to a Xamarin.Forms' Shapes bug:
             // https://github.com/xamarin/Xamarin.Forms/issues/13893
             let size =  radius * 2.
-            let pieCircle = Ellipse (HorizontalOptions = LayoutOptions.Center, 
-                                    VerticalOptions = LayoutOptions.Center, 
-                                    HeightRequest = size, 
-                                    WidthRequest = size,
-                                    Fill = SolidColorBrush(items.ElementAt(0).Color))
+            let color = (items.ElementAt 0).Color
+            let pieCircle =
+                Ellipse (
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    HeightRequest = size,
+                    WidthRequest = size,
+                    Fill = SolidColorBrush color
+                )
             gridLayout.Children.Add pieCircle
        else
             let rec addSliceToView items startAngle =
                 match items with
-                    | [] ->
-                        ()
-                    | item::tail ->
-                        let sliceAngle = Math.Ceiling(degree360 * item.Percentage / total)
-                        let endAngle = sliceAngle + startAngle
+                | [] ->
+                    ()
+                | item::tail ->
+                    let sliceAngle = Math.Ceiling(degree360 * item.Percentage / total)
+                    let endAngle = sliceAngle + startAngle
 
-                        let x1 = x + (radius * Math.Cos(Math.PI * startAngle / degree180))
-                        let y1 = y + (radius * Math.Sin(Math.PI * startAngle / degree180))          
-                        let x2 = x + (radius * Math.Cos(Math.PI * endAngle / degree180))
-                        let y2 = y + (radius * Math.Sin(Math.PI * endAngle / degree180))
+                    let x1 = x + (radius * Math.Cos(Math.PI * startAngle / degree180))
+                    let y1 = y + (radius * Math.Sin(Math.PI * startAngle / degree180))
+                    let x2 = x + (radius * Math.Cos(Math.PI * endAngle / degree180))
+                    let y2 = y + (radius * Math.Sin(Math.PI * endAngle / degree180))
                         
-                        let arc =
-                            if  sliceAngle > 180. then largeArc
-                            else smallArc                            
+                    let arc =
+                        if sliceAngle > 180. then
+                            largeArc
+                        else
+                            smallArc
 
-                        let path = String.Format(shapesPath, x.ToString(nfi), 
-                                        y.ToString(nfi), radius.ToString(nfi), 
-                                        x1.ToString(nfi), y1.ToString(nfi), 
-                                        x2.ToString(nfi), y2.ToString(nfi), 
-                                        arc)
-                        let pathGeometry = converter.ConvertFromInvariantString(path) :?> Geometry
-                        let helperView = Path(Data = pathGeometry, Fill = SolidColorBrush(item.Color))  
-                        gridLayout.Children.Add helperView
+                    let path =
+                        String.Format (
+                            shapesPath,
+                            x.ToString nfi,
+                            y.ToString nfi,
+                            radius.ToString nfi,
+                            x1.ToString nfi,
+                            y1.ToString nfi,
+                            x2.ToString nfi,
+                            y2.ToString nfi,
+                            arc
+                        )
+                    let pathGeometry = converter.ConvertFromInvariantString path :?> Geometry
+                    let helperView = Path (Data = pathGeometry, Fill = SolidColorBrush item.Color)
+                    gridLayout.Children.Add helperView
 
-                        addSliceToView tail endAngle
+                    addSliceToView tail endAngle
                    
             let itemsList = items |> Seq.toList
             addSliceToView itemsList 0.
@@ -428,10 +441,13 @@ type CircleChartView () =
        ()         
 
     member private self.CreateAndSetImageSource (imageSource : ImageSource) =
-        let image = Image(HorizontalOptions = LayoutOptions.FillAndExpand,
-                            VerticalOptions = LayoutOptions.FillAndExpand,
-                            Aspect = Aspect.AspectFit,
-                            Source = imageSource)
+        let image =
+            Image (
+                HorizontalOptions = LayoutOptions.FillAndExpand,
+                VerticalOptions = LayoutOptions.FillAndExpand,
+                Aspect = Aspect.AspectFit,
+                Source = imageSource
+            )
         self.Content <- image
 
     member self.Draw () =
@@ -460,10 +476,9 @@ type CircleChartView () =
             match nonZeroItems with
             | None -> ()
             | Some items when items.Any() ->
-                // let's be careful about enabling the Pie for all platforms in the future (instead of Android
-                // exclusively) because there are bugs in macOS & GTK...
+                // GTK doesn't have a Shapes implementation
                 if Device.RuntimePlatform = Device.GTK then
-                    self.DrawSkiaPieFallback width height items
+                    self.DrawSvgBasedPie width height items
                 else
                     self.DrawShapesBasedPie width height items
             | Some _ ->
