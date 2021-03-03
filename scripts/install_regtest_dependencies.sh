@@ -4,7 +4,7 @@ set -eux
 # Set up variables needed for the regtest test
 
 # This is needed to find lnd in PATH
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin:/usr/local/electrs
+export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
 
 # Install bitcoin core
 apt install -y curl tar gzip
