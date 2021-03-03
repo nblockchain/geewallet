@@ -66,7 +66,7 @@ type internal TowerClient =
             jsonRpc.StartListening()
 
             return!
-                jsonRpc.NotifyAsync("add_punishment_tx", request)
+                jsonRpc.InvokeAsync("add_punishment_tx", request)
                 |> Async.AwaitTask
         }
 
