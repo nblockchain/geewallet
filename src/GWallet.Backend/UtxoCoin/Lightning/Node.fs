@@ -145,6 +145,22 @@ type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) 
             with get(): ChannelIdentifier =
                 self.OutgoingUnfundedChannel.ChannelId
 
+module Util =
+    let estimateCpfpFee (transactionBuilder: TransactionBuilder)
+                        (feeRate: FeeRatePerKw)
+                        (parentTx: Transaction)
+                        (parentScriptCoin: ScriptCoin)
+                            : Money =
+        let feeRate = feeRate.AsNBitcoinFeeRate()
+        let childTxFee = transactionBuilder.EstimateFees feeRate
+        let requiredParentTxFee = feeRate.GetFee parentTx
+        let actualParentTxFee =
+            parentTx.GetFee [| parentScriptCoin :> ICoin |]
+        if requiredParentTxFee > actualParentTxFee then
+            childTxFee + requiredParentTxFee - actualParentTxFee
+        else
+            childTxFee
+
 type Node internal (channelStore: ChannelStore, transportListener: TransportListener) =
     member val ChannelStore = channelStore
     member val internal TransportListener = transportListener
@@ -493,18 +509,28 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
                 let! feeEstimator = FeeEstimator.Create currency
                 return feeEstimator.FeeRatePerKw
             }
-            let recoveryTransactionOpt =
+            let transactionBuilderOpt =
                 ForceCloseFundsRecovery.tryGetFundsFromLocalCommitmentTx
                     commitments
                     channelPrivKeys
                     network
                     commitmentTx
-                    targetAddress
-                    feeRate
-                    requiresCpfp
-            match recoveryTransactionOpt with
-            | Some recoveryTransaction -> return Some <| recoveryTransaction.ToHex()
+            match transactionBuilderOpt with
             | None -> return None
+            | Some transactionBuilder ->
+                transactionBuilder.SendAll targetAddress |> ignore
+                let fee =
+                    if requiresCpfp then
+                        Util.estimateCpfpFee
+                            transactionBuilder
+                            feeRate
+                            commitmentTx
+                            commitments.FundingScriptCoin
+                    else
+                        transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
+                transactionBuilder.SendFees fee |> ignore
+                let recoveryTransaction = transactionBuilder.BuildTransaction true
+                return Some <| recoveryTransaction.ToHex()
         }
         return recoveryTransactionStringOpt
     }
@@ -560,18 +586,28 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
             let! feeEstimator = FeeEstimator.Create currency
             return feeEstimator.FeeRatePerKw
         }
-        let recoveryTxOpt =
+        let transactionBuilderOpt =
             ForceCloseFundsRecovery.tryGetFundsFromRemoteCommitmentTx
                 commitments
                 channelPrivKeys
                 network
                 closingTx
-                targetAddress
-                feeRate
-                requiresCpfp
-        match recoveryTxOpt with
-        | Some recoveryTx -> return Some <| recoveryTx.ToHex()
+        match transactionBuilderOpt with
         | None -> return None
+        | Some transactionBuilder ->
+            transactionBuilder.SendAll targetAddress |> ignore
+            let fee =
+                if requiresCpfp then
+                    Util.estimateCpfpFee
+                        transactionBuilder
+                        feeRate
+                        closingTx
+                        commitments.FundingScriptCoin
+                else
+                    transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
+            transactionBuilder.SendFees fee |> ignore
+            let recoveryTx = transactionBuilder.BuildTransaction true
+            return Some <| recoveryTx.ToHex()
     }
 
 module public Connection =
