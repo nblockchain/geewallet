@@ -145,6 +145,22 @@ type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) 
             with get(): ChannelIdentifier =
                 self.OutgoingUnfundedChannel.ChannelId
 
+module Util =
+    let estimateCpfpFee (transactionBuilder: TransactionBuilder)
+                        (feeRate: FeeRatePerKw)
+                        (parentTx: Transaction)
+                        (parentScriptCoin: ScriptCoin)
+                            : Money =
+        let feeRate = feeRate.AsNBitcoinFeeRate()
+        let childTxFee = transactionBuilder.EstimateFees feeRate
+        let requiredParentTxFee = feeRate.GetFee parentTx
+        let actualParentTxFee =
+            parentTx.GetFee [| parentScriptCoin :> ICoin |]
+        if requiredParentTxFee > actualParentTxFee then
+            childTxFee + requiredParentTxFee - actualParentTxFee
+        else
+            childTxFee
+
 type Node internal (channelStore: ChannelStore, transportListener: TransportListener) =
     member val ChannelStore = channelStore
     member val internal TransportListener = transportListener
@@ -504,24 +520,14 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
             | Some transactionBuilder ->
                 transactionBuilder.SendAll targetAddress |> ignore
                 let fee =
-                    let feeRate = feeRate.AsNBitcoinFeeRate()
-                    let recoveryTxFee = transactionBuilder.EstimateFees feeRate
                     if requiresCpfp then
-                        let requiredCommitmentTxFee = feeRate.GetFee commitmentTx
-                        let actualCommitmentTxFee =
-                            let output =
-                                Seq.fold
-                                    (fun (total: Money) (txOut: TxOut) -> total + txOut.Value)
-                                    (Money(0m, MoneyUnit.BTC))
-                                    commitmentTx.Outputs
-                            let input = commitments.FundingScriptCoin.Amount
-                            input - output
-                        if requiredCommitmentTxFee > actualCommitmentTxFee then
-                            recoveryTxFee + requiredCommitmentTxFee - actualCommitmentTxFee
-                        else
-                            recoveryTxFee
+                        Util.estimateCpfpFee
+                            transactionBuilder
+                            feeRate
+                            commitmentTx
+                            commitments.FundingScriptCoin
                     else
-                        recoveryTxFee
+                        transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
                 transactionBuilder.SendFees fee |> ignore
                 let recoveryTransaction = transactionBuilder.BuildTransaction true
                 return Some <| recoveryTransaction.ToHex() 
@@ -591,26 +597,15 @@ type Node internal (channelStore: ChannelStore, transportListener: TransportList
         | Some transactionBuilder ->
             transactionBuilder.SendAll targetAddress |> ignore
             let fee =
-                let feeRate = feeRate.AsNBitcoinFeeRate()
-                let recoveryTxFee = transactionBuilder.EstimateFees feeRate
                 if requiresCpfp then
-                    let requiredCommitmentTxFee = feeRate.GetFee closingTx
-                    let actualCommitmentTxFee =
-                        let output =
-                            Seq.fold
-                                (fun (total: Money) (txOut: TxOut) -> total + txOut.Value)
-                                (Money(0m, MoneyUnit.BTC))
-                                closingTx.Outputs
-                        let input = commitments.FundingScriptCoin.Amount
-                        input - output
-                    if requiredCommitmentTxFee > actualCommitmentTxFee then
-                        recoveryTxFee + requiredCommitmentTxFee - actualCommitmentTxFee
-                    else
-                        recoveryTxFee
+                    Util.estimateCpfpFee
+                        transactionBuilder
+                        feeRate
+                        closingTx
+                        commitments.FundingScriptCoin
                 else
-                    recoveryTxFee
+                    transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
             transactionBuilder.SendFees fee |> ignore
-
             let recoveryTx = transactionBuilder.BuildTransaction true
             return Some <| recoveryTx.ToHex()
     }
