@@ -181,7 +181,7 @@ type CircleChartView () =
             failwith "chart data should not be empty to draw a pie"
 
         // WORKAROUND for Android issue about chart resizing to too big after coming back from ReceivePage
-        // TODO: report this as a bug to Xamarin.Forms or SkiaSharp!
+        //            (see https://github.com/xamarin/Xamarin.Forms/issues/8818 )
         let workaroundLaunched =
             // because in platforms where you can resize the app, this workaround makes a mess
             // (and I've only reproduced the bug anyway with iOS&Android)
