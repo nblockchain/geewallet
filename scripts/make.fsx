@@ -290,6 +290,7 @@ let RunTests (suite: string) =
         [
             "G2GChannelOpening"
             "G2GMonoHopUnidirectionalPayments"
+            "G2GChannelClosing"
         ]
 
     let runTwoProcessTest testAssembly testName =
