@@ -33,9 +33,7 @@ type CircleChartView () =
     let degree360 = 360.
     let degree180 = 180.
     let degree90 = 90.
-    let smallArc = "0 0"
-    let largeArc = "0 1"
-    let shapesPath = @"M{0},{1}  L{3},{4}  A{2},{2} {7},1 {5},{6} z"
+    let shapesPath = @"M{0},{1} A{2},{2} 0 {3} 1 {4} {5} L {6} {7}"
 
     let mutable firstWidth = None
     let mutable firstHeight = None
@@ -397,42 +395,43 @@ type CircleChartView () =
                 )
             gridLayout.Children.Add pieCircle
        else
-            let rec addSliceToView items startAngle =
+            let rec addSliceToView items cumulativePercent =
                 match items with
                 | [] ->
                     ()
                 | item::tail ->
-                    let sliceAngle = Math.Ceiling(degree360 * item.Percentage / total)
-                    let endAngle = sliceAngle + startAngle
+                    let startCoordinatesX = x + (radius * Math.Cos(2.0 * Math.PI * cumulativePercent))
+                    let startCoordinatesY = y + (radius * Math.Sin(2.0 * Math.PI * cumulativePercent))
 
-                    let x1 = x + (radius * Math.Cos(Math.PI * startAngle / degree180))
-                    let y1 = y + (radius * Math.Sin(Math.PI * startAngle / degree180))
-                    let x2 = x + (radius * Math.Cos(Math.PI * endAngle / degree180))
-                    let y2 = y + (radius * Math.Sin(Math.PI * endAngle / degree180))
-                        
+                    let endPercentage = item.Percentage + cumulativePercent
+
+                    let endCoordinatesX = x + (radius * Math.Cos(2.0 * Math.PI * endPercentage))
+                    let endCoordinatesY = y + (radius * Math.Sin(2.0 * Math.PI * endPercentage))
+                    
                     let arc =
-                        if sliceAngle > 180. then
-                            largeArc
+                        if item.Percentage > 0.5 then
+                            "1"
                         else
-                            smallArc
-
+                            "0"
+                    
                     let path =
                         String.Format (
                             shapesPath,
-                            x.ToString nfi,
-                            y.ToString nfi,
+                            startCoordinatesX.ToString nfi,
+                            startCoordinatesY.ToString nfi,
                             radius.ToString nfi,
-                            x1.ToString nfi,
-                            y1.ToString nfi,
-                            x2.ToString nfi,
-                            y2.ToString nfi,
-                            arc
-                        )
+                            arc,
+                            endCoordinatesX.ToString nfi,
+                            endCoordinatesY.ToString nfi,
+                            x.ToString nfi,
+                            y.ToString nfi
+                        )                    
+
                     let pathGeometry = converter.ConvertFromInvariantString path :?> Geometry
                     let helperView = Path (Data = pathGeometry, Fill = SolidColorBrush item.Color)
                     gridLayout.Children.Add helperView
 
-                    addSliceToView tail endAngle
+                    addSliceToView tail endPercentage
                    
             let itemsList = items |> Seq.toList
             addSliceToView itemsList 0.
