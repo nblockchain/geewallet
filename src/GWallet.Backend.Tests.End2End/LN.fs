@@ -109,7 +109,10 @@ type LN() =
         | Ok _ -> ()
         | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
 
-        return ()
+        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+        match channelInfo.Status with
+        | ChannelStatus.Closed -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closed, got %A" status)
     }
 
     [<Category "G2G_ChannelClosingAfterJustOpening_Fundee">]
@@ -135,7 +138,10 @@ type LN() =
         | Ok _ -> ()
         | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
 
-        return ()
+        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+        match channelInfo.Status with
+        | ChannelStatus.Closed -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closed, got %A" status)
     }
 
     [<Category "G2G_MonoHopUnidirectionalPayments_Funder">]
@@ -318,7 +324,10 @@ type LN() =
         | Ok _ -> ()
         | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
 
-        return ()
+        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+        match channelInfo.Status with
+        | ChannelStatus.Closed -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closed, got %A" status)
     }
 
 
@@ -372,7 +381,10 @@ type LN() =
         | Ok _ -> ()
         | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
 
-        return ()
+        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+        match channelInfo.Status with
+        | ChannelStatus.Closed -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closed, got %A" status)
     }
 
     [<Test>]
@@ -439,7 +451,10 @@ type LN() =
         | Ok _ -> ()
         | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
 
-        return ()
+        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+        match channelInfo.Status with
+        | ChannelStatus.Closed -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closed, got %A" status)
     }
 
     [<Test>]
@@ -565,6 +580,9 @@ type LN() =
 
         let! (), () = AsyncExtensions.MixedParallel2 closeChannelTask awaitCloseTask
 
-        return ()
+        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+        match channelInfo.Status with
+        | ChannelStatus.Closed -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closed, got %A" status)
     }
 
