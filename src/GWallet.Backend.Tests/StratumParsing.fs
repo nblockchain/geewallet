@@ -1,11 +1,29 @@
 ﻿namespace GWallet.Backend.Tests
 
+open System
+
 open NUnit.Framework
 
+open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 
 [<TestFixture>]
 type StratumParsing() =
+
+    [<Test>]
+    member __.``deserialize a nonJSON response fails with proper exception so that server can be ignored``() =
+        let errorResponse = String.Empty
+
+        let _ex = Assert.Throws<ServerMisconfiguredException>(fun _ ->
+            StratumClient.Deserialize<BlockchainScriptHashGetBalanceResult> errorResponse |> ignore
+        )
+
+        let errorResponse = "this is not valid json"
+
+        let ex = Assert.Throws<ServerMisconfiguredException>(fun _ ->
+            StratumClient.Deserialize<BlockchainScriptHashGetBalanceResult> errorResponse |> ignore
+        )
+        Assert.That(ex.Message.Contains errorResponse)
 
     [<Test>]
     member __.``deserialize a successful balance response``() =
