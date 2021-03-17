@@ -188,6 +188,13 @@ Some other items that haven't been prioritized include (likely only intelligible
   * Improve stats.json feeding by 1) collecting new stats at bump.fsx time; 2) disable cancellation in non-FAST mode for this dev-env collection. 
 - Use this logo for BTC when lightning support is merged: https://www.reddit.com/r/Bitcoin/comments/dklkyo/released_this_logo_for_public_use_at_lighting/
 - Migrate from Nethereum to Nethermind, especially if Light Client Support is implemented: https://gitcoin.co/issue/NethermindEth/nethermind/32/3818 (https://github.com/NethermindEth/nethermind/issues/32)
-- Stop using Newtonsoft.Json, in favour for an alternative that doesn't need type converters (maybe https://github.com/Tarmil/FSharp.SystemTextJson or https://github.com/realvictorprm/FSharpCompileTimeJson or https://github.com/mausch/Fleece or https://www.nuget.org/packages/Thoth.Json.Net).
+- Stop using Newtonsoft.Json, in favour for an alternative that doesn't need type converters. Possible options (note: don't suggest to put Chiron in this list because its approach is too manual, so it defeats the point of escaping NewtonsoftJson's type converters):
+  * https://github.com/Tarmil/FSharp.SystemTextJson
+  * https://github.com/realvictorprm/FSharpCompileTimeJson
+  * https://github.com/mausch/Fleece
+  * https://www.nuget.org/packages/Thoth.Json.Net
+  * https://vsapronov.github.io/FSharp.Json/
+  * https://github.com/Microsoft/fsharplu/tree/master/FSharpLu.Json
+  * https://github.com/stroiman/JsonFSharp
 - Paranoid-build mode: instead of binary nuget deps, use either git submodules, or [local nugets](https://github.com/mono/mono-addins/issues/73#issuecomment-389343246) (maybe depending on [this RFE](https://github.com/dotnet/sdk/issues/1151) or any workaround mentioned there), or [source-only nugets](https://medium.com/@attilah/source-code-only-nuget-packages-8f34a8fb4738).
 - Maybe replace JsonRpcSharp with https://www.nuget.org/packages/StreamJsonRpc .

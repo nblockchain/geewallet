@@ -423,7 +423,7 @@ match maybeTarget with
             }
         let findProc = Process.SafeExecute (proc, Echo.All)
         if findProc.Output.StdOut.Trim().Length > 0 then
-            Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf detected"
+            Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf detected; use SPrintF1/SPrintF2/... instead"
             Environment.Exit 1
 
     FindOffendingPrintfUsage()

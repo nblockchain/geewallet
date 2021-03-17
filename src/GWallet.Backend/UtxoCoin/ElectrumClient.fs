@@ -17,10 +17,10 @@ module ElectrumClient =
         // last version of the protocol [1] as of electrum's source code [2] at the time of
         // writing this... actually this changes relatively rarely (one of the last changes
         // was for 2.4 version [3] (changes documented here[4])
-        // [1] https://electrumx.readthedocs.io/en/latest/protocol.html
+        // [1] https://electrumx-spesmilo.readthedocs.io/en/latest/protocol.html
         // [2] https://github.com/spesmilo/electrum/blob/master/lib/version.py
         // [3] https://github.com/spesmilo/electrum/commit/118052d81597eff3eb636d242eacdd0437dabdd6
-        // [4] https://electrumx.readthedocs.io/en/latest/protocol-changes.html
+        // [4] https://electrumx-spesmilo.readthedocs.io/en/latest/protocol-changes.html
         let PROTOCOL_VERSION_SUPPORTED = Version "1.4"
 
         async {

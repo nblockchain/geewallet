@@ -249,7 +249,7 @@ module UserInteraction =
                                             maybeUsdValue
                                                 : seq<string> =
         match account.Currency, maybeBalance with
-        | Currency.SAI, Fresh 0m | Currency.DAI, Fresh 0m ->
+        | Currency.SAI, Fresh 0m ->
             Seq.empty
         | _ ->
             DisplayAccountStatusInner accountNumber account maybeBalance maybeUsdValue
@@ -329,9 +329,10 @@ module UserInteraction =
             let usdTotals =
                 seq {
                     for KeyValue(currency, balance) in currenciesToBalances do
-                        match balance with
-                        | None -> ()
-                        | Some(onlineBalance, maybeUsdValue) ->
+                        match currency, balance with
+                        | _, None -> ()
+                        | SAI, Some (0m, _) -> ()
+                        | _, Some (onlineBalance, maybeUsdValue) ->
                             match maybeUsdValue with
                             | NotFresh(NotAvailable) -> yield None, None
                             | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
