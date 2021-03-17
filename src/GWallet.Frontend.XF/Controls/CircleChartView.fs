@@ -3,15 +3,15 @@
 open System
 open System.Text
 open System.Linq
+open System.Globalization
 open System.IO
 
 open Xamarin.Forms
+open Xamarin.Forms.Shapes
 open SkiaSharp
 
 open GWallet.Frontend.XF
 open GWallet.Backend.FSharpUtil.UwpHacks
-open Xamarin.Forms.Shapes
-open System.Globalization
 
 type SegmentInfo = 
     {
