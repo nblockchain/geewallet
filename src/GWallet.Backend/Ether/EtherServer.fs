@@ -180,6 +180,7 @@ module Server =
             "header not found"
             "error: no suitable peers available"
             "missing trie node"
+            "getDeleteStateObject"
         ]
 
     let MaybeRethrowRpcResponseException (ex: Exception): unit =
@@ -188,14 +189,14 @@ module Server =
         | Some rpcResponseEx ->
             if rpcResponseEx.RpcError <> null then
                 match rpcResponseEx.RpcError.Code with
-                | a when a = int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound ->
+                | a when a = int RpcErrorCode.JackOfAllTradesErrorCode ->
                     if not (err32kPossibleMessages.Any (fun msg -> rpcResponseEx.RpcError.Message.Contains msg)) then
                         let possibleErrMessages =
                             SPrintF1 "'%s'" (String.Join("' or '", err32kPossibleMessages))
                         raise <| Exception(
                                      SPrintF3 "Expecting %s in message of a %d code, but got '%s'"
                                              possibleErrMessages
-                                             (int RpcErrorCode.StatePruningNodeOrMissingTrieNodeOrHeaderNotFound)
+                                             (int RpcErrorCode.JackOfAllTradesErrorCode)
                                              rpcResponseEx.RpcError.Message,
                                      rpcResponseEx)
                     else
