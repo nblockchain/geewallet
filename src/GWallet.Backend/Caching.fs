@@ -607,11 +607,12 @@ module Caching =
                 SPrintF5 "%s/%s/%s/raw/%s/%s"
                         glBaseUrl orgName1 projName targetBranch pathToFile
 
-            let gnomeGitLab =
+            // not using GNOME hosting anymore
+            let _gnomeGitLab =
                 SPrintF5 "%s/%s/%s/raw/%s/%s"
                         gnomeBaseUrl orgName2 projName targetBranch pathToFile
 
-            let allUrls = [ gitHub; gitLab; gnomeGitLab ]
+            let allUrls = [ gitHub; gitLab ]
             let allJobs =
                 allUrls |> Seq.map downloadFile
 
