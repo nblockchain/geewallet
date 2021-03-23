@@ -198,7 +198,3 @@ Some other items that haven't been prioritized include (likely only intelligible
   * https://github.com/stroiman/JsonFSharp
 - Paranoid-build mode: instead of binary nuget deps, use either git submodules, or [local nugets](https://github.com/mono/mono-addins/issues/73#issuecomment-389343246) (maybe depending on [this RFE](https://github.com/dotnet/sdk/issues/1151) or any workaround mentioned there, or a config file like it's explained here: https://docs.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior), or [source-only nugets](https://medium.com/@attilah/source-code-only-nuget-packages-8f34a8fb4738).
 - Maybe replace JsonRpcSharp with https://www.nuget.org/packages/StreamJsonRpc .
-- Reduce GitLabCI pipeline times by trying one of these two solutions:
-  * Installing deps in docker image and passing it as an artifact: https://forum.gitlab.com/t/passing-docker-image-between-build-and-test-stage-in-gitlab-runner/2444/7
-  * Try GitLabCI's parent-child pipelines: maybe the parent pipeline that defines the 'trigger' element can have a 'script' element too?
-
