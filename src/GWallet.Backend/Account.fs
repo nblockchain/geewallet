@@ -195,7 +195,7 @@ module Account =
                 ()
         }
 
-    // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
+    // FIXME: broadcasting shouldn't just get N consistent replies from FaultTolerantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
     // broadcast it even if you sent it
     let BroadcastTransaction (trans: SignedTransaction<_>): Async<Uri> =
