@@ -227,10 +227,9 @@ module UserInteraction =
             | NotFresh(NotAvailable) ->
                 yield "Unknown balance (Network unreachable... off-line?)"
             | NotFresh(Cached(balance,time)) ->
-                let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
+                let status = sprintf "Last known balance=[%s] (as of %s) %s"
                                     (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                                     (time |> Formatting.ShowSaneDate)
-                                    Environment.NewLine
                                     (BalanceInUsdString balance maybeUsdValue)
                 yield status
             | Fresh(balance) ->
@@ -248,6 +247,8 @@ module UserInteraction =
                                             maybeUsdValue
                                                 : seq<string> =
         match account.Currency, maybeBalance with
+        | Currency.SAI, NotFresh (Cached (0m, _time)) ->
+            Seq.empty
         | Currency.SAI, Fresh 0m ->
             Seq.empty
         | _ ->
