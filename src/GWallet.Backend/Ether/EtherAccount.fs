@@ -413,3 +413,8 @@ module internal Account =
             }
         ExportUnsignedTransactionToJson unsignedTransaction
 
+    let GetSignedTransactionDetails (signedTransaction: SignedTransaction<'T>): ITransactionDetails =
+        // FIXME: derive the transaction details from the raw transaction so that we can remove the proposal from
+        //        the SignedTransaction type (as it's redundant)
+        signedTransaction.TransactionInfo.Proposal :> ITransactionDetails
+
