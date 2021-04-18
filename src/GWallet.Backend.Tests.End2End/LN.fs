@@ -26,16 +26,6 @@ type LN() =
     let walletToWalletTestPayment1Amount = Money (0.01m, MoneyUnit.BTC)
     let walletToWalletTestPayment2Amount = Money (0.015m, MoneyUnit.BTC)
 
-    let Setup () =
-        async {
-            let! walletInstance = WalletInstance.New None None
-            let! bitcoind = Bitcoind.Start()
-            let! electrumServer = ElectrumServer.Start bitcoind
-            let! lnd = Lnd.Start bitcoind
-
-            return walletInstance, bitcoind, electrumServer, lnd
-        }
-
     let TearDown walletInstance bitcoind electrumServer lnd =
         (walletInstance :> IDisposable).Dispose()
         (lnd :> IDisposable).Dispose()
@@ -44,9 +34,12 @@ type LN() =
 
     let OpenChannelWithFundee (nodeOpt: Option<NodeEndPoint>) =
         async {
-            let! walletInstance, bitcoind, electrumServer, lnd = Setup()
+            let! clientWallet = ClientWalletInstance.New None
+            let! bitcoind = Bitcoind.Start()
+            let! electrumServer = ElectrumServer.Start bitcoind
+            let! lnd = Lnd.Start bitcoind
 
-            do! walletInstance.FundByMining bitcoind lnd
+            do! clientWallet.FundByMining bitcoind lnd
 
             let! lndEndPoint = lnd.GetEndPoint()
 
@@ -55,28 +48,31 @@ type LN() =
                 | None -> lndEndPoint
                 | Some node -> node
 
-            let! channelId, fundingAmount = walletInstance.OpenChannelWithFundee bitcoind nodeEndPoint
+            let! channelId, fundingAmount = clientWallet.OpenChannelWithFundee bitcoind nodeEndPoint
 
-            let channelInfoAfterOpening = walletInstance.ChannelStore.ChannelInfo channelId
+            let channelInfoAfterOpening = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterOpening.Status with
             | ChannelStatus.Active -> ()
             | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
-            return channelId, walletInstance, bitcoind, electrumServer, lnd, fundingAmount
+            return channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount
         }
 
     let AcceptChannelFromLndFunder () =
         async {
-            let! walletInstance, bitcoind, electrumServer, lnd = Setup()
+            let! serverWallet = ServerWalletInstance.New Config.FundeeLightningIPEndpoint None
+            let! bitcoind = Bitcoind.Start()
+            let! electrumServer = ElectrumServer.Start bitcoind
+            let! lnd = Lnd.Start bitcoind
 
             do! lnd.FundByMining bitcoind
 
-            let acceptChannelTask = Lightning.Network.AcceptChannel walletInstance.NodeServer
+            let acceptChannelTask = Lightning.Network.AcceptChannel serverWallet.NodeServer
             let openChannelTask = async {
-                do! lnd.ConnectTo walletInstance.NodeEndPoint
+                do! lnd.ConnectTo serverWallet.NodeEndPoint
                 return!
                     lnd.OpenChannel
-                        walletInstance.NodeEndPoint
+                        serverWallet.NodeEndPoint
                         (Money(0.002m, MoneyUnit.BTC))
                         (FeeRatePerKw 666u)
             }
@@ -91,34 +87,34 @@ type LN() =
 
             // Mine blocks on top of the funding transaction to make it confirmed.
             let minimumDepth = BlockHeightOffset32 6u
-            bitcoind.GenerateBlocks minimumDepth walletInstance.Address
+            bitcoind.GenerateBlocks minimumDepth serverWallet.Address
 
-            do! walletInstance.WaitForFundingConfirmed channelId
+            do! serverWallet.WaitForFundingConfirmed channelId
 
-            let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding walletInstance.NodeServer channelId
+            let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding serverWallet.NodeServer channelId
             UnwrapResult lockFundingRes "LockChannelFunding failed"
 
-            let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+            let channelInfo = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfo.Status with
             | ChannelStatus.Active -> ()
             | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
-            return channelId, walletInstance, bitcoind, electrumServer, lnd
+            return channelId, serverWallet, bitcoind, electrumServer, lnd
         }
 
     let AcceptChannelFromGeewalletFunder () =
         async {
-            let! walletInstance = WalletInstance.New (Some Config.FundeeLightningIPEndpoint) (Some Config.FundeeAccountsPrivateKey)
+            let! serverWallet = ServerWalletInstance.New Config.FundeeLightningIPEndpoint (Some Config.FundeeAccountsPrivateKey)
             let! pendingChannelRes =
                 Lightning.Network.AcceptChannel
-                    walletInstance.NodeServer
+                    serverWallet.NodeServer
 
             let (channelId, _) = UnwrapResult pendingChannelRes "OpenChannel failed"
 
-            let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding walletInstance.NodeServer channelId
+            let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding serverWallet.NodeServer channelId
             UnwrapResult lockFundingRes "LockChannelFunding failed"
 
-            let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+            let channelInfo = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfo.Status with
             | ChannelStatus.Active -> ()
             | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -126,29 +122,29 @@ type LN() =
             if Money(channelInfo.Balance, MoneyUnit.BTC) <> Money(0.0m, MoneyUnit.BTC) then
                 failwith "incorrect balance after accepting channel"
 
-            return walletInstance, channelId
+            return serverWallet, channelId
         }
 
-    let CloseChannel (walletInstance: WalletInstance) (bitcoind: Bitcoind) channelId =
+    let ClientCloseChannel (clientWallet: ClientWalletInstance) (bitcoind: Bitcoind) channelId =
         async {
-            let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.NodeServer.NodeClient channelId
+            let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId
             match closeChannelRes with
             | Ok _ -> ()
             | Error err -> failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
 
-            match (walletInstance.ChannelStore.ChannelInfo channelId).Status with
+            match (clientWallet.ChannelStore.ChannelInfo channelId).Status with
             | ChannelStatus.Closing -> ()
             | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
 
             // Mine 10 blocks to make sure closing tx is confirmed
-            bitcoind.GenerateBlocks (BlockHeightOffset32 (uint32 10)) walletInstance.Address
+            bitcoind.GenerateBlocks (BlockHeightOffset32 (uint32 10)) clientWallet.Address
 
             let rec waitForClosingTxConfirmed attempt = async {
                 Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
                 if attempt = 10 then
                     return Error "Closing tx not confirmed after maximum attempts"
                 else
-                    let! txIsConfirmed = Lightning.Network.CheckClosingFinished (walletInstance.ChannelStore.ChannelInfo channelId)
+                    let! txIsConfirmed = Lightning.Network.CheckClosingFinished (clientWallet.ChannelStore.ChannelInfo channelId)
                     if txIsConfirmed then
                         return Ok ()
                     else
@@ -162,21 +158,21 @@ type LN() =
             | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
         }
 
-    let SendMonoHopPayments (walletInstance: WalletInstance) channelId fundingAmount =
+    let SendMonoHopPayments (clientWallet: ClientWalletInstance) channelId fundingAmount =
         async {
-            let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+            let channelInfo = clientWallet.ChannelStore.ChannelInfo channelId
 
             let! sendMonoHopPayment1Res =
                 let transferAmount =
                     let accountBalance = Money(channelInfo.SpendableBalance, MoneyUnit.BTC)
                     TransferAmount (walletToWalletTestPayment1Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
                 Lightning.Network.SendMonoHopPayment
-                    walletInstance.NodeServer.NodeClient
+                    clientWallet.NodeClient
                     channelId
                     transferAmount
             UnwrapResult sendMonoHopPayment1Res "SendMonoHopPayment failed"
 
-            let channelInfoAfterPayment1 = walletInstance.ChannelStore.ChannelInfo channelId
+            let channelInfoAfterPayment1 = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfo.Status with
             | ChannelStatus.Active -> ()
             | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -192,12 +188,12 @@ type LN() =
                         accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC
                     )
                 Lightning.Network.SendMonoHopPayment
-                    walletInstance.NodeServer.NodeClient
+                    clientWallet.NodeClient
                     channelId
                     transferAmount
             UnwrapResult sendMonoHopPayment2Res "SendMonoHopPayment failed"
 
-            let channelInfoAfterPayment2 = walletInstance.ChannelStore.ChannelInfo channelId
+            let channelInfoAfterPayment2 = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfo.Status with
             | ChannelStatus.Active -> ()
             | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -206,13 +202,13 @@ type LN() =
                 failwith "incorrect balance after payment 2"
         }
 
-    let ReceiveMonoHopPayments (walletInstance: WalletInstance) channelId =
+    let ReceiveMonoHopPayments (serverWallet: ServerWalletInstance) channelId =
         async {
             let! receiveMonoHopPaymentRes =
-                Lightning.Network.ReceiveMonoHopPayment walletInstance.NodeServer channelId
+                Lightning.Network.ReceiveMonoHopPayment serverWallet.NodeServer channelId
             UnwrapResult receiveMonoHopPaymentRes "ReceiveMonoHopPayment failed"
 
-            let channelInfoAfterPayment1 = walletInstance.ChannelStore.ChannelInfo channelId
+            let channelInfoAfterPayment1 = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterPayment1.Status with
             | ChannelStatus.Active -> ()
             | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -221,10 +217,10 @@ type LN() =
                 failwith "incorrect balance after receiving payment 1"
 
             let! receiveMonoHopPaymentRes =
-                Lightning.Network.ReceiveMonoHopPayment walletInstance.NodeServer channelId
+                Lightning.Network.ReceiveMonoHopPayment serverWallet.NodeServer channelId
             UnwrapResult receiveMonoHopPaymentRes "ReceiveMonoHopPayment failed"
 
-            let channelInfoAfterPayment2 = walletInstance.ChannelStore.ChannelInfo channelId
+            let channelInfoAfterPayment2 = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterPayment2.Status with
             | ChannelStatus.Active -> ()
             | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -237,24 +233,24 @@ type LN() =
     [<Category "G2G_ChannelOpening_Funder">]
     [<Test>]
     member __.``can open channel with geewallet (funder)``() = Async.RunSynchronously <| async {
-        let! _channelId, walletInstance, bitcoind, electrumServer, lnd, _fundingAmount =
+        let! _channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount =
             OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
 
-        TearDown walletInstance lnd electrumServer bitcoind
+        TearDown clientWallet lnd electrumServer bitcoind
     }
 
     [<Category "G2G_ChannelOpening_Fundee">]
     [<Test>]
     member __.``can open channel with geewallet (fundee)``() = Async.RunSynchronously <| async {
-        let! walletInstance, _channelId = AcceptChannelFromGeewalletFunder ()
+        let! serverWallet, _channelId = AcceptChannelFromGeewalletFunder ()
 
-        (walletInstance :> IDisposable).Dispose()
+        (serverWallet :> IDisposable).Dispose()
     }
 
     [<Category "G2G_ChannelClosingAfterJustOpening_Funder">]
     [<Test>]
     member __.``can close channel with geewallet (funder)``() = Async.RunSynchronously <| async {
-        let! channelId, walletInstance, bitcoind, electrumServer, lnd, _fundingAmount =
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount =
             try
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
@@ -266,17 +262,17 @@ type LN() =
                 )
                 failwith "unreachable"
 
-        do! CloseChannel walletInstance bitcoind channelId
+        do! ClientCloseChannel clientWallet bitcoind channelId
 
-        TearDown walletInstance lnd electrumServer bitcoind
+        TearDown clientWallet lnd electrumServer bitcoind
     }
 
     [<Category "G2G_ChannelClosingAfterJustOpening_Fundee">]
     [<Test>]
     member __.``can close channel with geewallet (fundee)``() = Async.RunSynchronously <| async {
-        let! walletInstance, channelId = AcceptChannelFromGeewalletFunder ()
+        let! serverWallet, channelId = AcceptChannelFromGeewalletFunder ()
 
-        let! closeChannelRes = Lightning.Network.AcceptCloseChannel walletInstance.NodeServer channelId
+        let! closeChannelRes = Lightning.Network.AcceptCloseChannel serverWallet.NodeServer channelId
         match closeChannelRes with
         | Ok _ -> ()
         | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
@@ -285,7 +281,7 @@ type LN() =
     [<Category "G2G_MonoHopUnidirectionalPayments_Funder">]
     [<Test>]
     member __.``can send monohop payments (funder)``() = Async.RunSynchronously <| async {
-        let! channelId, walletInstance, bitcoind, electrumServer, lnd, fundingAmount =
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount =
             try
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
@@ -297,26 +293,26 @@ type LN() =
                 )
                 failwith "unreachable"
 
-        do! SendMonoHopPayments walletInstance channelId fundingAmount
+        do! SendMonoHopPayments clientWallet channelId fundingAmount
 
-        TearDown walletInstance lnd electrumServer bitcoind
+        TearDown clientWallet lnd electrumServer bitcoind
     }
 
 
     [<Category "G2G_MonoHopUnidirectionalPayments_Fundee">]
     [<Test>]
     member __.``can receive mono-hop unidirectional payments, with geewallet (fundee)``() = Async.RunSynchronously <| async {
-        let! walletInstance, channelId = AcceptChannelFromGeewalletFunder ()
+        let! serverWallet, channelId = AcceptChannelFromGeewalletFunder ()
 
-        do! ReceiveMonoHopPayments walletInstance channelId
+        do! ReceiveMonoHopPayments serverWallet channelId
 
-        (walletInstance :> IDisposable).Dispose()
+        (serverWallet :> IDisposable).Dispose()
     }
 
     [<Category "G2G_ChannelClosingAfterSendingMonoHopPayments_Funder">]
     [<Test>]
     member __.``can close channel after sending monohop payments (funder)``() = Async.RunSynchronously <| async {
-        let! channelId, walletInstance, bitcoind, electrumServer, lnd, fundingAmount =
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount =
             try
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
@@ -329,7 +325,7 @@ type LN() =
                 failwith "unreachable"
 
         try
-            do! SendMonoHopPayments walletInstance channelId fundingAmount
+            do! SendMonoHopPayments clientWallet channelId fundingAmount
         with
         | ex ->
             Assert.Inconclusive (
@@ -339,37 +335,37 @@ type LN() =
             )
             failwith "unreachable"
 
-        do! CloseChannel walletInstance bitcoind channelId
+        do! ClientCloseChannel clientWallet bitcoind channelId
 
-        TearDown walletInstance lnd electrumServer bitcoind
+        TearDown clientWallet lnd electrumServer bitcoind
     }
 
 
     [<Category "G2G_ChannelClosingAfterSendingMonoHopPayments_Fundee">]
     [<Test>]
     member __.``can close channel after receiving mono-hop unidirectional payments, with geewallet (fundee)``() = Async.RunSynchronously <| async {
-        let! walletInstance, channelId = AcceptChannelFromGeewalletFunder ()
+        let! serverWallet, channelId = AcceptChannelFromGeewalletFunder ()
 
-        do! ReceiveMonoHopPayments walletInstance channelId
+        do! ReceiveMonoHopPayments serverWallet channelId
 
-        let! closeChannelRes = Lightning.Network.AcceptCloseChannel walletInstance.NodeServer channelId
+        let! closeChannelRes = Lightning.Network.AcceptCloseChannel serverWallet.NodeServer channelId
         match closeChannelRes with
         | Ok _ -> ()
         | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
 
-        (walletInstance :> IDisposable).Dispose()
+        (serverWallet :> IDisposable).Dispose()
     }
 
     [<Test>]
     member __.``can open channel with LND``() = Async.RunSynchronously <| async {
-        let! _channelId, walletInstance, bitcoind, electrumServer, lnd, _fundingAmount = OpenChannelWithFundee None
+        let! _channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount = OpenChannelWithFundee None
 
-        TearDown walletInstance lnd electrumServer bitcoind
+        TearDown clientWallet lnd electrumServer bitcoind
     }
 
     [<Test>]
     member __.``can close channel with LND``() = Async.RunSynchronously <| async {
-        let! channelId, walletInstance, bitcoind, electrumServer, lnd, _fundingAmount =
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount =
             try
                 OpenChannelWithFundee None
             with
@@ -381,24 +377,24 @@ type LN() =
                 )
                 failwith "unreachable"
 
-        let! closeChannelRes = Lightning.Network.CloseChannel walletInstance.NodeServer.NodeClient channelId
+        let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId
         match closeChannelRes with
         | Ok _ -> ()
         | Error err -> failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
 
-        match (walletInstance.ChannelStore.ChannelInfo channelId).Status with
+        match (clientWallet.ChannelStore.ChannelInfo channelId).Status with
         | ChannelStatus.Closing -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
 
         // Mine 10 blocks to make sure closing tx is confirmed
-        bitcoind.GenerateBlocks (BlockHeightOffset32 (uint32 10)) walletInstance.Address
+        bitcoind.GenerateBlocks (BlockHeightOffset32 (uint32 10)) clientWallet.Address
 
         let rec waitForClosingTxConfirmed attempt = async {
             Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
             if attempt = 10 then
                 return Error "Closing tx not confirmed after maximum attempts"
             else
-                let! txIsConfirmed = Lightning.Network.CheckClosingFinished (walletInstance.ChannelStore.ChannelInfo channelId)
+                let! txIsConfirmed = Lightning.Network.CheckClosingFinished (clientWallet.ChannelStore.ChannelInfo channelId)
                 if txIsConfirmed then
                     return Ok ()
                 else
@@ -411,19 +407,19 @@ type LN() =
         | Ok _ -> ()
         | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
 
-        TearDown walletInstance lnd electrumServer bitcoind
+        TearDown clientWallet lnd electrumServer bitcoind
     }
 
     [<Test>]
     member __.``can accept channel from LND``() = Async.RunSynchronously <| async {
-        let! _channelId, walletInstance, bitcoind, electrumServer, lnd = AcceptChannelFromLndFunder ()
+        let! _channelId, serverWallet, bitcoind, electrumServer, lnd = AcceptChannelFromLndFunder ()
 
-        TearDown walletInstance lnd electrumServer bitcoind
+        TearDown serverWallet lnd electrumServer bitcoind
     }
 
     [<Test>]
     member __.``can accept channel closure from LND``() = Async.RunSynchronously <| async {
-        let! channelId, walletInstance, bitcoind, electrumServer, lnd =
+        let! channelId, serverWallet, bitcoind, electrumServer, lnd =
             try
                 AcceptChannelFromLndFunder ()
             with
@@ -435,7 +431,7 @@ type LN() =
                 )
                 failwith "unreachable"
 
-        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+        let channelInfo = serverWallet.ChannelStore.ChannelInfo channelId
 
         // wait for lnd to realise we're offline
         do! Async.Sleep 1000
@@ -444,14 +440,14 @@ type LN() =
             let fundingOutPointIndex = channelInfo.FundingOutPointIndex
             OutPoint(fundingTxId, fundingOutPointIndex)
         let closeChannelTask = async {
-            do! lnd.ConnectTo walletInstance.NodeEndPoint
+            do! lnd.ConnectTo serverWallet.NodeEndPoint
             do! Async.Sleep 1000
             do! lnd.CloseChannel fundingOutPoint
             return ()
         }
         let awaitCloseTask = async {
             let rec receiveEvent () = async {
-                let! receivedEvent = Lightning.Network.ReceiveLightningEvent walletInstance.NodeServer channelId
+                let! receivedEvent = Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId
                 match receivedEvent with
                 | Error err ->
                     return Error (SPrintF1 "Failed to receive shutdown msg from LND: %A" err)
@@ -469,13 +465,13 @@ type LN() =
 
             // Mine blocks on top of the closing transaction to make it confirmed.
             let minimumDepth = BlockHeightOffset32 6u
-            bitcoind.GenerateBlocks minimumDepth walletInstance.Address
+            bitcoind.GenerateBlocks minimumDepth serverWallet.Address
             return ()
         }
 
         let! (), () = AsyncExtensions.MixedParallel2 closeChannelTask awaitCloseTask
 
-        TearDown walletInstance lnd electrumServer bitcoind
+        TearDown serverWallet lnd electrumServer bitcoind
 
         return ()
     }
@@ -483,7 +479,7 @@ type LN() =
     [<Category "G2G_ChannelForceClosing_Funder">]
     [<Test>]
     member __.``can send monohop payments and force-close channel (funder)``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.New None None
+        use! clientWallet = ClientWalletInstance.New None
         use! bitcoind = Bitcoind.Start()
         use! _electrumServer = ElectrumServer.Start bitcoind
         use! lnd = Lnd.Start bitcoind
@@ -496,7 +492,7 @@ type LN() =
         bitcoind.GenerateBlocks blocksMinedToLnd lndAddress
 
         let maturityDurationInNumberOfBlocks = BlockHeightOffset32 (uint32 NBitcoin.Consensus.RegTest.CoinbaseMaturity)
-        bitcoind.GenerateBlocks maturityDurationInNumberOfBlocks walletInstance.Address
+        bitcoind.GenerateBlocks maturityDurationInNumberOfBlocks clientWallet.Address
 
         // We confirm the one block mined to LND, by waiting for LND to see the chain
         // at a height which has that block matured. The height at which the block will
@@ -511,7 +507,7 @@ type LN() =
         // fund geewallet
         let geewalletAccountAmount = Money (25m, MoneyUnit.BTC)
         let feeRate = FeeRatePerKw 2500u
-        let! _txid = lnd.SendCoins geewalletAccountAmount walletInstance.Address feeRate
+        let! _txid = lnd.SendCoins geewalletAccountAmount clientWallet.Address feeRate
 
         // wait for lnd's transaction to appear in mempool
         while bitcoind.GetTxIdsInMempool().Length = 0 do
@@ -528,30 +524,30 @@ type LN() =
         // At that point, the 0.25 regtest coins from the above call to sendcoins
         // are considered arrived to Geewallet.
         let consideredConfirmedAmountOfBlocksPlusOne = BlockHeightOffset32 7u
-        bitcoind.GenerateBlocks consideredConfirmedAmountOfBlocksPlusOne walletInstance.Address
+        bitcoind.GenerateBlocks consideredConfirmedAmountOfBlocksPlusOne clientWallet.Address
 
         let fundingAmount = Money(0.1m, MoneyUnit.BTC)
         let! transferAmount = async {
-            let! accountBalance = walletInstance.WaitForBalance fundingAmount
+            let! accountBalance = clientWallet.WaitForBalance fundingAmount
             return TransferAmount (fundingAmount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
         }
-        let! metadata = ChannelManager.EstimateChannelOpeningFee (walletInstance.Account :?> NormalUtxoAccount) transferAmount
+        let! metadata = ChannelManager.EstimateChannelOpeningFee (clientWallet.Account :?> NormalUtxoAccount) transferAmount
         let! pendingChannelRes =
             Lightning.Network.OpenChannel
-                walletInstance.NodeServer.NodeClient
+                clientWallet.NodeClient
                 Config.FundeeNodeEndpoint
                 transferAmount
                 metadata
-                walletInstance.Password
+                clientWallet.Password
         let pendingChannel = UnwrapResult pendingChannelRes "OpenChannel failed"
         let minimumDepth = (pendingChannel :> IChannelToBeOpened).ConfirmationsRequired
         let channelId = (pendingChannel :> IChannelToBeOpened).ChannelId
         let! fundingTxIdRes = pendingChannel.Accept()
         let _fundingTxId = UnwrapResult fundingTxIdRes "pendingChannel.Accept failed"
-        bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) walletInstance.Address
+        bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) clientWallet.Address
 
         do!
-            let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+            let channelInfo = clientWallet.ChannelStore.ChannelInfo channelId
             let fundingBroadcastButNotLockedData =
                 match channelInfo.Status with
                 | ChannelStatus.FundingBroadcastButNotLocked fundingBroadcastButNotLockedData
@@ -572,10 +568,10 @@ type LN() =
             }
             waitForFundingConfirmed()
 
-        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding walletInstance.NodeServer.NodeClient channelId
+        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding clientWallet.NodeClient channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
-        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+        let channelInfo = clientWallet.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -588,12 +584,12 @@ type LN() =
                 let accountBalance = Money(channelInfo.SpendableBalance, MoneyUnit.BTC)
                 TransferAmount (walletToWalletTestPayment1Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
             Lightning.Network.SendMonoHopPayment
-                walletInstance.NodeServer.NodeClient
+                clientWallet.NodeClient
                 channelId
                 transferAmount
         UnwrapResult sendMonoHopPayment0Res "SendMonoHopPayment failed"
 
-        let channelInfoAfterPayment0 = walletInstance.ChannelStore.ChannelInfo channelId
+        let channelInfoAfterPayment0 = clientWallet.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -606,12 +602,12 @@ type LN() =
                 let accountBalance = Money(channelInfo.SpendableBalance, MoneyUnit.BTC)
                 TransferAmount (walletToWalletTestPayment2Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
             Lightning.Network.SendMonoHopPayment
-                walletInstance.NodeServer.NodeClient
+                clientWallet.NodeClient
                 channelId
                 transferAmount
         UnwrapResult sendMonoHopPayment1Res "SendMonoHopPayment failed"
 
-        let channelInfoAfterPayment1 = walletInstance.ChannelStore.ChannelInfo channelId
+        let channelInfoAfterPayment1 = clientWallet.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -619,10 +615,10 @@ type LN() =
         if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount - walletToWalletTestPayment2Amount then
             failwith "incorrect balance after payment 1"
 
-        let! _forceCloseTxId = (Node.Client walletInstance.NodeServer.NodeClient).ForceCloseChannel channelId
+        let! _forceCloseTxId = (Lightning.Node.Client clientWallet.NodeClient).ForceCloseChannel channelId
 
         let locallyForceClosedData =
-            match (walletInstance.ChannelStore.ChannelInfo channelId).Status with
+            match (clientWallet.ChannelStore.ChannelInfo channelId).Status with
             | ChannelStatus.LocallyForceClosed locallyForceClosedData ->
                 locallyForceClosedData
             | status -> failwith (SPrintF1 "unexpected channel status. Expected LocallyForceClosed, got %A" status)
@@ -633,7 +629,7 @@ type LN() =
 
         Infrastructure.LogDebug (SPrintF1 "the time lock is %i blocks" locallyForceClosedData.ToSelfDelay)
 
-        let! balanceBeforeFundsReclaimed = walletInstance.GetBalance()
+        let! balanceBeforeFundsReclaimed = clientWallet.GetBalance()
 
         // Mine the force-close tx into a block
         bitcoind.GenerateBlocks (BlockHeightOffset32 1u) lndAddress
@@ -658,7 +654,7 @@ type LN() =
         Infrastructure.LogDebug "waiting for our wallet balance to increase"
         let! _balanceAfterFundsReclaimed =
             let amount = balanceBeforeFundsReclaimed + Money(1.0m, MoneyUnit.Satoshi)
-            walletInstance.WaitForBalance amount
+            clientWallet.WaitForBalance amount
 
         return ()
     }
@@ -666,17 +662,17 @@ type LN() =
     [<Category "G2G_ChannelForceClosing_Fundee">]
     [<Test>]
     member __.``can receive monohop payments and force-close channel (fundee)``() = Async.RunSynchronously <| async {
-        use! walletInstance = WalletInstance.New (Some Config.FundeeLightningIPEndpoint) (Some Config.FundeeAccountsPrivateKey)
+        use! serverWallet = ServerWalletInstance.New Config.FundeeLightningIPEndpoint (Some Config.FundeeAccountsPrivateKey)
         let! pendingChannelRes =
             Lightning.Network.AcceptChannel
-                walletInstance.NodeServer
+                serverWallet.NodeServer
 
         let (channelId, _) = UnwrapResult pendingChannelRes "OpenChannel failed"
 
-        let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding walletInstance.NodeServer channelId
+        let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding serverWallet.NodeServer channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
-        let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
+        let channelInfo = serverWallet.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -685,10 +681,10 @@ type LN() =
             failwith "incorrect balance after accepting channel"
 
         let! receiveMonoHopPaymentRes =
-            Lightning.Network.ReceiveMonoHopPayment walletInstance.NodeServer channelId
+            Lightning.Network.ReceiveMonoHopPayment serverWallet.NodeServer channelId
         UnwrapResult receiveMonoHopPaymentRes "ReceiveMonoHopPayment failed"
 
-        let channelInfoAfterPayment0 = walletInstance.ChannelStore.ChannelInfo channelId
+        let channelInfoAfterPayment0 = serverWallet.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
@@ -697,10 +693,10 @@ type LN() =
             failwith "incorrect balance after receiving payment 0"
 
         let! receiveMonoHopPaymentRes =
-            Lightning.Network.ReceiveMonoHopPayment walletInstance.NodeServer channelId
+            Lightning.Network.ReceiveMonoHopPayment serverWallet.NodeServer channelId
         UnwrapResult receiveMonoHopPaymentRes "ReceiveMonoHopPayment failed"
 
-        let channelInfoAfterPayment1 = walletInstance.ChannelStore.ChannelInfo channelId
+        let channelInfoAfterPayment1 = serverWallet.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
         | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
