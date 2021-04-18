@@ -613,7 +613,8 @@ type LN() =
         if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount - walletToWalletTestPayment2Amount then
             failwith "incorrect balance after payment 1"
 
-        let! _forceCloseTxId = (Lightning.Node.Client clientWallet.NodeClient).ForceCloseChannel channelId
+        let! _forceCloseTxId =
+            (Node.Client clientWallet.NodeClient).ForceCloseChannel channelId
 
         let locallyForceClosedData =
             match (clientWallet.ChannelStore.ChannelInfo channelId).Status with
@@ -957,7 +958,7 @@ type LN() =
                 return! waitForRemoteForceClose()
         }
         let! recoveryTxStringOpt = waitForRemoteForceClose()
-        let recoveryTxString = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
+        let recoveryTxString = UnwrapOption recoveryTxStringOpt "no funds could be recovered"
         let! _recoveryTxId =
             UtxoCoin.Account.BroadcastRawTransaction
                 Currency.BTC
@@ -1126,7 +1127,7 @@ type LN() =
                 (Node.Client clientWallet.NodeClient)
                 channelId
                 closingTxIdString
-        let recoveryTxString = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
+        let recoveryTxString = UnwrapOption recoveryTxStringOpt "no funds could be recovered"
         let! _recoveryTxId =
             UtxoCoin.Account.BroadcastRawTransaction
                 Currency.BTC
