@@ -54,7 +54,7 @@ type Currency =
             8
         elif self.IsEther() then
             18
-        elif self = Currency.SAI then
+        elif self = Currency.SAI || self = Currency.DAI then
             18
         else
             failwith <| SPrintF1 "Unable to determine decimal places for %A" self
