@@ -483,11 +483,7 @@ type CircleChartView () =
             match nonZeroItems with
             | None -> ()
             | Some items when items.Any() ->
-                // GTK doesn't have a Shapes implementation
-                if Device.RuntimePlatform = Device.GTK then
-                    self.DrawSvgBasedPie width height items
-                else
-                    self.DrawShapesBasedPie width height items
+                self.DrawShapesBasedPie width height items
             | Some _ ->
                 self.CreateAndSetImageSource self.DefaultImageSource
 
