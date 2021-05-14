@@ -843,7 +843,6 @@ type LN() =
     }
 
     [<Category "G2G_Revocation_Funder">]
-    [<Ignore "not ready yet">]
     [<Test>]
     member __.``can revoke commitment tx (funder)``() = Async.RunSynchronously <| async {
         use! walletInstance = ClientWalletInstance.New None
@@ -1039,7 +1038,6 @@ type LN() =
     }
 
     [<Category "G2G_Revocation_Fundee">]
-    [<Ignore "not ready yet">]
     [<Test>]
     member __.``can revoke commitment tx (fundee)``() = Async.RunSynchronously <| async {
         use! walletInstance = ServerWalletInstance.New Config.FundeeLightningIPEndpoint (Some Config.FundeeAccountsPrivateKey)
