@@ -43,8 +43,11 @@ let BroadcastPayment() =
     let signedTransaction = Account.LoadSignedTransactionFromFile fileToReadFrom.FullName
     //TODO: check if nonce matches, if not, reject trans
 
-    // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
-    Presentation.ShowTransactionData(signedTransaction.TransactionInfo)
+    let transactionDetails = Account.GetSignedTransactionDetails signedTransaction
+    Presentation.ShowTransactionData
+        transactionDetails
+        signedTransaction.TransactionInfo.Metadata
+
     if UserInteraction.AskYesNo "Do you accept?" then
         try
             let txIdUri =
@@ -102,7 +105,9 @@ let SignOffPayment() =
                     Console.WriteLine line
                 Console.WriteLine()
 
-                Presentation.ShowTransactionData unsignedTransaction
+                Presentation.ShowTransactionData
+                    (unsignedTransaction.Proposal :> ITransactionDetails)
+                    unsignedTransaction.Metadata
 
                 if UserInteraction.AskYesNo "Do you accept?" then
                     let trans = TrySign normalAccount unsignedTransaction

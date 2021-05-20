@@ -630,3 +630,16 @@ module Account =
 
         ImportUnsignedTransactionFromJson unsignedTransInJson
 
+    let GetSignedTransactionDetails<'T when 'T :> IBlockchainFeeInfo> (signedTransaction: SignedTransaction<'T>)
+                                                                          : ITransactionDetails =
+        let currency = signedTransaction.TransactionInfo.Proposal.Amount.Currency
+        if currency.IsUtxo () then
+            UtxoCoin.Account.GetSignedTransactionDetails
+                signedTransaction.RawTransaction
+                currency
+        elif currency.IsEtherBased () then
+            Ether.Account.GetSignedTransactionDetails
+                signedTransaction
+        else
+            failwith <| (SPrintF1 "Unknown currency: %A" currency)
+
