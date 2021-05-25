@@ -266,14 +266,7 @@ let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>>
                 | ChannelStatus.FundingBroadcastButNotLocked fundingBroadcastButNotLockedData ->
                     yield LockChannelIfFundingConfirmed channelStore channelInfo fundingBroadcastButNotLockedData
                 | ChannelStatus.Active ->
-                    yield async {
-                        return async {
-                            return seq {
-                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo maybeUsdValue
-                                yield "        channel is active"
-                            }
-                        }
-                    }
+                    yield UpdateFeeIfNecessary channelStore channelInfo
                 | ChannelStatus.Broken ->
                     yield async {
                         return async {
