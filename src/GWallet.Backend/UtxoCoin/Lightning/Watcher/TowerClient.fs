@@ -8,11 +8,28 @@ open DotNetLightning.Channel
 open NBitcoin
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
+
+type TowerUtxoCurrency =
+    | Bitcoin
+    | Litecoin
+
+type TowerApiError =
+    | UnsupportedCurrency
+
+type TowerApiResponseOrError<'T> =
+    | TowerApiResponse of 'T
+    | TowerApiError of TowerApiError
 
 type internal AddPunishmentTxRequest =
     {
         TransactionHex: string
         CommitmentTxHash: string
+    }
+
+type GetRewardAddressResponse =
+    {
+        RewardAddress: string
     }
 
 type internal TowerClient =
@@ -37,8 +54,8 @@ type internal TowerClient =
         : Async<unit> =
         async {
             try
-                let! rewardAdderss = self.GetRewardAddress()
-            
+                let! rewardAdderss = self.GetRewardAddress (account :> IAccount).Currency
+
                 let! punishmentTx =
                     ForceCloseTransaction.CreatePunishmentTx
                         perCommitmentSecret
@@ -78,7 +95,7 @@ type internal TowerClient =
                 |> Async.AwaitTask
         }
 
-    member private self.GetRewardAddress(): Async<string> =
+    member private self.GetRewardAddress(currency: Currency): Async<string> =
         async {
             use client = new TcpClient()
 
@@ -89,7 +106,19 @@ type internal TowerClient =
             let mutable jsonRpc: JsonRpc = new JsonRpc(client.GetStream())
             jsonRpc.StartListening()
 
-            return!
-                jsonRpc.InvokeAsync<string>("get_reward_address")
+            let toTowerCurrency (currency: Currency) =
+                match currency with
+                | Currency.BTC -> TowerUtxoCurrency.Bitcoin
+                | Currency.LTC -> TowerUtxoCurrency.Litecoin
+                | _ -> failwith "only btc and ltc are supported on tower"
+
+            let! response =
+                jsonRpc.InvokeAsync<TowerApiResponseOrError<GetRewardAddressResponse>>("get_reward_address", toTowerCurrency currency)
                 |> Async.AwaitTask
+
+            return
+                match response with
+                | TowerApiResponse reward -> reward.RewardAddress
+                | TowerApiError err -> failwith (SPrintF1 "Tower returned an error: %s" (err.ToString()))
+
         }
