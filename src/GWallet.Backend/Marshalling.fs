@@ -146,8 +146,10 @@ module Marshalling =
     let private currentVersion = VersionHelper.CURRENT_VERSION
 
     let ExtractType(json: string): Type =
-        let fullTypeName = (JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json).TypeName
-        Type.GetType(fullTypeName)
+        let wrapper = JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json
+        if Object.ReferenceEquals(null, wrapper) then
+            failwith <| SPrintF1 "Failed to extract type from JSON: %s" json
+        Type.GetType wrapper.TypeName
 
     let DeserializeCustom<'T>(json: string, settings: JsonSerializerSettings): 'T =
         if (json = null) then
