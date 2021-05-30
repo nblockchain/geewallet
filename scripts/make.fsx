@@ -8,8 +8,10 @@ open System.Diagnostics
 open System.Text
 open System.Text.RegularExpressions
 #r "System.Core.dll"
+open System.Xml
 #r "System.Xml.Linq.dll"
 open System.Xml.Linq
+open System.Xml.XPath
 
 #r "System.Configuration"
 open System.Configuration
@@ -50,14 +52,20 @@ type private PackageInfo =
         PackageVersion: string
     }
 
-type private Project =
-    { FolderName: string }
+type private DependencyHolder =
+    { Name: string }
 
 [<CustomComparison; CustomEquality>]
 type private ComparableFileInfo =
     {
         File: FileInfo
     }
+    member self.DependencyHolderName: DependencyHolder =
+        if self.File.FullName.ToLower().EndsWith ".nuspec" then
+            { Name = self.File.Name }
+        else
+            { Name = self.File.Directory.Name + "/" }
+
     interface IComparable with
         member this.CompareTo obj =
             match obj with
@@ -446,7 +454,20 @@ match maybeTarget with
                             yield file
                 }
 
-            let getPackageTree (packagesConfigFiles: seq<FileInfo>): Map<ComparableFileInfo,seq<PackageInfo>> =
+            let rec findNuspecFiles (dir: DirectoryInfo): seq<FileInfo> =
+                dir.Refresh ()
+                seq {
+                    for file in dir.EnumerateFiles () do
+                        if (file.Name.ToLower ()).EndsWith ".nuspec" then
+                            yield file
+                    for subdir in dir.EnumerateDirectories().Where notSubmodule do
+                        for file in findNuspecFiles subdir do
+                            yield file
+                }
+
+            let getPackageTree (solDir: DirectoryInfo): Map<ComparableFileInfo,seq<PackageInfo>> =
+                let packagesConfigFiles = findPackagesDotConfigFiles solDir
+                let nuspecFiles = findNuspecFiles solDir
                 seq {
                     for packagesConfigFile in packagesConfigFiles do
                         let xmlDoc = XDocument.Load packagesConfigFile.FullName
@@ -455,22 +476,51 @@ match maybeTarget with
                                 let id = descendant.Attributes().Single(fun attr -> attr.Name.LocalName = "id").Value
                                 let version = descendant.Attributes().Single(fun attr -> attr.Name.LocalName = "version").Value
                                 yield { File = packagesConfigFile }, { PackageId = id; PackageVersion = version }
+
+                    for nuspecFile in nuspecFiles do
+                        let xmlDoc = XDocument.Load nuspecFile.FullName
+
+                        let nsOpt =
+                            let nsString = xmlDoc.Root.Name.Namespace.ToString()
+                            if String.IsNullOrEmpty nsString then
+                                None
+                            else
+                                let nsManager = XmlNamespaceManager(NameTable())
+                                let nsPrefix = "x"
+                                nsManager.AddNamespace(nsPrefix, nsString)
+                                if nsString <> "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd" then
+                                    Console.Error.WriteLine "Warning: the namespace URL doesn't match expectations, nuspec's XPath query may result in no elements"
+                                Some(nsManager, sprintf "%s:" nsPrefix)
+                        let query = "//{0}dependency"
+                        let dependencies =
+                            match nsOpt with
+                            | None ->
+                                let fixedQuery = String.Format(query, String.Empty)
+                                xmlDoc.XPathSelectElements fixedQuery
+                            | Some (nsManager, nsPrefix) ->
+                                let fixedQuery = String.Format(query, nsPrefix)
+                                xmlDoc.XPathSelectElements(fixedQuery, nsManager)
+
+                        for dependency in dependencies do
+                            let id = dependency.Attributes().Single(fun attr -> attr.Name.LocalName = "id").Value
+                            let version = dependency.Attributes().Single(fun attr -> attr.Name.LocalName = "version").Value
+                            yield { File = nuspecFile }, { PackageId = id; PackageVersion = version }
                 } |> MapHelper.MergeIntoMap
 
-            let getAllPackageIdsAndVersions (packageTree: Map<ComparableFileInfo,seq<PackageInfo>>): Map<PackageInfo,seq<Project>> =
+            let getAllPackageIdsAndVersions (packageTree: Map<ComparableFileInfo,seq<PackageInfo>>): Map<PackageInfo,seq<DependencyHolder>> =
                 seq {
-                    for KeyValue (packagesConfigFile, pkgs) in packageTree do
+                    for KeyValue (dependencyHolderFile, pkgs) in packageTree do
                         for pkg in pkgs do
-                            yield pkg, { FolderName = packagesConfigFile.File.Directory.Name }
+                            yield pkg, dependencyHolderFile.DependencyHolderName
                 } |> MapHelper.MergeIntoMap
 
-            let getDirectoryNamesForPackagesSet (packages: Map<PackageInfo,seq<Project>>): Map<string,seq<Project>> =
+            let getDirectoryNamesForPackagesSet (packages: Map<PackageInfo,seq<DependencyHolder>>): Map<string,seq<DependencyHolder>> =
                 seq {
                     for KeyValue (package, prjs) in packages do
                         yield (sprintf "%s.%s" package.PackageId package.PackageVersion), prjs
                 } |> Map.ofSeq
 
-            let findMissingPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<Project>>): Map<string,seq<Project>> =
+            let findMissingPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): Map<string,seq<DependencyHolder>> =
                 solDir.Refresh ()
                 let packagesSubFolder = Path.Combine (solDir.FullName, DEFAULT_NUGET_PACKAGES_SUBFOLDER_NAME) |> DirectoryInfo
                 if not packagesSubFolder.Exists then
@@ -493,7 +543,7 @@ match maybeTarget with
                             yield packageDirNameThatShouldExist, prjs
                 } |> Map.ofSeq
 
-            let findExcessPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<Project>>): seq<string> =
+            let findExcessPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): seq<string> =
                 solDir.Refresh ()
                 let packagesSubFolder = Path.Combine (solDir.FullName, "packages") |> DirectoryInfo
                 if not (packagesSubFolder.Exists) then
@@ -559,17 +609,16 @@ match maybeTarget with
 
             let solDir = sol.Directory
             solDir.Refresh ()
-            let packageConfigFiles = findPackagesDotConfigFiles solDir
-            let packageTree = getPackageTree packageConfigFiles
+            let packageTree = getPackageTree solDir
             let packages = getAllPackageIdsAndVersions packageTree
             Console.WriteLine(sprintf "%d nuget packages found for solution in directory %s" packages.Count solDir.Name)
             let idealDirList = getDirectoryNamesForPackagesSet packages
 
             let missingPackageDirs = findMissingPackageDirs solDir idealDirList
             if missingPackageDirs.Any () then
-                for KeyValue(missingPkg, projects) in missingPackageDirs do
-                    let projectFolderNames = String.Join(",", projects.Select(fun p -> p.FolderName))
-                    Console.Error.WriteLine (sprintf "Missing folder for nuget package in submodule: %s (referenced from projects %s)" missingPkg projectFolderNames)
+                for KeyValue(missingPkg, depHolders) in missingPackageDirs do
+                    let depHolderNames = String.Join(",", depHolders.Select(fun dh -> dh.Name))
+                    Console.Error.WriteLine (sprintf "Missing folder for nuget package in submodule: %s (referenced from %s)" missingPkg depHolderNames)
                 Environment.Exit 1
 
             let excessPackageDirs = findExcessPackageDirs solDir idealDirList
@@ -582,7 +631,7 @@ match maybeTarget with
             let pkgWithMoreThan1VersionPrint (key: string) (packageInfos: seq<ComparableFileInfo*PackageInfo>) =
                 Console.Error.WriteLine (sprintf "Package found with more than one version: %s. All occurrences:" key)
                 for file,pkgInfo in packageInfos do
-                    Console.Error.WriteLine (sprintf "* Version: %s. Project folder: %s" pkgInfo.PackageVersion file.File.Directory.Name)
+                    Console.Error.WriteLine (sprintf "* Version: %s. Dependency holder: %s" pkgInfo.PackageVersion file.DependencyHolderName.Name)
             let packagesWithMoreThanOneVersion = findPackagesWithMoreThanOneVersion packageTree
             if packagesWithMoreThanOneVersion.Any() then
                 Map.iter pkgWithMoreThan1VersionPrint packagesWithMoreThanOneVersion
