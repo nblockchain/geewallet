@@ -164,7 +164,8 @@ let rec AddReadOnlyAccounts() =
     Console.Write "JSON fragment from wallet to pair with: "
     let watchWalletInfoJson = Console.ReadLine().Trim()
     let watchWalletInfo = Marshalling.Deserialize watchWalletInfoJson
-    Account.CreateReadOnlyAccounts watchWalletInfo
+    let password = UserInteraction.AskPassword false
+    Account.CreateReadOnlyAccounts watchWalletInfo password
 
 let ArchiveAccount() =
     let account = UserInteraction.AskAccount()
@@ -208,7 +209,8 @@ let ArchiveAccount() =
                   (account.GetType().FullName)
 
 let PairToWatchWallet() =
-    match Account.GetNormalAccountsPairingInfoForWatchWallet() with
+    let password = UserInteraction.AskPassword false
+    match Account.GetNormalAccountsPairingInfoForWatchWallet password with
     | None ->
         Presentation.Error
             "There needs to be both Ether-based accounts and Utxo-based accounts to be able to use this feature."
@@ -384,7 +386,7 @@ let rec ProgramMainLoop() =
     let channelStatusJobs: seq<Async<Async<seq<string>>>> = LayerTwo.GetChannelStatuses accounts
     let revokedTxCheckJobs: seq<Async<Option<string>>> =
         Lightning.ChainWatcher.CheckForChannelFraudsAndSendRevocationTx
-        <| accounts.OfType<UtxoCoin.NormalUtxoAccount>()
+        <| accounts.OfType<UtxoCoin.IUtxoAccount>()
     let revokedTxCheckJob: Async<array<Option<string>>> = Async.Parallel revokedTxCheckJobs
     let channelInfoInteractionsJob: Async<array<Async<seq<string>>>> = Async.Parallel channelStatusJobs
     let displayAccountStatusesJob =

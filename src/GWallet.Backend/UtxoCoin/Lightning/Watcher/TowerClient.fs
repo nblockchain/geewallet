@@ -49,7 +49,7 @@ type internal TowerClient =
         (commitments: Commitments)
         (localChannelPrivKeys: ChannelPrivKeys)
         (network: Network)
-        (account: NormalUtxoAccount)
+        (account: IUtxoAccount)
         (quietMode: bool)
         : Async<unit> =
         async {

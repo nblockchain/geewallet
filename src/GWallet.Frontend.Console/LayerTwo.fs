@@ -14,7 +14,7 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 module LayerTwo =
 
-    let rec AskLightningAccount(): UtxoCoin.NormalUtxoAccount =
+    let rec AskLightningAccount(): UtxoCoin.IUtxoAccount =
         let account = UserInteraction.AskAccount()
         let lightningCurrencies = UtxoCoin.Lightning.Settings.Currencies
         if not (lightningCurrencies.Contains account.Currency) then
@@ -26,10 +26,10 @@ module LayerTwo =
             AskLightningAccount ()
         else
             match account with
-            | :? UtxoCoin.NormalUtxoAccount as utxoAccount -> utxoAccount
-            | :? UtxoCoin.ReadOnlyUtxoAccount ->
-                Console.WriteLine "Read-only accounts cannot be used in lightning"
-                AskLightningAccount ()
+            | :? UtxoCoin.NormalUtxoAccount as utxoAccout ->
+                utxoAccout :> UtxoCoin.IUtxoAccount
+            | :? UtxoCoin.ReadOnlyUtxoAccount as utxoAccout ->
+                utxoAccout :> UtxoCoin.IUtxoAccount
             | :? UtxoCoin.ArchivedUtxoAccount ->
                 Console.WriteLine "This account has been archived. You must select an active account"
                 AskLightningAccount ()
@@ -112,6 +112,40 @@ module LayerTwo =
             | _ ->
                 Console.WriteLine "Invalid option"
                 AskChannelId channelStore isFunderOpt
+
+    let CreateFundingTx (account: UtxoCoin.IUtxoAccount)
+                        (metadata: TransactionMetadata)
+                        (pendingChannel: PendingChannel)
+                        (password: string)
+                            : string =
+        match account with
+        | :? UtxoCoin.NormalUtxoAccount as normalAccount ->
+            pendingChannel.SignTransactionForDestination
+                normalAccount
+                metadata
+                password
+        | :? UtxoCoin.ReadOnlyUtxoAccount ->
+            Console.WriteLine "To open a channel from a read-only account the paired wallet must sign the funding transaction."
+            Console.Write "Introduce a file name to save the unsigned transaction: "
+            let unsignedFilePath = Console.ReadLine()
+            let proposal = {
+                OriginAddress = account.PublicAddress
+                Amount = pendingChannel.TransferAmount
+                DestinationAddress = pendingChannel.FundingDestinationString
+            }
+            Account.SaveUnsignedTransaction proposal metadata unsignedFilePath
+            Console.WriteLine "Transaction saved. Now copy it to the device with the private key to sign it."
+            let rec getSignedTransaction() =
+                let signedFilePath =
+                    UserInteraction.AskFileNameToLoad "Enter file name to load the signed transaction: "
+                let signedTransaction = Account.LoadSignedTransactionFromFile signedFilePath.FullName
+                if signedTransaction.TransactionInfo.Proposal.DestinationAddress <> proposal.DestinationAddress then
+                    Console.WriteLine "Transaction data does not match. Incorrect file?"
+                    getSignedTransaction()
+                else
+                    signedTransaction.RawTransaction
+            getSignedTransaction()
+        | _ -> failwith "invalid account type"
 
     let ForceCloseChannel
         (node: Node)
@@ -196,7 +230,13 @@ module LayerTwo =
                                 )
                                 let acceptMinimumDepth = UserInteraction.AskYesNo "Do you accept?"
                                 if acceptMinimumDepth then
-                                    let! acceptRes = pendingChannel.Accept metadata password
+                                    let transactionHex =
+                                        CreateFundingTx
+                                            account
+                                            metadata
+                                            pendingChannel
+                                            password
+                                    let! acceptRes = pendingChannel.Accept transactionHex
                                     match acceptRes with
                                     | Error fundChannelError ->
                                         Console.WriteLine(sprintf "Error funding channel: %s" fundChannelError.Message)
@@ -508,7 +548,7 @@ module LayerTwo =
 
     let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>> =
         seq {
-            let normalUtxoAccounts = accounts.OfType<UtxoCoin.NormalUtxoAccount>()
+            let normalUtxoAccounts = accounts.OfType<UtxoCoin.IUtxoAccount>()
             for account in normalUtxoAccounts do
                 let channelStore = ChannelStore account
                 let currency = (account:> IAccount).Currency

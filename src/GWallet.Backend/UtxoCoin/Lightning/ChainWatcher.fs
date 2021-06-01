@@ -86,7 +86,7 @@ module public ChainWatcher =
         return! ListAsyncTryPick historyList checkIfRevokedCommitment
     }
 
-    let CheckForChannelFraudsAndSendRevocationTx (accounts: seq<UtxoCoin.NormalUtxoAccount>)
+    let CheckForChannelFraudsAndSendRevocationTx (accounts: seq<UtxoCoin.IUtxoAccount>)
                                                      : seq<Async<Option<string>>> =
         seq {
             for account in accounts do

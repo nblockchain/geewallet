@@ -5,6 +5,7 @@ open System.IO
 
 open DotNetLightning.Chain
 open DotNetLightning.Channel
+open DotNetLightning.Crypto
 open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Utils
 open NBitcoin
@@ -126,7 +127,17 @@ type ChannelInfo =
                 | _ -> ChannelStatus.Broken
     }
 
-type ChannelStore(account: NormalUtxoAccount) =
+module CryptoUtil =
+    let AccountPrivateKeyToNodeMasterPrivKeyRaw (accountKeyBytes: array<byte>): string =
+        let hashed = NBitcoin.Crypto.Hashes.DoubleSHA256 accountKeyBytes
+        hashed.ToString()
+
+    let internal AccountPrivateKeyToNodeMasterPrivKey (accountKey: Key): NodeMasterPrivKey =
+        let bytes = accountKey.ToBytes ()
+        let keyString = AccountPrivateKeyToNodeMasterPrivKeyRaw bytes
+        NodeMasterPrivKey <| NBitcoin.ExtKey keyString
+
+type ChannelStore(account: IUtxoAccount) =
     static member ChannelFilePrefix = "chan-"
     static member ChannelFileEnding = ".json"
 
@@ -167,6 +178,65 @@ type ChannelStore(account: NormalUtxoAccount) =
                 (channelId.ToString())
                 ChannelStore.ChannelFileEnding
         )
+
+    member self.NodeMasterPrivKeyFileName(): string =
+        Path.Combine(
+            self.ChannelDir.FullName,
+            "node-master-key"
+        )
+
+    static member internal InitializeWithNodeMasterPrivKey (nodeMasterPrivKeyString: string)
+                                                           (account: IUtxoAccount)
+                                                           (password: string)
+                                                               : ChannelStore =
+        let channelStore = ChannelStore account
+        let network = Account.GetNetwork (account :> IAccount).Currency
+        let nodeMasterPrivKey =
+            ExtKey.Parse (nodeMasterPrivKeyString, network)
+            |> NodeMasterPrivKey
+        let encryptedNodeMasterPrivKey =
+            let privateExtKey = nodeMasterPrivKey.RawExtKey()
+            let privateKey = privateExtKey.PrivateKey
+            let publicExtKey = privateExtKey.Neuter()
+            let secret = privateKey.GetBitcoinSecret network
+            let encryptedSecret =
+                secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
+            let encryptedSecretString = encryptedSecret.ToWif()
+            let publicExtKeyString = publicExtKey.ToString network
+            String.concat "\n" [encryptedSecretString; publicExtKeyString]
+        if not channelStore.ChannelDir.Exists then
+            channelStore.ChannelDir.Create()
+        let path = channelStore.NodeMasterPrivKeyFileName()
+        if File.Exists path then
+            failwith "channel store for this account has already been initialised"
+        File.WriteAllText(path, encryptedNodeMasterPrivKey)
+        channelStore
+
+    member internal self.GetNodeMasterPrivKey (password: string): string =
+        let network = Account.GetNetwork (self.Account :> IAccount).Currency
+        let nodeMasterPrivKey =
+            match self.Account with
+            | :? NormalUtxoAccount as normalAccount ->
+                let privateKey = Account.GetPrivateKey normalAccount password
+                CryptoUtil.AccountPrivateKeyToNodeMasterPrivKey privateKey
+            | :? ReadOnlyUtxoAccount ->
+                let path = self.NodeMasterPrivKeyFileName()
+                let encryptedNodeMasterPrivKey = File.ReadAllText path
+                let encryptedSecretString, publicExtKeyString =
+                    match List.ofSeq <| encryptedNodeMasterPrivKey.Split('\n') with
+                        | [encryptedSecretString; publicExtKeyString] ->
+                            encryptedSecretString, publicExtKeyString
+                        | _ -> failwith "malformed node master key file"
+                let encryptedSecret =
+                    BitcoinEncryptedSecretNoEC(encryptedSecretString, network)
+                let privateKey = encryptedSecret.GetKey password
+                let publicExtKey = ExtPubKey.Parse(publicExtKeyString, network)
+                let privateExtKey = ExtKey(publicExtKey, privateKey)
+                NodeMasterPrivKey privateExtKey
+            | _ -> failwith "invalid account type"
+        nodeMasterPrivKey
+            .RawExtKey()
+            .ToString network
 
     member internal self.LoadChannel (channelId: ChannelIdentifier): SerializedChannel =
         let fileName = self.ChannelFileName channelId
@@ -310,7 +380,9 @@ type ChannelStore(account: NormalUtxoAccount) =
 
 module ChannelManager =
     // difference from fee estimation in UtxoCoinAccount.fs: this is for P2WSH
-    let EstimateChannelOpeningFee (account: UtxoCoin.NormalUtxoAccount) (amount: TransferAmount) =
+    let EstimateChannelOpeningFee (account: IUtxoAccount)
+                                  (amount: TransferAmount)
+                                      : Async<TransactionMetadata> =
         let witScriptIdLength = 32
         // this dummy address is only used for fee estimation
         let nullScriptId = NBitcoin.WitScriptId (Array.zeroCreate witScriptIdLength)

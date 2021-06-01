@@ -161,7 +161,22 @@ module Config =
                     yield FileRepresentation.FromFile (FileInfo(filePath))
         }
 
-    let private GetFile (currency: Currency) (account: BaseAccount): FileInfo =
+    let GetAnyAccountFileWithCurrency (currencies: seq<Currency>)
+                                      (accountKind: AccountKind)
+                                          : Option<FileRepresentation * Currency> =
+        currencies
+        |> Seq.map
+            (fun currency ->
+                Directory.GetFiles (GetConfigDir currency accountKind).FullName
+                |> Seq.map
+                    (fun filePath ->
+                        (FileRepresentation.FromFile (FileInfo filePath), currency)
+                    )
+            )
+        |> Seq.concat
+        |> Seq.tryHead
+
+    let private GetFile (currency: Currency) (account: IAccount): FileInfo =
         let configDir, fileName = GetConfigDir currency account.Kind, account.AccountFile.Name
         Path.Combine(configDir.FullName, fileName) |> FileInfo
 
@@ -182,8 +197,8 @@ module Config =
         Directory.Delete(configDirForAccounts.FullName, true)
 
     // we don't expose this as public because we don't want to allow removing archived accounts
-    let private RemoveAccount (account: BaseAccount): unit =
-        let configFile = GetFile (account:>IAccount).Currency account
+    let private RemoveAccount (account: IAccount): unit =
+        let configFile = GetFile account.Currency account
         if not configFile.Exists then
             failwith <| SPrintF1 "File %s doesn't exist. Please report this issue." configFile.FullName
         else

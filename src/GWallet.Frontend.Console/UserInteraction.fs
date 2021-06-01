@@ -90,17 +90,17 @@ module UserInteraction =
         | Operations.AcceptChannel
             -> not noAccounts
         | Operations.SendLightningPayment ->
-            accounts.OfType<UtxoCoin.NormalUtxoAccount>().SelectMany(fun account ->
+            accounts.OfType<UtxoCoin.IUtxoAccount>().SelectMany(fun account ->
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
             ).Any(fun channelInfo -> channelInfo.IsFunder)
         | Operations.ReceiveLightningEvent ->
-            accounts.OfType<UtxoCoin.NormalUtxoAccount>().SelectMany(fun account ->
+            accounts.OfType<UtxoCoin.IUtxoAccount>().SelectMany(fun account ->
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
             ).Any(fun channelInfo -> not channelInfo.IsFunder)
         | Operations.CloseChannel ->
-            accounts.OfType<UtxoCoin.NormalUtxoAccount>().SelectMany(fun account ->
+            accounts.OfType<UtxoCoin.IUtxoAccount>().SelectMany(fun account ->
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
             ).Any()

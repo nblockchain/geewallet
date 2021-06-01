@@ -7,6 +7,7 @@ open NBitcoin
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Backend.FSharpUtil.UwpHacks
+open DotNetLightning.Utils
 
 module Config =
 
@@ -16,8 +17,14 @@ module Config =
         // the same in each process.
         new Key (uint256.Parse("9d1ee30acb68716ed5f4e25b3c052c6078f1813f45d33a47e46615bfd05fa6fe").ToBytes())
     let private fundeeNodePubKey =
-        let extKey = FundeeAccountsPrivateKey.ToBytes() |> ExtKey
-        extKey.PrivateKey.PubKey
+        let fundeeNodeMasterPrivKey =
+            CryptoUtil.AccountPrivateKeyToNodeMasterPrivKeyRaw (FundeeAccountsPrivateKey.ToBytes())
+            |> NBitcoin.ExtKey
+            |> NodeMasterPrivKey
+        let fundeeNodeSecret = fundeeNodeMasterPrivKey.NodeSecret()
+        let fundeeNodeId = fundeeNodeSecret.NodeId()
+        let fundeePubKey = fundeeNodeId.Value
+        fundeePubKey
     let FundeeLightningIPEndpoint = IPEndPoint (IPAddress.Parse "127.0.0.1", 9735)
     let FundeeNodeEndpoint =
         NodeEndPoint.Parse

@@ -914,7 +914,12 @@ type LN() =
                 transferAmount
         let pendingChannel = UnwrapResult pendingChannelRes "OpenChannel failed"
         let minimumDepth = (pendingChannel :> IChannelToBeOpened).ConfirmationsRequired
-        let! acceptRes = pendingChannel.Accept metadata walletInstance.Password
+        let transactionHex =
+            pendingChannel.SignTransactionForDestination
+                (walletInstance.Account :?> NormalUtxoAccount)
+                metadata
+                walletInstance.Password
+        let! acceptRes = pendingChannel.Accept transactionHex
         let (channelId, _fundingTxId) = UnwrapResult acceptRes "pendingChannel.Accept failed"
         bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) lndAddress
 

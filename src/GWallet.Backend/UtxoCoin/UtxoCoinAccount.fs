@@ -20,10 +20,10 @@ type internal TransactionOutpoint =
     member self.ToCoin (): Coin =
         Coin(self.Transaction, uint32 self.OutputIndex)
 
-type internal IUtxoAccount =
+type IUtxoAccount =
     inherit IAccount
 
-    abstract member PublicKey: PubKey with get
+    abstract member PublicKey: PublicKey with get
 
 
 type NormalUtxoAccount(currency: Currency, accountFile: FileRepresentation,
@@ -32,7 +32,7 @@ type NormalUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     inherit GWallet.Backend.NormalAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
     interface IUtxoAccount with
-        member val PublicKey = fromAccountFileToPublicKey accountFile with get
+        member val PublicKey = PublicKey(fromAccountFileToPublicKey accountFile) with get
 
 type ReadOnlyUtxoAccount(currency: Currency, accountFile: FileRepresentation,
                          fromAccountFileToPublicAddress: FileRepresentation -> string,
@@ -40,7 +40,7 @@ type ReadOnlyUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     inherit GWallet.Backend.ReadOnlyAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
     interface IUtxoAccount with
-        member val PublicKey = fromAccountFileToPublicKey accountFile with get
+        member val PublicKey = PublicKey(fromAccountFileToPublicKey accountFile) with get
 
 type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
                          fromAccountFileToPublicAddress: FileRepresentation -> string,
@@ -48,7 +48,7 @@ type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     inherit GWallet.Backend.ArchivedAccount(currency, accountFile, fromAccountFileToPublicAddress)
 
     interface IUtxoAccount with
-        member val PublicKey = fromAccountFileToPublicKey accountFile with get
+        member val PublicKey = PublicKey(fromAccountFileToPublicKey accountFile) with get
 
 module Account =
 
@@ -90,7 +90,7 @@ module Account =
         let privateKey = Key.Parse(privateKey, GetNetwork currency)
         GetPublicAddressFromPublicKey currency privateKey.PubKey
 
-    let internal GetAccountFromFile (accountFile: FileRepresentation) (currency: Currency) kind: IAccount =
+    let internal GetAccountFromFile (accountFile: FileRepresentation) (currency: Currency) kind: IUtxoAccount =
         if not (currency.IsUtxo()) then
             failwith <| SPrintF1 "Assertion failed: currency %A should be UTXO-type" currency
         match kind with
@@ -99,13 +99,13 @@ module Account =
                                 accountFile,
                                 (fun accountFile -> accountFile.Name),
                                 GetPublicKeyFromReadOnlyAccountFile)
-                                            :> IAccount
+                                            :> IUtxoAccount
         | AccountKind.Normal ->
             let fromAccountFileToPublicAddress = GetPublicAddressFromNormalAccountFile currency
             let fromAccountFileToPublicKey = GetPublicKeyFromNormalAccountFile
             NormalUtxoAccount(currency, accountFile,
                               fromAccountFileToPublicAddress, fromAccountFileToPublicKey)
-            :> IAccount
+            :> IUtxoAccount
         | _ ->
             failwith <| SPrintF1 "Kind (%A) not supported for this API" kind
 
@@ -174,7 +174,8 @@ module Account =
         let scriptPubKey = Script(scriptPubKeyInBytes)
         let coin =
             Coin(txHash, uint32 inputOutpointInfo.OutputIndex, Money(inputOutpointInfo.ValueInSatoshis), scriptPubKey)
-        coin.ToScriptCoin account.PublicKey.WitHash.ScriptPubKey :> ICoin
+        let pubKey = PubKey (account.PublicKey.ToString ())
+        coin.ToScriptCoin (pubKey.WitHash.ScriptPubKey) :> ICoin
 
     let private CreateTransactionAndCoinsToBeSigned (account: IUtxoAccount)
                                                     (transactionInputs: List<TransactionInputOutpointInfo>)

@@ -6,6 +6,7 @@ type WatchWalletInfo =
     {
         UtxoCoinPublicKey: string
         EtherPublicAddress: string
+        LightningNodeMasterPrivKey: string
     }
 
 type FileRepresentation =
@@ -40,40 +41,36 @@ type AccountKind =
 type IAccount =
     abstract member Currency: Currency with get
     abstract member PublicAddress: string with get
-
-[<AbstractClass>]
-type BaseAccount(currency: Currency, accountFile: FileRepresentation,
-                 fromAccountFileToPublicAddress: FileRepresentation -> string) =
-    member val AccountFile = accountFile with get
-
-    abstract member Kind: AccountKind
-
-    interface IAccount with
-        member val Currency = currency with get
-        member val PublicAddress =
-            fromAccountFileToPublicAddress accountFile with get
-
+    abstract member Kind: AccountKind with get
+    abstract member AccountFile: FileRepresentation with get
 
 type NormalAccount(currency: Currency, accountFile: FileRepresentation,
                    fromAccountFileToPublicAddress: FileRepresentation -> string) =
-    inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
-
     member internal __.GetEncryptedPrivateKey() =
         accountFile.Content()
 
-    override __.Kind = AccountKind.Normal
+    interface IAccount with
+        member val Kind = AccountKind.Normal
+        member val AccountFile = accountFile
+        member val Currency = currency
+        member val PublicAddress = fromAccountFileToPublicAddress accountFile
 
 type ReadOnlyAccount(currency: Currency, accountFile: FileRepresentation,
                      fromAccountFileToPublicAddress: FileRepresentation -> string) =
-    inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
+    interface IAccount with
+        member val Kind = AccountKind.ReadOnly
+        member val AccountFile = accountFile
+        member val Currency = currency
+        member val PublicAddress = fromAccountFileToPublicAddress accountFile
 
-    override __.Kind = AccountKind.ReadOnly
 
 type ArchivedAccount(currency: Currency, accountFile: FileRepresentation,
                      fromAccountFileToPublicAddress: FileRepresentation -> string) =
-    inherit BaseAccount(currency, accountFile, fromAccountFileToPublicAddress)
-
     member internal __.GetUnencryptedPrivateKey() =
         accountFile.Content()
 
-    override __.Kind = AccountKind.Archived
+    interface IAccount with
+        member val Kind = AccountKind.Archived
+        member val AccountFile = accountFile
+        member val Currency = currency
+        member val PublicAddress = fromAccountFileToPublicAddress accountFile

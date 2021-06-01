@@ -52,7 +52,7 @@ type internal OutgoingUnfundedChannel =
         TransferAmount: TransferAmount
     }
     static member OpenChannel (peerNode: PeerNode)
-                              (account: NormalUtxoAccount)
+                              (account: IUtxoAccount)
                               (channelCapacity: TransferAmount)
                                   : Async<Result<OutgoingUnfundedChannel, OpenChannelError>> = async {
         let nodeId = peerNode.RemoteNodeId

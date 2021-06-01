@@ -44,7 +44,7 @@ type ChannelBreachData =
                                         (commitments: Commitments)
                                         (localChannelPrivKeys: ChannelPrivKeys)
                                         (network: Network)
-                                        (account: NormalUtxoAccount)
+                                        (account: IUtxoAccount)
                                             : Async<ChannelBreachData> = async {
 
         let! punishmentTx =
@@ -64,7 +64,7 @@ type ChannelBreachData =
         return { self with CommmitmentBreachData = self.CommmitmentBreachData @ [ breachData ] }
     }
 
-type internal BreachDataStore(account: NormalUtxoAccount) =
+type internal BreachDataStore(account: IUtxoAccount) =
     static member BreachDataFilePrefix = "breach-"
     static member BreachDataFileEnding = ".json"
 

@@ -166,12 +166,35 @@ type IncomingChannelEvent =
 
 type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) =
     member internal self.OutgoingUnfundedChannel = outgoingUnfundedChannel
+    member __.Currency: Currency =
+        (outgoingUnfundedChannel.ConnectedChannel.Account :> IAccount).Currency
+    member self.FundingDestinationString: string =
+        let network = UtxoCoin.Account.GetNetwork self.Currency
+        (outgoingUnfundedChannel.FundingDestination.ScriptPubKey.GetDestinationAddress network).ToString()
+    member __.TransferAmount: TransferAmount = outgoingUnfundedChannel.TransferAmount
 
-    member public self.Accept (metadata: TransactionMetadata)
-                              (password: string)
+    member self.SignTransactionForDestination (account: NormalUtxoAccount)
+                                              (txMetadata: TransactionMetadata)
+                                              (password: string)
+                                                  : string =
+
+        Account.SignTransactionForDestination
+            account
+            txMetadata
+            outgoingUnfundedChannel.FundingDestination
+            self.TransferAmount
+            password
+
+    member public self.Accept (fundingTransactionHex: string)
                                   : Async<Result<ChannelIdentifier * TransactionIdentifier, IErrorMsg>> = async {
         let! fundedChannelRes =
-            FundedChannel.FundChannel self.OutgoingUnfundedChannel metadata password
+            let connectedChannel = self.OutgoingUnfundedChannel.ConnectedChannel
+            let account = connectedChannel.Account
+            let network = Account.GetNetwork (account :> IAccount).Currency
+            let hex = DataEncoders.HexEncoder()
+            let fundingTransaction =
+                Transaction.Load (hex.DecodeData fundingTransactionHex, network)
+            FundedChannel.FundChannel self.OutgoingUnfundedChannel fundingTransaction
         match fundedChannelRes with
         | Error fundChannelError ->
             if fundChannelError.PossibleBug then
@@ -198,9 +221,6 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
     member val internal NodeMasterPrivKey = nodeMasterPrivKey
     member val internal NodeSecret = nodeMasterPrivKey.NodeSecret()
     member val Account = channelStore.Account
-
-    static member internal AccountPrivateKeyToNodeSecret (accountKey: Key) =
-        NBitcoin.ExtKey (accountKey.ToBytes ())
 
     member internal self.OpenChannel (nodeEndPoint: NodeEndPoint)
                                      (channelCapacity: TransferAmount)
@@ -779,13 +799,29 @@ type Node =
         ChainWatcher.CheckForChannelFraudAndSendRevocationTx channelId
                                                              self.ChannelStore
 
+    static member internal GetMasterPrivateKey (password: string)
+                                               (accountFile: FileRepresentation)
+                                               (currency: Currency)
+                                                   : string =
+        let utxoAccount = Account.GetAccountFromFile accountFile currency AccountKind.Normal
+        let utxoAccountPrivateKey = Account.GetPrivateKey (utxoAccount :?> NormalAccount) password
+        let nodeMasterPrivKey =
+            UtxoCoin.Lightning.CryptoUtil.AccountPrivateKeyToNodeMasterPrivKey
+                utxoAccountPrivateKey
+        let network = UtxoCoin.Account.GetNetwork currency
+        nodeMasterPrivKey
+            .RawExtKey()
+            .ToString network
+
+
 module public Connection =
+
     let public StartClient (channelStore: ChannelStore)
                            (password: string)
                                : NodeClient =
-        let privateKey = Account.GetPrivateKey channelStore.Account password
-        let nodeMasterPrivKey: NodeMasterPrivKey =
-            NodeClient.AccountPrivateKeyToNodeSecret privateKey
+        let network = Account.GetNetwork (channelStore.Account :> IAccount).Currency
+        let nodeMasterPrivKey =
+            ExtKey.Parse(channelStore.GetNodeMasterPrivKey password, network)
             |> NodeMasterPrivKey
         NodeClient (channelStore, nodeMasterPrivKey)
 
@@ -793,9 +829,9 @@ module public Connection =
                            (password: string)
                            (bindAddress: IPEndPoint)
                                : NodeServer =
-        let privateKey = Account.GetPrivateKey channelStore.Account password
-        let nodeMasterPrivKey: NodeMasterPrivKey =
-            NodeClient.AccountPrivateKeyToNodeSecret privateKey
+        let network = Account.GetNetwork (channelStore.Account :> IAccount).Currency
+        let nodeMasterPrivKey =
+            ExtKey.Parse(channelStore.GetNodeMasterPrivKey password, network)
             |> NodeMasterPrivKey
         let transportListener = TransportListener.Bind nodeMasterPrivKey bindAddress
         new NodeServer (channelStore, transportListener)

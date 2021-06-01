@@ -63,7 +63,7 @@ type MonoHopUnidirectionalChannel =
     static member internal DefaultMaxFeeRateMismatchRatio: float = 1.
 
     static member internal Create (nodeId: NodeId)
-                                  (account: UtxoCoin.NormalUtxoAccount)
+                                  (account: UtxoCoin.IUtxoAccount)
                                   (nodeMasterPrivKey: NodeMasterPrivKey)
                                   (channelIndex: int)
                                   (initialState: ChannelState)
