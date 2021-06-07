@@ -695,11 +695,11 @@ type LN() =
         let rec waitForRemoteForceClose() = async {
             let! closingInfoOpt = serverWallet.ChannelStore.CheckForClosingTx channelId
             match closingInfoOpt with
-            | Some (closingTxIdString, Some _closingTxHeight) ->
+            | Some (closingTxId, Some _closingTxHeight) ->
                 return!
                     (Node.Server serverWallet.NodeServer).CreateRecoveryTxForRemoteForceClose
                         channelId
-                        closingTxIdString
+                        closingTxId
                         false
             | _ ->
                 do! Async.Sleep 2000
@@ -756,11 +756,11 @@ type LN() =
         bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
 
         let! closingInfoOpt = clientWallet.ChannelStore.CheckForClosingTx channelId
-        let closingTxIdString, _closingTxHeightOpt = UnwrapOption closingInfoOpt "force close tx not found on blockchain"
+        let closingTxId, _closingTxHeightOpt = UnwrapOption closingInfoOpt "force close tx not found on blockchain"
         let! recoveryTxStringOpt =
             (Node.Client clientWallet.NodeClient).CreateRecoveryTxForRemoteForceClose
                 channelId
-                closingTxIdString
+                closingTxId
                 false
         let recoveryTxString = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
         let! _recoveryTxId =
@@ -1232,21 +1232,21 @@ type LN() =
         let newFeeRate = oldFeeRate * 5u
         ElectrumServer.SetEstimatedFeeRate newFeeRate
 
-        let rec waitForForceClose(): Async<string> = async {
+        let rec waitForForceClose(): Async<TransactionIdentifier> = async {
             let! closingTxInfoOpt = serverWallet.ChannelStore.CheckForClosingTx channelId
             match closingTxInfoOpt with
             | None ->
                 do! Async.Sleep 500
                 return! waitForForceClose()
-            | Some (forceCloseTxIdString, _blockHeightOpt) ->
-                return forceCloseTxIdString
+            | Some (forceCloseTxId, _blockHeightOpt) ->
+                return forceCloseTxId
         }
-        let! forceCloseTxIdString = waitForForceClose()
+        let! forceCloseTxId = waitForForceClose()
         let! forceCloseTxString =
             Server.Query
                 Currency.BTC
                 (QuerySettings.Default ServerSelectionMode.Fast)
-                (ElectrumClient.GetBlockchainTransaction forceCloseTxIdString)
+                (ElectrumClient.GetBlockchainTransaction (forceCloseTxId.ToString()))
                 None
 
         let forceCloseTx = Transaction.Parse(forceCloseTxString, Network.RegTest)
@@ -1258,7 +1258,7 @@ type LN() =
         let! recoveryTxStringNoCpfpRes =
             (Node.Server serverWallet.NodeServer).CreateRecoveryTxForRemoteForceClose
                 channelId
-                (forceCloseTx.GetHash().ToString())
+                (TransactionIdentifier.FromString (forceCloseTx.GetHash().ToString()))
                 false
         let recoveryTxStringNoCpfp =
             UnwrapResult
@@ -1280,7 +1280,7 @@ type LN() =
         let! recoveryTxStringWithCpfpRes =
             (Node.Server serverWallet.NodeServer).CreateRecoveryTxForRemoteForceClose
                 channelId
-                (forceCloseTx.GetHash().ToString())
+                (TransactionIdentifier.FromString (forceCloseTx.GetHash().ToString()))
                 true
         let recoveryTxStringWithCpfp =
             UnwrapResult
