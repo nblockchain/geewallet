@@ -695,11 +695,11 @@ type LN() =
         let rec waitForRemoteForceClose() = async {
             let! closingInfoOpt = serverWallet.ChannelStore.CheckForClosingTx channelId
             match closingInfoOpt with
-            | Some (closingTxId, Some _closingTxHeight) ->
+            | Some (ClosingTx.ForceClose closingTx, Some _closingTxHeight) ->
                 return!
                     (Node.Server serverWallet.NodeServer).CreateRecoveryTxForRemoteForceClose
                         channelId
-                        closingTxId
+                        closingTx
                         false
             | _ ->
                 do! Async.Sleep 2000
@@ -756,11 +756,18 @@ type LN() =
         bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
 
         let! closingInfoOpt = clientWallet.ChannelStore.CheckForClosingTx channelId
-        let closingTxId, _closingTxHeightOpt = UnwrapOption closingInfoOpt "force close tx not found on blockchain"
+        let closingTx, _closingTxHeightOpt = UnwrapOption closingInfoOpt "force close tx not found on blockchain"
+
+        let forceCloseTx =
+            match closingTx with
+            | ClosingTx.ForceClose forceCloseTx ->
+                forceCloseTx
+            | _ -> failwith "closing tx is not a force close tx"
+
         let! recoveryTxStringOpt =
             (Node.Client clientWallet.NodeClient).CreateRecoveryTxForRemoteForceClose
                 channelId
-                closingTxId
+                forceCloseTx
                 false
         let recoveryTxString = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
         let! _recoveryTxId =
@@ -1232,24 +1239,21 @@ type LN() =
         let newFeeRate = oldFeeRate * 5u
         ElectrumServer.SetEstimatedFeeRate newFeeRate
 
-        let rec waitForForceClose(): Async<TransactionIdentifier> = async {
+        let rec waitForForceClose(): Async<ForceCloseTx> = async {
             let! closingTxInfoOpt = serverWallet.ChannelStore.CheckForClosingTx channelId
             match closingTxInfoOpt with
+            | Some (ClosingTx.ForceClose forceCloseTx, _blockHeightOpt) ->
+                return forceCloseTx
+            | Some (ClosingTx.MutualClose _mutualCloseTx, _blockHeightOpt) ->
+                return failwith "should not happen"
             | None ->
                 do! Async.Sleep 500
                 return! waitForForceClose()
-            | Some (forceCloseTxId, _blockHeightOpt) ->
-                return forceCloseTxId
         }
-        let! forceCloseTxId = waitForForceClose()
-        let! forceCloseTxString =
-            Server.Query
-                Currency.BTC
-                (QuerySettings.Default ServerSelectionMode.Fast)
-                (ElectrumClient.GetBlockchainTransaction (forceCloseTxId.ToString()))
-                None
 
-        let forceCloseTx = Transaction.Parse(forceCloseTxString, Network.RegTest)
+        let! wrappedForceCloseTx = waitForForceClose()
+        let forceCloseTxString = wrappedForceCloseTx.Tx.ToString()
+        let forceCloseTx = Transaction.Parse (forceCloseTxString, Network.RegTest)
         let! forceCloseTxFee = FeesHelper.GetFeeFromTransaction forceCloseTx
         let forceCloseTxFeeRate =
             FeeRatePerKw.FromFeeAndVSize(forceCloseTxFee, uint64 (forceCloseTx.GetVirtualSize()))
@@ -1258,7 +1262,7 @@ type LN() =
         let! recoveryTxStringNoCpfpRes =
             (Node.Server serverWallet.NodeServer).CreateRecoveryTxForRemoteForceClose
                 channelId
-                (TransactionIdentifier.FromString (forceCloseTx.GetHash().ToString()))
+                wrappedForceCloseTx
                 false
         let recoveryTxStringNoCpfp =
             UnwrapResult
@@ -1280,7 +1284,7 @@ type LN() =
         let! recoveryTxStringWithCpfpRes =
             (Node.Server serverWallet.NodeServer).CreateRecoveryTxForRemoteForceClose
                 channelId
-                (TransactionIdentifier.FromString (forceCloseTx.GetHash().ToString()))
+                wrappedForceCloseTx
                 true
         let recoveryTxStringWithCpfp =
             UnwrapResult
