@@ -709,6 +709,4 @@ module LayerTwo =
                                     channelInfo
                                     locallyForceClosedData
                         }
-                    | ChannelStatus.Closed ->
-                        ()
         }
