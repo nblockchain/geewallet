@@ -287,8 +287,8 @@ let WalletOptions(): unit =
         WipeWallet()
     | _ -> ()
 
-let rec PerformOperation (numAccounts: int) =
-    match UserInteraction.AskOperation numAccounts with
+let rec PerformOperation (numActiveAccounts: uint32) (numHotAccounts: uint32) =
+    match UserInteraction.AskOperation numActiveAccounts numHotAccounts with
     | Operations.Exit -> exit 0
     | Operations.CreateAccounts ->
         let bootstrapTask = Caching.Instance.BootstrapServerStatsFromTrustedSource() |> Async.StartAsTask
@@ -360,18 +360,25 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
 
 
 let rec ProgramMainLoop() =
-    let accounts = Account.GetAllActiveAccounts()
+    let activeAccounts = Account.GetAllActiveAccounts()
+    let hotAccounts =
+        activeAccounts.Where(
+            fun acc ->
+                match acc with
+                | :? NormalAccount -> true
+                | _ -> false
+        )
 
     Console.WriteLine ()
     Console.WriteLine "*** STATUS ***"
     let lines =
-        UserInteraction.DisplayAccountStatuses(WhichAccount.All(accounts))
+        UserInteraction.DisplayAccountStatuses(WhichAccount.All activeAccounts)
             |> Async.RunSynchronously
     Console.WriteLine (String.concat Environment.NewLine lines)
     Console.WriteLine ()
 
     if CheckArchivedAccountsAreEmpty() then
-        PerformOperation (accounts.Count())
+        PerformOperation (uint32 (activeAccounts.Count())) (uint32 (hotAccounts.Count()))
     ProgramMainLoop()
 
 
