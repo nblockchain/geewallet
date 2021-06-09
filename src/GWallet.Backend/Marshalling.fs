@@ -128,7 +128,7 @@ type RequireAllPropertiesContractResolver() =
 
 module Marshalling =
 
-    let private DefaultFormatting =
+    let DefaultFormatting =
 #if DEBUG
         Formatting.Indented
 #else
@@ -192,14 +192,14 @@ module Marshalling =
         | _ ->
             DeserializeCustom(json, DefaultSettings)
 
-    let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings): string =
+    let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings) (formatting: Formatting): string =
         JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
-                                    DefaultFormatting,
+                                    formatting,
                                     settings)
 
-    let SerializeCustom<'T>(value: 'T, settings: JsonSerializerSettings): string =
+    let SerializeCustom<'T>(value: 'T, settings: JsonSerializerSettings, formatting: Formatting): string =
         try
-            SerializeInternal value settings
+            SerializeInternal value settings formatting
         with
         | exn ->
             raise (SerializationException(SPrintF2 "Could not serialize object of type '%s' and value '%A'"
@@ -209,7 +209,7 @@ module Marshalling =
         match box value with
         | :? Exception as ex ->
             let exToSerialize = MarshalledException.Create ex
-            let serializedEx = SerializeCustom(exToSerialize, DefaultSettings)
+            let serializedEx = SerializeCustom(exToSerialize, DefaultSettings, DefaultFormatting)
 
             try
                 let _deserializedEx: 'T = Deserialize serializedEx
@@ -224,4 +224,7 @@ module Marshalling =
 
             serializedEx
         | _ ->
-            SerializeCustom(value, DefaultSettings)
+            SerializeCustom(value, DefaultSettings, DefaultFormatting)
+
+    let SerializeOneLine<'T>(value: 'T): string =
+        SerializeCustom (value, DefaultSettings, Formatting.None)
