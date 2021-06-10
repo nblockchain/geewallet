@@ -50,6 +50,7 @@ type private PackageInfo =
     {
         PackageId: string
         PackageVersion: string
+        ReqReinstall: Option<bool>
     }
 
 type private DependencyHolder =
@@ -475,7 +476,8 @@ match maybeTarget with
                             if descendant.Name.LocalName.ToLower() = "package" then
                                 let id = descendant.Attributes().Single(fun attr -> attr.Name.LocalName = "id").Value
                                 let version = descendant.Attributes().Single(fun attr -> attr.Name.LocalName = "version").Value
-                                yield { File = packagesConfigFile }, { PackageId = id; PackageVersion = version }
+                                let reqReinstall = descendant.Attributes().Any(fun attr -> attr.Name.LocalName = "requireReinstallation")
+                                yield { File = packagesConfigFile }, { PackageId = id; PackageVersion = version; ReqReinstall = Some reqReinstall }
 
                     for nuspecFile in nuspecFiles do
                         let xmlDoc = XDocument.Load nuspecFile.FullName
@@ -504,7 +506,7 @@ match maybeTarget with
                         for dependency in dependencies do
                             let id = dependency.Attributes().Single(fun attr -> attr.Name.LocalName = "id").Value
                             let version = dependency.Attributes().Single(fun attr -> attr.Name.LocalName = "version").Value
-                            yield { File = nuspecFile }, { PackageId = id; PackageVersion = version }
+                            yield { File = nuspecFile }, { PackageId = id; PackageVersion = version; ReqReinstall = None }
                 } |> MapHelper.MergeIntoMap
 
             let getAllPackageIdsAndVersions (packageTree: Map<ComparableFileInfo,seq<PackageInfo>>): Map<PackageInfo,seq<DependencyHolder>> =
@@ -635,6 +637,28 @@ match maybeTarget with
             let packagesWithMoreThanOneVersion = findPackagesWithMoreThanOneVersion packageTree
             if packagesWithMoreThanOneVersion.Any() then
                 Map.iter pkgWithMoreThan1VersionPrint packagesWithMoreThanOneVersion
+                Environment.Exit 1
+
+            let findPackagesWithSomeReqReinstallAttrib
+                (packageTree: Map<ComparableFileInfo,seq<PackageInfo>>)
+                : seq<ComparableFileInfo*PackageInfo> =
+                seq {
+                    for KeyValue (file, packageInfos) in packageTree do
+                        for pkg in packageInfos do
+                            match pkg.ReqReinstall with
+                            | Some true ->
+                                yield file, pkg
+                            | _ -> ()
+                }
+            let packagesWithWithSomeReqReinstallAttrib = findPackagesWithSomeReqReinstallAttrib packageTree
+            if packagesWithWithSomeReqReinstallAttrib.Any() then
+                Console.Error.WriteLine (
+                    sprintf "Packages found with some RequireReinstall attribute (please reinstall it before pushing):"
+                )
+                for file,pkg in packagesWithWithSomeReqReinstallAttrib do
+                    Console.Error.WriteLine (
+                        sprintf "* Name: %s. Project: %s" pkg.PackageId file.DependencyHolderName.Name
+                    )
                 Environment.Exit 1
 
             Console.WriteLine (sprintf "Nuget sanity check succeeded for solution dir %s" solDir.FullName)
