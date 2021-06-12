@@ -7,6 +7,7 @@ open System
 open System.Numerics
 open System.Threading.Tasks
 
+open Nethereum.ABI.Decoders
 open Nethereum.Signer
 open Nethereum.KeyStore
 open Nethereum.Util
@@ -413,8 +414,32 @@ module internal Account =
             }
         ExportUnsignedTransactionToJson unsignedTransaction
 
-    let GetSignedTransactionDetails (signedTransaction: SignedTransaction<'T>): ITransactionDetails =
-        // FIXME: derive the transaction details from the raw transaction so that we can remove the proposal from
-        //        the SignedTransaction type (as it's redundant)
-        signedTransaction.TransactionInfo.Proposal :> ITransactionDetails
+    let private GetTransactionChainId (tx : TransactionBase) =
+        // the chain id can be deconstructed like so -
+        //   https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
+        // into one of the following -
+        //   https://chainid.network/
+        // NOTE: according to the SO discussion, the following alrogithm is adequate -
+        // https://stackoverflow.com/questions/68023440/how-do-i-use-nethereum-to-extract-chain-id-from-a-raw-transaction
+        let v = IntTypeDecoder().DecodeBigInteger tx.Signature.V
+        let chainId = (v - BigInteger 35) / BigInteger 2
+        chainId
 
+    let private GetTransactionCurrency (tx : TransactionBase) =
+        // NOTE: I only recognize a couple of chain ids listed in https://chainid.network/, failing otherwise.
+        match int (GetTransactionChainId tx) with
+        | 1 -> ETH // Ethereum Mainnet
+        | 61 -> ETC // Ethereum Classic Mainnet
+        | other -> failwithf "Could not infer currency from transaction where chainId = %i." other
+
+    let GetSignedTransactionDetails (signedTransaction: SignedTransaction<'T>): ITransactionDetails =
+        let tx = TransactionFactory.CreateTransaction signedTransaction.RawTransaction
+        let txDetails =
+            {
+                OriginAddress = signer.GetSenderAddress signedTransaction.RawTransaction
+                Amount = UnitConversion.Convert.FromWei (IntTypeDecoder().DecodeBigInteger tx.Value)
+                Currency = GetTransactionCurrency tx
+                // HACK: I prefix 12 elements to the address due to AddressTypeDecoder expecting some sort of header...
+                DestinationAddress = AddressTypeDecoder().Decode (Array.append (Array.zeroCreate 12) tx.ReceiveAddress)
+            }
+        txDetails :> ITransactionDetails
