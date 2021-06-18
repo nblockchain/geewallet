@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
@@ -156,13 +156,13 @@
       <HintPath>..\..\packages\BTCPayServer.Lightning.Ptarmigan.1.2.2\lib\netstandard2.0\BTCPayServer.Lightning.Ptarmigan.dll</HintPath>
     </Reference>
     <Reference Include="DotNetLightning.Core">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20210618-0739-git-0340b0b\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20210622-1307-git-60d2401\lib\netstandard2.0\DotNetLightning.Core.dll</HintPath>
     </Reference>
     <Reference Include="InternalBech32Encoder">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20210618-0739-git-0340b0b\lib\netstandard2.0\InternalBech32Encoder.dll</HintPath>
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20210622-1307-git-60d2401\lib\netstandard2.0\InternalBech32Encoder.dll</HintPath>
     </Reference>
     <Reference Include="ResultUtils">
-      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20210618-0739-git-0340b0b\lib\netstandard2.0\ResultUtils.dll</HintPath>
+      <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20210622-1307-git-60d2401\lib\netstandard2.0\ResultUtils.dll</HintPath>
     </Reference>
     <Reference Include="BouncyCastle.Crypto">
       <HintPath>..\..\packages\Portable.BouncyCastle.1.8.6.7\lib\net40\BouncyCastle.Crypto.dll</HintPath>
