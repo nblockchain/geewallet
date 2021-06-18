@@ -454,7 +454,6 @@ type LN() =
     }
 
     [<Test>]
-    [<Ignore "not ready yet">]
     member __.``can open channel with LND and send htlcs``() = Async.RunSynchronously <| async {
         let! channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount = OpenChannelWithFundee None
 
