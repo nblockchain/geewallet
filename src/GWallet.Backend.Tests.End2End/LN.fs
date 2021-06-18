@@ -189,6 +189,7 @@ type LN() =
                             paymentRequest.PaymentHash.Value
                             paymentRequest.PaymentSecret
                             (NBitcoin.DataEncoders.HexEncoder().DecodeData(invoice.Id))
+                            paymentRequest.MinFinalCLTVExpiryDelta
                 }
             UnwrapResult sendHtlcPayment1Res "SendHtlcPayment failed"
 
@@ -223,6 +224,7 @@ type LN() =
                             paymentRequest.PaymentHash.Value
                             paymentRequest.PaymentSecret
                             (NBitcoin.DataEncoders.HexEncoder().DecodeData(invoice.Id))
+                            paymentRequest.MinFinalCLTVExpiryDelta
                 }
             UnwrapResult sendHtlcPayment2Res "SendHtlcPayment failed"
 
