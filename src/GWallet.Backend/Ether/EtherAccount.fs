@@ -426,11 +426,10 @@ module internal Account =
         chainId
 
     let private GetTransactionCurrency (tx : TransactionBase) =
-        // NOTE: I only recognize a couple of chain ids listed in https://chainid.network/, failing otherwise.
         match int (GetTransactionChainId tx) with
-        | 1 -> ETH // Ethereum Mainnet
-        | 61 -> ETC // Ethereum Classic Mainnet
-        | other -> failwithf "Could not infer currency from transaction where chainId = %i." other
+        | chainId when chainId = int Config.EthNet -> ETH
+        | chainId when chainId = int Config.EtcNet -> ETC
+        | other -> failwith <| SPrintF1 "Could not infer currency from transaction where chainId = %i." other
 
     let GetSignedTransactionDetails (signedTransaction: SignedTransaction<'T>): ITransactionDetails =
         let tx = TransactionFactory.CreateTransaction signedTransaction.RawTransaction
