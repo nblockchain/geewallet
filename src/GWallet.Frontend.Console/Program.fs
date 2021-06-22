@@ -169,8 +169,29 @@ let rec TryArchiveAccount account =
 let rec AddReadOnlyAccounts() =
     Console.Write "JSON fragment from wallet to pair with: "
     let watchWalletInfoJson = Console.ReadLine().Trim()
-    let watchWalletInfo = Marshalling.Deserialize watchWalletInfoJson
-    Account.CreateReadOnlyAccounts watchWalletInfo
+    let watchWalletInfoOpt =
+        try
+            Marshalling.Deserialize watchWalletInfoJson
+            |> Some
+        with
+        | InvalidJson ->
+            None
+
+    match watchWalletInfoOpt with
+    | Some watchWalletInfo ->
+        Account.CreateReadOnlyAccounts watchWalletInfo
+        |> Some
+    | None ->
+        Console.WriteLine String.Empty
+        Presentation.Error
+            "The input provided didn't have proper JSON structure. Are you sure you gathered the info properly?"
+        Console.WriteLine (
+            sprintf
+                "You have to choose the option '%s' in your offline device to obtain the JSON."
+                (Presentation.ConvertPascalCaseToSentence (Operations.PairToWatchWallet.ToString()))
+        )
+        UserInteraction.PressAnyKeyToContinue()
+        None
 
 let ArchiveAccount() =
     let account = UserInteraction.AskAccount()
@@ -309,8 +330,11 @@ let rec PerformOperation (numActiveAccounts: uint32) (numHotAccounts: uint32) =
     | Operations.SendPayment ->
         SendPayment()
     | Operations.AddReadonlyAccounts ->
-        AddReadOnlyAccounts()
+        match AddReadOnlyAccounts() with
+        | Some job ->
+            job
             |> Async.RunSynchronously
+        | None -> ()
     | Operations.SignOffPayment ->
         SignOffPayment()
     | Operations.BroadcastPayment ->

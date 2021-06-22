@@ -15,3 +15,5 @@ exception AccountAlreadyAdded
 
 exception InvalidDestinationAddress of msg: string
 
+exception InvalidJson
+

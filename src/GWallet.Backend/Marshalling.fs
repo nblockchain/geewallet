@@ -151,11 +151,24 @@ module Marshalling =
             failwith <| SPrintF1 "Failed to extract type from JSON: %s" json
         Type.GetType wrapper.TypeName
 
+    // FIXME: should we rather use JContainer.Parse? it seems JObject.Parse wouldn't detect error in this: {A:{"B": 1}}
+    //        (for more info see replies of https://stackoverflow.com/questions/6903477/need-a-string-json-validator )
+    let internal IsValidJson (jsonStr: string) =
+        try
+            Newtonsoft.Json.Linq.JObject.Parse jsonStr
+                |> ignore
+            true
+        with
+        | :? JsonReaderException ->
+            false
+
     let DeserializeCustom<'T>(json: string, settings: JsonSerializerSettings): 'T =
         if (json = null) then
             raise (ArgumentNullException("json"))
         if (String.IsNullOrWhiteSpace(json)) then
             raise (ArgumentException("empty or whitespace json", "json"))
+        if not (IsValidJson json) then
+            raise <| InvalidJson
 
         let deserialized =
             try
