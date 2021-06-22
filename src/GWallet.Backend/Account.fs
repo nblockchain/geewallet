@@ -602,6 +602,8 @@ module Account =
             let deserializedBtcTransaction: UnsignedTransaction<Ether.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
+        | _ when transType.GetGenericTypeDefinition() = typedefof<SignedTransaction<_>> ->
+            raise TransactionAlreadySigned
         | unexpectedType ->
             raise <| Exception(SPrintF1 "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName)
 
@@ -617,6 +619,8 @@ module Account =
             let deserializedBtcTransaction: SignedTransaction<Ether.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
+        | _ when transType.GetGenericTypeDefinition() = typedefof<UnsignedTransaction<_>> ->
+            raise TransactionNotSignedYet
         | unexpectedType ->
             raise <| Exception(SPrintF1 "Unknown signedTransaction subtype: %s" unexpectedType.FullName)
 

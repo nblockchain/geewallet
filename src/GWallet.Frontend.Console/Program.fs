@@ -40,40 +40,79 @@ let rec TrySign account unsignedTrans =
 let BroadcastPayment() =
     let fileToReadFrom = UserInteraction.AskFileNameToLoad
                              "Introduce a file name to load the signed transaction: "
-    let signedTransaction = Account.LoadSignedTransactionFromFile fileToReadFrom.FullName
+    let signedTransactionOpt =
+        try
+            Account.LoadSignedTransactionFromFile fileToReadFrom.FullName
+            |> Some
+        with
+        | TransactionNotSignedYet ->
+            None
+
     //TODO: check if nonce matches, if not, reject trans
 
-    let transactionDetails = Account.GetSignedTransactionDetails signedTransaction
-    Presentation.ShowTransactionData
-        transactionDetails
-        signedTransaction.TransactionInfo.Metadata
+    match signedTransactionOpt with
+    | None ->
+        Console.WriteLine String.Empty
+        Presentation.Error "The transaction hasn't been signed yet."
+        Console.WriteLine (
+            sprintf
+                "You maybe forgot to use the option '%s' on the offline device."
+                (Presentation.ConvertPascalCaseToSentence (Operations.SignOffPayment.ToString()))
+        )
+        UserInteraction.PressAnyKeyToContinue ()
 
-    if UserInteraction.AskYesNo "Do you accept?" then
-        try
-            let txIdUri =
-                Account.BroadcastTransaction signedTransaction
-                    |> Async.RunSynchronously
-            Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
-            UserInteraction.PressAnyKeyToContinue ()
-        with
-        | :? DestinationEqualToOrigin ->
-            Presentation.Error "Transaction's origin cannot be the same as the destination."
-            UserInteraction.PressAnyKeyToContinue()
-        | :? InsufficientFunds ->
-            Presentation.Error "Insufficient funds."
-            UserInteraction.PressAnyKeyToContinue()
+    | Some signedTransaction ->
+        let transactionDetails = Account.GetSignedTransactionDetails signedTransaction
+        Presentation.ShowTransactionData
+            transactionDetails
+            signedTransaction.TransactionInfo.Metadata
+
+        if UserInteraction.AskYesNo "Do you accept?" then
+            try
+                let txIdUri =
+                    Account.BroadcastTransaction signedTransaction
+                        |> Async.RunSynchronously
+                Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
+                UserInteraction.PressAnyKeyToContinue ()
+            with
+            | :? DestinationEqualToOrigin ->
+                Presentation.Error "Transaction's origin cannot be the same as the destination."
+                UserInteraction.PressAnyKeyToContinue()
+            | :? InsufficientFunds ->
+                Presentation.Error "Insufficient funds."
+                UserInteraction.PressAnyKeyToContinue()
 
 let SignOffPayment() =
     let fileToReadFrom = UserInteraction.AskFileNameToLoad
                              "Introduce a file name to load the unsigned transaction: "
-    let unsignedTransaction = Account.LoadUnsignedTransactionFromFile fileToReadFrom.FullName
+    let unsignedTransactionOpt =
+        try
+            let unsTx = Account.LoadUnsignedTransactionFromFile fileToReadFrom.FullName
+            let accountsWithSameAddress =
+                Account.GetAllActiveAccounts().Where(
+                    fun acc -> acc.PublicAddress = unsTx.Proposal.OriginAddress
+                )
+            Some (unsTx, accountsWithSameAddress)
+        with
+        | TransactionAlreadySigned ->
+            None
 
-    let accountsWithSameAddress =
-        Account.GetAllActiveAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)
-    if not (accountsWithSameAddress.Any()) then
+    match unsignedTransactionOpt with
+    | None ->
+        Console.WriteLine String.Empty
+        Presentation.Error "The transaction is already signed."
+        Console.WriteLine (
+            sprintf
+                "You maybe wanted to use the option '%s'."
+                (Presentation.ConvertPascalCaseToSentence (Operations.BroadcastPayment.ToString()))
+        )
+        UserInteraction.PressAnyKeyToContinue ()
+
+    | Some (_, accountsWithSameAddress) when not (accountsWithSameAddress.Any()) ->
         Presentation.Error "The transaction doesn't correspond to any of the accounts in the wallet."
         UserInteraction.PressAnyKeyToContinue ()
-    else
+
+    | Some (unsignedTransaction, accountsWithSameAddress) ->
         let accounts =
             accountsWithSameAddress.Where(
                 fun acc -> acc.Currency = unsignedTransaction.Proposal.Amount.Currency &&

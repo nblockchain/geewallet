@@ -17,3 +17,6 @@ exception InvalidDestinationAddress of msg: string
 
 exception InvalidJson
 
+exception TransactionAlreadySigned
+exception TransactionNotSignedYet
+
