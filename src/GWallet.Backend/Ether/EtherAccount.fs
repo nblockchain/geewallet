@@ -425,20 +425,26 @@ module internal Account =
         let chainId = (v - BigInteger 35) / BigInteger 2
         chainId
 
-    let private GetTransactionCurrency (tx : TransactionBase) =
-        match int (GetTransactionChainId tx) with
-        | chainId when chainId = int Config.EthNet -> ETH
-        | chainId when chainId = int Config.EtcNet -> ETC
-        | other -> failwith <| SPrintF1 "Could not infer currency from transaction where chainId = %i." other
 
     let GetSignedTransactionDetails (signedTransaction: SignedTransaction<'T>): ITransactionDetails =
+        let getTransactionCurrency (tx: TransactionBase) =
+            match int (GetTransactionChainId tx) with
+            | chainId when chainId = int Config.EthNet -> ETH
+            | chainId when chainId = int Config.EtcNet -> ETC
+            | other -> failwith <| SPrintF1 "Could not infer currency from transaction where chainId = %i." other
+
         let tx = TransactionFactory.CreateTransaction signedTransaction.RawTransaction
+
+        // HACK: I prefix 12 elements to the address due to AddressTypeDecoder expecting some sort of header...
+        let address = AddressTypeDecoder().Decode (Array.append (Array.zeroCreate 12) tx.ReceiveAddress)
+
+        let destAddress = addressUtil.ConvertToChecksumAddress address
+
         let txDetails =
             {
                 OriginAddress = signer.GetSenderAddress signedTransaction.RawTransaction
                 Amount = UnitConversion.Convert.FromWei (IntTypeDecoder().DecodeBigInteger tx.Value)
-                Currency = GetTransactionCurrency tx
-                // HACK: I prefix 12 elements to the address due to AddressTypeDecoder expecting some sort of header...
-                DestinationAddress = AddressTypeDecoder().Decode (Array.append (Array.zeroCreate 12) tx.ReceiveAddress)
+                Currency = getTransactionCurrency tx
+                DestinationAddress = destAddress
             }
         txDetails :> ITransactionDetails
