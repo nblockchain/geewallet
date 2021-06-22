@@ -414,21 +414,21 @@ module internal Account =
             }
         ExportUnsignedTransactionToJson unsignedTransaction
 
-    let private GetTransactionChainId (tx : TransactionBase) =
-        // the chain id can be deconstructed like so -
-        //   https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
-        // into one of the following -
-        //   https://chainid.network/
-        // NOTE: according to the SO discussion, the following alrogithm is adequate -
-        // https://stackoverflow.com/questions/68023440/how-do-i-use-nethereum-to-extract-chain-id-from-a-raw-transaction
-        let v = IntTypeDecoder().DecodeBigInteger tx.Signature.V
-        let chainId = (v - BigInteger 35) / BigInteger 2
-        chainId
-
 
     let GetSignedTransactionDetails (signedTransaction: SignedTransaction<'T>): ITransactionDetails =
+        let getTransactionChainId (tx: TransactionBase) =
+            // the chain id can be deconstructed like so -
+            //   https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
+            // into one of the following -
+            //   https://chainid.network/
+            // NOTE: according to the SO discussion, the following alrogithm is adequate -
+            // https://stackoverflow.com/questions/68023440/how-do-i-use-nethereum-to-extract-chain-id-from-a-raw-transaction
+            let v = IntTypeDecoder().DecodeBigInteger tx.Signature.V
+            let chainId = (v - BigInteger 35) / BigInteger 2
+            chainId
+
         let getTransactionCurrency (tx: TransactionBase) =
-            match int (GetTransactionChainId tx) with
+            match int (getTransactionChainId tx) with
             | chainId when chainId = int Config.EthNet -> ETH
             | chainId when chainId = int Config.EtcNet -> ETC
             | other -> failwith <| SPrintF1 "Could not infer currency from transaction where chainId = %i." other
