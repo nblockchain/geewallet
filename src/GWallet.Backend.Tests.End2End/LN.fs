@@ -286,6 +286,95 @@ type LN() =
                 failwith "incorrect balance after payment 2"
         }
 
+    let SendMonoHopHtlcPaymentsViaLnd
+        (clientWallet: ClientWalletInstance)
+        (lnd: Lnd)
+        (channelId: ChannelIdentifier)
+        (fundingAmount: Money) = async {
+
+        // verify channel status
+        let channelInfoBeforeAnyPayment = clientWallet.ChannelStore.ChannelInfo channelId
+        match channelInfoBeforeAnyPayment.Status with
+        | ChannelStatus.Active -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        // send htlc payment
+        let! sendHtlcPayment1Res = async {
+
+            // create and verify payment request
+            let accountBalance = Money(channelInfoBeforeAnyPayment.SpendableBalance, MoneyUnit.BTC)
+            let transferAmount = TransferAmount (walletToWalletTestPayment1Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
+            let! invoiceOpt = lnd.CreateInvoice(transferAmount)
+            let invoice = UnwrapOption invoiceOpt "Failed to create first invoice"
+            let paymentRequest = UnwrapResult (PaymentRequest.Parse invoice.BOLT11) "failed to parse payment request 1"
+
+            // send monohop htlc payment
+            return!
+                Lightning.Network.SendMonoHopHtlcPayment
+                    clientWallet.NodeClient
+                    channelId
+                    transferAmount
+                    paymentRequest.PaymentHash.Value
+                    paymentRequest.PaymentSecret
+                    (NBitcoin.DataEncoders.HexEncoder().DecodeData(invoice.Id))
+                    paymentRequest.MinFinalCLTVExpiryDelta
+        }
+
+        // verify htlc payment
+        UnwrapResult sendHtlcPayment1Res "SendHtlcPayment failed"
+
+        // verify channel status after first payment
+        let channelInfoAfterPayment1 = clientWallet.ChannelStore.ChannelInfo channelId
+        match channelInfoAfterPayment1.Status with
+        | ChannelStatus.Active -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        // verify channel balance after first payment
+        let! lndBalanceAfterPayment1 = lnd.ChannelBalance()
+        if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount then
+            failwith "incorrect balance after payment 1"
+        if lndBalanceAfterPayment1 <> walletToWalletTestPayment1Amount then
+            failwith "incorrect lnd balance after payment 1"
+
+        // send second htlc payment
+        let! sendHtlcPayment2Res = async {
+
+            // create and verify payment request
+            let accountBalance = Money(channelInfoBeforeAnyPayment.SpendableBalance, MoneyUnit.BTC)
+            let transferAmount = TransferAmount (walletToWalletTestPayment2Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
+            let! invoiceOpt =  lnd.CreateInvoice(transferAmount)
+            let invoice = UnwrapOption invoiceOpt "Failed to create second invoice"
+            let paymentRequest = UnwrapResult (PaymentRequest.Parse invoice.BOLT11) "failed to parse payment request 2"
+
+            // send monohop htlc payment
+            return! 
+                Lightning.Network.SendMonoHopHtlcPayment
+                    clientWallet.NodeClient
+                    channelId
+                    transferAmount
+                    paymentRequest.PaymentHash.Value
+                    paymentRequest.PaymentSecret
+                    (NBitcoin.DataEncoders.HexEncoder().DecodeData(invoice.Id))
+                    paymentRequest.MinFinalCLTVExpiryDelta
+            }
+
+        // verify second htlc payment
+        UnwrapResult sendHtlcPayment2Res "SendHtlcPayment failed"
+
+        // verify channel status after second payment
+        let channelInfoAfterPayment2 = clientWallet.ChannelStore.ChannelInfo channelId
+        match channelInfoAfterPayment2.Status with
+        | ChannelStatus.Active -> ()
+        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        // verify channel balance after second payment
+        let! lndBalanceAfterPayment2 = lnd.ChannelBalance()
+        if Money(channelInfoAfterPayment2.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount - walletToWalletTestPayment2Amount then
+            failwith "incorrect balance after payment 2"
+        if lndBalanceAfterPayment2 <> lndBalanceAfterPayment1 + walletToWalletTestPayment2Amount then
+            failwith "incorrect lnd balance after payment 2"
+    }
+
     let ReceiveMonoHopPayments (serverWallet: ServerWalletInstance) channelId =
         async {
             let channelInfoBeforeAnyPayment = serverWallet.ChannelStore.ChannelInfo channelId
@@ -463,6 +552,12 @@ type LN() =
         TearDown clientWallet lnd electrumServer bitcoind
     }
 
+    [<Test>]
+    member __.``can open channel with geewallet (funder) and send htlcs to geewallet via LND``() = Async.RunSynchronously <| async {
+        let! (channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount) = OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
+        do! SendMonoHopHtlcPaymentsViaLnd clientWallet lnd channelId fundingAmount
+        TearDown clientWallet lnd electrumServer bitcoind
+    }
 
     [<Test>]
     member __.``can close channel with LND``() = Async.RunSynchronously <| async {

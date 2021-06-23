@@ -346,6 +346,17 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                 return Ok ()
     }
 
+    member internal self.SendMonoHopHtlcPayment
+        (channelId: ChannelIdentifier)
+        (transferAmount: TransferAmount)
+        (paymentPreImage: uint256)
+        (paymentSecret: option<uint256>)
+        (associatedData: byte[])
+        (outgoingCLTV: BlockHeightOffset32) :
+        Async<Result<unit, IErrorMsg>> = async {
+        return raise (new NotImplementedException ())
+    }
+
     member internal self.InitiateCloseChannel (channelId: ChannelIdentifier): Async<Result<unit, NodeInitiateCloseChannelError>> =
         async {
             let! connectRes =

@@ -47,6 +47,7 @@ module public Network =
 
     let public SendHtlcPayment (nodeClient: NodeClient) = nodeClient.SendHtlcPayment
     let public SendMonoHopPayment (nodeClient: NodeClient) = nodeClient.SendMonoHopPayment
+    let public SendMonoHopHtlcPayment (nodeClient: NodeClient) = nodeClient.SendMonoHopHtlcPayment
     let public ConnectLockChannelFunding (nodeClient: NodeClient) = nodeClient.ConnectLockChannelFunding
 
     let public AcceptChannel (nodeServer: NodeServer) = nodeServer.AcceptChannel ()
