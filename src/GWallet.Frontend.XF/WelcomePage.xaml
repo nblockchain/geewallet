@@ -12,10 +12,10 @@
                Margin="20,20,20,20"/>
 
         <Entry x:Name="passphraseEntry" IsPassword="true"
-               Placeholder="Input your new seed passphrase"
+               Placeholder="Input your new secret recovery phrase"
                TextChanged="OnPassphraseTextChanged" />
         <Entry x:Name="passphraseConfirmationEntry" IsPassword="true"
-               Placeholder="Repeat your seed passphrase here"
+               Placeholder="Repeat your secret recovery phrase"
                TextChanged="OnPassphraseTextChanged" />
 
         <StackLayout Orientation="Horizontal">

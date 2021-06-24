@@ -60,18 +60,18 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             result
 
         if passphraseEntry.Text <> passphraseConfirmationEntry.Text then
-            Some "Seed passphrases don't match, please try again"
+            Some "Secret recovery phrases don't match, please try again"
         elif passphraseEntry.Text.Length < LENGTH_OF_CURRENT_UNSOLVED_WARPWALLET_CHALLENGE then
-            Some (SPrintF1 "Seed passphrases should contain %i or more characters, for security reasons"
+            Some (SPrintF1 "Secret recovery phrases should contain %i or more characters, for security reasons"
                           LENGTH_OF_CURRENT_UNSOLVED_WARPWALLET_CHALLENGE)
         elif (not containsASpaceAtLeast) && (not containsADigitAtLeast) then
-            Some "If your passphrase doesn't contain spaces (thus only a password), at least use numbers too"
+            Some "If your secret recovery phrase doesn't contain spaces (thus only a single password), at least use numbers too"
         elif passphraseEntry.Text.ToLower() = passphraseEntry.Text || passphraseEntry.Text.ToUpper() = passphraseEntry.Text then
-            Some "Mix lowercase and uppercase characters in your seed phrase please"
+            Some "Mix lowercase and uppercase characters in your secret recovery phrase please"
         elif containsASpaceAtLeast && (not containsADigitAtLeast) && (not containsPunctuation) then
-            Some "For security reasons, please include numbers or punctuation in your passphrase (to increase entropy)"
+            Some "For security reasons, please include numbers or punctuation in your secret recovery phrase (to increase entropy)"
         elif IsColdStorageMode() && AllWordsInPassphraseExistInDictionaries passphraseEntry.Text then
-            Some "For security reasons, please include at least one word that does not exist in any dictionary (to increase entropy)"
+            Some "For security reasons, please include at least one word that does not exist in any dictionary (to increase entropy) in your secret recovery phrase"
         else
             None
 
