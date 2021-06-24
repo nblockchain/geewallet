@@ -391,7 +391,9 @@ type CircleChartView () =
                     VerticalOptions = LayoutOptions.Center,
                     HeightRequest = size,
                     WidthRequest = size,
-                    Fill = SolidColorBrush color
+                    Fill = SolidColorBrush color,
+                    StrokeThickness = 0.,
+                    Stroke = null
                 )
             gridLayout.Children.Add pieCircle
        else
@@ -428,7 +430,13 @@ type CircleChartView () =
                         )                    
 
                     let pathGeometry = converter.ConvertFromInvariantString path :?> Geometry
-                    let helperView = Path (Data = pathGeometry, Fill = SolidColorBrush item.Color)
+                    let helperView =
+                        Path (
+                            Data = pathGeometry,
+                            Fill = SolidColorBrush item.Color,
+                            StrokeThickness = 0.,
+                            Stroke = null
+                        )
                     gridLayout.Children.Add helperView
 
                     addSliceToView tail endPercentage
