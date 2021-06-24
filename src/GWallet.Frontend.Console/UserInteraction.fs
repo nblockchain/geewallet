@@ -155,18 +155,18 @@ module UserInteraction =
 
     let rec private AskPassPhrase (repeat: bool): string =
         if repeat then
-            Console.Write "Write a seed passphrase (for disaster recovery) for your new wallet: "
+            Console.Write "Write a secret recovery phrase for your new wallet: "
         else
-            Console.Write "Write the seed passphrase: "
+            Console.Write "Write the secret recovery phrase: "
 
         let passphrase1 = ConsoleReadPasswordLine()
         if not repeat then
             passphrase1
         else
-            Console.Write "Repeat the seed passphrase: "
+            Console.Write "Repeat the secret recovery phrase: "
             let passphrase2 = ConsoleReadPasswordLine()
             if passphrase1 <> passphrase2 then
-                Presentation.Error "Passphrases are not the same, please try again."
+                Presentation.Error "Secret recovery phrases are not the same, please try again."
                 AskPassPhrase repeat
             else
                 passphrase1

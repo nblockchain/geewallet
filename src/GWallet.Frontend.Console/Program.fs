@@ -321,7 +321,7 @@ let WalletOptions(): unit =
     let rec AskWalletOption(): GenericWalletOption =
         Console.WriteLine "0. Cancel, go back"
         Console.WriteLine "1. Check you still remember your payment password"
-        Console.WriteLine "2. Check you still remember your seed passphrase"
+        Console.WriteLine "2. Check you still remember your secret recovery phrase"
         Console.WriteLine "3. Wipe your current wallet, in order to start from scratch"
         Console.Write "Choose an option from the ones above: "
         let optIntroduced = Console.ReadLine ()
