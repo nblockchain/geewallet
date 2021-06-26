@@ -11,21 +11,32 @@ open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-type ElectrumServer = {
-    DbDir: string
-    ProcessWrapper: ProcessWrapper
-} with
+type ElectrumServer =
+    {
+        DbDir: string
+        XProcess: XProcess
+    }
+
     interface IDisposable with
         member self.Dispose() =
-            self.ProcessWrapper.Process.Kill()
-            self.ProcessWrapper.WaitForExit()
+            XProcess.WaitForExit true self.XProcess
             Directory.Delete(self.DbDir, true)
 
     static member Start(bitcoind: Bitcoind): Async<ElectrumServer> = async {
+
+        // create electrs database directory
         let dbDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         Directory.CreateDirectory dbDir |> ignore
-        let processWrapper =
-            ProcessWrapper.New
+
+        // start electrs process
+        let xprocess =
+            let dbDirMnt = // TODO: extract out this function.
+                if dbDir.Contains ":" then
+                    let dbDirHead = dbDir.[0].ToString().ToLower()
+                    let dbDirTail = dbDir.Substring 1
+                    "/mnt/" + dbDirHead + dbDirTail.Replace("\\", "/").Replace(":", "")
+                else dbDir
+            XProcess.Start
                 "electrs"
                 (SPrintF3
                     "\
@@ -35,19 +46,22 @@ type ElectrumServer = {
                     --electrum-rpc-addr [::1]:50001 \
                     --daemon-rpc-addr %s \
                     "
-                    dbDir
-                    bitcoind.DataDir
+                    dbDirMnt
+                    bitcoind.DataDirMnt
                     (bitcoind.RpcAddr())
                 )
                 Map.empty
-                false
-        processWrapper.WaitForMessage (fun msg -> msg.Contains "Electrum Rust Server")
 
+        // skip to init message
+        XProcess.WaitForMessage (fun msg -> msg.Contains "Electrum Rust Server") xprocess
+
+        // sleep through electrs warm-up period
         do! Async.Sleep 5000
 
+        // make ElectrumServer
         return {
             DbDir = dbDir
-            ProcessWrapper = processWrapper
+            XProcess = xprocess
         }
     }
 

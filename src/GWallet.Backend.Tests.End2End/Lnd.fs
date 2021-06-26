@@ -16,53 +16,66 @@ open GWallet.Backend
 open GWallet.Backend.UtxoCoin.Lightning
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-type Lnd = {
-    LndDir: string
-    ProcessWrapper: ProcessWrapper
-    ConnectionString: string
-    ClientFactory: ILightningClientFactory
-} with
+type Lnd =
+    {
+        LndDir: string
+        XProcess: XProcess
+        ConnectionString: string
+        ClientFactory: ILightningClientFactory
+    }
+
     interface IDisposable with
         member self.Dispose() =
-            self.ProcessWrapper.Process.Kill()
-            self.ProcessWrapper.WaitForExit()
+            XProcess.WaitForExit true self.XProcess
             Directory.Delete(self.LndDir, true)
 
     static member Start(bitcoind: Bitcoind): Async<Lnd> = async {
+
+        // create sandbox directory
         let lndDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         Directory.CreateDirectory lndDir |> ignore
-        let processWrapper =
-            let args =
-                ""
-                + " --bitcoin.active"
-                + " --bitcoin.regtest"
-                + " --bitcoin.node=bitcoind"
-                + " --bitcoind.dir=" + bitcoind.DataDir
-(* not needed anymore:
-                + " --bitcoind.rpcuser=" + bitcoind.RpcUser
-                + " --bitcoind.rpcpass=" + bitcoind.RpcPassword
-                + " --bitcoind.zmqpubrawblock=tcp://127.0.0.1:28332"
-                + " --bitcoind.zmqpubrawtx=tcp://127.0.0.1:28333"
-*)
-                + " --bitcoind.rpchost=localhost:18554"
-                + " --debuglevel=trace"
-                + " --listen=127.0.0.2"
-                + " --restlisten=127.0.0.2:8080"
-                + " --lnddir=" + lndDir
-            ProcessWrapper.New
-                "lnd"
-                args
-                Map.empty
-                false
-        processWrapper.WaitForMessage (fun msg -> msg.EndsWith "password gRPC proxy started at 127.0.0.2:8080")
+
+        // start LND server process
+        let lndProcessName =
+            if Environment.OSVersion.Platform <> PlatformID.Unix
+            then "$HOME/go/bin/lnd" // HACK: explicitly qualify path on windows until we figure out how to update $PATH in unit test!
+            else "lnd"
+        let lndDirMnt = // TODO: extract this out to a function.
+            if lndDir.Contains ":" then
+                let lndDirHead = lndDir.[0].ToString().ToLower()
+                let lndDirTail = lndDir.Substring 1
+                "/mnt/" + lndDirHead + lndDirTail.Replace("\\", "/").Replace(":", "")
+            else lndDir
+        let args =
+            ""
+            + " --bitcoin.active"
+            + " --bitcoin.regtest"
+            + " --bitcoin.node=bitcoind"
+            + " --bitcoind.dir=" + bitcoind.DataDirMnt
+            + " --bitcoind.rpchost=localhost:18554"
+            + " --debuglevel=trace"
+            + " --listen=127.0.0.2"
+            + " --restlisten=127.0.0.2:8080"
+            + " --lnddir=" + lndDirMnt
+        let xprocess = XProcess.Start lndProcessName args Map.empty
+
+        // skip to server init message
+        XProcess.WaitForMessage (fun msg -> msg.EndsWith "password gRPC proxy started at 127.0.0.2:8080") xprocess
+
+        // sleep through server warm-up period
+        do! Async.Sleep 2000
+
+        // start LND client
         let connectionString =
             ""
             + "type=lnd-rest;"
             + "server=https://127.0.0.2:8080;"
             + "allowinsecure=true;"
-            + "macaroonfilepath=" + Path.Combine(lndDir, "data/chain/bitcoin/regtest/admin.macaroon")
+            + "macaroonfilepath=" + lndDir + "/data/chain/bitcoin/regtest/admin.macaroon"
         let clientFactory = new LightningClientFactory(NBitcoin.Network.RegTest) :> ILightningClientFactory
         let lndClient = clientFactory.Create connectionString :?> LndClient
+
+        // initialize wallet
         let walletPassword = Path.GetRandomFileName()
         let! genSeedResp = Async.AwaitTask <| lndClient.SwaggerClient.GenSeedAsync(null, null)
         let initWalletReq =
@@ -70,12 +83,15 @@ type Lnd = {
                 Wallet_password = Encoding.ASCII.GetBytes walletPassword,
                 Cipher_seed_mnemonic = genSeedResp.Cipher_seed_mnemonic
             )
-
         let! _ = Async.AwaitTask <| lndClient.SwaggerClient.InitWalletAsync initWalletReq
-        processWrapper.WaitForMessage (fun msg -> msg.EndsWith "Server listening on 127.0.0.2:9735")
+
+        // skip to client init message
+        XProcess.WaitForMessage (fun msg -> msg.EndsWith "Server listening on 127.0.0.2:9735") xprocess
+
+        // make Lnd
         return {
             LndDir = lndDir
-            ProcessWrapper = processWrapper
+            XProcess = xprocess
             ConnectionString = connectionString
             ClientFactory = clientFactory
         }
@@ -104,8 +120,7 @@ type Lnd = {
     member self.WaitForBlockHeight(blockHeight: BlockHeight): Async<unit> = async {
         let! currentBlockHeight = self.GetBlockHeight()
         if blockHeight > currentBlockHeight then
-            self.ProcessWrapper.WaitForMessage <| fun msg ->
-                msg.Contains(SPrintF1 "New block: height=%i" blockHeight.Value)
+            XProcess.WaitForMessage (fun msg -> msg.Contains(SPrintF1 "New block: height=%i" blockHeight.Value)) self.XProcess
         return ()
     }
 
@@ -124,8 +139,7 @@ type Lnd = {
     member self.WaitForBalance(money: Money): Async<unit> = async {
         let! currentBalance = self.OnChainBalance()
         if money > currentBalance then
-            self.ProcessWrapper.WaitForMessage <| fun msg ->
-                msg.Contains "[walletbalance]"
+            XProcess.WaitForMessage (fun msg -> msg.Contains "[walletbalance]") self.XProcess
             return! self.WaitForBalance money
         return ()
     }
