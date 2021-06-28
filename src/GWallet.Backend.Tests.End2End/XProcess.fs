@@ -5,8 +5,8 @@ open System.IO
 open System.Diagnostics
 open System.Collections.Concurrent
 
-[<RequireQualifiedAccess; CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
-module XProcess =
+[<RequireQualifiedAccess>]
+module XProcessModule =
 
     /// A cross-platform process.
     type XProcess =
@@ -154,7 +154,6 @@ module XProcess =
     let Kill xprocess =
         if not xprocess.Process.HasExited then xprocess.Process.Kill ()
         SkipMessages xprocess
-
-/// Forward XProcess type to containing namespace.
-[<AutoOpen>]
-module XProcessAuto = type XProcess = XProcess.XProcess
+        
+/// A cross-platform process.
+type XProcess = XProcessModule.XProcess
