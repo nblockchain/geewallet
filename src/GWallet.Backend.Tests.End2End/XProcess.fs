@@ -5,7 +5,7 @@ open System.IO
 open System.Diagnostics
 open System.Collections.Concurrent
 
-[<RequireQualifiedAccess>]
+[<RequireQualifiedAccess; CompilationRepresentation (CompilationRepresentationFlags.ModuleSuffix)>]
 module XProcess =
 
     /// A cross-platform process.
