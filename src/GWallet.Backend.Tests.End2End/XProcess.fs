@@ -15,24 +15,24 @@ module XProcess =
               Output : ConcurrentQueue<string>
             }
 
-    let private CreateOutputReceiver processName processId (output: ConcurrentQueue<string>) (firstStreamEnded: Ref<bool>) =
+    let private CreateOutputReceiver processName processId (firstOutputTerminated: Ref<bool>) (output: ConcurrentQueue<string>) =
 
         // lambda for actual handler
         fun (_: obj) (args: DataReceivedEventArgs) ->
 
             // NOTE: we need to wait for both streams (stdout and stderr) to end.
             // So output has ended and the process has exited after the second null.
-            lock firstStreamEnded <| fun () ->
+            lock firstOutputTerminated <| fun () ->
                 match args.Data with
                 | null ->
-                    if not !firstStreamEnded
-                    then firstStreamEnded := true
+                    if not !firstOutputTerminated
+                    then firstOutputTerminated := true
                     else printf "%s (%i) <exited>" processName processId
                 | text ->
                     printf "%s (%i): %s" processName processId text
                     output.Enqueue text
 
-    let private CreateProcess processName processPath processArgs (processEnv: Map<string, string>) output =
+    let private CreateProcess processPath processArgs (processEnv: Map<string, string>) credentialsOpt =
 
         // make process start info
         let processStartInfo =
@@ -44,20 +44,19 @@ module XProcess =
                 RedirectStandardError = true
             )
 
+        // populate credential if available
+        match credentialsOpt with
+        | Some (userName, password) ->
+            processStartInfo.UserName <- userName
+            processStartInfo.Password <- let pwd = new Security.SecureString () in (for c in password do pwd.AppendChar c); pwd
+        | None -> ()
+
         // populate process start info environment vars
         for kvp in processEnv do
             processStartInfo.Environment.[kvp.Key] <- kvp.Value
 
         // create process object
         let processInstance = new Process (StartInfo = processStartInfo, EnableRaisingEvents = true)
-
-        // stream process's output to spawning process's
-        let firstStreamEnded = ref false
-        let outputReceiver = CreateOutputReceiver processName processInstance.Id output firstStreamEnded
-        processInstance.OutputDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
-        processInstance.ErrorDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
-        processInstance.BeginOutputReadLine () // NOTE: this may need to be called after starting the OS process!
-        processInstance.BeginErrorReadLine ()
 
         // tie process lifetime to spawning process's
         AppDomain.CurrentDomain.ProcessExit.AddHandler (EventHandler (fun _ _ -> processInstance.Close ()))
@@ -95,7 +94,7 @@ module XProcess =
         readMessages List.empty
 
     /// Start a process based on the execution environment.
-    let Start processName processArgs processEnv isPython =
+    let Start processName processArgs processEnv =
 
         if Environment.OSVersion.Platform = PlatformID.Unix then
         
@@ -106,41 +105,54 @@ module XProcess =
                 | Some processPath -> processPath
                 | None -> failwithf "Could not find process file %s in $PATH=%s" processName envPath
 
-            // attempt to start OS process
-            let processOutput = ConcurrentQueue ()
-            let processInstance = CreateProcess processName processPath processArgs processEnv processOutput
+            // attempt to create and start OS process
+            let processInstance = CreateProcess processPath processArgs processEnv None
             let processStarted = processInstance.Start ()
             if not processStarted then
                 failwithf "Failed to start process for %s." processPath
+            
+            // stream process's output to spawning process's
+            let firstOutputTerminated = ref false
+            let output = ConcurrentQueue ()
+            let outputReceiver = CreateOutputReceiver processName processInstance.Id firstOutputTerminated output
+            processInstance.OutputDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
+            processInstance.ErrorDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
+            processInstance.BeginOutputReadLine ()
+            processInstance.BeginErrorReadLine ()
 
             // make linux process
-            let xProcess = { Process = processInstance; Output = processOutput }
+            let xProcess = { Process = processInstance; Output = output }
             xProcess
 
         else // assume windows
         
-            // attempt to discover process path
-            let envPath = Environment.GetEnvironmentVariable "PATH"
-            let processNameExt = processName + if isPython then ".py" else ".exe"
-            let processPath =
-                match TryDiscoverProcessPath processNameExt envPath with
-                | Some processPath -> processPath
-                | None -> failwithf "Could not find process file %s in $PATH=%s" processName envPath
+            // construct process path
+            let processPath = "wsl.exe"
 
-            // attempt to start OS process
-            let processOutput = ConcurrentQueue ()
-            let processInstance = CreateProcess processName processPath processArgs processEnv processOutput
+            // attempt to create and start OS process
+            let processArgsPlus = sprintf "%s %s" processName processArgs
+            let processCredentials = ("USER_NAME", "PASSWORD") // TODO: populate these somehow
+            let processInstance = CreateProcess processPath processArgsPlus processEnv (Some processCredentials)
             let processStarted = processInstance.Start ()
             if not processStarted then
                 failwithf "Failed to start process for %s." processPath
+            
+            // stream process's output to spawning process's
+            let firstOutputTerminated = ref false
+            let output = ConcurrentQueue ()
+            let outputReceiver = CreateOutputReceiver processName processInstance.Id firstOutputTerminated output
+            processInstance.OutputDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
+            processInstance.ErrorDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
+            processInstance.BeginOutputReadLine ()
+            processInstance.BeginErrorReadLine ()
 
             // make wsl process
-            let xProcess = { Process = processInstance; Output = processOutput }
+            let xProcess = { Process = processInstance; Output = output }
             xProcess
 
     /// Kill the process.
     let Kill xprocess =
-        xprocess.Process.Kill ()
+        if not xprocess.Process.HasExited then xprocess.Process.Kill ()
         SkipMessages xprocess
 
 /// A cross-platform process.

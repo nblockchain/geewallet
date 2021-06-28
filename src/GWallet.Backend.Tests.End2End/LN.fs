@@ -320,6 +320,11 @@ type LN() =
                 failwith "incorrect balance after receiving payment 2"
         }
 
+    [<Test>]
+    member __.``XProcess works.`` () =
+        let xprocess = XProcess.Start "bitcoind" "" Map.empty
+        Thread.Sleep 1000
+        XProcess.Kill xprocess
 
     [<Category "G2G_ChannelOpening_Funder">]
     [<Test>]
