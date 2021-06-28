@@ -32,7 +32,7 @@ module XProcess =
                         printf "%s (%i): %s" processName processId text
                         output.Enqueue text
 
-        static member private CreateProcess processPath processArgs (processEnv: Map<string, string>) credentialsOpt =
+        static member private CreateProcess processName processPath processArgs (processEnv: Map<string, string>) processOutput credentialsOpt =
 
             // make process start info
             let processStartInfo =
@@ -60,6 +60,12 @@ module XProcess =
 
             // tie process lifetime to spawning process's
             AppDomain.CurrentDomain.ProcessExit.AddHandler (EventHandler (fun _ _ -> processInstance.Close ()))
+
+            // redirect output to spawning process's
+            let firstOutputTerminated = ref false
+            let outputReceiver = XProcess.CreateOutputReceiver processName processInstance.Id firstOutputTerminated processOutput
+            processInstance.OutputDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
+            processInstance.ErrorDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
             processInstance
 
         static member private TryDiscoverProcessPath processName (envPath: string) =
@@ -96,6 +102,7 @@ module XProcess =
         /// Start a process based on the execution environment.
         static member Start processName processArgs processEnv =
 
+            // when in *nix, do as the *nix
             if Environment.OSVersion.Platform = PlatformID.Unix then
         
                 // attempt to discover process path
@@ -106,48 +113,49 @@ module XProcess =
                     | None -> failwithf "Could not find process file %s in $PATH=%s" processName envPath
 
                 // attempt to create and start OS process
-                let processInstance = XProcess.CreateProcess processPath processArgs processEnv None
+                let processOutput = ConcurrentQueue ()
+                let processInstance = XProcess.CreateProcess processName processPath processArgs processEnv processOutput None
                 let processStarted = processInstance.Start ()
                 if not processStarted then
                     failwithf "Failed to start process for %s." processPath
             
-                // stream process's output to spawning process's
-                let firstOutputTerminated = ref false
-                let output = ConcurrentQueue ()
-                let outputReceiver = XProcess.CreateOutputReceiver processName processInstance.Id firstOutputTerminated output
-                processInstance.OutputDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
-                processInstance.ErrorDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
+                // begin asynchronous reads from process
                 processInstance.BeginOutputReadLine ()
                 processInstance.BeginErrorReadLine ()
 
                 // make linux process
-                let xProcess = { Process = processInstance; Output = output }
+                let xProcess = { Process = processInstance; Output = processOutput }
                 xProcess
 
-            else // assume windows
+            else // otherwise windows
         
                 // construct process path
                 let processPath = "wsl.exe"
 
+                // attempt to grab wsl credentials from file
+                let credentialsFilePath = "../../../WslCredentials.dat"
+                let processCredentials =
+                    if File.Exists credentialsFilePath then
+                        let credentialsText = File.ReadAllText credentialsFilePath
+                        match credentialsText.Split ([|Environment.NewLine|], StringSplitOptions.None) with
+                        | [|userName; password|] -> (userName, password)
+                        | _ -> failwithf "Expecting user name and password in %s only." credentialsFilePath
+                    else failwithf "Cannot find Windows Subsystem for Linux credentials file at %s." credentialsFilePath
+
                 // attempt to create and start OS process
                 let processArgsPlus = sprintf "%s %s" processName processArgs
-                let processCredentials = ("USER_NAME", "PASSWORD") // TODO: populate these somehow
-                let processInstance = XProcess.CreateProcess processPath processArgsPlus processEnv (Some processCredentials)
+                let processOutput = ConcurrentQueue ()
+                let processInstance = XProcess.CreateProcess processName processPath processArgsPlus processEnv processOutput (Some processCredentials)
                 let processStarted = processInstance.Start ()
                 if not processStarted then
                     failwithf "Failed to start process for %s." processPath
-            
-                // stream process's output to spawning process's
-                let firstOutputTerminated = ref false
-                let output = ConcurrentQueue ()
-                let outputReceiver = XProcess.CreateOutputReceiver processName processInstance.Id firstOutputTerminated output
-                processInstance.OutputDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
-                processInstance.ErrorDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
+
+                // begin asynchronous reads from process
                 processInstance.BeginOutputReadLine ()
                 processInstance.BeginErrorReadLine ()
 
                 // make wsl process
-                let xProcess = { Process = processInstance; Output = output }
+                let xProcess = { Process = processInstance; Output = processOutput }
                 xProcess
 
         /// Kill the process.

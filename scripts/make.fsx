@@ -399,6 +399,29 @@ match maybeTarget with
     RunTests TEST_TYPE_UNIT
 
 | Some "check-end2end" ->
+
+    // create credentials file if needed
+    let credentialsPath = "WslCredentials.dat"
+    if  Environment.OSVersion.Platform <> PlatformID.Unix &&
+        not (File.Exists credentialsPath) then
+
+        // prompt user name
+        Console.WriteLine (credentialsPath + " not found.")
+        Console.Write "Enter Windows Subsystem for Linux user name: "
+        let userName = Console.ReadLine ()
+
+        // prompt password
+        Console.Write "Enter Windows Subsystem for Linux password for credentials: "
+        let password = Console.ReadLine ()
+        Console.WriteLine ()
+
+        // write credentials file
+        File.WriteAllText (credentialsPath, userName + Environment.NewLine + password) // TODO: encrypt password
+
+    // already exists
+    else Console.WriteLine (credentialsPath + " found.")
+
+    // run end to end tests
     RunTests "End2End"
 
 | Some("install") ->
