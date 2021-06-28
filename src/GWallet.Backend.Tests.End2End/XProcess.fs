@@ -154,3 +154,7 @@ module XProcess =
     let Kill xprocess =
         if not xprocess.Process.HasExited then xprocess.Process.Kill ()
         SkipMessages xprocess
+
+/// Forward XProcess type to containing namespace.
+[<AutoOpen>]
+module XProcessAuto = type XProcess = XProcess.XProcess
