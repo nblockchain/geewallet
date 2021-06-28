@@ -154,6 +154,3 @@ module XProcess =
     let Kill xprocess =
         if not xprocess.Process.HasExited then xprocess.Process.Kill ()
         SkipMessages xprocess
-
-/// A cross-platform process.
-type XProcess = XProcess.XProcessImpl
