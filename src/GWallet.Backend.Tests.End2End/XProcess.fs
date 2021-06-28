@@ -9,7 +9,7 @@ open System.Collections.Concurrent
 module XProcess =
 
     /// A cross-platform process.
-    type XProcess =
+    type XProcessImpl =
         private
             { Process : Process
               Output : ConcurrentQueue<string>
@@ -156,4 +156,4 @@ module XProcess =
         SkipMessages xprocess
 
 /// A cross-platform process.
-type XProcess = XProcess.XProcess
+type XProcess = XProcess.XProcessImpl
