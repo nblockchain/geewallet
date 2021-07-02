@@ -36,15 +36,15 @@ module XProcess =
             lock firstOutputTerminated <| fun () ->
                 match args.Data with
                 | null ->
-                    if not !firstOutputTerminated
-                    then firstOutputTerminated := true
-                    else printf "%s (%i) <exited>" processName processId
+                    if not !firstOutputTerminated then
+                        firstOutputTerminated := true
+                    else
+                        printfn "%s (%i) <exited>" processName processId
+                        semaphore.Release () |> ignore<int>
                 | text ->
-                    printf "%s (%i): %s" processName processId text
+                    printfn "%s (%i): %s" processName processId text
                     output.Enqueue text
-
-                // additionally, we need to release the semaphore to allow re-entry.
-                semaphore.Release () |> ignore<int>
+                    semaphore.Release () |> ignore<int>
 
     let private CreateOSProcess processPath processArgs (processEnv: Map<string, string>) credentialsOpt =
 
