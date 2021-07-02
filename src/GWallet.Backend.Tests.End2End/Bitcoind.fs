@@ -84,7 +84,7 @@ type Bitcoind =
                 "bitcoin-cli"
                 (SPrintF3 "-regtest -datadir=%s generatetoaddress %i %s" self.DataDirMnt number.Value (string address))
                 Map.empty
-        XProcess.SkipMessages bitcoinCli
+        XProcess.WaitForExit false bitcoinCli
 
     member this.GenerateBlocksToDummyAddress (number: BlockHeightOffset32) =
         let address =
