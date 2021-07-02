@@ -149,7 +149,7 @@ module XProcess =
             let processStarted = processInstance.Start ()
             if not processStarted then
                 failwithf "Failed to start process for %s." processPath
-            
+
             // redirect process output to spawning process's
             let processOutput = ConcurrentQueue ()
             RedirectProcessOutput processName processOutput processInstance semaphore

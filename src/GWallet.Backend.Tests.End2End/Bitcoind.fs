@@ -36,7 +36,7 @@ type Bitcoind =
         File.WriteAllText(
             confPath,
             String.Join(
-                Environment.NewLine,
+                "\n", // NOTE: this file will be read by a linux program, so \r isn't needed.
                 [
                      ""
                      "txindex=1"
@@ -82,7 +82,7 @@ type Bitcoind =
         let bitcoinCli =
             XProcess.Start
                 "bitcoin-cli"
-                (SPrintF3 "-regtest -datadir=%s generatetoaddress %i %s" self.DataDirMnt number.Value (address.ToString()))
+                (SPrintF3 "-regtest -datadir=%s generatetoaddress %i %s" self.DataDirMnt number.Value (string address))
                 Map.empty
         XProcess.SkipMessages bitcoinCli
 
