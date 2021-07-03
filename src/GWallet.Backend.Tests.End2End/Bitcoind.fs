@@ -16,13 +16,12 @@ type Bitcoind =
         DataDirMnt: string
         RpcUser: string
         RpcPassword: string
-        XProcess: ProcessWrapper
+        XProcess: XProcess
     }
 
     interface IDisposable with
         member self.Dispose() =
-            self.XProcess.Process.Kill ()
-            self.XProcess.WaitForExit ()
+            XProcess.WaitForExit true self.XProcess
             Directory.Delete(self.DataDir, true)
 
     static member Start(): Async<Bitcoind> = async {
@@ -61,10 +60,10 @@ type Bitcoind =
                 "/mnt/" + dataDirHead + dataDirTail.Replace("\\", "/").Replace(":", "")
             else dataDir
         let args = SPrintF1 "-regtest -datadir=%s" dataDirMnt
-        let xprocess = ProcessWrapper.New "bitcoind" args Map.empty false
+        let xprocess = XProcess.Start "bitcoind" args Map.empty
 
         // skip to init message
-        xprocess.WaitForMessage (fun msg -> msg.EndsWith "init message: Done loading")
+        XProcess.WaitForMessage (fun msg -> msg.EndsWith "init message: Done loading") xprocess
 
         // sleep through bitcoind warm-up period
         do! Async.Sleep 2000
@@ -81,12 +80,11 @@ type Bitcoind =
 
     member self.GenerateBlocks (number: BlockHeightOffset32) (address: BitcoinAddress) =
         let bitcoinCli =
-            ProcessWrapper.New
+            XProcess.Start
                 "bitcoin-cli"
                 (SPrintF3 "-regtest -datadir=%s generatetoaddress %i %s" self.DataDirMnt number.Value (string address))
                 Map.empty
-                false
-        bitcoinCli.WaitForExit ()
+        XProcess.WaitForExit false bitcoinCli
 
     member this.GenerateBlocksToDummyAddress (number: BlockHeightOffset32) =
         let address =

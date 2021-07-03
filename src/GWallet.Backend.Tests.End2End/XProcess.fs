@@ -39,10 +39,10 @@ module XProcess =
                     if not !firstOutputTerminated then
                         firstOutputTerminated := true
                     else
-                        printfn "%s (%i) <exited>" processName processId
+                        Console.WriteLine (SPrintF2 "%s (%i) <exited>" processName processId)
                         semaphore.Release () |> ignore<int>
                 | text ->
-                    printfn "%s (%i): %s" processName processId text
+                    Console.WriteLine (SPrintF3 "%s (%i): %s" processName processId text)
                     output.Enqueue text
                     semaphore.Release () |> ignore<int>
 
@@ -58,7 +58,7 @@ module XProcess =
                 RedirectStandardError = true
             )
 
-        // populate credential if available
+        // populate credentials if available
         match credentialsOpt with
         | Some (userName, password) ->
             let passwordSecure = new SecureString ()
@@ -72,17 +72,14 @@ module XProcess =
             processStartInfo.Environment.[kvp.Key] <- kvp.Value
 
         // create process object and tie its lifetime to spawning process's
-        let processInstance = new Process (StartInfo = processStartInfo, EnableRaisingEvents = true)
-        AppDomain.CurrentDomain.ProcessExit.AddHandler (EventHandler (fun _ _ -> processInstance.Close ()))
-        processInstance
+        new Process (StartInfo = processStartInfo)
 
     let private RedirectProcessOutput processName processOutput (processInstance: Process) semaphore =
         let firstOutputTerminated = ref false
         let outputReceiver = CreateOutputReceiver processName processInstance.Id firstOutputTerminated processOutput semaphore
         processInstance.OutputDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
         processInstance.ErrorDataReceived.AddHandler (DataReceivedEventHandler outputReceiver)
-        processInstance.BeginOutputReadLine ()
-        processInstance.BeginErrorReadLine ()
+        processInstance.EnableRaisingEvents <- true
 
     let private TryDiscoverProcessPath processName (envPath: string) =
         let envPaths = envPath.Split Path.PathSeparator
@@ -98,7 +95,6 @@ module XProcess =
         xprocess.Semaphore.WaitOne () |> ignore<bool>
         let (running, line) = xprocess.Output.TryDequeue ()
         if running then
-            printfn "%s" line
             if not (msgFilter line) then
                 WaitForMessage msgFilter xprocess
         else
@@ -106,7 +102,7 @@ module XProcess =
 
     /// Wait for the process to exit, killing it if requested.
     let rec WaitForExit kill xprocess =
-        if kill && not xprocess.Process.HasExited then xprocess.Process.Kill ()
+        if kill then xprocess.Process.Kill ()
         xprocess.Semaphore.WaitOne () |> ignore
         let (running, _) = xprocess.Output.TryDequeue ()
         if running then WaitForExit false xprocess
@@ -145,14 +141,16 @@ module XProcess =
                 | None -> failwithf "Could not find process file %s in $PATH=%s" processName envPath
 
             // attempt to create and start OS process
-            let processInstance = CreateOSProcess processPath processArgs processEnv None
-            let processStarted = processInstance.Start ()
-            if not processStarted then
-                failwithf "Failed to start process for %s." processPath
-
-            // redirect process output to spawning process's
             let processOutput = ConcurrentQueue ()
+            let processInstance = CreateOSProcess processPath processArgs processEnv None
             RedirectProcessOutput processName processOutput processInstance semaphore
+            let processStarted = processInstance.Start ()
+            if not processStarted then failwithf "Failed to start process for %s." processPath
+
+            // finish setting up process (assuming these and related expressions are order-sensitive)
+            AppDomain.CurrentDomain.ProcessExit.AddHandler (EventHandler (fun _ _ -> processInstance.Close ()))
+            processInstance.BeginOutputReadLine ()
+            processInstance.BeginErrorReadLine ()
 
             // make XProcess
             { Process = processInstance; Output = processOutput; Semaphore = semaphore }
@@ -173,15 +171,17 @@ module XProcess =
                 else failwithf "Cannot find Windows Subsystem for Linux credentials file at %s." credentialsFilePath
 
             // attempt to create and start OS process
+            let processOutput = ConcurrentQueue ()
             let processArgsPlus = SPrintF2 "%s %s" processName processArgs
             let processInstance = CreateOSProcess processPath processArgsPlus processEnv (Some processCredentials)
-            let processStarted = processInstance.Start ()
-            if not processStarted then
-                failwithf "Failed to start process for %s." processPath
-
-            // redirect process output to spawning process's
-            let processOutput = ConcurrentQueue ()
             RedirectProcessOutput processName processOutput processInstance semaphore
+            let processStarted = processInstance.Start ()
+            if not processStarted then failwithf "Failed to start process for %s." processPath
+
+            // finish setting up process (assuming these and related expressions are order-sensitive)
+            AppDomain.CurrentDomain.ProcessExit.AddHandler (EventHandler (fun _ _ -> processInstance.Close ()))
+            processInstance.BeginOutputReadLine ()
+            processInstance.BeginErrorReadLine ()
 
             // make XProcess
             { Process = processInstance; Output = processOutput; Semaphore = semaphore }

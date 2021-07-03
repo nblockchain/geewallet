@@ -14,13 +14,12 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 type ElectrumServer =
     {
         DbDir: string
-        XProcess: ProcessWrapper
+        XProcess: XProcess
     }
 
     interface IDisposable with
         member self.Dispose() =
-            self.XProcess.Process.Kill ()
-            self.XProcess.WaitForExit ()
+            XProcess.WaitForExit true self.XProcess
             Directory.Delete(self.DbDir, true)
 
     static member Start(bitcoind: Bitcoind): Async<ElectrumServer> = async {
@@ -37,7 +36,7 @@ type ElectrumServer =
                     let dbDirTail = dbDir.Substring 1
                     "/mnt/" + dbDirHead + dbDirTail.Replace("\\", "/").Replace(":", "")
                 else dbDir
-            ProcessWrapper.New
+            XProcess.Start
                 "electrs"
                 (SPrintF3
                     "\
@@ -52,10 +51,9 @@ type ElectrumServer =
                     (bitcoind.RpcAddr())
                 )
                 Map.empty
-                false
 
         // skip to init message
-        xprocess.WaitForMessage (fun msg -> msg.Contains "Electrum Rust Server")
+        XProcess.WaitForMessage (fun msg -> msg.Contains "Electrum Rust Server") xprocess
 
         // sleep through electrs warm-up period
         do! Async.Sleep 5000
