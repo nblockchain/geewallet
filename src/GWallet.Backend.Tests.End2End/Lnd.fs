@@ -19,14 +19,15 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 type Lnd =
     {
         LndDir: string
-        XProcess: XProcess
+        XProcess: ProcessWrapper
         ConnectionString: string
         ClientFactory: ILightningClientFactory
     }
 
     interface IDisposable with
         member self.Dispose() =
-            XProcess.WaitForExit true self.XProcess
+            self.XProcess.Process.Kill ()
+            self.XProcess.WaitForExit ()
             Directory.Delete(self.LndDir, true)
 
     static member Start(bitcoind: Bitcoind): Async<Lnd> = async {
@@ -57,10 +58,10 @@ type Lnd =
             + " --listen=127.0.0.2"
             + " --restlisten=127.0.0.2:8080"
             + " --lnddir=" + lndDirMnt
-        let xprocess = XProcess.Start lndProcessName args Map.empty
+        let xprocess = ProcessWrapper.New lndProcessName args Map.empty false
 
         // skip to server init message
-        XProcess.WaitForMessage (fun msg -> msg.EndsWith "password gRPC proxy started at 127.0.0.2:8080") xprocess
+        xprocess.WaitForMessage (fun msg -> msg.EndsWith "password gRPC proxy started at 127.0.0.2:8080")
 
         // sleep through server warm-up period
         do! Async.Sleep 2000
@@ -86,7 +87,7 @@ type Lnd =
         let! _ = Async.AwaitTask <| lndClient.SwaggerClient.InitWalletAsync initWalletReq
 
         // skip to client init message
-        XProcess.WaitForMessage (fun msg -> msg.EndsWith "Server listening on 127.0.0.2:9735") xprocess
+        xprocess.WaitForMessage (fun msg -> msg.EndsWith "Server listening on 127.0.0.2:9735")
 
         // make Lnd
         return {
@@ -120,7 +121,7 @@ type Lnd =
     member self.WaitForBlockHeight(blockHeight: BlockHeight): Async<unit> = async {
         let! currentBlockHeight = self.GetBlockHeight()
         if blockHeight > currentBlockHeight then
-            XProcess.WaitForMessage (fun msg -> msg.Contains(SPrintF1 "New block: height=%i" blockHeight.Value)) self.XProcess
+            self.XProcess.WaitForMessage (fun msg -> msg.Contains(SPrintF1 "New block: height=%i" blockHeight.Value))
         return ()
     }
 
@@ -139,7 +140,7 @@ type Lnd =
     member self.WaitForBalance(money: Money): Async<unit> = async {
         let! currentBalance = self.OnChainBalance()
         if money > currentBalance then
-            XProcess.WaitForMessage (fun msg -> msg.Contains "[walletbalance]") self.XProcess
+            self.XProcess.WaitForMessage (fun msg -> msg.Contains "[walletbalance]")
             return! self.WaitForBalance money
         return ()
     }
