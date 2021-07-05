@@ -36,21 +36,21 @@ type ElectrumServer =
                     let dbDirTail = dbDir.Substring 1
                     "/mnt/" + dbDirHead + dbDirTail.Replace("\\", "/").Replace(":", "")
                 else dbDir
-            XProcess.Start
-                "electrs"
-                (SPrintF3
+            let args =
+                (SPrintF4
                     "\
                     --db-dir %s \
                     --daemon-dir %s \
                     --network regtest \
-                    --electrum-rpc-addr [::1]:50001 \
+                    --electrum-rpc-addr %s \
                     --daemon-rpc-addr %s \
                     "
                     dbDirMnt
                     bitcoind.DataDirMnt
-                    (bitcoind.RpcAddr())
+                    Config.ElectrumRpcAddress
+                    Config.BitcoindRpcAddress
                 )
-                Map.empty
+            XProcess.Start "electrs" args Map.empty
 
         // skip to init message
         XProcess.WaitForMessage (fun msg -> msg.Contains "Electrum Rust Server") xprocess

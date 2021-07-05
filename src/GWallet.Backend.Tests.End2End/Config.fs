@@ -43,9 +43,11 @@ module Config =
 
     let GlobalIP = "0.0.0.0"
 
-    let LocalHostIP = "127.0.0.1"
+    let LocalHost1IP = "127.0.0.1"
 
-    let WindowsHostIP =
+    let LocalHost2IP = "127.0.0.2"
+
+    let MainHostIP =
         if Environment.OSVersion.Platform <> PlatformID.Unix then
             let (userName, password) = UnwrapOption CredentialsSecuredOpt "Missing WSL credentials."
             let startInfo = 
@@ -65,9 +67,9 @@ module Config =
                         nameServerLineOpt <- Some line
                 match nameServerLineOpt with
                 | Some nameServerLine -> (nameServerLine.Split ' ').[1]
-                | None -> LocalHostIP
-            else LocalHostIP
-        else LocalHostIP
+                | None -> LocalHost1IP
+            else LocalHost1IP
+        else LocalHost1IP
 
     let WslHostIP =
         if Environment.OSVersion.Platform <> PlatformID.Unix then
@@ -86,9 +88,33 @@ module Config =
                 while not proc.StandardOutput.EndOfStream do
                     let line = proc.StandardOutput.ReadLine().Trim()
                     ipOpt <- Some line
-                Option.defaultValue LocalHostIP ipOpt
-            else LocalHostIP
-        else LocalHostIP
+                Option.defaultValue LocalHost2IP ipOpt
+            else LocalHost2IP
+        else LocalHost2IP
+
+    let WslHostHttps = "https://" + WslHostIP + ":" + HttpPort
+
+    let BitcoindRpcIP = LocalHost1IP
+    let BitcoindRpcPort = "18554"
+    let BitcoindRpcAddress = BitcoindRpcIP + ":" + BitcoindRpcPort
+    let BitcoindRpcAllowIP = LocalHost1IP
+    let BitcoindZeromqPublishRawBlockAddress = "127.0.0.1:28332"
+    let BitcoindZeromqPublishRawTxAddress = "127.0.0.1:28333"
+
+    let ElectrumIP = "[::1]"
+    let ElectrumPort = "50001"
+    let ElectrumRpcAddress = ElectrumIP + ":" + ElectrumPort
+
+    let LndListenIP = WslHostIP
+    let LndListenPort = "9735"
+    let LndListenAddress = LndListenIP + ":" + LndListenPort
+    let LndRestListenIP = WslHostIP
+    let LndRestListenPort = HttpPort
+    let LndRestListenAddress = LndRestListenIP + ":" + LndRestListenPort
+
+    let LightningIP = MainHostIP
+    let LightningPort = "9735"
+    let LightningAddress = MainHostIP + ":" + LightningPort
 
     let FundeeAccountsPrivateKey =
         // Note: The key needs to be hard-coded, as opposed to randomly
@@ -96,13 +122,12 @@ module Config =
         // the same in each process.
         new Key (uint256.Parse("9d1ee30acb68716ed5f4e25b3c052c6078f1813f45d33a47e46615bfd05fa6fe").ToBytes())
 
-    let private fundeeNodePubKey =
-        let extKey = FundeeAccountsPrivateKey.ToBytes() |> ExtKey
-        extKey.PrivateKey.PubKey
-
-    let FundeeLightningIPEndpoint = IPEndPoint (IPAddress.Parse "127.0.0.1", 9735)
+    let FundeeLightningIPEndpoint =
+        IPEndPoint (IPAddress.Parse LightningIP, Int32.Parse LightningPort)
 
     let FundeeNodeEndpoint =
+        let extKey = FundeeAccountsPrivateKey.ToBytes() |> ExtKey
+        let fundeeNodePubKey = extKey.PrivateKey.PubKey
         NodeEndPoint.Parse
             Currency.BTC
             (SPrintF3

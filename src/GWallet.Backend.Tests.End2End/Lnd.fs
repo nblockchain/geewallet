@@ -52,15 +52,15 @@ type Lnd =
             + " --bitcoin.regtest"
             + " --bitcoin.node=bitcoind"
             + " --bitcoind.dir=" + bitcoind.DataDirMnt
-            + " --bitcoind.rpchost=localhost:18554"
+            + " --bitcoind.rpchost=" + Config.BitcoindRpcAddress
             + " --debuglevel=trace"
-            + " --listen=127.0.0.2"
-            + " --restlisten=127.0.0.2:8080"
+            + " --listen=" + Config.LndListenIP
+            + " --restlisten=" + Config.LndRestListenAddress
             + " --lnddir=" + lndDirMnt
         let xprocess = XProcess.Start lndProcessName args Map.empty
 
         // skip to server init message
-        XProcess.WaitForMessage (fun msg -> msg.EndsWith "password gRPC proxy started at 127.0.0.2:8080") xprocess
+        XProcess.WaitForMessage (fun msg -> msg.EndsWith ("password gRPC proxy started at " + Config.LndRestListenAddress)) xprocess
 
         // sleep through server warm-up period
         do! Async.Sleep 2000
@@ -69,7 +69,7 @@ type Lnd =
         let connectionString =
             ""
             + "type=lnd-rest;"
-            + "server=https://127.0.0.2:8080;"
+            + "server=" + "https://" + Config.LndRestListenAddress + ";"
             + "allowinsecure=true;"
             + "macaroonfilepath=" + lndDir + "/data/chain/bitcoin/regtest/admin.macaroon"
         let clientFactory = new LightningClientFactory(NBitcoin.Network.RegTest) :> ILightningClientFactory
@@ -86,7 +86,7 @@ type Lnd =
         let! _ = Async.AwaitTask <| lndClient.SwaggerClient.InitWalletAsync initWalletReq
 
         // skip to client init message
-        XProcess.WaitForMessage (fun msg -> msg.EndsWith "Server listening on 127.0.0.2:9735") xprocess
+        XProcess.WaitForMessage (fun msg -> msg.EndsWith ("Server listening on " + Config.LndListenAddress)) xprocess
 
         // make Lnd
         return {
@@ -103,7 +103,7 @@ type Lnd =
     member self.GetEndPoint(): Async<NodeEndPoint> = async {
         let client = self.Client()
         let! getInfo = Async.AwaitTask (client.SwaggerClient.GetInfoAsync())
-        return NodeEndPoint.Parse Currency.BTC (SPrintF1 "%s@127.0.0.2:9735" getInfo.Identity_pubkey)
+        return NodeEndPoint.Parse Currency.BTC (SPrintF2 "%s@%s" getInfo.Identity_pubkey Config.LndListenAddress)
     }
 
     member self.GetDepositAddress(): Async<BitcoinAddress> =

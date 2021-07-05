@@ -32,25 +32,23 @@ type Bitcoind =
         let rpcUser = Path.GetRandomFileName()
         let rpcPassword = Path.GetRandomFileName()
         let confPath = Path.Combine(dataDir, "bitcoin.conf")
-        let fakeFeeRate = UtxoCoin.ElectrumClient.RegTestFakeFeeRate
-        File.WriteAllText(
-            confPath,
+        let confText =
             String.Join(
                 "\n", // NOTE: this file will be read by a linux program, so \r isn't needed.
                 [
                      ""
                      "txindex=1"
                      "printtoconsole=1"
-                     "rpcallowip=127.0.0.1"
-                     "zmqpubrawblock=tcp://127.0.0.1:28332"
-                     "zmqpubrawtx=tcp://127.0.0.1:28333"
-                     (SPrintF1 "fallbackfee=%f" fakeFeeRate)
+                     ("rpcallowip=" + Config.BitcoindRpcAllowIP)
+                     ("zmqpubrawblock=" + "tcp://" + Config.BitcoindZeromqPublishRawBlockAddress)
+                     ("zmqpubrawtx=" + "tcp://" + Config.BitcoindZeromqPublishRawTxAddress)
+                     ("fallbackfee=" + string UtxoCoin.ElectrumClient.RegTestFakeFeeRate)
                      "[regtest]"
-                     "rpcbind=127.0.0.1"
-                     "rpcport=18554"
+                     ("rpcbind=" + Config.BitcoindRpcIP)
+                     ("rpcport=" + Config.BitcoindRpcPort)
                 ]
             )
-        )
+        File.WriteAllText(confPath, confText)
 
         // start bitcoind process
         let dataDirMnt = // TODO: extract out this function.
@@ -102,10 +100,4 @@ type Bitcoind =
         let output = String.concat "\n" lines
         let txIdList = JsonConvert.DeserializeObject<list<string>> output
         List.map (fun (txIdString: string) -> TxId <| uint256 txIdString) txIdList
-
-    member this.RpcAddr(): string =
-        "127.0.0.1:18554"
-
-    member this.RpcUrl(): string =
-        SPrintF3 "http://%s:%s@%s" this.RpcUser this.RpcPassword (this.RpcAddr())
 
