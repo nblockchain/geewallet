@@ -38,16 +38,12 @@ module Config =
         | None -> None
 
     let WebPort = "80"
-
     let HttpPort = "8080"
-
     let GlobalIP = "0.0.0.0"
+    let LocalHostIP = "127.0.0.1"
+    let LocalHost2IP = "127.0.0.2" // TODO: see if we can give this a better name.
 
-    let LocalHost1IP = "127.0.0.1"
-
-    let LocalHost2IP = "127.0.0.2"
-
-    let MainHostIP =
+    let TestHostIP =
         if Environment.OSVersion.Platform <> PlatformID.Unix then
             let (userName, password) = UnwrapOption CredentialsSecuredOpt "Missing WSL credentials."
             let startInfo = 
@@ -67,9 +63,9 @@ module Config =
                         nameServerLineOpt <- Some line
                 match nameServerLineOpt with
                 | Some nameServerLine -> (nameServerLine.Split ' ').[1]
-                | None -> LocalHost1IP
-            else LocalHost1IP
-        else LocalHost1IP
+                | None -> LocalHostIP
+            else LocalHostIP
+        else LocalHostIP
 
     let WslHostIP =
         if Environment.OSVersion.Platform <> PlatformID.Unix then
@@ -92,16 +88,14 @@ module Config =
             else LocalHost2IP
         else LocalHost2IP
 
-    let WslHostHttps = "https://" + WslHostIP + ":" + HttpPort
-
-    let BitcoindRpcIP = LocalHost1IP
+    let BitcoindRpcIP = LocalHostIP
     let BitcoindRpcPort = "18554"
     let BitcoindRpcAddress = BitcoindRpcIP + ":" + BitcoindRpcPort
-    let BitcoindRpcAllowIP = LocalHost1IP
+    let BitcoindRpcAllowIP = LocalHostIP
     let BitcoindZeromqPublishRawBlockAddress = "127.0.0.1:28332"
     let BitcoindZeromqPublishRawTxAddress = "127.0.0.1:28333"
 
-    let ElectrumIP = "[::1]"
+    let ElectrumIP = WslHostIP
     let ElectrumPort = "50001"
     let ElectrumRpcAddress = ElectrumIP + ":" + ElectrumPort
 
@@ -112,9 +106,9 @@ module Config =
     let LndRestListenPort = HttpPort
     let LndRestListenAddress = LndRestListenIP + ":" + LndRestListenPort
 
-    let LightningIP = MainHostIP
+    let LightningIP = TestHostIP
     let LightningPort = "9735"
-    let LightningAddress = MainHostIP + ":" + LightningPort
+    let LightningAddress = TestHostIP + ":" + LightningPort
 
     let FundeeAccountsPrivateKey =
         // Note: The key needs to be hard-coded, as opposed to randomly
@@ -136,3 +130,10 @@ module Config =
                 (FundeeLightningIPEndpoint.Address.ToString())
                 FundeeLightningIPEndpoint.Port
             )
+
+    // HACK: inject WslHostIP into BitcointRegTestServerIP on Windows.
+    // This is a very ugly hack that we're currently forced into since MainCache is a singleton
+    // whose instantiation can not be controlled directly.
+    do
+        if Environment.OSVersion.Platform <> PlatformID.Unix then
+            ServerRegistry.BitcoinRegTestServerIP <- WslHostIP

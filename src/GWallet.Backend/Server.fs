@@ -75,6 +75,11 @@ type ServerDetails =
 type ServerRanking = Map<Currency,seq<ServerDetails>>
 
 module ServerRegistry =
+    
+    // HACK: mutable to allow injection of BitcointRegTestServerIP on Windows.
+    // This is a very ugly hack that we're currently forced into since MainCache is a singleton
+    // whose instantiation can not be controlled directly.
+    let mutable BitcoinRegTestServerIP = "[::1]"
 
     let ServersEmbeddedResourceFileName = "servers.json"
 
@@ -191,12 +196,11 @@ module ServerRegistry =
         } |> Map.ofSeq
 
     let private BitcoinRegTestServers =
-        let ipv6Localhost = "::1"
         seq [
             {
                 ServerInfo =
                     {
-                        NetworkPath = ipv6Localhost
+                        NetworkPath = BitcoinRegTestServerIP
                         ConnectionType =
                             {
                                 Encrypted = false
