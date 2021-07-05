@@ -4,7 +4,6 @@ open System
 open System.Collections.Concurrent
 open System.Diagnostics
 open System.IO
-open System.Security
 open System.Threading
 
 open GWallet.Backend.FSharpUtil.UwpHacks
@@ -46,7 +45,7 @@ module XProcess =
                     output.Enqueue text
                     semaphore.Release () |> ignore<int>
 
-    let private CreateOSProcess processPath processArgs (processEnv: Map<string, string>) credentialsOpt =
+    let private CreateOSProcess processPath processArgs (processEnv: Map<string, string>) =
 
         // make process start info
         let processStartInfo =
@@ -59,12 +58,10 @@ module XProcess =
             )
 
         // populate credentials if available
-        match credentialsOpt with
+        match Config.CredentialsSecuredOpt with
         | Some (userName, password) ->
-            let passwordSecure = new SecureString ()
-            for c in password do passwordSecure.AppendChar c
             processStartInfo.UserName <- userName
-            processStartInfo.Password <- passwordSecure
+            processStartInfo.Password <- password
         | None -> ()
 
         // populate process start info environment vars
@@ -144,7 +141,7 @@ module XProcess =
                 | None -> failwithf "Could not find process file %s in $PATH=%s" processName envPath
 
             // attempt to create and start OS process
-            let processInstance = CreateOSProcess processPath processArgs processEnv None
+            let processInstance = CreateOSProcess processPath processArgs processEnv
             let processStarted = processInstance.Start ()
             if not processStarted then
                 failwithf "Failed to start process for %s." processPath
@@ -161,19 +158,9 @@ module XProcess =
             // construct process path
             let processPath = "wsl.exe"
 
-            // attempt to grab wsl credentials from file
-            let credentialsFilePath = "../../../WslCredentials.dat"
-            let processCredentials =
-                if File.Exists credentialsFilePath then
-                    let credentialsText = File.ReadAllText credentialsFilePath
-                    match credentialsText.Split ([|Environment.NewLine|], StringSplitOptions.None) with
-                    | [|userName; password|] -> (userName, password)
-                    | _ -> failwithf "Expecting only user name and password in %s." credentialsFilePath
-                else failwithf "Cannot find Windows Subsystem for Linux credentials file at %s." credentialsFilePath
-
             // attempt to create and start OS process
             let processArgsPlus = SPrintF2 "%s %s" processName processArgs
-            let processInstance = CreateOSProcess processPath processArgsPlus processEnv (Some processCredentials)
+            let processInstance = CreateOSProcess processPath processArgsPlus processEnv
             let processStarted = processInstance.Start ()
             if not processStarted then
                 failwithf "Failed to start process for %s." processPath

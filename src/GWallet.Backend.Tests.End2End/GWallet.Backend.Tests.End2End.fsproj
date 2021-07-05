@@ -56,11 +56,11 @@
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
       <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
+    <Compile Include="Config.fs" />
     <Compile Include="XProcess.fs" />
     <Compile Include="Bitcoind.fs" />
     <Compile Include="ElectrumServer.fs" />
     <Compile Include="Lnd.fs" />
-    <Compile Include="Config.fs" />
     <Compile Include="WalletInstance.fs" />
     <Compile Include="FeesHelper.fs" />
     <Compile Include="LN.fs" />
