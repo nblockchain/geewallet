@@ -43,7 +43,7 @@ module Config =
     let LocalHostIP = "127.0.0.1"
     let LocalHost2IP = "127.0.0.2" // TODO: see if we can give this a better name.
 
-    let TestHostIP =
+    let ServerHostIP =
         if Environment.OSVersion.Platform <> PlatformID.Unix then
             let (userName, password) = UnwrapOption CredentialsSecuredOpt "Missing WSL credentials."
             let startInfo = 
@@ -67,7 +67,7 @@ module Config =
             else LocalHostIP
         else LocalHostIP
 
-    let WslHostIP =
+    let ServerHost2IP = // TODO: see if we can give this a better name.
         if Environment.OSVersion.Platform <> PlatformID.Unix then
             let (userName, password) = UnwrapOption CredentialsSecuredOpt "Missing WSL credentials."
             let procStart =
@@ -95,20 +95,20 @@ module Config =
     let BitcoindZeromqPublishRawBlockAddress = "127.0.0.1:28332"
     let BitcoindZeromqPublishRawTxAddress = "127.0.0.1:28333"
 
-    let ElectrumIP = if Environment.OSVersion.Platform <> PlatformID.Unix then WslHostIP else "[::1]"
+    let ElectrumIP = if Environment.OSVersion.Platform <> PlatformID.Unix then ServerHost2IP else "[::1]"
     let ElectrumPort = "50001"
     let ElectrumRpcAddress = ElectrumIP + ":" + ElectrumPort
 
-    let LndListenIP = WslHostIP
+    let LndListenIP = ServerHost2IP
     let LndListenPort = "9735"
     let LndListenAddress = LndListenIP + ":" + LndListenPort
-    let LndRestListenIP = WslHostIP
+    let LndRestListenIP = ServerHost2IP
     let LndRestListenPort = HttpPort
     let LndRestListenAddress = LndRestListenIP + ":" + LndRestListenPort
 
-    let LightningIP = TestHostIP
+    let LightningIP = ServerHostIP
     let LightningPort = "9735"
-    let LightningAddress = TestHostIP + ":" + LightningPort
+    let LightningAddress = ServerHostIP + ":" + LightningPort
 
     // NOTE: this key needs to be hard-coded, as opposed to randomly
     // generated, since it is used in two separate processes and must be
@@ -135,4 +135,4 @@ module Config =
     // This is a very ugly hack that we're currently forced into since MainCache is a singleton
     // whose instantiation can not be controlled directly.
     do ServerRegistry.BitcoinRegTestServerIP <-
-        if Environment.OSVersion.Platform <> PlatformID.Unix then WslHostIP else "::1"
+        if Environment.OSVersion.Platform <> PlatformID.Unix then ServerHost2IP else "::1"
