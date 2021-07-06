@@ -95,7 +95,7 @@ module Config =
     let BitcoindZeromqPublishRawBlockAddress = "127.0.0.1:28332"
     let BitcoindZeromqPublishRawTxAddress = "127.0.0.1:28333"
 
-    let ElectrumIP = WslHostIP
+    let ElectrumIP = if Environment.OSVersion.Platform <> PlatformID.Unix then WslHostIP else "[::1]"
     let ElectrumPort = "50001"
     let ElectrumRpcAddress = ElectrumIP + ":" + ElectrumPort
 
@@ -134,6 +134,5 @@ module Config =
     // HACK: inject WslHostIP into BitcointRegTestServerIP on Windows.
     // This is a very ugly hack that we're currently forced into since MainCache is a singleton
     // whose instantiation can not be controlled directly.
-    do
-        if Environment.OSVersion.Platform <> PlatformID.Unix then
-            ServerRegistry.BitcoinRegTestServerIP <- WslHostIP
+    do ServerRegistry.BitcoinRegTestServerIP <-
+        if Environment.OSVersion.Platform <> PlatformID.Unix then WslHostIP else "::1"
