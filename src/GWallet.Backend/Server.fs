@@ -81,6 +81,8 @@ module ServerRegistry =
     // whose instantiation can not be controlled directly.
     let mutable BitcoinRegTestServerIP = "::1"
 
+    let BitcoinRegTestServerPort = "50001"
+
     let ServersEmbeddedResourceFileName = "servers.json"
 
     let internal TryFindValue (map: ServerRanking) (serverPredicate: ServerDetails -> bool)
@@ -204,7 +206,7 @@ module ServerRegistry =
                         ConnectionType =
                             {
                                 Encrypted = false
-                                Protocol = Tcp 50001u
+                                Protocol = Tcp (UInt32.Parse BitcoinRegTestServerPort)
                             }
                     }
                 CommunicationHistory = None

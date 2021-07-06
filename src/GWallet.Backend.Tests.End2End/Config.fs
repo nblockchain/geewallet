@@ -110,10 +110,10 @@ module Config =
     let LightningPort = "9735"
     let LightningAddress = TestHostIP + ":" + LightningPort
 
+    // NOTE: this key needs to be hard-coded, as opposed to randomly
+    // generated, since it is used in two separate processes and must be
+    // the same in each process.
     let FundeeAccountsPrivateKey =
-        // Note: The key needs to be hard-coded, as opposed to randomly
-        // generated, since it is used in two separate processes and must be
-        // the same in each process.
         new Key (uint256.Parse("9d1ee30acb68716ed5f4e25b3c052c6078f1813f45d33a47e46615bfd05fa6fe").ToBytes())
 
     let FundeeLightningIPEndpoint =
