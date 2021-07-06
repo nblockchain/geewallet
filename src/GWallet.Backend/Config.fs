@@ -37,6 +37,7 @@ module Config =
         let testDir = DirectoryInfo <| Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         runMode <- RunMode.Testing testDir
 #else
+        ignore bitcoinRegTestServerIP
         failwith "Run mode cannot be set to testing when built in release mode"
 #endif
 
