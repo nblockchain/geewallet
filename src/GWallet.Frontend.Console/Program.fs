@@ -439,8 +439,9 @@ let main argv =
         NormalStartWithNoParameters()
     | 1 when argv.[0] = "--regtest-on-localhost" ->
 #if DEBUG
-        Config.SetRunModeToTesting()
-        NormalStartWithNoParameters()
+        let bitcoinRegTestServerIP = "::1" // TODO: check if we need a platform conditional here for windows!
+        Config.SetRunModeToTesting bitcoinRegTestServerIP
+        NormalStartWithNoParameters ()
 #else
         failwith "Regtest was requested on command line but Geewallet can only use regtest when compiled with -p:Configuration=Debug"
 #endif

@@ -107,7 +107,7 @@ module Config =
     let LndRestListenAddress = LndRestListenIP + ":" + LndRestListenPort
 
     let LightningIP = ServerHostIP
-    let LightningPort = "9735"
+    let LightningPort = "9734"
     let LightningAddress = ServerHostIP + ":" + LightningPort
 
     // NOTE: this key needs to be hard-coded, as opposed to randomly
@@ -130,9 +130,4 @@ module Config =
                 (FundeeLightningIPEndpoint.Address.ToString())
                 FundeeLightningIPEndpoint.Port
             )
-
-    // HACK: inject WslHostIP into BitcointRegTestServerIP on Windows.
-    // This is a very ugly hack that we're currently forced into since MainCache is a singleton
-    // whose instantiation can not be controlled directly.
-    do ServerRegistry.BitcoinRegTestServerIP <-
-        if Environment.OSVersion.Platform <> PlatformID.Unix then ServerHost2IP else "::1"
+        
