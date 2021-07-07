@@ -21,16 +21,23 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 [<TestFixture>]
 type LN() =
-    do Config.SetRunModeToTesting()
 
     let walletToWalletTestPayment1Amount = Money (0.01m, MoneyUnit.BTC)
     let walletToWalletTestPayment2Amount = Money (0.015m, MoneyUnit.BTC)
 
-    let TearDown walletInstance bitcoind electrumServer lnd =
-        (walletInstance :> IDisposable).Dispose()
-        (lnd :> IDisposable).Dispose()
-        (electrumServer :> IDisposable).Dispose()
-        (bitcoind :> IDisposable).Dispose()
+    // Set up code.
+    // TODO: put this in a SetUp function?
+    do
+        let bitcoinRegTestServerIP = if Environment.OSVersion.Platform <> PlatformID.Unix then Config.ServerHost2IP else "::1"
+        Config.SetRunModeToTesting bitcoinRegTestServerIP
+
+    // Tear down code.
+    // TODO: put this in a function that the test runner can see?
+    let TearDown (walletInstance : IDisposable) (bitcoind : IDisposable) (electrumServer : IDisposable) (lnd : IDisposable) =
+        try walletInstance.Dispose () finally
+        try lnd.Dispose () finally
+        try electrumServer.Dispose () finally
+        try bitcoind.Dispose () finally ()
 
     let OpenChannelWithFundee (nodeOpt: Option<NodeEndPoint>) =
         async {
@@ -320,6 +327,10 @@ type LN() =
                 failwith "incorrect balance after receiving payment 2"
         }
 
+    [<Test>]
+    member __.``XProcess works.`` () =
+        let xprocess = XProcess.Start "bitcoind" "" Map.empty
+        XProcess.WaitForExit true xprocess
 
     [<Category "G2G_ChannelOpening_Funder">]
     [<Test>]

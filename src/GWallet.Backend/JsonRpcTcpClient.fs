@@ -44,33 +44,36 @@ type JsonRpcTcpClient (host: string, port: uint32) =
     let exceptionMsg = "JsonRpcSharp faced some problem when trying communication"
 
     let ResolveHost(): Async<IPAddress> = async {
-        try
-            let! maybeTimedOutipAddress = ResolveAsync host |> FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT
-            match maybeTimedOutipAddress with
-            | Some ipAddressOption ->
-                match ipAddressOption with
-                | Some ipAddress ->
-                    if ipAddress.ToString().StartsWith("127.0.0.") then
-                        let msg = SPrintF2 "Server '%s' resolved to localhost IP '%s'" host (ipAddress.ToString())
-                        return raise <| ServerNameResolvedToInvalidAddressException (msg)
-                    else
-                        return ipAddress
-                | None   -> return raise <| ServerCannotBeResolvedException
-                                                (SPrintF1 "DNS host entry lookup resulted in no records for %s" host)
-            | None -> return raise <| TimeoutException (SPrintF2 "Timed out connecting to %s:%i" host port)
-        with
-        | :? TimeoutException ->
-            return raise(ServerCannotBeResolvedException(exceptionMsg))
-        | ex ->
-            match FSharpUtil.FindException<SocketException> ex with
-            | None ->
-                return raise <| FSharpUtil.ReRaise ex
-            | Some socketException ->
-                if socketException.ErrorCode = int SocketError.HostNotFound ||
-                   socketException.ErrorCode = int SocketError.NoData ||
-                   socketException.ErrorCode = int SocketError.TryAgain then
-                    return raise <| ServerCannotBeResolvedException(exceptionMsg, ex)
-                return raise <| UnhandledSocketException(socketException.ErrorCode, ex)
+        match IPAddress.TryParse(host) with
+        | (false, _) ->
+            try
+                let! maybeTimedOutipAddress = ResolveAsync host |> FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT
+                match maybeTimedOutipAddress with
+                | Some ipAddressOption ->
+                    match ipAddressOption with
+                    | Some ipAddress ->
+                        if ipAddress.ToString().StartsWith("127.0.0.") then
+                            let msg = SPrintF2 "Server '%s' resolved to localhost IP '%s'" host (ipAddress.ToString())
+                            return raise <| ServerNameResolvedToInvalidAddressException (msg)
+                        else
+                            return ipAddress
+                    | None   -> return raise <| ServerCannotBeResolvedException
+                                                    (SPrintF1 "DNS host entry lookup resulted in no records for %s" host)
+                | None -> return raise <| TimeoutException (SPrintF2 "Timed out connecting to %s:%i" host port)
+            with
+            | :? TimeoutException ->
+                return raise(ServerCannotBeResolvedException(exceptionMsg))
+            | ex ->
+                match FSharpUtil.FindException<SocketException> ex with
+                | None ->
+                    return raise <| FSharpUtil.ReRaise ex
+                | Some socketException ->
+                    if socketException.ErrorCode = int SocketError.HostNotFound ||
+                       socketException.ErrorCode = int SocketError.NoData ||
+                       socketException.ErrorCode = int SocketError.TryAgain then
+                        return raise <| ServerCannotBeResolvedException(exceptionMsg, ex)
+                    return raise <| UnhandledSocketException(socketException.ErrorCode, ex)
+        | (true, ip) -> return ip
     }
 
     let rpcTcpClientInnerRequest =

@@ -10,7 +10,13 @@ open Xamarin.Essentials
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 // TODO: make internal when tests don't depend on this anymore
+[<RequireQualifiedAccess>]
 module Config =
+
+    // HACK: this global mutable variable is null to ensure it is set by SetRunModeToTesting
+    // before it is used.
+    let mutable BitcoinRegTestServerIP = Unchecked.defaultof<string>
+    let BitcoinRegTestServerPort = "50001"
 
     type internal RunMode =
         | Normal
@@ -23,13 +29,15 @@ module Config =
 #endif
         RunMode.Normal
 
-    let public SetRunModeToTesting() =
+    let SetRunModeToTesting (bitcoinRegTestServerIP: string) =
 #if DEBUG
+        BitcoinRegTestServerIP <- bitcoinRegTestServerIP
         if runMode <> RunMode.Normal then
             failwith "Cannot set RunMode more than once"
         let testDir = DirectoryInfo <| Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         runMode <- RunMode.Testing testDir
 #else
+        ignore bitcoinRegTestServerIP
         failwith "Run mode cannot be set to testing when built in release mode"
 #endif
 

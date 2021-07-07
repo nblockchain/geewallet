@@ -75,6 +75,7 @@ type ServerDetails =
 type ServerRanking = Map<Currency,seq<ServerDetails>>
 
 module ServerRegistry =
+    
 
     let ServersEmbeddedResourceFileName = "servers.json"
 
@@ -191,16 +192,15 @@ module ServerRegistry =
         } |> Map.ofSeq
 
     let private BitcoinRegTestServers =
-        let ipv6Localhost = "::1"
         seq [
             {
                 ServerInfo =
                     {
-                        NetworkPath = ipv6Localhost
+                        NetworkPath = Config.BitcoinRegTestServerIP
                         ConnectionType =
                             {
                                 Encrypted = false
-                                Protocol = Tcp 50001u
+                                Protocol = Tcp (UInt32.Parse Config.BitcoinRegTestServerPort)
                             }
                     }
                 CommunicationHistory = None

@@ -10,67 +10,79 @@ open DotNetLightning.Utils
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-type Bitcoind = {
-    DataDir: string
-    RpcUser: string
-    RpcPassword: string
-    ProcessWrapper: ProcessWrapper
-} with
+type Bitcoind =
+    {
+        DataDir: string
+        DataDirMnt: string
+        RpcUser: string
+        RpcPassword: string
+        XProcess: XProcess
+    }
+
     interface IDisposable with
         member self.Dispose() =
-            self.ProcessWrapper.Process.Kill()
-            self.ProcessWrapper.WaitForExit()
+            XProcess.WaitForExit true self.XProcess
             Directory.Delete(self.DataDir, true)
 
     static member Start(): Async<Bitcoind> = async {
+
+        // create bitcoin config file
         let dataDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         Directory.CreateDirectory dataDir |> ignore
         let rpcUser = Path.GetRandomFileName()
         let rpcPassword = Path.GetRandomFileName()
         let confPath = Path.Combine(dataDir, "bitcoin.conf")
-        let fakeFeeRate = UtxoCoin.ElectrumClient.RegTestFakeFeeRate
-        File.WriteAllText(
-            confPath,
-            SPrintF1
-                "\
-                txindex=1\n\
-                printtoconsole=1\n\
-                rpcallowip=127.0.0.1\n\
-                zmqpubrawblock=tcp://127.0.0.1:28332\n\
-                zmqpubrawtx=tcp://127.0.0.1:28333\n\
-                fallbackfee=%f\n\
-                [regtest]\n\
-                rpcbind=127.0.0.1\n\
-                rpcport=18554"
-                fakeFeeRate
-        )
+        let confText =
+            String.Join(
+                "\n", // NOTE: this file will be read by a linux program, so \r isn't needed.
+                [
+                     ""
+                     "txindex=1"
+                     "printtoconsole=1"
+                     ("rpcallowip=" + Config.BitcoindRpcAllowIP)
+                     ("zmqpubrawblock=" + "tcp://" + Config.BitcoindZeromqPublishRawBlockAddress)
+                     ("zmqpubrawtx=" + "tcp://" + Config.BitcoindZeromqPublishRawTxAddress)
+                     ("fallbackfee=" + string UtxoCoin.ElectrumClient.RegTestFakeFeeRate)
+                     "[regtest]"
+                     ("rpcbind=" + Config.BitcoindRpcIP)
+                     ("rpcport=" + Config.BitcoindRpcPort)
+                ]
+            )
+        File.WriteAllText(confPath, confText)
 
-        let processWrapper =
-            ProcessWrapper.New
-                "bitcoind"
-                (SPrintF1 "-regtest -datadir=%s" dataDir)
-                Map.empty
-                false
-        processWrapper.WaitForMessage (fun msg -> msg.EndsWith "init message: Done loading")
+        // start bitcoind process
+        let dataDirMnt = // TODO: extract out this function.
+            if dataDir.Contains ":" then
+                let dataDirHead = dataDir.[0].ToString().ToLower()
+                let dataDirTail = dataDir.Substring 1
+                "/mnt/" + dataDirHead + dataDirTail.Replace("\\", "/").Replace(":", "")
+            else dataDir
+        let args = SPrintF1 "-regtest -datadir=%s" dataDirMnt
+        let xprocess = XProcess.Start "bitcoind" args Map.empty
 
+        // skip to init message
+        XProcess.WaitForMessage (fun msg -> msg.EndsWith "init message: Done loading") xprocess
+
+        // sleep through bitcoind warm-up period
         do! Async.Sleep 2000
 
+        // make Bitcoind
         return {
             DataDir = dataDir
+            DataDirMnt = dataDirMnt
             RpcUser = rpcUser
             RpcPassword = rpcPassword
-            ProcessWrapper = processWrapper
+            XProcess = xprocess
         }
     }
 
     member self.GenerateBlocks (number: BlockHeightOffset32) (address: BitcoinAddress) =
         let bitcoinCli =
-            ProcessWrapper.New
+            XProcess.Start
                 "bitcoin-cli"
-                (SPrintF3 "-regtest -datadir=%s generatetoaddress %i %s" self.DataDir number.Value (address.ToString()))
+                (SPrintF3 "-regtest -datadir=%s generatetoaddress %i %s" self.DataDirMnt number.Value (string address))
                 Map.empty
-                false
-        bitcoinCli.WaitForExit()
+        XProcess.WaitForExit false bitcoinCli
 
     member this.GenerateBlocksToDummyAddress (number: BlockHeightOffset32) =
         let address =
@@ -80,19 +92,12 @@ type Bitcoind = {
 
     member self.GetTxIdsInMempool(): list<TxId> =
         let bitcoinCli =
-            ProcessWrapper.New
+            XProcess.Start
                 "bitcoin-cli"
-                (SPrintF1 "-regtest -datadir=%s getrawmempool" self.DataDir)
+                (SPrintF1 "-regtest -datadir=%s getrawmempool" self.DataDirMnt)
                 Map.empty
-                false
-        let lines = bitcoinCli.ReadToEnd()
+        let lines = XProcess.ReadMessages bitcoinCli
         let output = String.concat "\n" lines
         let txIdList = JsonConvert.DeserializeObject<list<string>> output
         List.map (fun (txIdString: string) -> TxId <| uint256 txIdString) txIdList
-
-    member this.RpcAddr(): string =
-        "127.0.0.1:18554"
-
-    member this.RpcUrl(): string =
-        SPrintF3 "http://%s:%s@%s" this.RpcUser this.RpcPassword (this.RpcAddr())
 
