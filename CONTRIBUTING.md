@@ -26,12 +26,12 @@ over `Foo []`.
 * To not confuse lists of one element with indexers, we prefer to use the form
 `oneItem::List.Empty` instead of the less verbose `[oneItem]`.
 * We prefer the generic notation `Foo<Bar>` rather than `Bar Foo`.
-* We prefer to not use shadowing practice, even if the F# compiler allows it
-(not to confuse shadowing with mutation, which is discouraged too anyway).
+* We prefer to not use the shadowing practice, even if the F# compiler allows it
+(not to confuse shadowing with mutation, which is also discouraged anyway).
 * We prefer to write parenthesis only when strictly necessary (e.g. in F# they
 are not required for `if` clauses, unlike C#) or for readability purposes (e.g.
-when it's not clear what operator would be applied first by the order preference
-rules of the language).
+when it's not clear what operator would be applied first, as not everyone knows
+the rules of the language for default operator precedence by heart).
 * Whenever possible, we prefer to use currified arguments (instead of tuples),
 should we need to use F# partial application.
 * We avoid to write the keyword `new` for instances of non-IDisposable types.
@@ -123,7 +123,7 @@ developer to use a type-less style of catching an exception, plus the
 discriminated union used for its result is quite unreadable (`Choice1Of2`
 and `Choice2Of2` don't give any clue about which one is the successful case
 and which one is the exceptional one).
-* When using the function `ignore`, use always it's generic type `ignore<'T>`.
+* When using the function `ignore`, use always the generic type (`ignore<'T>`).
 * Do not use `System.ParamArray` (for variable number of arguments) as it's
 easy to shoot yourself in the foot, and is not idiomatic F# (it was meant for
 C#). More info: https://sidburn.github.io/blog/2017/03/13/variable-arguments
