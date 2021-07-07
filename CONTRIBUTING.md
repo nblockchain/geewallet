@@ -127,6 +127,15 @@ and which one is the exceptional one).
 * Do not use `System.ParamArray` (for variable number of arguments) as it's
 easy to shoot yourself in the foot, and is not idiomatic F# (it was meant for
 C#). More info: https://sidburn.github.io/blog/2017/03/13/variable-arguments
+* Do not use type extensions (similar practice as monkey-patching in Python
+or extension methods in C#) because:
+  - It's not easy to see if the method belongs to the original type or is
+extended in our code (too much magic). This can be mitigated by having a
+good IDE that allows you to easily navigate with a "Go to definition" action,
+but still requires explicit use of this feature instead of marking the method
+visually as special compared to non-extended methods.
+  - It encourages a culture of fixing bugs locally instead of contributing
+fixes upstream.
 
 
 # Workflow best practices
