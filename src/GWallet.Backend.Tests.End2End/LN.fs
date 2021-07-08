@@ -4,6 +4,7 @@
 namespace GWallet.Backend.Tests.End2End
 
 open System
+open System.Diagnostics
 open System.Threading
 
 open NUnit.Framework
@@ -34,10 +35,17 @@ type LN() =
     // Tear down code.
     // TODO: put this in a function that the test runner can see?
     let TearDown (walletInstance : IDisposable) (bitcoind : IDisposable) (electrumServer : IDisposable) (lnd : IDisposable) =
+
+        // dispose dependencies
         try walletInstance.Dispose () finally
         try lnd.Dispose () finally
         try electrumServer.Dispose () finally
         try bitcoind.Dispose () finally ()
+
+        // HACK: killing a WSL process does not necessarily kill the process started under it, so
+        // here we must manually issue a killall command.
+        if Environment.OSVersion.Platform <> PlatformID.Unix then
+            XProcess.Start "killall" "bitcoind electrs lnd" Map.empty |> ignore<XProcess>
 
     let OpenChannelWithFundee (nodeOpt: Option<NodeEndPoint>) =
         async {
