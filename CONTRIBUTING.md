@@ -27,7 +27,8 @@ over `Foo []`.
 `singleton` function of the List/Array/Seq modules, instead of the less verbose
 (and easy to misinterpret, e.g. think it's a list when it's an array, or
 viceversa): `[ oneItem ]` or `[| oneItem |]`.
-* We prefer the generic notation `Foo<Bar>` rather than `Bar Foo`.
+* We prefer the generic notation `Foo<Bar>` rather than `Bar Foo` (see
+https://github.com/fsprojects/fantomas/issues/712 ).
 * We prefer to not use the shadowing practice, even if the F# compiler allows it
 (not to confuse shadowing with mutation, which is also discouraged anyway).
 * We prefer to write parenthesis only when strictly necessary (e.g. in F# they
