@@ -26,7 +26,8 @@ over `Foo []`.
 * To not confuse lists/arrays of one element with indexers, we prefer to use the
 `singleton` function of the List/Array/Seq modules, instead of the less verbose
 (and easy to misinterpret, e.g. think it's a list when it's an array, or
-viceversa): `[ oneItem ]` or `[| oneItem |]`.
+viceversa): `[ oneItem ]` or `[| oneItem |]`. (If inside a match case, then
+rather use `oneItem::List.Empty` instead of `[oneItem].)
 * We prefer the generic notation `Foo<Bar>` rather than `Bar Foo` (see
 https://github.com/fsprojects/fantomas/issues/712 ).
 * We prefer to not use the shadowing practice, even if the F# compiler allows it
