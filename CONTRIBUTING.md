@@ -23,8 +23,10 @@ different things).
 * To not confuse array types with lists, we prefer to use `List.Empty` over `[]`
 (where it's possible; e.g. in match cases it's not possible), and `array<Foo>`
 over `Foo []`.
-* To not confuse lists of one element with indexers, we prefer to use the form
-`oneItem::List.Empty` instead of the less verbose `[oneItem]`.
+* To not confuse lists/arrays of one element with indexers, we prefer to use the
+`singleton` function of the List/Array/Seq modules, instead of the less verbose
+(and easy to misinterpret, e.g. think it's a list when it's an array, or
+viceversa): `[ oneItem ]` or `[| oneItem |]`.
 * We prefer the generic notation `Foo<Bar>` rather than `Bar Foo`.
 * We prefer to not use the shadowing practice, even if the F# compiler allows it
 (not to confuse shadowing with mutation, which is also discouraged anyway).
