@@ -67,8 +67,9 @@ module UserInteraction =
                 else
                     FindMatchingOperation operationIntroduced tail
 
-    let internal OperationAvailable (operation: Operations) (numAccounts: int) =
-        let noAccounts = numAccounts = 0
+    let internal OperationAvailable (operation: Operations) (numActiveAccounts: uint32) (numHotAccounts: uint32) =
+        let noAccountsAtAll = numActiveAccounts = 0u
+        let noHotAccounts = numHotAccounts = 0u
         match operation with
         | Operations.SendPayment
         | Operations.SignOffPayment
@@ -76,8 +77,8 @@ module UserInteraction =
         | Operations.PairToWatchWallet
         | Operations.Options
             ->
-                not noAccounts
-        | Operations.CreateAccounts -> noAccounts
+                not noAccountsAtAll
+        | Operations.CreateAccounts -> noHotAccounts
         | _ -> true
 
     let rec internal AskFileNameToLoad (askText: string): FileInfo =
@@ -92,7 +93,7 @@ module UserInteraction =
             Presentation.Error "File not found, try again."
             AskFileNameToLoad askText
 
-    let rec internal AskOperation (numAccounts: int): Operations =
+    let rec internal AskOperation (numActiveAccounts: uint32) (numHotAccounts: uint32): Operations =
         Console.WriteLine "Available operations:"
 
         // TODO: move these 2 lines below to FSharpUtil?
@@ -101,7 +102,7 @@ module UserInteraction =
         let allOperationsAvailable =
             seq {
                 for operation in allOperations do
-                    if OperationAvailable operation numAccounts then
+                    if OperationAvailable operation numActiveAccounts numHotAccounts then
                         Console.WriteLine(sprintf "%d: %s"
                                               (int operation)
                                               (Presentation.ConvertPascalCaseToSentence (operation.ToString())))
@@ -112,7 +113,7 @@ module UserInteraction =
         try
             FindMatchingOperation operationIntroduced allOperationsAvailable
         with
-        | :? NoOperationFound -> AskOperation numAccounts
+        | :? NoOperationFound -> AskOperation numActiveAccounts numHotAccounts
 
     let rec private AskDob (repeat: bool): DateTime =
         let format = "dd/MM/yyyy"
@@ -154,18 +155,18 @@ module UserInteraction =
 
     let rec private AskPassPhrase (repeat: bool): string =
         if repeat then
-            Console.Write "Write a seed passphrase (for disaster recovery) for your new wallet: "
+            Console.Write "Write a secret recovery phrase for your new wallet: "
         else
-            Console.Write "Write the seed passphrase: "
+            Console.Write "Write the secret recovery phrase: "
 
         let passphrase1 = ConsoleReadPasswordLine()
         if not repeat then
             passphrase1
         else
-            Console.Write "Repeat the seed passphrase: "
+            Console.Write "Repeat the secret recovery phrase: "
             let passphrase2 = ConsoleReadPasswordLine()
             if passphrase1 <> passphrase2 then
-                Presentation.Error "Passphrases are not the same, please try again."
+                Presentation.Error "Secret recovery phrases are not the same, please try again."
                 AskPassPhrase repeat
             else
                 passphrase1
@@ -228,10 +229,9 @@ module UserInteraction =
             | NotFresh(NotAvailable) ->
                 yield "Unknown balance (Network unreachable... off-line?)"
             | NotFresh(Cached(balance,time)) ->
-                let status = sprintf "Last known balance=[%s] (as of %s) %s %s"
+                let status = sprintf "Last known balance=[%s] (as of %s) %s"
                                     (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                                     (time |> Formatting.ShowSaneDate)
-                                    Environment.NewLine
                                     (BalanceInUsdString balance maybeUsdValue)
                 yield status
             | Fresh(balance) ->
@@ -249,6 +249,8 @@ module UserInteraction =
                                             maybeUsdValue
                                                 : seq<string> =
         match account.Currency, maybeBalance with
+        | Currency.SAI, NotFresh (Cached (0m, _time)) ->
+            Seq.empty
         | Currency.SAI, Fresh 0m ->
             Seq.empty
         | _ ->

@@ -540,3 +540,78 @@ module Account =
         // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
         | :? FormatException ->
             raise (AddressWithInvalidChecksum None)
+
+    let GetSignedTransactionDetails<'T when 'T :> IBlockchainFeeInfo>(rawTransaction: string)
+                                                                     (currency: Currency)
+                                                                         : ITransactionDetails =
+        let network = GetNetwork currency
+        match Transaction.TryParse(rawTransaction, network) with
+        | false, _ ->
+            failwith "malformed transaction"
+        | true, transaction ->
+            let txInGetSigner (txIn: TxIn): IDestination =
+                let signer = txIn.GetSigner()
+                if Object.ReferenceEquals(signer, null) then
+                    failwith "unable to determine signer"
+                else
+                    signer
+
+            let origin =
+                if transaction.Inputs.Count = 0 then
+                    failwith "transaction has no inputs"
+                let origin = txInGetSigner transaction.Inputs.[0]
+                for txIn in Seq.skip 1 transaction.Inputs do
+                    let thisOrigin = txInGetSigner txIn
+                    if origin <> thisOrigin then
+                        failwith "transaction has multiple different inputs"
+                origin
+
+            let matchOriginToAccount(account: ReadOnlyUtxoAccount): bool =
+                let accountAddress = (account :> IAccount).PublicAddress
+                let bitcoinAddress = BitcoinAddress.Create(accountAddress, network)
+                let bitcoinScriptAddress = bitcoinAddress.GetScriptAddress()
+                let scriptAddressHash = bitcoinScriptAddress.Hash
+                (scriptAddressHash :> IDestination) = origin
+
+            let account =
+                let accountOpt =
+                    Config.GetAccountFiles [currency] AccountKind.ReadOnly
+                    |> Seq.map
+                        (fun accountFile ->
+                            GetAccountFromFile accountFile currency AccountKind.ReadOnly
+                            :?> ReadOnlyUtxoAccount
+                        )
+                    |> Seq.filter matchOriginToAccount
+                    |> Seq.tryExactlyOne
+                match accountOpt with
+                | Some account -> account
+                | None -> failwith "unknown origin account"
+            let originAddress =
+                let accountAddress = (account :> IAccount).PublicAddress
+                let bitcoinAddress = BitcoinAddress.Create(accountAddress, network)
+                bitcoinAddress
+
+            let destinationAddress, value =
+                let filterChangeTxOuts(txOut: TxOut): Option<BitcoinAddress * Money> =
+                    let scriptPubKey = txOut.ScriptPubKey
+                    let destinationAddress = scriptPubKey.GetDestinationAddress network
+                    let destinationScriptAddress = destinationAddress.GetScriptAddress()
+                    let destinationScriptAddressHash = destinationScriptAddress.Hash
+                    if (destinationScriptAddressHash :> IDestination) = origin then
+                        None
+                    else
+                        Some (destinationAddress, txOut.Value)
+
+                let filteredTxOuts = Seq.choose filterChangeTxOuts transaction.Outputs
+                match Seq.tryExactlyOne filteredTxOuts with
+                | Some destinationAddress -> destinationAddress
+                | None ->
+                    failwith "expected a single destination address"
+
+            {
+                OriginAddress = originAddress.ToString()
+                DestinationAddress = destinationAddress.ToString()
+                Amount = value.ToDecimal MoneyUnit.BTC
+                Currency = currency
+            } :> ITransactionDetails
+

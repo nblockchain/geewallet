@@ -117,17 +117,6 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         JsonConvert.SerializeObject(req, Formatting.None,
                                     Marshalling.PascalCase2LowercasePlusUnderscoreConversionSettings)
 
-    // FIXME: should we rather use JContainer.Parse? it seems JObject.Parse wouldn't detect error in this: {A:{"B": 1}}
-    //        (for more info see replies of https://stackoverflow.com/questions/6903477/need-a-string-json-validator )
-    static member private IsValidJson (jsonStr: string) =
-        try
-            Newtonsoft.Json.Linq.JObject.Parse jsonStr
-                |> ignore
-            true
-        with
-        | :? JsonReaderException ->
-            false
-
     // TODO: add 'T as incoming request type, leave 'R as outgoing response type
     member private self.Request<'R> (jsonRequest: string): Async<'R*string> = async {
         let! rawResponse = jsonRpcClient.Request jsonRequest
@@ -190,7 +179,7 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
 
     // TODO: should this validation actually be part of JsonRpcSharp?
     static member public Deserialize<'T> (result: string): 'T =
-        match StratumClient.IsValidJson result with
+        match Marshalling.IsValidJson result with
         | false ->
             raise <| ServerMisconfiguredException(SPrintF1 "Server's reply was not valid json: %s" result)
         | true ->

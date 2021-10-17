@@ -12,8 +12,7 @@ module BlockExplorer =
         let baseUrl =
               match account.Currency with
               | Currency.BTC ->
-                  // SmartBit explorer is built on top of NBitcoin: https://github.com/ProgrammingBlockchain/ProgrammingBlockchain/issues/1
-                  "https://www.smartbit.com.au/address/"
+                  "https://mempool.space/address/"
               | Currency.LTC ->
                   // because the more popular https://live.blockcypher.com/ltc/ doesn't seem to have segwit support
                   "https://chainz.cryptoid.info/ltc/address.dws?"
@@ -31,7 +30,7 @@ module BlockExplorer =
         let baseUrl =
               match currency with
               | Currency.BTC ->
-                  "https://www.smartbit.com.au/tx/"
+                  "https://mempool.space/tx/"
               | Currency.LTC ->
                   "https://chainz.cryptoid.info/ltc/tx.dws?"
               | Currency.ETH ->

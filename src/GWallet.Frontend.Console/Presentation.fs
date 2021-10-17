@@ -43,32 +43,33 @@ module Presentation =
                               estimatedFeeInUsd
                          )
 
-    let ShowTransactionData<'T when 'T:> IBlockchainFeeInfo> (trans: UnsignedTransaction<'T>) =
-        let maybeUsdPrice = FiatValueEstimation.UsdValue(trans.Proposal.Amount.Currency)
+    let ShowTransactionData<'T when 'T:> IBlockchainFeeInfo> (trans: ITransactionDetails)
+                                                             (metadata: 'T) =
+        let maybeUsdPrice = FiatValueEstimation.UsdValue trans.Currency
                             |> Async.RunSynchronously
         let maybeEstimatedAmountInUsd: Option<string> =
             match maybeUsdPrice with
             | Fresh(usdPrice) ->
                 Some(sprintf "~ %s USD"
-                             (trans.Proposal.Amount.ValueToSend * usdPrice
+                             (trans.Amount * usdPrice
                                  |> Formatting.DecimalAmountRounding CurrencyType.Fiat))
             | NotFresh(Cached(usdPrice, time)) ->
                 Some(sprintf "~ %s USD (last exchange rate known at %s)"
-                        (trans.Proposal.Amount.ValueToSend * usdPrice
+                        (trans.Amount * usdPrice
                             |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
                         (time |> Formatting.ShowSaneDate))
             | NotFresh(NotAvailable) -> None
 
         Console.WriteLine("Transaction data:")
-        Console.WriteLine("Sender: " + trans.Proposal.OriginAddress)
-        Console.WriteLine("Recipient: " + trans.Proposal.DestinationAddress)
+        Console.WriteLine("Sender: " + trans.OriginAddress)
+        Console.WriteLine("Recipient: " + trans.DestinationAddress)
         let fiatAmount =
             match maybeEstimatedAmountInUsd with
             | Some(estimatedAmountInUsd) -> estimatedAmountInUsd
             | _ -> String.Empty
         Console.WriteLine (sprintf "Amount: %s %A %s"
-                                   (trans.Proposal.Amount.ValueToSend |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
-                                   trans.Proposal.Amount.Currency
+                                   (trans.Amount |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
+                                   trans.Currency
                                    fiatAmount)
         Console.WriteLine()
-        ShowFee trans.Proposal.Amount.Currency trans.Metadata
+        ShowFee trans.Currency metadata

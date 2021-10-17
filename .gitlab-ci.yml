@@ -1,92 +1,93 @@
-before_script:
-  - apt-get update
-  - apt install -y make git
-  # needed to download NuGet
-  - apt-get install -y curl
-
 stages:
+  - buildenv
   - build
   - unit_tests
   - integration_tests
   - package
 
+stockmono_buildenv:
+  image: docker:19.03.12
+  stage: buildenv
+  services:
+    - docker:19.03.12-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA -f stockmono.docker .
+    - docker push $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA
+
 stockmono_build:
-  image: ubuntu:20.04
+  image: $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA
   stage: build
   script:
-    # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
     - ./configure.sh
-    - make sanitycheck
     - make strict
     - make
+    - make sanitycheck
     - make install
 
 stockmono_test_unit:
-  image: ubuntu:20.04
+  image: $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA
   stage: unit_tests
   script:
-    # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
-    - apt-get install -y nunit-console
     - ./configure.sh
     - make
     - make check
 
 stockmono_test_integration:
-  image: ubuntu:20.04
+  image: $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA
   stage: integration_tests
   script:
-    # https://askubuntu.com/a/1013396
-    - DEBIAN_FRONTEND=noninteractive apt-get install -y mono-complete mono-xbuild fsharp
     - mono --version
 
     - ./configure.sh
     - make
     - make update-servers
 
+newmono_buildenv:
+  image: docker:19.03.12
+  stage: buildenv
+  services:
+    - docker:19.03.12-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA -f newmono.docker .
+    - docker push $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
+
 newmono_build:
-  image: ubuntu:20.04
+  image: $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
   stage: build
   artifacts:
     paths:
       - bin/*.zip
     expire_in: 50days
   script:
-    - ./scripts/install_mono_from_microsoft_deb_packages.sh
     - apt install -y libgtk2.0-cil-dev
 
     - ./configure.sh
-    - make sanitycheck
     - make strict
     - make
+    - make sanitycheck
     - make install
     # so that we log the version of nuget for when it works
     - make nuget
 
-    - apt-get install -y zip
     - make zip
 
 newmono_test_unit:
-  image: ubuntu:20.04
+  image: $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
   stage: unit_tests
   script:
-    - ./scripts/install_mono_from_microsoft_deb_packages.sh
-
-    - apt install -y nunit-console
 
     - time (./configure.sh && make && make check)
 
 newmono_test_integration:
-  image: ubuntu:20.04
+  image: $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
   stage: integration_tests
   script:
-    - ./scripts/install_mono_from_microsoft_deb_packages.sh
-
     - ./configure.sh &&
       make &&
       make update-servers

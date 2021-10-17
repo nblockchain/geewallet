@@ -131,7 +131,7 @@ type RequireAllPropertiesContractResolver() =
 
 module Marshalling =
 
-    let private DefaultFormatting =
+    let DefaultFormatting =
 #if DEBUG
         Formatting.Indented
 #else
@@ -149,19 +149,29 @@ module Marshalling =
     let private currentVersion = VersionHelper.CURRENT_VERSION
 
     let ExtractType(json: string): Type =
-        let typeInfo =
-            try
-                JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json
-            with
-            | ex -> raise (DeserializationException("Could not extract type", ex))
-        let fullTypeName = typeInfo.TypeName
-        Type.GetType(fullTypeName)
+        let wrapper = JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json
+        if Object.ReferenceEquals(null, wrapper) then
+            failwith <| SPrintF1 "Failed to extract type from JSON: %s" json
+        Type.GetType wrapper.TypeName
+
+    // FIXME: should we rather use JContainer.Parse? it seems JObject.Parse wouldn't detect error in this: {A:{"B": 1}}
+    //        (for more info see replies of https://stackoverflow.com/questions/6903477/need-a-string-json-validator )
+    let internal IsValidJson (jsonStr: string) =
+        try
+            Newtonsoft.Json.Linq.JObject.Parse jsonStr
+                |> ignore
+            true
+        with
+        | :? JsonReaderException ->
+            false
 
     let DeserializeCustom<'T>(json: string, settings: JsonSerializerSettings): 'T =
         if (json = null) then
             raise (ArgumentNullException("json"))
         if (String.IsNullOrWhiteSpace(json)) then
             raise (ArgumentException("empty or whitespace json", "json"))
+        if not (IsValidJson json) then
+            raise <| InvalidJson
 
         let deserialized =
             try
@@ -198,14 +208,14 @@ module Marshalling =
         | _ ->
             DeserializeCustom(json, DefaultSettings)
 
-    let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings): string =
+    let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings) (formatting: Formatting): string =
         JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
-                                    DefaultFormatting,
+                                    formatting,
                                     settings)
 
-    let SerializeCustom<'T>(value: 'T, settings: JsonSerializerSettings): string =
+    let SerializeCustom<'T>(value: 'T, settings: JsonSerializerSettings, formatting: Formatting): string =
         try
-            SerializeInternal value settings
+            SerializeInternal value settings formatting
         with
         | exn ->
             raise (SerializationException(SPrintF2 "Could not serialize object of type '%s' and value '%A'"
@@ -215,7 +225,7 @@ module Marshalling =
         match box value with
         | :? Exception as ex ->
             let exToSerialize = MarshalledException.Create ex
-            let serializedEx = SerializeCustom(exToSerialize, DefaultSettings)
+            let serializedEx = SerializeCustom(exToSerialize, DefaultSettings, DefaultFormatting)
 
             try
                 let _deserializedEx: 'T = Deserialize serializedEx
@@ -230,7 +240,10 @@ module Marshalling =
 
             serializedEx
         | _ ->
-            SerializeCustom(value, DefaultSettings)
+            SerializeCustom(value, DefaultSettings, DefaultFormatting)
+
+    let SerializeOneLine<'T>(value: 'T): string =
+        SerializeCustom (value, DefaultSettings, Formatting.None)
 
     type CompressionOrDecompressionException(msg: string, innerException: Exception) =
         inherit Exception(msg, innerException)

@@ -7,6 +7,7 @@ open System
 open System.Numerics
 open System.Threading.Tasks
 
+open Nethereum.ABI.Decoders
 open Nethereum.Signer
 open Nethereum.KeyStore
 open Nethereum.Util
@@ -420,3 +421,47 @@ module internal Account =
             }
         ExportUnsignedTransactionToJson unsignedTransaction
 
+
+    let GetSignedTransactionDetails (signedTransaction: SignedTransaction<'T>): ITransactionDetails =
+
+        match signedTransaction.TransactionInfo.Proposal.Amount.Currency with
+        | SAI | DAI ->
+            // FIXME: derive the transaction details from the raw transaction so that we can remove the proposal from
+            //        the SignedTransaction type (as it's redundant); and when we remove it, we can also rename
+            //        IBlockchainFeeInfo's Currency to "FeeCurrency", or change "Metadata" members whose type is
+            //        IBlockchainFeeInfo to have "fee" in the name too, otherwise is to easy to use ETH instead of DAI
+            signedTransaction.TransactionInfo.Proposal :> ITransactionDetails
+
+        | _ ->
+            let getTransactionChainId (tx: TransactionBase) =
+                // the chain id can be deconstructed like so -
+                //   https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
+                // into one of the following -
+                //   https://chainid.network/
+                // NOTE: according to the SO discussion, the following alrogithm is adequate -
+                // https://stackoverflow.com/questions/68023440/how-do-i-use-nethereum-to-extract-chain-id-from-a-raw-transaction
+                let v = IntTypeDecoder().DecodeBigInteger tx.Signature.V
+                let chainId = (v - BigInteger 35) / BigInteger 2
+                chainId
+
+            let getTransactionCurrency (tx: TransactionBase) =
+                match int (getTransactionChainId tx) with
+                | chainId when chainId = int Config.EthNet -> ETH
+                | chainId when chainId = int Config.EtcNet -> ETC
+                | other -> failwith <| SPrintF1 "Could not infer currency from transaction where chainId = %i." other
+
+            let tx = TransactionFactory.CreateTransaction signedTransaction.RawTransaction
+
+            // HACK: I prefix 12 elements to the address due to AddressTypeDecoder expecting some sort of header...
+            let address = AddressTypeDecoder().Decode (Array.append (Array.zeroCreate 12) tx.ReceiveAddress)
+
+            let destAddress = addressUtil.ConvertToChecksumAddress address
+
+            let txDetails =
+                {
+                    OriginAddress = signer.GetSenderAddress signedTransaction.RawTransaction
+                    Amount = UnitConversion.Convert.FromWei (IntTypeDecoder().DecodeBigInteger tx.Value)
+                    Currency = getTransactionCurrency tx
+                    DestinationAddress = destAddress
+                }
+            txDetails :> ITransactionDetails

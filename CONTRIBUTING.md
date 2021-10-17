@@ -23,15 +23,19 @@ different things).
 * To not confuse array types with lists, we prefer to use `List.Empty` over `[]`
 (where it's possible; e.g. in match cases it's not possible), and `array<Foo>`
 over `Foo []`.
-* To not confuse lists of one element with indexers, we prefer to use the form
-`oneItem::List.Empty` instead of the less verbose `[oneItem]`.
-* We prefer the generic notation `Foo<Bar>` rather than `Bar Foo`.
-* We prefer to not use shadowing practice, even if the F# compiler allows it
-(not to confuse shadowing with mutation, which is discouraged too anyway).
+* To not confuse lists/arrays of one element with indexers, we prefer to use the
+`singleton` function of the List/Array/Seq modules, instead of the less verbose
+(and easy to misinterpret, e.g. think it's a list when it's an array, or
+viceversa): `[ oneItem ]` or `[| oneItem |]`. (If inside a match case, then
+rather use `oneItem::List.Empty` instead of `[oneItem].)
+* We prefer the generic notation `Foo<Bar>` rather than `Bar Foo` (see
+https://github.com/fsprojects/fantomas/issues/712 ).
+* We prefer to not use the shadowing practice, even if the F# compiler allows it
+(not to confuse shadowing with mutation, which is also discouraged anyway).
 * We prefer to write parenthesis only when strictly necessary (e.g. in F# they
 are not required for `if` clauses, unlike C#) or for readability purposes (e.g.
-when it's not clear what operator would be applied first by the order preference
-rules of the language).
+when it's not clear what operator would be applied first, as not everyone knows
+the rules of the language for default operator precedence by heart).
 * Whenever possible, we prefer to use currified arguments (instead of tuples),
 should we need to use F# partial application.
 * We avoid to write the keyword `new` for instances of non-IDisposable types.
@@ -123,10 +127,19 @@ developer to use a type-less style of catching an exception, plus the
 discriminated union used for its result is quite unreadable (`Choice1Of2`
 and `Choice2Of2` don't give any clue about which one is the successful case
 and which one is the exceptional one).
-* When using the function `ignore`, use always it's generic type `ignore<'T>`.
+* When using the function `ignore`, use always the generic type (`ignore<'T>`).
 * Do not use `System.ParamArray` (for variable number of arguments) as it's
 easy to shoot yourself in the foot, and is not idiomatic F# (it was meant for
 C#). More info: https://sidburn.github.io/blog/2017/03/13/variable-arguments
+* Do not use type extensions (similar practice as monkey-patching in Python
+or extension methods in C#) because:
+  - It's not easy to see if the method belongs to the original type or is
+extended in our code (too much magic). This can be mitigated by having a
+good IDE that allows you to easily navigate with a "Go to definition" action,
+but still requires explicit use of this feature instead of marking the method
+visually as special compared to non-extended methods.
+  - It encourages a culture of fixing bugs locally instead of contributing
+fixes upstream.
 
 
 # Workflow best practices
@@ -143,8 +156,8 @@ single push), so that we can have a CI status for each commit in the MR. This
 is a best practice because it will make sure that the build is not broken in
 between commits (otherwise, future developers may have a hard time when
 trying to bisect bugs). If you have already pushed your commits to the remote
-in one push, this can be re-done by using the `scripts/gitpush1by1.fsx` script,
-or this technique manually: https://stackoverflow.com/a/3230241/544947
+in one push, this can be re-done by using our [gitpush1by1.fsx](https://gitlab.com/nblockchain/fsx/-/blob/master/Tools/gitPush1by1.fsx)
+script, or this technique manually: https://stackoverflow.com/a/3230241/544947
 * Git commit messages should follow this style:
 
 ```
@@ -196,5 +209,5 @@ Some other items that haven't been prioritized include (likely only intelligible
   * https://vsapronov.github.io/FSharp.Json/
   * https://github.com/Microsoft/fsharplu/tree/master/FSharpLu.Json
   * https://github.com/stroiman/JsonFSharp
-- Paranoid-build mode: instead of binary nuget deps, use either git submodules, or [local nugets](https://github.com/mono/mono-addins/issues/73#issuecomment-389343246) (maybe depending on [this RFE](https://github.com/dotnet/sdk/issues/1151) or any workaround mentioned there), or [source-only nugets](https://medium.com/@attilah/source-code-only-nuget-packages-8f34a8fb4738).
+- Paranoid-build mode: instead of binary nuget deps, use either git submodules, or [local nugets](https://github.com/mono/mono-addins/issues/73#issuecomment-389343246) (maybe depending on [this RFE](https://github.com/dotnet/sdk/issues/1151) or any workaround mentioned there, or a config file like it's explained here: https://docs.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior), or [source-only nugets](https://medium.com/@attilah/source-code-only-nuget-packages-8f34a8fb4738).
 - Maybe replace JsonRpcSharp with https://www.nuget.org/packages/StreamJsonRpc .

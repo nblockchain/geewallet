@@ -40,37 +40,79 @@ let rec TrySign account unsignedTrans =
 let BroadcastPayment() =
     let fileToReadFrom = UserInteraction.AskFileNameToLoad
                              "Introduce a file name to load the signed transaction: "
-    let signedTransaction = Account.LoadSignedTransactionFromFile fileToReadFrom.FullName
+    let signedTransactionOpt =
+        try
+            Account.LoadSignedTransactionFromFile fileToReadFrom.FullName
+            |> Some
+        with
+        | TransactionNotSignedYet ->
+            None
+
     //TODO: check if nonce matches, if not, reject trans
 
-    // FIXME: we should be able to infer the trans info from the raw transaction! this way would be more secure too
-    Presentation.ShowTransactionData(signedTransaction.TransactionInfo)
-    if UserInteraction.AskYesNo "Do you accept?" then
-        try
-            let txIdUri =
-                Account.BroadcastTransaction signedTransaction
-                    |> Async.RunSynchronously
-            Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
-            UserInteraction.PressAnyKeyToContinue ()
-        with
-        | :? DestinationEqualToOrigin ->
-            Presentation.Error "Transaction's origin cannot be the same as the destination."
-            UserInteraction.PressAnyKeyToContinue()
-        | :? InsufficientFunds ->
-            Presentation.Error "Insufficient funds."
-            UserInteraction.PressAnyKeyToContinue()
+    match signedTransactionOpt with
+    | None ->
+        Console.WriteLine String.Empty
+        Presentation.Error "The transaction hasn't been signed yet."
+        Console.WriteLine (
+            sprintf
+                "You maybe forgot to use the option '%s' on the offline device."
+                (Presentation.ConvertPascalCaseToSentence (Operations.SignOffPayment.ToString()))
+        )
+        UserInteraction.PressAnyKeyToContinue ()
+
+    | Some signedTransaction ->
+        let transactionDetails = Account.GetSignedTransactionDetails signedTransaction
+        Presentation.ShowTransactionData
+            transactionDetails
+            signedTransaction.TransactionInfo.Metadata
+
+        if UserInteraction.AskYesNo "Do you accept?" then
+            try
+                let txIdUri =
+                    Account.BroadcastTransaction signedTransaction
+                        |> Async.RunSynchronously
+                Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
+                UserInteraction.PressAnyKeyToContinue ()
+            with
+            | :? DestinationEqualToOrigin ->
+                Presentation.Error "Transaction's origin cannot be the same as the destination."
+                UserInteraction.PressAnyKeyToContinue()
+            | :? InsufficientFunds ->
+                Presentation.Error "Insufficient funds."
+                UserInteraction.PressAnyKeyToContinue()
 
 let SignOffPayment() =
     let fileToReadFrom = UserInteraction.AskFileNameToLoad
                              "Introduce a file name to load the unsigned transaction: "
-    let unsignedTransaction = Account.LoadUnsignedTransactionFromFile fileToReadFrom.FullName
+    let unsignedTransactionOpt =
+        try
+            let unsTx = Account.LoadUnsignedTransactionFromFile fileToReadFrom.FullName
+            let accountsWithSameAddress =
+                Account.GetAllActiveAccounts().Where(
+                    fun acc -> acc.PublicAddress = unsTx.Proposal.OriginAddress
+                )
+            Some (unsTx, accountsWithSameAddress)
+        with
+        | TransactionAlreadySigned ->
+            None
 
-    let accountsWithSameAddress =
-        Account.GetAllActiveAccounts().Where(fun acc -> acc.PublicAddress = unsignedTransaction.Proposal.OriginAddress)
-    if not (accountsWithSameAddress.Any()) then
+    match unsignedTransactionOpt with
+    | None ->
+        Console.WriteLine String.Empty
+        Presentation.Error "The transaction is already signed."
+        Console.WriteLine (
+            sprintf
+                "You maybe wanted to use the option '%s'."
+                (Presentation.ConvertPascalCaseToSentence (Operations.BroadcastPayment.ToString()))
+        )
+        UserInteraction.PressAnyKeyToContinue ()
+
+    | Some (_, accountsWithSameAddress) when not (accountsWithSameAddress.Any()) ->
         Presentation.Error "The transaction doesn't correspond to any of the accounts in the wallet."
         UserInteraction.PressAnyKeyToContinue ()
-    else
+
+    | Some (unsignedTransaction, accountsWithSameAddress) ->
         let accounts =
             accountsWithSameAddress.Where(
                 fun acc -> acc.Currency = unsignedTransaction.Proposal.Amount.Currency &&
@@ -102,7 +144,9 @@ let SignOffPayment() =
                     Console.WriteLine line
                 Console.WriteLine()
 
-                Presentation.ShowTransactionData unsignedTransaction
+                Presentation.ShowTransactionData
+                    (unsignedTransaction.Proposal :> ITransactionDetails)
+                    unsignedTransaction.Metadata
 
                 if UserInteraction.AskYesNo "Do you accept?" then
                     let trans = TrySign normalAccount unsignedTransaction
@@ -164,8 +208,29 @@ let rec TryArchiveAccount account =
 let rec AddReadOnlyAccounts() =
     Console.Write "JSON fragment from wallet to pair with: "
     let watchWalletInfoJson = Console.ReadLine().Trim()
-    let watchWalletInfo = Marshalling.Deserialize watchWalletInfoJson
-    Account.CreateReadOnlyAccounts watchWalletInfo
+    let watchWalletInfoOpt =
+        try
+            Marshalling.Deserialize watchWalletInfoJson
+            |> Some
+        with
+        | InvalidJson ->
+            None
+
+    match watchWalletInfoOpt with
+    | Some watchWalletInfo ->
+        Account.CreateReadOnlyAccounts watchWalletInfo
+        |> Some
+    | None ->
+        Console.WriteLine String.Empty
+        Presentation.Error
+            "The input provided didn't have proper JSON structure. Are you sure you gathered the info properly?"
+        Console.WriteLine (
+            sprintf
+                "You have to choose the option '%s' in your offline device to obtain the JSON."
+                (Presentation.ConvertPascalCaseToSentence (Operations.PairToWatchWallet.ToString()))
+        )
+        UserInteraction.PressAnyKeyToContinue()
+        None
 
 let ArchiveAccount() =
     let account = UserInteraction.AskAccount()
@@ -217,7 +282,7 @@ let PairToWatchWallet() =
         Console.WriteLine ""
         Console.WriteLine "Copy/paste this JSON fragment in your watching wallet:"
         Console.WriteLine ""
-        let json = Marshalling.Serialize walletInfo
+        let json = Marshalling.SerializeOneLine walletInfo
         Console.WriteLine json
         Console.WriteLine ""
 
@@ -256,7 +321,7 @@ let WalletOptions(): unit =
     let rec AskWalletOption(): GenericWalletOption =
         Console.WriteLine "0. Cancel, go back"
         Console.WriteLine "1. Check you still remember your payment password"
-        Console.WriteLine "2. Check you still remember your seed passphrase"
+        Console.WriteLine "2. Check you still remember your secret recovery phrase"
         Console.WriteLine "3. Wipe your current wallet, in order to start from scratch"
         Console.Write "Choose an option from the ones above: "
         let optIntroduced = Console.ReadLine ()
@@ -282,8 +347,8 @@ let WalletOptions(): unit =
         WipeWallet()
     | _ -> ()
 
-let rec PerformOperation (numAccounts: int) =
-    match UserInteraction.AskOperation numAccounts with
+let rec PerformOperation (numActiveAccounts: uint32) (numHotAccounts: uint32) =
+    match UserInteraction.AskOperation numActiveAccounts numHotAccounts with
     | Operations.Exit -> exit 0
     | Operations.CreateAccounts ->
         let bootstrapTask = Caching.Instance.BootstrapServerStatsFromTrustedSource() |> Async.StartAsTask
@@ -304,8 +369,11 @@ let rec PerformOperation (numAccounts: int) =
     | Operations.SendPayment ->
         SendPayment()
     | Operations.AddReadonlyAccounts ->
-        AddReadOnlyAccounts()
+        match AddReadOnlyAccounts() with
+        | Some job ->
+            job
             |> Async.RunSynchronously
+        | None -> ()
     | Operations.SignOffPayment ->
         SignOffPayment()
     | Operations.BroadcastPayment ->
@@ -355,18 +423,25 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
 
 
 let rec ProgramMainLoop() =
-    let accounts = Account.GetAllActiveAccounts()
+    let activeAccounts = Account.GetAllActiveAccounts()
+    let hotAccounts =
+        activeAccounts.Where(
+            fun acc ->
+                match acc with
+                | :? NormalAccount -> true
+                | _ -> false
+        )
 
     Console.WriteLine ()
     Console.WriteLine "*** STATUS ***"
     let lines =
-        UserInteraction.DisplayAccountStatuses(WhichAccount.All(accounts))
+        UserInteraction.DisplayAccountStatuses(WhichAccount.All activeAccounts)
             |> Async.RunSynchronously
     Console.WriteLine (String.concat Environment.NewLine lines)
     Console.WriteLine ()
 
     if CheckArchivedAccountsAreEmpty() then
-        PerformOperation (accounts.Count())
+        PerformOperation (uint32 (activeAccounts.Count())) (uint32 (hotAccounts.Count()))
     ProgramMainLoop()
 
 

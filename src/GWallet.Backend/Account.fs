@@ -230,7 +230,7 @@ module Account =
                 ()
         }
 
-    // FIXME: broadcasting shouldn't just get N consistent replies from FaultToretantClient,
+    // FIXME: broadcasting shouldn't just get N consistent replies from FaultTolerantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
     // broadcast it even if you sent it
     let BroadcastTransaction (trans: SignedTransaction<_>): Async<Uri> =
@@ -667,6 +667,8 @@ module Account =
             let deserializedBtcTransaction: UnsignedTransaction<Ether.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
+        | _ when transType.GetGenericTypeDefinition() = typedefof<SignedTransaction<_>> ->
+            raise TransactionAlreadySigned
         | unexpectedType ->
             raise <| Exception(SPrintF1 "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName)
 
@@ -690,6 +692,8 @@ module Account =
             let deserializedBtcTransaction: SignedTransaction<Ether.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
+        | _ when transType.GetGenericTypeDefinition() = typedefof<UnsignedTransaction<_>> ->
+            raise TransactionNotSignedYet
         | unexpectedType ->
             raise <| Exception(SPrintF1 "Unknown signedTransaction subtype: %s" unexpectedType.FullName)
 
@@ -734,4 +738,17 @@ module Account =
         let unsignedTransInJson = File.ReadAllText(filePath)
 
         ImportUnsignedTransactionFromJson unsignedTransInJson
+
+    let GetSignedTransactionDetails<'T when 'T :> IBlockchainFeeInfo> (signedTransaction: SignedTransaction<'T>)
+                                                                          : ITransactionDetails =
+        let currency = signedTransaction.TransactionInfo.Proposal.Amount.Currency
+        if currency.IsUtxo () then
+            UtxoCoin.Account.GetSignedTransactionDetails
+                signedTransaction.RawTransaction
+                currency
+        elif currency.IsEtherBased () then
+            Ether.Account.GetSignedTransactionDetails
+                signedTransaction
+        else
+            failwith <| (SPrintF1 "Unknown currency: %A" currency)
 
