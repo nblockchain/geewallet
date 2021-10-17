@@ -18,14 +18,14 @@
     <Compile Include="..\GWallet.Backend\BinaryMarshalling.fs">
       <Link>BinaryMarshalling.fs</Link>
     </Compile>
+    <Compile Include="..\GWallet.Backend\Exceptions.fs">
+      <Link>Exceptions.fs</Link>
+    </Compile>
     <Compile Include="..\GWallet.Backend\Marshalling.fs">
       <Link>Marshalling.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\Currency.fs">
       <Link>Currency.fs</Link>
-    </Compile>
-    <Compile Include="..\GWallet.Backend\Exceptions.fs">
-      <Link>Exceptions.fs</Link>
     </Compile>
     <Compile Include="..\GWallet.Backend\AccountTypes.fs">
       <Link>AccountTypes.fs</Link>
