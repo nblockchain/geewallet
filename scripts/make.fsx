@@ -160,9 +160,10 @@ let DEFAULT_NUGET_PACKAGES_SUBFOLDER_NAME = "packages"
 let RunNugetCommand (command: string) echoMode (safe: bool) =
     let nugetCmd =
         match Misc.GuessPlatform() with
-        | Misc.Platform.Windows ->
+        | Misc.Platform.Linux ->
+            { Command = "mono"; Arguments = sprintf "%s %s" nugetExe.FullName command }
+        | _ ->
             { Command = nugetExe.FullName; Arguments = command }
-        | _ -> { Command = "mono"; Arguments = sprintf "%s %s" nugetExe.FullName command }
     if safe then
         Process.SafeExecute (nugetCmd, echoMode)
     else
