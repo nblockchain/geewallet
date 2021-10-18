@@ -175,12 +175,13 @@ let PrintNugetVersion () =
             Console.WriteLine()
             failwith "nuget process' output contained errors ^"
 
-let JustBuild binaryConfig maybeConstant =
-    let buildTool = Map.tryFind "BuildTool" buildConfigContents
-    if buildTool.IsNone then
-        failwith "A BuildTool should have been chosen by the configure script, please report this bug"
-
-    Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
+let BuildSolution
+    (buildTool: string)
+    (solutionFileName: string)
+    (binaryConfig: BinaryConfig)
+    (maybeConstant: Option<string>)
+    (extraOptions: string)
+    =
     let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
     let defineConstantsFromBuildConfig =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
@@ -197,11 +198,29 @@ let JustBuild binaryConfig maybeConstant =
             sprintf "%s;DefineConstants=%s" configOption (String.Join(";", allDefineConstants))
         else
             configOption
-    let buildProcess = Process.Execute ({ Command = buildTool.Value; Arguments = configOptions }, Echo.All)
+    let buildArgs = sprintf "%s %s %s"
+                            solutionFileName
+                            configOptions
+                            extraOptions
+    let buildProcess = Process.Execute ({ Command = buildTool; Arguments = buildArgs }, Echo.All)
     if (buildProcess.ExitCode <> 0) then
-        Console.Error.WriteLine (sprintf "%s build failed" buildTool.Value)
+        Console.Error.WriteLine (sprintf "%s build failed" buildTool)
         PrintNugetVersion() |> ignore
         Environment.Exit 1
+
+let JustBuild binaryConfig maybeConstant =
+    let buildTool = Map.tryFind "BuildTool" buildConfigContents
+    if buildTool.IsNone then
+        failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+
+    Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
+    BuildSolution
+        buildTool.Value
+        // no need to pass solution file name because there's only 1 solution:
+        String.Empty
+        binaryConfig
+        maybeConstant
+        String.Empty
 
     Directory.CreateDirectory(launcherScriptFile.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
@@ -220,7 +239,7 @@ let GetPathToFrontendBinariesDir (binaryConfig: BinaryConfig) =
 let GetPathToBackend () =
     Path.Combine (rootDir.FullName, "src", BACKEND)
 
-let MakeAll maybeConstant =
+let MakeAll (maybeConstant: Option<string>) =
     let buildConfig = BinaryConfig.Debug
     JustBuild buildConfig maybeConstant
     buildConfig
