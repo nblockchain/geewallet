@@ -6,7 +6,7 @@ on:
     - '*'
 
 jobs:
-  ubuntu-snap-build:
+  snap_build:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
@@ -22,8 +22,8 @@ jobs:
         name: snap
         path: gwallet_0.3.241.0_amd64.snap
 
-  ubuntu-snap-upload:
-    needs: ubuntu-snap-build
+  snap_upload:
+    needs: snap_build
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1

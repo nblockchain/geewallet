@@ -3,23 +3,33 @@ name: macOS
 on: [push]
 
 jobs:
-  macOS_build:
+  build:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Run a one-line script
-      run: ./configure.sh && make strict && make sanitycheck && make release
+    - name: Build DEBUG and RELEASE
+      run: |
+        ./configure.sh
+        make strict
+        make sanitycheck
+        make release
 
-  macOS_tests_unit:
+  tests_unit:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Run a one-line script
-      run: ./configure.sh && make && make check
+    - name: Run unit tests
+      run: |
+        ./configure.sh
+        make
+        make check
 
-  macOS_tests_integration:
+  tests_integration:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
-    - name: Run a one-line script
-      run: ./configure.sh && make && make update-servers
+    - name: Run integration tests
+      run: |
+        ./configure.sh
+        make
+        make update-servers
