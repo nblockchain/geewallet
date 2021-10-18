@@ -155,7 +155,7 @@ exec mono "$FRONTEND_PATH" "$@"
 """
 
 let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
-let nugetPackagesSubDirName = "packages"
+let DEFAULT_NUGET_PACKAGES_SUBFOLDER_NAME = "packages"
 
 let RunNugetCommand (command: string) echoMode (safe: bool) =
     let nugetCmd =
@@ -350,12 +350,12 @@ match maybeTarget with
             let installNUnitRunnerNugetCommand =
                 sprintf
                     "install NUnit.Runners -Version %s -OutputDirectory %s"
-                    nunitVersion nugetPackagesSubDirName
+                    nunitVersion DEFAULT_NUGET_PACKAGES_SUBFOLDER_NAME
             RunNugetCommand installNUnitRunnerNugetCommand Echo.All true
                 |> ignore
 
             {
-                Command = Path.Combine(nugetPackagesSubDirName,
+                Command = Path.Combine(DEFAULT_NUGET_PACKAGES_SUBFOLDER_NAME,
                                        sprintf "NUnit.Runners.%s" nunitVersion,
                                        "tools",
                                        "nunit-console.exe")
@@ -449,8 +449,6 @@ match maybeTarget with
             Environment.Exit 1
 
     let SanityCheckNugetPackages () =
-
-        let DEFAULT_NUGET_PACKAGES_SUBFOLDER_NAME = "packages"
 
         let notSubmodule (dir: DirectoryInfo): bool =
             let getSubmoduleDirsForThisRepo (): seq<DirectoryInfo> =
