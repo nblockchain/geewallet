@@ -157,16 +157,22 @@ exec mono "$FRONTEND_PATH" "$@"
 let nugetExe = Path.Combine(rootDir.FullName, ".nuget", "nuget.exe") |> FileInfo
 let nugetPackagesSubDirName = "packages"
 
+let RunNugetCommand (command: string) echoMode (safe: bool) =
+    let nugetCmd =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Windows ->
+            { Command = nugetExe.FullName; Arguments = command }
+        | _ -> { Command = "mono"; Arguments = sprintf "%s %s" nugetExe.FullName command }
+    if safe then
+        Process.SafeExecute (nugetCmd, echoMode)
+    else
+        Process.Execute (nugetCmd, echoMode)
+
 let PrintNugetVersion () =
     if not (nugetExe.Exists) then
         false
     else
-        let nugetCmd =
-            match Misc.GuessPlatform() with
-            | Misc.Platform.Windows ->
-                { Command = nugetExe.FullName; Arguments = String.Empty }
-            | _ -> { Command = "mono"; Arguments = nugetExe.FullName }
-        let nugetProc = Process.Execute (nugetCmd, Echo.Off)
+        let nugetProc = RunNugetCommand String.Empty Echo.Off false
         Console.WriteLine nugetProc.Output.StdOut
         if nugetProc.ExitCode = 0 then
             true
@@ -337,17 +343,15 @@ match maybeTarget with
 
             { Command = nunitCommand; Arguments = testAssembly.FullName }
         | _ ->
-            let nunitVersion = "2.7.1"
             if not nugetExe.Exists then
                 MakeAll None |> ignore
 
-            let nugetInstallCommand =
-                {
-                    Command = nugetExe.FullName
-                    Arguments = sprintf "install NUnit.Runners -Version %s -OutputDirectory %s"
-                                        nunitVersion nugetPackagesSubDirName
-                }
-            Process.SafeExecute(nugetInstallCommand, Echo.All)
+            let nunitVersion = "2.7.1"
+            let installNUnitRunnerNugetCommand =
+                sprintf
+                    "install NUnit.Runners -Version %s -OutputDirectory %s"
+                    nunitVersion nugetPackagesSubDirName
+            RunNugetCommand installNUnitRunnerNugetCommand Echo.All true
                 |> ignore
 
             {
