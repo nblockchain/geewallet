@@ -527,11 +527,12 @@ match maybeTarget with
                 }
             not (getSubmoduleDirsForThisRepo().Any (fun d -> dir.FullName = d.FullName))
 
-        let blackList (dir: DirectoryInfo): bool =
-            dir.Name.StartsWith "GWallet.Frontend.XF" && not (dir.Name.EndsWith "Gtk")
+        let alreadyBuilt (dir: DirectoryInfo): bool =
+            // FIXME: should check if there's any files in Debug|Release subdirs, as they could be empty
+            dir.EnumerateDirectories().Any(fun subDir -> subDir.Name = "bin")
 
         let notDiscard (dir: DirectoryInfo): bool =
-            not (blackList dir) && notSubmodule dir
+            notSubmodule dir && alreadyBuilt dir
 
         let sanityCheckNugetPackagesFromSolution (sol: FileInfo) =
             let rec findPackagesDotConfigFiles (dir: DirectoryInfo): seq<FileInfo> =
@@ -539,8 +540,9 @@ match maybeTarget with
                 seq {
                     for file in dir.EnumerateFiles () do
                         if file.Name.ToLower () = "packages.config" then
-                            yield file
-                    for subdir in dir.EnumerateDirectories().Where notDiscard do
+                            if notDiscard file.Directory then
+                                yield file
+                    for subdir in dir.EnumerateDirectories().Where notSubmodule do
                         for file in findPackagesDotConfigFiles subdir do
                             yield file
                 }
