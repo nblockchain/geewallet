@@ -713,12 +713,14 @@ match maybeTarget with
                     Console.Error.WriteLine (sprintf "Missing folder for nuget package in submodule: %s (referenced from %s)" missingPkg depHolderNames)
                 Environment.Exit 1
 
+(* this is useful when we have a submodule where we store the nuget package binaries (in case nuget goes down) but we don't have that yet
             let excessPackageDirs = findExcessPackageDirs solDir idealDirList
             if excessPackageDirs.Any () then
                 let advice = "remove it with git filter-branch to avoid needless bandwidth: http://stackoverflow.com/a/17824718/6503091"
                 for excessPkg in excessPackageDirs do
                     Console.Error.WriteLine(sprintf "Unused nuget package folder: %s (%s)" excessPkg advice)
                 Environment.Exit 1
+*)
 
             let pkgWithMoreThan1VersionPrint (key: string) (packageInfos: seq<ComparableFileInfo*PackageInfo>) =
                 Console.Error.WriteLine (sprintf "Package found with more than one version: %s. All occurrences:" key)
