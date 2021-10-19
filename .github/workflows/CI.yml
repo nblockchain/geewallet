@@ -1,0 +1,47 @@
+name: CI
+
+on: [push]
+
+# FIXME: figure out why we need to clean after make if we
+# want 'make strict' target to really happen without
+# assuming the binaries from previous build are good
+# (msbuild bug?)
+
+jobs:
+  macOS:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+  windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: configure
+      run: .\configure.bat
+    - name: build in DEBUG mode
+      run: .\make.bat
+    - name: sanity check
+      run: .\make.bat sanitycheck
+    - name: unit tests
+      run: .\make.bat check
+    - name: re-build in STRICT mode
+      run: git clean -fdx && .\configure.bat && .\make.bat strict
+    - name: re-build in RELEASE mode
+      run: git clean -fdx && .\configure.bat && .\make.bat release
+    - name: integration tests
+      run: .\make update-servers
