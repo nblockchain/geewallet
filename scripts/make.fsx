@@ -22,6 +22,7 @@ open FSX.Infrastructure
 open Process
 
 #load "fsxHelper.fs"
+open GWallet.Scripting
 
 let UNIX_NAME = "gwallet"
 let DEFAULT_FRONTEND = "GWallet.Frontend.Console"

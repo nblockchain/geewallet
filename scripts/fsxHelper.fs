@@ -1,7 +1,11 @@
-﻿module FsxHelper
+namespace GWallet.Scripting
 
-    open System
-    open System.IO
+open System
+open System.IO
+
+open FSX.Infrastructure
+
+module FsxHelper =
 
     let ScriptsDir = __SOURCE_DIRECTORY__ |> DirectoryInfo
     let RootDir = Path.Combine(ScriptsDir.FullName, "..") |> DirectoryInfo

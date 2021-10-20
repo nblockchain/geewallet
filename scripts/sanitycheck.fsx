@@ -22,6 +22,7 @@ open FSX.Infrastructure
 open Process
 
 #load "fsxHelper.fs"
+open GWallet.Scripting
 
 module MapHelper =
     let GetKeysOfMap (map: Map<'K,'V>): seq<'K> =
