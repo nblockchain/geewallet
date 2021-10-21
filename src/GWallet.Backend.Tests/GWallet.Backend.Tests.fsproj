@@ -38,12 +38,7 @@
     <WarningLevel>3</WarningLevel>
     <DocumentationFile>bin\$(Configuration)\$(AssemblyName).XML</DocumentationFile>
   </PropertyGroup>
-  <PropertyGroup>
-    <MinimumVisualStudioVersion Condition="'$(MinimumVisualStudioVersion)' == ''">11</MinimumVisualStudioVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(FSharpTargetsPath)' == '' AND Exists('$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets') ">
-    <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
-  </PropertyGroup>
+  <Import Project="..\CommonBuildProps.proj" />
   <Import Condition="'$(FSharpTargetsPath)' != ''" Project="$(FSharpTargetsPath)" />
   <Target Name="BeforeBuild">
     <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
