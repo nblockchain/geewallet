@@ -86,7 +86,8 @@ module MarshallingData =
                 Assert.That(stackTraceJToken, Is.Not.Null, sprintf "Path %s not found in %s" stackTracePath (jsonEx.ToString()))
                 let initialStackTraceJToken = stackTraceJToken.ToString()
                 if initialStackTraceJToken.Length > 0 then
-                    Assert.That(initialStackTraceJToken, Is.StringContaining stackTraceFragment)
+                    Assert.That(initialStackTraceJToken, Is.StringContaining stackTraceFragment,
+                                sprintf "comparing actual '%s' with expected '%s'" actualJsonString expectedJsonString)
                     let endOfStackTrace = initialStackTraceJToken.Substring(initialStackTraceJToken.IndexOf stackTraceFragment)
                     let tweakedEndOfStackTrace =
                         if isUnix then
