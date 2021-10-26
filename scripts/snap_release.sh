@@ -23,4 +23,4 @@ snapcraft login --with snapcraft.login
 
 echo "Login successfull. Upload starting..."
 # the 'stable' and 'candidate' channels require 'stable' grade in the yaml
-snapcraft push snap/*.snap --release=edge
+snapcraft push snap/*.snap --release=beta
