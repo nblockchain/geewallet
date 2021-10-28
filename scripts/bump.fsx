@@ -46,7 +46,7 @@ let filesToBumpFullVersion: seq<string> =
     Seq.append filesToBumpMiniVersion [
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
         "snap/snapcraft.yaml"
-        ".github/workflows/snap.yml"
+        ".github/workflows/CI.yml"
     ]
 let gitLabCiYml = ".gitlab-ci.yml"
 let filesToGitAdd: seq<string> =

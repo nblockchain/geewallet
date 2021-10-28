@@ -68,3 +68,38 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+
+  snap_pkg_build:
+    needs: linux
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Generate snap package
+      run: |
+        sudo apt update
+        ./scripts/install_snapcraft.sh
+        sudo ./scripts/snap_build.sh
+
+    - name: Upload snap package as artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: snap
+        path: gwallet_0.2.245.0_amd64.snap
+
+  snap_pkg_upload:
+    needs: snap_pkg_build
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Download artifact from previous job
+      uses: actions/download-artifact@v1
+      with:
+        name: snap
+    - name: Upload snap package to Snap Store
+      env:
+        SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
+      run: |
+        sudo apt update
+        sudo apt install --yes fsharp
+        ./scripts/install_snapcraft.sh
+        ./configure.sh && ./scripts/snap_release.sh
