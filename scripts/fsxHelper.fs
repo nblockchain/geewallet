@@ -18,5 +18,9 @@ module FsxHelper =
         | _ ->
             let fsxRunnerEnvVar = Environment.GetEnvironmentVariable "FsxRunner"
             if String.IsNullOrEmpty fsxRunnerEnvVar then
-                failwith "FsxRunner env var not found, it should have been passed to make.sh (are you running this script on its own instead of invoking the Makefile target?)"
+                let msg = "FsxRunner env var not found, it should have been sourced from build.config file"
+                let msgFull =
+                    msg + Environment.NewLine +
+                    "(maybe you meant to run a Makefile target rather than this script directly; or there is a .sh wrapper script for your .fsx script)"
+                failwith msgFull
             fsxRunnerEnvVar

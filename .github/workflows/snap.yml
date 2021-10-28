@@ -36,5 +36,6 @@ jobs:
         SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
       run: |
         sudo apt update
+        sudo apt install --yes fsharp
         ./scripts/install_snapcraft.sh
-        ./scripts/snap_release.sh
+        ./configure.sh && ./scripts/snap_release.sh
