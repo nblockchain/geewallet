@@ -78,7 +78,7 @@ jobs:
       run: |
         sudo apt update
         ./scripts/install_snapcraft.sh
-        sudo ./scripts/snap_build.sh
+        ./scripts/snap_build.sh
 
     - name: Upload snap package as artifact
       uses: actions/upload-artifact@v2
