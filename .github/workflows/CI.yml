@@ -81,10 +81,10 @@ jobs:
         sudo ./scripts/snap_build.sh
 
     - name: Upload snap package as artifact
-      uses: actions/upload-artifact@v1
+      uses: actions/upload-artifact@v2
       with:
         name: snap
-        path: gwallet_0.3.241.0_amd64.snap
+        path: gwallet_*_amd64.snap
 
   snap_pkg_upload:
     needs: snap_pkg_build
