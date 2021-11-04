@@ -140,46 +140,55 @@ let SanityCheckNugetPackages () =
 
         let getPackageTree (solDir: DirectoryInfo): Map<ComparableFileInfo,seq<PackageInfo>> =
             let packagesConfigFiles = findPackagesDotConfigFiles solDir
+            let packagesConfigFileElements =
+                seq {
+                    for packagesConfigFile in packagesConfigFiles do
+                        let xmlDoc = XDocument.Load packagesConfigFile.FullName
+                        for descendant in xmlDoc.Descendants () do
+                            if descendant.Name.LocalName.ToLower() = "package" then
+                                let id = descendant.Attributes().Single(fun attr -> attr.Name.LocalName = "id").Value
+                                let version = descendant.Attributes().Single(fun attr -> attr.Name.LocalName = "version").Value
+                                let reqReinstall = descendant.Attributes().Any(fun attr -> attr.Name.LocalName = "requireReinstallation")
+                                yield { File = packagesConfigFile }, { PackageId = id; PackageVersion = version; ReqReinstall = Some reqReinstall }
+                } |> List.ofSeq
+
             let nuspecFiles = findNuspecFiles solDir
-            seq {
-                for packagesConfigFile in packagesConfigFiles do
-                    let xmlDoc = XDocument.Load packagesConfigFile.FullName
-                    for descendant in xmlDoc.Descendants () do
-                        if descendant.Name.LocalName.ToLower() = "package" then
-                            let id = descendant.Attributes().Single(fun attr -> attr.Name.LocalName = "id").Value
-                            let version = descendant.Attributes().Single(fun attr -> attr.Name.LocalName = "version").Value
-                            let reqReinstall = descendant.Attributes().Any(fun attr -> attr.Name.LocalName = "requireReinstallation")
-                            yield { File = packagesConfigFile }, { PackageId = id; PackageVersion = version; ReqReinstall = Some reqReinstall }
+            let nuspecFileElements =
+                seq {
+                    for nuspecFile in nuspecFiles do
+                        let xmlDoc = XDocument.Load nuspecFile.FullName
 
-                for nuspecFile in nuspecFiles do
-                    let xmlDoc = XDocument.Load nuspecFile.FullName
+                        let nsOpt =
+                            let nsString = xmlDoc.Root.Name.Namespace.ToString()
+                            if String.IsNullOrEmpty nsString then
+                                None
+                            else
+                                let nsManager = XmlNamespaceManager(NameTable())
+                                let nsPrefix = "x"
+                                nsManager.AddNamespace(nsPrefix, nsString)
+                                if nsString <> "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd" then
+                                    Console.Error.WriteLine "Warning: the namespace URL doesn't match expectations, nuspec's XPath query may result in no elements"
+                                Some(nsManager, sprintf "%s:" nsPrefix)
+                        let query = "//{0}dependency"
+                        let dependencies =
+                            match nsOpt with
+                            | None ->
+                                let fixedQuery = String.Format(query, String.Empty)
+                                xmlDoc.XPathSelectElements fixedQuery
+                            | Some (nsManager, nsPrefix) ->
+                                let fixedQuery = String.Format(query, nsPrefix)
+                                xmlDoc.XPathSelectElements(fixedQuery, nsManager)
 
-                    let nsOpt =
-                        let nsString = xmlDoc.Root.Name.Namespace.ToString()
-                        if String.IsNullOrEmpty nsString then
-                            None
-                        else
-                            let nsManager = XmlNamespaceManager(NameTable())
-                            let nsPrefix = "x"
-                            nsManager.AddNamespace(nsPrefix, nsString)
-                            if nsString <> "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd" then
-                                Console.Error.WriteLine "Warning: the namespace URL doesn't match expectations, nuspec's XPath query may result in no elements"
-                            Some(nsManager, sprintf "%s:" nsPrefix)
-                    let query = "//{0}dependency"
-                    let dependencies =
-                        match nsOpt with
-                        | None ->
-                            let fixedQuery = String.Format(query, String.Empty)
-                            xmlDoc.XPathSelectElements fixedQuery
-                        | Some (nsManager, nsPrefix) ->
-                            let fixedQuery = String.Format(query, nsPrefix)
-                            xmlDoc.XPathSelectElements(fixedQuery, nsManager)
+                        for dependency in dependencies do
+                            let id = dependency.Attributes().Single(fun attr -> attr.Name.LocalName = "id").Value
+                            let version = dependency.Attributes().Single(fun attr -> attr.Name.LocalName = "version").Value
+                            yield { File = nuspecFile }, { PackageId = id; PackageVersion = version; ReqReinstall = None }
+                } |> List.ofSeq
 
-                    for dependency in dependencies do
-                        let id = dependency.Attributes().Single(fun attr -> attr.Name.LocalName = "id").Value
-                        let version = dependency.Attributes().Single(fun attr -> attr.Name.LocalName = "version").Value
-                        yield { File = nuspecFile }, { PackageId = id; PackageVersion = version; ReqReinstall = None }
-            } |> MapHelper.MergeIntoMap
+            let allElements = Seq.append packagesConfigFileElements nuspecFileElements
+
+            allElements
+            |> MapHelper.MergeIntoMap
 
         let getAllPackageIdsAndVersions (packageTree: Map<ComparableFileInfo,seq<PackageInfo>>): Map<PackageInfo,seq<DependencyHolder>> =
             seq {
