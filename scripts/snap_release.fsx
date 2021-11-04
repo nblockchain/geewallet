@@ -24,11 +24,7 @@ open Process
 #load "fsxHelper.fs"
 open GWallet.Scripting
 
-let snapSubfolder =
-    Path.Combine(FsxHelper.RootDir.FullName, "snap")
-    |> DirectoryInfo
-
-let snapFiles = snapSubfolder.EnumerateFiles().Where(fun file -> file.Name.EndsWith ".snap")
+let snapFiles = FsxHelper.RootDir.EnumerateFiles().Where(fun file -> file.Name.EndsWith ".snap")
 if not (snapFiles.Any()) then
     Console.Error.WriteLine "No snap package found."
     Environment.Exit 1
