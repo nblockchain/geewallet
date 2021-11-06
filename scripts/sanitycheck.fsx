@@ -24,7 +24,7 @@ open Process
 #load "fsxHelper.fs"
 open GWallet.Scripting
 
-#r "../packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"
+#r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"
 open Microsoft.Build.Construction
 
 
@@ -216,39 +216,39 @@ let SanityCheckNugetPackages () =
 
         let findMissingPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): Map<string,seq<DependencyHolder>> =
             solDir.Refresh ()
-            if not FsxHelper.NugetPackagesDir.Exists then
+            if not FsxHelper.NugetSolutionPackagesDir.Exists then
                 failwithf "'%s' subdir under solution dir %s doesn't exist, run `make` first"
-                    FsxHelper.NugetPackagesDir.Name
-                    FsxHelper.NugetPackagesDir.FullName
-            let packageDirsAbsolutePaths = FsxHelper.NugetPackagesDir.EnumerateDirectories().Select (fun dir -> dir.FullName)
+                    FsxHelper.NugetSolutionPackagesDir.Name
+                    FsxHelper.NugetSolutionPackagesDir.FullName
+            let packageDirsAbsolutePaths = FsxHelper.NugetSolutionPackagesDir.EnumerateDirectories().Select (fun dir -> dir.FullName)
             if not (packageDirsAbsolutePaths.Any()) then
                 Console.Error.WriteLine (
                     sprintf "'%s' subdir under solution dir %s doesn't contain any packages"
-                        FsxHelper.NugetPackagesDir.Name
-                        FsxHelper.NugetPackagesDir.FullName
+                        FsxHelper.NugetSolutionPackagesDir.Name
+                        FsxHelper.NugetSolutionPackagesDir.FullName
                 )
                 Console.Error.WriteLine "Forgot to `git submodule update --init`?"
                 Environment.Exit 1
 
             seq {
                 for KeyValue (packageDirNameThatShouldExist, prjs) in idealPackageDirs do
-                    if not (packageDirsAbsolutePaths.Contains (Path.Combine(FsxHelper.NugetPackagesDir.FullName, packageDirNameThatShouldExist))) then
+                    if not (packageDirsAbsolutePaths.Contains (Path.Combine(FsxHelper.NugetSolutionPackagesDir.FullName, packageDirNameThatShouldExist))) then
                         yield packageDirNameThatShouldExist, prjs
             } |> Map.ofSeq
 
         let findExcessPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): seq<string> =
             solDir.Refresh ()
-            if not (FsxHelper.NugetPackagesDir.Exists) then
+            if not (FsxHelper.NugetSolutionPackagesDir.Exists) then
                 failwithf "'%s' subdir under solution dir %s doesn't exist, run `make` first"
-                    FsxHelper.NugetPackagesDir.Name
-                    FsxHelper.NugetPackagesDir.FullName
+                    FsxHelper.NugetSolutionPackagesDir.Name
+                    FsxHelper.NugetSolutionPackagesDir.FullName
             // "src" is a directory for source codes and build scripts,
             // not for packages, so we need to exclude it from here
-            let packageDirNames = FsxHelper.NugetPackagesDir.EnumerateDirectories().Select(fun dir -> dir.Name).Except(["src"])
+            let packageDirNames = FsxHelper.NugetSolutionPackagesDir.EnumerateDirectories().Select(fun dir -> dir.Name).Except(["src"])
             if not (packageDirNames.Any()) then
                 failwithf "'%s' subdir under solution dir %s doesn't contain any packages"
-                    FsxHelper.NugetPackagesDir.Name
-                    FsxHelper.NugetPackagesDir.FullName
+                    FsxHelper.NugetSolutionPackagesDir.Name
+                    FsxHelper.NugetSolutionPackagesDir.FullName
             let packageDirsThatShouldExist = MapHelper.GetKeysOfMap idealPackageDirs
             seq {
                 for packageDirThatExists in packageDirNames do
@@ -312,18 +312,12 @@ let SanityCheckNugetPackages () =
                 Console.Error.WriteLine (sprintf "Missing folder for nuget package in submodule: %s (referenced from %s)" missingPkg depHolderNames)
             Environment.Exit 1
 
-(*      This feature about finding excess nuget packages isn't really needed in our repo because:
-        1) We don't use a nuget submodule where we store the nuget packages in binary form
-        2) If we enabled it, we would need to whitelist packages (and their dependencies) that are downloaded ad-hoc, such
-        as "Microsoft.Build" (for this script to work itself) and "Nunit.Runners" (for running tests in nonLinux platforms).
-
         let excessPackageDirs = findExcessPackageDirs solDir idealDirList
         if excessPackageDirs.Any () then
             let advice = "remove it with git filter-branch to avoid needless bandwidth: http://stackoverflow.com/a/17824718/6503091"
             for excessPkg in excessPackageDirs do
                 Console.Error.WriteLine(sprintf "Unused nuget package folder: %s (%s)" excessPkg advice)
             Environment.Exit 1
-*)
 
         let pkgWithMoreThan1VersionPrint (key: string) (packageInfos: seq<ComparableFileInfo*PackageInfo>) =
             Console.Error.WriteLine (sprintf "Package found with more than one version: %s. All occurrences:" key)
