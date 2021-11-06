@@ -24,6 +24,10 @@ open Process
 #load "fsxHelper.fs"
 open GWallet.Scripting
 
+#r "../packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"
+open Microsoft.Build.Construction
+
+
 module MapHelper =
     let GetKeysOfMap (map: Map<'K,'V>): seq<'K> =
         map |> Map.toSeq |> Seq.map fst
@@ -115,16 +119,21 @@ let SanityCheckNugetPackages () =
             }
         not (getSubmoduleDirsForThisRepo().Any (fun d -> dir.FullName = d.FullName))
 
+    // this seems to be a bug in Microsoft.Build nuget library, FIXME: report
+    let normalizeDirSeparatorsPaths (path: string): string =
+        path
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar)
+
     let sanityCheckNugetPackagesFromSolution (sol: FileInfo) =
-        let rec findPackagesDotConfigFiles (dir: DirectoryInfo): seq<FileInfo> =
-            dir.Refresh ()
+        let findPackagesDotConfigFiles (): seq<FileInfo> =
+            let parsedSolution = SolutionFile.Parse sol.FullName
             seq {
-                for file in dir.EnumerateFiles () do
-                    if file.Name.ToLower () = "packages.config" then
-                        yield file
-                for subdir in dir.EnumerateDirectories().Where notSubmodule do
-                    for file in findPackagesDotConfigFiles subdir do
-                        yield file
+                for projPath in (parsedSolution.ProjectsInOrder.Select(fun proj -> normalizeDirSeparatorsPaths proj.AbsolutePath).ToList()) do
+                    if projPath.ToLower().EndsWith ".fsproj" then
+                        for file in ((FileInfo projPath).Directory).EnumerateFiles () do
+                            if file.Name.ToLower () = "packages.config" then
+                                yield file
             }
 
         let rec findNuspecFiles (dir: DirectoryInfo): seq<FileInfo> =
@@ -138,9 +147,9 @@ let SanityCheckNugetPackages () =
                         yield file
             }
 
-        let getPackageTree (solDir: DirectoryInfo): Map<ComparableFileInfo,seq<PackageInfo>> =
-            let packagesConfigFiles = findPackagesDotConfigFiles solDir
-            let packagesConfigFileElements =
+        let getPackageTree (sol: FileInfo): Map<ComparableFileInfo,seq<PackageInfo>> =
+            let packagesConfigFiles = findPackagesDotConfigFiles()
+            let packageConfigFileElements =
                 seq {
                     for packagesConfigFile in packagesConfigFiles do
                         let xmlDoc = XDocument.Load packagesConfigFile.FullName
@@ -152,6 +161,8 @@ let SanityCheckNugetPackages () =
                                 yield { File = packagesConfigFile }, { PackageId = id; PackageVersion = version; ReqReinstall = Some reqReinstall }
                 } |> List.ofSeq
 
+            let solDir = sol.Directory
+            solDir.Refresh ()
             let nuspecFiles = findNuspecFiles solDir
             let nuspecFileElements =
                 seq {
@@ -185,7 +196,7 @@ let SanityCheckNugetPackages () =
                             yield { File = nuspecFile }, { PackageId = id; PackageVersion = version; ReqReinstall = None }
                 } |> List.ofSeq
 
-            let allElements = Seq.append packagesConfigFileElements nuspecFileElements
+            let allElements = Seq.append packageConfigFileElements nuspecFileElements
 
             allElements
             |> MapHelper.MergeIntoMap
@@ -287,14 +298,13 @@ let SanityCheckNugetPackages () =
                         yield pkgId, pkgs
                 } |> Map.ofSeq
 
-
+        let packageTree = getPackageTree sol
+        let packages = getAllPackageIdsAndVersions packageTree
+        Console.WriteLine(sprintf "%d nuget packages found for solution %s" packages.Count sol.Name)
+        let idealDirList = getDirectoryNamesForPackagesSet packages
+        
         let solDir = sol.Directory
         solDir.Refresh ()
-        let packageTree = getPackageTree solDir
-        let packages = getAllPackageIdsAndVersions packageTree
-        Console.WriteLine(sprintf "%d nuget packages found for solution in directory %s" packages.Count solDir.Name)
-        let idealDirList = getDirectoryNamesForPackagesSet packages
-
         let missingPackageDirs = findMissingPackageDirs solDir idealDirList
         if missingPackageDirs.Any () then
             for KeyValue(missingPkg, depHolders) in missingPackageDirs do
@@ -302,12 +312,18 @@ let SanityCheckNugetPackages () =
                 Console.Error.WriteLine (sprintf "Missing folder for nuget package in submodule: %s (referenced from %s)" missingPkg depHolderNames)
             Environment.Exit 1
 
+(*      This feature about finding excess nuget packages isn't really needed in our repo because:
+        1) We don't use a nuget submodule where we store the nuget packages in binary form
+        2) If we enabled it, we would need to whitelist packages (and their dependencies) that are downloaded ad-hoc, such
+        as "Microsoft.Build" (for this script to work itself) and "Nunit.Runners" (for running tests in nonLinux platforms).
+
         let excessPackageDirs = findExcessPackageDirs solDir idealDirList
         if excessPackageDirs.Any () then
             let advice = "remove it with git filter-branch to avoid needless bandwidth: http://stackoverflow.com/a/17824718/6503091"
             for excessPkg in excessPackageDirs do
                 Console.Error.WriteLine(sprintf "Unused nuget package folder: %s (%s)" excessPkg advice)
             Environment.Exit 1
+*)
 
         let pkgWithMoreThan1VersionPrint (key: string) (packageInfos: seq<ComparableFileInfo*PackageInfo>) =
             Console.Error.WriteLine (sprintf "Package found with more than one version: %s. All occurrences:" key)

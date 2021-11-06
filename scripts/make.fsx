@@ -382,6 +382,18 @@ match maybeTarget with
         |> ignore
 
 | Some "sanitycheck" ->
+
+    if not nugetExe.Exists then
+        MakeAll None |> ignore
+
+    let microsoftBuildLibVersion = "16.11.0"
+    let installMicrosoftBuildLibRunnerNugetCommand =
+        sprintf
+            "install Microsoft.Build -Version %s -OutputDirectory %s"
+            microsoftBuildLibVersion FsxHelper.NugetPackagesDir.FullName
+    RunNugetCommand installMicrosoftBuildLibRunnerNugetCommand Echo.All true
+        |> ignore
+
     let sanityCheckScript = Path.Combine(FsxHelper.ScriptsDir.FullName, "sanitycheck.fsx")
     Process.SafeExecute (
         {
