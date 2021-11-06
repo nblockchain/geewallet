@@ -24,6 +24,10 @@ open Process
 #load "fsxHelper.fs"
 open GWallet.Scripting
 
+#r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"
+open Microsoft.Build.Construction
+
+
 module MapHelper =
     let GetKeysOfMap (map: Map<'K,'V>): seq<'K> =
         map |> Map.toSeq |> Seq.map fst
@@ -115,16 +119,21 @@ let SanityCheckNugetPackages () =
             }
         not (getSubmoduleDirsForThisRepo().Any (fun d -> dir.FullName = d.FullName))
 
+    // this seems to be a bug in Microsoft.Build nuget library, FIXME: report
+    let normalizeDirSeparatorsPaths (path: string): string =
+        path
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar)
+
     let sanityCheckNugetPackagesFromSolution (sol: FileInfo) =
-        let rec findPackagesDotConfigFiles (dir: DirectoryInfo): seq<FileInfo> =
-            dir.Refresh ()
+        let findPackagesDotConfigFiles (): seq<FileInfo> =
+            let parsedSolution = SolutionFile.Parse sol.FullName
             seq {
-                for file in dir.EnumerateFiles () do
-                    if file.Name.ToLower () = "packages.config" then
-                        yield file
-                for subdir in dir.EnumerateDirectories().Where notSubmodule do
-                    for file in findPackagesDotConfigFiles subdir do
-                        yield file
+                for projPath in (parsedSolution.ProjectsInOrder.Select(fun proj -> normalizeDirSeparatorsPaths proj.AbsolutePath).ToList()) do
+                    if projPath.ToLower().EndsWith ".fsproj" then
+                        for file in ((FileInfo projPath).Directory).EnumerateFiles () do
+                            if file.Name.ToLower () = "packages.config" then
+                                yield file
             }
 
         let rec findNuspecFiles (dir: DirectoryInfo): seq<FileInfo> =
@@ -138,9 +147,9 @@ let SanityCheckNugetPackages () =
                         yield file
             }
 
-        let getPackageTree (solDir: DirectoryInfo): Map<ComparableFileInfo,seq<PackageInfo>> =
-            let packagesConfigFiles = findPackagesDotConfigFiles solDir
-            let packagesConfigFileElements =
+        let getPackageTree (sol: FileInfo): Map<ComparableFileInfo,seq<PackageInfo>> =
+            let packagesConfigFiles = findPackagesDotConfigFiles()
+            let packageConfigFileElements =
                 seq {
                     for packagesConfigFile in packagesConfigFiles do
                         let xmlDoc = XDocument.Load packagesConfigFile.FullName
@@ -152,6 +161,8 @@ let SanityCheckNugetPackages () =
                                 yield { File = packagesConfigFile }, { PackageId = id; PackageVersion = version; ReqReinstall = Some reqReinstall }
                 } |> List.ofSeq
 
+            let solDir = sol.Directory
+            solDir.Refresh ()
             let nuspecFiles = findNuspecFiles solDir
             let nuspecFileElements =
                 seq {
@@ -185,7 +196,7 @@ let SanityCheckNugetPackages () =
                             yield { File = nuspecFile }, { PackageId = id; PackageVersion = version; ReqReinstall = None }
                 } |> List.ofSeq
 
-            let allElements = Seq.append packagesConfigFileElements nuspecFileElements
+            let allElements = Seq.append packageConfigFileElements nuspecFileElements
 
             allElements
             |> MapHelper.MergeIntoMap
@@ -205,39 +216,39 @@ let SanityCheckNugetPackages () =
 
         let findMissingPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): Map<string,seq<DependencyHolder>> =
             solDir.Refresh ()
-            if not FsxHelper.NugetPackagesDir.Exists then
+            if not FsxHelper.NugetSolutionPackagesDir.Exists then
                 failwithf "'%s' subdir under solution dir %s doesn't exist, run `make` first"
-                    FsxHelper.NugetPackagesDir.Name
-                    FsxHelper.NugetPackagesDir.FullName
-            let packageDirsAbsolutePaths = FsxHelper.NugetPackagesDir.EnumerateDirectories().Select (fun dir -> dir.FullName)
+                    FsxHelper.NugetSolutionPackagesDir.Name
+                    FsxHelper.NugetSolutionPackagesDir.FullName
+            let packageDirsAbsolutePaths = FsxHelper.NugetSolutionPackagesDir.EnumerateDirectories().Select (fun dir -> dir.FullName)
             if not (packageDirsAbsolutePaths.Any()) then
                 Console.Error.WriteLine (
                     sprintf "'%s' subdir under solution dir %s doesn't contain any packages"
-                        FsxHelper.NugetPackagesDir.Name
-                        FsxHelper.NugetPackagesDir.FullName
+                        FsxHelper.NugetSolutionPackagesDir.Name
+                        FsxHelper.NugetSolutionPackagesDir.FullName
                 )
                 Console.Error.WriteLine "Forgot to `git submodule update --init`?"
                 Environment.Exit 1
 
             seq {
                 for KeyValue (packageDirNameThatShouldExist, prjs) in idealPackageDirs do
-                    if not (packageDirsAbsolutePaths.Contains (Path.Combine(FsxHelper.NugetPackagesDir.FullName, packageDirNameThatShouldExist))) then
+                    if not (packageDirsAbsolutePaths.Contains (Path.Combine(FsxHelper.NugetSolutionPackagesDir.FullName, packageDirNameThatShouldExist))) then
                         yield packageDirNameThatShouldExist, prjs
             } |> Map.ofSeq
 
         let findExcessPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): seq<string> =
             solDir.Refresh ()
-            if not (FsxHelper.NugetPackagesDir.Exists) then
+            if not (FsxHelper.NugetSolutionPackagesDir.Exists) then
                 failwithf "'%s' subdir under solution dir %s doesn't exist, run `make` first"
-                    FsxHelper.NugetPackagesDir.Name
-                    FsxHelper.NugetPackagesDir.FullName
+                    FsxHelper.NugetSolutionPackagesDir.Name
+                    FsxHelper.NugetSolutionPackagesDir.FullName
             // "src" is a directory for source codes and build scripts,
             // not for packages, so we need to exclude it from here
-            let packageDirNames = FsxHelper.NugetPackagesDir.EnumerateDirectories().Select(fun dir -> dir.Name).Except(["src"])
+            let packageDirNames = FsxHelper.NugetSolutionPackagesDir.EnumerateDirectories().Select(fun dir -> dir.Name).Except(["src"])
             if not (packageDirNames.Any()) then
                 failwithf "'%s' subdir under solution dir %s doesn't contain any packages"
-                    FsxHelper.NugetPackagesDir.Name
-                    FsxHelper.NugetPackagesDir.FullName
+                    FsxHelper.NugetSolutionPackagesDir.Name
+                    FsxHelper.NugetSolutionPackagesDir.FullName
             let packageDirsThatShouldExist = MapHelper.GetKeysOfMap idealPackageDirs
             seq {
                 for packageDirThatExists in packageDirNames do
@@ -287,14 +298,13 @@ let SanityCheckNugetPackages () =
                         yield pkgId, pkgs
                 } |> Map.ofSeq
 
-
+        let packageTree = getPackageTree sol
+        let packages = getAllPackageIdsAndVersions packageTree
+        Console.WriteLine(sprintf "%d nuget packages found for solution %s" packages.Count sol.Name)
+        let idealDirList = getDirectoryNamesForPackagesSet packages
+        
         let solDir = sol.Directory
         solDir.Refresh ()
-        let packageTree = getPackageTree solDir
-        let packages = getAllPackageIdsAndVersions packageTree
-        Console.WriteLine(sprintf "%d nuget packages found for solution in directory %s" packages.Count solDir.Name)
-        let idealDirList = getDirectoryNamesForPackagesSet packages
-
         let missingPackageDirs = findMissingPackageDirs solDir idealDirList
         if missingPackageDirs.Any () then
             for KeyValue(missingPkg, depHolders) in missingPackageDirs do

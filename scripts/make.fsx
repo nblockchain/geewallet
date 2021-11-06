@@ -110,25 +110,20 @@ FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
 exec mono "$FRONTEND_PATH" "$@"
 """
 
-let nugetExe =
-    Path.Combine (
-        FsxHelper.RootDir.FullName, ".nuget", "nuget.exe"
-    ) |> FileInfo
-
 let RunNugetCommand (command: string) echoMode (safe: bool) =
     let nugetCmd =
         match Misc.GuessPlatform() with
         | Misc.Platform.Linux ->
-            { Command = "mono"; Arguments = sprintf "%s %s" nugetExe.FullName command }
+            { Command = "mono"; Arguments = sprintf "%s %s" FsxHelper.NugetExe.FullName command }
         | _ ->
-            { Command = nugetExe.FullName; Arguments = command }
+            { Command = FsxHelper.NugetExe.FullName; Arguments = command }
     if safe then
         Process.SafeExecute (nugetCmd, echoMode)
     else
         Process.Execute (nugetCmd, echoMode)
 
 let PrintNugetVersion () =
-    if not (nugetExe.Exists) then
+    if not (FsxHelper.NugetExe.Exists) then
         false
     else
         let nugetProc = RunNugetCommand String.Empty Echo.Off false
@@ -308,19 +303,19 @@ match maybeTarget with
 
             { Command = nunitCommand; Arguments = testAssembly.FullName }
         | _ ->
-            if not nugetExe.Exists then
+            if not FsxHelper.NugetExe.Exists then
                 MakeAll None |> ignore
 
             let nunitVersion = "2.7.1"
             let installNUnitRunnerNugetCommand =
                 sprintf
                     "install NUnit.Runners -Version %s -OutputDirectory %s"
-                    nunitVersion FsxHelper.NugetPackagesDir.FullName
+                    nunitVersion (FsxHelper.NugetScriptsPackagesDir().FullName)
             RunNugetCommand installNUnitRunnerNugetCommand Echo.All true
                 |> ignore
 
             {
-                Command = Path.Combine(FsxHelper.NugetPackagesDir.FullName,
+                Command = Path.Combine(FsxHelper.NugetScriptsPackagesDir().FullName,
                                        sprintf "NUnit.Runners.%s" nunitVersion,
                                        "tools",
                                        "nunit-console.exe")
@@ -382,6 +377,18 @@ match maybeTarget with
         |> ignore
 
 | Some "sanitycheck" ->
+
+    if not FsxHelper.NugetExe.Exists then
+        MakeAll None |> ignore
+
+    let microsoftBuildLibVersion = "16.11.0"
+    let installMicrosoftBuildLibRunnerNugetCommand =
+        sprintf
+            "install Microsoft.Build -Version %s -OutputDirectory %s"
+            microsoftBuildLibVersion (FsxHelper.NugetScriptsPackagesDir().FullName)
+    RunNugetCommand installMicrosoftBuildLibRunnerNugetCommand Echo.All true
+        |> ignore
+
     let sanityCheckScript = Path.Combine(FsxHelper.ScriptsDir.FullName, "sanitycheck.fsx")
     Process.SafeExecute (
         {
