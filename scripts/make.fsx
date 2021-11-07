@@ -209,11 +209,14 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 
             match Misc.GuessPlatform () with
             | Misc.Platform.Mac ->
-                let solution = MAC_SOLUTION_FILE
 
-                ExplicitRestore solution
+                //this is because building in release requires code signing keys
+                if binaryConfig = BinaryConfig.Debug then
+                    let solution = MAC_SOLUTION_FILE
 
-                MSBuildRestoreAndBuild solution
+                    ExplicitRestore solution
+
+                    MSBuildRestoreAndBuild solution
 
                 Frontend.Console
             | Misc.Platform.Linux ->
