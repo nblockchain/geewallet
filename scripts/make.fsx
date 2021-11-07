@@ -98,11 +98,6 @@ let prefix = buildConfigContents |> GetOrExplain "Prefix"
 let libPrefixDir = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
 let binPrefixDir = DirectoryInfo (Path.Combine (prefix, "bin"))
 
-let scriptName = sprintf "%s-%s" UNIX_NAME (frontend.ToString().ToLower())
-let launcherScriptFile =
-    Path.Combine (FsxHelper.ScriptsDir.FullName, "bin", scriptName)
-    |> FileInfo
-
 let wrapperScript = """#!/usr/bin/env bash
 set -eo pipefail
 
@@ -206,7 +201,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 // when targetting the LINUX_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
                 let nugetWorkaroundArgs =
                     sprintf "%s restore src/%s/%s.fsproj -SolutionDirectory ."
-                            nugetExe.FullName GTK_FRONTEND GTK_FRONTEND
+                            FsxHelper.NugetExe.FullName GTK_FRONTEND GTK_FRONTEND
                 Process.Execute({ Command = "mono"; Arguments = nugetWorkaroundArgs }, Echo.All) |> ignore
 
                 BuildSolution "msbuild" LINUX_SOLUTION_FILE binaryConfig maybeConstant "/t:Restore"
@@ -219,7 +214,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
             Frontend.Console
 
     let scriptName = sprintf "%s-%s" UNIX_NAME (frontend.ToString().ToLower())
-    let launcherScriptFile = Path.Combine (scriptsDir.FullName, "bin", scriptName) |> FileInfo
+    let launcherScriptFile =
+        Path.Combine (FsxHelper.ScriptsDir.FullName, "bin", scriptName)
+        |> FileInfo
     Directory.CreateDirectory(launcherScriptFile.Directory.FullName) |> ignore
     let wrapperScriptWithPaths =
         wrapperScript.Replace("$UNIX_NAME", UNIX_NAME)
@@ -377,7 +374,7 @@ match maybeTarget with
     let buildConfig = BinaryConfig.Release
     let frontend,launcherScriptFile = JustBuild buildConfig None
 
-    let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(rootDir.FullName,
+    let mainBinariesDir binaryConfig = DirectoryInfo (Path.Combine(FsxHelper.RootDir.FullName,
                                                                    "src",
                                                                    frontend.GetProjectName(),
                                                                    "bin",
