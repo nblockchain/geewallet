@@ -1,11 +1,11 @@
 
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "GWallet.Backend.NetStandard", "src\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj", "{949A9225-A1BE-4EDA-A1DA-04AC131CFE9B}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.NetStandard", "src\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj", "{949A9225-A1BE-4EDA-A1DA-04AC131CFE9B}"
 EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "GWallet.Frontend.XF", "src\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj", "{2C7A1A49-CAD1-4961-866A-D32868AE7D18}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF", "src\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj", "{2C7A1A49-CAD1-4961-866A-D32868AE7D18}"
 EndProject
-Project("{f2a71f9b-5d33-465a-a702-920d77279786}") = "GWallet.Frontend.XF.Gtk", "src\GWallet.Frontend.XF.Gtk\GWallet.Frontend.XF.Gtk.fsproj", "{578E4F5E-A33D-4C04-BD6C-22B48B789F36}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.Gtk", "src\GWallet.Frontend.XF.Gtk\GWallet.Frontend.XF.Gtk.fsproj", "{578E4F5E-A33D-4C04-BD6C-22B48B789F36}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3703CCD5-CB28-45FE-8FD5-BBE5DFF62706}"
 	ProjectSection(SolutionItems) = preProject
@@ -16,6 +16,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3703CCD5
 		scripts\make.sh = scripts\make.sh
 		scripts\replace.fsx = scripts\replace.fsx
 	EndProjectSection
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend", "src\GWallet.Backend\GWallet.Backend.fsproj", "{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests", "src\GWallet.Backend.Tests\GWallet.Backend.Tests.fsproj", "{F9448076-88BE-4045-8704-A652D133E036}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,5 +39,13 @@ Global
 		{578E4F5E-A33D-4C04-BD6C-22B48B789F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{578E4F5E-A33D-4C04-BD6C-22B48B789F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{578E4F5E-A33D-4C04-BD6C-22B48B789F36}.Release|Any CPU.Build.0 = Release|Any CPU
+		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F9448076-88BE-4045-8704-A652D133E036}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F9448076-88BE-4045-8704-A652D133E036}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
