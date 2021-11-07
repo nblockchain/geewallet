@@ -503,12 +503,6 @@ match maybeTarget with
                 }
             not (getSubmoduleDirsForThisRepo().Any (fun d -> dir.FullName = d.FullName))
 
-        let blackList (dir: DirectoryInfo): bool =
-            dir.Name.StartsWith "GWallet.Frontend.XF" && not (dir.Name.EndsWith "Gtk")
-
-        let notDiscard (dir: DirectoryInfo): bool =
-            not (blackList dir) && notSubmodule dir
-
         let sanityCheckNugetPackagesFromSolution (sol: FileInfo) =
             let rec findPackagesDotConfigFiles (dir: DirectoryInfo): seq<FileInfo> =
                 dir.Refresh ()
@@ -516,7 +510,7 @@ match maybeTarget with
                     for file in dir.EnumerateFiles () do
                         if file.Name.ToLower () = "packages.config" then
                             yield file
-                    for subdir in dir.EnumerateDirectories().Where notDiscard do
+                    for subdir in dir.EnumerateDirectories().Where notSubmodule do
                         for file in findPackagesDotConfigFiles subdir do
                             yield file
                 }
@@ -527,7 +521,7 @@ match maybeTarget with
                     for file in dir.EnumerateFiles () do
                         if (file.Name.ToLower ()).EndsWith ".nuspec" then
                             yield file
-                    for subdir in dir.EnumerateDirectories().Where notDiscard do
+                    for subdir in dir.EnumerateDirectories().Where notSubmodule do
                         for file in findNuspecFiles subdir do
                             yield file
                 }
@@ -737,7 +731,7 @@ match maybeTarget with
                 for file in dir.EnumerateFiles () do
                     if file.Name.ToLower().EndsWith ".sln" then
                         yield file
-                for subdir in dir.EnumerateDirectories().Where notDiscard do
+                for subdir in dir.EnumerateDirectories().Where notSubmodule do
                     for solutionDir in findSolutions subdir do
                         yield solutionDir
             }
