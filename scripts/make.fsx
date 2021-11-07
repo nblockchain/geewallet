@@ -192,15 +192,6 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 
         // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
         if buildTool.Value = "msbuild" then
-            let frontendSolutionFile,isGtkPresent =
-                match Misc.GuessPlatform () with
-                | Misc.Platform.Mac -> Some MAC_SOLUTION_FILE, false
-                | Misc.Platform.Linux ->
-                    let pkgConfigForGtkProc = Process.Execute({ Command = "pkg-config"; Arguments = "gtk-sharp-2.0" }, Echo.All)
-                    let isGtkPresent =
-                        (0 = pkgConfigForGtkProc.ExitCode)
-                    Some LINUX_SOLUTION_FILE, isGtkPresent
-                | _ -> None, false
 
             // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
             // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
@@ -216,23 +207,33 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 // TODO: report as a bug the fact that /t:Restore;Build doesn't work while /t:Restore and later /t:Build does
                 BuildSolution "msbuild" solutionFile binaryConfig maybeConstant "/t:Build"
 
-            if isGtkPresent then
-
-                ExplicitRestore <| sprintf "src/%s/%s.fsproj" GTK_FRONTEND GTK_FRONTEND
-
-            match frontendSolutionFile with
-            | Some solution ->
+            match Misc.GuessPlatform () with
+            | Misc.Platform.Mac ->
+                let solution = MAC_SOLUTION_FILE
 
                 ExplicitRestore solution
 
                 MSBuildRestoreAndBuild solution
 
-            | _ -> ()
-
-            if isGtkPresent then
-                Frontend.Gtk
-            else
                 Frontend.Console
+            | Misc.Platform.Linux ->
+                let pkgConfigForGtkProc = Process.Execute({ Command = "pkg-config"; Arguments = "gtk-sharp-2.0" }, Echo.All)
+                let isGtkPresent =
+                    (0 = pkgConfigForGtkProc.ExitCode)
+
+                if isGtkPresent then
+                    let solution = LINUX_SOLUTION_FILE
+
+                    ExplicitRestore solution
+
+                    MSBuildRestoreAndBuild solution
+
+                    Frontend.Gtk
+                else
+                    Frontend.Console
+
+            | _ -> Frontend.Console
+
         else
             Frontend.Console
 
