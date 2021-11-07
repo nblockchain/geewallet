@@ -11,7 +11,7 @@ open System.Configuration
 open FSX.Infrastructure
 open Process
 
-let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) =
+let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) (exitIfNotFound: bool): Option<string> =
     let rec configCommandCheck currentCommandNamesQueue allCommands =
         match Seq.tryHead currentCommandNamesQueue with
         | Some currentCommand ->
@@ -21,11 +21,15 @@ let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) =
                 configCommandCheck (Seq.tail currentCommandNamesQueue) allCommands
             else
                 Console.WriteLine "found"
-                currentCommand
+                currentCommand |> Some
         | None ->
             Console.Error.WriteLine (sprintf "configure: error, please install %s" (String.Join(" or ", List.ofSeq allCommands)))
-            Environment.Exit 1
-            failwith "unreachable"
+            if exitIfNotFound then
+                Environment.Exit 1
+                failwith "unreachable"
+            else
+                None
+
     configCommandCheck commandNamesByOrderOfPreference commandNamesByOrderOfPreference
 
 
@@ -38,16 +42,16 @@ let initialConfigFile =
         Map.empty
 
     | Misc.Platform.Mac ->
-        ConfigCommandCheck ["mono"] |> ignore
+        ConfigCommandCheck ["mono"] true |> ignore
 
         // unlikely that anyone uses old Mono versions in Mac, as it's easy to update (TODO: detect anyway)
         Map.empty
 
     | Misc.Platform.Linux ->
-        ConfigCommandCheck ["mono"] |> ignore
+        ConfigCommandCheck ["mono"] true |> ignore
 
         let pkgConfig = "pkg-config"
-        ConfigCommandCheck [pkgConfig] |> ignore
+        ConfigCommandCheck [pkgConfig] true |> ignore
 
         let pkgName = "mono"
         let stableVersionOfMono = Version("6.6")
@@ -82,17 +86,37 @@ let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-
 File.WriteAllText(Path.Combine(rootDir.FullName, "before.gwallet.core.sln.targets"),
                   targetsFileToExecuteNugetBeforeBuild)
 
-let buildTool =
+let buildTool: string =
     match Misc.GuessPlatform() with
     | Misc.Platform.Linux | Misc.Platform.Mac ->
-        ConfigCommandCheck ["make"] |> ignore
-        ConfigCommandCheck ["fsharpc"] |> ignore
+        ConfigCommandCheck ["make"] true |> ignore
+        ConfigCommandCheck ["fsharpc"] true |> ignore
 
         // needed by NuGet.Restore.targets & the "update-servers" Makefile target
-        ConfigCommandCheck ["curl"]
+        ConfigCommandCheck ["curl"] true
             |> ignore
 
-        ConfigCommandCheck [ "msbuild"; "xbuild" ]
+        if Misc.GuessPlatform() = Misc.Platform.Mac then
+            match ConfigCommandCheck [ "msbuild"; "xbuild" ] true with
+            | Some theBuildTool -> theBuildTool
+            | _ -> failwith "unreachable"
+        else
+            // yes, msbuild tests for the existence of this file path below (a folder named xbuild, not msbuild),
+            // because $MSBuildExtensionsPath32 evaluates to /usr/lib/mono/xbuild (for historical reasons)
+            if File.Exists "/usr/lib/mono/xbuild/Microsoft/VisualStudio/v16.0/FSharp/Microsoft.FSharp.Targets" then
+                match ConfigCommandCheck [ "msbuild"; "xbuild" ] true with
+                | Some theBuildTool -> theBuildTool
+                | _ -> failwith "unreachable"
+            else
+                // if the above file doesn't exist, even though F# is installed (because we already checked for 'fsharpc'),
+                // the version installed is too old, and doesn't work with msbuild, so it's better to use xbuild
+                match ConfigCommandCheck [ "xbuild" ] false with
+                | None ->
+                    Console.Error.WriteLine "An alternative to installing mono-xbuild is upgrading your F# installtion to v5.0"
+                    Environment.Exit 1
+                    failwith "unreachable"
+                | Some xbuildCmd -> xbuildCmd
+
     | Misc.Platform.Windows ->
         let programFiles = Environment.GetFolderPath Environment.SpecialFolder.ProgramFilesX86
         let msbuildPathPrefix = Path.Combine(programFiles, "Microsoft Visual Studio", "2019")
@@ -100,12 +124,17 @@ let buildTool =
             Path.Combine(msbuildPathPrefix, vsEdition, "MSBuild", "Current", "Bin", "MSBuild.exe")
 
         // FIXME: we should use vscheck.exe
-        ConfigCommandCheck
-            [
-                GetMsBuildPath "Community"
-                GetMsBuildPath "Enterprise"
-                GetMsBuildPath "BuildTools"
-            ]
+        match
+            ConfigCommandCheck
+                [
+                    GetMsBuildPath "Community"
+                    GetMsBuildPath "Enterprise"
+                    GetMsBuildPath "BuildTools"
+                ]
+                true
+            with
+        | Some theBuildTool -> theBuildTool
+        | _ -> failwith "unreachable"
 
 
 let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxArguments(), false, None))

@@ -48,7 +48,6 @@ let filesToBumpFullVersion: seq<string> =
     Seq.append filesToBumpMiniVersion [
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
         "snap/snapcraft.yaml"
-        ".github/workflows/ubuntu.yml"
         "src/GWallet.Frontend.XF.UWP/Package.appxmanifest"
     ]
 let gitLabCiYml = ".gitlab-ci.yml"
@@ -228,5 +227,5 @@ Console.WriteLine "Post-bumping..."
 let fullStableVersion,newFullUnstableVersion = Bump false
 GitCommit fullStableVersion newFullUnstableVersion
 
-Console.WriteLine (sprintf "Version bumping finished. Remember to push via `git push <remote> <branch> %s`"
+Console.WriteLine (sprintf "Version bumping finished. Remember to push via `git push <remote> %s <branch>`"
                            (newFullStableVersion.ToString()))
