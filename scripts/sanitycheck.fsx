@@ -365,7 +365,26 @@ let SanityCheckNugetPackages () =
                     yield solutionDir
         }
 
-    let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
+    //let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
+    //NOTE: we hardcode the solutions rather than the line above, because e.g. Linux OS can't build/restore iOS proj
+    let solutions =
+        FsxHelper.RootDir.EnumerateFiles().Where (
+            fun file ->
+
+                match Misc.GuessPlatform() with
+
+                // xbuild cannot build .NETStandard projects so we cannot build the non-Core parts:
+                | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "BuildTool" ->
+                    file.Name = "gwallet.linux.sln"
+
+                | Misc.Platform.Mac ->
+                    file.Name = "gwallet.mac.sln"
+
+                | _ (* stockmono linux and windows *) ->
+
+                    // TODO: have a windows solution file
+                    file.Name = "gwallet.core.sln"
+        )
     for sol in solutions do
         sanityCheckNugetPackagesFromSolution sol
 
