@@ -63,7 +63,7 @@ newmono_build:
   artifacts:
     paths:
       - bin/*.zip
-    expire_in: 50days
+    expire_in: 50years
   script:
     - apt install -y libgtk2.0-cil-dev
 
@@ -114,4 +114,4 @@ newmono_test_integration:
 #  artifacts:
 #    paths:
 #      - gwallet*.snap
-#    expire_in: 50days
+#    expire_in: 50years
