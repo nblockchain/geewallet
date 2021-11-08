@@ -76,6 +76,6 @@ Console.WriteLine "Login successfull. Upload starting..."
 Process.SafeExecute (
     {
         Command = "snapcraft"
-        Arguments = sprintf "push %s --release=beta" snapFile.FullName
+        Arguments = sprintf "push %s --release=stable" snapFile.FullName
     }, Echo.All
 ) |> ignore
