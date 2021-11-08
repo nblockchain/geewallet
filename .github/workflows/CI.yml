@@ -77,6 +77,7 @@ jobs:
     - name: Generate snap package
       run: |
         sudo apt update
+        sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
         ./scripts/install_snapcraft.sh
         ./scripts/snap_build.sh
     - name: Upload snap package to Snap Store
@@ -84,5 +85,4 @@ jobs:
         SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
       run: |
         sudo apt update
-        sudo apt install --yes fsharp
         ./scripts/snap_release.sh
