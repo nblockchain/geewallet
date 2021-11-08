@@ -1,6 +1,6 @@
 {
-  "Version": "0.4.245.0",
-  "TypeName": "Microsoft.FSharp.Collections.FSharpMap`2[[GWallet.Backend.Currency, GWallet.Backend, Version=0.4.245.0, Culture=neutral, PublicKeyToken=null],[System.Collections.Generic.IEnumerable`1[[GWallet.Backend.ServerDetails, GWallet.Backend, Version=0.4.245.0, Culture=neutral, PublicKeyToken=null]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]",
+  "Version": "0.4.255.0",
+  "TypeName": "Microsoft.FSharp.Collections.FSharpMap`2[[GWallet.Backend.Currency, GWallet.Backend, Version=0.4.255.0, Culture=neutral, PublicKeyToken=null],[System.Collections.Generic.IEnumerable`1[[GWallet.Backend.ServerDetails, GWallet.Backend, Version=0.4.255.0, Culture=neutral, PublicKeyToken=null]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]",
   "Value": {
     "BTC": [
       {
@@ -33,34 +33,6 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "blockstream.info",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                110
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.3506795",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2021-11-08T14:55:43.905064Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
           "NetworkPath": "electrumx-core.1209k.com",
           "ConnectionType": {
             "Encrypted": false,
@@ -83,6 +55,34 @@
                 }
               },
               "Item2": "2021-11-08T15:01:13.484609Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "blockstream.info",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                110
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.4758677",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2021-11-08T21:00:19.198126Z"
             }
           ]
         }
@@ -273,12 +273,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.8243776",
+                "TimeSpan": "00:00:00.8115953",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2021-11-08T14:55:40.280958Z"
+              "Item2": "2021-11-08T21:00:20.816907Z"
             }
           ]
         }
@@ -385,12 +385,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:01.0572456",
+                "TimeSpan": "00:00:01.1447775",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2021-11-08T14:55:47.713548Z"
+              "Item2": "2021-11-08T21:00:21.979838Z"
             }
           ]
         }
@@ -453,7 +453,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "vmd30612.contaboserver.net",
+          "NetworkPath": "electrum.leblancnet.us",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -469,44 +469,7 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.0193657",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerCannotBeResolvedException: JsonRpcSharp faced some problem when trying communication"
-                      },
-                      "LastSuccessfulCommunication": null
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:41.515186Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "electrum2.eff.ro",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.0291871",
+                "TimeSpan": "00:00:00.0014090",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
@@ -520,7 +483,7 @@
                   ]
                 }
               },
-              "Item2": "2021-11-08T15:01:17.120927Z"
+              "Item2": "2021-11-08T21:00:21.927532Z"
             }
           ]
         }
@@ -564,7 +527,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "electrum.leblancnet.us",
+          "NetworkPath": "electrum2.eff.ro",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -580,21 +543,58 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.0325023",
+                "TimeSpan": "00:00:00.0291871",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerCannotBeResolvedException: JsonRpcSharp faced some problem when trying communication"
+                        "TypeFullName": "GWallet.Backend.ServerCannotBeResolvedException",
+                        "Message": "JsonRpcSharp faced some problem when trying communication"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:41.568624Z"
+              "Item2": "2021-11-08T15:01:17.120927Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "electrumx.bot.nu",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.0399829",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.ServerCannotBeResolvedException",
+                        "Message": "JsonRpcSharp faced some problem when trying communication"
+                      },
+                      "LastSuccessfulCommunication": null
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:22.038245Z"
             }
           ]
         }
@@ -632,43 +632,6 @@
                 }
               },
               "Item2": "2021-11-08T15:01:17.408399Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "electrumx.bot.nu",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.0417599",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerCannotBeResolvedException: JsonRpcSharp faced some problem when trying communication"
-                      },
-                      "LastSuccessfulCommunication": null
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:43.332374Z"
             }
           ]
         }
@@ -886,21 +849,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.0558199",
+                "TimeSpan": "00:00:00.0576430",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (The requested address is not valid in this context)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (The requested address is not valid in this context)"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:41.245526Z"
+              "Item2": "2021-11-08T21:00:22.415291Z"
             }
           ]
         }
@@ -1129,6 +1092,43 @@
       },
       {
         "ServerInfo": {
+          "NetworkPath": "vmd30612.contaboserver.net",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.1615943",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.ServerCannotBeResolvedException",
+                        "Message": "JsonRpcSharp faced some problem when trying communication"
+                      },
+                      "LastSuccessfulCommunication": null
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:21.769869Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "e-1.claudioboxx.com",
           "ConnectionType": {
             "Encrypted": false,
@@ -1219,21 +1219,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.1824279",
+                "TimeSpan": "00:00:00.1823567",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:43.536577Z"
+              "Item2": "2021-11-08T21:00:23.62793Z"
             }
           ]
         }
@@ -1277,90 +1277,6 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "ecdsa.net",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.2076869",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2020-10-05T23:03:59.72093Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:41.474327Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "fortress.qtornado.com",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.2111682",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2020-04-29T04:36:44.664096Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:40.075904Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
           "NetworkPath": "fn.48.org",
           "ConnectionType": {
             "Encrypted": false,
@@ -1398,7 +1314,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "e2.keff.org",
+          "NetworkPath": "ecdsa.net",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -1414,33 +1330,33 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.2268462",
+                "TimeSpan": "00:00:00.2212801",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
                         "Fields": [
-                          "2020-11-27T03:52:55.940208Z"
+                          "2020-10-05T23:03:59.72093Z"
                         ]
                       }
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.992853Z"
+              "Item2": "2021-11-08T21:00:24.115516Z"
             }
           ]
         }
       },
       {
         "ServerInfo": {
-          "NetworkPath": "E-X.not.fyi",
+          "NetworkPath": "fortress.qtornado.com",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -1456,21 +1372,26 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.2344488",
+                "TimeSpan": "00:00:00.2215207",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
-                      "LastSuccessfulCommunication": null
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2020-04-29T04:36:44.664096Z"
+                        ]
+                      }
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.438617Z"
+              "Item2": "2021-11-08T21:00:24.207138Z"
             }
           ]
         }
@@ -1514,7 +1435,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "electrum.qtornado.com",
+          "NetworkPath": "electrum2.privateservers.network",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -1530,26 +1451,63 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.2663544",
+                "TimeSpan": "00:00:00.2482533",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
                         "Fields": [
-                          "2020-10-05T23:22:33.078584Z"
+                          "2021-04-07T04:12:42.330604Z"
                         ]
                       }
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:44.195259Z"
+              "Item2": "2021-11-08T21:00:25.99619Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "E-X.not.fyi",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.2496488",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
+                      },
+                      "LastSuccessfulCommunication": null
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:24.739805Z"
             }
           ]
         }
@@ -1572,14 +1530,14 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.2817231",
+                "TimeSpan": "00:00:00.2812177",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
@@ -1591,7 +1549,7 @@
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.742986Z"
+              "Item2": "2021-11-08T21:00:25.107438Z"
             }
           ]
         }
@@ -1640,6 +1598,48 @@
       },
       {
         "ServerInfo": {
+          "NetworkPath": "e2.keff.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.3061457",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
+                      },
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2020-11-27T03:52:55.940208Z"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:24.53936Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "dedi.jochen-hoenicke.de",
           "ConnectionType": {
             "Encrypted": false,
@@ -1656,63 +1656,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.3515453",
+                "TimeSpan": "00:00:00.3232754",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:39.415096Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "electrum2.privateservers.network",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.3600039",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2021-04-07T04:12:42.330604Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:38.097821Z"
+              "Item2": "2021-11-08T21:00:25.728124Z"
             }
           ]
         }
@@ -1735,21 +1693,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.4113159",
+                "TimeSpan": "00:00:00.4132351",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ProtocolGlitchException: Server 'electrum.bitaroo.net' returned a null/empty JSON response to the request '{\"id\":0,\"method\":\"server.version\",\"params\":[\"geewallet\",\"1.4\"]}'??"
+                        "TypeFullName": "GWallet.Backend.ProtocolGlitchException",
+                        "Message": "Server 'electrum.bitaroo.net' returned a null/empty JSON response to the request '{\"id\":0,\"method\":\"server.version\",\"params\":[\"geewallet\",\"1.4\"]}'??"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:39.846495Z"
+              "Item2": "2021-11-08T21:00:26.429174Z"
             }
           ]
         }
@@ -1772,21 +1730,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.4116606",
+                "TimeSpan": "00:00:00.4332613",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.13676Z"
+              "Item2": "2021-11-08T21:00:26.881073Z"
             }
           ]
         }
@@ -1830,48 +1788,6 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "enode.duckdns.org",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.4802802",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (One or more errors occurred. (Connection reset by peer))"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2020-11-02T18:03:43.175875Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:40.578254Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
           "NetworkPath": "oneweek.duckdns.org",
           "ConnectionType": {
             "Encrypted": false,
@@ -1888,14 +1804,14 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.5464799",
+                "TimeSpan": "00:00:00.5221635",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (One or more errors occurred. (Connection reset by peer))"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (One or more errors occurred. (Connection reset by peer))"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
@@ -1907,7 +1823,7 @@
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:41.171906Z"
+              "Item2": "2021-11-08T21:00:27.44151Z"
             }
           ]
         }
@@ -1950,6 +1866,48 @@
                 }
               },
               "Item2": "2021-11-08T15:01:22.771117Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "enode.duckdns.org",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.6376777",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (One or more errors occurred. (Connection reset by peer))"
+                      },
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2020-11-02T18:03:43.175875Z"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:27.422632Z"
             }
           ]
         }
@@ -2114,7 +2072,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "ulrichard.ch",
+          "NetworkPath": "electrum.bitkoins.nl",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -2130,21 +2088,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:05.0435165",
+                "TimeSpan": "00:00:05.0433404",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: Socket connect timed out"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "Socket connect timed out"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:46.633431Z"
+              "Item2": "2021-11-08T21:00:42.647239Z"
             }
           ]
         }
@@ -2304,7 +2262,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "electrum.bitkoins.nl",
+          "NetworkPath": "ulrichard.ch",
           "ConnectionType": {
             "Encrypted": false,
             "Protocol": {
@@ -2320,21 +2278,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:05.0587671",
+                "TimeSpan": "00:00:05.0601011",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: Socket connect timed out"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "Socket connect timed out"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:43.230449Z"
+              "Item2": "2021-11-08T21:00:37.526606Z"
             }
           ]
         }
@@ -2378,43 +2336,6 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "green-gold.westeurope.cloudapp.azure.com",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                56001
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:05.0669421",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: Socket connect timed out"
-                      },
-                      "LastSuccessfulCommunication": null
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:46.691022Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
           "NetworkPath": "VPS.hsmiths.com",
           "ConnectionType": {
             "Encrypted": false,
@@ -2451,6 +2372,85 @@
                 }
               },
               "Item2": "2021-11-08T15:01:24.375322Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "green-gold.westeurope.cloudapp.azure.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                56001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:05.0706371",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "Socket connect timed out"
+                      },
+                      "LastSuccessfulCommunication": null
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:45.084152Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "electrum.qtornado.com",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:05.0964841",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "Socket connect timed out"
+                      },
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2020-10-05T23:22:33.078584Z"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:29.856455Z"
             }
           ]
         }
@@ -2515,14 +2515,14 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:05.1163909",
+                "TimeSpan": "00:00:05.0996579",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: Socket connect timed out"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "Socket connect timed out"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
@@ -2534,7 +2534,7 @@
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:43.269793Z"
+              "Item2": "2021-11-08T21:00:48.512417Z"
             }
           ]
         }
@@ -2820,12 +2820,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.6404828",
+                "TimeSpan": "00:00:00.9033953",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2021-11-08T14:55:38.905251Z"
+              "Item2": "2021-11-08T21:00:19.629746Z"
             }
           ]
         }
@@ -2848,12 +2848,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.6968117",
+                "TimeSpan": "00:00:00.9774357",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2021-11-08T14:55:40.116575Z"
+              "Item2": "2021-11-08T21:00:19.700692Z"
             }
           ]
         }
@@ -2918,21 +2918,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.1351184",
+                "TimeSpan": "00:00:00.1333112",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:39.393616Z"
+              "Item2": "2021-11-08T21:00:19.552054Z"
             }
           ]
         }
@@ -3029,14 +3029,14 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.3128901",
+                "TimeSpan": "00:00:00.2727398",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
@@ -3048,7 +3048,7 @@
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:39.236181Z"
+              "Item2": "2021-11-08T21:00:20.00522Z"
             }
           ]
         }
@@ -3071,21 +3071,63 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.4569410",
+                "TimeSpan": "00:00:00.3534008",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: One or more errors occurred. (Connection refused)"
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Connection refused)"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.18836Z"
+              "Item2": "2021-11-08T21:00:20.107934Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "node.ispol.sk",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                50003
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:04.3943529",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.CommunicationUnsuccessfulException",
+                        "Message": "One or more errors occurred. (Network is unreachable)"
+                      },
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2019-08-22T17:48:06.518843Z"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:24.521531Z"
             }
           ]
         }
@@ -3163,48 +3205,6 @@
             }
           ]
         }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "node.ispol.sk",
-          "ConnectionType": {
-            "Encrypted": false,
-            "Protocol": {
-              "Case": "Tcp",
-              "Fields": [
-                50003
-              ]
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:05.2700286",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.CommunicationUnsuccessfulException: Socket connect timed out"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2019-08-22T17:48:06.518843Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:42.843566Z"
-            }
-          ]
-        }
       }
     ],
     "ETH": [
@@ -3235,31 +3235,6 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "cloudflare-eth.com/",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.4729226",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2021-11-08T14:55:38.836485Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
           "NetworkPath": "nodes.mewapi.io/rpc/eth",
           "ConnectionType": {
             "Encrypted": true,
@@ -3273,12 +3248,37 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.5297227",
+                "TimeSpan": "00:00:00.6966930",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2021-11-08T14:55:38.511834Z"
+              "Item2": "2021-11-08T21:00:19.483475Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "cloudflare-eth.com/",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.7875445",
+                "Status": {
+                  "Case": "Success"
+                }
+              },
+              "Item2": "2021-11-08T21:00:19.516245Z"
             }
           ]
         }
@@ -3298,129 +3298,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:01.0250871",
+                "TimeSpan": "00:00:01.8586593",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2021-11-08T14:55:40.721551Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "mainnet.infura.io/v3/2e5bd2ba038d4e3f969a56f2ead074ca",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.2743796",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerMisconfiguredException: Could not communicate with EtherServer"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2020-06-10T16:38:57.711168Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:39.373058Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.2752479",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerMisconfiguredException: Could not communicate with EtherServer"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2021-05-10T07:35:09.257181Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:39.080906Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "mainnet.infura.io/mycrypto",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.2753867",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerMisconfiguredException: Could not communicate with EtherServer"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2019-08-22T17:48:04.922955Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:39.669083Z"
+              "Item2": "2021-11-08T21:00:20.60906Z"
             }
           ]
         }
@@ -3440,21 +3323,60 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.2937744",
+                "TimeSpan": "00:00:00.1322857",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerUnreachableException: Could not communicate with EtherServer"
+                        "TypeFullName": "GWallet.Backend.ServerUnreachableException",
+                        "Message": "Could not communicate with EtherServer"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:37.947532Z"
+              "Item2": "2021-11-08T21:00:19.813575Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "mainnet.infura.io/mycrypto",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.2590320",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.ServerMisconfiguredException",
+                        "Message": "Could not communicate with EtherServer"
+                      },
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2019-08-22T17:48:04.922955Z"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:19.793079Z"
             }
           ]
         }
@@ -3474,14 +3396,14 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.3478963",
+                "TimeSpan": "00:00:00.2621220",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerMisconfiguredException: Could not communicate with EtherServer"
+                        "TypeFullName": "GWallet.Backend.ServerMisconfiguredException",
+                        "Message": "Could not communicate with EtherServer"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
@@ -3493,7 +3415,85 @@
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.788984Z"
+              "Item2": "2021-11-08T21:00:20.046909Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "mainnet.infura.io/v3/c02fff6b5daa434d8422b8ece54c7286",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.2689231",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.ServerMisconfiguredException",
+                        "Message": "Could not communicate with EtherServer"
+                      },
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2021-05-10T07:35:09.257181Z"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:19.768401Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "mainnet.infura.io/v3/2e5bd2ba038d4e3f969a56f2ead074ca",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.3405317",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.ServerMisconfiguredException",
+                        "Message": "Could not communicate with EtherServer"
+                      },
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2020-06-10T16:38:57.711168Z"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:19.649226Z"
             }
           ]
         }
@@ -3513,14 +3513,14 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.4215938",
+                "TimeSpan": "00:00:00.3496983",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerMisconfiguredException: Could not communicate with EtherServer"
+                        "TypeFullName": "GWallet.Backend.ServerMisconfiguredException",
+                        "Message": "Could not communicate with EtherServer"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
@@ -3532,46 +3532,7 @@
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.805625Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "ethrpc.mewapi.io",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.4768229",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.Ether.ServerUnavailableException: Could not communicate with EtherServer"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2020-11-05T15:49:37.884526Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:39.039548Z"
+              "Item2": "2021-11-08T21:00:20.185202Z"
             }
           ]
         }
@@ -3591,21 +3552,60 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.6827341",
+                "TimeSpan": "00:00:00.3760187",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerMisconfiguredException: Could not communicate with EtherServer"
+                        "TypeFullName": "GWallet.Backend.ServerMisconfiguredException",
+                        "Message": "Could not communicate with EtherServer"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.32176Z"
+              "Item2": "2021-11-08T21:00:20.437566Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "ethrpc.mewapi.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.5200637",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.Ether.ServerUnavailableException",
+                        "Message": "Could not communicate with EtherServer"
+                      },
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2020-11-05T15:49:37.884526Z"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:20.353707Z"
             }
           ]
         }
@@ -3625,21 +3625,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:29.3610201",
+                "TimeSpan": "00:00:29.4773245",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerUnreachableException: Could not communicate with EtherServer (HttpErr: GatewayTimeout)"
+                        "TypeFullName": "GWallet.Backend.ServerUnreachableException",
+                        "Message": "Could not communicate with EtherServer (HttpErr: GatewayTimeout)"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:56:07.799206Z"
+              "Item2": "2021-11-08T21:00:49.681144Z"
             }
           ]
         }
@@ -3659,21 +3659,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:30.0034773",
+                "TimeSpan": "00:00:30.0011802",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerTimedOutException: Timeout when trying to communicate with Ether server"
+                        "TypeFullName": "GWallet.Backend.ServerTimedOutException",
+                        "Message": "Timeout when trying to communicate with Ether server"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:56:08.419866Z"
+              "Item2": "2021-11-08T21:00:50.371875Z"
             }
           ]
         }
@@ -3745,12 +3745,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.3275229",
+                "TimeSpan": "00:00:00.6926161",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2021-11-08T14:55:38.548809Z"
+              "Item2": "2021-11-08T21:00:19.468001Z"
             }
           ]
         }
@@ -3770,46 +3770,12 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.6982949",
+                "TimeSpan": "00:00:00.7025570",
                 "Status": {
                   "Case": "Success"
                 }
               },
-              "Item2": "2021-11-08T14:55:39.864723Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "node.classicexplorer.org/",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.0428770",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerUnreachableException: Could not communicate with EtherServer"
-                      },
-                      "LastSuccessfulCommunication": null
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:38.665098Z"
+              "Item2": "2021-11-08T21:00:19.499439Z"
             }
           ]
         }
@@ -3829,14 +3795,14 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.0499431",
+                "TimeSpan": "00:00:00.0463178",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerUnreachableException: Could not communicate with EtherServer"
+                        "TypeFullName": "GWallet.Backend.ServerUnreachableException",
+                        "Message": "Could not communicate with EtherServer"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
@@ -3848,7 +3814,7 @@
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.886482Z"
+              "Item2": "2021-11-08T21:00:19.533986Z"
             }
           ]
         }
@@ -3868,55 +3834,21 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.0664590",
+                "TimeSpan": "00:00:00.0774115",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerUnreachableException: Could not communicate with EtherServer"
+                        "TypeFullName": "GWallet.Backend.ServerUnreachableException",
+                        "Message": "Could not communicate with EtherServer"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.476687Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "mew.epool.io",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.0876363",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerUnreachableException: Could not communicate with EtherServer"
-                      },
-                      "LastSuccessfulCommunication": null
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:38.599376Z"
+              "Item2": "2021-11-08T21:00:19.571775Z"
             }
           ]
         }
@@ -3936,21 +3868,55 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.0913293",
+                "TimeSpan": "00:00:00.0928820",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerUnreachableException: Could not communicate with EtherServer"
+                        "TypeFullName": "GWallet.Backend.ServerUnreachableException",
+                        "Message": "Could not communicate with EtherServer"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.821204Z"
+              "Item2": "2021-11-08T21:00:19.609179Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "mewapi.epool.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.1077521",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.ServerUnreachableException",
+                        "Message": "Could not communicate with EtherServer"
+                      },
+                      "LastSuccessfulCommunication": null
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:19.833584Z"
             }
           ]
         }
@@ -3970,21 +3936,128 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.1078710",
+                "TimeSpan": "00:00:00.1133404",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerUnreachableException: Could not communicate with EtherServer"
+                        "TypeFullName": "GWallet.Backend.ServerUnreachableException",
+                        "Message": "Could not communicate with EtherServer"
                       },
                       "LastSuccessfulCommunication": null
                     }
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.171707Z"
+              "Item2": "2021-11-08T21:00:19.683203Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "mew.epool.io",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.1512418",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.ServerUnreachableException",
+                        "Message": "Could not communicate with EtherServer"
+                      },
+                      "LastSuccessfulCommunication": null
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:19.666644Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "etc-parity.0xinfra.com",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.1746330",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.Ether.ServerUnavailableException",
+                        "Message": "Could not communicate with EtherServer"
+                      },
+                      "LastSuccessfulCommunication": {
+                        "Case": "Some",
+                        "Fields": [
+                          "2019-08-22T17:48:03.858896Z"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:19.882967Z"
+            }
+          ]
+        }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "node.classicexplorer.org/",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": {
+          "Case": "Some",
+          "Fields": [
+            {
+              "Item1": {
+                "TimeSpan": "00:00:00.1748526",
+                "Status": {
+                  "Case": "Fault",
+                  "Fields": [
+                    {
+                      "Exception": {
+                        "TypeFullName": "GWallet.Backend.ServerUnreachableException",
+                        "Message": "Could not communicate with EtherServer"
+                      },
+                      "LastSuccessfulCommunication": null
+                    }
+                  ]
+                }
+              },
+              "Item2": "2021-11-08T21:00:19.450942Z"
             }
           ]
         }
@@ -4069,79 +4142,6 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "etc-parity.0xinfra.com",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.2348963",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.Ether.ServerUnavailableException: Could not communicate with EtherServer"
-                      },
-                      "LastSuccessfulCommunication": {
-                        "Case": "Some",
-                        "Fields": [
-                          "2019-08-22T17:48:03.858896Z"
-                        ]
-                      }
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:39.149362Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
-          "NetworkPath": "mewapi.epool.io",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.2938377",
-                "Status": {
-                  "Case": "Fault",
-                  "Fields": [
-                    {
-                      "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.ServerUnreachableException: Could not communicate with EtherServer"
-                      },
-                      "LastSuccessfulCommunication": null
-                    }
-                  ]
-                }
-              },
-              "Item2": "2021-11-08T14:55:37.909472Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
           "NetworkPath": "00bfa2710a4fd4a2fba9b73935fcfabe8.etc.rpc.rivet.cloud/",
           "ConnectionType": {
             "Encrypted": true,
@@ -4189,14 +4189,14 @@
           "Fields": [
             {
               "Item1": {
-                "TimeSpan": "00:00:00.7041235",
+                "TimeSpan": "00:00:00.4431567",
                 "Status": {
                   "Case": "Fault",
                   "Fields": [
                     {
                       "Exception": {
-                        "TypeFullName": "GWallet.Backend.ServerDiscardedException",
-                        "Message": "GWallet.Backend.Ether.ServerUnavailableException: Could not communicate with EtherServer"
+                        "TypeFullName": "GWallet.Backend.Ether.ServerUnavailableException",
+                        "Message": "Could not communicate with EtherServer"
                       },
                       "LastSuccessfulCommunication": {
                         "Case": "Some",
@@ -4208,7 +4208,7 @@
                   ]
                 }
               },
-              "Item2": "2021-11-08T14:55:38.284967Z"
+              "Item2": "2021-11-08T21:00:20.309927Z"
             }
           ]
         }
