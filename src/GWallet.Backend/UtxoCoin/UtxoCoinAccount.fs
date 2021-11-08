@@ -473,15 +473,9 @@ module Account =
         if String.IsNullOrEmpty addressOrUrl then
             invalidArg "addressOrUrl" "address or URL should not be null or empty"
 
-        if (addressOrUrl.StartsWith "litecoin:") then
-            // FIXME: BitcoinUriBuilder class of NBitcoin doesn't support "litecoin:" scheme yet..., fix bug upstream
-            failwith "URI scheme 'litecoin:' not supported yet"
-
         let network = GetNetwork currency
 
-        if not (addressOrUrl.StartsWith "bitcoin:") then
-            addressOrUrl,None
-        else
+        if addressOrUrl.StartsWith "bitcoin:" || addressOrUrl.StartsWith "litecoin:" then
             let uriBuilder = BitcoinUrlBuilder (addressOrUrl, network)
             if null <> uriBuilder.UnknowParameters && uriBuilder.UnknowParameters.Any() then
                 failwith <| SPrintF2 "Unknown parameters found in URI %s: %s"
@@ -495,6 +489,8 @@ module Account =
                 address,Some uriBuilder.Amount
             else
                 address,None
+        else
+            addressOrUrl,None
 
     let internal ValidateAddress (currency: Currency) (address: string) =
         if String.IsNullOrEmpty address then
