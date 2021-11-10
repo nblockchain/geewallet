@@ -71,11 +71,7 @@ module Account =
         BitcoinAddress.Create(publicAddress, GetNetwork currency) |> GetElectrumScriptHashFromAddress
 
     let internal GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
-        publicKey
-            .GetScriptPubKey(ScriptPubKeyType.Segwit)
-            .Hash
-            .GetAddress(GetNetwork currency)
-            .ToString()
+        (publicKey.GetSegwitAddress (GetNetwork currency)).GetScriptAddress().ToString()
 
     let internal GetPublicAddressFromNormalAccountFile (currency: Currency) (accountFile: FileRepresentation): string =
         let pubKey = PubKey(accountFile.Name)
@@ -480,7 +476,7 @@ module Account =
 
     let internal Create currency (password: string) (seed: array<byte>): Async<FileRepresentation> =
         async {
-            use privKey = new Key (seed)
+            let privKey = Key seed
             let network = GetNetwork currency
             let secret = privKey.GetBitcoinSecret network
             let encryptedSecret = secret.PrivateKey.GetEncryptedBitcoinSecret(password, network)
@@ -582,8 +578,9 @@ module Account =
             let matchOriginToAccount(account: ReadOnlyUtxoAccount): bool =
                 let accountAddress = (account :> IAccount).PublicAddress
                 let bitcoinAddress = BitcoinAddress.Create(accountAddress, network)
-                let destination = bitcoinAddress.ScriptPubKey.GetDestination()
-                (destination :> IDestination) = origin
+                let bitcoinScriptAddress = bitcoinAddress.GetScriptAddress()
+                let scriptAddressHash = bitcoinScriptAddress.Hash
+                (scriptAddressHash :> IDestination) = origin
 
             let account =
                 let accountOpt =
@@ -607,8 +604,9 @@ module Account =
                 let filterChangeTxOuts(txOut: TxOut): Option<BitcoinAddress * Money> =
                     let scriptPubKey = txOut.ScriptPubKey
                     let destinationAddress = scriptPubKey.GetDestinationAddress network
-                    let destination = destinationAddress.ScriptPubKey.GetDestination()
-                    if (destination :> IDestination) = origin then
+                    let destinationScriptAddress = destinationAddress.GetScriptAddress()
+                    let destinationScriptAddressHash = destinationScriptAddress.Hash
+                    if (destinationScriptAddressHash :> IDestination) = origin then
                         None
                     else
                         Some (destinationAddress, txOut.Value)
