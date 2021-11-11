@@ -7,6 +7,7 @@ open Newtonsoft.Json
 open NBitcoin
 open DotNetLightning.Utils
 
+open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type Bitcoind = {
@@ -17,6 +18,7 @@ type Bitcoind = {
 } with
     interface IDisposable with
         member self.Dispose() =
+            Infrastructure.LogDebug "About to kill bitcoind process..."
             self.ProcessWrapper.Process.Kill()
             self.ProcessWrapper.WaitForExit()
             Directory.Delete(self.DataDir, true)

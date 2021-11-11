@@ -23,6 +23,7 @@ type Lnd = {
 } with
     interface IDisposable with
         member self.Dispose() =
+            Infrastructure.LogDebug "About to kill LND process..."
             self.ProcessWrapper.Process.Kill()
             self.ProcessWrapper.WaitForExit()
             Directory.Delete(self.LndDir, true)
