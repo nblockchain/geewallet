@@ -3,6 +3,7 @@
 open System
 open System.IO
 
+open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type ElectrumServer = {
@@ -11,6 +12,7 @@ type ElectrumServer = {
 } with
     interface IDisposable with
         member self.Dispose() =
+            Infrastructure.LogDebug "About to kill ElectrumServer process..."
             self.ProcessWrapper.Process.Kill()
             self.ProcessWrapper.WaitForExit()
             Directory.Delete(self.DbDir, true)
