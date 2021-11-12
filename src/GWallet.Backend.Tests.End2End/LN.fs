@@ -1030,7 +1030,7 @@ type LN() =
                 accountBalanceAfterSpendingTheftTx
 
         // give the fundee plenty of time to see that their tx was mined
-        do! Async.Sleep 5000
+        do! Async.Sleep 10000
 
         return ()
     }
