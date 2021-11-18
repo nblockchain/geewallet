@@ -84,7 +84,7 @@ jobs:
       uses: actions/upload-artifact@v1
       with:
         name: snap
-        path: gwallet_0.2.260.0_amd64.snap
+        path: gwallet_0.2.261.0_amd64.snap
 
   snap_pkg_upload:
     needs: snap_pkg_build
