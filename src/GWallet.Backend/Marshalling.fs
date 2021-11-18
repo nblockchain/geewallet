@@ -80,8 +80,8 @@ type VersionMismatchDuringDeserializationException =
     new (info: SerializationInfo, context: StreamingContext) =
         { inherit DeserializationException (info, context) }
 
-module internal VersionHelper =
-    let internal CURRENT_VERSION =
+module VersionHelper =
+    let CURRENT_VERSION =
         Assembly.GetExecutingAssembly().GetName().Version.ToString()
 
 type MarshallingWrapper<'T> =

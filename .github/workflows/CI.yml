@@ -70,7 +70,7 @@ jobs:
       run: make update-servers
 
   snap_pkg:
-    needs: linux
+    needs: [linux, windows, macOS]
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
