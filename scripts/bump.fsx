@@ -79,7 +79,7 @@ let Replace file fromStr toStr =
                                 fromStr
                                 toStr
         }
-    Process.SafeExecute (proc, Echo.Off) |> ignore
+    Process.SafeExecute (proc, Echo.All) |> ignore
 
 
 let Bump(toStable: bool): Version*Version =
