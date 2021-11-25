@@ -59,26 +59,14 @@ let snapcraftLoginFileName = Path.Combine(FsxHelper.RootDir.FullName, "snapcraft
 if File.Exists snapcraftLoginFileName then
     Console.WriteLine "snapcraft.login file found, skipping log-in"
 else
-    let snapcraftLoginEnvVar =
-        match gitProvider with
-        | GitHub ->
-            "SNAPCRAFT_LOGIN"
-        | GitLab ->
-            "SNAPCRAFT_LOGIN_FILE"
-
-    let snapcraftLoginEnvVarValue = Environment.GetEnvironmentVariable snapcraftLoginEnvVar
-    if String.IsNullOrEmpty snapcraftLoginEnvVarValue then
-        failwith "SNAPCRAFT_LOGIN-prefixed env var not found; note: manual logging for release has been disabled, only automated CI jobs can upload now"
-    else
-        Console.WriteLine "Automatic login about to begin..."
-        match gitProvider with
-        | GitHub ->
-            File.WriteAllText(snapcraftLoginFileName, snapcraftLoginEnvVarValue)
-        | GitLab ->
-            if not (File.Exists snapcraftLoginEnvVarValue) then
-                failwithf "File '%s' secret doesn't exist, can't upload release." snapcraftLoginEnvVarValue
-
-            File.Copy(snapcraftLoginEnvVarValue, snapcraftLoginFileName)
+    match gitProvider with
+    | GitHub ->
+        let snapcraftLoginEnvVarValue = Environment.GetEnvironmentVariable "SNAPCRAFT_LOGIN"
+        if String.IsNullOrEmpty snapcraftLoginEnvVarValue then
+            failwith "SNAPCRAFT_LOGIN-prefixed env var not found; note: manual logging for release has been disabled, only automated CI jobs can upload now"
+        File.WriteAllText(snapcraftLoginFileName, snapcraftLoginEnvVarValue)
+    | _ ->
+        failwith "In the case of GitLab, the 'snapcraft.login' file should already be here, copied by the docker scripts to the docker container"
 
 Console.WriteLine "Checking if this is a tag commit..."
 

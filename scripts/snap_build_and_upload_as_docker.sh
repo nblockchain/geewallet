@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -exo pipefail
 
 # Update system
 apt update -y
 
 # Install dependencies
 apt install lsb-release docker.io -y
+
+# This is needed after the .snap is built, to upload it,
+# so let's copy it to current now so that next command
+# copies it to the container
+cp $SNAPCRAFT_LOGIN_FILE snapcraft.login
 
 # Install snap and snapcraft
 ./scripts/snap_install_as_docker.sh
@@ -35,3 +40,9 @@ docker exec snappy snapcraft --destructive-mode
 # The name of the .snap package depends on the version so it changes
 # and cannot be hardcoded. 
 docker cp snappy:/geewallet/. $(pwd)
+
+docker exec \
+    --env CI_COMMIT_REF_SLUG=$CI_COMMIT_REF_SLUG \
+    --env CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME \
+    --env CI_COMMIT_TAG=$CI_COMMIT_TAG \
+    snappy ./scripts/snap_release.sh
