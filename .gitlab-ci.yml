@@ -90,7 +90,7 @@ newmono_test_integration:
       make &&
       make update-servers
 
-stockmono_snap_build:
+stockmono_snap:
   image: ubuntu:20.04
   stage: package
 
@@ -103,21 +103,10 @@ stockmono_snap_build:
     - docker:dind
 
   script:
-    - ./scripts/snap_build_as_docker.sh
+    - ./scripts/snap_build_and_upload_as_docker.sh
 
   artifacts:
     paths:
       - "*.snap"
     expire_in: 50days
-
-stockmono_snap_upload:
-  image: ubuntu:20.04
-  stage: package
-
-  needs:
-    - stockmono_snap_build
-  script:
-    - apt update && apt install --yes git make curl fsharp
-    - ./configure.sh # in case we need fsx instead of fsharpi
-    - ./scripts/snap_release.sh
 
