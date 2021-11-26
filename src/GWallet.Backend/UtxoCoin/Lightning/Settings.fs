@@ -27,7 +27,6 @@ module Settings =
         MaxDustLimitSatoshis = Money 10000000L
         // TODO make optional in DotNetLightning
         MaxMinimumDepth = BlockHeightOffset32 UInt32.MaxValue
-        MaxClosingNegotiationIterations = 10
     }
 
     let private SupportedFeatures (funding: Money) (currency: Currency) =
@@ -45,21 +44,13 @@ module Settings =
 
     let internal GetLocalParams (funding: Money)
                                 (currency: Currency)
-                                (defaultFinalScriptPubKey: Script)
-                                (isFunder: bool)
-                                (remoteNodeId: NodeId)
-                                (channelPrivKeys: ChannelPrivKeys)
                                     : LocalParams =
         {
-            NodeId = remoteNodeId
-            ChannelPubKeys = channelPrivKeys.ToChannelPubKeys()
             DustLimitSatoshis = Money 200UL
             MaxHTLCValueInFlightMSat = LNMoney 10000L
             ChannelReserveSatoshis = funding / 100L
             HTLCMinimumMSat = LNMoney 1000L
             ToSelfDelay = BlockHeightOffset16 6us
             MaxAcceptedHTLCs = uint16 10
-            IsFunder = isFunder
-            DefaultFinalScriptPubKey = defaultFinalScriptPubKey
             Features = SupportedFeatures funding currency
         }
