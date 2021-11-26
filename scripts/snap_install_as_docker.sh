@@ -129,7 +129,7 @@ while [ "$($SUDO docker exec $CONTNAME sh -c 'systemctl status snapd.seeded >/de
 done
 echo " done"
 
-$SUDO docker exec $CONTNAME snap install core --edge || clean_up
+$SUDO docker exec $CONTNAME snap install core || clean_up
 echo "container $CONTNAME started ..."
 
 print_info
