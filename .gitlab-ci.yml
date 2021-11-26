@@ -116,7 +116,7 @@ newmono_test_end2end:
 
     - time (./configure.sh && make && make check-end2end)
 
-newmono_package:
+newmono_nuget:
   image: $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
   stage: package
   variables:
