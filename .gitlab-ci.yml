@@ -63,7 +63,7 @@ newmono_build:
   artifacts:
     paths:
       - bin/*.zip
-    expire_in: 50days
+    expire_in: 50years
   script:
     - ./configure.sh
     - make strict
@@ -108,5 +108,5 @@ stockmono_snap:
   artifacts:
     paths:
       - "*.snap"
-    expire_in: 50days
+    expire_in: 50years
 
