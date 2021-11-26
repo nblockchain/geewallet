@@ -10,6 +10,10 @@ apt install lsb-release docker.io -y
 # This is needed after the .snap is built, to upload it,
 # so let's copy it to current now so that next command
 # copies it to the container
+if [ -z "${SNAPCRAFT_LOGIN_FILE}" ]; then
+    echo 'Environment variable SNAPCRAFT_LOGIN_FILE not found, please set it as secret in GitLab repo settings'
+    exit 1
+fi
 cp $SNAPCRAFT_LOGIN_FILE snapcraft.login
 
 # Install snap and snapcraft
