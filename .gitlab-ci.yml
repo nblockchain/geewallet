@@ -11,6 +11,8 @@ stockmono_buildenv:
   services:
     - docker:19.03.12-dind
   script:
+    - apt install --yes git
+    - git remote -v
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA -f scripts/stockmono.docker .
     - docker push $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA
@@ -53,6 +55,8 @@ newmono_buildenv:
   services:
     - docker:19.03.12-dind
   script:
+    - apt install --yes git
+    - git remote -v
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA -f scripts/newmono.docker .
     - docker push $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
