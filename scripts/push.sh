@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-git push origin stable
+git push origin master
