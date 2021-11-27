@@ -72,54 +72,51 @@ type MonoHopUnidirectionalChannel =
     static member internal DefaultFundingTxMinimumDepth: BlockHeightOffset32 =
         BlockHeightOffset32 1u
 
-    static member internal DefaultChannelOptions () : DotNetLightning.Utils.ChannelOptions =
-
-        {
-            AnnounceChannel = false
-            FeeProportionalMillionths = 100u
-            MaxFeeRateMismatchRatio =
-                MonoHopUnidirectionalChannel.DefaultMaxFeeRateMismatchRatio
-            MaxClosingNegotiationIterations = 10
+    static member internal DefaultChannelOptions (currency: Currency): Async<DotNetLightning.Channel.ChannelOptions> =
+        async {
+            let! feeEstimator = FeeEstimator.Create currency
+            return
+                {
+                    FeeProportionalMillionths = 100u
+                    MaxFeeRateMismatchRatio =
+                        MonoHopUnidirectionalChannel.DefaultMaxFeeRateMismatchRatio
+                    MaxClosingNegotiationIterations = 10
+                    FeeEstimator = feeEstimator
+                }
         }
 
-    static member internal Create (remoteNodeId: NodeId)
-                                  (account: UtxoCoin.NormalUtxoAccount)
+    static member internal Create (account: UtxoCoin.NormalUtxoAccount)
                                   (nodeMasterPrivKey: NodeMasterPrivKey)
                                   (channelIndex: int)
-                                  (initialState: ChannelState)
+                                  (savedChannelState: SavedChannelState)
+                                  (remoteNextCommitInfo: Option<RemoteNextCommitInfo>)
+                                  (negotiatingState: NegotiatingState)
                                   (commitments: Commitments)
                                       : Async<MonoHopUnidirectionalChannel> = async {
         let currency = (account :> IAccount).Currency
-        let channelOptions = MonoHopUnidirectionalChannel.DefaultChannelOptions ()
-        let localShutdownScript = ScriptManager.CreatePayoutScript account
+        let! channelOptions = MonoHopUnidirectionalChannel.DefaultChannelOptions currency
         let channelPrivKeys = nodeMasterPrivKey.ChannelPrivKeys channelIndex
-        let! feeEstimator = FeeEstimator.Create currency
-        let network = UtxoCoin.Account.GetNetwork currency
-        let fundingTxMinimumDepth = MonoHopUnidirectionalChannel.DefaultFundingTxMinimumDepth
         let channel = {
+            SavedChannelState = savedChannelState
             ChannelOptions = channelOptions
             ChannelPrivKeys = channelPrivKeys
-            FeeEstimator = feeEstimator
-            RemoteNodeId = remoteNodeId
             NodeSecret = nodeMasterPrivKey.NodeSecret()
-            State = initialState
-            Network = network
-            FundingTxMinimumDepth = fundingTxMinimumDepth
-            LocalShutdownScriptPubKey = Some localShutdownScript
+            RemoteNextCommitInfo = remoteNextCommitInfo
+            NegotiatingState = negotiatingState
             Commitments = commitments
         }
         return { Channel = channel }
     }
 
     member internal self.RemoteNodeId
-        with get(): NodeId = self.Channel.RemoteNodeId
+        with get(): NodeId = self.Channel.SavedChannelState.StaticChannelConfig.RemoteNodeId
 
     member internal self.Network
-        with get(): Network = self.Channel.Network
+        with get(): Network = self.Channel.SavedChannelState.StaticChannelConfig.Network
 
     member self.ChannelId
         with get(): ChannelIdentifier =
-            self.Channel.Commitments.ChannelId ()
+            self.Channel.SavedChannelState.StaticChannelConfig.ChannelId()
             |> ChannelIdentifier.FromDnl
 
     member internal self.ChannelPrivKeys
@@ -128,45 +125,20 @@ type MonoHopUnidirectionalChannel =
 
     member self.FundingTxId
         with get(): TransactionIdentifier = {
-            DnlTxId =
-                DotNetLightning.Utils.TxId
-                    self.Channel.Commitments.FundingScriptCoin.Outpoint.Hash
+            DnlTxId = DotNetLightning.Utils.TxId self.FundingScriptCoin.Outpoint.Hash
         }
 
     member internal self.FundingScriptCoin
         with get(): ScriptCoin =
-            self.Channel.Commitments.FundingScriptCoin
+            self.Channel.SavedChannelState.StaticChannelConfig.FundingScriptCoin
 
     member internal self.LocalParams (funding: Money)
                                      (currency: Currency)
                                          : LocalParams =
         Settings.GetLocalParams funding currency
 
-    member internal self.ExecuteCommand<'T> (channelCmd: ChannelCommand)
-                                            (eventFilter: List<ChannelEvent> -> Option<'T>)
-                                                : Result<'T, ChannelError> * MonoHopUnidirectionalChannel =
-        match Channel.executeCommand self.Channel channelCmd with
-        | Error channelError -> (Error channelError), self
-        | Ok evtList ->
-            match (eventFilter evtList) with
-            | Some value ->
-                let rec apply (channel: Channel) (evtList: List<ChannelEvent>) =
-                    match evtList with
-                    | evt::rest ->
-                        let channel = Channel.applyEvent channel evt
-                        apply channel rest
-                    | [] -> channel
-                let channelAfterEventsApplied = apply self.Channel evtList
-                let channel = { self with Channel = channelAfterEventsApplied }
-                (Ok value), channel
-            | None ->
-                failwith <| SPrintF2
-                    "unexpected result executing channel command %A. got: %A"
-                    channelCmd
-                    evtList
-
     member internal self.Balance(): LNMoney =
-        self.Channel.Commitments.LocalCommit.Spec.ToLocal
+        self.Channel.SavedChannelState.LocalCommit.Spec.ToLocal
 
     member internal self.SpendableBalance(): LNMoney =
         self.Channel.SpendableBalance()
