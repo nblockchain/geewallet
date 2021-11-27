@@ -145,7 +145,7 @@ module ElectrumServerSeedList =
                 |> Seq.filter FilterCompatibleServer
         with
         | :? WebException as webEx ->
-            raise <| Exception("Can't retreieve raw data from github's electrum repo, try again later?", webEx)
+            raise <| Exception("Can't retreive raw data from github's electrum repo, try again later?", webEx)
 
     let DefaultBtcList =
         Caching.Instance.GetServers Currency.BTC
