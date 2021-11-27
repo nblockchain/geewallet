@@ -89,7 +89,6 @@ RUN apt update &&\
  apt clean &&\
  dpkg-divert --local --rename --add /sbin/udevadm &&\
  ln -s /bin/true /sbin/udevadm
-RUN "$BUILDDIR/geewallet/scripts/install_mono_from_microsoft_deb_packages.sh"
 RUN systemctl enable snapd
 VOLUME ["/sys/fs/cgroup"]
 STOPSIGNAL SIGRTMIN+3
@@ -133,6 +132,8 @@ echo " done"
 
 $SUDO docker exec $CONTNAME snap install core || clean_up
 echo "container $CONTNAME started ..."
+
+$SUDO docker exec $CONTNAME $BUILDDIR/geewallet/scripts/install_mono_from_microsoft_deb_packages.sh
 
 print_info
 rm_builddir
