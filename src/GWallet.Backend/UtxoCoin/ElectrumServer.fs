@@ -139,9 +139,13 @@ module ElectrumServerSeedList =
             | _ -> failwith <| SPrintF1 "UTXO currency unknown to this algorithm: %A" currency
 
         use webClient = new WebClient()
-        let serverListInJson = webClient.DownloadString urlToElectrumJsonFile
-        ExtractServerListFromElectrumJsonFile serverListInJson
-            |> Seq.filter FilterCompatibleServer
+        try
+            let serverListInJson = webClient.DownloadString urlToElectrumJsonFile
+            ExtractServerListFromElectrumJsonFile serverListInJson
+                |> Seq.filter FilterCompatibleServer
+        with
+        | :? WebException as webEx ->
+            raise <| Exception("Can't retreieve raw data from github's electrum repo, try again later?", webEx)
 
     let DefaultBtcList =
         Caching.Instance.GetServers Currency.BTC
