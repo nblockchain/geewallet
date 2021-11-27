@@ -56,18 +56,21 @@ let filesToGitAdd: seq<string> =
         gitLabCiYml
     ]
 
+let replaceScript =
+    Path.Combine(rootDir.FullName, "scripts", "fsx", "Tools", "replace.fsx")
+    |> FileInfo
+
 let Replace file fromStr toStr =
-    let replaceScript = Path.Combine(rootDir.FullName, "scripts", "replace.fsx")
     let baseReplaceCommand =
         match Misc.GuessPlatform() with
         | Misc.Platform.Windows ->
             {
                 Command = Path.Combine(rootDir.FullName, "scripts", "fsi.bat")
-                Arguments = replaceScript
+                Arguments = replaceScript.FullName
             }
         | _ ->
             {
-                Command = replaceScript
+                Command = replaceScript.FullName
                 Arguments = String.Empty
             }
     let proc =
@@ -79,7 +82,7 @@ let Replace file fromStr toStr =
                                 fromStr
                                 toStr
         }
-    Process.SafeExecute (proc, Echo.Off) |> ignore
+    Process.SafeExecute (proc, Echo.All) |> ignore
 
 
 let Bump(toStable: bool): Version*Version =
@@ -207,6 +210,10 @@ let RunUpdateServers () =
     Process.SafeExecute (gitCommit, Echo.Off) |> ignore
     GitDiff()
 
+
+if not replaceScript.Exists then
+    Console.Error.WriteLine "Script replace.fsx not found, 'fsx' submodule not populated? Please run `git submodule sync && git submodule update --init`"
+    Environment.Exit 1
 
 GitDiff()
 

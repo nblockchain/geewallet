@@ -189,6 +189,7 @@ module Server =
             "error: no suitable peers available"
             "missing trie node"
             "getDeleteStateObject"
+            "execution aborted"
         ]
 
     let MaybeRethrowRpcResponseException (ex: Exception): unit =

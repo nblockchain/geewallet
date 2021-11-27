@@ -281,28 +281,39 @@ module Account =
 
         | _ -> failwith "fee type unknown"
 
-    let CheckValidPassword (password: string) =
-        let checkJobs =
-            seq {
-                for account in GetAllActiveAccounts().OfType<NormalAccount>() do
-                    yield async {
-                        if (account :> IAccount).Currency.IsEtherBased() then
-                            try
-                                Ether.Account.CheckValidPassword account password
-                                return true
-                            with
-                            | :? InvalidPassword ->
-                                return false
-                        else
-                            try
-                                UtxoCoin.Account.CheckValidPassword account password
-                                return true
-                            with
-                            | :? InvalidPassword ->
-                                return false
-                    }
+    let CheckValidPassword (password: string) (accountOpt: Option<NormalAccount>) =
+        let checkValidPasswordForSingleAccount account: bool =
+            if (account :> IAccount).Currency.IsEtherBased() then
+                try
+                    Ether.Account.CheckValidPassword account password
+                    true
+                with
+                | :? InvalidPassword ->
+                    false
+            else
+                try
+                    UtxoCoin.Account.CheckValidPassword account password
+                    true
+                with
+                | :? InvalidPassword ->
+                    false
+        match accountOpt with
+        | Some account -> async { return checkValidPasswordForSingleAccount account }
+        | _ ->
+            let checkJobs =
+                seq {
+                    for account in GetAllActiveAccounts().OfType<NormalAccount>() do
+                        yield async {
+                            return checkValidPasswordForSingleAccount account
+                        }
+                }
+            async {
+                let! aggregateSuccess = Async.Parallel checkJobs
+                if aggregateSuccess.All(fun success -> success = true) then
+                    return true
+                else
+                    return false
             }
-        Async.Parallel checkJobs
 
     let private CreateArchivedAccount (currency: Currency) (unencryptedPrivateKey: string): ArchivedAccount =
         let fromUnencryptedPrivateKeyToPublicAddressFunc =
@@ -360,6 +371,10 @@ module Account =
                 failwith "If tx metadata is UTXO type, archived account should be too"
         | _ -> failwith "tx metadata type unknown"
 
+    // TODO: we should probably remove this function altogether, and make all frontend(s)
+    // use sign-off couple with broadcast, this way we can check the password is valid without
+    // trying to broadcast the transaction first (useful if user makes more than 1 guess for
+    // the password without having to prompt them about the miner fee in each try)
     let SendPayment (account: NormalAccount)
                     (txMetadata: IBlockchainFeeInfo)
                     (destination: string)

@@ -70,7 +70,7 @@ jobs:
       run: make update-servers
 
   snap_pkg:
-    needs: linux
+    needs: [linux, windows, macOS]
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
@@ -80,9 +80,11 @@ jobs:
         sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
         ./scripts/install_snapcraft.sh
         ./scripts/snap_build.sh
-    - name: Upload snap package to Snap Store
-      env:
-        SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
-      run: |
-        sudo apt update
-        ./scripts/snap_release.sh
+
+# this step below is commented because we now upload the snap in GitLab:
+#    - name: Upload snap package to Snap Store
+#      env:
+#        SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
+#      run: |
+#        sudo apt update
+#        ./scripts/snap_release.sh

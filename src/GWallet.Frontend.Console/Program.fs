@@ -296,8 +296,7 @@ type private GenericWalletOption =
 
 let rec TestPaymentPassword () =
     let password = UserInteraction.AskPassword false
-    let passwordChecksOnAllAccounts = Account.CheckValidPassword password |> Async.RunSynchronously
-    if not (passwordChecksOnAllAccounts.All(fun x -> x = true)) then
+    if Account.CheckValidPassword password None |> Async.RunSynchronously then
         Console.WriteLine "Try again."
         TestPaymentPassword ()
 
@@ -474,6 +473,9 @@ let main argv =
     match argv.Length with
     | 0 ->
         NormalStartWithNoParameters()
+    | 1 when argv.[0] = "--version" ->
+        Console.WriteLine (sprintf "geewallet v%s" VersionHelper.CURRENT_VERSION)
+        0
     | 1 when argv.[0] = "--update-servers-file" ->
         UpdateServersFile()
     | 1 when argv.[0] = "--update-servers-stats" ->
