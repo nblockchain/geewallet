@@ -84,7 +84,8 @@ ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 RUN apt update &&\
  DEBIAN_FRONTEND=noninteractive\
- apt install -y fuse snapd snap-confine squashfuse sudo init lsb-release git docker.io fsharp build-essential pkg-config cli-common-dev mono-devel &&\
+ apt install -y fuse snapd snap-confine squashfuse sudo init lsb-release git docker.io build-essential pkg-config curl &&\
+ apt install -y libgtk2.0-cil-dev &&\
  apt clean &&\
  dpkg-divert --local --rename --add /sbin/udevadm &&\
  ln -s /bin/true /sbin/udevadm
@@ -131,6 +132,8 @@ echo " done"
 
 $SUDO docker exec $CONTNAME snap install core || clean_up
 echo "container $CONTNAME started ..."
+
+$SUDO docker exec $CONTNAME scripts/install_mono_from_microsoft_deb_packages.sh
 
 print_info
 rm_builddir

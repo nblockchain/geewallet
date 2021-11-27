@@ -92,7 +92,7 @@ newmono_test_integration:
       make &&
       make update-servers
 
-stockmono_snap:
+newmono_snap:
   image: ubuntu:20.04
   stage: package
 
