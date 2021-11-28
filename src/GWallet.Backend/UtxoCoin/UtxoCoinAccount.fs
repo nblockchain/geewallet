@@ -468,6 +468,7 @@ module Account =
             raise <| ArgumentNullException "address"
 
         let BITCOIN_ADDRESS_BECH32_PREFIX = "bc1"
+        let LITECOIN_ADDRESS_BECH32_PREFIX = "ltc1"
 
         let utxoCoinValidAddressPrefixes =
             match currency with
@@ -482,26 +483,38 @@ module Account =
             | LTC ->
                 let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
                 let LITECOIN_ADDRESS_SCRIPTHASH_PREFIX = "M"
-                [ LITECOIN_ADDRESS_PUBKEYHASH_PREFIX; LITECOIN_ADDRESS_SCRIPTHASH_PREFIX ]
+                [
+                    LITECOIN_ADDRESS_PUBKEYHASH_PREFIX
+                    LITECOIN_ADDRESS_SCRIPTHASH_PREFIX
+                    LITECOIN_ADDRESS_BECH32_PREFIX
+                ]
             | _ -> failwith <| SPrintF1 "Unknown UTXO currency %A" currency
 
         if not (utxoCoinValidAddressPrefixes.Any(fun prefix -> address.StartsWith prefix)) then
             raise (AddressMissingProperPrefix(utxoCoinValidAddressPrefixes))
 
-        let minLength,lenghtInBetweenAllowed,maxLength =
-            if currency = Currency.BTC && (address.StartsWith BITCOIN_ADDRESS_BECH32_PREFIX) then
+        let allowedAddressLength: AddressLength =
+            match currency, address with
+            | Currency.BTC, _ when address.StartsWith BITCOIN_ADDRESS_BECH32_PREFIX ->
                 // taken from https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
                 // (FIXME: this is only valid for the first version of segwit, fix it!)
-                42,false,62
-            else
-                27,true,34
-        let limits = [ minLength; maxLength ]
-        if address.Length > maxLength then
-            raise <| AddressWithInvalidLength limits
-        if address.Length < minLength then
-            raise <| AddressWithInvalidLength limits
-        if not lenghtInBetweenAllowed && (address.Length <> minLength && address.Length <> maxLength) then
-            raise <| AddressWithInvalidLength limits
+                Fixed [ 42u; 62u ]
+            | Currency.LTC, _ when address.StartsWith LITECOIN_ADDRESS_BECH32_PREFIX ->
+                // taken from https://coin.space/all-about-address-types/, e.g. ltc1q3qkpj5s4ru3cx9t7dt27pdfmz5aqy3wplamkns
+                // FIXME: hopefully someone replies/documents https://bitcoin.stackexchange.com/questions/110975/how-long-can-bech32-addresses-be-in-the-litecoin-mainnet
+                Fixed [ 43u ]
+            | _ ->
+                Variable { Minimum = 27u; Maximum = 34u }
+
+        match allowedAddressLength with
+        | Fixed allowedLengths ->
+            if not (allowedLengths.Select(fun uLen -> int uLen).Contains address.Length) then
+                raise <| AddressWithInvalidLength allowedAddressLength
+        | Variable { Minimum = min; Maximum = max } ->
+            if address.Length > int max then
+                raise <| AddressWithInvalidLength allowedAddressLength
+            if address.Length < int min then
+                raise <| AddressWithInvalidLength allowedAddressLength
 
         let network = GetNetwork currency
         try

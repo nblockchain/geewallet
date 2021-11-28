@@ -130,14 +130,14 @@ module internal Account =
         if String.IsNullOrEmpty address then
             raise <| ArgumentNullException "address"
 
-        let ETHEREUM_ADDRESSES_LENGTH = 42
+        let ETHEREUM_ADDRESSES_LENGTH = 42u
         let ETHEREUM_ADDRESS_PREFIX = "0x"
 
         if not (address.StartsWith(ETHEREUM_ADDRESS_PREFIX)) then
             raise (AddressMissingProperPrefix([ETHEREUM_ADDRESS_PREFIX]))
 
-        if (address.Length <> ETHEREUM_ADDRESSES_LENGTH) then
-            raise <| AddressWithInvalidLength [ ETHEREUM_ADDRESSES_LENGTH ]
+        if address.Length <> int ETHEREUM_ADDRESSES_LENGTH then
+            raise <| AddressWithInvalidLength (Fixed [ ETHEREUM_ADDRESSES_LENGTH ])
 
         do! Ether.Server.CheckIfAddressIsAValidPaymentDestination currency address
 
