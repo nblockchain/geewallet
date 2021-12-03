@@ -592,8 +592,12 @@ module UserInteraction =
                 Console.WriteLine "There are various options to specify the amount of your transaction:"
                 Console.WriteLine(sprintf "1. Exact amount in %A" account.Currency)
                 Console.WriteLine "2. Approximate amount in USD"
-                Console.WriteLine(sprintf "3. All balance existing in the account (%g %A)"
-                                          balance account.Currency)
+                Console.WriteLine(
+                    sprintf
+                        "3. All balance existing in the account (%s %A)"
+                        (Formatting.DecimalAmountRounding CurrencyType.Crypto balance)
+                        account.Currency
+                )
 
                 let amountOption = AskAmountOption()
                 AskParticularAmountOption balance amountOption
