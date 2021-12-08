@@ -23,7 +23,6 @@ type AppDelegate () =
         with get() = window
 
     override this.DidFinishLaunching(notification: NSNotification) =
-        Forms.SetFlags "Shapes_Experimental"
         Forms.Init()
 
         ZXing.Net.Mobile.Forms.macOS.Platform.Init()

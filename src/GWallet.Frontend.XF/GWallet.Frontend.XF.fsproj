@@ -135,7 +135,7 @@
     <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="SkiaSharp.Svg" Version="1.60.0" />
-    <PackageReference Include="Xamarin.Forms" Version="4.8.0.1821" />
+    <PackageReference Include="Xamarin.Forms" Version="5.0.0.2012" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="0.10.0-date20191006-0346.git-18fb927" />
     <PackageReference Include="SkiaSharp" Version="1.68.1" />
