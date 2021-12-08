@@ -458,13 +458,25 @@ module LayerTwo =
 
         let lockChannelInternal (node: Node) (subLockFundingAsync: Async<Result<_, IErrorMsg>>): Async<seq<string>> =
             async {
-                let! lockFundingRes = subLockFundingAsync
-                match lockFundingRes with
-                | Error lockFundingError ->
-                    Console.WriteLine(sprintf "Error reestablishing channel: %s" lockFundingError.Message)
-                    do! MaybeForceCloseChannel node currency channelId lockFundingError
-                | Ok () ->
-                    Console.WriteLine(sprintf "funding locked for channel %s" (ChannelId.ToString channelId))
+                let rec tryLock () =
+                    async {
+                        let! lockFundingRes = subLockFundingAsync
+                        match lockFundingRes with
+                        | Error lockFundingError ->
+                            Console.WriteLine(sprintf "Error reestablishing channel: %s" lockFundingError.Message)
+                            do! MaybeForceCloseChannel node currency channelId lockFundingError
+
+                            // MaybeForceCloseChannel might've already force-closed the channel depending on the error
+                            if not lockFundingError.ChannelBreakdown then
+                                let shouldRetry = UserInteraction.AskYesNo "Do you want to retry reestablishing the channel?"
+                                if shouldRetry then
+                                    return! tryLock ()
+                        | Ok () ->
+                            Console.WriteLine(sprintf "funding locked for channel %s" (ChannelId.ToString channelId))
+                    }
+
+                do! tryLock ()
+
                 return seq {
                     yield! UserInteraction.DisplayLightningChannelStatus channelInfo
                     yield "        funding locked - channel is now active"
