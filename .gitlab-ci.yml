@@ -19,6 +19,7 @@ stockmono_build:
   image: $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA
   stage: build
   script:
+    - apt install --yes git && git remote --verbose
     - mono --version
 
     - ./configure.sh
