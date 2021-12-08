@@ -67,7 +67,7 @@ type HandshakeError =
         match self with
         | DisconnectedOnAct1 _
         | DisconnectedOnAct2 _
-        | DisconnectedOnAct3 _ -> true
+        | DisconnectedOnAct3 _ -> false
         | TcpConnect _
         | TcpAccept _
         | InvalidAct1 _
