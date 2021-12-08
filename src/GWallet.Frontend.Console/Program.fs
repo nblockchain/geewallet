@@ -462,10 +462,13 @@ let rec ProgramMainLoop() =
     Console.WriteLine ()
     Console.WriteLine "*** STATUS ***"
     Console.WriteLine(String.concat Environment.NewLine accountStatusesLines)
+
+    Console.WriteLine String.Empty
     for channelInfoInteraction in channelInfoInteractions do
         let channelStatusLines =
             channelInfoInteraction |> Async.RunSynchronously
         Console.WriteLine(String.concat Environment.NewLine channelStatusLines)
+    Console.WriteLine String.Empty
 
     if CheckArchivedAccountsAreEmpty() then
         PerformOperation activeAccounts
