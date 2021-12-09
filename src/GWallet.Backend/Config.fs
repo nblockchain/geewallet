@@ -99,6 +99,8 @@ module Config =
     let internal WATCH_TOWER_REWARD_PERCENTAGE = 1m
     let internal DEFAULT_WATCHTOWER = ("127.0.0.1", 18666)
 
+    let ChannelReservePercentage = 1
+
     let internal GetConfigDirForThisProgram() =
         let configDir =
             match runMode with

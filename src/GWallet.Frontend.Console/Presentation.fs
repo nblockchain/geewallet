@@ -81,7 +81,7 @@ module Presentation =
         let maybeUsdPrice = FiatValueEstimation.UsdValue metadata.Currency
                             |> Async.RunSynchronously
         let estimatedSpendableBalance =
-            let estimatedChannelReserve = channelCapacity.ValueToSend / 10m
+            let estimatedChannelReserve = channelCapacity.ValueToSend * decimal Config.ChannelReservePercentage / 100m
             let estimatedSpendableBalance =
                 channelCapacity.ValueToSend - metadata.FeeValue - estimatedChannelReserve
             Math.Max(0m, estimatedSpendableBalance)

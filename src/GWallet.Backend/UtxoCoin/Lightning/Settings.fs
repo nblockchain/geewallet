@@ -48,7 +48,7 @@ module Settings =
         {
             DustLimitSatoshis = Money 200UL
             MaxHTLCValueInFlightMSat = LNMoney 10000L
-            ChannelReserveSatoshis = funding / 100L
+            ChannelReserveSatoshis = funding * Config.ChannelReservePercentage / 100L
             HTLCMinimumMSat = LNMoney 1000L
             ToSelfDelay = BlockHeightOffset16 6us
             MaxAcceptedHTLCs = uint16 10
