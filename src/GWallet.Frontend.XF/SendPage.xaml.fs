@@ -317,30 +317,37 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
             return None
-        | AddressWithInvalidLength lengthLimitInfo ->
+        | AddressWithInvalidLength addressLength ->
             let msg =
-                match lengthLimitInfo.Count() with
-                | 1 ->
-                    let lengthLimitViolated = lengthLimitInfo.ElementAt 0
-                    if destinationAddress.Length <> lengthLimitViolated then
-                        SPrintF1 "Address should have a length of %i characters, please try again." lengthLimitViolated
-                    else
-                        failwith <| SPrintF3 "Address introduced '%s' gave a length error with a limit that matches its length: %i=%i. Report this bug."
-                                  destinationAddress lengthLimitViolated destinationAddress.Length
-                | 2 ->
-                    let minLength,maxLength = lengthLimitInfo.ElementAt 0,lengthLimitInfo.ElementAt 1
-                    if destinationAddress.Length < minLength then
+                match addressLength with
+                | Fixed allowedLengths ->
+                    match allowedLengths.Count() with
+                    | 1 ->
+                        let lengthLimitViolated = allowedLengths.ElementAt 0
+                        if destinationAddress.Length <> int lengthLimitViolated then
+                            SPrintF1 "Address should have a length of %i characters, please try again." lengthLimitViolated
+                        else
+                            failwith
+                            <| SPrintF3 "Address introduced '%s' gave a length error with a limit that matches its length: %i=%i. Report this bug."
+                                destinationAddress lengthLimitViolated destinationAddress.Length
+                    | _ ->
+                        if not (allowedLengths.Select(fun len -> int len).Contains destinationAddress.Length) then
+                            SPrintF2 "Address has an invalid length of %i characters (only allowed lengths for this type of address are: %s), please try again."
+                                destinationAddress.Length (String.Join(",", allowedLengths))
+                        else
+                            failwith <| SPrintF3 "Address introduced '%s' gave a length error with a limit that contains its length: %i in %s. Report this bug please."
+                                destinationAddress destinationAddress.Length (String.Join(",", allowedLengths))
+
+                | Variable { Minimum = minLength; Maximum = maxLength } ->
+                    if destinationAddress.Length < int minLength then
                         SPrintF1 "Address should have a length not lower than %i characters, please try again."
-                                minLength
-                    elif destinationAddress.Length > maxLength then
+                            minLength
+                    elif destinationAddress.Length > int maxLength then
                         SPrintF1 "Address should have a length not higher than %i characters, please try again."
-                                maxLength
+                            maxLength
                     else
-                        SPrintF2 "Address should have a length of either %i or %i characters, please try again."
-                                minLength maxLength
-                | _ ->
-                    failwith <| SPrintF1 "AddressWithInvalidLength returned an invalid parameter length (%i). Report this bug."
-                               (lengthLimitInfo.Count())
+                        failwith <| SPrintF4 "Address introduced '%s' gave a length error with a range that covers its length: %i < %i < %i. Report this bug please."
+                            destinationAddress (int minLength) destinationAddress.Length (int maxLength)
 
             Device.BeginInvokeOnMainThread(fun _ ->
                 this.DisplayAlert("Alert", msg, "OK")
