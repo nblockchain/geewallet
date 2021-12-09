@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-git merge --no-ff master
+git merge --no-ff origin/master

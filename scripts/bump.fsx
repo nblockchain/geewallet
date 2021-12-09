@@ -236,6 +236,6 @@ GitCommit fullStableVersion newFullUnstableVersion
 
 Console.WriteLine (
     sprintf
-        "Version bumping finished. Remember to push via `git push <remote> <branch> && git push <remote> %s`"
+        "Version bumping finished. Remember to push via `./scripts/push.sh %s`"
         (newFullStableVersion.ToString ())
 )
