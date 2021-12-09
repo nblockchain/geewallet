@@ -8,5 +8,5 @@ fi
 
 git push origin stable
 if [ "$#" -gt "0" ]; then
-    echo git push origin $1
+    git push origin $1
 fi
