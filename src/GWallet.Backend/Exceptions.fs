@@ -7,8 +7,16 @@ exception InvalidPassword
 exception DestinationEqualToOrigin
 exception AddressMissingProperPrefix of seq<string>
 
-// with one value means that lenght is mandatory, 2 values means there's a lower limit and upper limit
-exception AddressWithInvalidLength of seq<int>
+type AddressLengthRange =
+    {
+        Minimum: uint32
+        Maximum: uint32
+    }
+type AddressLength =
+    | Fixed of seq<uint32>
+    | Variable of AddressLengthRange
+
+exception AddressWithInvalidLength of AddressLength
 
 exception AddressWithInvalidChecksum of Option<string>
 exception AccountAlreadyAdded

@@ -430,33 +430,38 @@ module UserInteraction =
                 AskPublicAddress currency askText
 
             | AddressWithInvalidLength lengthInfo ->
-                match lengthInfo.Count() with
-                | 1 ->
-                    let lengthLimitViolated = lengthInfo.ElementAt 0
-                    if publicAddress.Length <> lengthLimitViolated then
+                match lengthInfo with
+                | Fixed allowedLengths ->
+                    match allowedLengths.Count() with
+                    | 1 ->
+                        let lengthLimitViolated = allowedLengths.ElementAt 0
+                        if publicAddress.Length <> int lengthLimitViolated then
+                            Presentation.Error
+                                (sprintf "Address should have a length of %i characters, please try again."
+                                    lengthLimitViolated)
+                        else
+                            failwithf "Address introduced '%s' gave a length error with a limit that matches its length: %i=%i. Report this bug please."
+                                      publicAddress (int lengthLimitViolated) publicAddress.Length
+                    | _ ->
+                        if not (allowedLengths.Select(fun len -> int len).Contains publicAddress.Length) then
+                            Presentation.Error
+                                (sprintf "Address has an invalid length of %i characters (only allowed lengths for this type of address are: %s), please try again."
+                                    publicAddress.Length (String.Join(",", allowedLengths) ))
+                        else
+                            failwithf "Address introduced '%s' gave a length error with a limit that contains its length: %i in %s. Report this bug please."
+                                      publicAddress publicAddress.Length (String.Join(",", allowedLengths))
+                | Variable { Minimum = minLength; Maximum = maxLength } ->
+                    if publicAddress.Length < int minLength then
                         Presentation.Error
-                            (sprintf "Address should have a length of %d characters, please try again."
-                                lengthLimitViolated)
+                            (sprintf "Address should have a length not lower than %i characters, please try again."
+                                (int minLength))
+                    elif publicAddress.Length > int maxLength then
+                        Presentation.Error
+                            (sprintf "Address should have a length not higher than %i characters, please try again."
+                                (int maxLength))
                     else
-                        failwithf "Address introduced '%s' gave a length error with a limit that matches its length: %d=%d. Report this bug."
-                                  publicAddress lengthLimitViolated publicAddress.Length
-                | 2 ->
-                    let minLength,maxLength = lengthInfo.ElementAt 0,lengthInfo.ElementAt 1
-                    if publicAddress.Length < minLength then
-                        Presentation.Error
-                            (sprintf "Address should have a length not lower than %d characters, please try again."
-                                minLength)
-                    elif publicAddress.Length > maxLength then
-                        Presentation.Error
-                            (sprintf "Address should have a length not higher than %d characters, please try again."
-                                maxLength)
-                    else
-                        Presentation.Error
-                            (sprintf "Address should have a length of either %d or %d characters, please try again."
-                                minLength maxLength)
-                | _ ->
-                    failwithf "AddressWithInvalidLength returned an invalid parameter length (%d). Report this bug."
-                              (lengthInfo.Count())
+                        failwithf "Address introduced '%s' gave a length error with a range that covers its length: %i < %i < %i. Report this bug please."
+                                  publicAddress (int minLength) publicAddress.Length (int maxLength)
 
                 AskPublicAddress currency askText
             | AddressWithInvalidChecksum maybeAddressWithValidChecksum ->
