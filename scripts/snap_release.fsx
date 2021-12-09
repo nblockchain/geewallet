@@ -55,19 +55,6 @@ let gitProvider =
     else
         failwith onlyCiMsg
 
-let snapcraftLoginFileName = Path.Combine(FsxHelper.RootDir.FullName, "snapcraft.login")
-if File.Exists snapcraftLoginFileName then
-    Console.WriteLine "snapcraft.login file found, skipping log-in"
-else
-    match gitProvider with
-    | GitHub ->
-        let snapcraftLoginEnvVarValue = Environment.GetEnvironmentVariable "SNAPCRAFT_LOGIN"
-        if String.IsNullOrEmpty snapcraftLoginEnvVarValue then
-            failwith "SNAPCRAFT_LOGIN-prefixed env var not found; note: manual logging for release has been disabled, only automated CI jobs can upload now"
-        File.WriteAllText(snapcraftLoginFileName, snapcraftLoginEnvVarValue)
-    | _ ->
-        failwith "In the case of GitLab, the 'snapcraft.login' file should already be here, copied by the docker scripts to the docker container"
-
 Console.WriteLine "Checking if this is a tag commit..."
 
 let gitTag =
@@ -98,6 +85,19 @@ if not (snapFile.FullName.Contains gitTag) then
     failwithf "Git tag (%s) doesn't match version in snap package file name (%s)"
         gitTag
         snapFile.FullName
+
+let snapcraftLoginFileName = Path.Combine(FsxHelper.RootDir.FullName, "snapcraft.login")
+if File.Exists snapcraftLoginFileName then
+    Console.WriteLine "snapcraft.login file found, skipping log-in"
+else
+    match gitProvider with
+    | GitHub ->
+        let snapcraftLoginEnvVarValue = Environment.GetEnvironmentVariable "SNAPCRAFT_LOGIN"
+        if String.IsNullOrEmpty snapcraftLoginEnvVarValue then
+            failwith "SNAPCRAFT_LOGIN-prefixed env var not found; note: manual logging for release has been disabled, only automated CI jobs can upload now"
+        File.WriteAllText(snapcraftLoginFileName, snapcraftLoginEnvVarValue)
+    | _ ->
+        failwith "In the case of GitLab, the 'snapcraft.login' file should already be here, copied by the docker scripts to the docker container"
 
 Console.WriteLine (sprintf "About to start upload of release %s" gitTag)
 
