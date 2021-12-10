@@ -6,36 +6,31 @@ open GWallet.Backend.UtxoCoin
 open GWallet.Backend
 open GWallet.Frontend.Console
 
-let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
-    let password = UserInteraction.AskPassword false
-    try
-        let txIdUri =
-            Account.SendPayment account transactionMetadata destination amount password
-                |> Async.RunSynchronously
-        Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
-        UserInteraction.PressAnyKeyToContinue ()
-    with
-    | :? DestinationEqualToOrigin ->
-        Presentation.Error "Transaction's origin cannot be the same as the destination."
-        UserInteraction.PressAnyKeyToContinue()
-    | :? InsufficientFunds ->
-        Presentation.Error "Insufficient funds."
-        UserInteraction.PressAnyKeyToContinue()
-    | :? InvalidPassword ->
-        Presentation.Error "Invalid password, try again."
-        TrySendAmount account transactionMetadata destination amount
+let TrySendAmount (account: NormalAccount) transactionMetadata destination amount password =
+    async {
+        try
+            let! txIdUri =
+                Account.SendPayment account transactionMetadata destination amount password
+            Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
+            UserInteraction.PressAnyKeyToContinue ()
+        with
+        | :? DestinationEqualToOrigin ->
+            Presentation.Error "Transaction's origin cannot be the same as the destination."
+            UserInteraction.PressAnyKeyToContinue()
+        | :? InsufficientFunds ->
+            Presentation.Error "Insufficient funds."
+            UserInteraction.PressAnyKeyToContinue()
+    }
 
-let rec TrySign account unsignedTrans =
-    let password = UserInteraction.AskPassword false
-    try
-        Account.SignUnsignedTransaction account unsignedTrans password
-    with
-    // TODO: would this throw insufficient funds? test
-    //| :? InsufficientFunds ->
-    //    Presentation.Error "Insufficient funds."
-    | :? InvalidPassword ->
-        Presentation.Error "Invalid password, try again."
-        TrySign account unsignedTrans
+let TrySign account unsignedTrans password =
+    async {
+        //try
+        return Account.SignUnsignedTransaction account unsignedTrans password
+        //with
+        // TODO: would this throw insufficient funds? test
+        //| :? InsufficientFunds ->
+        //    Presentation.Error "Insufficient funds."
+    }
 
 let BroadcastPayment() =
     let fileToReadFrom = UserInteraction.AskFileNameToLoad
@@ -148,7 +143,10 @@ let SignOffPayment() =
                     unsignedTransaction.Metadata
 
                 if UserInteraction.AskYesNo "Do you accept?" then
-                    let trans = TrySign normalAccount unsignedTransaction
+                    let trans =
+                        TrySign normalAccount unsignedTransaction
+                        |> UserInteraction.TryWithPasswordAsync
+                        |> Async.RunSynchronously
                     Console.WriteLine("Transaction signed.")
                     Console.Write("Introduce a file name or path to save it: ")
                     let filePathToSaveTo = Console.ReadLine()
@@ -177,6 +175,8 @@ let SendPaymentOfSpecificAmount (account: IAccount)
         UserInteraction.PressAnyKeyToContinue()
     | :? NormalAccount as normalAccount ->
         TrySendAmount normalAccount transactionMetadata destination amount
+        |> UserInteraction.TryWithPasswordAsync
+        |> Async.RunSynchronously
     | _ ->
         failwith ("Account type not recognized: " + account.GetType().FullName)
 
@@ -193,16 +193,12 @@ let SendPayment() =
         | Some(fee) ->
             SendPaymentOfSpecificAmount account amount fee destination
 
-let rec TryArchiveAccount account =
-    let password = UserInteraction.AskPassword(false)
-    try
+let TryArchiveAccount account password =
+    async {
         Account.Archive account password
         Console.WriteLine "Account archived."
         UserInteraction.PressAnyKeyToContinue ()
-    with
-    | :? InvalidPassword ->
-        Presentation.Error "Invalid password, try again."
-        TryArchiveAccount account
+    }
 
 let rec AddReadOnlyAccounts() =
     Console.Write "JSON fragment from wallet to pair with: "
@@ -268,6 +264,8 @@ let ArchiveAccount() =
                     ()
                 else
                     TryArchiveAccount normalAccount
+                    |> UserInteraction.TryWithPasswordAsync
+                    |> Async.RunSynchronously
     | _ ->
         failwithf "Account type not valid for archiving: %s. Please report this issue."
                   (account.GetType().FullName)
