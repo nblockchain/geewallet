@@ -30,7 +30,6 @@ type MainActivity() =
         FormsAppCompatActivity.ToolbarResource <- Resources.Layout.Toolbar
 
         base.OnCreate (bundle)
-        Xamarin.Forms.Forms.SetFlags "Shapes_Experimental"
         Xamarin.Forms.Forms.Init (this, bundle)
 
         ZXing.Net.Mobile.Forms.Android.Platform.Init()

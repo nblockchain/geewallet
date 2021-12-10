@@ -11,7 +11,6 @@ type AppDelegate () =
     inherit FormsApplicationDelegate ()
 
     override this.FinishedLaunching (app, options) =
-        Forms.SetFlags "Shapes_Experimental"
         Forms.Init()
 
         ZXing.Net.Mobile.Forms.iOS.Platform.Init()
