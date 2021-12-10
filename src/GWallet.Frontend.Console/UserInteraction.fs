@@ -516,7 +516,7 @@ module UserInteraction =
             match maybeTime with
             | None -> String.Empty
             | Some(time) -> sprintf " (as of %s)" (Formatting.ShowSaneDate time)
-        let exchangeMsg = sprintf "%s USD per %A%s" (usdValue.ToString())
+        let exchangeMsg = sprintf "%s USD per %A%s" (Formatting.DecimalAmountRounding CurrencyType.Fiat usdValue)
                                                     currency
                                                     exchangeRateDateMsg
         let etherAmount = usdAmount / usdValue
