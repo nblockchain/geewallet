@@ -224,6 +224,17 @@ module UserInteraction =
             else
                 password
 
+    let rec TryWithPasswordAsync<'T> (func: string -> Async<'T>) =
+        async {
+            try
+                let password = AskPassword false
+                return! func password
+            with
+            | :? InvalidPassword ->
+                Presentation.Error "Invalid password, try again."
+                return! TryWithPasswordAsync func
+        }
+
     let private BalanceInUsdString balance maybeUsdValue =
         match maybeUsdValue with
         | NotFresh(NotAvailable) -> Presentation.ExchangeRateUnreachableMsg
