@@ -30,7 +30,7 @@ module Main =
             window.SetApplicationIcon (SPrintF2 "%s/lib/geewallet/%s" (snapEnvVar.TrimEnd('/')) logoFileName)
         else
             window.SetApplicationIcon logoFileName
-        window.SetDefaultSize (1000, 1000)
+        window.SetDefaultSize (500, 1000)
         window.Show()
         Gtk.Application.Run()
         0
