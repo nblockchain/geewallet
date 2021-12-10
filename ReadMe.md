@@ -1,4 +1,3 @@
-
 # <img src="https://github.com/nblockchain/geewallet/raw/master/logo.png" width="50" /> geewallet
 
 Welcome!
