@@ -469,6 +469,24 @@ module Account =
             }
         }
 
+    let MaybeReportWarningsForUnknownParameters addressOrUrl (unknownParams: System.Collections.Generic.Dictionary<string, string>) =
+        if not (isNull unknownParams) && unknownParams.Any() then
+
+            let unknownToUs =
+
+                // remove params that we know about already (e.g. bitcoin:3NzyiveXVotmy1kMh2C8eBbGAd6Zourj2o?amount=0.00039289&label=DAREJOSAL%2C+SOCIEDAD+ANONIMA+DE+CAPITAL+VARIABLE+by+Chivo&message=Pago+en+DAREJOSAL%2C+SOCIEDAD+ANONIMA+DE+CAPITAL+VARIABLE+-+Chivo&chivo=payprovider%3B2sB3QNp8S3 )
+                if unknownParams.ContainsKey "chivo" then
+                    unknownParams.Remove "chivo" |> ignore
+
+                unknownParams
+
+            if unknownToUs.Any() then
+                Infrastructure.ReportWarningMessage
+                <| SPrintF2 "Unknown parameters found in URI '%s': %s"
+                    addressOrUrl (String.Join(",", unknownToUs.Keys))
+                |> ignore
+
+
     let ParseAddressOrUrl (addressOrUrl: string) (currency: Currency) =
         if String.IsNullOrEmpty addressOrUrl then
             invalidArg "addressOrUrl" "address or URL should not be null or empty"
@@ -477,9 +495,9 @@ module Account =
 
         if addressOrUrl.StartsWith "bitcoin:" || addressOrUrl.StartsWith "litecoin:" then
             let uriBuilder = BitcoinUrlBuilder (addressOrUrl, network)
-            if null <> uriBuilder.UnknowParameters && uriBuilder.UnknowParameters.Any() then
-                failwith <| SPrintF2 "Unknown parameters found in URI %s: %s"
-                          addressOrUrl (String.Join(",", uriBuilder.UnknowParameters.Keys))
+
+            // FIXME: fix typo "UnknowParameters" in NBitcoin
+            MaybeReportWarningsForUnknownParameters addressOrUrl uriBuilder.UnknowParameters
 
             if null = uriBuilder.Address then
                 failwith <| SPrintF1 "Address started with 'bitcoin:' but an address could not be extracted: %s" addressOrUrl
