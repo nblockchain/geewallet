@@ -93,20 +93,26 @@
             </Button>
         </StackLayout>
 
-        <StackLayout Orientation="Horizontal"
-                     HorizontalOptions="FillAndExpand"
-                     >
+        <Grid HorizontalOptions="FillAndExpand">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <!-- This is a workaround to upstream bug https://github.com/xamarin/Xamarin.Forms/issues/14977 -->
+                <ColumnDefinition Width="6*"/>
+            </Grid.ColumnDefinitions>
             <Picker x:Name="currencySelector"
-                    HorizontalOptions="Start"
+                    Grid.Column="0"
+                    HorizontalOptions="Fill"
                     VerticalOptions="End"
+                    HorizontalTextAlignment="Center"
                     SelectedIndexChanged="OnCurrencySelectorTextChanged"
                     IsEnabled="false"
                     />
             <Entry x:Name="amountToSend" Keyboard="Numeric"
-                   HorizontalOptions="FillAndExpand"
+                   Grid.Column="1"
+                   HorizontalOptions="Fill"
                    TextChanged="OnEntryTextChanged" />
 
-        </StackLayout>
+        </Grid>
 
         <Label Text="Password:"
                x:Name="passwordLabel"
