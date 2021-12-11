@@ -16,10 +16,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CE79AB9D
 		scripts\configure.fsx = scripts\configure.fsx
 		scripts\make.fsx = scripts\make.fsx
 		scripts\make.sh = scripts\make.sh
-		scripts\replace.fsx = scripts\replace.fsx
 		scripts\sanitycheck.fsx = scripts\sanitycheck.fsx
 		scripts\fsxHelper.fs = scripts\fsxHelper.fs
 		scripts\snap_release.fsx = scripts\snap_release.fsx
+		scripts\githubActions.fs = scripts\githubActions.fs
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{C90A30F5-1423-44B2-A8D4-ED5FEDD4E36F}"
