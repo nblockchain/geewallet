@@ -75,7 +75,7 @@ module Git =
         let proc = Process.Execute(gitRemoteVerbose, Echo.Off)
         let map = proc.Output.StdOut |> Misc.TsvParse
         let removedLastAction =
-            Map.map (fun (k: string) (v: string) -> (v.Split(" ").[0])) map
+            Map.map (fun (k: string) (v: string) -> (v.Split(' ').[0])) map
         removedLastAction
 
     let private FetchAll() =
