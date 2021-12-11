@@ -1,7 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=geewallet
-Comment=Cryptocurrency brainwallet
-Exec=geewallet
-Icon=${SNAP}/meta/gui/logo.png
-Keywords=wallet brainwallet brain bitcoin ethereum litecoin btc etc eth ltc crypto cryptocurrency blockchain pay payment qr satoshi bits transaction tx money warpwallet warp
