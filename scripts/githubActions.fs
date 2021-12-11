@@ -21,11 +21,19 @@ module GithubActions =
             return! client.GetStringAsync url |> Async.AwaitTask
         }
 
-    let private QueryRunCount (status: string) (lastCommit: string) currentBranch =
+    let private QueryRunCount
+        (orgOrUsername: string)
+        (repoName: string)
+        (status: string)
+        (lastCommit: string)
+        (currentBranch:string)
+        =
         async {
             let url =
                 sprintf
-                    "https://api.github.com/repos/nblockchain/geewallet/actions/runs?status=%s&branch=%s"
+                    "https://api.github.com/repos/%s/%s/actions/runs?status=%s&branch=%s"
+                    orgOrUsername
+                    repoName
                     status
                     currentBranch
 
@@ -61,10 +69,15 @@ module GithubActions =
 
         }
 
-    let private CheckAllRuns lastCommit currentBranch =
+    let private CheckAllRuns
+        (orgOrUsername: string)
+        (repoName: string)
+        (lastCommit: string)
+        (currentBranch: string)
+        =
         async {
-            let! successfulCount = QueryRunCount "success" lastCommit currentBranch
-            let! failedCount = QueryRunCount "failure" lastCommit currentBranch
+            let! successfulCount = QueryRunCount orgOrUsername repoName "success" lastCommit currentBranch
+            let! failedCount = QueryRunCount orgOrUsername repoName "failure" lastCommit currentBranch
 
             if failedCount > 0 || successfulCount < 1 then
                 return false
@@ -72,8 +85,17 @@ module GithubActions =
                 return true
         }
 
-    let MakeSureGithubCIPassed (lastCommit: string) (currentBranch: string) =
-        if CheckAllRuns lastCommit currentBranch |> Async.RunSynchronously then
+    let MakeSureGithubCIPassed
+        (orgOrUsername: string)
+        (repoName: string)
+        (lastCommit: string)
+        (currentBranch: string)
+        =
+        if CheckAllRuns orgOrUsername repoName lastCommit currentBranch
+           |> Async.RunSynchronously then
             Console.WriteLine (sprintf "GitHubCI is green for branch %s (commit %s)" currentBranch lastCommit)
         else
-            failwithf "Failed job in GitHub: https://github.com/nblockchain/geewallet/commit/%s" lastCommit
+            failwithf "Failed job in GitHub: https://github.com/%s/%s/commit/%s"
+                orgOrUsername
+                repoName
+                lastCommit
