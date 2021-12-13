@@ -70,6 +70,14 @@ module Git =
         let gitRemoteRemove = { Command = gitCommand; Arguments = sprintf "remote remove %s" remoteName }
         Process.SafeExecute(gitRemoteRemove, Echo.Off) |> ignore
 
+    let CheckRemotes() =
+        let gitRemoteVerbose = { Command = gitCommand; Arguments = "remote --verbose" }
+        let proc = Process.Execute(gitRemoteVerbose, Echo.Off)
+        let map = proc.Output.StdOut |> Misc.TsvParse
+        let removedLastAction =
+            Map.map (fun (k: string) (v: string) -> (v.Split(' ').[0])) map
+        removedLastAction
+
     let private FetchAll() =
         let gitFetchAll = { Command = gitCommand; Arguments = "fetch --all" }
         Process.SafeExecute(gitFetchAll, Echo.Off) |> ignore
