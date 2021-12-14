@@ -102,8 +102,8 @@ module LayerTwo =
                 defaultPort
         IPEndPoint(ipAddress, int port)
 
-    let rec AskChannelId (channelStore: ChannelStore)
-                         (isFunderOpt: Option<bool>)
+    let rec MaybeAskChannelId (channelStore: ChannelStore)
+                              (isFunderOpt: Option<bool>)
                              : Option<ChannelIdentifier> =
         let channelIds = seq {
             for channelId in channelStore.ListChannelIds() do
@@ -116,24 +116,31 @@ module LayerTwo =
                         yield channelId
         }
 
-        Console.WriteLine "Available channels:"
-        let rec listChannels (index: int) (channelIds: seq<ChannelIdentifier>) =
-            if not <| Seq.isEmpty channelIds then
-                let channelId = Seq.head channelIds
-                Console.WriteLine(sprintf "%i: %s" index (ChannelId.ToString channelId))
-                listChannels (index + 1) (Seq.tail channelIds)
-        listChannels 0 channelIds
-
-        let indexText = Console.ReadLine().Trim()
-        if indexText = String.Empty then
-            None
+        let channelCount = channelIds.Count()
+        if channelCount < 1 then
+            failwith "Shouldn't reach MaybeAskChannelId if number of active channels is not at least 1. Please report this bug."
+        elif channelCount = 1 then
+            Some <| channelIds.Single()
         else
-            match Int32.TryParse indexText with
-            | true, index when index < channelIds.Count() ->
-                Some (channelIds.ElementAt index)
-            | _ ->
-                Console.WriteLine "Invalid option"
-                AskChannelId channelStore isFunderOpt
+            Console.WriteLine "Available channels:"
+            let rec listChannels (index: int) (channelIds: seq<ChannelIdentifier>) =
+                if not <| Seq.isEmpty channelIds then
+                    let channelId = Seq.head channelIds
+                    Console.WriteLine(sprintf "%i: %s" index (ChannelId.ToString channelId))
+                    listChannels (index + 1) (Seq.tail channelIds)
+            listChannels 1 channelIds
+
+            Console.Write "Choose a channel from the above: "
+            let indexText = Console.ReadLine().Trim()
+            if indexText = String.Empty then
+                None
+            else
+                match Int32.TryParse indexText with
+                | true, index when index > 0 && index <= channelIds.Count() ->
+                    Some (channelIds.ElementAt (index - 1))
+                | _ ->
+                    Console.WriteLine "Invalid option"
+                    MaybeAskChannelId channelStore isFunderOpt
 
     let ForceCloseChannel
         (node: Node)
@@ -338,7 +345,7 @@ module LayerTwo =
         async {
             let account = AskLightningAccount None
             let channelStore = ChannelStore account
-            let channelIdOpt = AskChannelId channelStore None
+            let channelIdOpt = MaybeAskChannelId channelStore None
             match channelIdOpt with
             | None -> return ()
             | Some channelId ->
@@ -415,7 +422,7 @@ module LayerTwo =
         async {
             let account = AskLightningAccount None
             let channelStore = ChannelStore account
-            let channelIdOpt = AskChannelId channelStore (Some true)
+            let channelIdOpt = MaybeAskChannelId channelStore (Some true)
             match channelIdOpt with
             | None -> return ()
             | Some channelId ->
@@ -444,7 +451,7 @@ module LayerTwo =
         async {
             let account = AskLightningAccount None
             let channelStore = ChannelStore account
-            let channelIdOpt = AskChannelId channelStore (Some false)
+            let channelIdOpt = MaybeAskChannelId channelStore (Some false)
             match channelIdOpt with
             | None -> return ()
             | Some channelId ->
@@ -699,7 +706,10 @@ module LayerTwo =
                 yield async {
                     return async {
                         return seq {
-                            yield sprintf "%A Lightning Status (%i active channels)" currency activeChannelCount
+                            if activeChannelCount > 0 then
+                                yield sprintf "%A Lightning Status (%i active channels):" currency activeChannelCount
+                            else
+                                yield sprintf "%A Lightning Status: 0 active channels" currency
                         }
                     }
                 }
