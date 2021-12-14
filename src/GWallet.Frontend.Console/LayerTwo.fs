@@ -699,7 +699,10 @@ module LayerTwo =
                 yield async {
                     return async {
                         return seq {
-                            yield sprintf "%A Lightning Status (%i active channels)" currency activeChannelCount
+                            if activeChannelCount > 0 then
+                                yield sprintf "%A Lightning Status (%i active channels):" currency activeChannelCount
+                            else
+                                yield sprintf "%A Lightning Status: 0 active channels" currency
                         }
                     }
                 }
