@@ -639,7 +639,7 @@ module LayerTwo =
         (closingTxHeightOpt: Option<uint32>)
         : Async<seq<string>> =
         async {
-            Console.WriteLine(sprintf "Channel %s has been force-closed by the counterparty.")
+            Console.WriteLine(sprintf "Channel %s has been force-closed by the counterparty." (ChannelId.ToString channelInfo.ChannelId))
             Console.WriteLine "Account must be unlocked to recover funds."
             let tryClaimFunds password =
                 async {
