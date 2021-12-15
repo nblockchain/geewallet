@@ -611,7 +611,7 @@ module LayerTwo =
                 return seq {
                     yield! UserInteraction.DisplayLightningChannelStatus channelInfo
                     yield sprintf "        channel force-closed"
-                    yield sprintf "        funds have been recovered and returned to the wallet"
+                    yield sprintf "        funds have been recovered and sent back to the wallet"
                     yield sprintf "        txid of recovery transaction is %s" txId
                 }
             else
@@ -668,7 +668,7 @@ module LayerTwo =
                         return seq {
                             yield! UserInteraction.DisplayLightningChannelStatus channelInfo
                             yield "        channel closed by counterparty"
-                            yield "        funds have been returned to wallet"
+                            yield "        funds have been sent back to the wallet"
                             yield sprintf "        recovery transaction is: %s" (txUri.ToString())
                         }
                     | Error ClosingBalanceBelowDustLimit ->
