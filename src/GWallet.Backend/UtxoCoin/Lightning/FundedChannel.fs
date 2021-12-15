@@ -186,7 +186,7 @@ type internal FundedChannel =
                     let fundingTxMinimumDepth =
                         MonoHopUnidirectionalChannel.DefaultFundingTxMinimumDepth
                     return Channel.NewInbound(
-                        Settings.PeerLimits,
+                        Settings.PeerLimits currency,
                         channelOptions,
                         false,
                         nodeMasterPrivKey,
