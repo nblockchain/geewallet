@@ -16,7 +16,14 @@ module Settings =
 
     let internal ConfigDirName = "LN"
 
-    let internal PeerLimits: ChannelHandshakeLimits = {
+    let private ToSelfDelay currency =
+        match currency with
+        | BTC -> 2016us
+        | LTC -> 8064us
+        | _ -> failwith "Unsupported currency"
+        |> BlockHeightOffset16
+
+    let internal PeerLimits (currency: Currency) : ChannelHandshakeLimits = {
         ForceChannelAnnouncementPreference = false
         MinFundingSatoshis = Money 100L
         MaxHTLCMinimumMSat = LNMoney 100000L
@@ -27,6 +34,7 @@ module Settings =
         MaxDustLimitSatoshis = Money 10000000L
         // TODO make optional in DotNetLightning
         MaxMinimumDepth = BlockHeightOffset32 UInt32.MaxValue
+        MaxToSelfDelay = ToSelfDelay currency
     }
 
     let private SupportedFeatures (funding: Money) (currency: Currency) =
@@ -50,7 +58,8 @@ module Settings =
             MaxHTLCValueInFlightMSat = LNMoney 10000L
             ChannelReserveSatoshis = funding * Config.ChannelReservePercentage / 100L
             HTLCMinimumMSat = LNMoney 1000L
-            ToSelfDelay = BlockHeightOffset16 6us
+            // see https://github.com/lightning/bolts/blob/master/02-peer-protocol.md#the-open_channel-message
+            ToSelfDelay = ToSelfDelay currency
             MaxAcceptedHTLCs = uint16 10
             Features = SupportedFeatures funding currency
         }

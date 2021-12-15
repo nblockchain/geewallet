@@ -78,7 +78,7 @@ type internal OutgoingUnfundedChannel =
             (feeEstimator :> IFeeEstimator).GetEstSatPer1000Weight ConfirmationTarget.Normal
         let channelWaitingForAcceptChannelRes =
             Channel.NewOutbound(
-                Settings.PeerLimits,
+                Settings.PeerLimits currency,
                 channelOptions,
                 false,
                 nodeMasterPrivKey,
