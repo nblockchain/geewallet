@@ -25,18 +25,6 @@ type PairingToPage(balancesPage: Page,
         if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
             scanQrCodeButton.IsVisible <- true
 
-    let GuessCurrenciesOfAddress (address: string): Async<List<Currency>> = async {
-        try
-            return! Account.ValidateUnknownCurrencyAddress address
-        with
-        | AddressMissingProperPrefix _ ->
-            return List.empty
-        | AddressWithInvalidLength _ ->
-            return List.empty
-        | AddressWithInvalidChecksum _ ->
-            return List.empty
-    }
-
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = PairingToPage(DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
                           Seq.empty,Map.empty,(fun (_,_) -> Page()))
