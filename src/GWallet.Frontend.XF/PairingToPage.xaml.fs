@@ -21,6 +21,14 @@ type PairingToPage(balancesPage: Page,
     let coldAddressesEntry = mainLayout.FindByName<Entry>("coldStorageAddresses")
     let pairButton = mainLayout.FindByName<Button>("pairButton")
     let cancelButton = mainLayout.FindByName<Button>("cancelButton")
+
+    let Deserialize watchWalletInfoJson =
+        try
+            Marshalling.Deserialize watchWalletInfoJson
+            |> Some
+        with
+        | :? InvalidJson ->
+            None
     do
         if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
             scanQrCodeButton.IsVisible <- true
@@ -61,52 +69,74 @@ type PairingToPage(balancesPage: Page,
 
     member this.OnPairButtonClicked(sender: Object, args: EventArgs): unit =
         let watchWalletInfoJson = coldAddressesEntry.Text
-        let watchWalletInfo = Marshalling.Deserialize watchWalletInfoJson
-
-        Device.BeginInvokeOnMainThread(fun _ ->
-            pairButton.IsEnabled <- false
-            pairButton.Text <- "Pairing..."
-            coldAddressesEntry.IsEnabled <- false
-            cancelButton.IsEnabled <- false
-            scanQrCodeButton.IsEnabled <- false
-            coldAddressesEntry.IsEnabled <- false
-        )
-
-        async {
-            do! Account.CreateReadOnlyAccounts watchWalletInfo
-
-            let readOnlyAccounts = Account.GetAllActiveAccounts().OfType<ReadOnlyAccount>() |> List.ofSeq
-                                   |> List.map (fun account -> account :> IAccount)
-            let readOnlyAccountsWithWidgets =
-                FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
-
-            let _,readOnlyAccountsBalancesJob =
-                FrontendHelpers.UpdateBalancesAsync readOnlyAccountsWithWidgets false ServerSelectionMode.Fast None
-
-            let _,normalAccountsBalancesJob =
-                FrontendHelpers.UpdateBalancesAsync normalAccountsBalanceSets
-                                                    true
-                                                    ServerSelectionMode.Fast
-                                                    None
-
-            let allBalancesJob =
-                FSharpUtil.AsyncExtensions.MixedParallel2 normalAccountsBalancesJob readOnlyAccountsBalancesJob
-            let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = allBalancesJob
+        match Deserialize watchWalletInfoJson with
+        | None ->
+            let msg = "Invalid pairing info format (should be JSON). Did you pair a QR-code from another geewallet instance?"
+            Device.BeginInvokeOnMainThread(fun _ ->
+                this.DisplayAlert("Alert", msg, "OK")
+                    |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+            )
+        | Some watchWalletInfo ->
 
             Device.BeginInvokeOnMainThread(fun _ ->
-                let newBalancesPage = newBalancesPageFunc(allResolvedNormalAccountBalances,
-                                                          allResolvedReadOnlyBalances)
-                let navNewBalancesPage = NavigationPage(newBalancesPage)
-                NavigationPage.SetHasNavigationBar(newBalancesPage, false)
-                NavigationPage.SetHasNavigationBar(navNewBalancesPage, false)
-
-                // FIXME: BalancePage should probably be IDisposable and remove timers when disposing
-                balancesPage.Navigation.RemovePage balancesPage
-
-                this.Navigation.InsertPageBefore(navNewBalancesPage, this)
-
-                this.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
+                pairButton.IsEnabled <- false
+                pairButton.Text <- "Pairing..."
+                coldAddressesEntry.IsEnabled <- false
+                cancelButton.IsEnabled <- false
+                scanQrCodeButton.IsEnabled <- false
+                coldAddressesEntry.IsEnabled <- false
             )
-        } |> FrontendHelpers.DoubleCheckCompletionAsync false
+
+            async {
+                do! Account.CreateReadOnlyAccounts watchWalletInfo
+
+                let readOnlyAccounts =
+                    Account.GetAllActiveAccounts().OfType<ReadOnlyAccount>()
+                    |> List.ofSeq
+                    |> List.map (fun account -> account :> IAccount)
+                let readOnlyAccountsWithWidgets =
+                    FrontendHelpers.CreateWidgetsForAccounts
+                        readOnlyAccounts currencyImages true
+
+                let _,readOnlyAccountsBalancesJob =
+                    FrontendHelpers.UpdateBalancesAsync
+                        readOnlyAccountsWithWidgets
+                        false
+                        ServerSelectionMode.Fast
+                        None
+
+                let _,normalAccountsBalancesJob =
+                    FrontendHelpers.UpdateBalancesAsync
+                        normalAccountsBalanceSets
+                        true
+                        ServerSelectionMode.Fast
+                        None
+
+                let allBalancesJob =
+                    FSharpUtil.AsyncExtensions.MixedParallel2
+                        normalAccountsBalancesJob
+                        readOnlyAccountsBalancesJob
+                let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances =
+                    allBalancesJob
+
+                Device.BeginInvokeOnMainThread(fun _ ->
+                    let newBalancesPage =
+                        newBalancesPageFunc(
+                            allResolvedNormalAccountBalances,
+                            allResolvedReadOnlyBalances
+                        )
+                    let navNewBalancesPage = NavigationPage(newBalancesPage)
+                    NavigationPage.SetHasNavigationBar(newBalancesPage, false)
+                    NavigationPage.SetHasNavigationBar(navNewBalancesPage, false)
+
+                    // FIXME: BalancePage should probably be IDisposable and remove timers when disposing
+                    balancesPage.Navigation.RemovePage balancesPage
+
+                    this.Navigation.InsertPageBefore(navNewBalancesPage, this)
+
+                    this.Navigation.PopAsync()
+                    |> FrontendHelpers.DoubleCheckCompletion
+                )
+            } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
 
