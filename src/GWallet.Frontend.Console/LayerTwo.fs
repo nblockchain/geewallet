@@ -652,12 +652,17 @@ module LayerTwo =
             let tryClaimFunds password =
                 async {
                     let nodeClient = Lightning.Connection.StartClient channelStore password
+                    let doCpfp =
+                        if closingTxHeightOpt.IsNone then
+                            Console.WriteLine "The remote party tried to perform a forced closing of the channel (probably because it couldn't contact your node) recently (or not so recently if your device has been offline for a while), but their transaction didn't confirm yet."
+                            UserInteraction.AskYesNo "Do you want to send an extra transaction (increasing the fee) that helps the channel to get closed faster? If you don't, your funds in the channel will not be recovered yet."
+                        else
+                            false
                     let! recoveryTxStringResult =
                         (Node.Client nodeClient).CreateRecoveryTxForRemoteForceClose
                             channelInfo.ChannelId
                             closingTx
-                            // only use CPFP if closing transaction has not been confirmed yet
-                            closingTxHeightOpt.IsNone
+                            doCpfp
                     match recoveryTxStringResult with
                     | Ok recoveryTxString ->
                         let! txIdString =
