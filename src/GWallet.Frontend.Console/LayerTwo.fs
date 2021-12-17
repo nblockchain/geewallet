@@ -664,32 +664,44 @@ module LayerTwo =
             let tryClaimFunds password =
                 async {
                     let nodeClient = Lightning.Connection.StartClient channelStore password
-                    let! recoveryTxStringResult =
-                        (Node.Client nodeClient).CreateRecoveryTxForRemoteForceClose
-                            channelInfo.ChannelId
-                            closingTx
-                            // only use CPFP if closing transaction has not been confirmed yet
-                            closingTxHeightOpt.IsNone
-                    match recoveryTxStringResult with
-                    | Ok recoveryTxString ->
-                        let! txIdString =
-                            UtxoCoin.Account.BroadcastRawTransaction
-                                channelStore.Currency
-                                recoveryTxString
-                        channelStore.DeleteChannel channelInfo.ChannelId
-                        let txUri = BlockExplorer.GetTransaction (channelStore.Account :> IAccount).Currency txIdString
+                    let sendTx =
+                        if closingTxHeightOpt.IsNone then
+                            Console.WriteLine "The remote party tried to perform a forced closing of the channel (probably because it couldn't contact your node) recently (or not so recently if your device has been offline for a while), but their transaction didn't confirm yet."
+                            UserInteraction.AskYesNo "Do you want to send an extra transaction (increasing the fee) that helps the channel to get closed faster? If you don't, your funds in the channel will not be recovered yet."
+                        else
+                            true
+                    if sendTx then
+                        let! recoveryTxStringResult =
+                            (Node.Client nodeClient).CreateRecoveryTxForRemoteForceClose
+                                channelInfo.ChannelId
+                                closingTx
+                                closingTxHeightOpt.IsNone
+                        match recoveryTxStringResult with
+                        | Ok recoveryTxString ->
+                            let! txIdString =
+                                UtxoCoin.Account.BroadcastRawTransaction
+                                    channelStore.Currency
+                                    recoveryTxString
+                            channelStore.DeleteChannel channelInfo.ChannelId
+                            let txUri = BlockExplorer.GetTransaction (channelStore.Account :> IAccount).Currency txIdString
+                            return seq {
+                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                yield "        channel closed by counterparty"
+                                yield "        funds have been sent back to the wallet"
+                                yield sprintf "        recovery transaction is: %s" (txUri.ToString())
+                            }
+                        | Error ClosingBalanceBelowDustLimit ->
+                            channelStore.DeleteChannel channelInfo.ChannelId
+                            return seq {
+                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                yield "        channel closed by counterparty"
+                                yield "        Local channel balance was too small (below the \"dust\" limit) so no funds were recovered."
+                            }
+                    else
                         return seq {
                             yield! UserInteraction.DisplayLightningChannelStatus channelInfo
                             yield "        channel closed by counterparty"
-                            yield "        funds have been sent back to the wallet"
-                            yield sprintf "        recovery transaction is: %s" (txUri.ToString())
-                        }
-                    | Error ClosingBalanceBelowDustLimit ->
-                        channelStore.DeleteChannel channelInfo.ChannelId
-                        return seq {
-                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
-                            yield "        channel closed by counterparty"
-                            yield "        Local channel balance was too small (below the \"dust\" limit) so no funds were recovered."
+                            yield "        remote party's force-close transaction confirmation in progress"
                         }
                 }
 
