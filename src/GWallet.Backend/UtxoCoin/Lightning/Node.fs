@@ -674,7 +674,6 @@ type Node =
     member self.CreateRecoveryTxForLocalForceClose
         (channelId: ChannelIdentifier)
         (commitmentTxString: string)
-        (requiresCpfp: bool)
         : Async<Result<string, ClosingBalanceBelowDustLimitError>> =
             async {
                 let nodeMasterPrivKey =
@@ -710,15 +709,7 @@ type Node =
                         return Error <| ClosingBalanceBelowDustLimit
                     | Ok transactionBuilder ->
                         transactionBuilder.SendAll targetAddress |> ignore
-                        let fee =
-                            if requiresCpfp then
-                                FeeEstimator.EstimateCpfpFee
-                                    transactionBuilder
-                                    feeRate
-                                    commitmentTx
-                                    (serializedChannel.FundingScriptCoin())
-                            else
-                                transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
+                        let fee = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
                         transactionBuilder.SendFees fee |> ignore
                         let recoveryTransaction = transactionBuilder.BuildTransaction true
                         return Ok <| recoveryTransaction.ToHex()
@@ -733,7 +724,7 @@ type Node =
             let commitmentTxString = self.ChannelStore.GetCommitmentTx channelId
             let serializedChannel = self.ChannelStore.LoadChannel channelId
             let! forceCloseTxId = UtxoCoin.Account.BroadcastRawTransaction self.Account.Currency commitmentTxString
-            let! recoveryTxStringResult = self.CreateRecoveryTxForLocalForceClose channelId commitmentTxString true
+            let! recoveryTxStringResult = self.CreateRecoveryTxForLocalForceClose channelId commitmentTxString
             match recoveryTxStringResult with
             | Error err ->
                 self.ChannelStore.DeleteChannel channelId
