@@ -21,11 +21,15 @@ cargo build --locked --release
 cp target/release/electrs /bin/electrs
 popd
 
+# install golang
+curl -OJL https://go.dev/dl/go1.17.5.linux-amd64.tar.gz
+tar -C /usr/local -xzf go1.17.5.linux-amd64.tar.gz
+
 # Install lnd
-apt install -y curl tar gzip unzip make git golang
+apt install -y curl tar gzip unzip make git
 git clone https://github.com/lightningnetwork/lnd
 pushd lnd
-git checkout v0.10.3-beta
+git checkout v0.14.1-beta
 make
 make install
 popd
