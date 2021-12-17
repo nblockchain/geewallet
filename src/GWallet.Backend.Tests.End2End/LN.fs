@@ -1111,7 +1111,6 @@ type LN() =
             (Node.Client walletInstance.NodeClient).CreateRecoveryTxForLocalForceClose
                 channelId
                 commitmentTx
-                false
         let spendingTxString = UnwrapResult spendingTxStringRes "failed to create spending tx"
         let! spendingTxIdOpt = async {
             try
@@ -1248,50 +1247,6 @@ type LN() =
         let commitmentTxFeeRate =
             FeeRatePerKw.FromFeeAndVSize(commitmentTxFee, uint64 (commitmentTx.GetVirtualSize()))
         assert FeesHelper.FeeRatesApproxEqual commitmentTxFeeRate oldFeeRate
-
-        let! recoveryTxStringNoCpfpOpt =
-            (Node.Client clientWallet.NodeClient).CreateRecoveryTxForLocalForceClose
-                channelId
-                commitmentTxString
-                false
-        let recoveryTxStringNoCpfp =
-            UnwrapResult
-                recoveryTxStringNoCpfpOpt
-                "force close failed to recover funds from the commitment tx"
-        let recoveryTxNoCpfp = Transaction.Parse(recoveryTxStringNoCpfp, Network.RegTest)
-        let! recoveryTxFeeNoCpfp = FeesHelper.GetFeeFromTransaction recoveryTxNoCpfp
-        let recoveryTxFeeRateNoCpfp =
-            FeeRatePerKw.FromFeeAndVSize(recoveryTxFeeNoCpfp, uint64 (recoveryTxNoCpfp.GetVirtualSize()))
-        assert FeesHelper.FeeRatesApproxEqual recoveryTxFeeRateNoCpfp newFeeRate
-        let combinedFeeRateNoCpfp =
-            FeeRatePerKw.FromFeeAndVSize(
-                recoveryTxFeeNoCpfp + commitmentTxFee,
-                uint64 (recoveryTxNoCpfp.GetVirtualSize() + commitmentTx.GetVirtualSize())
-            )
-        assert (not <| FeesHelper.FeeRatesApproxEqual combinedFeeRateNoCpfp oldFeeRate)
-        assert (not <| FeesHelper.FeeRatesApproxEqual combinedFeeRateNoCpfp newFeeRate)
-
-        let! recoveryTxStringWithCpfpOpt =
-            (Node.Client clientWallet.NodeClient).CreateRecoveryTxForLocalForceClose
-                channelId
-                commitmentTxString
-                true
-        let recoveryTxStringWithCpfp =
-            UnwrapResult
-                recoveryTxStringWithCpfpOpt
-                "force close failed to recover funds from the commitment tx"
-        let recoveryTxWithCpfp = Transaction.Parse(recoveryTxStringWithCpfp, Network.RegTest)
-        let! recoveryTxFeeWithCpfp = FeesHelper.GetFeeFromTransaction recoveryTxWithCpfp
-        let recoveryTxFeeRateWithCpfp =
-            FeeRatePerKw.FromFeeAndVSize(recoveryTxFeeWithCpfp, uint64 (recoveryTxWithCpfp.GetVirtualSize()))
-        assert (not <| FeesHelper.FeeRatesApproxEqual recoveryTxFeeRateWithCpfp oldFeeRate)
-        assert (not <| FeesHelper.FeeRatesApproxEqual recoveryTxFeeRateWithCpfp newFeeRate)
-        let combinedFeeRateWithCpfp =
-            FeeRatePerKw.FromFeeAndVSize(
-                recoveryTxFeeWithCpfp + commitmentTxFee,
-                uint64 (recoveryTxWithCpfp.GetVirtualSize() + commitmentTx.GetVirtualSize())
-            )
-        assert FeesHelper.FeeRatesApproxEqual combinedFeeRateWithCpfp newFeeRate
 
         // Give the fundee time to see the force-close tx
         do! Async.Sleep 5000
