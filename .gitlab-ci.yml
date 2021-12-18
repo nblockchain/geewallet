@@ -63,7 +63,7 @@ newmono_build:
   artifacts:
     paths:
       - bin/*.zip
-    expire_in: 50years
+    expire_in: 50days
   script:
     - apt install -y libgtk2.0-cil-dev
 
@@ -110,5 +110,5 @@ newmono_snap:
   artifacts:
     paths:
       - "*.snap"
-    expire_in: 50years
+    expire_in: 50days
 
