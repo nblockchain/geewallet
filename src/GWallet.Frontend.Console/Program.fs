@@ -446,12 +446,12 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
 
 let rec ProgramMainLoop() =
     let activeAccounts = Account.GetAllActiveAccounts()
-    let channelStatusJobs: seq<Async<Async<seq<string>>>> = LayerTwo.GetChannelStatuses activeAccounts
+    let channelStatusJobs: seq<Async<unit -> Async<seq<string>>>> = LayerTwo.GetChannelStatuses activeAccounts
     let revokedTxCheckJobs: seq<Async<Option<string>>> =
         Lightning.ChainWatcher.CheckForChannelFraudsAndSendRevocationTx
         <| activeAccounts.OfType<UtxoCoin.NormalUtxoAccount>()
     let revokedTxCheckJob: Async<array<Option<string>>> = Async.Parallel revokedTxCheckJobs
-    let channelInfoInteractionsJob: Async<array<Async<seq<string>>>> = Async.Parallel channelStatusJobs
+    let channelInfoInteractionsJob: Async<array<unit -> Async<seq<string>>>> = Async.Parallel channelStatusJobs
     let displayAccountStatusesJob =
         UserInteraction.DisplayAccountStatuses(WhichAccount.All activeAccounts)
     let channelInfoInteractions, accountStatusesLines, _ =
@@ -462,12 +462,23 @@ let rec ProgramMainLoop() =
     Console.WriteLine "*** STATUS ***"
     Console.WriteLine(String.concat Environment.NewLine accountStatusesLines)
 
-    Console.WriteLine String.Empty
-    for channelInfoInteraction in channelInfoInteractions do
-        let channelStatusLines =
-            channelInfoInteraction |> Async.RunSynchronously
-        Console.WriteLine(String.concat Environment.NewLine channelStatusLines)
-    Console.WriteLine String.Empty
+    Console.WriteLine()
+
+    let rec runChannelInteractions (statusLines: seq<string>) (channelInfoInteractions: seq<unit -> Async<seq<string>>>) =
+        match Seq.tryHead channelInfoInteractions with
+        | Some headInteraction ->
+            let channelStatusLines =
+                headInteraction ()
+                |> Async.RunSynchronously
+            runChannelInteractions (Seq.append statusLines channelStatusLines) (Seq.tail channelInfoInteractions)
+        | None ->
+            statusLines
+
+    let channelStatuses = runChannelInteractions Seq.empty channelInfoInteractions
+
+    Console.WriteLine ()
+    Console.WriteLine (String.concat Environment.NewLine channelStatuses)
+    Console.WriteLine ()
 
     if CheckArchivedAccountsAreEmpty() then
         PerformOperation activeAccounts

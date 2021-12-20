@@ -542,18 +542,17 @@ module LayerTwo =
                                       (channelInfo: ChannelInfo)
                                       (fundingBroadcastButNotLockedData: FundingBroadcastButNotLockedData)
                                       (currency)
-                                          : Async<Async<seq<string>>> =
+                                          : Async<seq<string>> =
         async {
             let! remainingConfirmations = fundingBroadcastButNotLockedData.GetRemainingConfirmations()
             if remainingConfirmations = 0u then
-                return LockChannel channelStore channelInfo currency
+                return! LockChannel channelStore channelInfo currency
             else
-                return async {
-                    return seq {
+                return
+                    seq {
                         yield! UserInteraction.DisplayLightningChannelStatus channelInfo
                         yield sprintf "        waiting for %i more confirmations" remainingConfirmations
                     }
-                }
         }
 
     let UpdateFeeIfNecessary (channelStore: ChannelStore)
@@ -685,7 +684,7 @@ module LayerTwo =
 
 
 
-    let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<Async<seq<string>>>> =
+    let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<unit -> Async<seq<string>>>> =
         seq {
             let normalUtxoAccounts = accounts.OfType<UtxoCoin.NormalUtxoAccount>()
             for account in normalUtxoAccounts do
@@ -704,7 +703,7 @@ module LayerTwo =
                     |> Seq.length
 
                 yield async {
-                    return async {
+                    return fun () -> async {
                         return seq {
                             if activeChannelCount > 0 then
                                 yield sprintf "%A Lightning Status (%i active channels):" currency activeChannelCount
@@ -713,26 +712,29 @@ module LayerTwo =
                         }
                     }
                 }
+
                 for channelId in channelIds do
                     let channelInfo = channelStore.ChannelInfo channelId
                     match channelInfo.Status with
                     | ChannelStatus.FundingBroadcastButNotLocked fundingBroadcastButNotLockedData ->
                         let currency = (account :> IAccount).Currency
-                        yield
+                        yield async { return fun () ->
                             LockChannelIfFundingConfirmed
                                 channelStore
                                 channelInfo
                                 fundingBroadcastButNotLockedData
                                 currency
+                        }
                     | ChannelStatus.Active ->
                         yield
                             async {
                                 let! remoteForceClosingTxOpt = FindRemoteForceClose channelStore channelInfo
                                 match remoteForceClosingTxOpt with
                                 | Some (closingTx, closingTxHeightOpt) ->
-                                    return ClaimFundsOnForceClose channelStore channelInfo closingTx closingTxHeightOpt
+                                    return fun () ->
+                                        ClaimFundsOnForceClose channelStore channelInfo closingTx closingTxHeightOpt
                                 | None ->
-                                    return async {
+                                    return fun () -> async {
                                         do! UpdateFeeIfNecessary channelStore channelInfo
                                         return seq {
                                             yield! UserInteraction.DisplayLightningChannelStatus channelInfo
@@ -743,21 +745,26 @@ module LayerTwo =
                     | ChannelStatus.Closing ->
                         yield
                             async {
-                                return async {
-                                    let! isClosed = UtxoCoin.Lightning.Network.CheckClosingFinished channelInfo
-                                    let showTheChannel = not isClosed
-                                    if showTheChannel then
-                                        return seq {
-                                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
-                                            yield "        channel is in being closed"
+                                let! isClosed = UtxoCoin.Lightning.Network.CheckClosingFinished channelInfo
+                                let showTheChannel = not isClosed
+                                if showTheChannel then
+                                    return
+                                        fun () ->
+                                            async {
+                                                return seq {
+                                                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                                    yield "        channel is in being closed"
+                                                }
+                                            }
+                                else
+                                    return fun () ->
+                                        async {
+                                            return Seq.empty
                                         }
-                                    else
-                                        return Seq.empty
                                 }
-                            }
                     | ChannelStatus.LocallyForceClosed locallyForceClosedData ->
                         yield async {
-                            return
+                            return fun () ->
                                 ClaimFundsIfTimelockExpired
                                     channelStore
                                     channelInfo
