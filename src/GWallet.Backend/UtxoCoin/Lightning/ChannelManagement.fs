@@ -88,7 +88,7 @@ type ChannelInfo =
                                                      : ChannelInfo =
         let fundingTxId = TransactionIdentifier.FromHash (serializedChannel.FundingScriptCoin().Outpoint.Hash)
         let status =
-            match serializedChannel.LocalForceCloseSpendingTxOpt with
+            match serializedChannel.InitialRecoveryTransactionOpt with
             | Some localForceCloseSpendingTx ->
                 ChannelStatus.LocallyForceClosed {
                     Network = serializedChannel.SavedChannelState.StaticChannelConfig.Network
