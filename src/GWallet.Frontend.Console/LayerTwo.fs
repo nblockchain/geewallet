@@ -604,17 +604,27 @@ module LayerTwo =
         async {
             let! remainingConfirmations = locallyForceClosedData.GetRemainingConfirmations()
             if remainingConfirmations = 0us then
-                let! txId =
-                    UtxoCoin.Account.BroadcastRawTransaction
-                        locallyForceClosedData.Currency
-                        locallyForceClosedData.SpendingTransactionString
-                channelStore.DeleteChannel channelInfo.ChannelId
-                return seq {
-                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo
-                    yield sprintf "        channel force-closed"
-                    yield sprintf "        funds have been recovered and sent back to the wallet"
-                    yield sprintf "        txid of recovery transaction is %s" txId
-                }
+                let trySendRecoveryTx (password: string) =
+                    async {
+                        let nodeClient = Lightning.Connection.StartClient channelStore password
+                        let commitmentTx = channelStore.GetCommitmentTx channelInfo.ChannelId
+                        let! recoveryTxResult = (Node.Client nodeClient).CreateRecoveryTxForLocalForceClose channelInfo.ChannelId commitmentTx
+                        let recoveryTxString = UnwrapResult recoveryTxResult "BUG: we should've checked that output is not dust when initiating the force-close"
+                        let! txId =
+                            UtxoCoin.Account.BroadcastRawTransaction
+                                locallyForceClosedData.Currency
+                                recoveryTxString
+                        channelStore.DeleteChannel channelInfo.ChannelId
+                        return seq {
+                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                            yield sprintf "        channel force-closed"
+                            yield sprintf "        funds have been recovered and sent back to the wallet"
+                            yield sprintf "        txid of recovery transaction is %s" txId
+                        }
+                    }
+                return!
+                    trySendRecoveryTx
+                    |> UserInteraction.TryWithPasswordAsync
             else
                 return seq {
                     yield! UserInteraction.DisplayLightningChannelStatus channelInfo

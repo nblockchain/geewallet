@@ -65,7 +65,7 @@ type SerializedChannel =
         AccountFileName: string
         // FIXME: should store just RemoteNodeEndPoint instead of CounterpartyIP+RemoteNodeId?
         CounterpartyIP: IPEndPoint
-        LocalForceCloseSpendingTxOpt: Option<string>
+        InitialRecoveryTransactionOpt: Option<string>
         LocalChannelPubKeys: ChannelPubKeys
     }
     static member LightningSerializerSettings currency: JsonSerializerSettings =
