@@ -724,6 +724,9 @@ type Node =
             let commitmentTxString = self.ChannelStore.GetCommitmentTx channelId
             let serializedChannel = self.ChannelStore.LoadChannel channelId
             let! forceCloseTxId = UtxoCoin.Account.BroadcastRawTransaction self.Account.Currency commitmentTxString
+            // This should still be done once here to make sure local output isn't dust
+            // and also we use InitialRecoveryTransactionOpt property as an indication
+            // that we initiated a force-close.
             let! recoveryTxStringResult = self.CreateRecoveryTxForLocalForceClose channelId commitmentTxString
             match recoveryTxStringResult with
             | Error err ->
@@ -732,7 +735,7 @@ type Node =
             | Ok recoveryTxString ->
                 let newSerializedChannel = {
                     serializedChannel with
-                        LocalForceCloseSpendingTxOpt = Some recoveryTxString
+                        InitialRecoveryTransactionOpt = Some recoveryTxString
                 }
                 self.ChannelStore.SaveChannel newSerializedChannel
                 return Ok forceCloseTxId

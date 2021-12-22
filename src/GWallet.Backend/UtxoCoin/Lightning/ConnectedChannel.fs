@@ -218,7 +218,7 @@ type internal ConnectedChannel =
             Commitments = self.Channel.Channel.Commitments
             AccountFileName = self.Account.AccountFile.Name
             CounterpartyIP = self.PeerNode.PeerId.Value :?> IPEndPoint
-            LocalForceCloseSpendingTxOpt = None
+            InitialRecoveryTransactionOpt = None
             LocalChannelPubKeys = self.Channel.ChannelPrivKeys.ToChannelPubKeys()
         }
         channelStore.SaveChannel serializedChannel
