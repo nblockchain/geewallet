@@ -185,11 +185,9 @@ type internal ConnectedChannel =
             ConnectedChannel.LoadChannel channelStore transportListener.NodeMasterPrivKey channelId
         let! connectRes =
             let nodeId = channel.RemoteNodeId
-            let peerId = PeerId (serializedChannel.CounterpartyIP :> EndPoint)
-            PeerNode.ConnectAcceptFromTransportListener
+            PeerNode.AcceptFromTransportListener
                 transportListener
                 nodeId
-                peerId
         match connectRes with
         | Error connectError -> return Error <| Connect connectError
         | Ok peerNode ->
