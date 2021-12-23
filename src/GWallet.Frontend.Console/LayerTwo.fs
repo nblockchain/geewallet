@@ -108,12 +108,13 @@ module LayerTwo =
         let channelIds = seq {
             for channelId in channelStore.ListChannelIds() do
                 let channelInfo = channelStore.ChannelInfo channelId
-                match isFunderOpt with
-                | None ->
-                    yield channelId
-                | Some isFunder ->
-                    if channelInfo.IsFunder = isFunder then
+                if channelInfo.Status = ChannelStatus.Active then
+                    match isFunderOpt with
+                    | None ->
                         yield channelId
+                    | Some isFunder ->
+                        if channelInfo.IsFunder = isFunder then
+                            yield channelId
         }
 
         let channelCount = channelIds.Count()
