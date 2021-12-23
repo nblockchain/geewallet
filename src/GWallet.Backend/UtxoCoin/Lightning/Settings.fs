@@ -23,12 +23,14 @@ module Settings =
         | _ -> failwith "Unsupported currency"
         |> BlockHeightOffset16
 
-    let internal PeerLimits (currency: Currency) : ChannelHandshakeLimits = {
+    let internal PeerLimits (funding: Money) (currency: Currency) : ChannelHandshakeLimits = {
         ForceChannelAnnouncementPreference = false
         MinFundingSatoshis = Money 100L
         MaxHTLCMinimumMSat = LNMoney 100000L
         MinMaxHTLCValueInFlightMSat = LNMoney 10000L
-        MaxChannelReserveSatoshis = Money 100000L
+        // Fail if we consider the channel reserve to be too large.  We
+        // currently fail if it is greater than 20% of the channel capacity.
+        MaxChannelReserveSatoshis = funding / 5L
         MinMaxAcceptedHTLCs = 1us
         MinDustLimitSatoshis = Money 200L // Value used by lnd
         MaxDustLimitSatoshis = Money 10000000L

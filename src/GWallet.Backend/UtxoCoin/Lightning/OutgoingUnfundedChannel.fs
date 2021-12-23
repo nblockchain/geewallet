@@ -70,15 +70,16 @@ type internal OutgoingUnfundedChannel =
         let! feeEstimator = FeeEstimator.Create currency
         let network = UtxoCoin.Account.GetNetwork currency
         let defaultFinalScriptPubKey = ScriptManager.CreatePayoutScript account
-        let localParams =
+        let localParams, peerLimits =
             let funding = Money(channelCapacity.ValueToSend, MoneyUnit.BTC)
-            Settings.GetLocalParams funding currency
+            Settings.GetLocalParams funding currency,
+            Settings.PeerLimits funding currency
         let temporaryChannelId = ChannelIdentifier.NewRandom()
         let feeRate =
             (feeEstimator :> IFeeEstimator).GetEstSatPer1000Weight ConfirmationTarget.Normal
         let channelWaitingForAcceptChannelRes =
             Channel.NewOutbound(
-                Settings.PeerLimits currency,
+                peerLimits,
                 channelOptions,
                 false,
                 nodeMasterPrivKey,
