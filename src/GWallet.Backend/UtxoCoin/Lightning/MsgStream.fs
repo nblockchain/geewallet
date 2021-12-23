@@ -140,27 +140,28 @@ type internal MsgStream =
     }
 
     static member internal AcceptFromTransportListener (transportListener: TransportListener)
+                                                       (withRetry: bool)
                                                            : Async<Result<InitMsg * MsgStream, ConnectError>> = async {
-        let! transportStreamRes =
-            TransportStream.AcceptFromTransportListener transportListener
-        match transportStreamRes with
-        | Error handshakeError -> return Error <| Handshake handshakeError
-        | Ok transportStream ->
-            let! initializeRes = MsgStream.InitializeTransportStream transportStream
-            match initializeRes with
-            | Error initializeError -> return Error <| Initialize initializeError
-            | Ok (initMsg, msgStream) -> return Ok (initMsg, msgStream)
-    }
+        let initialInterval = TimeSpan.FromSeconds 1.0
 
-    static member internal ConnectAcceptFromTransportListener (transportListener: TransportListener)
-                                                              (peerNodeId: NodeId)
-                                                              (peerId: PeerId)
-                                                                  : Async<Result<InitMsg * MsgStream, ConnectError>> = async {
-        let! transportStreamRes =
-            TransportStream.ConnectAcceptFromTransportListener
-                transportListener
-                peerNodeId
-                peerId
+        let rec tryAccept (backoff: TimeSpan) =
+            async {
+                let! acceptRes = TransportStream.AcceptFromTransportListener transportListener
+                match acceptRes with
+                | Error error ->
+                    if withRetry then
+                        let backoffMillis = (int backoff.TotalMilliseconds)
+                        Infrastructure.LogDebug <| SPrintF1 "accept error: %s" (error :> IErrorMsg).Message
+                        Infrastructure.LogDebug <| SPrintF1 "retrying in %ims" backoffMillis
+                        do! Async.Sleep backoffMillis
+                        return! tryAccept (backoff + backoff)
+                    else
+                        return Error error
+                | Ok transportStream ->
+                    return Ok transportStream
+            }
+
+        let! transportStreamRes = tryAccept initialInterval
         match transportStreamRes with
         | Error handshakeError -> return Error <| Handshake handshakeError
         | Ok transportStream ->

@@ -460,6 +460,7 @@ module LayerTwo =
                 let tryReceiveLightningEvent password =
                     async {
                         use nodeServer = Lightning.Connection.StartServer channelStore password bindAddress
+                        Console.WriteLine "Waiting for funder to connect..."
                         let! receiveLightningEventRes = Lightning.Network.ReceiveLightningEvent nodeServer channelId
                         match receiveLightningEventRes with
                         | Error nodeReceiveLightningEventError ->
