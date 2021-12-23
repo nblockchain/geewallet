@@ -180,13 +180,14 @@ type internal FundedChannel =
                     let currency = (account :> IAccount).Currency
                     let! channelOptions = MonoHopUnidirectionalChannel.DefaultChannelOptions (currency)
                     let network = UtxoCoin.Account.GetNetwork currency
-                    let localParams =
+                    let localParams, peerLimits =
                         let funding = openChannelMsg.FundingSatoshis
-                        Settings.GetLocalParams funding currency
+                        Settings.GetLocalParams funding currency,
+                        Settings.PeerLimits funding currency
                     let fundingTxMinimumDepth =
                         MonoHopUnidirectionalChannel.DefaultFundingTxMinimumDepth
                     return Channel.NewInbound(
-                        Settings.PeerLimits currency,
+                        peerLimits,
                         channelOptions,
                         false,
                         nodeMasterPrivKey,
