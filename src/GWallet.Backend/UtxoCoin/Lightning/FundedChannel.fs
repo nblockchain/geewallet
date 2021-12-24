@@ -185,7 +185,7 @@ type internal FundedChannel =
                         Settings.GetLocalParams funding currency,
                         Settings.PeerLimits funding currency
                     let fundingTxMinimumDepth =
-                        MonoHopUnidirectionalChannel.DefaultFundingTxMinimumDepth
+                        Settings.DefaultFundingTxMinimumDepth currency
                     return Channel.NewInbound(
                         peerLimits,
                         channelOptions,

@@ -23,6 +23,13 @@ module Settings =
         | _ -> failwith "Unsupported currency"
         |> BlockHeightOffset16
 
+    let internal DefaultFundingTxMinimumDepth (currency: Currency) =
+        match currency with
+        | BTC -> 2u
+        | LTC -> 3u
+        | _ -> failwith "Unsupported currency"
+        |> BlockHeightOffset32
+
     let internal PeerLimits (funding: Money) (currency: Currency) : ChannelHandshakeLimits = {
         ForceChannelAnnouncementPreference = false
         MinFundingSatoshis = Money 100L
