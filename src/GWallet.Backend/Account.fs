@@ -95,7 +95,7 @@ module Account =
     let GetArchivedAccountsWithPositiveBalance (cancelSourceOption: Option<CustomCancelSource>)
                                                    : Async<seq<ArchivedAccount*decimal>> =
         let asyncJobs = seq<Async<ArchivedAccount*Option<decimal>>> {
-            let allCurrencies = Currency.GetAll()
+            let allCurrencies = Currency.GetAll().Where(fun curr -> not (curr = Currency.Tor))
 
             for currency in allCurrencies do
                 let fromUnencryptedPrivateKeyToPublicAddressFunc =
@@ -522,7 +522,7 @@ module Account =
     let CreateAllConceptAccounts (privateKeyBytes: array<byte>) (encryptionPassword: string)
                                      : Async<seq<ConceptAccount>> = async {
         let etherAccounts = CreateEtherNormalAccounts encryptionPassword privateKeyBytes
-        let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (currency.IsEtherBased()))
+        let nonEthCurrencies = Currency.GetAll().Where(fun currency -> not (currency.IsEtherBased()) && not (currency = Currency.Tor))
 
         let nonEtherAccounts: List<Async<List<ConceptAccount>>> =
             seq {

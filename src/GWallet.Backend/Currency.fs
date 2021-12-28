@@ -15,6 +15,7 @@ type Currency =
     | ETC
     | DAI
     | SAI
+    | Tor
     // </NOTE>
 
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
@@ -34,6 +35,7 @@ type Currency =
             yield ETC
             yield DAI
             yield SAI
+            yield Tor
         }
 #endif
 
@@ -78,6 +80,7 @@ type Currency =
         | ETC -> "ETC"
         | SAI -> "SAI"
         | DAI -> "DAI"
+        | Tor -> "Tor"
 #endif
 
 // the reason we have used "and" is because of the circular reference

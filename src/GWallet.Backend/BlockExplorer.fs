@@ -24,6 +24,8 @@ module BlockExplorer =
                   "https://etcblockexplorer.com/address/addr/"
               | Currency.SAI | Currency.DAI ->
                   SPrintF1 "https://etherscan.io/token/%s?a=" (TokenManager.GetTokenContractAddress account.Currency)
+              | Currency.Tor ->
+                    failwith "Tor coin is not expected here"
         Uri(baseUrl + account.PublicAddress)
 
     let GetTransaction (currency: Currency) (txHash: string): Uri =
@@ -39,4 +41,6 @@ module BlockExplorer =
                   "https://etcblockexplorer.com/tx/"
               | Currency.DAI | Currency.SAI ->
                   "https://etherscan.io/tx/"
+              | Currency.Tor ->
+                  failwith "Tor coin is not expected here"
         Uri(baseUrl + txHash)

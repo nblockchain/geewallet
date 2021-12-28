@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Linq
+open System.Net
 open System.Net.Http
 
 open GWallet.Backend.FSharpUtil.UwpHacks

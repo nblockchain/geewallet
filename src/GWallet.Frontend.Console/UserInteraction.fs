@@ -784,6 +784,12 @@ module UserInteraction =
     let rec internal Ask<'T> (parser: string -> 'T) (msg: string): Option<'T> =
         Console.Write msg
         Console.Write ": "
+        // Required to read more than 254 chars from the Console (necessary for onion addresses)
+        // https://stackoverflow.com/a/16638000/1829793
+        Console.SetIn(
+            // FIXME: Do we need to dispose() streamReader
+            new StreamReader(Console.OpenStandardInput(), Console.InputEncoding, false, 1024)
+        )
         let text = Console.ReadLine().Trim()
         if text = String.Empty then
             None
@@ -796,3 +802,19 @@ module UserInteraction =
                 Console.WriteLine("Try again or leave blank to abort.")
                 Ask parser msg
 
+    let rec internal MaybeAskChannelConnectionString nodeServerType currency: Option<NOnionEndpoint> =
+        match nodeServerType with
+        | NodeServerType.Tor ->
+            let getNodeType currency text =
+                if text = String.Empty then
+                    None
+                else
+                    if NOnionEndpoint.IsNOnionConnection text then
+                        Some (NOnionEndpoint.Parse currency text)
+                    else
+                        MaybeAskChannelConnectionString nodeServerType currency
+
+            match Ask (getNodeType currency) "Channel counterparty QR connection string contents" with
+            | Some introductionPoint -> introductionPoint
+            | _ -> None
+        | _ -> None

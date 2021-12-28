@@ -4,13 +4,18 @@ open System
 open System.Net.Sockets
 open System.Net
 open System.Diagnostics
+open System.IO
 
 open NBitcoin
 open DotNetLightning.Peer
 open DotNetLightning.Utils
 open ResultUtils.Portability
+open NOnion.Network
+open NOnion.Directory
+open NOnion.Services
 
 open GWallet.Backend
+open GWallet.Backend.UtxoCoin
 open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -94,16 +99,37 @@ type RecvBytesError =
         | PeerDisconnected err -> err.PossibleBug
         | Decryption _ -> false
 
+type IncomingConnectionMethod =
+    | Tcp of TcpListener
+    | Tor of TorServiceHost
+
+type NodeEndPointType =
+    | Tcp of NodeEndPoint
+    | Tor of NOnionEndpoint
+
+    override self.ToString() =
+        match self with
+        | Tcp tcpEndpoint ->
+            tcpEndpoint.ToString()
+        | Tor torEndpoint ->
+            torEndpoint.ToString()
+
 type internal TransportListener =
     internal {
         NodeMasterPrivKey: NodeMasterPrivKey
-        Listener: TcpListener
+        Listener: IncomingConnectionMethod
+        NodeServerType: NodeServerType
     }
     interface IDisposable with
         member self.Dispose() =
-            self.Listener.Stop()
+            match self.Listener with
+            | IncomingConnectionMethod.Tcp tcp ->
+                tcp.Stop()
+            | IncomingConnectionMethod.Tor _tor ->
+                // TODO: stop the TorServiceHost (how do we do that?)
+                ()
 
-    static member internal Bind (nodeMasterPrivKey: NodeMasterPrivKey) (endpoint: IPEndPoint) =
+    static member internal TcpBind (nodeMasterPrivKey: NodeMasterPrivKey) (endpoint: IPEndPoint) =
         let listener = new TcpListener (endpoint)
         listener.ExclusiveAddressUse <- false
         listener.Server.SetSocketOption(
@@ -115,12 +141,39 @@ type internal TransportListener =
 
         {
             NodeMasterPrivKey = nodeMasterPrivKey
-            Listener = listener
+            Listener = IncomingConnectionMethod.Tcp listener
+            NodeServerType = NodeServerType.Tcp (Some endpoint)
         }
 
-    member internal self.LocalIPEndPoint: IPEndPoint =
-        // sillly .NET API: downcast is even done in the sample from the docs: https://docs.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener.localendpoint?view=netcore-3.1
-        self.Listener.LocalEndpoint :?> IPEndPoint
+    member internal self.LocalIPEndPoint: Option<IPEndPoint> =
+        match self.Listener with
+        | IncomingConnectionMethod.Tcp tcp ->
+            // sillly .NET API: downcast is even done in the sample from the docs: https://docs.microsoft.com/en-us/dotnet/api/system.net.sockets.tcplistener.localendpoint?view=netcore-3.1
+            Some (tcp.LocalEndpoint :?> IPEndPoint)
+        | IncomingConnectionMethod.Tor _tor ->
+            // TODO: IPEndPoint of TorServiceHost?
+            None
+
+    static member internal TorBind (nodeMasterPrivKey: NodeMasterPrivKey) = async {
+        let! directory = TorOperations.GetTorDirectory()
+        let! host = TorOperations.StartTorServiceHost directory
+
+        return {
+            NodeMasterPrivKey = nodeMasterPrivKey
+            Listener = IncomingConnectionMethod.Tor host
+            NodeServerType = NodeServerType.Tor
+        }
+    }
+
+    static member internal Bind (nodeMasterPrivKey: NodeMasterPrivKey)
+                                (nodeServerType: NodeServerType) = async {
+        match nodeServerType with
+        | NodeServerType.Tcp (Some bindAddress) -> return TransportListener.TcpBind nodeMasterPrivKey bindAddress
+        | NodeServerType.Tcp None ->
+            // TODO: discuss what's the best error message here.
+            return failwith "Unreachable because missing bindAddress"
+        | NodeServerType.Tor -> return! TransportListener.TorBind nodeMasterPrivKey
+    }
 
     member internal self.NodeId: NodeId =
         self.NodeMasterPrivKey.NodeId()
@@ -128,9 +181,15 @@ type internal TransportListener =
     member internal self.PubKey: PubKey =
         self.NodeId.Value
 
-    member internal self.EndPoint: NodeEndPoint =
-        let nodeId = PublicKey self.PubKey
-        NodeEndPoint.FromParts nodeId self.LocalIPEndPoint
+    member internal self.EndPoint: NodeEndPointType =
+        match self.Listener with
+        | IncomingConnectionMethod.Tcp tcp ->
+            let nodeId = PublicKey self.PubKey
+            let localIpEndpoint = tcp.LocalEndpoint :?> IPEndPoint
+            NodeEndPointType.Tcp (NodeEndPoint.FromParts nodeId localIpEndpoint)
+        | IncomingConnectionMethod.Tor tor ->
+            let nodeId = PublicKey self.PubKey
+            NodeEndPointType.Tor ({ NOnionEndpoint.NodeId = nodeId; IntroductionPoint = tor.Export() })
 
 
 type PeerErrorMessage =
@@ -163,15 +222,32 @@ type PeerErrorMessage =
         member __.ChannelBreakdown: bool =
             true
 
+type TransportClientType =
+| TcpClient of TcpClient
+| TorClient of TorServiceClient
+
+type TransportType =
+| Tcp of TcpClient
+| Tor of TorStream
+
+type StreamType =
+| TcpNetworkStream of NetworkStream
+| TorClientStream of TorStream
+
 type internal TransportStream =
     internal {
         NodeMasterPrivKey: NodeMasterPrivKey
         Peer: Peer
-        Client: TcpClient
+        Client: TransportType
     }
     interface IDisposable with
         member self.Dispose() =
-            self.Client.Close()
+            match self.Client with
+            | TransportType.Tcp tcpClient ->
+                tcpClient.Close()
+            | TransportType.Tor _torStream ->
+                // FIXME: TorServiceClient needs to be disposed.
+                ()
 
     static member private bolt08EncryptedMessageLengthPrefixLength = 18
     static member private bolt08EncryptedMessageMacLength = 16
@@ -180,15 +256,18 @@ type internal TransportStream =
     static member private bolt08ActTwoLength = 50
     static member private bolt08ActThreeLength = 66
 
-    static member private ReadExactAsync (stream: NetworkStream)
+    static member private ReadExactAsync (stream: StreamType)
                                          (numberBytesToRead: int)
                                              : Async<Result<array<byte>, PeerDisconnectedError>> =
         let buf: array<byte> = Array.zeroCreate numberBytesToRead
         let rec read buf totalBytesRead =
             let readAsync () =
                 async {
-                    let task = (stream.ReadAsync(buf, totalBytesRead, (numberBytesToRead - totalBytesRead)))
-                    return! Async.AwaitTask task
+                    match stream with
+                    | StreamType.TcpNetworkStream tcpStream ->
+                        return! tcpStream.ReadAsync(buf, totalBytesRead, numberBytesToRead - totalBytesRead) |> Async.AwaitTask
+                    | StreamType.TorClientStream torStream ->
+                        return! torStream.Receive buf totalBytesRead (numberBytesToRead - totalBytesRead)
                 }
             async {
                 let! maybeBytesRead =
@@ -247,36 +326,77 @@ type internal TransportStream =
             return Error socketExceptions
         }
 
-    static member private TcpAcceptAny (listener: TcpListener)
-                                               : Async<Result<TcpClient, seq<SocketException>>> = async {
+    static member private TorConnect (nOnionEndpoint: NOnionEndpoint)
+                                        : Async<Result<TorServiceClient, seq<SocketException>>> = async {
+        let introductionIpEndPoint = ((IPAddress.Parse nOnionEndpoint.IntroductionPoint.Address, nOnionEndpoint.IntroductionPoint.Port) |> IPEndPoint)
+        Infrastructure.LogDebug <| SPrintF1 "Connecting over TOR to %A..." introductionIpEndPoint
+
+        let! directory = TorOperations.GetTorDirectory()
         try
-            let! client = listener.AcceptTcpClientAsync() |> Async.AwaitTask
-            return Ok client
+            let! torClient = TorOperations.TorConnect directory nOnionEndpoint.IntroductionPoint
+            Infrastructure.LogDebug <| SPrintF1 "Connected %s" nOnionEndpoint.IntroductionPoint.Address
+            return Ok torClient
+        with
+        | ex ->
+            let socketExceptions = FindSingleException<SocketException> ex
+            return Error socketExceptions
+        }
+
+    static member private TransportConnect (localEndPointOpt: Option<IPEndPoint>)
+                                           (node: NodeIdentifier)
+                                               : Async<Result<TransportClientType, seq<SocketException>>> = async {
+        match node with
+        | NodeIdentifier.EndPoint remoteEndPoint ->
+            let! maybeTcpClient = TransportStream.TcpConnect localEndPointOpt remoteEndPoint.IPEndPoint
+            match maybeTcpClient with
+            | Ok tcpClient ->
+                return Ok (TransportClientType.TcpClient tcpClient)
+            | Error error ->
+                return Error error
+        | NodeIdentifier.NEndpoint nonionIntroductionPoint ->
+            let! maybeTorClient = TransportStream.TorConnect nonionIntroductionPoint
+            match maybeTorClient with
+            | Ok torClient ->
+                return Ok (TransportClientType.TorClient torClient)
+            | Error error ->
+                return Error error
+            }
+
+    static member private TcpOrTorAcceptAny (listener: IncomingConnectionMethod)
+                                               : Async<Result<TransportType, seq<SocketException>>> = async {
+        try
+            match listener with
+            | IncomingConnectionMethod.Tcp tcpListener ->
+                let! client = tcpListener.AcceptTcpClientAsync() |> Async.AwaitTask
+                return Ok (TransportType.Tcp client)
+            | IncomingConnectionMethod.Tor torListener ->
+                let! client = torListener.AcceptClient()
+                return Ok (TransportType.Tor client)
         with
         | ex ->
             let socketExceptions = FindSingleException<SocketException> ex
             return Error socketExceptions
     }
 
-    static member private ConnectHandshake (client: TcpClient)
-                                           (nodeMasterPrivKey: NodeMasterPrivKey)
-                                           (peerNodeId: NodeId)
-                                               : Async<Result<TransportStream, HandshakeError>> = async {
+    static member private ConnectHandshakeTcp
+        (client: TcpClient)
+        (nodeMasterPrivKey: NodeMasterPrivKey)
+        (peerNodeId: NodeId) = async {
         let nodeSecret = nodeMasterPrivKey.NodeSecret()
-        let stream = client.GetStream()
-        let peerId = PeerId client.Client.RemoteEndPoint
         // FIXME: CreateOutbound should take a NodeSecret
-        let peer = Peer.CreateOutbound(peerId, peerNodeId, nodeSecret.RawKey())
+        let peer = Peer.CreateOutbound(peerNodeId, nodeSecret.RawKey())
         let act1, peerEncryptor = PeerChannelEncryptor.getActOne peer.ChannelEncryptor
         Debug.Assert((TransportStream.bolt08ActOneLength = act1.Length), "act1 has wrong length")
         let peerAfterAct1 = { peer with ChannelEncryptor = peerEncryptor }
+
+        let stream = client.GetStream()
 
         // Send act1
         do! stream.WriteAsync(act1, 0, act1.Length) |> Async.AwaitTask
 
         // Receive act2
         Infrastructure.LogDebug "Receiving Act 2..."
-        let! act2Res = TransportStream.ReadExactAsync stream TransportStream.bolt08ActTwoLength
+        let! act2Res = TransportStream.ReadExactAsync (StreamType.TcpNetworkStream stream) TransportStream.bolt08ActTwoLength
         match act2Res with
         | Error peerDisconnectedError -> return Error <| DisconnectedOnAct2 peerDisconnectedError
         | Ok act2 ->
@@ -292,69 +412,177 @@ type internal TransportStream =
                 return Ok {
                     NodeMasterPrivKey = nodeMasterPrivKey
                     Peer = peerAfterAct2
-                    Client = client
+                    Client = TransportType.Tcp client
+                }
+            | Ok evts ->
+                return failwith <| SPrintF1
+                    "DNL returned unexpected events when processing act2: %A" evts
+        }
+
+    static member private ConnectHandshakeTor
+        (client: TorServiceClient)
+        (nodeMasterPrivKey: NodeMasterPrivKey)
+        (peerNodeId: NodeId) = async {
+        let nodeSecret = nodeMasterPrivKey.NodeSecret()
+        // FIXME: CreateOutbound should take a NodeSecret
+        let peer = Peer.CreateOutbound(peerNodeId, nodeSecret.RawKey())
+        let act1, peerEncryptor = PeerChannelEncryptor.getActOne peer.ChannelEncryptor
+        Debug.Assert((TransportStream.bolt08ActOneLength = act1.Length), "act1 has wrong length")
+        let peerAfterAct1 = { peer with ChannelEncryptor = peerEncryptor }
+
+        let stream = client.GetStream()
+
+        // Send act1
+        do! stream.SendData(act1)
+
+        // Receive act2
+        Infrastructure.LogDebug "Receiving Act 2..."
+        let! act2Res = TransportStream.ReadExactAsync (StreamType.TorClientStream stream) TransportStream.bolt08ActTwoLength
+        match act2Res with
+        | Error peerDisconnectedError -> return Error <| DisconnectedOnAct2 peerDisconnectedError
+        | Ok act2 ->
+            let peerCmd = ProcessActTwo(act2, nodeSecret.RawKey())
+            match Peer.executeCommand peerAfterAct1 peerCmd with
+            | Error err -> return Error <| InvalidAct2 err
+            | Ok (ActTwoProcessed ((act3, _), _) as evt::[]) ->
+                let peerAfterAct2 = Peer.applyEvent peerAfterAct1 evt
+
+                Debug.Assert((TransportStream.bolt08ActThreeLength = act3.Length), SPrintF1 "act3 has wrong length (not %i)" TransportStream.bolt08ActThreeLength)
+
+                let! _sendResAct3 = stream.SendData(act3)
+                return Ok {
+                    NodeMasterPrivKey = nodeMasterPrivKey
+                    Peer = peerAfterAct2
+                    Client = TransportType.Tor stream
                 }
             | Ok evts ->
                 return failwith <| SPrintF1
                     "DNL returned unexpected events when processing act2: %A" evts
     }
 
-    static member internal Connect
+    static member private ConnectHandshake
+        (tcpOrTorclient: TransportClientType)
         (nodeMasterPrivKey: NodeMasterPrivKey)
         (peerNodeId: NodeId)
-        (peerId: PeerId)
+        : Async<Result<TransportStream, HandshakeError>> =
+        async {
+            match tcpOrTorclient with
+            | TransportClientType.TcpClient client ->
+                return! TransportStream.ConnectHandshakeTcp client nodeMasterPrivKey peerNodeId
+            | TransportClientType.TorClient client ->
+                return! TransportStream.ConnectHandshakeTor client nodeMasterPrivKey peerNodeId
+        }
+
+    static member internal Connect
+        (nodeMasterPrivKey: NodeMasterPrivKey)
+        (nodeIdentifier: NodeIdentifier)
         : Async<Result<TransportStream, HandshakeError>> = async {
-        let peerEndpoint = peerId.Value :?> IPEndPoint
-        let! connectRes = TransportStream.TcpConnect None peerEndpoint
+
+        let nodeId =
+            match nodeIdentifier with
+            | NodeIdentifier.EndPoint nodeEndPoint ->
+                (nodeEndPoint.NodeId.ToString() |> NBitcoin.PubKey |> NodeId)
+            | NodeIdentifier.NEndpoint nOnionEndpoint ->
+                (nOnionEndpoint.NodeId.ToString() |> NBitcoin.PubKey |> NodeId)
+
+        let! connectRes = TransportStream.TransportConnect None nodeIdentifier
         match connectRes with
         | Error err -> return Error <| TcpConnect err
         | Ok client ->
-            return! TransportStream.ConnectHandshake client nodeMasterPrivKey peerNodeId
+            return! TransportStream.ConnectHandshake client nodeMasterPrivKey nodeId
+    }
+
+    static member internal AcceptFromTransportListenerTor
+        (stream: TorStream)
+        (nodeMasterPrivKey: NodeMasterPrivKey) = async {
+        let nodeSecret = nodeMasterPrivKey.NodeSecret()
+        let nodeSecretKey = nodeSecret.RawKey()
+        let peer = Peer.CreateInbound(nodeSecretKey)
+        let! act1Res = TransportStream.ReadExactAsync (StreamType.TorClientStream stream) TransportStream.bolt08ActOneLength
+        match act1Res with
+        | Error peerDisconnectedError -> return Error <| DisconnectedOnAct1 peerDisconnectedError
+        | Ok act1 ->
+            let peerCmd = ProcessActOne(act1, nodeSecretKey)
+            match Peer.executeCommand peer peerCmd with
+            | Error err -> return Error <| InvalidAct1 err
+            | Ok (ActOneProcessed(act2, _) as evt::[]) ->
+                let peerAfterAct2 = Peer.applyEvent peer evt
+                do! stream.SendData(act2)
+                let! act3Res = TransportStream.ReadExactAsync (StreamType.TorClientStream stream) TransportStream.bolt08ActThreeLength
+                match act3Res with
+                | Error peerDisconnectedError ->
+                    return Error <| DisconnectedOnAct3 peerDisconnectedError
+                | Ok act3 ->
+                    let peerCmd = ProcessActThree act3
+                    match Peer.executeCommand peerAfterAct2 peerCmd with
+                    | Error err -> return Error <| InvalidAct3 err
+                    | Ok (ActThreeProcessed(_, _) as evt::[]) ->
+                        let peerAfterAct3 = Peer.applyEvent peerAfterAct2 evt
+
+                        return Ok {
+                            NodeMasterPrivKey = nodeMasterPrivKey
+                            Peer = peerAfterAct3
+                            Client = TransportType.Tor stream
+                        }
+                    | Ok evts ->
+                        return failwith <| SPrintF1
+                            "DNL returned unexpected events when processing act3: %A" evts
+            | Ok evts ->
+                return failwith <| SPrintF1
+                    "DNL returned unexpected events when processing act1: %A" evts
+    }
+
+    static member internal AcceptFromTransportListenerTcp (client: TcpClient)
+                                                          (nodeMasterPrivKey: NodeMasterPrivKey)= async {
+        let nodeSecret = nodeMasterPrivKey.NodeSecret()
+        let nodeSecretKey = nodeSecret.RawKey()
+        let stream = client.GetStream()
+        let peer = Peer.CreateInbound(nodeSecretKey)
+        let! act1Res = TransportStream.ReadExactAsync (StreamType.TcpNetworkStream stream) TransportStream.bolt08ActOneLength
+        match act1Res with
+        | Error peerDisconnectedError -> return Error <| DisconnectedOnAct1 peerDisconnectedError
+        | Ok act1 ->
+            let peerCmd = ProcessActOne(act1, nodeSecretKey)
+            match Peer.executeCommand peer peerCmd with
+            | Error err -> return Error <| InvalidAct1 err
+            | Ok (ActOneProcessed(act2, _) as evt::[]) ->
+                let peerAfterAct2 = Peer.applyEvent peer evt
+                do! stream.WriteAsync(act2, 0, act2.Length) |> Async.AwaitTask
+                let! act3Res = TransportStream.ReadExactAsync (StreamType.TcpNetworkStream stream) TransportStream.bolt08ActThreeLength
+                match act3Res with
+                | Error peerDisconnectedError ->
+                    return Error <| DisconnectedOnAct3 peerDisconnectedError
+                | Ok act3 ->
+                    let peerCmd = ProcessActThree act3
+                    match Peer.executeCommand peerAfterAct2 peerCmd with
+                    | Error err -> return Error <| InvalidAct3 err
+                    | Ok (ActThreeProcessed(_, _) as evt::[]) ->
+                        let peerAfterAct3 = Peer.applyEvent peerAfterAct2 evt
+
+                        return Ok {
+                            NodeMasterPrivKey = nodeMasterPrivKey
+                            Peer = peerAfterAct3
+                            Client = TransportType.Tcp client
+                        }
+                    | Ok evts ->
+                        return failwith <| SPrintF1
+                            "DNL returned unexpected events when processing act3: %A" evts
+            | Ok evts ->
+                return failwith <| SPrintF1
+                    "DNL returned unexpected events when processing act1: %A" evts
     }
 
     static member internal AcceptFromTransportListener (transportListener: TransportListener)
                                                            : Async<Result<TransportStream, HandshakeError>> = async {
-        let! clientRes = TransportStream.TcpAcceptAny transportListener.Listener
+        let! clientRes = TransportStream.TcpOrTorAcceptAny transportListener.Listener
         match clientRes with
         | Error socketError -> return Error <| TcpAccept socketError
-        | Ok client ->
-            let nodeSecret = transportListener.NodeMasterPrivKey.NodeSecret()
-            let nodeSecretKey = nodeSecret.RawKey()
-            let stream = client.GetStream()
-            let peerId = client.Client.RemoteEndPoint |> PeerId
-            let peer = Peer.CreateInbound(peerId, nodeSecretKey)
-            let! act1Res = TransportStream.ReadExactAsync stream TransportStream.bolt08ActOneLength
-            match act1Res with
-            | Error peerDisconnectedError -> return Error <| DisconnectedOnAct1 peerDisconnectedError
-            | Ok act1 ->
-                let peerCmd = ProcessActOne(act1, nodeSecretKey)
-                match Peer.executeCommand peer peerCmd with
-                | Error err -> return Error <| InvalidAct1 err
-                | Ok (ActOneProcessed(act2, _) as evt::[]) ->
-                    let peerAfterAct2 = Peer.applyEvent peer evt
-                    do! stream.WriteAsync(act2, 0, act2.Length) |> Async.AwaitTask
-                    let! act3Res = TransportStream.ReadExactAsync stream TransportStream.bolt08ActThreeLength
-                    match act3Res with
-                    | Error peerDisconnectedError ->
-                        return Error <| DisconnectedOnAct3 peerDisconnectedError
-                    | Ok act3 ->
-                        let peerCmd = ProcessActThree act3
-                        match Peer.executeCommand peerAfterAct2 peerCmd with
-                        | Error err -> return Error <| InvalidAct3 err
-                        | Ok (ActThreeProcessed(_, _) as evt::[]) ->
-                            let peerAfterAct3 = Peer.applyEvent peerAfterAct2 evt
-
-                            return Ok {
-                                NodeMasterPrivKey = transportListener.NodeMasterPrivKey
-                                Peer = peerAfterAct3
-                                Client = client
-                            }
-                        | Ok evts ->
-                            return failwith <| SPrintF1
-                                "DNL returned unexpected events when processing act3: %A" evts
-                | Ok evts ->
-                    return failwith <| SPrintF1
-                        "DNL returned unexpected events when processing act1: %A" evts
+        | Ok transportClient ->
+            match transportClient with
+            | TransportType.Tcp client ->
+                return! TransportStream.AcceptFromTransportListenerTcp client transportListener.NodeMasterPrivKey
+            | TransportType.Tor stream ->
+                return! TransportStream.AcceptFromTransportListenerTor stream transportListener.NodeMasterPrivKey
     }
 
     member internal self.RemoteNodeId
@@ -367,29 +595,44 @@ type internal TransportStream =
                     "The TransportStream type is created by performing a handshake \
                     and in doing so guarantees that the peer's node id is known"
 
-    member internal self.PeerId
-        with get(): PeerId = self.Peer.PeerId
-
     member internal self.RemoteEndPoint
-        with get(): IPEndPoint = self.Client.Client.RemoteEndPoint :?> IPEndPoint
+        with get(): Option<IPEndPoint> =
+            match self.Client with
+            | TransportType.Tcp tcpClient ->
+                Some (tcpClient.Client.RemoteEndPoint :?> IPEndPoint)
+            | TransportType.Tor _torStream ->
+                None
 
-    member internal self.NodeEndPoint: NodeEndPoint =
-        let remoteNodeId = PublicKey self.RemoteNodeId.Value
-        NodeEndPoint.FromParts remoteNodeId self.RemoteEndPoint
+    member internal self.NodeEndPoint: Option<NodeEndPoint> =
+        match self.RemoteEndPoint with
+        | Some remoteEndPoint ->
+            let remoteNodeId = PublicKey self.RemoteNodeId.Value
+            Some (NodeEndPoint.FromParts remoteNodeId remoteEndPoint)
+        | _ -> None
 
     member internal self.SendBytes (plaintext: array<byte>): Async<TransportStream> = async {
         let peer = self.Peer
         let ciphertext, channelEncryptor =
             PeerChannelEncryptor.encryptMessage plaintext peer.ChannelEncryptor
         let peerAfterBytesSent = { peer with ChannelEncryptor = channelEncryptor }
-        let stream = self.Client.GetStream()
-        do! stream.WriteAsync(ciphertext, 0, ciphertext.Length) |> Async.AwaitTask
+        match self.Client with
+        | TransportType.Tcp tcpClient ->
+            let stream = tcpClient.GetStream()
+            do! stream.WriteAsync(ciphertext, 0, ciphertext.Length) |> Async.AwaitTask
+        | TransportType.Tor stream ->
+            do! stream.SendData ciphertext
         return { self with Peer = peerAfterBytesSent }
     }
 
     member internal self.RecvBytes(): Async<Result<TransportStream * array<byte>, RecvBytesError>> = async {
         let peer = self.Peer
-        let stream = self.Client.GetStream()
+        let stream =
+            match self.Client with
+            | TransportType.Tcp tcpClient ->
+                StreamType.TcpNetworkStream (tcpClient.GetStream())
+            | TransportType.Tor stream ->
+                StreamType.TorClientStream stream
+
         let! encryptedLengthRes =
             TransportStream.ReadExactAsync stream TransportStream.bolt08EncryptedMessageLengthPrefixLength
         match encryptedLengthRes with

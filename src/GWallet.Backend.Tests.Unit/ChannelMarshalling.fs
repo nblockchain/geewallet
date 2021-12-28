@@ -262,10 +262,15 @@ type ChannelMarshalling () =
       "remoteClosingFeeProposed": null
     },
     "accountFileName": "035aa42da8cd09dcc3ca767474e6a2a21248990157652a226869a6d5e460681b46",
-    "counterpartyIP": [
-      "127.0.0.1",
-      1785
-    ],
+    "counterpartyIP": {
+      "case": "Some",
+      "fields": [
+        [
+          "127.0.0.1",
+          1785
+        ]
+      ]
+    },
     "initialRecoveryTransactionOpt": null,
     "localChannelPubKeys": {
       "fundingPubKey": {
@@ -298,7 +303,8 @@ type ChannelMarshalling () =
           "0212577b5ee0b1e11d16d6c124ef90386009622760d17895660f96d214a4c39525"
         ]
       }
-    }
+    },
+    "nodeServerType": null
   }
 }
 """

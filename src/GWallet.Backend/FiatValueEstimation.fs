@@ -37,6 +37,7 @@ module FiatValueEstimation =
             | Currency.ETC,_ -> "ethereum-classic"
             | Currency.DAI,PriceProvider.CoinCap -> "multi-collateral-dai"
             | Currency.DAI,_ -> "dai"
+            | Currency.Tor,_ -> failwith "Tor coin is not expected here"
         try
             let baseUrl =
                 match provider with
