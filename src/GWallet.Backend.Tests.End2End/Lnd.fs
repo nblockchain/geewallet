@@ -152,10 +152,12 @@ type Lnd = {
                 DotNetLightning.Utils.LNMoney lnAmount
             let client = self.Client()
             try
-                let! _response =
-                    Async.AwaitTask
-                    <| client.CreateInvoice((LightMoney.MilliSatoshis amount.MilliSatoshi), "Test", TimeSpan.FromHours(float(1)), CancellationToken.None)
-                return Some _response
+                let expiry = TimeSpan.FromHours 1.
+                let invoiceAmount = LightMoney.MilliSatoshis amount.MilliSatoshi
+                let! response =
+                    client.CreateInvoice(invoiceAmount, "Test", expiry, CancellationToken.None)
+                    |> Async.AwaitTask
+                return Some response
             with
             | ex ->
                 // BTCPayServer.Lightning is broken and doesn't handle the
