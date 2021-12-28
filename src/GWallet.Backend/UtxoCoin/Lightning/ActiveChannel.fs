@@ -392,9 +392,10 @@ and internal ActiveChannel =
     static member internal ConnectReestablish (channelStore: ChannelStore)
                                               (nodeMasterPrivKey: NodeMasterPrivKey)
                                               (channelId: ChannelIdentifier)
+                                              (nonionIntroductionPoint: Option<NodeNOnionIntroductionPoint>)
                                                   : Async<Result<ActiveChannel, ReconnectActiveChannelError>> = async {
         let! connectRes =
-            ConnectedChannel.ConnectFromWallet channelStore nodeMasterPrivKey channelId
+            ConnectedChannel.ConnectFromWallet channelStore nodeMasterPrivKey channelId nonionIntroductionPoint
         match connectRes with
         | Error reconnectError -> return Error <| Reconnect reconnectError
         | Ok connectedChannel ->

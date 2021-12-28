@@ -298,7 +298,8 @@ type ChannelMarshalling () =
           "0212577b5ee0b1e11d16d6c124ef90386009622760d17895660f96d214a4c39525"
         ]
       }
-    }
+    },
+    "nodeServerType": null
   }
 }
 """

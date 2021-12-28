@@ -11,7 +11,7 @@
     <AssemblyName>GWallet.Frontend.Console</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <TargetFSharpCoreVersion>4.7.0.0</TargetFSharpCoreVersion>
+    <TargetFSharpCoreVersion>4.7.2.0</TargetFSharpCoreVersion>
     <Name>GWallet.Frontend.Console</Name>
     <TargetFrameworkProfile />
     <OtherFlags>
@@ -74,7 +74,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
     <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.6.7\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.10\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -85,7 +85,7 @@
       <Private>True</Private>
     </ProjectReference>
     <Reference Include="FSharp.Core">
-      <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\net45\FSharp.Core.dll</HintPath>
+      <HintPath>..\..\packages\FSharp.Core.4.7.2\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="SharpRaven">
       <HintPath>..\..\packages\SharpRaven.2.4.0\lib\net471\SharpRaven.dll</HintPath>

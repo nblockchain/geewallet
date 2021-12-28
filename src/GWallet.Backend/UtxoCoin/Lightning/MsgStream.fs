@@ -122,14 +122,12 @@ type internal MsgStream =
     }
 
     static member internal Connect (nodeMasterPrivKey: NodeMasterPrivKey)
-                                   (peerNodeId: NodeId)
-                                   (peerId: PeerId)
+                                   (nodeIdentifier: NodeIdentifier)
                                        : Async<Result<InitMsg * MsgStream, ConnectError>> = async {
         let! transportStreamRes =
             TransportStream.Connect
                 nodeMasterPrivKey
-                peerNodeId
-                peerId
+                nodeIdentifier
         match transportStreamRes with
         | Error handshakeError -> return Error <| Handshake handshakeError
         | Ok transportStream -> 
@@ -178,9 +176,9 @@ type internal MsgStream =
         with get(): PeerId = self.TransportStream.PeerId
 
     member internal self.RemoteEndPoint
-        with get(): IPEndPoint = self.TransportStream.RemoteEndPoint
+        with get(): Option<IPEndPoint> = self.TransportStream.RemoteEndPoint
 
-    member internal self.NodeEndPoint: NodeEndPoint =
+    member internal self.NodeEndPoint: Option<NodeEndPoint> =
         self.TransportStream.NodeEndPoint
 
     member internal self.NodeMasterPrivKey(): NodeMasterPrivKey =

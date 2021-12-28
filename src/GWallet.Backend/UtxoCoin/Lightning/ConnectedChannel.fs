@@ -150,13 +150,19 @@ type internal ConnectedChannel =
     static member internal ConnectFromWallet (channelStore: ChannelStore)
                                              (nodeMasterPrivKey: NodeMasterPrivKey)
                                              (channelId: ChannelIdentifier)
+                                             (nonionIntroductionPoint: Option<NodeNOnionIntroductionPoint>)
                                                  : Async<Result<ConnectedChannel, ReconnectError>> = async {
         let! serializedChannel, channel =
             ConnectedChannel.LoadChannel channelStore nodeMasterPrivKey channelId
         let! connectRes =
             let nodeId = channel.RemoteNodeId
-            let peerId = PeerId (serializedChannel.CounterpartyIP :> EndPoint)
-            PeerNode.Connect nodeMasterPrivKey nodeId peerId
+            let nodeIdentifier =
+                match nonionIntroductionPoint with
+                | Some introPint ->
+                    NodeIdentifier.NOnionIntroductionPoint introPint
+                | _ ->
+                    NodeIdentifier.EndPoint { NodeEndPoint.NodeId = PublicKey nodeId.Value; IPEndPoint = serializedChannel.CounterpartyIP }
+            PeerNode.Connect nodeMasterPrivKey nodeIdentifier
         match connectRes with
         | Error connectError -> return Error <| Connect connectError
         | Ok peerNode ->
@@ -220,6 +226,7 @@ type internal ConnectedChannel =
             CounterpartyIP = self.PeerNode.PeerId.Value :?> IPEndPoint
             InitialRecoveryTransactionOpt = None
             LocalChannelPubKeys = self.Channel.ChannelPrivKeys.ToChannelPubKeys()
+            NodeServerType = self.PeerNode.NodeServerType
         }
         channelStore.SaveChannel serializedChannel
 

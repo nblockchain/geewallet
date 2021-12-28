@@ -6,7 +6,6 @@ open System.Net
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-
 type NodeEndPoint =
     {
         NodeId: PublicKey
