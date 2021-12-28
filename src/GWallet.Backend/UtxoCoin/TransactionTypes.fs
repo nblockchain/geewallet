@@ -12,15 +12,14 @@ type TransactionInputOutpointInfo =
         DestinationInHex: string;
     }
 
+// FIXME: now that MinerFee implements IBlockchainInfo, no need to use TxMetadata in many places
 type TransactionMetadata =
     {
         Fee: MinerFee;
         Inputs: List<TransactionInputOutpointInfo>;
     }
     interface IBlockchainFeeInfo with
-        member self.FeeEstimationTime with get() = self.Fee.EstimationTime
-        member self.FeeValue
-            with get() =
-                (Money.Satoshis self.Fee.EstimatedFeeInSatoshis).ToUnit MoneyUnit.BTC
-        member self.Currency with get() = self.Fee.Currency
+        member self.FeeEstimationTime = (self.Fee :> IBlockchainFeeInfo).FeeEstimationTime
+        member self.FeeValue = (self.Fee :> IBlockchainFeeInfo).FeeValue
+        member self.Currency = (self.Fee :> IBlockchainFeeInfo).Currency
 

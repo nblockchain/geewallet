@@ -767,6 +767,12 @@ module UserInteraction =
 
             None
 
+    let ConfirmRecoveryTxFee (txFeeEstimation: IBlockchainFeeInfo) =
+        let maybeUsdPrice =
+            FiatValueEstimation.UsdValue txFeeEstimation.Currency |> Async.RunSynchronously
+        Presentation.ShowFee maybeUsdPrice txFeeEstimation.Currency txFeeEstimation
+        AskYesNo "Do you accept?"
+
     let rec AskAccount(): IAccount =
         let allAccounts = Account.GetAllActiveAccounts()
         Console.Write("Write the account number: ")

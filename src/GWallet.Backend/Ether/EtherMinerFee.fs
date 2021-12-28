@@ -42,3 +42,8 @@ type MinerFee(gasLimit: Int64, gasPriceInWei: Int64, estimationTime: DateTime, c
             let estimationTime = initialFeeWithAMinimumGasPriceInWeiDictatedByPublicNodes.EstimationTime
             let currency = initialFeeWithAMinimumGasPriceInWeiDictatedByPublicNodes.Currency
             MinerFee(gasLimit, biggerGasPriceInWei, estimationTime, currency)
+
+    interface IBlockchainFeeInfo with
+        member self.FeeEstimationTime = self.EstimationTime
+        member self.FeeValue = self.CalculateAbsoluteValue()
+        member self.Currency = self.Currency
