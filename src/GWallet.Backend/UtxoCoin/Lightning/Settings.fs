@@ -63,7 +63,12 @@ module Settings =
                                 (currency: Currency)
                                     : LocalParams =
         {
-            DustLimitSatoshis = Money 200UL
+            DustLimitSatoshis =
+                match currency with
+                | BTC -> 354UL
+                | LTC -> 200UL
+                | _ -> failwith "Unsupported currency"
+                |> Money
             MaxHTLCValueInFlightMSat = LNMoney 10000L
             ChannelReserveSatoshis = funding * Config.ChannelReservePercentage / 100L
             HTLCMinimumMSat = LNMoney 1000L
