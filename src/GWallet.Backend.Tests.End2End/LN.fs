@@ -54,7 +54,7 @@ type LN() =
             let channelInfoAfterOpening = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterOpening.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             return channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount
         }
@@ -99,7 +99,7 @@ type LN() =
             let channelInfo = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfo.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             return channelId, serverWallet, bitcoind, electrumServer, lnd
         }
@@ -119,10 +119,10 @@ type LN() =
             let channelInfo = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfo.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             if Money(channelInfo.Balance, MoneyUnit.BTC) <> Money(0.0m, MoneyUnit.BTC) then
-                failwith "incorrect balance after accepting channel"
+                return failwith "incorrect balance after accepting channel"
 
             return serverWallet, channelId
         }
@@ -132,11 +132,11 @@ type LN() =
             let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId
             match closeChannelRes with
             | Ok _ -> ()
-            | Error err -> failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
+            | Error err -> return failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
 
             match (clientWallet.ChannelStore.ChannelInfo channelId).Status with
             | ChannelStatus.Closing -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
 
             // Mine 10 blocks to make sure closing tx is confirmed
             bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 (uint32 10))
@@ -157,7 +157,7 @@ type LN() =
             let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
             match closingTxConfirmedRes with
             | Ok _ -> ()
-            | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
+            | Error err -> return failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
         }
 
     let SendHtlcPaymentsToLnd (clientWallet: ClientWalletInstance)
@@ -168,7 +168,7 @@ type LN() =
             let channelInfoBeforeAnyPayment = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfoBeforeAnyPayment.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             let! sendHtlcPayment1Res =
                 async {
@@ -196,14 +196,14 @@ type LN() =
             let channelInfoAfterPayment1 = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterPayment1.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             let! lndBalanceAfterPayment1 = lnd.ChannelBalance()
 
             if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount then
-                failwith "incorrect balance after payment 1"
+                return failwith "incorrect balance after payment 1"
             if lndBalanceAfterPayment1 <> walletToWalletTestPayment1Amount then
-                failwith "incorrect lnd balance after payment 1"
+                return failwith "incorrect lnd balance after payment 1"
 
             let! sendHtlcPayment2Res =
                 async {
@@ -231,13 +231,13 @@ type LN() =
             let channelInfoAfterPayment2 = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterPayment2.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
             let! lndBalanceAfterPayment2 = lnd.ChannelBalance()
 
             if Money(channelInfoAfterPayment2.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount - walletToWalletTestPayment2Amount then
-                failwith "incorrect balance after payment 2"
+                return failwith "incorrect balance after payment 2"
             if lndBalanceAfterPayment2 <> lndBalanceAfterPayment1 + walletToWalletTestPayment2Amount then
-                failwith "incorrect lnd balance after payment 2"
+                return failwith "incorrect lnd balance after payment 2"
         }
 
     let SendMonoHopPayments (clientWallet: ClientWalletInstance) channelId fundingAmount =
@@ -245,7 +245,7 @@ type LN() =
             let channelInfoBeforeAnyPayment = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfoBeforeAnyPayment.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             let! sendMonoHopPayment1Res =
                 let transferAmount =
@@ -260,10 +260,10 @@ type LN() =
             let channelInfoAfterPayment1 = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterPayment1.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount then
-                failwith "incorrect balance after payment 1"
+                return failwith "incorrect balance after payment 1"
 
             let! sendMonoHopPayment2Res =
                 let transferAmount =
@@ -281,10 +281,10 @@ type LN() =
             let channelInfoAfterPayment2 = clientWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterPayment2.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             if Money(channelInfoAfterPayment2.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount - walletToWalletTestPayment2Amount then
-                failwith "incorrect balance after payment 2"
+                return failwith "incorrect balance after payment 2"
         }
 
     let ReceiveMonoHopPayments (serverWallet: ServerWalletInstance) channelId =
@@ -292,7 +292,7 @@ type LN() =
             let channelInfoBeforeAnyPayment = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfoBeforeAnyPayment.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             let balanceBeforeAnyPayment = Money(channelInfoBeforeAnyPayment.Balance, MoneyUnit.BTC)
 
@@ -303,10 +303,10 @@ type LN() =
             let channelInfoAfterPayment1 = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterPayment1.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> balanceBeforeAnyPayment + walletToWalletTestPayment1Amount then
-                failwith "incorrect balance after receiving payment 1"
+                return failwith "incorrect balance after receiving payment 1"
 
             let! receiveMonoHopPaymentRes =
                 Lightning.Network.ReceiveMonoHopPayment serverWallet.NodeServer channelId
@@ -315,10 +315,10 @@ type LN() =
             let channelInfoAfterPayment2 = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfoAfterPayment2.Status with
             | ChannelStatus.Active -> ()
-            | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
             if Money(channelInfoAfterPayment2.Balance, MoneyUnit.BTC) <> balanceBeforeAnyPayment + walletToWalletTestPayment1Amount + walletToWalletTestPayment2Amount then
-                failwith "incorrect balance after receiving payment 2"
+                return failwith "incorrect balance after receiving payment 2"
         }
 
 
@@ -367,7 +367,7 @@ type LN() =
         let! closeChannelRes = Lightning.Network.AcceptCloseChannel serverWallet.NodeServer channelId
         match closeChannelRes with
         | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
+        | Error err -> return failwith (SPrintF1 "failed to accept close channel: %A" err)
     }
 
     [<Category "G2G_MonoHopUnidirectionalPayments_Funder">]
@@ -443,7 +443,7 @@ type LN() =
         let! closeChannelRes = Lightning.Network.AcceptCloseChannel serverWallet.NodeServer channelId
         match closeChannelRes with
         | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
+        | Error err -> return failwith (SPrintF1 "failed to accept close channel: %A" err)
 
         (serverWallet :> IDisposable).Dispose()
     }
@@ -467,6 +467,7 @@ type LN() =
 
     [<Test>]
     member __.``can close channel with LND``() = Async.RunSynchronously <| async {
+
         let! channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount =
             try
                 OpenChannelWithFundee None
@@ -482,11 +483,11 @@ type LN() =
         let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId
         match closeChannelRes with
         | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
+        | Error err -> return failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
 
         match (clientWallet.ChannelStore.ChannelInfo channelId).Status with
         | ChannelStatus.Closing -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
 
         // Mine 10 blocks to make sure closing tx is confirmed
         bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 (uint32 10))
@@ -507,7 +508,7 @@ type LN() =
         let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
         match closingTxConfirmedRes with
         | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
+        | Error err -> return failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
 
         TearDown clientWallet lnd electrumServer bitcoind
     }
@@ -1046,10 +1047,10 @@ type LN() =
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
         if Money(channelInfo.Balance, MoneyUnit.BTC) <> fundingAmount then
-            failwith "balance does not match funding amount"
+            return failwith "balance does not match funding amount"
 
         let! sendMonoHopPayment1Res =
             let transferAmount =
@@ -1064,10 +1065,10 @@ type LN() =
         let channelInfoAfterPayment1 = walletInstance.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
         if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount then
-            failwith "incorrect balance after payment 1"
+            return failwith "incorrect balance after payment 1"
 
         let commitmentTx = walletInstance.ChannelStore.GetCommitmentTx channelId
 
@@ -1084,10 +1085,10 @@ type LN() =
         let channelInfoAfterPayment2 = walletInstance.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
         if Money(channelInfoAfterPayment2.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount - walletToWalletTestPayment2Amount then
-            failwith "incorrect balance after payment 1"
+            return failwith "incorrect balance after payment 1"
 
         let! _theftTxId = UtxoCoin.Account.BroadcastRawTransaction Currency.BTC commitmentTx
 
@@ -1125,14 +1126,14 @@ type LN() =
 
         match spendingTxIdOpt with
         | Some spendingTxId ->
-            failwith (SPrintF1 "successfully broadcast spending tx (%s)" spendingTxId)
+            return failwith (SPrintF1 "successfully broadcast spending tx (%s)" spendingTxId)
         | None -> ()
 
         let! accountBalanceAfterSpendingTheftTx =
             walletInstance.GetBalance()
 
         if accountBalanceBeforeSpendingTheftTx <> accountBalanceAfterSpendingTheftTx then
-            failwithf
+            return failwithf
                 "Unexpected account balance! before theft tx == %A, after theft tx == %A"
                 accountBalanceBeforeSpendingTheftTx
                 accountBalanceAfterSpendingTheftTx
@@ -1159,10 +1160,10 @@ type LN() =
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
         if Money(channelInfo.Balance, MoneyUnit.BTC) <> Money(0.0m, MoneyUnit.BTC) then
-            failwith "incorrect balance after accepting channel"
+            return failwith "incorrect balance after accepting channel"
 
         let! receiveMonoHopPaymentRes =
             Lightning.Network.ReceiveMonoHopPayment walletInstance.NodeServer channelId
@@ -1171,10 +1172,10 @@ type LN() =
         let channelInfoAfterPayment1 = walletInstance.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
         if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> walletToWalletTestPayment1Amount then
-            failwith "incorrect balance after receiving payment 1"
+            return failwith "incorrect balance after receiving payment 1"
 
         let! receiveMonoHopPaymentRes =
             Lightning.Network.ReceiveMonoHopPayment walletInstance.NodeServer channelId
@@ -1183,10 +1184,10 @@ type LN() =
         let channelInfoAfterPayment2 = walletInstance.ChannelStore.ChannelInfo channelId
         match channelInfo.Status with
         | ChannelStatus.Active -> ()
-        | status -> failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
 
         if Money(channelInfoAfterPayment2.Balance, MoneyUnit.BTC) <> walletToWalletTestPayment1Amount + walletToWalletTestPayment2Amount then
-            failwith "incorrect balance after receiving payment 1"
+            return failwith "incorrect balance after receiving payment 1"
 
         // attempt to broadcast tx which spends the theft tx
         let rec checkForClosingTx() = async {
@@ -1451,7 +1452,7 @@ type LN() =
         let! closeChannelRes = Lightning.Network.AcceptCloseChannel serverWallet.NodeServer channelId
         match closeChannelRes with
         | Ok _ -> ()
-        | Error err -> failwith (SPrintF1 "failed to accept close channel: %A" err)
+        | Error err -> return failwith (SPrintF1 "failed to accept close channel: %A" err)
 
         (serverWallet :> IDisposable).Dispose()
     }
