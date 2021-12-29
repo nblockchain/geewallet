@@ -328,7 +328,7 @@ type LN() =
         let! _channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount =
             OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
     [<Category "G2G_ChannelOpening_Fundee">]
@@ -356,7 +356,7 @@ type LN() =
 
         do! ClientCloseChannel clientWallet bitcoind channelId
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
     [<Category "G2G_ChannelClosingAfterJustOpening_Fundee">]
@@ -387,7 +387,7 @@ type LN() =
 
         do! SendMonoHopPayments clientWallet channelId fundingAmount
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
 
@@ -429,7 +429,7 @@ type LN() =
 
         do! ClientCloseChannel clientWallet bitcoind channelId
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
 
@@ -452,7 +452,7 @@ type LN() =
     member __.``can open channel with LND``() = Async.RunSynchronously <| async {
         let! _channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount = OpenChannelWithFundee None
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
     [<Test>]
@@ -461,7 +461,7 @@ type LN() =
 
         do! SendHtlcPaymentsToLnd clientWallet lnd channelId fundingAmount
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
 
@@ -510,14 +510,14 @@ type LN() =
         | Ok _ -> ()
         | Error err -> return failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
     [<Test>]
     member __.``can accept channel from LND``() = Async.RunSynchronously <| async {
         let! _channelId, serverWallet, bitcoind, electrumServer, lnd = AcceptChannelFromLndFunder ()
 
-        TearDown serverWallet lnd electrumServer bitcoind
+        TearDown serverWallet bitcoind electrumServer lnd
     }
 
     [<Test>]
@@ -574,7 +574,7 @@ type LN() =
 
         let! (), () = AsyncExtensions.MixedParallel2 closeChannelTask awaitCloseTask
 
-        TearDown serverWallet lnd electrumServer bitcoind
+        TearDown serverWallet bitcoind electrumServer lnd
 
         return ()
     }
@@ -645,7 +645,7 @@ type LN() =
             let amount = balanceBeforeFundsReclaimed + Money(1.0m, MoneyUnit.Satoshi)
             clientWallet.WaitForBalance amount
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
     [<Category "G2G_ChannelLocalForceClosing_Fundee">]
@@ -753,7 +753,7 @@ type LN() =
         // Give the fundee time to see their funds recovered before closing bitcoind/electrum
         do! Async.Sleep 3000
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
     [<Category "G2G_ChannelRemoteForceClosingByFunder_Fundee">]
@@ -890,7 +890,7 @@ type LN() =
         // Give the fundee time to see their funds recovered before closing bitcoind/electrum
         do! Async.Sleep 10000
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
     [<Category "G2G_ChannelRemoteForceClosingByFundee_Fundee">]
@@ -1253,7 +1253,7 @@ type LN() =
         // Give the fundee time to see the force-close tx
         do! Async.Sleep 5000
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
     [<Category "G2G_CPFP_Fundee">]
@@ -1402,7 +1402,7 @@ type LN() =
 
         do! ClientCloseChannel clientWallet bitcoind channelId
 
-        TearDown clientWallet lnd electrumServer bitcoind
+        TearDown clientWallet bitcoind electrumServer lnd
     }
 
     [<Category "G2G_UpdateFeeMsg_Fundee">]
