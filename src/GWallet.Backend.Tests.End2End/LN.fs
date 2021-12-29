@@ -92,8 +92,23 @@ type LN() =
 
             do! serverWallet.WaitForFundingConfirmed channelId
 
-            let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding serverWallet.NodeServer channelId
-            UnwrapResult lockFundingRes "LockChannelFunding failed"
+            let initialInterval = TimeSpan.FromSeconds 1.0
+
+            let rec tryAcceptLock (backoff: TimeSpan) =
+                async {
+                    let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding serverWallet.NodeServer channelId
+                    match lockFundingRes with
+                    | Error error ->
+                            let backoffMillis = (int backoff.TotalMilliseconds)
+                            Infrastructure.LogDebug <| SPrintF1 "accept error: %s" error.Message
+                            Infrastructure.LogDebug <| SPrintF1 "retrying in %ims" backoffMillis
+                            do! Async.Sleep backoffMillis
+                            return! tryAcceptLock (backoff + backoff)
+                    | Ok _ ->
+                        return ()
+                }
+
+            do! tryAcceptLock initialInterval
 
             let channelInfo = serverWallet.ChannelStore.ChannelInfo channelId
             match channelInfo.Status with
