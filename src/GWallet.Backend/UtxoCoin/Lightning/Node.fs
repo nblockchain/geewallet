@@ -730,7 +730,7 @@ type Node =
             let! recoveryTxResult = self.CreateRecoveryTxForLocalForceClose channelId commitmentTxString
             match recoveryTxResult with
             | Error err ->
-                self.ChannelStore.DeleteChannel channelId
+                self.ChannelStore.ArchiveChannel channelId
                 return Error err
             | Ok (recoveryTxString, _metadata) ->
                 let newSerializedChannel = {
