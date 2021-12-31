@@ -619,7 +619,7 @@ module LayerTwo =
                                 UtxoCoin.Account.BroadcastRawTransaction
                                     locallyForceClosedData.Currency
                                     recoveryTxString
-                            channelStore.DeleteChannel channelInfo.ChannelId
+                            channelStore.ArchiveChannel channelInfo.ChannelId
                             return seq {
                                 yield! UserInteraction.DisplayLightningChannelStatus channelInfo
                                 yield sprintf "        channel force-closed"
@@ -692,7 +692,7 @@ module LayerTwo =
                                     UtxoCoin.Account.BroadcastRawTransaction
                                         channelStore.Currency
                                         recoveryTxString
-                                channelStore.DeleteChannel channelInfo.ChannelId
+                                channelStore.ArchiveChannel channelInfo.ChannelId
                                 let txUri = BlockExplorer.GetTransaction (channelStore.Account :> IAccount).Currency txIdString
                                 return seq {
                                     yield! UserInteraction.DisplayLightningChannelStatus channelInfo
@@ -707,7 +707,7 @@ module LayerTwo =
                                     yield sprintf "        funds have not been recovered yet"
                                 }
                         | Error ClosingBalanceBelowDustLimit ->
-                            channelStore.DeleteChannel channelInfo.ChannelId
+                            channelStore.ArchiveChannel channelInfo.ChannelId
                             return seq {
                                 yield! UserInteraction.DisplayLightningChannelStatus channelInfo
                                 yield "        channel closed by counterparty"
@@ -799,7 +799,7 @@ module LayerTwo =
                                                 }
                                             }
                                 else
-                                    channelStore.DeleteChannel channelInfo.ChannelId
+                                    channelStore.ArchiveChannel channelInfo.ChannelId
                                     return fun () ->
                                         async {
                                             return Seq.empty
