@@ -799,6 +799,7 @@ module LayerTwo =
                                                 }
                                             }
                                 else
+                                    channelStore.DeleteChannel channelInfo.ChannelId
                                     return fun () ->
                                         async {
                                             return Seq.empty
