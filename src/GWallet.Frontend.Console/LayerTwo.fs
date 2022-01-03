@@ -795,7 +795,7 @@ module LayerTwo =
                                             async {
                                                 return seq {
                                                     yield! UserInteraction.DisplayLightningChannelStatus channelInfo
-                                                    yield "        channel is in being closed"
+                                                    yield "        channel is being closed"
                                                 }
                                             }
                                 else
