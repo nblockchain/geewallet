@@ -596,6 +596,8 @@ module LayerTwo =
             | None -> ()
     }
 
+    let private txRecoveryMsg = "A transaction must be sent to recover funds."
+
     let ClaimFundsIfTimelockExpired
         (channelStore: ChannelStore)
         (channelInfo: ChannelInfo)
@@ -605,7 +607,7 @@ module LayerTwo =
             let! remainingConfirmations = locallyForceClosedData.GetRemainingConfirmations()
             if remainingConfirmations = 0us then
                 Console.WriteLine(sprintf "Channel %s force-closure performed by your account finished successfully (necessary confirmations and timelock have been reached)" (ChannelId.ToString channelInfo.ChannelId))
-                Console.WriteLine "Account must be unlocked to recover funds."
+                Console.WriteLine txRecoveryMsg
                 let trySendRecoveryTx (password: string) =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
@@ -660,7 +662,7 @@ module LayerTwo =
         : Async<seq<string>> =
         async {
             Console.WriteLine(sprintf "Channel %s has been force-closed by the counterparty." (ChannelId.ToString channelInfo.ChannelId))
-            Console.WriteLine "Account must be unlocked to recover funds."
+            Console.WriteLine txRecoveryMsg
             let tryClaimFunds password =
                 async {
                     let nodeClient = Lightning.Connection.StartClient channelStore password
