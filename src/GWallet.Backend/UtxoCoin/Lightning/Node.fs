@@ -768,7 +768,7 @@ type Node =
                 ForceCloseFundsRecovery.tryGetFundsFromRemoteCommitmentTx
                     channelPrivKeys
                     serializedChannel.SavedChannelState
-                    closingTx.Tx.NbTx
+                    closingTx.Tx.NBitcoinTx
 
             match transactionBuilderResult with
             | Error (RemoteCommitmentTxRecoveryError.InvalidCommitmentTx invalidCommitmentTxError) ->
@@ -784,7 +784,7 @@ type Node =
                         FeeEstimator.EstimateCpfpFee
                             transactionBuilder
                             feeRate
-                            closingTx.Tx.NbTx
+                            closingTx.Tx.NBitcoinTx
                             (serializedChannel.FundingScriptCoin())
                     else
                         transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())

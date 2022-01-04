@@ -301,13 +301,13 @@ type ChannelStore(account: NormalUtxoAccount) =
                 | Error _ ->
                     return
                         Some (
-                            ClosingTx.MutualClose { MutualCloseTx.Tx = { UtxoTransaction.NbTx = spendingTx } },
+                            ClosingTx.MutualClose { MutualCloseTx.Tx = { UtxoTransaction.NBitcoinTx = spendingTx } },
                             spendingTxHeightOpt
                         )
                 | Ok _ ->
                     return
                         Some (
-                            ClosingTx.ForceClose  { ForceCloseTx.Tx = { UtxoTransaction.NbTx = spendingTx } },
+                            ClosingTx.ForceClose  { ForceCloseTx.Tx = { UtxoTransaction.NBitcoinTx = spendingTx } },
                             spendingTxHeightOpt
                         )
         }

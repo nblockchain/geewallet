@@ -56,11 +56,11 @@ type TransactionIdentifier =
 
 type UtxoTransaction =
     internal {
-        NbTx: NBitcoin.Transaction
+        NBitcoinTx: NBitcoin.Transaction
     }
 
     override self.ToString() =
-        self.NbTx.ToHex()
+        self.NBitcoinTx.ToHex()
 
 type MonoHopUnidirectionalChannel =
     internal {
