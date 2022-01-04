@@ -359,6 +359,7 @@ type ClosedChannel()=
             let! closingTxOpt = channelStore.CheckForClosingTx channelId
             match closingTxOpt with
             | Some (ClosingTx.MutualClose _closingTx, Some _closingTxConfirmations) ->
+                channelStore.ArchiveChannel channelId
                 return true
             | _ ->
                 return false

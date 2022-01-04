@@ -811,12 +811,10 @@ type LN() =
                 do! Async.Sleep 2000
                 return! waitForRemoteForceClose()
         }
-        let! recoveryTxStringOpt = waitForRemoteForceClose()
-        let recoveryTxString, _ = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
+        let! recoveryTxOpt = waitForRemoteForceClose()
+        let recoveryTx = UnwrapResult recoveryTxOpt "no funds could be recovered"
         let! _recoveryTxId =
-            UtxoCoin.Account.BroadcastRawTransaction
-                Currency.BTC
-                recoveryTxString
+            ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx serverWallet.ChannelStore
 
         Infrastructure.LogDebug ("waiting for our wallet balance to increase")
         let! _balanceAfterFundsReclaimed =
@@ -870,16 +868,14 @@ type LN() =
                 forceCloseTx
             | _ -> failwith "closing tx is not a force close tx"
 
-        let! recoveryTxStringOpt =
+        let! recoveryTxOpt =
             (Node.Client clientWallet.NodeClient).CreateRecoveryTxForRemoteForceClose
                 channelId
                 forceCloseTx
                 false
-        let recoveryTxString, _ = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
+        let recoveryTx = UnwrapResult recoveryTxOpt "no funds could be recovered"
         let! _recoveryTxId =
-            UtxoCoin.Account.BroadcastRawTransaction
-                Currency.BTC
-                recoveryTxString
+            ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx clientWallet.ChannelStore
 
         // wait for our recovery tx to appear in mempool
         while bitcoind.GetTxIdsInMempool().Length = 0 do
@@ -1123,14 +1119,14 @@ type LN() =
         let toSelfDelay = walletInstance.ChannelStore.GetToSelfDelay channelId
         bitcoind.GenerateBlocks (BlockHeightOffset32 (uint32 toSelfDelay)) lndAddress
 
-        let! spendingTxStringRes =
+        let! spendingTxRes =
             (Node.Client walletInstance.NodeClient).CreateRecoveryTxForLocalForceClose
                 channelId
                 commitmentTx
-        let spendingTxString, _ = UnwrapResult spendingTxStringRes "failed to create spending tx"
+        let spendingTx = UnwrapResult spendingTxRes "failed to create spending tx"
         let! spendingTxIdOpt = async {
             try
-                let! spendingTxId = UtxoCoin.Account.BroadcastRawTransaction Currency.BTC spendingTxString
+                let! spendingTxId = ChannelManager.BroadcastRecoveryTxAndCloseChannel spendingTx walletInstance.ChannelStore
                 return Some spendingTxId
             with
             | ex ->
@@ -1325,11 +1321,11 @@ type LN() =
                 channelId
                 wrappedForceCloseTx
                 false
-        let recoveryTxStringNoCpfp, _ =
+        let recoveryTxStringNoCpfp =
             UnwrapResult
                 recoveryTxStringNoCpfpRes
                 "force close failed to recover funds from the commitment tx"
-        let recoveryTxNoCpfp = Transaction.Parse(recoveryTxStringNoCpfp, Network.RegTest)
+        let recoveryTxNoCpfp = Transaction.Parse(recoveryTxStringNoCpfp.Tx.ToString(), Network.RegTest)
         let! recoveryTxFeeNoCpfp = FeesHelper.GetFeeFromTransaction recoveryTxNoCpfp
         let recoveryTxFeeRateNoCpfp =
             FeeRatePerKw.FromFeeAndVSize(recoveryTxFeeNoCpfp, uint64 (recoveryTxNoCpfp.GetVirtualSize()))
@@ -1347,11 +1343,11 @@ type LN() =
                 channelId
                 wrappedForceCloseTx
                 true
-        let recoveryTxStringWithCpfp, _ =
+        let recoveryTxStringWithCpfp =
             UnwrapResult
                 recoveryTxStringWithCpfpRes
                 "force close failed to recover funds from the commitment tx"
-        let recoveryTxWithCpfp = Transaction.Parse(recoveryTxStringWithCpfp, Network.RegTest)
+        let recoveryTxWithCpfp = Transaction.Parse(recoveryTxStringWithCpfp.Tx.ToString(), Network.RegTest)
         let! recoveryTxFeeWithCpfp = FeesHelper.GetFeeFromTransaction recoveryTxWithCpfp
         let recoveryTxFeeRateWithCpfp =
             FeeRatePerKw.FromFeeAndVSize(recoveryTxFeeWithCpfp, uint64 (recoveryTxWithCpfp.GetVirtualSize()))

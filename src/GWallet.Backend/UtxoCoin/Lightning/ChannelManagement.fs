@@ -376,3 +376,16 @@ module ChannelManager =
         let dummyAddr = NBitcoin.BitcoinWitScriptAddress (nullScriptId, network)
         UtxoCoin.Account.EstimateFeeForDestination (account :?> IUtxoAccount) amount dummyAddr
 
+    let BroadcastRecoveryTxAndCloseChannel
+        (recoveryTx: RecoveryTx)
+        (channelStore: ChannelStore)
+        : Async<string>
+        =
+        async {
+            let! txId =
+                UtxoCoin.Account.BroadcastRawTransaction
+                    recoveryTx.Currency
+                    (recoveryTx.Tx.ToString())
+            channelStore.ArchiveChannel recoveryTx.ChannelId
+            return txId
+        }
