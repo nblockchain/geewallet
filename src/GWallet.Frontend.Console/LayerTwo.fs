@@ -613,13 +613,10 @@ module LayerTwo =
                         let nodeClient = Lightning.Connection.StartClient channelStore password
                         let commitmentTx = channelStore.GetCommitmentTx channelInfo.ChannelId
                         let! recoveryTxResult = (Node.Client nodeClient).CreateRecoveryTxForLocalForceClose channelInfo.ChannelId commitmentTx
-                        let recoveryTxString, metadata = UnwrapResult recoveryTxResult "BUG: we should've checked that output is not dust when initiating the force-close"
-                        if UserInteraction.ConfirmRecoveryTxFee metadata then
+                        let recoveryTx = UnwrapResult recoveryTxResult "BUG: we should've checked that output is not dust when initiating the force-close"
+                        if UserInteraction.ConfirmRecoveryTxFee recoveryTx.Fee then
                             let! txId =
-                                UtxoCoin.Account.BroadcastRawTransaction
-                                    locallyForceClosedData.Currency
-                                    recoveryTxString
-                            channelStore.ArchiveChannel channelInfo.ChannelId
+                                ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx channelStore
                             return seq {
                                 yield! UserInteraction.DisplayLightningChannelStatus channelInfo
                                 yield sprintf "        channel force-closed"
@@ -686,13 +683,10 @@ module LayerTwo =
                                 closingTx
                                 closingTxHeightOpt.IsNone
                         match recoveryTxResult with
-                        | Ok (recoveryTxString, metadata) ->
-                            if UserInteraction.ConfirmRecoveryTxFee metadata then
+                        | Ok recoveryTx ->
+                            if UserInteraction.ConfirmRecoveryTxFee recoveryTx.Fee then
                                 let! txIdString =
-                                    UtxoCoin.Account.BroadcastRawTransaction
-                                        channelStore.Currency
-                                        recoveryTxString
-                                channelStore.ArchiveChannel channelInfo.ChannelId
+                                    ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx channelStore
                                 let txUri = BlockExplorer.GetTransaction (channelStore.Account :> IAccount).Currency txIdString
                                 return seq {
                                     yield! UserInteraction.DisplayLightningChannelStatus channelInfo
@@ -707,7 +701,6 @@ module LayerTwo =
                                     yield sprintf "        funds have not been recovered yet"
                                 }
                         | Error ClosingBalanceBelowDustLimit ->
-                            channelStore.ArchiveChannel channelInfo.ChannelId
                             return seq {
                                 yield! UserInteraction.DisplayLightningChannelStatus channelInfo
                                 yield "        channel closed by counterparty"
@@ -799,7 +792,6 @@ module LayerTwo =
                                                 }
                                             }
                                 else
-                                    channelStore.ArchiveChannel channelInfo.ChannelId
                                     return fun () ->
                                         async {
                                             return Seq.empty
