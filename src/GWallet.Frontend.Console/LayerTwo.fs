@@ -805,4 +805,26 @@ module LayerTwo =
                                     channelInfo
                                     locallyForceClosedData
                         }
+                    | ChannelStatus.RecoveryTxSent recoveryTxId -> 
+                        yield async {
+                            let! isRecoveryTxConfirmed = ChannelManager.CheckForConfirmedRecovery channelStore channelId recoveryTxId
+                            if isRecoveryTxConfirmed then
+                                return
+                                    fun () ->
+                                        async {
+                                            return seq {
+                                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                                yield "        channel is force-closed and funds are recovered"
+                                            }
+                                        }
+                            else
+                                return
+                                    fun () ->
+                                        async {
+                                            return seq {
+                                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                                yield "        channel is force-closed and funds recovery awaits confirmation"
+                                            }
+                                        }
+                        }
         }

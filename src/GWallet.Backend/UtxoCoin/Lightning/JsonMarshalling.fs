@@ -65,6 +65,19 @@ module JsonMarshalling =
             let serializedChannelId: string = state.DnlChannelId.Value.ToString()
             serializer.Serialize(writer, serializedChannelId)
 
+    type internal TransactionIdentifierConverter() =
+        inherit JsonConverter<TransactionIdentifier>()
+
+        override __.ReadJson(reader: JsonReader, _: Type, _: TransactionIdentifier, _: bool, serializer: JsonSerializer) =
+            let serializedTxId = serializer.Deserialize<string> reader
+            serializedTxId
+            |> NBitcoin.uint256
+            |> TransactionIdentifier.FromHash
+
+        override __.WriteJson(writer: JsonWriter, state: TransactionIdentifier, serializer: JsonSerializer) =
+            let serializedChannelId: string = state.ToString()
+            serializer.Serialize(writer, serializedChannelId)
+
     type internal FeatureBitJsonConverter() =
         inherit JsonConverter<FeatureBits>()
 
@@ -110,6 +123,7 @@ module JsonMarshalling =
         let ipEndPointConverter = IPEndPointJsonConverter()
         let featureBitConverter = FeatureBitJsonConverter()
         let channelIdentifierConverter = ChannelIdentifierConverter()
+        let transactionIdentifierConverter = TransactionIdentifierConverter()
         let commitmentNumberConverter = CommitmentNumberConverter()
         let perCommitmentSecretStoreConverter = PerCommitmentSecretStoreConverter()
 
@@ -118,6 +132,7 @@ module JsonMarshalling =
         settings.Converters.Add ipEndPointConverter
         settings.Converters.Add featureBitConverter
         settings.Converters.Add channelIdentifierConverter
+        settings.Converters.Add transactionIdentifierConverter
         settings.Converters.Add commitmentNumberConverter
         settings.Converters.Add perCommitmentSecretStoreConverter
 

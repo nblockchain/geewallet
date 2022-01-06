@@ -220,6 +220,7 @@ type internal ConnectedChannel =
             CounterpartyIP = self.PeerNode.PeerId.Value :?> IPEndPoint
             InitialRecoveryTransactionOpt = None
             LocalChannelPubKeys = self.Channel.ChannelPrivKeys.ToChannelPubKeys()
+            RecoveryTxIdOpt = None
         }
         channelStore.SaveChannel serializedChannel
 
