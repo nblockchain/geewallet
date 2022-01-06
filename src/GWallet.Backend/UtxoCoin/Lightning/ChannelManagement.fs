@@ -67,6 +67,7 @@ type ChannelStatus =
     | FundingBroadcastButNotLocked of FundingBroadcastButNotLockedData
     | Closing
     | LocallyForceClosed of LocallyForceClosedData
+    | RecoveryTxSent of TransactionIdentifier
     | Active
 
 type ChannelInfo =
@@ -88,26 +89,30 @@ type ChannelInfo =
                                                      : ChannelInfo =
         let fundingTxId = TransactionIdentifier.FromHash (serializedChannel.FundingScriptCoin().Outpoint.Hash)
         let status =
-            match serializedChannel.InitialRecoveryTransactionOpt with
-            | Some localForceCloseSpendingTx ->
-                ChannelStatus.LocallyForceClosed {
-                    Network = serializedChannel.SavedChannelState.StaticChannelConfig.Network
-                    Currency = currency
-                    ToSelfDelay = serializedChannel.SavedChannelState.StaticChannelConfig.LocalParams.ToSelfDelay.Value
-                    SpendingTransactionString = localForceCloseSpendingTx
-                }
+            match serializedChannel.RecoveryTxIdOpt with
+            | Some recoveryTxId ->
+                ChannelStatus.RecoveryTxSent recoveryTxId
             | None ->
-                if serializedChannel.NegotiatingState.HasEnteredShutdown() then
-                    ChannelStatus.Closing
-                elif serializedChannel.SavedChannelState.ShortChannelId.IsNone || serializedChannel.RemoteNextCommitInfo.IsNone then
-                    ChannelStatus.FundingBroadcastButNotLocked
-                        {
-                            Currency = currency
-                            TxId = fundingTxId
-                            MinimumDepth = serializedChannel.MinDepth().Value
-                        }
-                else
-                    ChannelStatus.Active
+                match serializedChannel.InitialRecoveryTransactionOpt with
+                | Some localForceCloseSpendingTx ->
+                    ChannelStatus.LocallyForceClosed {
+                        Network = serializedChannel.SavedChannelState.StaticChannelConfig.Network
+                        Currency = currency
+                        ToSelfDelay = serializedChannel.SavedChannelState.StaticChannelConfig.LocalParams.ToSelfDelay.Value
+                        SpendingTransactionString = localForceCloseSpendingTx
+                    }
+                | None ->
+                    if serializedChannel.NegotiatingState.HasEnteredShutdown() then
+                        ChannelStatus.Closing
+                    elif serializedChannel.SavedChannelState.ShortChannelId.IsNone || serializedChannel.RemoteNextCommitInfo.IsNone then
+                        ChannelStatus.FundingBroadcastButNotLocked
+                            {
+                                Currency = currency
+                                TxId = fundingTxId
+                                MinimumDepth = serializedChannel.MinDepth().Value
+                            }
+                    else
+                        ChannelStatus.Active
         {
             ChannelId = serializedChannel.ChannelId()
             IsFunder = serializedChannel.IsFunder()
@@ -382,10 +387,38 @@ module ChannelManager =
         : Async<string>
         =
         async {
+            let channelPreRecovery = channelStore.LoadChannel recoveryTx.ChannelId
             let! txId =
                 UtxoCoin.Account.BroadcastRawTransaction
                     recoveryTx.Currency
                     (recoveryTx.Tx.ToString())
-            channelStore.ArchiveChannel recoveryTx.ChannelId
+            let channelAfterRecovery =
+                { channelPreRecovery with
+                    RecoveryTxIdOpt =
+                        recoveryTx.Tx.NBitcoinTx.GetHash()
+                        |> TransactionIdentifier.FromHash
+                        |> Some
+                }
+            channelStore.SaveChannel channelAfterRecovery
             return txId
+        }
+
+    let CheckForConfirmedRecovery
+        (channelStore: ChannelStore)
+        (channelId: ChannelIdentifier)
+        (recoveryTxId: TransactionIdentifier)
+        =
+        async {
+            let currency = channelStore.Currency
+            let! confirmationCount =
+                Server.Query
+                    currency
+                    (QuerySettings.Default ServerSelectionMode.Fast)
+                    (ElectrumClient.GetConfirmations (recoveryTxId.ToString()))
+                    None
+            if confirmationCount <> 0u then
+                channelStore.ArchiveChannel channelId
+                return true
+            else
+                return false
         }
