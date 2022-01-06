@@ -350,46 +350,16 @@ type ClosedChannel()=
             return result
         }
 
-    static member internal CheckClosingFinished (fundingTxId: TxId)
-                                                (currency: Currency)
-                                                    : Async<Result<bool, CloseChannelError>> =
+    static member internal CheckClosingFinished
+        (channelStore: ChannelStore)
+        (channelId: ChannelIdentifier)
+        : Async<bool>
+        =
         async {
-            let fundingTxIdHash = fundingTxId.Value.ToString()
-
-            let! fundingVerboseTransaction =
-                Server.Query currency
-                             (QuerySettings.Default ServerSelectionMode.Fast)
-                             (ElectrumClient.GetBlockchainTransactionVerbose fundingTxIdHash)
-                             None
-
-            let parsedTransaction =
-                NBitcoin.Transaction.Parse(fundingVerboseTransaction.Hex, Account.GetNetwork currency)
-
-            let maybeOutput =
-                // TODO: find a better heuristic to check if this is the output we are looking for
-                Seq.tryFind (fun (o: TxOut) -> o.ScriptPubKey.IsScriptType ScriptType.Witness) parsedTransaction.Outputs
-
-            match maybeOutput with
-            | None ->
-                Infrastructure.LogDebug "Did not find an output with the correct type"
-                return Ok false
-            | Some output ->
-                let sha =
-                    NBitcoin.Crypto.Hashes.SHA256(output.ScriptPubKey.ToBytes())
-
-                let reversedSha = sha.Reverse().ToArray()
-
-                let scripthash =
-                    NBitcoin.DataEncoders.Encoders.Hex.EncodeData reversedSha
-
-                let! unspentOutputs =
-                    Server.Query currency
-                                 (QuerySettings.Default ServerSelectionMode.Fast)
-                                 (ElectrumClient.GetUnspentTransactionOutputs scripthash)
-                                 None
-
-                let outputIsUnspent =
-                    Array.exists (fun o -> o.Value = output.Value.Satoshi) unspentOutputs
-
-                return Ok(not outputIsUnspent)
+            let! closingTxOpt = channelStore.CheckForClosingTx channelId
+            match closingTxOpt with
+            | Some (ClosingTx.MutualClose _closingTx, Some _closingTxHeight) ->
+                return true
+            | _ ->
+                return false
         }

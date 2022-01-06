@@ -787,7 +787,7 @@ module LayerTwo =
                     | ChannelStatus.Closing ->
                         yield
                             async {
-                                let! isClosed = UtxoCoin.Lightning.Network.CheckClosingFinished channelInfo
+                                let! isClosed = UtxoCoin.Lightning.Network.CheckClosingFinished channelStore channelId
                                 let showTheChannel = not isClosed
                                 if showTheChannel then
                                     return

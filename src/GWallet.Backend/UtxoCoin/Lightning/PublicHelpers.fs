@@ -35,15 +35,7 @@ module public Network =
     [<Obsolete "Use ReceiveLightningEvent instead">]
     let public AcceptCloseChannel (nodeServer: NodeServer) = nodeServer.AcceptCloseChannel
 
-    let public CheckClosingFinished (channel: ChannelInfo): Async<bool> =
-        async {
-            let! resCheck = ClosedChannel.CheckClosingFinished channel.FundingTxId.DnlTxId channel.Currency
-            match resCheck with
-            | Ok res ->
-                return res
-            | Error err ->
-                return failwith <| SPrintF1 "Error when checking if channel finished closing: %s" (err :> IErrorMsg).Message
-        }
+    let public CheckClosingFinished = ClosedChannel.CheckClosingFinished
 
     let public SendHtlcPayment (nodeClient: NodeClient) = nodeClient.SendHtlcPayment
     let public SendMonoHopPayment (nodeClient: NodeClient) = nodeClient.SendMonoHopPayment
