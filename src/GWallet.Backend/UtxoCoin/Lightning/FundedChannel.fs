@@ -185,7 +185,7 @@ type internal FundedChannel =
                         Settings.GetLocalParams funding currency,
                         Settings.PeerLimits funding currency
                     let fundingTxMinimumDepth =
-                        Settings.DefaultFundingTxMinimumDepth currency
+                        Settings.DefaultTxMinimumDepth currency
                     return Channel.NewInbound(
                         peerLimits,
                         channelOptions,
