@@ -416,7 +416,7 @@ module ChannelManager =
                     (QuerySettings.Default ServerSelectionMode.Fast)
                     (ElectrumClient.GetConfirmations (recoveryTxId.ToString()))
                     None
-            if confirmationCount <> 0u then
+            if BlockHeightOffset32 confirmationCount >= Settings.DefaultTxMinimumDepth currency then
                 channelStore.ArchiveChannel channelId
                 return true
             else

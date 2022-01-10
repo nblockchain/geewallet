@@ -23,7 +23,7 @@ module Settings =
         | _ -> failwith "Unsupported currency"
         |> BlockHeightOffset16
 
-    let internal DefaultFundingTxMinimumDepth (currency: Currency) =
+    let internal DefaultTxMinimumDepth (currency: Currency) =
         match currency with
         | BTC -> 2u
         | LTC -> 3u
