@@ -358,7 +358,7 @@ type ClosedChannel()=
         async {
             let! closingTxOpt = channelStore.CheckForClosingTx channelId
             match closingTxOpt with
-            | Some (ClosingTx.MutualClose _closingTx, Some _closingTxHeight) ->
+            | Some (ClosingTx.MutualClose _closingTx, Some _closingTxConfirmations) ->
                 return true
             | _ ->
                 return false

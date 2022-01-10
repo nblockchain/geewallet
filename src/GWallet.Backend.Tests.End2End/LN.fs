@@ -801,7 +801,7 @@ type LN() =
         let rec waitForRemoteForceClose() = async {
             let! closingInfoOpt = serverWallet.ChannelStore.CheckForClosingTx channelId
             match closingInfoOpt with
-            | Some (ClosingTx.ForceClose closingTx, Some _closingTxHeight) ->
+            | Some (ClosingTx.ForceClose closingTx, Some _closingTxConfirmations) ->
                 return!
                     (Node.Server serverWallet.NodeServer).CreateRecoveryTxForRemoteForceClose
                         channelId
@@ -862,7 +862,7 @@ type LN() =
         bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
 
         let! closingInfoOpt = clientWallet.ChannelStore.CheckForClosingTx channelId
-        let closingTx, _closingTxHeightOpt = UnwrapOption closingInfoOpt "force close tx not found on blockchain"
+        let closingTx, _closingTxConfirmationsOpt = UnwrapOption closingInfoOpt "force close tx not found on blockchain"
 
         let forceCloseTx =
             match closingTx with
@@ -1303,9 +1303,9 @@ type LN() =
         let rec waitForForceClose(): Async<ForceCloseTx> = async {
             let! closingTxInfoOpt = serverWallet.ChannelStore.CheckForClosingTx channelId
             match closingTxInfoOpt with
-            | Some (ClosingTx.ForceClose forceCloseTx, _blockHeightOpt) ->
+            | Some (ClosingTx.ForceClose forceCloseTx, _closingTxConfirmations) ->
                 return forceCloseTx
-            | Some (ClosingTx.MutualClose _mutualCloseTx, _blockHeightOpt) ->
+            | Some (ClosingTx.MutualClose _mutualCloseTx, _closingTxConfirmations) ->
                 return failwith "should not happen"
             | None ->
                 do! Async.Sleep 500
