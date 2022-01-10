@@ -655,8 +655,8 @@ module LayerTwo =
                     channelStore.CheckForClosingTx channelInfo.ChannelId
 
                 match closingTx with
-                | Some (ClosingTx.ForceClose commitmentTx, closingTxDepth) ->
-                    return Some (commitmentTx, closingTxDepth)
+                | Some (ClosingTx.ForceClose commitmentTx, closingTxConfirmations) ->
+                    return Some (commitmentTx, closingTxConfirmations)
                 | _ ->
                     return None
             }

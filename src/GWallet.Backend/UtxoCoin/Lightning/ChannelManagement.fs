@@ -239,6 +239,16 @@ type ChannelStore(account: NormalUtxoAccount) =
                     (ElectrumClient.GetBlockchainScriptHashHistory scriptHash)
                     None
 
+            let! currentBlockHeight = async {
+                let! blockHeightResponse =
+                    Server.Query currency
+                        (QuerySettings.Default ServerSelectionMode.Fast)
+                        (ElectrumClient.SubscribeHeaders ())
+                        None
+                return
+                    (blockHeightResponse.Height |> uint32)
+            }
+
             let rec findSpendingTx (historyList: List<BlockchainScriptHashHistoryInnerResult>) (transactions: List<Transaction * Option<uint32>>) = 
                 async {
                     if historyList.IsEmpty then
@@ -247,12 +257,12 @@ type ChannelStore(account: NormalUtxoAccount) =
                         let txHash = historyList.Head.TxHash
                         let fundingTxHash = serializedChannel.FundingScriptCoin().Outpoint.Hash
 
-                        let txHeightOpt =
+                        let txConfirmationsOpt =
                             let reportedHeight = historyList.Head.Height
                             if reportedHeight = 0u then
                                 None
                             else
-                                Some reportedHeight
+                                Some (currentBlockHeight - reportedHeight)
 
                         let! txString =
                             Server.Query
@@ -273,7 +283,7 @@ type ChannelStore(account: NormalUtxoAccount) =
 
                         if isSpendingTx then
                             return!
-                                findSpendingTx historyList.Tail (transactions @ [(tx , txHeightOpt)])
+                                findSpendingTx historyList.Tail (transactions @ [(tx , txConfirmationsOpt)])
                         else
                             return!
                                 findSpendingTx historyList.Tail transactions
@@ -290,7 +300,7 @@ type ChannelStore(account: NormalUtxoAccount) =
 
             match spendingTxOpt with
             | None -> return None
-            | Some (spendingTx, spendingTxHeightOpt) ->
+            | Some (spendingTx, spendingTxConfirmationsOpt) ->
 
                 let obscuredCommitmentNumberOpt =
                     ForceCloseFundsRecovery.tryGetObscuredCommitmentNumber
@@ -302,13 +312,13 @@ type ChannelStore(account: NormalUtxoAccount) =
                     return
                         Some (
                             ClosingTx.MutualClose { MutualCloseTx.Tx = { UtxoTransaction.NBitcoinTx = spendingTx } },
-                            spendingTxHeightOpt
+                            spendingTxConfirmationsOpt
                         )
                 | Ok _ ->
                     return
                         Some (
                             ClosingTx.ForceClose  { ForceCloseTx.Tx = { UtxoTransaction.NBitcoinTx = spendingTx } },
-                            spendingTxHeightOpt
+                            spendingTxConfirmationsOpt
                         )
         }
 
