@@ -302,6 +302,18 @@ module FrontendHelpers =
                 |> DoubleCheckCompletion
         )
 
+    let SwitchToNewPageDiscardingCurrentOneAsync (currentPage: Page) (createNewPage: unit -> Page) =
+        async {
+            let newPage = createNewPage ()
+            NavigationPage.SetHasNavigationBar(newPage, false)
+
+            currentPage.Navigation.InsertPageBefore(newPage, currentPage)
+            let! _ =
+                currentPage.Navigation.PopAsync()
+                |> Async.AwaitTask
+            return ()
+        }
+
     let ChangeTextAndChangeBack (button: Button) (newText: string) =
         let initialText = button.Text
         button.IsEnabled <- false

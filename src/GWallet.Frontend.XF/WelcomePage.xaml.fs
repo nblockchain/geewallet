@@ -23,6 +23,9 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     let dobDatePicker = mainLayout.FindByName<DatePicker> "dobDatePicker"
     let nextButton = mainLayout.FindByName<Button> "nextButton"
 
+    let eighteenYearsAgo = (DateTime.Now - TimeSpan.FromDays (365.25 * 18.)).Year
+    let middleDateEighteenYearsAgo = DateTime(eighteenYearsAgo, 6, 15)
+
     let MaybeEnableNextButton () =
         let isEnabled = passphraseEntry.Text <> null && passphraseEntry.Text.Length > 0 &&
                         passphraseConfirmationEntry.Text <> null && passphraseConfirmationEntry.Text.Length > 0 &&
@@ -93,6 +96,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
     do
         dobDatePicker.MaximumDate <- DateTime.UtcNow.Date
+        dobDatePicker.Date <- middleDateEighteenYearsAgo
 
         Caching.Instance.BootstrapServerStatsFromTrustedSource()
             |> FrontendHelpers.DoubleCheckCompletionAsync false
@@ -101,24 +105,48 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     new() = WelcomePage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime())
 
     member this.OnNextButtonClicked(sender: Object, args: EventArgs) =
-        match VerifyPassphraseIsGoodAndSecureEnough() with
-        | Some warning ->
-            this.DisplayAlert("Alert", warning, "OK") |> ignore
-
-        | None ->
-                ToggleInputWidgetsEnabledOrDisabled false
+        let submit () =
+            match VerifyPassphraseIsGoodAndSecureEnough() with
+            | Some warning ->
+                async {
+                    do!
+                        this.DisplayAlert("Alert", warning, "OK")
+                        |> Async.AwaitTask
+                }
+            | None ->
                 let dateTime = dobDatePicker.Date
                 async {
+                    let! mainThreadSynchContext =
+                        Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+                    do! Async.SwitchToContext mainThreadSynchContext
+                    ToggleInputWidgetsEnabledOrDisabled false
+                    do! Async.SwitchToThreadPool()
                     let masterPrivKeyTask =
                         Account.GenerateMasterPrivateKey passphraseEntry.Text dateTime (emailEntry.Text.ToLower())
                             |> Async.StartAsTask
-
+                    do! Async.SwitchToContext mainThreadSynchContext
                     let welcomePage () =
                         WelcomePage2 (state, masterPrivKeyTask)
                             :> Page
-                    FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this welcomePage
-                } |> FrontendHelpers.DoubleCheckCompletionAsync false
+                    do! FrontendHelpers.SwitchToNewPageDiscardingCurrentOneAsync this welcomePage
+                }
 
+        if dobDatePicker.Date.Date = middleDateEighteenYearsAgo.Date then
+            let displayTask =
+                this.DisplayAlert("Alert", "You didn't change the field for Date of Birth, are you sure?", "Yes, it's correct", "Cancel")
+            async {
+                let! mainThreadSynchContext =
+                    Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+                let! continueAnyway = Async.AwaitTask displayTask
+                if continueAnyway then
+                    do! Async.SwitchToContext mainThreadSynchContext
+                    do! submit()
+                    return ()
+                else
+                    return ()
+            } |> FrontendHelpers.DoubleCheckCompletionAsync false
+        else
+            submit () |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnDobDateChanged (sender: Object, args: DateChangedEventArgs) =
         MaybeEnableNextButton ()
