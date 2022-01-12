@@ -144,3 +144,5 @@ module FiatValueEstimation =
                     return Fresh freshValue
     }
 
+    let SmallestFiatFeeThatIsNoLongerRidiculous = 0.01m
+

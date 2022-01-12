@@ -255,7 +255,10 @@ module Account =
                     return! EstimateFees newTxBuilder feeRate account newInputs tail
         }
 
-    let internal EstimateFee (account: IUtxoAccount) (amount: TransferAmount) (destination: string)
+    let internal EstimateTransferFee
+        (account: IUtxoAccount)
+        (amount: TransferAmount)
+        (destination: string)
                                  : Async<TransactionMetadata> = async {
         let rec addInputsUntilAmount (utxos: List<UnspentTransactionOutputInfo>)
                                       soFarInSatoshis
@@ -347,6 +350,28 @@ module Account =
         | :? NBitcoin.NotEnoughFundsException ->
             return raise <| InsufficientBalanceForFee None
     }
+
+    let internal EstimateFee
+        (account: IUtxoAccount)
+        (amount: TransferAmount)
+        (destination: string)
+        : Async<TransactionMetadata> =
+            async {
+                let! initialFee = EstimateTransferFee account amount destination
+                if account.Currency <> Currency.LTC then
+                    return initialFee
+                else
+                    let! maybeExchangeRate =
+                        FiatValueEstimation.UsdValue amount.Currency
+                    let maybeBetterFee =
+                        match maybeExchangeRate with
+                        | NotFresh NotAvailable -> initialFee.Fee
+                        | NotFresh (Cached (rate, _)) | Fresh rate ->
+                            MinerFee.GetHigherFeeThanRidiculousFee
+                                rate
+                                initialFee.Fee
+                    return { initialFee with Fee = maybeBetterFee }
+            }
 
     let private SignTransactionWithPrivateKey (account: IUtxoAccount)
                                               (txMetadata: TransactionMetadata)
