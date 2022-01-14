@@ -16,6 +16,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     let _ = base.LoadFromXaml(typeof<WelcomePage>)
 
     let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let infoLayout = mainLayout.FindByName<StackLayout> "infoLayout"
     let passphraseEntry = mainLayout.FindByName<Entry> "passphraseEntry"
     let passphraseConfirmationEntry = mainLayout.FindByName<Entry> "passphraseConfirmationEntry"
 
@@ -147,6 +148,15 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
         else
             submit () |> FrontendHelpers.DoubleCheckCompletionAsync false
+
+    member this.OnMoreInfoButtonClicked(_sender: Object, _args: EventArgs) =
+        this.DisplayAlert("Info", "Please note that geewallet is a brain-wallet, which means that this personal information is not registered in any server or any location outside your device, not even saved in your device. It will just be combined and hashed to generate a unique secret which is called a 'private key' which will allow you to recover your funds if you install the application again (in this or other device) later. \r\n\r\n(If it is your first time using this wallet and just want to test it quickly without any funds or low amounts, you can just input any data that is long enough to be considered valid.)", "OK")
+        |> FrontendHelpers.DoubleCheckCompletionNonGeneric
+
+    member __.OnOkButtonClicked(_sender: Object, _args: EventArgs) =
+        infoLayout.IsVisible <- false
+        if isNull passphraseEntry.Text || passphraseEntry.Text.Trim().Length = 0 then
+            passphraseEntry.Focus() |> ignore
 
     member this.OnDobDateChanged (sender: Object, args: DateChangedEventArgs) =
         MaybeEnableNextButton ()
