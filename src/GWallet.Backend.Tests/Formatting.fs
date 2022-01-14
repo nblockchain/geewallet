@@ -116,7 +116,7 @@ type Formatting() =
         Assert.That(formattedAmount, Is.EqualTo "0.2")
 
     [<Test>]
-    //https://gitlab.com/knocte/geewallet/issues/97
+    //https://gitlab.com/nblockchain/geewallet/issues/97
     member __.``wrong fiat truncating test``() =
         let someUsdDecimalAmount = 0.01m
         let maxAmount = 0.1m
