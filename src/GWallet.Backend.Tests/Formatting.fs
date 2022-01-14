@@ -47,7 +47,10 @@ type Formatting() =
     member __.``if it's not zero, even if super tiny, it shouldn't round to zero!``() =
         let someVerySmallUsdDecimalAmount = 0.0000001m
         let formattedAmount = Formatting.DecimalAmountRounding CurrencyType.Fiat someVerySmallUsdDecimalAmount
-        Assert.That(formattedAmount, Is.EqualTo "0.01")
+        Assert.That(
+            formattedAmount,
+            Is.EqualTo (FiatValueEstimation.SmallestFiatFeeThatIsNoLongerRidiculous.ToString())
+        )
 
         let someVerySmallBtcDecimalAmount = 0.00000001m
         let formattedAmount = Formatting.DecimalAmountRounding CurrencyType.Crypto someVerySmallBtcDecimalAmount
