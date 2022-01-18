@@ -51,6 +51,13 @@ type TransactionIdentifier =
     static member internal FromHash (txIdHash: NBitcoin.uint256): TransactionIdentifier =
         { DnlTxId = DotNetLightning.Utils.TxId txIdHash }
 
+    static member internal Parse (txIdHex: string): TransactionIdentifier =
+        {
+            DnlTxId =
+                NBitcoin.uint256.Parse txIdHex
+                    |> DotNetLightning.Utils.TxId
+        }
+
     override self.ToString() =
         self.DnlTxId.Value.ToString()
 
@@ -58,6 +65,10 @@ type UtxoTransaction =
     internal {
         NBitcoinTx: NBitcoin.Transaction
     }
+
+    member self.Id =
+        self.NBitcoinTx.GetHash()
+            |> TransactionIdentifier.FromHash
 
     override self.ToString() =
         self.NBitcoinTx.ToHex()
