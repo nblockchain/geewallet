@@ -186,7 +186,6 @@ module internal Account =
             | NotFresh (Cached (exchangeRate,_)) | Fresh exchangeRate ->
                 MinerFee.GetHigherFeeThanRidiculousFee exchangeRate
                                                        initialEthMinerFee
-                                                       0.01m
 
         let feeValue = maybeBetterFee.CalculateAbsoluteValue()
         if (amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&

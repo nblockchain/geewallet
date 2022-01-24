@@ -47,7 +47,10 @@ type Formatting() =
     member __.``if it's not zero, even if super tiny, it shouldn't round to zero!``() =
         let someVerySmallUsdDecimalAmount = 0.0000001m
         let formattedAmount = Formatting.DecimalAmountRounding CurrencyType.Fiat someVerySmallUsdDecimalAmount
-        Assert.That(formattedAmount, Is.EqualTo "0.01")
+        Assert.That(
+            formattedAmount,
+            Is.EqualTo (FiatValueEstimation.SmallestFiatFeeThatIsNoLongerRidiculous.ToString())
+        )
 
         let someVerySmallBtcDecimalAmount = 0.00000001m
         let formattedAmount = Formatting.DecimalAmountRounding CurrencyType.Crypto someVerySmallBtcDecimalAmount
@@ -144,7 +147,7 @@ type Formatting() =
         Assert.That(formattedAmount, Is.EqualTo "0.2")
 
     [<Test>]
-    //https://gitlab.com/knocte/geewallet/issues/97
+    //https://gitlab.com/nblockchain/geewallet/issues/97
     member __.``wrong fiat truncating test``() =
         let someUsdDecimalAmount = 0.01m
         let maxAmount = 0.1m
