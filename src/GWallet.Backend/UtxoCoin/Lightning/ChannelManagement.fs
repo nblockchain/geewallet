@@ -41,19 +41,15 @@ type LocallyForceClosedData =
         Network: Network
         Currency: Currency
         ToSelfDelay: uint16
-        SpendingTransactionString: string
+        ForceCloseTxId: TransactionIdentifier
     }
     member self.GetRemainingConfirmations (): Async<uint16> =
         async {
-            let spendingTransaction = Transaction.Parse (self.SpendingTransactionString, self.Network)
-            let forceCloseTxId =
-                let txIn = Seq.exactlyOne spendingTransaction.Inputs
-                txIn.PrevOut.Hash
             let! confirmationCount =
                 UtxoCoin.Server.Query
                     self.Currency
                     (UtxoCoin.QuerySettings.Default ServerSelectionMode.Fast)
-                    (UtxoCoin.ElectrumClient.GetConfirmations (forceCloseTxId.ToString()))
+                    (UtxoCoin.ElectrumClient.GetConfirmations (self.ForceCloseTxId.ToString()))
                     None
             if confirmationCount < uint32 self.ToSelfDelay then
                 let remainingConfirmations = self.ToSelfDelay - uint16 confirmationCount
@@ -93,13 +89,13 @@ type ChannelInfo =
             | Some recoveryTxId ->
                 ChannelStatus.RecoveryTxSent recoveryTxId
             | None ->
-                match serializedChannel.InitialRecoveryTransactionOpt with
-                | Some localForceCloseSpendingTx ->
+                match serializedChannel.ForceCloseTxIdOpt with
+                | Some forceCloseTxId ->
                     ChannelStatus.LocallyForceClosed {
                         Network = serializedChannel.SavedChannelState.StaticChannelConfig.Network
                         Currency = currency
                         ToSelfDelay = serializedChannel.SavedChannelState.StaticChannelConfig.LocalParams.ToSelfDelay.Value
-                        SpendingTransactionString = localForceCloseSpendingTx
+                        ForceCloseTxId = forceCloseTxId
                     }
                 | None ->
                     if serializedChannel.NegotiatingState.HasEnteredShutdown() then

@@ -643,10 +643,16 @@ type LN() =
         bitcoind.GenerateBlocksToDummyAddress
             (BlockHeightOffset32 (uint32 locallyForceClosedData.ToSelfDelay))
 
-        let! _spendingTxId =
-            UtxoCoin.Account.BroadcastRawTransaction
-                locallyForceClosedData.Currency
-                locallyForceClosedData.SpendingTransactionString
+        let! spendingTxResult =
+            let commitmentTxString = clientWallet.ChannelStore.GetCommitmentTx channelId
+            (Lightning.Node.Client clientWallet.NodeClient).CreateRecoveryTxForLocalForceClose
+                channelId
+                commitmentTxString
+
+        let recoveryTx = UnwrapResult spendingTxResult "Local output is dust, recovery tx cannot be created"
+
+        let! _recoveryTxId =
+            ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx clientWallet.ChannelStore
 
         // wait for spending transaction to appear in mempool
         while bitcoind.GetTxIdsInMempool().Length = 0 do
@@ -748,10 +754,16 @@ type LN() =
         bitcoind.GenerateBlocksToDummyAddress
             (BlockHeightOffset32 (uint32 locallyForceClosedData.ToSelfDelay))
 
-        let! _spendingTxId =
-            UtxoCoin.Account.BroadcastRawTransaction
-                locallyForceClosedData.Currency
-                locallyForceClosedData.SpendingTransactionString
+        let! spendingTxResult =
+            let commitmentTxString = clientWallet.ChannelStore.GetCommitmentTx channelId
+            (Lightning.Node.Client clientWallet.NodeClient).CreateRecoveryTxForLocalForceClose
+                channelId
+                commitmentTxString
+
+        let recoveryTx = UnwrapResult spendingTxResult "Local output is dust, recovery tx cannot be created"
+
+        let! _recoveryTxId = 
+            ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx clientWallet.ChannelStore
 
         // wait for spending transaction to appear in mempool
         while bitcoind.GetTxIdsInMempool().Length = 0 do
@@ -950,10 +962,16 @@ type LN() =
         }
         do! waitForTimeLockExpired()
 
-        let! _spendingTxId =
-            UtxoCoin.Account.BroadcastRawTransaction
-                locallyForceClosedData.Currency
-                locallyForceClosedData.SpendingTransactionString
+        let! spendingTxResult =
+            let commitmentTxString = serverWallet.ChannelStore.GetCommitmentTx channelId
+            (Lightning.Node.Server serverWallet.NodeServer).CreateRecoveryTxForLocalForceClose
+                channelId
+                commitmentTxString
+
+        let recoveryTx = UnwrapResult spendingTxResult "Local output is dust, recovery tx cannot be created"
+
+        let! _recoveryTxId = 
+            ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx serverWallet.ChannelStore
 
         Infrastructure.LogDebug "waiting for our wallet balance to increase"
         let! _balanceAfterFundsReclaimed =

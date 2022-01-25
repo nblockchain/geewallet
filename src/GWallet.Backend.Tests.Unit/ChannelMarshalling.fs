@@ -266,7 +266,7 @@ type ChannelMarshalling () =
       "127.0.0.1",
       1785
     ],
-    "initialRecoveryTransactionOpt": null,
+    "forceCloseTxIdOpt": null,
     "localChannelPubKeys": {
       "fundingPubKey": {
         "case": "FundingPubKey",
