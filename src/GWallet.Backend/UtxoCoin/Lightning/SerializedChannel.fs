@@ -65,7 +65,7 @@ type SerializedChannel =
         AccountFileName: string
         // FIXME: should store just RemoteNodeEndPoint instead of CounterpartyIP+RemoteNodeId?
         CounterpartyIP: IPEndPoint
-        InitialRecoveryTransactionOpt: Option<string>
+        ForceCloseTxIdOpt: Option<TransactionIdentifier>
         LocalChannelPubKeys: ChannelPubKeys
         RecoveryTxIdOpt: Option<TransactionIdentifier>
     }
