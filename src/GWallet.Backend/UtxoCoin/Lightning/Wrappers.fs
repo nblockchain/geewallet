@@ -66,6 +66,10 @@ type UtxoTransaction =
         NBitcoinTx: NBitcoin.Transaction
     }
 
+    member self.Id =
+        self.NBitcoinTx.GetHash()
+            |> TransactionIdentifier.FromHash
+
     override self.ToString() =
         self.NBitcoinTx.ToHex()
 

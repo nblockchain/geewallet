@@ -643,7 +643,7 @@ module LayerTwo =
                 }
         }
 
-    let FindRemoteForceClose
+    let FindForceClose
         (channelStore: ChannelStore)
         (channelInfo: ChannelInfo)
         : Async<Option<ForceCloseTx * Option<uint32>>> =
@@ -763,7 +763,8 @@ module LayerTwo =
                     | ChannelStatus.Active ->
                         yield
                             async {
-                                let! remoteForceClosingTxOpt = FindRemoteForceClose channelStore channelInfo
+                                // Because we don't recall broadcasting our commitment Tx (ChannelStatus <> LocallyForceClosed), we assume it's a remote force close
+                                let! remoteForceClosingTxOpt = FindForceClose channelStore channelInfo
                                 match remoteForceClosingTxOpt with
                                 | Some (closingTx, closingTxHeightOpt) ->
                                     return fun () ->
@@ -799,11 +800,17 @@ module LayerTwo =
                                 }
                     | ChannelStatus.LocallyForceClosed locallyForceClosedData ->
                         yield async {
-                            return fun () ->
-                                ClaimFundsIfTimelockExpired
-                                    channelStore
-                                    channelInfo
-                                    locallyForceClosedData
+                            let! forceClosingTxOpt = FindForceClose channelStore channelInfo
+                            match forceClosingTxOpt with
+                            | Some (closingTx, Some closingTxHeight) when closingTx.Tx.Id <> locallyForceClosedData.ForceCloseTxId ->
+                                return fun () ->
+                                    ClaimFundsOnForceClose channelStore channelInfo closingTx (Some closingTxHeight)
+                            | _ ->
+                                return fun () ->
+                                    ClaimFundsIfTimelockExpired
+                                        channelStore
+                                        channelInfo
+                                        locallyForceClosedData
                         }
                     | ChannelStatus.RecoveryTxSent recoveryTxId -> 
                         yield async {
