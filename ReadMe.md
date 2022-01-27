@@ -74,7 +74,7 @@ This list is the (intended) order of preference for new features:
 - Passwordless login infrastructure (e.g. https://www.reddit.com/r/ethereum/comments/7hn3fq/using_your_blockchain_identity_for_passwordless/ ).
 - flatpak packaging.
 - In mobile, allow usage when camera permissions have not been granted, by letting the user redirect him to his camera app and take a picture (see https://youtu.be/k1Ssz1dvcpk?t=63).
-- Use of 'bits' instead of BTC as default unit.
+- Use of 'bits' instead of BTC as default unit (see https://www.reddit.com/r/Bitcoin/comments/sdhtz0/this_woman_has_resparked_the_sats_vs_bits_debate/ ).
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
 - MimbleWimble(Grin) support.
 - Threshold signatures.
