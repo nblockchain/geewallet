@@ -489,6 +489,8 @@ and internal ActiveChannel =
                                                 Channel = channelAferRevokeAndAck
                                             }
                                 }
+                            connectedChannelAfterRevokeAndAck.SaveToWallet()
+
                             let channelPrivKeys = connectedChannelAfterRevokeAndAck.Channel.ChannelPrivKeys
                             let savedChannelState = self.ConnectedChannel.Channel.Channel.SavedChannelState
                             let network = connectedChannelAfterRevokeAndAck.Network
@@ -514,7 +516,6 @@ and internal ActiveChannel =
                                         account
                                         true
 
-                            connectedChannelAfterRevokeAndAck.SaveToWallet()
                             let activeChannel = { ConnectedChannel = connectedChannelAfterRevokeAndAck }
                             return Ok activeChannel
                     | :? FundingLockedMsg as _fundingLockedMsg ->
