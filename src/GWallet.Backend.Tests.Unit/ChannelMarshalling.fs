@@ -234,7 +234,35 @@ type ChannelMarshalling () =
       },
       "remoteChanges": {
         "signed": [],
-        "acKed": []
+        "acKed": [
+          {
+            "$type": "DotNetLightning.Serialization.Msgs.MonoHopUnidirectionalPaymentMsg, DotNetLightning.Core",
+            "channelId@": {
+              "case": "ChannelId",
+              "fields": [
+                "57bc85391d1f7d62a3d2530dfe522596a20ecc22eeca4816e0da5c04e8d3e02c"
+              ]
+            },
+            "amount@": {
+              "case": "LNMoney",
+              "fields": [
+                9208000
+              ]
+            },
+            "channelId": {
+              "case": "ChannelId",
+              "fields": [
+                "57bc85391d1f7d62a3d2530dfe522596a20ecc22eeca4816e0da5c04e8d3e02c"
+              ]
+            },
+            "amount": {
+              "case": "LNMoney",
+              "fields": [
+                9208000
+              ]
+            }
+          }
+        ]
       }
     },
     "commitments": {

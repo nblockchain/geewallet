@@ -117,7 +117,7 @@ module JsonMarshalling =
             writer.WriteEndArray()
 
     let internal SerializerSettings: JsonSerializerSettings =
-        let settings = Marshalling.DefaultSettings ()
+        let settings = Marshalling.DefaultSettings true
         let shutdownScriptPubKeyConverter = ShutdownScriptPubKeyConverter()
         let ipAddressConverter = IPAddressJsonConverter()
         let ipEndPointConverter = IPEndPointJsonConverter()
