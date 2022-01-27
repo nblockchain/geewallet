@@ -138,10 +138,18 @@ module Marshalling =
     let internal PascalCase2LowercasePlusUnderscoreConversionSettings =
         JsonSerializerSettings(ContractResolver = PascalCase2LowercasePlusUnderscoreContractResolver())
 
-    let internal DefaultSettings () = // Function so that we won't mutate. This is hard to clone.
+    // function, not value, so that we won't mutate (this is hard to clone)
+    let internal DefaultSettings (includeTypeMetadata: bool) =
+        let typeNameHandling =
+            if includeTypeMetadata then
+                TypeNameHandling.Auto
+            else // JSON.NET's default
+                TypeNameHandling.None
+
         JsonSerializerSettings(MissingMemberHandling = MissingMemberHandling.Error,
                                ContractResolver = RequireAllPropertiesContractResolver(),
-                               DateTimeZoneHandling = DateTimeZoneHandling.Utc)
+                               DateTimeZoneHandling = DateTimeZoneHandling.Utc,
+                               TypeNameHandling = typeNameHandling)
 
     let private currentVersion = VersionHelper.CURRENT_VERSION
 
@@ -204,10 +212,10 @@ module Marshalling =
     let Deserialize<'T>(json: string): 'T =
         match typeof<'T> with
         | theType when typeof<Exception>.IsAssignableFrom theType ->
-            let marshalledException: MarshalledException = DeserializeCustom (json, DefaultSettings())
+            let marshalledException: MarshalledException = DeserializeCustom (json, DefaultSettings false)
             BinaryMarshalling.DeserializeFromString marshalledException.FullBinaryForm :?> 'T
         | _ ->
-            DeserializeCustom (json, DefaultSettings())
+            DeserializeCustom (json, DefaultSettings false)
 
     let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings) (formatting: Formatting): string =
         JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
@@ -226,7 +234,7 @@ module Marshalling =
         match box value with
         | :? Exception as ex ->
             let exToSerialize = MarshalledException.Create ex
-            let serializedEx = SerializeCustom (exToSerialize, DefaultSettings (), DefaultFormatting)
+            let serializedEx = SerializeCustom (exToSerialize, DefaultSettings false, DefaultFormatting)
 
             try
                 let _deserializedEx: 'T = Deserialize serializedEx
@@ -241,7 +249,7 @@ module Marshalling =
 
             serializedEx
         | _ ->
-            SerializeCustom (value, DefaultSettings (), DefaultFormatting)
+            SerializeCustom (value, DefaultSettings false, DefaultFormatting)
 
     let SerializeOneLine<'T>(value: 'T): string =
-        SerializeCustom (value, DefaultSettings (), Formatting.None)
+        SerializeCustom (value, DefaultSettings false, Formatting.None)
