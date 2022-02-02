@@ -460,7 +460,7 @@ type internal TransportStream =
                 FallbackDirectorySelector.GetRandomFallbackDirectory(), (nonionIntroductionPoint.NodeId.ToString() |> NBitcoin.PubKey |> NodeId)
         let peerId = PeerId (ipEndPoint :> EndPoint)
 
-        let! connectRes = TransportStream.TransportConnect (Some ipEndPoint) nodeIdentifier
+        let! connectRes = TransportStream.TransportConnect None nodeIdentifier
         match connectRes with
         | Error err -> return Error <| TcpConnect err
         | Ok client ->
