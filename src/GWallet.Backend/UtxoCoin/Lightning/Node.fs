@@ -814,7 +814,6 @@ type Node =
             | Client nodeClient -> nodeClient.NodeMasterPrivKey
             | Server nodeServer -> nodeServer.NodeMasterPrivKey
         let! activeChannelRes =
-            // TODO: add proper argument for nOnionIntroductionPointInfo
             ActiveChannel.ConnectReestablish
                 self.ChannelStore
                 nodeMasterPrivKey

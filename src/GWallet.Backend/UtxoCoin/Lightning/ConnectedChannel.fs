@@ -158,8 +158,8 @@ type internal ConnectedChannel =
             let nodeId = channel.RemoteNodeId
             let nodeIdentifier =
                 match nonionIntroductionPoint with
-                | Some introPint ->
-                    NodeIdentifier.NOnionIntroductionPoint introPint
+                | Some introPoint ->
+                    NodeIdentifier.NOnionIntroductionPoint introPoint
                 | _ ->
                     NodeIdentifier.EndPoint { NodeEndPoint.NodeId = PublicKey nodeId.Value; IPEndPoint = serializedChannel.CounterpartyIP }
             PeerNode.Connect nodeMasterPrivKey nodeIdentifier

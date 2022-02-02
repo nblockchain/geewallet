@@ -200,7 +200,6 @@ type ServerWalletInstance private (wallet: WalletInstance, nodeServer: NodeServe
     static member New (listenEndpoint: IPEndPoint) (privateKeyOpt: Option<Key>): Async<ServerWalletInstance> = async {
         let! wallet = WalletInstance.New privateKeyOpt
         let! nodeServer =
-            Console.WriteLine "start server 1"
             Connection.StartServer wallet.ChannelStore wallet.Password (NodeServerType.Tcp (Some listenEndpoint))
         return new ServerWalletInstance(wallet, nodeServer)
     }

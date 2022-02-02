@@ -294,46 +294,66 @@ type internal TransportStream =
             }
         read buf 0
 
-    static member private TcpOrTorConnect (localEndPointOpt: Option<IPEndPoint>)
-                                        (remoteEndPoint: IPEndPoint)
-                                        (node: NodeIdentifier)
-                                         : Async<Result<TransportClientType, seq<SocketException>>> = async {
-        match node with
-        | NodeIdentifier.EndPoint _endpoint ->
-            let client = new TcpClient (remoteEndPoint.AddressFamily)
-            match localEndPointOpt with
-            | Some localEndPoint ->
-                client.Client.ExclusiveAddressUse <- false
-                client.Client.SetSocketOption(
-                    SocketOptionLevel.Socket,
-                    SocketOptionName.ReuseAddress,
-                    true
-                )
-                client.Client.Bind(localEndPoint)
-                Infrastructure.LogDebug <| SPrintF2 "Connecting over TCP from %A to %A..." localEndPoint remoteEndPoint
-            | None ->
-                Infrastructure.LogDebug <| SPrintF1 "Connecting over TCP to %A..." remoteEndPoint
-            try
-                do! client.ConnectAsync(remoteEndPoint.Address, remoteEndPoint.Port) |> Async.AwaitTask
-                return Ok (TransportClientType.TcpClient client)
-            with
-            | ex ->
-                client.Close()
-                let socketExceptions = FindSingleException<SocketException> ex
-                return Error socketExceptions
-        | NodeIdentifier.NOnionIntroductionPoint nonionIntroductionPoint ->
-            let introductionIpEndPoint = ((IPAddress.Parse nonionIntroductionPoint.IntroductionPointPublicInfo.Address, nonionIntroductionPoint.IntroductionPointPublicInfo.Port) |> IPEndPoint)
-            Infrastructure.LogDebug <| SPrintF1 "Connecting over TOR to %A..." introductionIpEndPoint
+    static member private TcpConnect (localEndPointOpt: Option<IPEndPoint>)
+                                     (remoteEndPoint: IPEndPoint)
+                                         : Async<Result<TcpClient, seq<SocketException>>> = async {
+        let client = new TcpClient (remoteEndPoint.AddressFamily)
+        match localEndPointOpt with
+        | Some localEndPoint ->
+            client.Client.ExclusiveAddressUse <- false
+            client.Client.SetSocketOption(
+                SocketOptionLevel.Socket,
+                SocketOptionName.ReuseAddress,
+                true
+            )
+            client.Client.Bind(localEndPoint)
+            Infrastructure.LogDebug <| SPrintF2 "Connecting over TCP from %A to %A..." localEndPoint remoteEndPoint
+        | None ->
+            Infrastructure.LogDebug <| SPrintF1 "Connecting over TCP to %A..." remoteEndPoint
+        try
+            do! client.ConnectAsync(remoteEndPoint.Address, remoteEndPoint.Port) |> Async.AwaitTask
+            return Ok client
+        with
+        | ex ->
+            client.Close()
+            let socketExceptions = FindSingleException<SocketException> ex
+            return Error socketExceptions
+        }
 
-            let! directory = TorOperations.GetTorDirectory Config.TOR_CONNECTION_RETRY_COUNT
-            try
-                let! torClient = TorOperations.TorConnect directory Config.TOR_CONNECTION_RETRY_COUNT nonionIntroductionPoint.IntroductionPointPublicInfo
-                Infrastructure.LogDebug <| SPrintF1 "Connected %s" nonionIntroductionPoint.IntroductionPointPublicInfo.Address
+    static member private TorConnect (nonionIntroductionPoint: NodeNOnionIntroductionPoint)
+                                        : Async<Result<TorServiceClient, seq<SocketException>>> = async {
+        let introductionIpEndPoint = ((IPAddress.Parse nonionIntroductionPoint.IntroductionPointPublicInfo.Address, nonionIntroductionPoint.IntroductionPointPublicInfo.Port) |> IPEndPoint)
+        Infrastructure.LogDebug <| SPrintF1 "Connecting over TOR to %A..." introductionIpEndPoint
+
+        let! directory = TorOperations.GetTorDirectory Config.TOR_CONNECTION_RETRY_COUNT
+        try
+            let! torClient = TorOperations.TorConnect directory Config.TOR_CONNECTION_RETRY_COUNT nonionIntroductionPoint.IntroductionPointPublicInfo
+            Infrastructure.LogDebug <| SPrintF1 "Connected %s" nonionIntroductionPoint.IntroductionPointPublicInfo.Address
+            return Ok torClient
+        with
+        | ex ->
+            let socketExceptions = FindSingleException<SocketException> ex
+            return Error socketExceptions
+        }
+
+    static member private TransportConnect (localEndPointOpt: Option<IPEndPoint>)
+                                           (node: NodeIdentifier)
+                                               : Async<Result<TransportClientType, seq<SocketException>>> = async {
+        match node with
+        | NodeIdentifier.EndPoint remoteEndPoint ->
+            let! mayBeTcpClient = TransportStream.TcpConnect localEndPointOpt remoteEndPoint.IPEndPoint
+            match mayBeTcpClient with
+            | Ok tcpClient ->
+                return Ok (TransportClientType.TcpClient tcpClient)
+            | Error error ->
+                return Error error
+        | NodeIdentifier.NOnionIntroductionPoint nonionIntroductionPoint ->
+            let! maybeTorClient = TransportStream.TorConnect nonionIntroductionPoint
+            match maybeTorClient with
+            | Ok torClient ->
                 return Ok (TransportClientType.TorClient torClient)
-            with
-            | ex ->
-                let socketExceptions = FindSingleException<SocketException> ex
-                return Error socketExceptions
+            | Error error ->
+                return Error error
             }
 
     static member private TcpOrTorAcceptAny (listener: IncomingConnectionMethod)
@@ -357,15 +377,16 @@ type internal TransportStream =
                                            (peerNodeId: NodeId)
                                            (peerId: PeerId)
                                                : Async<Result<TransportStream, HandshakeError>> = async {
+        let nodeSecret = nodeMasterPrivKey.NodeSecret()
+        // FIXME: CreateOutbound should take a NodeSecret
+        let peer = Peer.CreateOutbound(peerId, peerNodeId, nodeSecret.RawKey())
+        let act1, peerEncryptor = PeerChannelEncryptor.getActOne peer.ChannelEncryptor
+        Debug.Assert((TransportStream.bolt08ActOneLength = act1.Length), "act1 has wrong length")
+        let peerAfterAct1 = { peer with ChannelEncryptor = peerEncryptor }
+
         match tcpOrTorclient with
         | TransportClientType.TcpClient client ->
-            let nodeSecret = nodeMasterPrivKey.NodeSecret()
             let stream = client.GetStream()
-            // FIXME: CreateOutbound should take a NodeSecret
-            let peer = Peer.CreateOutbound(peerId, peerNodeId, nodeSecret.RawKey())
-            let act1, peerEncryptor = PeerChannelEncryptor.getActOne peer.ChannelEncryptor
-            Debug.Assert((TransportStream.bolt08ActOneLength = act1.Length), "act1 has wrong length")
-            let peerAfterAct1 = { peer with ChannelEncryptor = peerEncryptor }
 
             // Send act1
             do! stream.WriteAsync(act1, 0, act1.Length) |> Async.AwaitTask
@@ -394,13 +415,7 @@ type internal TransportStream =
                     return failwith <| SPrintF1
                         "DNL returned unexpected events when processing act2: %A" evts
         | TransportClientType.TorClient client ->
-            let nodeSecret = nodeMasterPrivKey.NodeSecret()
             let stream = client.GetStream()
-            // FIXME: CreateOutbound should take a NodeSecret
-            let peer = Peer.CreateOutbound(peerId, peerNodeId, nodeSecret.RawKey())
-            let act1, peerEncryptor = PeerChannelEncryptor.getActOne peer.ChannelEncryptor
-            Debug.Assert((TransportStream.bolt08ActOneLength = act1.Length), "act1 has wrong length")
-            let peerAfterAct1 = { peer with ChannelEncryptor = peerEncryptor }
 
             // Send act1
             do! stream.SendData(act1)
@@ -445,8 +460,7 @@ type internal TransportStream =
                 FallbackDirectorySelector.GetRandomFallbackDirectory(), (nonionIntroductionPoint.NodeId.ToString() |> NBitcoin.PubKey |> NodeId)
         let peerId = PeerId (ipEndPoint :> EndPoint)
 
-        let peerEndpoint = ipEndPoint
-        let! connectRes = TransportStream.TcpOrTorConnect None peerEndpoint nodeIdentifier
+        let! connectRes = TransportStream.TransportConnect (Some ipEndPoint) nodeIdentifier
         match connectRes with
         | Error err -> return Error <| TcpConnect err
         | Ok client ->
