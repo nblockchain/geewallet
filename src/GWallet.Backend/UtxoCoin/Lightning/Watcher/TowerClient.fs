@@ -23,7 +23,7 @@ type TowerApiResponseOrError<'T> =
     | TowerApiResponse of 'T
     | TowerApiError of TowerApiError
 
-type internal AddPunishmentTxRequest =
+type AddPunishmentTxRequest =
     {
         TransactionHex: string
         CommitmentTxHash: string
