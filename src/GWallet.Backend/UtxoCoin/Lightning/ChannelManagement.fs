@@ -228,7 +228,7 @@ type ChannelStore(account: NormalUtxoAccount) =
             let network = UtxoCoin.Account.GetNetwork currency
             let fundingAddressString: string =
                 let fundingAddress: BitcoinAddress =
-                    let fundingDestination: TxDestination =
+                    let fundingDestination =
                         serializedChannel.FundingScriptCoin().ScriptPubKey.GetDestination()
                     fundingDestination.GetAddress network
                 fundingAddress.ToString()

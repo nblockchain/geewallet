@@ -83,9 +83,6 @@ and internal PeerNode =
     member internal self.RemoteNodeId: NodeId =
         self.MsgStream.RemoteNodeId
 
-    member internal self.PeerId: PeerId =
-        self.MsgStream.PeerId
-
     member internal self.RemoteEndPoint: IPEndPoint =
         self.MsgStream.RemoteEndPoint
 
