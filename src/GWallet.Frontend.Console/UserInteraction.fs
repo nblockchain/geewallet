@@ -95,17 +95,23 @@ module UserInteraction =
             activeAccounts.OfType<NormalUtxoAccount>().SelectMany(fun account ->
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
-            ).Any(fun channelInfo -> channelInfo.IsFunder)
+            ).Any(fun channelInfo ->
+                channelInfo.Status = ChannelStatus.Active &&
+                channelInfo.IsFunder
+            )
         | Operations.ReceiveLightningEvent ->
             activeAccounts.OfType<UtxoCoin.NormalUtxoAccount>().SelectMany(fun account ->
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
-            ).Any(fun channelInfo -> not channelInfo.IsFunder)
+            ).Any(fun channelInfo ->
+                channelInfo.Status = ChannelStatus.Active &&
+                not channelInfo.IsFunder
+            )
         | Operations.CloseChannel ->
             activeAccounts.OfType<UtxoCoin.NormalUtxoAccount>().SelectMany(fun account ->
                 let channelStore = ChannelStore account
                 channelStore.ListChannelInfos()
-            ).Any()
+            ).Any(fun channelInfo -> channelInfo.Status = ChannelStatus.Active)
         | _ -> true
 
     let rec internal AskFileNameToLoad (askText: string): FileInfo =
