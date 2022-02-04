@@ -134,7 +134,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
         if dobDatePicker.Date.Date = middleDateEighteenYearsAgo.Date then
             let displayTask =
-                this.DisplayAlert("Alert", "You didn't change the field for Date of Birth, are you sure?", "Yes, it's correct", "Cancel")
+                this.DisplayAlert("Alert", "The field for Date of Birth has not been set, are you sure?", "Yes, the date is correct", "Cancel")
             async {
                 let! mainThreadSynchContext =
                     Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
