@@ -228,7 +228,7 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
     member val Account = channelStore.Account
 
     static member internal AccountPrivateKeyToNodeSecret (accountKey: Key) =
-        NBitcoin.ExtKey (accountKey.ToBytes ())
+        NBitcoin.ExtKey.CreateFromSeed (accountKey.ToBytes ())
 
     member internal self.OpenChannel (nodeEndPoint: NodeEndPoint)
                                      (channelCapacity: TransferAmount)
