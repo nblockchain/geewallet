@@ -17,10 +17,14 @@ module Settings =
     let internal ConfigDirName = "LN"
 
     let private ToSelfDelay currency =
+#if DEBUG
+        2us
+#else
         match currency with
         | BTC -> 2016us
         | LTC -> 8064us
         | _ -> failwith "Unsupported currency"
+#endif
         |> BlockHeightOffset16
 
     let internal DefaultTxMinimumDepth (currency: Currency) =
