@@ -16,12 +16,20 @@ module Settings =
 
     let internal ConfigDirName = "LN"
 
-    let private ToSelfDelay currency =
+    let private MaxToSelfDelay currency =
         match currency with
         | BTC -> 2016us
         | LTC -> 8064us
         | _ -> failwith "Unsupported currency"
         |> BlockHeightOffset16
+
+    let private ToSelfDelay currency =
+#if DEBUG
+        2us
+        |> BlockHeightOffset16
+#else
+        MaxToSelfDelay currency
+#endif
 
     let internal DefaultTxMinimumDepth (currency: Currency) =
         match currency with
@@ -43,7 +51,7 @@ module Settings =
         MaxDustLimitSatoshis = Money 10000000L
         // TODO make optional in DotNetLightning
         MaxMinimumDepth = BlockHeightOffset32 UInt32.MaxValue
-        MaxToSelfDelay = ToSelfDelay currency
+        MaxToSelfDelay = MaxToSelfDelay currency
     }
 
     let private SupportedFeatures (funding: Money) (currency: Currency) =
