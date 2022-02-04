@@ -76,7 +76,7 @@ type Bitcoind = {
     member this.GenerateBlocksToDummyAddress (number: BlockHeightOffset32) =
         let address =
             let key = new Key()
-            key.PubKey.GetScriptAddress(Network.RegTest)
+            key.PubKey.GetAddress(ScriptPubKeyType.Segwit, Network.RegTest)
         this.GenerateBlocks number address
 
     member self.GetTxIdsInMempool(): list<TxId> =

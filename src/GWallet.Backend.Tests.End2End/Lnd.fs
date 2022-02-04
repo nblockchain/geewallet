@@ -253,7 +253,7 @@ type Lnd = {
 
         let someMinerThrowAwayAddress =
             use key = new Key()
-            key.PubKey.GetScriptAddress Network.RegTest
+            key.PubKey.GetAddress(ScriptPubKeyType.Segwit, Network.RegTest)
         bitcoind.GenerateBlocks maturityDurationInNumberOfBlocks someMinerThrowAwayAddress
 
         // We confirm the one block mined to LND, by waiting for LND to see the chain

@@ -155,9 +155,6 @@ type internal MsgStream =
     member internal self.RemoteNodeId
         with get(): NodeId = self.TransportStream.RemoteNodeId
 
-    member internal self.PeerId
-        with get(): PeerId = self.TransportStream.PeerId
-
     member internal self.RemoteEndPoint
         with get(): IPEndPoint = self.TransportStream.RemoteEndPoint
 

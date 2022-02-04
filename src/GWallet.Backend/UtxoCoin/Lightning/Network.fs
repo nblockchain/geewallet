@@ -264,9 +264,8 @@ type internal TransportStream =
                                                : Async<Result<TransportStream, HandshakeError>> = async {
         let nodeSecret = nodeMasterPrivKey.NodeSecret()
         let stream = client.GetStream()
-        let peerId = PeerId client.Client.RemoteEndPoint
         // FIXME: CreateOutbound should take a NodeSecret
-        let peer = Peer.CreateOutbound(peerId, peerNodeId, nodeSecret.RawKey())
+        let peer = Peer.CreateOutbound(peerNodeId, nodeSecret.RawKey())
         let act1, peerEncryptor = PeerChannelEncryptor.getActOne peer.ChannelEncryptor
         Debug.Assert((TransportStream.bolt08ActOneLength = act1.Length), "act1 has wrong length")
         let peerAfterAct1 = { peer with ChannelEncryptor = peerEncryptor }
@@ -321,8 +320,7 @@ type internal TransportStream =
             let nodeSecret = transportListener.NodeMasterPrivKey.NodeSecret()
             let nodeSecretKey = nodeSecret.RawKey()
             let stream = client.GetStream()
-            let peerId = client.Client.RemoteEndPoint |> PeerId
-            let peer = Peer.CreateInbound(peerId, nodeSecretKey)
+            let peer = Peer.CreateInbound(nodeSecretKey)
             let! act1Res = TransportStream.ReadExactAsync stream TransportStream.bolt08ActOneLength
             match act1Res with
             | Error peerDisconnectedError -> return Error <| DisconnectedOnAct1 peerDisconnectedError
@@ -366,9 +364,6 @@ type internal TransportStream =
                 failwith
                     "The TransportStream type is created by performing a handshake \
                     and in doing so guarantees that the peer's node id is known"
-
-    member internal self.PeerId
-        with get(): PeerId = self.Peer.PeerId
 
     member internal self.RemoteEndPoint
         with get(): IPEndPoint = self.Client.Client.RemoteEndPoint :?> IPEndPoint
