@@ -111,6 +111,10 @@
     <Compile Include="ServerManager.fs" />
     <Content Include="packages.config" />
     <EmbeddedResource Include="servers.json" />
+    <None Include="..\..\LICENSE.txt">
+      <Pack>true</Pack>
+      <PackagePath>LICENSE.txt</PackagePath>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">

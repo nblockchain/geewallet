@@ -5,6 +5,7 @@
     <!-- nugetPush will not use this version number -->
     <version>0.0.0.0</version>
     <title>GWallet.Backend</title>
+    <license type="file">LICENCE.txt</license>
     <authors>knocte</authors>
     <owners>NodeEffect</owners>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
