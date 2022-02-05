@@ -116,6 +116,9 @@
       <PackagePath>LICENSE.txt</PackagePath>
     </None>
   </ItemGroup>
+  <PropertyGroup>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\net45\FSharp.Data.dll</HintPath>
