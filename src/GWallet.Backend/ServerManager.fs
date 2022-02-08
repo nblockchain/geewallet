@@ -26,6 +26,16 @@ module ServerManager =
                     CommunicationHistory = None
                 }
 
+        let fromTorServerToGenericServerDetails (networkPath: string, port: string) =
+            {
+                ServerInfo =
+                    {
+                        NetworkPath = networkPath
+                        ConnectionType = { Encrypted = false; Protocol = port |> uint32 |> Tcp }
+                    }
+                CommunicationHistory = None
+            }
+
         let btc = Currency.BTC
         let electrumBtcServers = UtxoCoin.ElectrumServerSeedList.ExtractServerListFromElectrumRepository btc
         let eyeBtcServers = UtxoCoin.ElectrumServerSeedList.ExtractServerListFromWebPage btc
@@ -52,6 +62,11 @@ module ServerManager =
             | false,_ ->
                 failwith <| SPrintF1 "There should be some %A servers as baseline" ltc
 
+        let torServers = UtxoCoin.TorOperations.ExtractServerListFromGithub ()
+        let allTorServers =
+            torServers
+            |> Seq.map fromTorServerToGenericServerDetails
+
         let allLtcServers = Seq.append electrumLtcServers eyeLtcServers
                             |> Seq.map fromElectrumServerToGenericServerDetails
                             |> Seq.append baseLineLtcServers
@@ -72,6 +87,7 @@ module ServerManager =
         let allCurrenciesServers =
             baseLineServers.Add(ServerType.CurrencyServer Currency.BTC, allBtcServers)
                            .Add(ServerType.CurrencyServer Currency.LTC, allLtcServers)
+                           .Add(ServerType.ProtocolServer ServerProtocol.Tor, allTorServers)
 
         let allServersJson = ServerRegistry.Serialize allCurrenciesServers
         File.WriteAllText(ServerRegistry.ServersEmbeddedResourceFileName, allServersJson)
