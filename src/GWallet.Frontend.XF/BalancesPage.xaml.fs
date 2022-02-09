@@ -499,6 +499,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             |> ignore
         this.BalanceRefreshCancelSources <- Seq.empty
 
+    override __.OnAppearing() =
+        // workaround for disappearing balance chart when coming back from SendPage. TODO: file bug
+        if Device.RuntimePlatform = Device.GTK then
+            normalChartView.Draw()
+            readonlyChartView.Draw()
+        base.OnAppearing()
+
     member private this.Init () =
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
