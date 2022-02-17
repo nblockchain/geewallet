@@ -170,7 +170,11 @@ type internal ConnectedChannel =
                             }
                     | _ ->
                         failwith "Unreachable because channel's user is fundee and not the funder"
-            PeerNode.Connect nodeMasterPrivKey nodeIdentifier
+            PeerNode.Connect
+                nodeMasterPrivKey
+                nodeIdentifier
+                channelStore.Currency
+                (serializedChannel.Capacity())
         match connectRes with
         | Error connectError -> return Error <| Connect connectError
         | Ok peerNode ->
@@ -202,6 +206,8 @@ type internal ConnectedChannel =
             PeerNode.AcceptFromTransportListener
                 transportListener
                 nodeId
+                channelStore.Currency
+                None
         match connectRes with
         | Error connectError -> return Error <| Connect connectError
         | Ok peerNode ->

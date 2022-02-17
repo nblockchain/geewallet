@@ -236,7 +236,11 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                                      (channelCapacity: TransferAmount)
                                          : Async<Result<PendingChannel, IErrorMsg>> = async {
         let! connectRes =
-            PeerNode.Connect nodeMasterPrivKey nodeIdentifier
+            PeerNode.Connect
+                nodeMasterPrivKey
+                nodeIdentifier
+                ((self.Account :> IAccount).Currency)
+                (Money(channelCapacity.ValueToSend, MoneyUnit.BTC))
         match connectRes with
         | Error connectError ->
             if connectError.PossibleBug then
@@ -404,7 +408,10 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
 
     member internal self.AcceptChannel (): Async<Result<(ChannelIdentifier * TransactionIdentifier), IErrorMsg>> = async {
         let! acceptPeerRes =
-            PeerNode.AcceptAnyFromTransportListener self.TransportListener
+            PeerNode.AcceptAnyFromTransportListener
+                self.TransportListener
+                self.ChannelStore.Currency
+                None
         match acceptPeerRes with
         | Error connectError ->
             if connectError.PossibleBug then
