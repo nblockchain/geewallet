@@ -40,8 +40,10 @@ and internal PeerNode =
 
     static member internal Connect (nodeMasterPrivKey: NodeMasterPrivKey)
                                    (nodeIndentifier: NodeIdentifier)
+                                   (currency: Currency)
+                                   (fundingAmount: Money)
                                        : Async<Result<PeerNode, ConnectError>> = async {
-        let! connectRes = MsgStream.Connect nodeMasterPrivKey nodeIndentifier
+        let! connectRes = MsgStream.Connect nodeMasterPrivKey nodeIndentifier currency fundingAmount
         match connectRes with
         | Error connectError -> return Error connectError
         | Ok (initMsg, msgStream) ->
@@ -61,8 +63,10 @@ and internal PeerNode =
 
     static member internal AcceptFromTransportListener (transportListener: TransportListener)
                                                        (peerNodeId: NodeId)
+                                                       (currency: Currency)
+                                                       (fundingAmountOpt: Option<Money>)
                                                            : Async<Result<PeerNode, ConnectError>> = async {
-        let! acceptRes = MsgStream.AcceptFromTransportListener transportListener
+        let! acceptRes = MsgStream.AcceptFromTransportListener transportListener currency fundingAmountOpt
         match acceptRes with
         | Error connectError -> return Error connectError
         | Ok (initMsg, msgStream) ->
@@ -74,12 +78,14 @@ and internal PeerNode =
                 }
             else
                 (msgStream :> IDisposable).Dispose()
-                return! PeerNode.AcceptFromTransportListener transportListener peerNodeId
+                return! PeerNode.AcceptFromTransportListener transportListener peerNodeId currency fundingAmountOpt
     }
 
     static member internal AcceptAnyFromTransportListener (transportListener: TransportListener)
+                                                          (currency: Currency)
+                                                          (fundingAmountOpt: Option<Money>)
                                                               : Async<Result<PeerNode, ConnectError>> = async {
-        let! acceptRes = MsgStream.AcceptFromTransportListener transportListener
+        let! acceptRes = MsgStream.AcceptFromTransportListener transportListener currency fundingAmountOpt
         match acceptRes with
         | Error connectError -> return Error connectError
         | Ok (initMsg, msgStream) ->

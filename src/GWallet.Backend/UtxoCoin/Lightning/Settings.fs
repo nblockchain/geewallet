@@ -54,14 +54,15 @@ module Settings =
         MaxToSelfDelay = MaxToSelfDelay currency
     }
 
-    let private SupportedFeatures (funding: Money) (currency: Currency) =
+    let internal SupportedFeatures (currency: Currency) (fundingOpt: Option<Money>) =
         let featureBits = FeatureBits.Zero
         featureBits.SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true
         if currency = Currency.LTC then
             let featureType =
-                if funding > ChannelConstants.MAX_FUNDING_SATOSHIS then
+                match fundingOpt with
+                | Some funding when funding > ChannelConstants.MAX_FUNDING_SATOSHIS ->
                     FeaturesSupport.Mandatory
-                else
+                | _ ->
                     FeaturesSupport.Optional
 
             featureBits.SetFeature Feature.OptionSupportLargeChannel featureType true
@@ -83,5 +84,5 @@ module Settings =
             // see https://github.com/lightning/bolts/blob/master/02-peer-protocol.md#the-open_channel-message
             ToSelfDelay = ToSelfDelay currency
             MaxAcceptedHTLCs = uint16 10
-            Features = SupportedFeatures funding currency
+            Features = SupportedFeatures currency (Some funding)
         }
