@@ -9,7 +9,7 @@
     <RootNamespace>GWallet.Backend.Tests.Unit</RootNamespace>
     <AssemblyName>GWallet.Backend.Tests.Unit</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.7.0.0</TargetFSharpCoreVersion>
+    <TargetFSharpCoreVersion>4.7.2.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>GWallet.Backend.Tests.Unit</Name>
     <TargetFrameworkProfile />
@@ -80,9 +80,22 @@
     <Compile Include="FSharpUtil.fs" />
     <Compile Include="ExceptionMarshalling.fs" />
     <Compile Include="ChannelMarshalling.fs" />
+    <Compile Include="NOnionEndpoint.fs" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Chaos.NaCl-Portable">
+      <HintPath>..\..\packages\NOnion.0.1.0--date20220201-0818.git-4a224d8\lib\netstandard2.0\Chaos.NaCl-Portable.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharpx.Collections">
+      <HintPath>..\..\packages\FSharpx.Collections.3.0.1\lib\netstandard2.0\FSharpx.Collections.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces">
+      <HintPath>..\..\packages\Microsoft.Bcl.AsyncInterfaces.5.0.0\lib\net461\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
     <Reference Include="mscorlib" />
+    <Reference Include="NOnion">
+      <HintPath>..\..\packages\NOnion.0.1.0--date20220201-0818.git-4a224d8\lib\netstandard2.0\NOnion.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
     </Reference>
@@ -112,7 +125,7 @@
       <HintPath>..\..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net46\System.Security.Cryptography.X509Certificates.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Core">
-      <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\net45\FSharp.Core.dll</HintPath>
+      <HintPath>..\..\packages\FSharp.Core.4.7.2\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin.Altcoins">
       <HintPath>..\..\packages\NBitcoin.Altcoins.3.0.8\lib\netstandard2.0\NBitcoin.Altcoins.dll</HintPath>
@@ -159,7 +172,19 @@
       <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20220204-0457-git-9c7a03c\lib\netstandard2.0\ResultUtils.dll</HintPath>
     </Reference>
     <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.6.7\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.10\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Encodings.Web">
+      <HintPath>..\..\packages\System.Text.Encodings.Web.5.0.1\lib\net461\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Dataflow">
+      <HintPath>..\..\packages\System.Threading.Tasks.Dataflow.5.0.0\lib\net461\System.Threading.Tasks.Dataflow.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Extensions">
+      <HintPath>..\..\packages\System.Threading.Tasks.Extensions.4.5.4\lib\net461\System.Threading.Tasks.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ValueTuple">
+      <Private>True</Private>
     </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

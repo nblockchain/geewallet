@@ -10,7 +10,7 @@ open GWallet.Backend
 [<TestFixture>]
 type ServerReference() =
 
-    let dummy_currency_because_irrelevant_for_this_test = Currency.BTC
+    let dummy_currency_because_irrelevant_for_this_test = ServerType.CurrencyServer Currency.BTC
     let dummy_now = DateTime.UtcNow
     let some_connection_type_irrelevant_for_this_test = { Encrypted = false; Protocol = Http }
 
