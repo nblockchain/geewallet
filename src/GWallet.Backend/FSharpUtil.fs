@@ -53,6 +53,15 @@ module FSharpUtil =
         let SPrintF5 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) =
             String.Format(ToStringFormat fmt, a, b, c, d, e)
 
+        let SPrintF6 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) (f: Object) =
+            String.Format(ToStringFormat fmt, a, b, c, d, e, f)
+
+        let SPrintF7 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) (f: Object) (g: Object) =
+            String.Format(ToStringFormat fmt, a, b, c, d, e, f, g)
+
+        let SPrintF8 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) (f: Object) (g: Object) (h: Object) =
+            String.Format(ToStringFormat fmt, a, b, c, d, e, f, g, h)
+
 
     module UwpHacks =
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
@@ -65,6 +74,12 @@ module FSharpUtil =
         let SPrintF4 fmt a b c d = sprintf fmt a b c d
 
         let SPrintF5 fmt a b c d e = sprintf fmt a b c d e
+
+        let SPrintF6 fmt a b c d e f = sprintf fmt a b c d e f
+
+        let SPrintF7 fmt a b c d e f g = sprintf fmt a b c d e f g
+
+        let SPrintF8 fmt a b c d e f g h = sprintf fmt a b c d e f g h
 #else
         let SPrintF1 (fmt: string) (a: Object) =
             ReflectionlessPrint.SPrintF1 fmt a
@@ -80,6 +95,15 @@ module FSharpUtil =
 
         let SPrintF5 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) =
             ReflectionlessPrint.SPrintF5 fmt a b c d e
+
+        let SPrintF6 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) (f: Object) =
+            ReflectionlessPrint.SPrintF6 fmt, a, b, c, d, e, f
+
+        let SPrintF7 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) (f: Object) (g: Object) =
+            ReflectionlessPrint.SPrintF7 fmt a b c d e f g
+
+        let SPrintF8 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) (f: Object) (g: Object) (h: Object) =
+            ReflectionlessPrint.SPrintF8 fmt a b c d e f g h
 #endif
 
     type internal ResultWrapper<'T>(value : 'T) =
@@ -330,3 +354,18 @@ module FSharpUtil =
         member x.Zero () = None
 
     let option = OptionBuilder()
+
+    let Retry<'T, 'TException when 'TException :> Exception> sourceFunc retryCount: Async<'T> =
+        async {
+            let rec retrySourceFunc currentRetryCount =
+                async {
+                    try
+                        return! sourceFunc()
+                    with
+                    | :? 'TException as ex ->
+                        if currentRetryCount = 0 then
+                            return raise <| ReRaise ex
+                        return! retrySourceFunc (currentRetryCount - 1)
+                }
+            return! retrySourceFunc retryCount
+        }

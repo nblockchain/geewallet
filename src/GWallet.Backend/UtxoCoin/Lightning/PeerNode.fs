@@ -32,24 +32,32 @@ and internal PeerNode =
     {
         InitMsg: InitMsg
         MsgStream: MsgStream
+        NodeTransportType: NodeTransportType
     }
     interface IDisposable with
         member self.Dispose() =
             (self.MsgStream :> IDisposable).Dispose()
 
     static member internal Connect (nodeMasterPrivKey: NodeMasterPrivKey)
-                                   (peerNodeId: NodeId)
-                                   (peerId: PeerId)
+                                   (nodeIndentifier: NodeIdentifier)
                                        : Async<Result<PeerNode, ConnectError>> = async {
-        let! connectRes = MsgStream.Connect nodeMasterPrivKey peerNodeId peerId
+        let! connectRes = MsgStream.Connect nodeMasterPrivKey nodeIndentifier
         match connectRes with
         | Error connectError -> return Error connectError
         | Ok (initMsg, msgStream) ->
+            let nodeClientType =
+                match nodeIndentifier with
+                | NodeIdentifier.TorEndPoint _ ->
+                    NodeClientType.Tor
+                | NodeIdentifier.TcpEndPoint nodeEndPoint ->
+                    NodeClientType.Tcp nodeEndPoint.IPEndPoint
             return Ok {
                 InitMsg = initMsg
                 MsgStream = msgStream
+                NodeTransportType = NodeTransportType.Client nodeClientType
             }
     }
+
 
     static member internal AcceptFromTransportListener (transportListener: TransportListener)
                                                        (peerNodeId: NodeId)
@@ -62,6 +70,7 @@ and internal PeerNode =
                 return Ok {
                     InitMsg = initMsg
                     MsgStream = msgStream
+                    NodeTransportType = NodeTransportType.Server transportListener.NodeServerType
                 }
             else
                 (msgStream :> IDisposable).Dispose()
@@ -77,16 +86,17 @@ and internal PeerNode =
             return Ok {
                 InitMsg = initMsg
                 MsgStream = msgStream
+                NodeTransportType = NodeTransportType.Server transportListener.NodeServerType
             }
     }
 
     member internal self.RemoteNodeId: NodeId =
         self.MsgStream.RemoteNodeId
 
-    member internal self.RemoteEndPoint: IPEndPoint =
+    member internal self.RemoteEndPoint: Option<IPEndPoint> =
         self.MsgStream.RemoteEndPoint
 
-    member internal self.NodeEndPoint: NodeEndPoint =
+    member internal self.NodeEndPoint: Option<NodeEndPoint> =
         self.MsgStream.NodeEndPoint
 
     member internal self.NodeMasterPrivKey(): NodeMasterPrivKey =

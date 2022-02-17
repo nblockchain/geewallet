@@ -59,12 +59,18 @@ module LayerTwo =
             Console.WriteLine "Invalid account for use with Lightning"
             AskLightningAccount currency
 
-    let AskChannelCounterpartyConnectionDetails currency: Option<Lightning.NodeEndPoint> =
+    let AskChannelCounterpartyConnectionDetails currency: Option<NodeIdentifier> =
         let useQRString =
             UserInteraction.AskYesNo
-                "Do you want to supply the channel counterparty connection string as used embedded in QR codes?"
+                "Do you want to supply the channel counterparty connection string as used embedded in QR codes (if the recipient is geewallet say Yes)?"
         if useQRString then
-            UserInteraction.Ask (Lightning.NodeEndPoint.Parse currency) "Channel counterparty QR connection string contents"
+            let getNodeType (currency: Currency) (text: string): NodeIdentifier =
+                if NOnionEndPoint.IsNOnionConnection text then
+                    NodeIdentifier.TorEndPoint (NOnionEndPoint.Parse currency text)
+                else
+                    NodeIdentifier.TcpEndPoint (NodeEndPoint.Parse currency text)
+
+            UserInteraction.Ask (getNodeType currency) "Channel counterparty QR connection string contents"
         else
             option {
                 let! ipAddress =
@@ -74,7 +80,7 @@ module LayerTwo =
                 let! nodeId =
                     UserInteraction.Ask (PubKey.Parse currency) "Channel counterparty public key in hexadecimal notation"
                 let ipEndPoint = IPEndPoint(ipAddress, int port)
-                return Lightning.NodeEndPoint.FromParts nodeId ipEndPoint
+                return NodeIdentifier.TcpEndPoint (Lightning.NodeEndPoint.FromParts nodeId ipEndPoint)
             }
 
     let AskBindAddress(): IPEndPoint =
@@ -101,6 +107,21 @@ module LayerTwo =
                 Console.WriteLine(sprintf "using default of %i" defaultPort)
                 defaultPort
         IPEndPoint(ipAddress, int port)
+
+    let rec internal AskConnectionType(): NodeServerType =
+        Console.WriteLine "Available types of connection:"
+        Console.WriteLine "1. TCP"
+        Console.WriteLine "2. Onion"
+        Console.Write "Choose the connection type: "
+
+        let text = Console.ReadLine().Trim()
+        match text with
+        | "1" ->
+            let bindAddress = AskBindAddress()
+            NodeServerType.Tcp bindAddress
+        | "2" ->
+            NodeServerType.Tor
+        | _ -> AskConnectionType()
 
     let rec MaybeAskChannelId (channelStore: ChannelStore)
                               (isFunderOpt: Option<bool>)
@@ -187,84 +208,89 @@ module LayerTwo =
             | Some channelCapacity ->
                 match AskChannelCounterpartyConnectionDetails currency with
                 | None -> return ()
-                | Some nodeEndPoint ->
-                    let! metadataOpt = async {
-                        try
-                            let! metadata =
-                                UtxoCoin.Lightning.ChannelManager.EstimateChannelOpeningFee
-                                    (fundingAccount :> IAccount)
-                                    channelCapacity
-                            return Some metadata
-                        with
-                        | InsufficientBalanceForFee _ ->
-                            Console.WriteLine
-                                "Estimated fee is too high for the remaining balance, \
-                                use a different account or a different amount."
-                            return None
-                    }
-                    match metadataOpt with
-                    | None -> return ()
-                    | Some metadata ->
-                        Presentation.ShowFeeAndSpendableBalance metadata channelCapacity
+                | Some nodeIdentifier ->
+                    match nodeIdentifier with
+                    | TcpEndPoint nodeEndPoint ->
+                        let! metadataOpt = async {
+                            try
+                                let! metadata =
+                                    UtxoCoin.Lightning.ChannelManager.EstimateChannelOpeningFee
+                                        (fundingAccount :> IAccount)
+                                        channelCapacity
+                                return Some metadata
+                            with
+                            | InsufficientBalanceForFee _ ->
+                                Console.WriteLine
+                                    "Estimated fee is too high for the remaining balance, \
+                                    use a different account or a different amount."
+                                return None
+                        }
+                        match metadataOpt with
+                        | None -> return ()
+                        | Some metadata ->
+                            Presentation.ShowFeeAndSpendableBalance metadata channelCapacity
 
-                        let acceptFeeRate = UserInteraction.AskYesNo "Do you accept?"
-                        if acceptFeeRate then
-                            Console.WriteLine
-                                "To proceed, you must enter the password for your online account"
-                            let tryOpen password =
-                                async {
-                                    let nodeClient = Lightning.Connection.StartClient channelStore password
-                                    let! pendingChannelRes =
-                                        Lightning.Network.OpenChannel
-                                            nodeClient
-                                            nodeEndPoint
-                                            channelCapacity
-                                    match pendingChannelRes with
-                                    | Error nodeOpenChannelError ->
-                                        Console.WriteLine (sprintf "Error opening channel: %s" nodeOpenChannelError.Message)
-                                    | Ok pendingChannel ->
-                                        let minimumDepth = (pendingChannel :> IChannelToBeOpened).ConfirmationsRequired
-                                        Console.WriteLine(
-                                            sprintf
-                                                "Opening a channel with this party will require %i confirmations (~%i minutes)"
-                                                minimumDepth
-                                                (minimumDepth * currency.BlockTimeInMinutes())
-                                        )
-                                        let acceptMinimumDepth = UserInteraction.AskYesNo "Do you accept?"
-                                        if acceptMinimumDepth then
-                                            Console.WriteLine
-                                                "This channel is being funded by an offline wallet."
-                                            Console.WriteLine
-                                                "Introduce a file name to save the unsigned funding transaction: "
-                                            let filePath = Console.ReadLine()
-                                            let proposal = {
-                                                OriginAddress = (fundingAccount :> IAccount).PublicAddress
-                                                Amount = pendingChannel.TransferAmount
-                                                DestinationAddress = pendingChannel.FundingDestinationString()
-                                            }
-                                            Account.SaveUnsignedTransaction proposal metadata filePath
-                                            Console.WriteLine "Transaction saved. Now copy it to the device with the private key for signing."
-                                            let fileToReadFrom =
-                                                UserInteraction.AskFileNameToLoad
-                                                    "Introduce a file name to load the signed funding transaction: "
-                                            let signedTransaction =
-                                                Account.LoadSignedTransactionFromFile fileToReadFrom.FullName
-                                            let transactionDetails = GWallet.Backend.Account.GetSignedTransactionDetails signedTransaction
-                                            Presentation.ShowTransactionData
-                                                transactionDetails
-                                                signedTransaction.TransactionInfo.Metadata
-                                            if UserInteraction.AskYesNo "Do you accept?" then
-                                                let! acceptRes =
-                                                    pendingChannel.AcceptWithFundingTx
-                                                        signedTransaction.RawTransaction
-                                                match acceptRes with
-                                                | Error fundChannelError ->
-                                                    Console.WriteLine(sprintf "Error funding channel: %s" fundChannelError.Message)
-                                                | Ok (_channelId, txId) ->
-                                                    let uri = BlockExplorer.GetTransaction currency (TxId.ToString txId)
-                                                    Console.WriteLine(sprintf "A funding transaction was broadcast: %A" uri)
-                                }
-                            do! UserInteraction.TryWithPasswordAsync tryOpen
+                            let acceptFeeRate = UserInteraction.AskYesNo "Do you accept?"
+                            if acceptFeeRate then
+                                Console.WriteLine
+                                    "To proceed, you must enter the password for your online account"
+                                let tryOpen password =
+                                    async {
+                                        let nodeClient = Lightning.Connection.StartClient channelStore password
+                                        let! pendingChannelRes =
+                                            Lightning.Network.OpenChannel
+                                                nodeClient
+                                                (NodeIdentifier.TcpEndPoint nodeEndPoint)
+                                                channelCapacity
+                                        match pendingChannelRes with
+                                        | Error nodeOpenChannelError ->
+                                            Console.WriteLine (sprintf "Error opening channel: %s" nodeOpenChannelError.Message)
+                                        | Ok pendingChannel ->
+                                            let minimumDepth = (pendingChannel :> IChannelToBeOpened).ConfirmationsRequired
+                                            Console.WriteLine(
+                                                sprintf
+                                                    "Opening a channel with this party will require %i confirmations (~%i minutes)"
+                                                    minimumDepth
+                                                    (minimumDepth * currency.BlockTimeInMinutes())
+                                            )
+                                            let acceptMinimumDepth = UserInteraction.AskYesNo "Do you accept?"
+                                            if acceptMinimumDepth then
+                                                Console.WriteLine
+                                                    "This channel is being funded by an offline wallet."
+                                                Console.WriteLine
+                                                    "Introduce a file name to save the unsigned funding transaction: "
+                                                let filePath = Console.ReadLine()
+                                                let proposal = {
+                                                    OriginAddress = (fundingAccount :> IAccount).PublicAddress
+                                                    Amount = pendingChannel.TransferAmount
+                                                    DestinationAddress = pendingChannel.FundingDestinationString()
+                                                }
+                                                Account.SaveUnsignedTransaction proposal metadata filePath
+                                                Console.WriteLine "Transaction saved. Now copy it to the device with the private key for signing."
+                                                let fileToReadFrom =
+                                                    UserInteraction.AskFileNameToLoad
+                                                        "Introduce a file name to load the signed funding transaction: "
+                                                let signedTransaction =
+                                                    Account.LoadSignedTransactionFromFile fileToReadFrom.FullName
+                                                let transactionDetails = GWallet.Backend.Account.GetSignedTransactionDetails signedTransaction
+                                                Presentation.ShowTransactionData
+                                                    transactionDetails
+                                                    signedTransaction.TransactionInfo.Metadata
+                                                if UserInteraction.AskYesNo "Do you accept?" then
+                                                    let! acceptRes =
+                                                        pendingChannel.AcceptWithFundingTx
+                                                            signedTransaction.RawTransaction
+                                                    match acceptRes with
+                                                    | Error fundChannelError ->
+                                                        Console.WriteLine(sprintf "Error funding channel: %s" fundChannelError.Message)
+                                                    | Ok (_channelId, txId) ->
+                                                        let uri = BlockExplorer.GetTransaction currency (TxId.ToString txId)
+                                                        Console.WriteLine(sprintf "A funding transaction was broadcast: %A" uri)
+                                    }
+                                do! UserInteraction.TryWithPasswordAsync tryOpen
+                    | TorEndPoint _nonionAddress ->
+                        // TODO: fix this for readonly account
+                        printf "Tor functions not implemented for read only accounts"
                     UserInteraction.PressAnyKeyToContinue()
         }
 
@@ -277,7 +303,7 @@ module LayerTwo =
         | Some channelCapacity ->
             match AskChannelCounterpartyConnectionDetails currency with
             | None -> return ()
-            | Some nodeEndPoint ->
+            | Some nodeIdentifier ->
                 Infrastructure.LogDebug "Calling EstimateFee..."
                 let! metadataOpt = async {
                     try
@@ -303,7 +329,7 @@ module LayerTwo =
                                 let! pendingChannelRes =
                                     Lightning.Network.OpenChannel
                                         nodeClient
-                                        nodeEndPoint
+                                        nodeIdentifier
                                         channelCapacity
                                 match pendingChannelRes with
                                 | Error nodeOpenChannelError ->
@@ -356,7 +382,9 @@ module LayerTwo =
                     let tryClose password =
                         async {
                             let nodeClient = Lightning.Connection.StartClient channelStore password
-                            let! closeRes = Lightning.Network.CloseChannel nodeClient channelId
+
+                            let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType currency
+                            let! closeRes = Lightning.Network.CloseChannel nodeClient channelId connectionString
                             match closeRes with
                             | Error closeError ->
                                 Console.WriteLine(sprintf "Error closing channel: %s" (closeError :> IErrorMsg).Message)
@@ -400,12 +428,17 @@ module LayerTwo =
         async {
             let account = AskLightningAccount None
             let channelStore = ChannelStore account
-            let bindAddress = AskBindAddress()
+            let connectionType = AskConnectionType()
+
             let tryAccept password =
                 async {
-                    use nodeServer = Lightning.Connection.StartServer channelStore password bindAddress
-                    let nodeEndPoint = Lightning.Network.EndPoint nodeServer
-                    Console.WriteLine(sprintf "This node, connect to it: %s" (nodeEndPoint.ToString()))
+                    use! nodeServer = Lightning.Connection.StartServer channelStore password connectionType
+
+                    let nodeAddress =
+                        let nodeEndPoint = Lightning.Network.EndPoint nodeServer
+                        nodeEndPoint.ToString()
+                    Console.WriteLine(sprintf "This node, connect to it: %s" nodeAddress)
+
                     let! acceptChannelRes = Lightning.Network.AcceptChannel nodeServer
                     match acceptChannelRes with
                     | Error nodeAcceptChannelError ->
@@ -429,13 +462,14 @@ module LayerTwo =
             | Some channelId ->
                 let channelInfo = channelStore.ChannelInfo channelId
                 let transferAmountOpt = UserInteraction.AskLightningAmount channelInfo
+                let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType channelInfo.Currency
                 match transferAmountOpt with
                 | None -> ()
                 | Some transferAmount ->
                     let trySendPayment password =
                         async {
                             let nodeClient = Lightning.Connection.StartClient channelStore password
-                            let! paymentRes = Lightning.Network.SendMonoHopPayment nodeClient channelId transferAmount
+                            let! paymentRes = Lightning.Network.SendMonoHopPayment nodeClient channelId transferAmount connectionString
                             match paymentRes with
                             | Error nodeSendMonoHopPaymentError ->
                                 let currency = (account :> IAccount).Currency
@@ -456,10 +490,23 @@ module LayerTwo =
             match channelIdOpt with
             | None -> return ()
             | Some channelId ->
-                let bindAddress = AskBindAddress()
+                let channelInfo = channelStore.ChannelInfo channelId
+
+                let nodeServerType =
+                    match channelInfo.NodeTransportType with
+                    | NodeTransportType.Server nodeServerType ->
+                        nodeServerType
+                    | NodeTransportType.Client _ ->
+                        failwith "MaybeAskChannelId should not return an outgoing (funder) channel"
                 let tryReceiveLightningEvent password =
                     async {
-                        use nodeServer = Lightning.Connection.StartServer channelStore password bindAddress
+                        use! nodeServer = Lightning.Connection.StartServer channelStore password nodeServerType
+
+                        match Lightning.Network.EndPoint nodeServer with
+                        | EndPointType.Tor endPoint ->
+                            Console.WriteLine(sprintf "This node, connect to it: %s" (endPoint.ToString()))
+                        | _ -> ()
+
                         Console.WriteLine "Waiting for funder to connect..."
                         let! receiveLightningEventRes = Lightning.Network.ReceiveLightningEvent nodeServer channelId
                         match receiveLightningEventRes with
@@ -519,21 +566,28 @@ module LayerTwo =
                     "Ensure the fundee is ready to accept a connection to lock the funding, \
                     then press any key to continue."
                 Console.ReadKey true |> ignore
+
+                let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType currency
                 let tryLock password =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
-                        let sublockFundingAsync = Lightning.Network.ConnectLockChannelFunding nodeClient channelId
+                        let sublockFundingAsync = Lightning.Network.ConnectLockChannelFunding nodeClient channelId connectionString
                         return! lockChannelInternal (Node.Client nodeClient) sublockFundingAsync
                     }
 
                 UserInteraction.TryWithPasswordAsync tryLock
             else
-                let bindAddress =
-                    Console.WriteLine "Listening for connection from peer"
-                    AskBindAddress()
+                let connectionType = AskConnectionType()
+
                 let tryLock password =
                     async {
-                        use nodeServer = Lightning.Connection.StartServer channelStore password bindAddress
+                        use! nodeServer = Lightning.Connection.StartServer channelStore password connectionType
+
+                        match Lightning.Network.EndPoint nodeServer with
+                        | EndPointType.Tor endPoint ->
+                            Console.WriteLine(sprintf "This node, connect to it: %s" (endPoint.ToString()))
+                        | _ -> ()
+
                         let sublockFundingAsync = Lightning.Network.AcceptLockChannelFunding nodeServer channelId
                         return! lockChannelInternal (Node.Server nodeServer) sublockFundingAsync
                     }
@@ -580,12 +634,14 @@ module LayerTwo =
                     | 1 -> Some ()
                     | _ -> readInput()
 
+            let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType channelInfo.Currency
+
             match readInput() with
             | Some () ->
                 let tryUpdateFee password =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
-                        let! updateFeeRes = (Node.Client nodeClient).UpdateFee channelId feeRate
+                        let! updateFeeRes = (Node.Client nodeClient).UpdateFee channelId feeRate connectionString
                         match updateFeeRes with
                         | Error updateFeeError ->
                             Console.WriteLine(sprintf "Error updating fee: %s" updateFeeError.Message)

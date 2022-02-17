@@ -9,7 +9,7 @@
     <RootNamespace>GWallet.Backend</RootNamespace>
     <AssemblyName>GWallet.Backend</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.7.0.0</TargetFSharpCoreVersion>
+    <TargetFSharpCoreVersion>4.7.2.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>GWallet.Backend</Name>
     <TargetFrameworkProfile />
@@ -73,6 +73,7 @@
     <Compile Include="UtxoCoin\UtxoCoinServer.fs" />
     <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
     <Compile Include="UtxoCoin\TransactionTypes.fs" />
+    <Compile Include="UtxoCoin\TorOperations.fs" />
     <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
     <Compile Include="UtxoCoin\Lightning\FeeEstimator.fs" />
     <Compile Include="UtxoCoin\Lightning\Settings.fs" />
@@ -80,6 +81,7 @@
     <Compile Include="UtxoCoin\Lightning\Wrappers.fs" />
     <Compile Include="UtxoCoin\Lightning\Transactions.fs" />
     <Compile Include="UtxoCoin\Lightning\NodeEndPoint.fs" />
+    <Compile Include="UtxoCoin\Lightning\NOnionEndpoint.fs" />
     <Compile Include="UtxoCoin\Lightning\JsonMarshalling.fs" />
     <Compile Include="UtxoCoin\Lightning\SerializedChannel.fs" />
     <Compile Include="UtxoCoin\Lightning\ChannelManagement.fs" />
@@ -113,6 +115,9 @@
     <EmbeddedResource Include="servers.json" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Chaos.NaCl-Portable">
+      <HintPath>..\..\packages\NOnion.0.1.0--date20220201-0818.git-4a224d8\lib\netstandard2.0\Chaos.NaCl-Portable.dll</HintPath>
+    </Reference>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\net45\FSharp.Data.dll</HintPath>
     </Reference>
@@ -137,6 +142,9 @@
     <Reference Include="mscorlib" />
     <Reference Include="Nerdbank.Streams">
       <HintPath>..\..\packages\Nerdbank.Streams.2.6.81\lib\netstandard2.0\Nerdbank.Streams.dll</HintPath>
+    </Reference>
+    <Reference Include="NOnion">
+      <HintPath>..\..\packages\NOnion.0.1.0--date20220201-0818.git-4a224d8\lib\netstandard2.0\NOnion.dll</HintPath>
     </Reference>
     <Reference Include="StreamJsonRpc">
       <HintPath>..\..\packages\StreamJsonRpc.2.8.21\lib\netstandard2.0\StreamJsonRpc.dll</HintPath>
@@ -166,12 +174,13 @@
     <Reference Include="System.Threading.Tasks.Dataflow">
       <HintPath>..\..\packages\System.Threading.Tasks.Dataflow.5.0.0\lib\net461\System.Threading.Tasks.Dataflow.dll</HintPath>
     </Reference>
+    <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="Common.Logging.Core">
       <HintPath>..\..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
     </Reference>
     <Reference Include="BouncyCastle.Crypto">
-      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.6.7\lib\net40\BouncyCastle.Crypto.dll</HintPath>
+      <HintPath>..\..\packages\Portable.BouncyCastle.1.8.10\lib\net40\BouncyCastle.Crypto.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.12.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
@@ -218,7 +227,7 @@
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="FSharp.Core">
-      <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\net45\FSharp.Core.dll</HintPath>
+      <HintPath>..\..\packages\FSharp.Core.4.7.2\lib\net45\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Win32.Primitives">
       <HintPath>..\..\packages\Microsoft.Win32.Primitives.4.3.0\lib\net46\Microsoft.Win32.Primitives.dll</HintPath>
@@ -331,6 +340,12 @@
     </Reference>
     <Reference Include="ResultUtils">
       <HintPath>..\..\packages\DotNetLightning.Kiss.1.1.2-date20220204-0457-git-9c7a03c\lib\netstandard2.0\ResultUtils.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharpx.Collections">
+      <HintPath>..\..\packages\FSharpx.Collections.3.0.1\lib\netstandard2.0\FSharpx.Collections.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Encodings.Web">
+      <HintPath>..\..\packages\System.Text.Encodings.Web.5.0.1\lib\net461\System.Text.Encodings.Web.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\packages\Microsoft.VisualStudio.Threading.Analyzers.16.9.60\build\Microsoft.VisualStudio.Threading.Analyzers.targets" Condition="Exists('..\..\packages\Microsoft.VisualStudio.Threading.Analyzers.16.9.60\build\Microsoft.VisualStudio.Threading.Analyzers.targets')" />

@@ -12,6 +12,8 @@ open DotNetLightning.Crypto
 open DotNetLightning.Utils
 open DotNetLightning.Serialization.Msgs
 open ResultUtils.Portability
+open NOnion.Directory
+open NOnion.Network
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
@@ -230,20 +232,18 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
     static member internal AccountPrivateKeyToNodeSecret (accountKey: Key) =
         NBitcoin.ExtKey.CreateFromSeed (accountKey.ToBytes ())
 
-    member internal self.OpenChannel (nodeEndPoint: NodeEndPoint)
+    member internal self.OpenChannel (nodeIdentifier: NodeIdentifier)
                                      (channelCapacity: TransferAmount)
                                          : Async<Result<PendingChannel, IErrorMsg>> = async {
-        let peerId = PeerId (nodeEndPoint.IPEndPoint :> EndPoint)
-        let nodeId = nodeEndPoint.NodeId.ToString() |> NBitcoin.PubKey |> NodeId
         let! connectRes =
-            PeerNode.Connect nodeMasterPrivKey nodeId peerId
+            PeerNode.Connect nodeMasterPrivKey nodeIdentifier
         match connectRes with
         | Error connectError ->
             if connectError.PossibleBug then
                 let msg =
                     SPrintF3
                         "error connecting to peer %s to open channel of capacity %M: %s"
-                        (nodeEndPoint.ToString())
+                        (nodeIdentifier.ToString())
                         channelCapacity.ValueToSend
                         (connectError :> IErrorMsg).Message
                 Infrastructure.ReportWarningMessage msg
@@ -261,7 +261,7 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                     let msg =
                         SPrintF3
                             "error opening channel with peer %s of capacity %M: %s"
-                            (nodeEndPoint.ToString())
+                            (nodeIdentifier.ToString())
                             channelCapacity.ValueToSend
                             (openChannelError :> IErrorMsg).Message
                     Infrastructure.ReportWarningMessage msg
@@ -284,7 +284,7 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
             DotNetLightning.Utils.LNMoney lnAmount
 
         let! activeChannelRes =
-            ActiveChannel.ConnectReestablish self.ChannelStore nodeMasterPrivKey channelId
+            ActiveChannel.ConnectReestablish self.ChannelStore nodeMasterPrivKey channelId None
         match activeChannelRes with
         | Error reconnectActiveChannelError ->
             if reconnectActiveChannelError.PossibleBug then
@@ -310,13 +310,14 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
 
     member internal self.SendMonoHopPayment (channelId: ChannelIdentifier)
                                             (transferAmount: TransferAmount)
+                                            (nonionEndPoint: Option<NOnionEndPoint>)
                                                 : Async<Result<unit, IErrorMsg>> = async {
         let amount =
             let btcAmount = transferAmount.ValueToSend
             let lnAmount = int64(btcAmount * decimal DotNetLightning.Utils.LNMoneyUnit.BTC)
             DotNetLightning.Utils.LNMoney lnAmount
         let! activeChannelRes =
-            ActiveChannel.ConnectReestablish self.ChannelStore nodeMasterPrivKey channelId
+            ActiveChannel.ConnectReestablish self.ChannelStore nodeMasterPrivKey channelId nonionEndPoint
         match activeChannelRes with
         | Error reconnectActiveChannelError ->
             if reconnectActiveChannelError.PossibleBug then
@@ -346,10 +347,10 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                 return Ok ()
     }
 
-    member internal self.InitiateCloseChannel (channelId: ChannelIdentifier): Async<Result<unit, NodeInitiateCloseChannelError>> =
+    member internal self.InitiateCloseChannel (channelId: ChannelIdentifier) (nonionIntroductionPoint: Option<NOnionEndPoint>): Async<Result<unit, NodeInitiateCloseChannelError>> =
         async {
             let! connectRes =
-                ActiveChannel.ConnectReestablish self.ChannelStore self.NodeMasterPrivKey channelId
+                ActiveChannel.ConnectReestablish self.ChannelStore self.NodeMasterPrivKey channelId nonionIntroductionPoint
             match connectRes with
             | Error connectError ->
                 return Error <| NodeInitiateCloseChannelError.Reconnect (connectError :> IErrorMsg)
@@ -363,6 +364,7 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
         }
 
     member internal self.ConnectLockChannelFunding (channelId: ChannelIdentifier)
+                                                   (nonionIntroductionPoint: Option<NOnionEndPoint>)
                                                        : Async<Result<unit, IErrorMsg>> =
         async {
             let! activeChannelRes =
@@ -370,6 +372,7 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                     self.ChannelStore
                     nodeMasterPrivKey
                     channelId
+                    nonionIntroductionPoint
             match activeChannelRes with
             | Error reconnectActiveChannelError ->
                 if reconnectActiveChannelError.PossibleBug then
@@ -814,6 +817,7 @@ type Node =
 
     member self.UpdateFee (channelId: ChannelIdentifier)
                           (feeRate: decimal)
+                          (nonionIntroductionPoint: Option<NOnionEndPoint>)
                               : Async<Result<unit, IErrorMsg>> = async {
         let feeRatePerKw = FeeEstimator.FeeRateFromDecimal feeRate
         let nodeMasterPrivKey =
@@ -825,6 +829,7 @@ type Node =
                 self.ChannelStore
                 nodeMasterPrivKey
                 channelId
+                nonionIntroductionPoint
         match activeChannelRes with
         | Error reconnectActiveChannelError ->
             if reconnectActiveChannelError.PossibleBug then
@@ -862,12 +867,13 @@ module public Connection =
 
     let public StartServer (channelStore: ChannelStore)
                            (password: string)
-                           (bindAddress: IPEndPoint)
-                               : NodeServer =
+                           (nodeServerType: NodeServerType)
+                               : Async<NodeServer> = async {
         let privateKey = Account.GetPrivateKey channelStore.Account password
         let nodeMasterPrivKey: NodeMasterPrivKey =
             NodeClient.AccountPrivateKeyToNodeSecret privateKey
             |> NodeMasterPrivKey
-        let transportListener = TransportListener.Bind nodeMasterPrivKey bindAddress
-        new NodeServer (channelStore, transportListener)
+        let! transportListener = TransportListener.Bind nodeMasterPrivKey nodeServerType
+        return new NodeServer (channelStore, transportListener)
+    }
 

@@ -79,6 +79,7 @@ type ChannelInfo =
         FundingTxId: TransactionIdentifier
         Status: ChannelStatus
         Currency: Currency
+        NodeTransportType: NodeTransportType
     }
     static member internal FromSerializedChannel (serializedChannel: SerializedChannel)
                                                  (currency: Currency)
@@ -121,6 +122,7 @@ type ChannelInfo =
             FundingOutPointIndex = serializedChannel.FundingScriptCoin().Outpoint.N
             Currency = currency
             Status = status
+            NodeTransportType = serializedChannel.NodeTransportType
         }
 
 type ChannelStore(account: NormalUtxoAccount) =

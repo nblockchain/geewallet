@@ -1,8 +1,8 @@
 {
   "Version": "0.3.253.0",
-  "TypeName": "Microsoft.FSharp.Collections.FSharpMap`2[[GWallet.Backend.Currency, GWallet.Backend, Version=0.3.253.0, Culture=neutral, PublicKeyToken=null],[System.Collections.Generic.IEnumerable`1[[GWallet.Backend.ServerDetails, GWallet.Backend, Version=0.3.253.0, Culture=neutral, PublicKeyToken=null]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]",
+  "TypeName": "Microsoft.FSharp.Collections.FSharpMap`2[[GWallet.Backend.ServerType, GWallet.Backend, Version=0.3.253.0, Culture=neutral, PublicKeyToken=null],[System.Collections.Generic.IEnumerable`1[[GWallet.Backend.ServerDetails, GWallet.Backend, Version=0.3.253.0, Culture=neutral, PublicKeyToken=null]], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]",
   "Value": {
-    "BTC": [
+    "CurrencyServer BTC": [
       {
         "ServerInfo": {
           "NetworkPath": "electrumx-btc.cryptonermal.net",
@@ -2717,7 +2717,7 @@
         }
       }
     ],
-    "LTC": [
+    "CurrencyServer LTC": [
       {
         "ServerInfo": {
           "NetworkPath": "electrum.ltc.xurious.com",
@@ -3179,7 +3179,7 @@
         }
       }
     ],
-    "ETH": [
+    "CurrencyServer ETH": [
       {
         "ServerInfo": {
           "NetworkPath": "main-rpc.linkpool.io",
@@ -3651,7 +3651,7 @@
         }
       }
     ],
-    "ETC": [
+    "CurrencyServer ETC": [
       {
         "ServerInfo": {
           "NetworkPath": "www.ethercluster.com/etc",
@@ -4297,6 +4297,3011 @@
           ]
         }
       }
+    ],
+    "ProtocolServer Tor": [
+      {
+        "ServerInfo": {
+          "NetworkPath": "62.210.105.46",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "95.128.43.164",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "5.79.79.133",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "91.121.103.117",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "109.70.100.9",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "83.205.231.204",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "37.252.187.111",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "144.76.157.242",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "212.47.233.86",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "173.212.231.228",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "62.216.54.29",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "213.239.213.190",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "5.9.37.162",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "82.69.47.114",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "51.15.177.140",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                993
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "209.141.57.122",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "193.234.15.58",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.228.138.252",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8080
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "77.23.45.123",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "82.103.140.87",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "37.221.66.248",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "109.70.100.1",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.82.127.141",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "45.76.218.50",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "54.36.205.38",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.72.247.145",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "140.78.100.38",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                5443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "173.75.39.61",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.4.132.135",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "104.244.77.250",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "45.67.229.37",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "193.108.117.103",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "158.101.138.180",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "110.141.223.194",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "104.149.139.42",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8080
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "58.107.88.237",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "198.245.61.171",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "198.211.40.226",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "94.130.200.167",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "136.243.60.188",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "81.28.206.216",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "78.198.147.227",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "23.239.113.101",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "173.212.219.49",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                6666
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "52.205.15.239",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "68.71.27.78",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.162.251.135",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "157.90.38.9",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "217.79.178.53",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                444
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "195.154.112.228",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "91.194.84.89",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "159.196.69.117",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "46.38.236.250",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "209.141.39.200",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "5.135.156.12",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                4899
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "83.161.151.178",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "85.214.141.24",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "199.195.250.77",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.100.87.250",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "178.20.55.16",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "151.237.185.134",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "213.164.218.224",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "51.83.131.42",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "172.105.89.143",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9007
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "179.43.169.20",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "174.89.83.82",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "68.160.242.214",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "144.76.216.252",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "209.141.54.168",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "107.189.31.241",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9100
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "123.255.62.137",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "5.56.221.113",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                4020
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "24.151.37.55",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                42069
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "212.74.233.22",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9011
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.32.221.201",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "199.249.230.166",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "92.38.163.65",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "193.111.26.37",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "132.226.162.148",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.220.102.250",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                993
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "95.216.145.127",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "84.160.69.190",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "178.17.173.26",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "172.222.102.43",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "5.45.104.171",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                22
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "37.120.184.36",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "173.208.141.58",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "62.65.40.250",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "91.143.85.52",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                465
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "37.218.241.28",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "163.172.94.119",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "91.121.82.132",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "62.210.123.24",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "192.222.169.71",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "95.217.30.201",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "51.159.144.243",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "212.227.165.251",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "93.95.88.13",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "104.244.72.168",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9100
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "198.73.50.66",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "209.141.38.62",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "109.236.86.109",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                110
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "192.42.116.161",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "31.13.195.248",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "37.191.195.28",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "23.154.177.2",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "51.178.26.103",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "51.81.56.74",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "195.154.133.124",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "176.9.118.73",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9993
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "79.196.30.109",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9005
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "24.3.110.224",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "78.94.141.180",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                15827
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "45.129.3.215",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9002
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "94.212.41.237",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.100.87.250",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "50.7.178.34",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "164.132.226.30",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                22
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "193.218.118.62",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "140.78.100.18",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                5443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "95.217.15.17",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "107.189.28.100",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9100
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "77.21.74.43",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.220.103.117",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "172.86.75.174",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "51.15.249.137",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9030
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "96.244.79.89",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "213.73.96.131",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "132.252.186.185",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "62.212.239.170",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                80
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "92.223.72.168",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "51.254.136.195",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "83.212.72.189",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "84.113.179.53",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "125.212.220.60",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "192.184.145.106",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "104.244.72.65",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "158.69.207.216",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "206.217.136.47",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.65.206.154",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "142.4.213.105",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "37.221.67.70",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "212.47.237.127",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "54.36.108.162",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "158.255.215.41",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                7654
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "157.131.206.89",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "138.201.196.156",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "45.61.185.90",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9000
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "194.145.150.15",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "95.216.115.85",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "134.249.106.21",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "58.185.69.242",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "46.23.72.81",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "134.209.224.96",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "103.228.53.155",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "213.65.114.38",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                65187
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "140.78.100.29",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "193.108.117.59",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "69.164.221.78",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "188.138.33.233",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "85.214.147.9",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.220.103.120",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "37.120.190.160",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "213.164.204.90",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "83.53.71.25",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "51.15.85.13",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                3158
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "104.37.193.102",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "136.49.38.118",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "107.189.28.100",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9000
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "151.32.131.255",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "114.23.164.80",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "209.141.59.180",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "45.132.246.38",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "109.92.182.91",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "172.73.184.37",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "95.154.25.167",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.31.136.244",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8181
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.220.102.254",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                993
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "40.122.165.48",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "176.9.1.211",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "162.212.158.82",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9201
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "146.59.45.119",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "107.189.6.61",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9100
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "45.142.100.30",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "178.63.172.14",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "37.221.65.169",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "64.44.51.37",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "85.239.33.8",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.239.222.253",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "162.247.74.213",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "51.81.160.187",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "109.70.100.16",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "104.152.209.130",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "213.227.133.129",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "54.36.101.21",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "104.244.76.13",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "49.12.93.240",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "37.59.37.59",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9001
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "140.78.100.25",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                8443
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "185.220.103.118",
+          "ConnectionType": {
+            "Encrypted": false,
+            "Protocol": {
+              "Case": "Tcp",
+              "Fields": [
+                9000
+              ]
+            }
+          }
+        },
+        "CommunicationHistory": null
+      }
+
+
     ]
+
   }
 }

@@ -57,7 +57,7 @@ module Web3ServerSeedList =
                 Currency.ETH
             else
                 failwith <| SPrintF1 "Assertion failed: Ether currency %A not supported?" currency
-        Caching.Instance.GetServers baseCurrency |> List.ofSeq
+        Caching.Instance.GetServers (ServerType.CurrencyServer baseCurrency) |> List.ofSeq
 
     let Randomize currency =
         let serverList = GetEtherServers currency

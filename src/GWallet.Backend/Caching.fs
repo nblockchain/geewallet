@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Linq
+open System.Net
 open System.Net.Http
 
 open GWallet.Backend.FSharpUtil.UwpHacks
@@ -549,11 +550,11 @@ module Caching =
                 sessionServerRanking <- newCachedValue
             )
 
-        member __.GetServers (currency: Currency): seq<ServerDetails> =
+        member __.GetServers (serverType: ServerType): seq<ServerDetails> =
             lock cacheFiles.ServerStats (fun _ ->
-                match sessionServerRanking.TryFind currency with
+                match sessionServerRanking.TryFind serverType with
                 | None ->
-                    failwith <| SPrintF1 "Initialization of servers' cache failed? currency %A not found" currency
+                    failwith <| SPrintF1 "Initialization of servers' cache failed? currency %A not found" serverType
                 | Some servers -> servers
             )
 
@@ -589,7 +590,8 @@ module Caching =
                         return None
                 }
 
-            let targetBranch = "frontend"
+            // FIXME: put this back to "frontend" when we merge LN branches
+            let targetBranch = "rc/LN-m11"
             let orgName1 = "nblockchain"
             let orgName2 = "World"
             let projName = "geewallet"
