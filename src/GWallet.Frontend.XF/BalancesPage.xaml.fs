@@ -15,7 +15,7 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>)
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
 
-    let normalChartView = base.FindByName<CircleChartView> "normalChartView"
+    let chartView = base.FindByName<CircleChartView> "normalChartView"
 
     let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
                                (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
@@ -41,22 +41,7 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>)
             amount
 
     let RedrawCircleView (balances: seq<BalanceState>) =
-        let chartView = normalChartView
-        let fullAmount = balances.Sum(fun b -> GetAmountOrDefault b.FiatAmount)
-
-        let chartSourceList = 
-            balances |> Seq.map (fun balanceState ->
-                 let percentage = 
-                     if fullAmount = 0m then
-                         0m
-                     else
-                         GetAmountOrDefault balanceState.FiatAmount / fullAmount
-                 { 
-                     Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency
-                     Percentage = float(percentage)
-                 }
-            )
-        chartView.SegmentsSource <- chartSourceList
+        chartView.SegmentsSource <- [ { Color = Color.Black ; Percentage = 100.} ]
 
     do
         this.Init()
