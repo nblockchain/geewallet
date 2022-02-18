@@ -28,8 +28,7 @@ type TotalBalance =
         y + x
 
 type BalancesPage(normalBalanceStates: seq<BalanceState>,
-                  currencyImages: Map<Currency*bool,Image>,
-                  startWithReadOnlyAccounts: bool)
+                  currencyImages: Map<Currency*bool,Image>)
                       as this =
     inherit ContentPage()
 
@@ -38,16 +37,8 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
     let normalAccountsBalanceSets = normalBalanceStates.Select(fun balState -> balState.BalanceSet)
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
-    let totalReadOnlyFiatAmountLabel = mainLayout.FindByName<Label> "totalReadOnlyFiatAmountLabel"
-    let totalFiatAmountFrame = mainLayout.FindByName<Frame> "totalFiatAmountFrame"
-    let totalReadOnlyFiatAmountFrame = mainLayout.FindByName<Frame> "totalReadOnlyFiatAmountFrame"
     let contentLayout = base.FindByName<StackLayout> "contentLayout"
     let normalChartView = base.FindByName<CircleChartView> "normalChartView"
-    let readonlyChartView = base.FindByName<CircleChartView> "readonlyChartView"
-
-    let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
-    let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
-    let timerStartDelay = TimeSpan.FromMilliseconds 500.
 
     // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
     let UpdateGlobalFiatBalanceLabel (balance: MaybeCached<TotalBalance>) (totalFiatAmountLabel: Label) =
@@ -155,12 +146,8 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
         | Fresh amount | NotFresh (Cached (amount,_)) ->
             amount
 
-    let RedrawCircleView (readOnly: bool) (balances: seq<BalanceState>) =
-        let chartView =
-            if readOnly then
-                readonlyChartView
-            else
-                normalChartView
+    let RedrawCircleView (balances: seq<BalanceState>) =
+        let chartView = normalChartView
         let fullAmount = balances.Sum(fun b -> GetAmountOrDefault b.FiatAmount)
 
         let chartSourceList = 
@@ -176,12 +163,6 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
                  }
             )
         chartView.SegmentsSource <- chartSourceList
-
-    let GetBaseRefreshInterval() =
-        if this.NoImminentIncomingPayment then
-            standardTimeToRefreshBalances
-        else
-            standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow
 
     let mutable lastRefreshBalancesStamp = DateTime.UtcNow,new CancellationTokenSource()
 
@@ -269,7 +250,7 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
                                    |> List.ofSeq
                 Device.BeginInvokeOnMainThread(fun _ ->
                     this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
-                    RedrawCircleView readOnly resolvedBalances
+                    RedrawCircleView resolvedBalances
                 )
                 return resolvedBalances.Any(fun balanceState ->
 
@@ -329,7 +310,7 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
                     normalBalanceStates
                 this.AssignColorLabels switchingToReadOnly
                 this.PopulateBalances switchingToReadOnly balancesStatesToPopulate
-                RedrawCircleView switchingToReadOnly balancesStatesToPopulate
+                RedrawCircleView balancesStatesToPopulate
             else
                 ()
 
@@ -343,10 +324,7 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
         this.ConfigureFiatAmountFrame true |> ignore
 
         this.PopulateBalances false normalBalanceStates
-        RedrawCircleView false normalBalanceStates
-
-        if startWithReadOnlyAccounts then
-            tapper.SendTapped null
+        RedrawCircleView normalBalanceStates
 
     member private this.AssignColorLabels (readOnly: bool) =
         let labels,color =
@@ -360,7 +338,6 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
 
     member private this.Init () =
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
-        readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Subscribe(fun _ ->
@@ -376,8 +353,6 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
 
         Device.BeginInvokeOnMainThread(fun _ ->
             this.AssignColorLabels true
-            if startWithReadOnlyAccounts then
-                this.AssignColorLabels false
 
             this.PopulateGridInitially ()
 

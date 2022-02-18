@@ -9,10 +9,6 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Backend
 
-/// <param name="showLogoFirst">
-/// true  if just the logo should be shown first, and title text and loading text after some seconds,
-/// false if title text and loading text should be shown immediatly.
-/// </param>
 type LoadingPage() as this =
     inherit ContentPage()
 
@@ -46,8 +42,6 @@ type LoadingPage() as this =
     let PreLoadCurrencyImages(): Map<Currency*bool,Image> =
         GetAllImages() |> Map.ofSeq
 
-    let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
-
     let Transition(): unit =
         let currencyImages = PreLoadCurrencyImages()
 
@@ -66,7 +60,7 @@ type LoadingPage() as this =
 
             let balancesPage () =
                 BalancesPage(allResolvedNormalAccountBalances,
-                             currencyImages, false)
+                             currencyImages)
                     :> Page
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
         }
