@@ -40,10 +40,6 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
             finishButton.Text <- newCreateButtonCaption
         )
 
-    [<Obsolete(DummyPageConstructorHelper.Warning)>]
-    new() = WelcomePage2(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),
-                         new Task<array<byte>>(fun _ -> null))
-
     member this.OnFinishButtonClicked(sender: Object, args: EventArgs) =
         if password.Text <> passwordConfirmation.Text then
             this.DisplayAlert("Alert", "Payment passwords don't match, please try again", "OK") |> ignore
@@ -55,7 +51,7 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
                 let! privateKeyBytes = Async.AwaitTask masterPrivateKeyGenerationTask
                 do! Account.CreateAllAccounts privateKeyBytes password.Text
                 let loadingPage () =
-                    LoadingPage (state, false)
+                    LoadingPage (false)
                         :> Page
                 FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this loadingPage
             } |> FrontendHelpers.DoubleCheckCompletionAsync false

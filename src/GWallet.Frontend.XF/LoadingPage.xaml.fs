@@ -13,7 +13,7 @@ open GWallet.Backend
 /// true  if just the logo should be shown first, and title text and loading text after some seconds,
 /// false if title text and loading text should be shown immediatly.
 /// </param>
-type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as this =
+type LoadingPage(showLogoFirst: bool) as this =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
@@ -88,9 +88,6 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     do
         this.Init()
 
-    [<Obsolete(DummyPageConstructorHelper.Warning)>]
-    new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
-
     member this.Transition(): unit =
         let currencyImages = PreLoadCurrencyImages()
 
@@ -121,7 +118,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
             keepAnimationTimerActive <- false
 
             let balancesPage () =
-                BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
+                BalancesPage(allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
                              currencyImages, false)
                     :> Page
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage

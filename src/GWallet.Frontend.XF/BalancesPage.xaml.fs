@@ -27,8 +27,7 @@ type TotalBalance =
     static member (+) (x: decimal, y: TotalBalance) =
         y + x
 
-type BalancesPage(state: FrontendHelpers.IGlobalAppState,
-                  normalBalanceStates: seq<BalanceState>,
+type BalancesPage(normalBalanceStates: seq<BalanceState>,
                   readOnlyBalanceStates: seq<BalanceState>,
                   currencyImages: Map<Currency*bool,Image>,
                   startWithReadOnlyAccounts: bool)
@@ -198,10 +197,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     do
         this.Init()
 
-    [<Obsolete(DummyPageConstructorHelper.Warning)>]
-    new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,
-                         Map.empty,false)
-
     member private this.LastRefreshBalancesStamp
         with get() = lock lockObject (fun _ -> lastRefreshBalancesStamp)
         and set value = lock lockObject (fun _ -> lastRefreshBalancesStamp <- value)
@@ -259,8 +254,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         if fiatBalancesList.Any() then
             UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
 
-    member private this.UpdateGlobalBalance (state: FrontendHelpers.IGlobalAppState)
-                                            (balancesJob: Async<array<BalanceState>>)
+    member private this.UpdateGlobalBalance (balancesJob: Async<array<BalanceState>>)
                                             fiatLabel
                                             (readOnly: bool)
                                                 : Async<Option<bool>> =
@@ -302,7 +296,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                 None
 
         let readOnlyAccountsBalanceUpdate =
-            this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel true
+            this.UpdateGlobalBalance readOnlyBalancesJob totalReadOnlyFiatAmountLabel true
 
         let allCancelSources,allBalanceUpdates =
             if (not onlyReadOnlyAccounts) then
@@ -313,7 +307,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                         None
 
                 let normalAccountsBalanceUpdate =
-                    this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel false
+                    this.UpdateGlobalBalance normalBalancesJob totalFiatAmountLabel false
 
                 let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
 
@@ -441,7 +435,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let currentConnectivityInstance = Connectivity.NetworkAccess
                 if currentConnectivityInstance = NetworkAccess.Internet then
                     let newBalancesPageFunc = (fun (normalAccountsAndBalances,readOnlyAccountsAndBalances) ->
-                        BalancesPage(state, normalAccountsAndBalances, readOnlyAccountsAndBalances,
+                        BalancesPage(normalAccountsAndBalances, readOnlyAccountsAndBalances,
                                      currencyImages, true) :> Page
                     )
                     let normalAccountsBalanceSets = normalAccountsBalanceSets
@@ -531,9 +525,3 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         this.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync false
         this.StartTimer()
 
-        state.Resumed.Add (fun _ -> this.StartTimer())
-
-        state.GoneToSleep.Add (fun _ -> 
-            this.StopTimer()
-            this.CancelBalanceRefreshJobs()
-        )
