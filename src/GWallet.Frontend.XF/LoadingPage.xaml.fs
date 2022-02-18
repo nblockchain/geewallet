@@ -55,7 +55,7 @@ type LoadingPage(showLogoFirst: bool) as this =
 
     let mutable keepAnimationTimerActive = true
 
-    member this.Transition(): unit =
+    let Transition(): unit =
         let currencyImages = PreLoadCurrencyImages()
 
         let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
@@ -91,6 +91,6 @@ type LoadingPage(showLogoFirst: bool) as this =
 
         ()
 
-    member this.Init (): unit =
-        this.Transition()
+    do
+        Transition()
 
