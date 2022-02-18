@@ -99,10 +99,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 (this:>FrontendHelpers.IAugmentablePayPage).AddTransactionScanner()
             this.AdjustWidgetsStateAccordingToConnectivity()
 
-    [<Obsolete(DummyPageConstructorHelper.Warning)>]
-    new() = SendPage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
-                     DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),(fun _ -> Page()))
-
     member private this.AdjustWidgetsStateAccordingToConnectivity() =
         let currentConnectivityInstance = Connectivity.NetworkAccess
         if currentConnectivityInstance <> NetworkAccess.Internet then
