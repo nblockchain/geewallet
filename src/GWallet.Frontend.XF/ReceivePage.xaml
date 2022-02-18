@@ -7,7 +7,7 @@
                  VerticalOptions="Center">
         <Button x:Name="paymentButton"
                 Text="Next"
-                IsEnabled="false"
+                IsEnabled="true"
                 HorizontalOptions="Center"
                 Clicked="OnSendPaymentClicked"/>
     </StackLayout>
