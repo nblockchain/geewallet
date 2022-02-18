@@ -5,53 +5,10 @@ open System.Threading.Tasks
 
 open Xamarin.Forms
 
-type BalanceWidgets =
-    {
-        CryptoLabel: Label
-        FiatLabel: Label
-        Frame: Frame
-    }
-
 module FrontendHelpers =
-
-    type IGlobalAppState =
-        [<CLIEvent>]
-        abstract member Resumed: IEvent<unit> with get
-        [<CLIEvent>]
-        abstract member GoneToSleep: IEvent<unit> with get
-
-    type IAugmentablePayPage =
-        abstract member AddTransactionScanner: unit -> unit
-
-    let IsDesktop() =
-        match Device.RuntimePlatform with
-        | Device.Android | Device.iOS ->
-            false
-        | Device.macOS | Device.GTK | Device.UWP | Device.WPF ->
-            true
-        | _ ->
-            // TODO: report a sentry warning
-            false
-
-    let internal BigFontSize = 22.
-
-    let internal MediumFontSize = 20.
-
-    let internal MagicGtkNumber = 20.
-
-    let private defaultFiatCurrency = "USD"
-
-    //FIXME: right now the UI doesn't explain what the below element means when it shows it, we should add a legend...
-    let internal ExchangeOutdatedVisualElement = "*"
 
     // these days cryptos are not so volatile, so 30mins should be good...
     let internal TimeSpanToConsiderExchangeRateOutdated = TimeSpan.FromMinutes 30.0
-
-    let MaybeReturnOutdatedMarkForOldDate (date: DateTime) =
-        if (date + TimeSpanToConsiderExchangeRateOutdated < DateTime.UtcNow) then
-            ExchangeOutdatedVisualElement
-        else
-            String.Empty
 
     let private MaybeCrash (canBeCanceled: bool) (ex: Exception) =
         let LastResortBail() =
@@ -133,17 +90,3 @@ module FrontendHelpers =
                 button.IsEnabled <- true
             )
         ) |> DoubleCheckCompletionNonGeneric
-
-    let private CreateLabelWidgetForAccount horizontalOptions =
-        let label = Label(Text = "...",
-                          VerticalOptions = LayoutOptions.Center,
-                          HorizontalOptions = horizontalOptions)
-        label
-
-    let private normalCryptoBalanceClassId = "normalCryptoBalanceFrame"
-    let private readonlyCryptoBalanceClassId = "readonlyCryptoBalanceFrame"
-    let GetActiveAndInactiveCurrencyClassIds readOnly =
-        if readOnly then
-            readonlyCryptoBalanceClassId,normalCryptoBalanceClassId
-        else
-            normalCryptoBalanceClassId,readonlyCryptoBalanceClassId
