@@ -107,9 +107,15 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>)
         RedrawCircleView normalBalanceStates
 
     member private this.Init () =
-        normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
-
         Device.BeginInvokeOnMainThread(fun _ ->
             this.PopulateGridInitially ()
         )
+
+    member this.OnNextClicked(_sender: Object, _args: EventArgs) =
+        Device.BeginInvokeOnMainThread(fun _ ->
+            let receivePage () =
+                ReceivePage() :> Page
+            FrontendHelpers.SwitchToNewPage this receivePage true
+        )
+
 
