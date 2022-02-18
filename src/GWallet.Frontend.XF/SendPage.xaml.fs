@@ -604,12 +604,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         match maybeRawTransaction with
         | None -> ()
         | Some rawTransaction ->
-            let signedTransaction = { TransactionInfo = unsignedTransaction; RawTransaction = rawTransaction }
-            let compressedTransaction = Account.SerializeSignedTransaction signedTransaction true
-            let pairSignedTransactionPage () =
-                PairingFromPage(this, "Copy signed transaction to the clipboard", compressedTransaction, None)
-                    :> Page
-            FrontendHelpers.SwitchToNewPage this pairSignedTransactionPage false
+            ()
 
     member private this.AnswerToFee (account: IAccount) (txInfo: TransactionInfo) (positiveFeeAnswer: bool): unit =
         if positiveFeeAnswer then
@@ -629,36 +624,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     failwith "remote control should only happen in ReadOnly account handling"
 
             | :? ReadOnlyAccount as readOnlyAccount ->
-                let proposal = {
-                    OriginAddress = account.PublicAddress;
-                    Amount = txInfo.Amount;
-                    DestinationAddress = txInfo.Destination;
-                }
-                let compressedTxProposal = Account.SerializeUnsignedTransaction proposal txInfo.Metadata true
-
-                let coldMsg =
-                    "Account belongs to cold storage, so you'll need to scan this as a transaction proposal in the next page."
-                let showWarningAndGoForward = async {
-                    let! mainThreadSynchContext = Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
-                    let displayTask = this.DisplayAlert("Alert", coldMsg, "OK")
-                    let pairTransactionProposalPage =
-                        PairingFromPage(this,
-                                        "Copy proposal to the clipboard",
-                                        compressedTxProposal,
-                                        Some ("Next step", this:>FrontendHelpers.IAugmentablePayPage))
-
-                    do! Async.AwaitTask displayTask
-                    do! Async.SwitchToContext mainThreadSynchContext
-
-                    // TODO: should switch the below somehow to use FrontendHelpers.SwitchToNewPage:
-                    NavigationPage.SetHasNavigationBar(pairTransactionProposalPage, false)
-                    let navPairPage = NavigationPage pairTransactionProposalPage
-                    NavigationPage.SetHasNavigationBar(navPairPage, false)
-                    do! Async.AwaitTask (this.Navigation.PushAsync navPairPage)
-                }
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    showWarningAndGoForward |> Async.StartImmediate
-                )
+                ()
 
             | _ ->
                 failwith "Unexpected SendPage instance running on weird account type"

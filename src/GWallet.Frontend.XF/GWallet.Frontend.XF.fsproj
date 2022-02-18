@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <EnableDefaultEmbeddedResourceItems>true</EnableDefaultEmbeddedResourceItems>
+    <Configurations>Release;Debug</Configurations>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -94,16 +95,8 @@
     </Compile>
     <Compile Include="FrontendHelpers.fs" />
     <Compile Include="Controls\CircleChartView.fs" />
-    <Compile Include="PairingFromPage.xaml.fs">
-      <DependentUpon>PairingFromPage.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="SendPage.xaml.fs">
       <DependentUpon>SendPage.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="PairingToPage.xaml.fs">
-      <DependentUpon>PairingToPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="ReceivePage.xaml.fs">
@@ -116,14 +109,6 @@
     </Compile>
     <Compile Include="LoadingPage.xaml.fs">
       <DependentUpon>LoadingPage.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="WelcomePage2.xaml.fs">
-      <DependentUpon>WelcomePage2.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="WelcomePage.xaml.fs">
-      <DependentUpon>WelcomePage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Initialization.fs" />

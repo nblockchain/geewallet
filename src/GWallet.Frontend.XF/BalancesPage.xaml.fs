@@ -430,29 +430,7 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
                 this.PopulateBalances switchingToReadOnly balancesStatesToPopulate
                 RedrawCircleView switchingToReadOnly balancesStatesToPopulate
             else
-                // FIXME: save currentConnectivityInstance to cache at app startup, and if it has ever been connected to
-                // the internet, already consider it non-cold storage
-                let currentConnectivityInstance = Connectivity.NetworkAccess
-                if currentConnectivityInstance = NetworkAccess.Internet then
-                    let newBalancesPageFunc = (fun (normalAccountsAndBalances,readOnlyAccountsAndBalances) ->
-                        BalancesPage(normalAccountsAndBalances, readOnlyAccountsAndBalances,
-                                     currencyImages, true) :> Page
-                    )
-                    let normalAccountsBalanceSets = normalAccountsBalanceSets
-                    let page () =
-                        PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
-                            :> Page
-                    FrontendHelpers.SwitchToNewPage this page false
-                else
-                    match Account.GetNormalAccountsPairingInfoForWatchWallet() with
-                    | None ->
-                        failwith "Should have ether and utxo accounts if running from the XF Frontend"
-                    | Some walletInfo ->
-                        let walletInfoJson = Marshalling.Serialize walletInfo
-                        let page () =
-                            PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
-                                :> Page
-                        FrontendHelpers.SwitchToNewPage this page true
+                ()
 
         )
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
