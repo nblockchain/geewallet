@@ -238,8 +238,7 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
                 let tapGestureRecognizer = TapGestureRecognizer()
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
                     let receivePage () =
-                        ReceivePage(balanceSet.Account, balanceState.UsdRate, this, balanceSet.Widgets)
-                            :> Page
+                        ReceivePage() :> Page
                     FrontendHelpers.SwitchToNewPage this receivePage true
                 ) |> ignore
                 let frame = balanceSet.Widgets.Frame

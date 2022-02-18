@@ -6,5 +6,6 @@
                  Padding="10,10,10,10"
                  VerticalOptions="Center"
                  HorizontalOptions="FillAndExpand">
+        <Label Text="Now press the button to go back '<-'" />
     </StackLayout>
 </ContentPage>
