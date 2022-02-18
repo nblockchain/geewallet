@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
              xmlns:controls="clr-namespace:GWallet.Frontend.XF.Controls"
-             x:Class="GWallet.Frontend.XF.BalancesPage">
+             x:Class="GWallet.Frontend.XF.InitialPage">
     <StackLayout x:Name="mainLayout"
                  Padding="0,0,0,0"
                  VerticalOptions="FillAndExpand">

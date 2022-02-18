@@ -92,8 +92,8 @@
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Compile Include="FrontendHelpers.fs" />
     <Compile Include="Controls\CircleChartView.fs" />
-    <Compile Include="SendPage.xaml.fs">
-      <DependentUpon>SendPage.xaml</DependentUpon>
+    <Compile Include="ThirdPage.xaml.fs">
+      <DependentUpon>ThirdPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="SecondPage.xaml.fs">
