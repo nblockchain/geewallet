@@ -20,10 +20,6 @@
 
         </StackLayout>
 
-        <ScrollView HorizontalOptions="FillAndExpand">
-            <StackLayout x:Name="contentLayout" />
-        </ScrollView>
-
         <Button x:Name="nextButton"
                 Text="Next"
                 IsEnabled="true"

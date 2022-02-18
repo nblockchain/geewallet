@@ -15,7 +15,6 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>)
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
 
-    let contentLayout = base.FindByName<StackLayout> "contentLayout"
     let normalChartView = base.FindByName<CircleChartView> "normalChartView"
 
     let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
@@ -62,48 +61,7 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>)
     do
         this.Init()
 
-    member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
-        let activeCurrencyClassId,inactiveCurrencyClassId =
-            FrontendHelpers.GetActiveAndInactiveCurrencyClassIds readOnly
-
-        let contentLayoutChildrenList = (contentLayout.Children |> List.ofSeq)
-
-        let activeCryptoBalances = FindCryptoBalances activeCurrencyClassId 
-                                                      contentLayout 
-                                                      contentLayoutChildrenList
-                                                      List.Empty
-
-        let inactiveCryptoBalances = FindCryptoBalances inactiveCurrencyClassId 
-                                                        contentLayout 
-                                                        contentLayoutChildrenList
-                                                        List.Empty
-
-        contentLayout.BatchBegin()                      
-
-        for inactiveCryptoBalance in inactiveCryptoBalances do
-            inactiveCryptoBalance.IsVisible <- false
-
-        //We should create new frames only once, then just play with IsVisible(True|False) 
-        if activeCryptoBalances.Any() then
-            for activeCryptoBalance in activeCryptoBalances do
-                activeCryptoBalance.IsVisible <- true
-        else
-            for balanceState in balances do
-                let balanceSet = balanceState.BalanceSet
-                let tapGestureRecognizer = TapGestureRecognizer()
-                tapGestureRecognizer.Tapped.Subscribe(fun _ ->
-                    let receivePage () =
-                        ReceivePage() :> Page
-                    FrontendHelpers.SwitchToNewPage this receivePage true
-                ) |> ignore
-                let frame = balanceSet.Widgets.Frame
-                frame.GestureRecognizers.Add tapGestureRecognizer
-                contentLayout.Children.Add frame
-
-        contentLayout.BatchCommit()
-
     member this.PopulateGridInitially () =
-        this.PopulateBalances false normalBalanceStates
         RedrawCircleView normalBalanceStates
 
     member private this.Init () =
