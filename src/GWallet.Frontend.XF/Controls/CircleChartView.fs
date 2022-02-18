@@ -1,16 +1,11 @@
 ﻿namespace GWallet.Frontend.XF.Controls
 
 open System
-open System.Text
 open System.Linq
 open System.Globalization
-open System.IO
 
 open Xamarin.Forms
 open Xamarin.Forms.Shapes
-
-open GWallet.Frontend.XF
-open GWallet.Backend.FSharpUtil.UwpHacks
 
 type SegmentInfo = 
     {
@@ -21,106 +16,7 @@ type SegmentInfo =
 type CircleChartView () =
     inherit ContentView () 
 
-    let svgMainImagePattern = @"<?xml version=""1.0"" encoding=""utf-8""?>
-    <svg version=""1.1"" id=""Layer_1"" xmlns=""http://www.w3.org/2000/svg"" xmlns:xlink=""http://www.w3.org/1999/xlink"" x=""0px"" y=""0px""
-    width=""{0}px"" height=""{0}px"" viewBox=""0 0 {0} {0}"" enable-background=""new 0 0 {0} {0}"" xml:space=""preserve"">
-    {1}
-    {2}
-    </svg>"
-    let svgSegmentPattern = @"<path fill=""{0}"" d=""M{1},{2} L{1},0 A{1},{1} 1 {3},1 {4},{5} L{6},{7} A{8},{8} 1 {3},0 {1},{2} z"" transform=""rotate({9}, {1}, {1})"" />"
-    let svgCirclePattern = @"<circle cx=""{0}"" cy=""{0}"" r=""{1}"" fill=""{2}""/>"
-    let degree360 = 360.
-    let degree180 = 180.
-    let degree90 = 90.
     let shapesPath = @"M{0},{1} A{2},{2} 0 {3} 1 {4} {5} L {6} {7}"
-
-    let mutable firstWidth = None
-    let mutable firstHeight = None
-
-    let BuildColorPart(part: float): int =
-        int(part * 255.)
-
-    let GetHexColor(color: Color): string =
-        let red =  BuildColorPart color.R
-        let green = BuildColorPart color.G
-        let blue = BuildColorPart color.B
-        let alpha = BuildColorPart color.A
-        String.Format("{0:X2}{1:X2}{2:X2}{3:X2}", alpha, red, green, blue)
-
-    let GetArcCoordinates radius angle shift =
-        let angleCalculated = 
-            if angle > degree180 then 
-                degree360 - angle 
-            else 
-                angle
-
-        let angleRad = angleCalculated * Math.PI / degree180
-
-        let perpendicularDistance = 
-            if angleCalculated > degree90 then 
-                float(radius) * Math.Sin((degree180 - angleCalculated) * Math.PI / degree180) 
-            else 
-                float(radius) * Math.Sin(angleRad)
-
-        let topPointDistance =
-            Math.Sqrt(float(2 * radius * radius) - (float (2 * radius * radius) * Math.Cos(angleRad)))
-        let arcEndY = Math.Sqrt(topPointDistance * topPointDistance - perpendicularDistance * perpendicularDistance)
-        let arcEndX = 
-            if angle > degree180 then 
-                float(radius) - perpendicularDistance 
-            else 
-                float(radius) + perpendicularDistance
-
-        arcEndX + shift, arcEndY + shift
-
-    let CollectSegment color startX startY radius innerRadius angle rotation (segmentsBuilder: StringBuilder) =
-        let bigArcEndX, bigArcEndY = GetArcCoordinates radius angle 0.
-        let shift = float(radius - innerRadius)
-        let smallArcEndX, smallArcEndY = GetArcCoordinates innerRadius angle shift
-
-        let obtuseAngleFlag = 
-            if angle > degree180 then
-                1 
-            else 
-                0
-
-        segmentsBuilder.AppendLine(
-            String.Format(svgSegmentPattern, 
-                          color, 
-                          startX, 
-                          startY, 
-                          obtuseAngleFlag, 
-                          bigArcEndX, 
-                          bigArcEndY, 
-                          smallArcEndX, 
-                          smallArcEndY, 
-                          innerRadius, 
-                          rotation)
-        ) |> ignore
-
-    let PrepareSegmentsSvgBuilder segmentsToDraw rotation startY radius innerRadius: StringBuilder =
-        let rec prepareSegmentsSvgBuilderInner segmentsToDraw rotation startY radius innerRadius segmentsBuilder =
-            match segmentsToDraw with
-            | [] ->
-                ()
-            | item::tail ->
-                let angle = degree360 * item.Percentage
-                if item.Color.A > 0. then
-                    let color = GetHexColor item.Color
-                    let startX = radius
-
-                    if angle >= 360. then
-                        CollectSegment color startX startY radius innerRadius 180. rotation segmentsBuilder
-                        CollectSegment color startX startY radius innerRadius 180. 180. segmentsBuilder
-                    else
-                        CollectSegment color startX startY radius innerRadius angle rotation segmentsBuilder
-
-                let newRotation = rotation + angle
-                prepareSegmentsSvgBuilderInner tail newRotation startY radius innerRadius segmentsBuilder
-
-        let segmentsBuilder = StringBuilder()
-        prepareSegmentsSvgBuilderInner segmentsToDraw rotation startY radius innerRadius segmentsBuilder
-        segmentsBuilder
             
     static let segmentsSourceProperty =
         BindableProperty.Create("SegmentsSource",
@@ -172,7 +68,6 @@ type CircleChartView () =
        let halfWidth = float32 width / 2.f
        let halfHeight = float32 height / 2.f
        let radius = Math.Min(halfWidth, halfHeight) |> float
-       let total = items.Sum(fun i -> i.Percentage) |> float
 
        let x = float halfWidth
        let y = float halfHeight
