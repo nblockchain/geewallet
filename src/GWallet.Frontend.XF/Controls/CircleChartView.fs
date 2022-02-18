@@ -77,8 +77,6 @@ type CircleChartView () =
        let gridLayout = Grid ()
 
        if items.Count() = 1 then
-            // this is a workaround (to create a circle instead) to a Xamarin.Forms' Shapes bug:
-            // https://github.com/xamarin/Xamarin.Forms/issues/13893
             let size =  radius * 2.
             let color = (items.ElementAt 0).Color
             let pieCircle =
@@ -93,52 +91,7 @@ type CircleChartView () =
                 )
             gridLayout.Children.Add pieCircle
        else
-            let rec addSliceToView items cumulativePercent =
-                match items with
-                | [] ->
-                    ()
-                | item::tail ->
-                    let startCoordinatesX = x + (radius * Math.Cos(2.0 * Math.PI * cumulativePercent))
-                    let startCoordinatesY = y + (radius * Math.Sin(2.0 * Math.PI * cumulativePercent))
-
-                    let endPercentage = item.Percentage + cumulativePercent
-
-                    let endCoordinatesX = x + (radius * Math.Cos(2.0 * Math.PI * endPercentage))
-                    let endCoordinatesY = y + (radius * Math.Sin(2.0 * Math.PI * endPercentage))
-                    
-                    let arc =
-                        if item.Percentage > 0.5 then
-                            "1"
-                        else
-                            "0"
-                    
-                    let path =
-                        String.Format (
-                            shapesPath,
-                            startCoordinatesX.ToString nfi,
-                            startCoordinatesY.ToString nfi,
-                            radius.ToString nfi,
-                            arc,
-                            endCoordinatesX.ToString nfi,
-                            endCoordinatesY.ToString nfi,
-                            x.ToString nfi,
-                            y.ToString nfi
-                        )                    
-
-                    let pathGeometry = converter.ConvertFromInvariantString path :?> Geometry
-                    let helperView =
-                        Path (
-                            Data = pathGeometry,
-                            Fill = SolidColorBrush item.Color,
-                            StrokeThickness = 0.,
-                            Stroke = null
-                        )
-                    gridLayout.Children.Add helperView
-
-                    addSliceToView tail endPercentage
-                   
-            let itemsList = items |> Seq.toList
-            addSliceToView itemsList 0.
+            failwith "Not supported"
 
        self.Content <- gridLayout :> View
        ()         
