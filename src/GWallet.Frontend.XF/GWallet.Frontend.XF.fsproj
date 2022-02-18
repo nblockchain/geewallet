@@ -90,9 +90,6 @@
       <Link>img\logo_512x512.png</Link>
     </EmbeddedResource>
     <Compile Include="Properties\AssemblyInfo.fs" />
-    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
-      <Link>Properties\CommonAssemblyInfo.fs</Link>
-    </Compile>
     <Compile Include="FrontendHelpers.fs" />
     <Compile Include="Controls\CircleChartView.fs" />
     <Compile Include="SendPage.xaml.fs">
@@ -115,7 +112,6 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Xamarin.Forms" Version="5.0.0.2012" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />

@@ -5,8 +5,6 @@ open System
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 
-open GWallet.Backend
-
 type ReceivePage() =
 
     inherit ContentPage()
