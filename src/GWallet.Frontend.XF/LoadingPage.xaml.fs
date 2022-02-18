@@ -59,8 +59,7 @@ type LoadingPage() as this =
             let! allResolvedNormalAccountBalances = allNormalAccountBalancesJobAugmented
 
             let balancesPage () =
-                BalancesPage(allResolvedNormalAccountBalances,
-                             currencyImages)
+                BalancesPage(allResolvedNormalAccountBalances)
                     :> Page
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
         }

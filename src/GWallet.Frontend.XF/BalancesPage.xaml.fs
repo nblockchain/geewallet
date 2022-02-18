@@ -3,11 +3,9 @@
 open System
 open System.Linq
 open System.Threading
-open System.Threading.Tasks
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
-open Xamarin.Essentials
 
 open GWallet.Frontend.XF.Controls
 open GWallet.Backend
@@ -27,8 +25,7 @@ type TotalBalance =
     static member (+) (x: decimal, y: TotalBalance) =
         y + x
 
-type BalancesPage(normalBalanceStates: seq<BalanceState>,
-                  currencyImages: Map<Currency*bool,Image>)
+type BalancesPage(normalBalanceStates: seq<BalanceState>)
                       as this =
     inherit ContentPage()
 
@@ -39,89 +36,6 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
     let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
     let contentLayout = base.FindByName<StackLayout> "contentLayout"
     let normalChartView = base.FindByName<CircleChartView> "normalChartView"
-
-    // FIXME: should reuse code with FrontendHelpers.BalanceInUsdString
-    let UpdateGlobalFiatBalanceLabel (balance: MaybeCached<TotalBalance>) (totalFiatAmountLabel: Label) =
-        let strBalance =
-            match balance with
-            | NotFresh NotAvailable ->
-                "? USD"
-            | Fresh amount ->
-                match amount with
-                | ExactBalance exactAmount ->
-                    SPrintF1 "~ %s USD" (Formatting.DecimalAmountRounding CurrencyType.Fiat exactAmount)
-                | AtLeastBalance atLeastAmount ->
-                    SPrintF1 "~ %s USD?" (Formatting.DecimalAmountRounding CurrencyType.Fiat atLeastAmount)
-            | NotFresh(Cached(cachedAmount,time)) ->
-                match cachedAmount with
-                | ExactBalance exactAmount ->
-                    SPrintF2 "~ %s USD%s"
-                           (Formatting.DecimalAmountRounding CurrencyType.Fiat exactAmount)
-                           (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
-                | AtLeastBalance atLeastAmount ->
-                    SPrintF2 "~ %s USD%s?"
-                           (Formatting.DecimalAmountRounding CurrencyType.Fiat atLeastAmount)
-                           (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
-
-        totalFiatAmountLabel.Text <- SPrintF1 "Total Assets:\n%s" strBalance
-
-    let rec UpdateGlobalFiatBalance (acc: Option<MaybeCached<TotalBalance>>)
-                                    (fiatBalances: List<MaybeCached<decimal>>)
-                                    totalFiatAmountLabel
-                                        : unit =
-        let updateGlobalFiatBalanceFromFreshAcc accAmount head tail =
-            match head with
-            | NotFresh NotAvailable ->
-                match accAmount with
-                | ExactBalance exactAccAmount ->
-                    UpdateGlobalFiatBalanceLabel (Fresh (AtLeastBalance exactAccAmount)) totalFiatAmountLabel
-                | AtLeastBalance atLeastAccAmount ->
-                    UpdateGlobalFiatBalanceLabel (Fresh (AtLeastBalance atLeastAccAmount)) totalFiatAmountLabel
-            | Fresh newAmount ->
-                UpdateGlobalFiatBalance (Some(Fresh (newAmount+accAmount))) tail totalFiatAmountLabel
-            | NotFresh(Cached(newCachedAmount,time)) ->
-                UpdateGlobalFiatBalance (Some(NotFresh(Cached(newCachedAmount+accAmount,time))))
-                                        tail
-                                        totalFiatAmountLabel
-
-        match acc with
-        | None ->
-            match fiatBalances with
-            | [] ->
-                failwith "unexpected: accumulator should be Some(thing) or coming balances shouldn't be List.empty"
-            | head::tail ->
-                let accAmount = 0.0m
-                updateGlobalFiatBalanceFromFreshAcc (ExactBalance(accAmount)) head tail
-        | Some(NotFresh NotAvailable) ->
-            UpdateGlobalFiatBalanceLabel (NotFresh(NotAvailable)) totalFiatAmountLabel
-        | Some(Fresh accAmount) ->
-            match fiatBalances with
-            | [] ->
-                UpdateGlobalFiatBalanceLabel (Fresh accAmount) totalFiatAmountLabel
-            | head::tail ->
-                updateGlobalFiatBalanceFromFreshAcc accAmount head tail
-        | Some(NotFresh(Cached(cachedAccAmount,accTime))) ->
-            match fiatBalances with
-            | [] ->
-                UpdateGlobalFiatBalanceLabel (NotFresh(Cached(cachedAccAmount,accTime))) totalFiatAmountLabel
-            | head::tail ->
-                match head with
-                | NotFresh NotAvailable ->
-                    match cachedAccAmount with
-                    | ExactBalance exactAccAmount ->
-                        UpdateGlobalFiatBalanceLabel (NotFresh(Cached(AtLeastBalance exactAccAmount,accTime)))
-                                                     totalFiatAmountLabel
-                    | AtLeastBalance atLeastAccAmount ->
-                        UpdateGlobalFiatBalanceLabel (NotFresh(Cached(AtLeastBalance atLeastAccAmount,accTime)))
-                                                     totalFiatAmountLabel
-                | Fresh newAmount ->
-                    UpdateGlobalFiatBalance (Some(NotFresh(Cached(newAmount+cachedAccAmount,accTime))))
-                                            tail
-                                            totalFiatAmountLabel
-                | NotFresh(Cached(newCachedAmount,time)) ->
-                    UpdateGlobalFiatBalance (Some(NotFresh(Cached(newCachedAmount+cachedAccAmount,min accTime time))))
-                                            tail
-                                            totalFiatAmountLabel
 
     let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
                                (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
@@ -228,10 +142,6 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
 
         contentLayout.BatchCommit()
 
-    member this.UpdateGlobalFiatBalanceSum (fiatBalancesList: List<MaybeCached<decimal>>) totalFiatAmountLabel =
-        if fiatBalancesList.Any() then
-            UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
-
     member private this.UpdateGlobalBalance (balancesJob: Async<array<BalanceState>>)
                                             fiatLabel
                                             (readOnly: bool)
@@ -249,7 +159,6 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
                                                                      balanceState.FiatAmount)
                                    |> List.ofSeq
                 Device.BeginInvokeOnMainThread(fun _ ->
-                    this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
                     RedrawCircleView resolvedBalances
                 )
                 return resolvedBalances.Any(fun balanceState ->
@@ -355,7 +264,5 @@ type BalancesPage(normalBalanceStates: seq<BalanceState>,
             this.AssignColorLabels true
 
             this.PopulateGridInitially ()
-
-            this.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances totalFiatAmountLabel
         )
 
