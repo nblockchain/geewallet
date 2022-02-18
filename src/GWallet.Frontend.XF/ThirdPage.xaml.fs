@@ -3,9 +3,9 @@
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 
-type SendPage() =
+type ThirdPage() =
     inherit ContentPage()
-    let _ = base.LoadFromXaml(typeof<SendPage>)
+    let _ = base.LoadFromXaml(typeof<ThirdPage>)
 
     do
         ()

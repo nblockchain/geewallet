@@ -5,15 +5,15 @@ open System
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 
-type ReceivePage() =
+type SecondPage() =
 
     inherit ContentPage()
 
-    let _ = base.LoadFromXaml(typeof<ReceivePage>)
+    let _ = base.LoadFromXaml(typeof<SecondPage>)
 
     member this.OnSendPaymentClicked(_sender: Object, _args: EventArgs) =
-        let sendPage () =
-            SendPage() :> Page
+        let thirdPage () =
+            ThirdPage() :> Page
 
-        FrontendHelpers.SwitchToNewPage this sendPage false
+        FrontendHelpers.SwitchToNewPage this thirdPage false
 

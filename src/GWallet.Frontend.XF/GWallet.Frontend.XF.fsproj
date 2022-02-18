@@ -96,16 +96,12 @@
       <DependentUpon>SendPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="ReceivePage.xaml.fs">
-      <DependentUpon>ReceivePage.xaml</DependentUpon>
+    <Compile Include="SecondPage.xaml.fs">
+      <DependentUpon>SecondPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="BalancesPage.xaml.fs">
-      <DependentUpon>BalancesPage.xaml</DependentUpon>
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="LoadingPage.xaml.fs">
-      <DependentUpon>LoadingPage.xaml</DependentUpon>
+    <Compile Include="InitialPage.xaml.fs">
+      <DependentUpon>InitialPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="App.xaml.fs">

@@ -8,10 +8,10 @@ open Xamarin.Forms.Xaml
 
 open GWallet.Frontend.XF.Controls
 
-type BalancesPage() =
+type InitialPage() =
     inherit ContentPage()
 
-    let _ = base.LoadFromXaml(typeof<BalancesPage>)
+    let _ = base.LoadFromXaml(typeof<InitialPage>)
 
     let chartView = base.FindByName<CircleChartView> "normalChartView"
 
@@ -25,9 +25,9 @@ type BalancesPage() =
 
     member this.OnNextClicked(_sender: Object, _args: EventArgs) =
         Device.BeginInvokeOnMainThread(fun _ ->
-            let receivePage () =
-                ReceivePage() :> Page
-            FrontendHelpers.SwitchToNewPage this receivePage true
+            let secondPage () =
+                SecondPage () :> Page
+            FrontendHelpers.SwitchToNewPage this secondPage true
         )
 
 
