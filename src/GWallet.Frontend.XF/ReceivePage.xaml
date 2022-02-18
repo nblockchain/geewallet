@@ -5,21 +5,10 @@
     <StackLayout x:Name="mainLayout"
                  Padding="10,10,10,10"
                  VerticalOptions="Center">
-        <Label x:Name="balanceLabel"
-               Text="..."
-               HorizontalOptions="Center" />
-        <Label x:Name="fiatBalanceLabel"
-               Text="..."
-               HorizontalOptions="Center" />
         <Button x:Name="paymentButton"
-                Text="..."
+                Text="Next"
                 IsEnabled="false"
                 HorizontalOptions="Center"
                 Clicked="OnSendPaymentClicked"/>
-        <Button x:Name="copyToClipboardButton"
-                Text="Copy address to clipboard"
-                IsEnabled="true"
-                HorizontalOptions="Center"
-                Clicked="OnCopyToClipboardClicked"/>
     </StackLayout>
 </ContentPage>

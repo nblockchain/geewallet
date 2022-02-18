@@ -2,6 +2,16 @@
 
 open Xamarin.Forms
 
+module Initialization =
+
+    let internal LandingPage(): NavigationPage =
+
+        let landingPage:Page = (LoadingPage ()) :> Page
+
+        let navPage = NavigationPage landingPage
+        NavigationPage.SetHasNavigationBar(landingPage, false)
+        navPage
+
 type App() =
     inherit Application(MainPage = Initialization.LandingPage())
 
