@@ -470,9 +470,6 @@
     <Compile Include="Renderers\DatePickerYearFirstRenderer.fs" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <None Include="Properties\AndroidManifest.xml" />
-    <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
-      <Link>Properties\CommonAssemblyInfo.fs</Link>
-    </Compile>
     <None Include="Assets\AboutAssets.txt" />
     <Content Include="packages.config" />
   </ItemGroup>
