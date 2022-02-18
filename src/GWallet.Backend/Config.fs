@@ -31,7 +31,7 @@ module Config =
 
     // NOTE: enabling this might look confusing because it only works for non-cache
     //       balances, so you might find discrepancies (e.g. the donut-chart-view)
-    let internal NoNetworkBalanceForDebuggingPurposes = false
+    let internal NoNetworkBalanceForDebuggingPurposes = true
 
     let IsWindowsPlatform() =
         Path.DirectorySeparatorChar = '\\'
