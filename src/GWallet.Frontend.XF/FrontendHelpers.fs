@@ -167,7 +167,6 @@ module FrontendHelpers =
     let UpdateBalanceAsync (balanceSet: BalanceSet)
                            (tryCachedFirst: bool)
                            (mode: ServerSelectionMode)
-                           (maybeProgressBar: Option<StackLayout>)
                                : CustomCancelSource*Async<BalanceState> =
         let cancelSource = new CustomCancelSource()
         let job = async {
@@ -197,20 +196,9 @@ module FrontendHelpers =
                 return! UpdateBalanceWithoutCacheAsync balanceSet mode cancelSource
         }
         let fullJob =
-            let UpdateProgressBar (progressBar: StackLayout) =
-                Device.BeginInvokeOnMainThread(fun _ ->
-                    let firstTransparentFrameFound =
-                        progressBar.Children.First(fun x -> x.BackgroundColor = Color.Transparent)
-                    firstTransparentFrameFound.BackgroundColor <- GetCryptoColor balanceSet.Account.Currency
-                )
             async {
                 try
                     let! jobResult = job
-
-                    match maybeProgressBar with
-                    | Some progressBar ->
-                        UpdateProgressBar progressBar
-                    | None -> ()
 
                     return jobResult
                 finally
@@ -221,11 +209,10 @@ module FrontendHelpers =
     let UpdateBalancesAsync accountBalances
                             (tryCacheFirst: bool)
                             (mode: ServerSelectionMode)
-                            (progressBar: Option<StackLayout>)
                                 : seq<CustomCancelSource>*Async<array<BalanceState>> =
         let sourcesAndJobs = seq {
             for balanceSet in accountBalances do
-                let cancelSource,balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst mode progressBar
+                let cancelSource,balanceJob = UpdateBalanceAsync balanceSet tryCacheFirst mode
                 yield cancelSource,balanceJob
         }
         let parallelJobs =

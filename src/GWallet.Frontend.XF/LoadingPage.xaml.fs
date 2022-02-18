@@ -18,12 +18,7 @@ type LoadingPage(showLogoFirst: bool) as this =
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
 
-    let mainLayout = base.FindByName<StackLayout> "mainLayout"
-    let titleLabel = mainLayout.FindByName<Label> "titleLabel"
-    let progressBarLayout = base.FindByName<StackLayout> "progressBarLayout"
-    let loadingLabel = mainLayout.FindByName<Label> "loadingLabel"
     let dotsMaxCount = 3
-    let loadingTextNoDots = loadingLabel.Text
 
     let allAccounts = Account.GetAllActiveAccounts()
     let normalAccounts = allAccounts.OfType<NormalAccount>() |> List.ofSeq
@@ -60,34 +55,6 @@ type LoadingPage(showLogoFirst: bool) as this =
 
     let mutable keepAnimationTimerActive = true
 
-    let UpdateDotsLabel() =
-        Device.BeginInvokeOnMainThread(fun _ ->
-            let currentCountPlusOne = loadingLabel.Text.Count(fun x -> x = '.') + 1
-            let dotsCount =
-                if currentCountPlusOne > dotsMaxCount then
-                    0
-                else
-                    currentCountPlusOne
-            let dotsSeq = Enumerable.Repeat('.', dotsCount)
-            loadingLabel.Text <- loadingTextNoDots + String(dotsSeq.ToArray())
-        )
-        keepAnimationTimerActive
-
-    let ShowLoadingText() =
-        Device.BeginInvokeOnMainThread(fun _ ->
-            mainLayout.VerticalOptions <- LayoutOptions.Center
-            mainLayout.Padding <- Thickness(20.,0.,20.,50.)
-            logoImg.IsVisible <- false
-            titleLabel.IsVisible <- true
-            progressBarLayout.IsVisible <- true
-            loadingLabel.IsVisible <- true
-        )
-
-        let dotsAnimationLength = TimeSpan.FromMilliseconds 500.
-        Device.StartTimer(dotsAnimationLength, Func<bool> UpdateDotsLabel)
-    do
-        this.Init()
-
     member this.Transition(): unit =
         let currencyImages = PreLoadCurrencyImages()
 
@@ -95,7 +62,6 @@ type LoadingPage(showLogoFirst: bool) as this =
         let _,allNormalAccountBalancesJob = FrontendHelpers.UpdateBalancesAsync normalAccountsBalances
                                                                                 false
                                                                                 ServerSelectionMode.Fast
-                                                                                (Some progressBarLayout)
         let allNormalAccountBalancesJobAugmented = async {
             let! normalAccountBalances = allNormalAccountBalancesJob
             return normalAccountBalances
@@ -103,7 +69,7 @@ type LoadingPage(showLogoFirst: bool) as this =
 
         let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
         let _,readOnlyAccountBalancesJob =
-            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast None
+            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast
         let readOnlyAccountBalancesJobAugmented = async {
             let! readOnlyAccountBalances = readOnlyAccountBalancesJob
             return readOnlyAccountBalances
@@ -114,8 +80,6 @@ type LoadingPage(showLogoFirst: bool) as this =
                                                                      readOnlyAccountBalancesJobAugmented
 
             let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
-
-            keepAnimationTimerActive <- false
 
             let balancesPage () =
                 BalancesPage(allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
@@ -128,20 +92,5 @@ type LoadingPage(showLogoFirst: bool) as this =
         ()
 
     member this.Init (): unit =
-        if showLogoFirst then
-            Device.BeginInvokeOnMainThread(fun _ ->
-                mainLayout.Children.Add logoImg
-            )
-
-            this.Transition()
-
-            Device.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
-                ShowLoadingText()
-
-                false // do not run timer again
-            )
-        else
-            ShowLoadingText()
-
-            this.Transition()
+        this.Transition()
 
