@@ -13,18 +13,14 @@ open GWallet.Backend
 /// true  if just the logo should be shown first, and title text and loading text after some seconds,
 /// false if title text and loading text should be shown immediatly.
 /// </param>
-type LoadingPage(showLogoFirst: bool) as this =
+type LoadingPage() as this =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
 
-    let dotsMaxCount = 3
-
     let allAccounts = Account.GetAllActiveAccounts()
     let normalAccounts = allAccounts.OfType<NormalAccount>() |> List.ofSeq
                          |> List.map (fun account -> account :> IAccount)
-    let readOnlyAccounts = allAccounts.OfType<ReadOnlyAccount>() |> List.ofSeq
-                           |> List.map (fun account -> account :> IAccount)
 
     let CreateImage (currency: Currency) (readOnly: bool) =
         let colour =
@@ -51,9 +47,6 @@ type LoadingPage(showLogoFirst: bool) as this =
         GetAllImages() |> Map.ofSeq
 
     let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
-    let logoImg = Image(Source = logoImageSource, IsVisible = true)
-
-    let mutable keepAnimationTimerActive = true
 
     let Transition(): unit =
         let currencyImages = PreLoadCurrencyImages()
@@ -67,22 +60,12 @@ type LoadingPage(showLogoFirst: bool) as this =
             return normalAccountBalances
         }
 
-        let readOnlyAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts readOnlyAccounts currencyImages true
-        let _,readOnlyAccountBalancesJob =
-            FrontendHelpers.UpdateBalancesAsync readOnlyAccountsBalances true ServerSelectionMode.Fast
-        let readOnlyAccountBalancesJobAugmented = async {
-            let! readOnlyAccountBalances = readOnlyAccountBalancesJob
-            return readOnlyAccountBalances
-        }
-
         async {
-            let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 allNormalAccountBalancesJobAugmented
-                                                                     readOnlyAccountBalancesJobAugmented
 
-            let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances = bothJobs
+            let! allResolvedNormalAccountBalances = allNormalAccountBalancesJobAugmented
 
             let balancesPage () =
-                BalancesPage(allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
+                BalancesPage(allResolvedNormalAccountBalances,
                              currencyImages, false)
                     :> Page
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage

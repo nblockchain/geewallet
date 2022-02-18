@@ -12,7 +12,7 @@ module Initialization =
     let internal LandingPage(): NavigationPage =
         GlobalInit ()
 
-        let landingPage:Page = (LoadingPage true) :> Page
+        let landingPage:Page = (LoadingPage ()) :> Page
 
         let navPage = NavigationPage landingPage
         NavigationPage.SetHasNavigationBar(landingPage, false)
