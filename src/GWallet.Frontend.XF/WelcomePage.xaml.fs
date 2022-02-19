@@ -115,11 +115,11 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                         |> Async.AwaitTask
                 }
             | None ->
-                let dateTime = dobDatePicker.Date
                 async {
                     let! mainThreadSynchContext =
                         Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
                     do! Async.SwitchToContext mainThreadSynchContext
+                    let dateTime = dobDatePicker.Date
                     ToggleInputWidgetsEnabledOrDisabled false
                     do! Async.SwitchToThreadPool()
                     let masterPrivKeyTask =
