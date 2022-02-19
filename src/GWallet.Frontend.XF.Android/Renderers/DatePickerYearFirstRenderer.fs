@@ -5,8 +5,6 @@ open Android.Widget
 open Xamarin.Forms
 open Xamarin.Forms.Platform.Android
 
-open GWallet.Backend.FSharpUtil.UwpHacks
-
 // Custom renderer for Xamarin.Forms.DatePicker
 // which displays the year selection first
 type DatePickerYearFirstRenderer (context) =
@@ -35,17 +33,17 @@ type DatePickerYearFirstRenderer (context) =
                 | null ->
                     failwith "Unexpected DatePicker layout when trying to find layoutC (got null)"
                 | _ ->
-                    failwith <| SPrintF1 "Unexpected DatePicker layout when trying to find layoutC (got %s)"
+                    failwith <| sprintf "Unexpected DatePicker layout when trying to find layoutC (got %s)"
                         (maybeLayoutC.GetType().FullName)
             | null ->
                 failwith "Unexpected DatePicker layout when trying to find layoutB (got null)"
             | _ ->
-                failwith <| SPrintF1 "Unexpected DatePicker layout when trying to find layoutB (got %s)"
+                failwith <| sprintf "Unexpected DatePicker layout when trying to find layoutB (got %s)"
                     (maybeLayoutB.GetType().FullName)
         | null ->
             failwith "Unexpected DatePicker layout when trying to find layoutA (got null)"
         | _ ->
-            failwith <| SPrintF1 "Unexpected DatePicker layout when trying to find layoutA (got %s)"
+            failwith <| sprintf "Unexpected DatePicker layout when trying to find layoutA (got %s)"
                 (maybeLayoutA.GetType().FullName)
 
 
