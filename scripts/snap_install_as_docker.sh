@@ -133,7 +133,6 @@ done
 echo " done"
 
 $SUDO docker exec $CONTNAME snap version
-$SUDO docker exec $CONTNAME snap install core || clean_up
 $SUDO docker exec $CONTNAME snap version
 echo "container $CONTNAME started ..."
 
