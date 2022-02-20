@@ -132,7 +132,9 @@ while [ "$($SUDO docker exec $CONTNAME sh -c 'systemctl status snapd.seeded >/de
 done
 echo " done"
 
+$SUDO docker exec $CONTNAME snap version
 $SUDO docker exec $CONTNAME snap install core || clean_up
+$SUDO docker exec $CONTNAME snap version
 echo "container $CONTNAME started ..."
 
 $SUDO docker exec $CONTNAME scripts/install_mono_from_microsoft_deb_packages.sh
