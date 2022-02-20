@@ -28,7 +28,7 @@ docker exec snappy make install
 docker exec snappy snap version
 docker exec snappy snap install core20
 docker exec snappy snap install --classic --channel=5.x/stable snapcraft
-docker exec snappy snapcraft --version
+#docker exec snappy snapcraft --version
 
 # Build snap package
 docker exec snappy snapcraft --destructive-mode
