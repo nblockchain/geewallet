@@ -84,8 +84,8 @@ ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 RUN apt update &&\
  DEBIAN_FRONTEND=noninteractive\
- apt install -y snapd=2.44.3+20.04 &&\
- apt install -y fuse snap-confine squashfuse sudo init lsb-release git docker.io build-essential pkg-config curl &&\
+ apt install -y snapd=2.44.3+20.04 snap-confine=2.44.3+20.04 &&\
+ apt install -y fuse squashfuse sudo init lsb-release git docker.io build-essential pkg-config curl &&\
  apt install -y libgtk2.0-cil-dev &&\
  apt clean &&\
  dpkg-divert --local --rename --add /sbin/udevadm &&\
