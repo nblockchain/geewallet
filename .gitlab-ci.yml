@@ -102,7 +102,7 @@ newmono_snap:
     DOCKER_HOST: tcp://docker:2375
   services:
     # To support docker-in-docker
-    - docker:dind
+    - docker:20.10.11-dind
 
   script:
     - ./scripts/snap_build_and_upload_as_docker.sh
