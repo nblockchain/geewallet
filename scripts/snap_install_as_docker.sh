@@ -91,6 +91,7 @@ RUN apt update &&\
  dpkg-divert --local --rename --add /sbin/udevadm &&\
  ln -s /bin/true /sbin/udevadm
 RUN systemctl enable snapd
+RUN snap version
 VOLUME ["/sys/fs/cgroup"]
 STOPSIGNAL SIGRTMIN+3
 RUN mkdir -p /geewallet
