@@ -37,13 +37,13 @@ module UserInteraction =
         let rec ConsoleReadPasswordLineInternal(pwd: string) =
             let key = Console.ReadKey(true)
 
-            if (key.Key = ConsoleKey.Enter) then
+            if key.Key = ConsoleKey.Enter then
                 Console.WriteLine()
                 pwd
             else
 
                 let newPwd =
-                    if (key.Key = ConsoleKey.Backspace && pwd.Length > 0) then
+                    if key.Key = ConsoleKey.Backspace && pwd.Length > 0 then
                         Console.Write("\b \b")
                         pwd.Substring(0, pwd.Length - 1)
                     else
@@ -87,7 +87,7 @@ module UserInteraction =
         let fileName = Console.ReadLine()
 
         let file = FileInfo(fileName)
-        if (file.Exists) then
+        if file.Exists then
             file
         else
             Presentation.Error "File not found, try again."
@@ -191,7 +191,7 @@ module UserInteraction =
         else
             Console.Write("Repeat the password: ")
             let password2 = ConsoleReadPasswordLine()
-            if (password <> password2) then
+            if password <> password2 then
                 Presentation.Error "Passwords are not the same, please try again."
                 AskPassword(repeat)
             else
@@ -199,8 +199,8 @@ module UserInteraction =
 
     let private BalanceInUsdString balance maybeUsdValue =
         match maybeUsdValue with
-        | NotFresh(NotAvailable) -> Presentation.ExchangeRateUnreachableMsg
-        | Fresh(usdValue) ->
+        | NotFresh NotAvailable -> Presentation.ExchangeRateUnreachableMsg
+        | Fresh usdValue ->
             sprintf "~ %s USD" (balance * usdValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
         | NotFresh(Cached(usdValue,time)) ->
             sprintf "~ %s USD (last known rate as of %s)"
@@ -225,7 +225,7 @@ module UserInteraction =
             yield accountInfo
 
             match maybeBalance with
-            | NotFresh(NotAvailable) ->
+            | NotFresh NotAvailable ->
                 yield "Unknown balance (Network unreachable... off-line?)"
             | NotFresh(Cached(balance,time)) ->
                 let status = sprintf "Last known balance=[%s] (as of %s) %s"
@@ -233,7 +233,7 @@ module UserInteraction =
                                     (time |> Formatting.ShowSaneDate)
                                     (BalanceInUsdString balance maybeUsdValue)
                 yield status
-            | Fresh(balance) ->
+            | Fresh balance ->
                 let status = sprintf "Balance=[%s] %s"
                                     (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                                     (BalanceInUsdString balance maybeUsdValue)
@@ -290,18 +290,18 @@ module UserInteraction =
 
             let balanceToSum: Option<decimal> =
                 match maybeBalance with
-                | Fresh(balance) -> Some(balance)
-                | NotFresh(Cached(balance,_)) -> Some(balance)
+                | Fresh balance -> Some balance
+                | NotFresh (Cached(balance,_)) -> Some balance
                 | _ -> None
 
             let newBalanceForCurrency =
                 match balanceToSum with
                 | None -> None
-                | Some(thisBalance) ->
+                | Some thisBalance ->
                     match Map.tryFind account.Currency currentSumMap with
                     | None ->
                         Some(thisBalance,maybeUsdValue)
-                    | Some(None) ->
+                    | Some None ->
                         // there was a previous error, so we want to keep the total balance as N/A
                         None
                     | Some(Some(sumSoFar,_)) ->
@@ -316,7 +316,7 @@ module UserInteraction =
 
             let newAcc = Map.add account.Currency newBalanceForCurrency maybeCleanedUpMapForReplacement
 
-            if (currentIndex < accounts.Count() - 1) then
+            if currentIndex < (accounts.Count() - 1) then
                 let otherStatuses, acc = displayAllAndSumBalance accounts (currentIndex + 1) newAcc
                 seq {
                     yield! status
@@ -335,8 +335,8 @@ module UserInteraction =
                         | SAI, Some (0m, _) -> ()
                         | _, Some (onlineBalance, maybeUsdValue) ->
                             match maybeUsdValue with
-                            | NotFresh(NotAvailable) -> yield None, None
-                            | Fresh(usdValue) | NotFresh(Cached(usdValue,_)) ->
+                            | NotFresh NotAvailable -> yield None, None
+                            | Fresh usdValue | NotFresh(Cached(usdValue,_)) ->
                                 let fiatValue = BalanceInUsdString onlineBalance maybeUsdValue
                                 let cryptoValue = Formatting.DecimalAmountRounding CurrencyType.Crypto onlineBalance
                                 let total = sprintf "Total %A: %s (%s)" currency cryptoValue fiatValue
@@ -352,7 +352,7 @@ module UserInteraction =
         match whichAccount with
         | WhichAccount.All(accounts) ->
 
-            if (accounts.Any()) then
+            if accounts.Any() then
                 async {
                     let! accountsWithBalances = GetAccountBalances accounts
                     let statuses, currencyTotals = displayAllAndSumBalance accountsWithBalances 0 Map.empty
@@ -363,7 +363,7 @@ module UserInteraction =
                             yield!
                                 match maybeTotalInUsd with
                                 | None -> statuses
-                                | Some(totalInUsd) ->
+                                | Some totalInUsd ->
                                     seq {
                                         yield! statuses
                                         yield! totals
@@ -404,9 +404,9 @@ module UserInteraction =
     let rec AskYesNo (question: string): bool =
         Console.Write (sprintf "%s (Y/N): " question)
         let yesNoAnswer = Console.ReadLine().ToLowerInvariant()
-        if (yesNoAnswer = "y") then
+        if yesNoAnswer = "y" then
             true
-        elif (yesNoAnswer = "n") then
+        elif yesNoAnswer = "n" then
             false
         else
             AskYesNo question
@@ -473,7 +473,7 @@ module UserInteraction =
                 | Some addressWithValidChecksum ->
                     Console.Error.WriteLine "(If you used the clipboard, you're likely copying it from a service that doesn't have checksum validation.)"
                     let continueWithoutChecksum = AskYesNo "Continue with this address?"
-                    if (continueWithoutChecksum) then
+                    if continueWithoutChecksum then
                         addressWithValidChecksum
                     else
                         AskPublicAddress currency askText
@@ -515,7 +515,7 @@ module UserInteraction =
         let exchangeRateDateMsg =
             match maybeTime with
             | None -> String.Empty
-            | Some(time) -> sprintf " (as of %s)" (Formatting.ShowSaneDate time)
+            | Some time -> sprintf " (as of %s)" (Formatting.ShowSaneDate time)
         let exchangeMsg = sprintf "%s USD per %A%s" (Formatting.DecimalAmountRounding CurrencyType.Fiat usdValue)
                                                     currency
                                                     exchangeRateDateMsg
@@ -525,7 +525,7 @@ module UserInteraction =
                               Environment.NewLine
                               (Formatting.DecimalAmountRounding CurrencyType.Crypto etherAmount))
         if AskYesNo "Do you accept?" then
-            Some(usdAmount)
+            Some usdAmount
         else
             None
 
@@ -544,12 +544,12 @@ module UserInteraction =
                     TransferAmount(currentBalance, currentBalance, account.Currency) |> Some
                 | AmountOption.CertainCryptoAmount ->
                     let specificCryptoAmount = AskParticularAmount()
-                    if (specificCryptoAmount > currentBalance) then
+                    if specificCryptoAmount > currentBalance then
                         raise InsufficientBalance
                     TransferAmount(specificCryptoAmount, currentBalance, account.Currency) |> Some
                 | AmountOption.ApproxEquivalentFiatAmount ->
                     match FiatValueEstimation.UsdValue account.Currency |> Async.RunSynchronously with
-                    | NotFresh(NotAvailable) ->
+                    | NotFresh NotAvailable ->
                         Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
                         AskAmount account
                     | Fresh usdValue ->
@@ -557,15 +557,15 @@ module UserInteraction =
                         match maybeCryptoAmount with
                         | None -> None
                         | Some cryptoAmount ->
-                            if (cryptoAmount > currentBalance) then
+                            if cryptoAmount > currentBalance then
                                 raise InsufficientBalance
                             TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Some
                     | NotFresh(Cached(usdValue,time)) ->
-                        let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue (Some(time))
+                        let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue (Some time)
                         match maybeCryptoAmount with
                         | None -> None
                         | Some cryptoAmount ->
-                            if (cryptoAmount > currentBalance) then
+                            if cryptoAmount > currentBalance then
                                 raise InsufficientBalance
                             TransferAmount(cryptoAmount, currentBalance, account.Currency) |> Some
             with
@@ -578,11 +578,11 @@ module UserInteraction =
                 |> Async.RunSynchronously
 
         match showableBalance with
-        | NotFresh(NotAvailable) ->
+        | NotFresh NotAvailable ->
             Presentation.Error "Balance not available if offline."
             None
 
-        | Fresh(balance) | NotFresh(Cached(balance,_)) ->
+        | Fresh balance | NotFresh(Cached(balance,_)) ->
 
             if not (balance > 0m) then
                 // TODO: maybe we should check the balance before asking the destination address
@@ -609,7 +609,7 @@ module UserInteraction =
             Presentation.ShowFee amount.Currency txMetadataWithFeeEstimation
             let accept = AskYesNo "Do you accept?"
             if accept then
-                Some(txMetadataWithFeeEstimation)
+                Some txMetadataWithFeeEstimation
             else
                 None
         with

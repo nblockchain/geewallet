@@ -286,7 +286,7 @@ module Account =
                         acc
 
                 let newSoFar = soFarInSatoshis + utxoInfo.Value
-                if (newSoFar < amount) then
+                if newSoFar < amount then
                     addInputsUntilAmount tail newSoFar amount newAcc
                 else
                     newAcc,tail
@@ -389,7 +389,7 @@ module Account =
 
         let finalTransaction = finalTransactionBuilder.BuildTransaction true
         let transCheckResultAfterSigning = finalTransaction.Check()
-        if (transCheckResultAfterSigning <> TransactionCheckResult.Success) then
+        if transCheckResultAfterSigning <> TransactionCheckResult.Success then
             failwith <| SPrintF1 "Transaction check failed after signing with %A" transCheckResultAfterSigning
 
         let success, errors = finalTransactionBuilder.Verify finalTransaction
@@ -404,7 +404,7 @@ module Account =
             encryptedSecret.GetKey(password)
         with
         | :? SecurityException ->
-            raise (InvalidPassword)
+            raise InvalidPassword
 
     let internal SignTransaction (account: NormalUtxoAccount)
                                  (txMetadata: TransactionMetadata)
@@ -442,7 +442,7 @@ module Account =
                              (password: string)
                     =
         let baseAccount = account :> IAccount
-        if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
+        if baseAccount.PublicAddress.Equals (destination, StringComparison.InvariantCultureIgnoreCase) then
             raise DestinationEqualToOrigin
 
         let finalTransaction = SignTransaction account txMetadata destination amount password
@@ -520,7 +520,7 @@ module Account =
             | _ -> failwith <| SPrintF1 "Unknown UTXO currency %A" currency
 
         if not (utxoCoinValidAddressPrefixes.Any(fun prefix -> address.StartsWith prefix)) then
-            raise (AddressMissingProperPrefix(utxoCoinValidAddressPrefixes))
+            raise <| AddressMissingProperPrefix utxoCoinValidAddressPrefixes
 
         let allowedAddressLength: AddressLength =
             match currency, address with
@@ -552,7 +552,7 @@ module Account =
         with
         // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
         | :? FormatException ->
-            raise (AddressWithInvalidChecksum None)
+            raise <| AddressWithInvalidChecksum None
 
     let GetSignedTransactionDetails<'T when 'T :> IBlockchainFeeInfo>(rawTransaction: string)
                                                                      (currency: Currency)

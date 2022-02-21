@@ -87,7 +87,7 @@ module Server =
         let! maybeResult = FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT job
         match maybeResult with
         | None ->
-            return raise <| ServerTimedOutException("Timeout when trying to communicate with Ether server")
+            return raise <| ServerTimedOutException "Timeout when trying to communicate with Ether server"
         | Some result ->
             return result
     }
@@ -461,7 +461,7 @@ module Server =
             let! latestBlock =
                 web3.Eth.Blocks.GetBlockNumber.SendRequestAsync (null, cancelToken)
                     |> Async.AwaitTask
-            if (latestBlock = null) then
+            if null = latestBlock then
                 failwith "latestBlock somehow is null"
 
             let blockToCheck = BigInteger.Subtract(latestBlock.Value,
@@ -481,7 +481,7 @@ module Server =
         async {
             let! blockForConfirmationReference = GetBlockToCheckForConfirmedBalance web3
 (*
-            if (Config.DebugLog) then
+            if Config.DebugLog then
                 Infrastructure.LogError (SPrintF2 "Last block number and last confirmed block number: %s: %s"
                                                  (latestBlock.Value.ToString()) (blockForConfirmationReference.BlockNumber.Value.ToString()))
 *)
@@ -545,7 +545,7 @@ module Server =
 
     let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string) (currency: Currency)
                                                      : Async<decimal> =
-        if (web3 = null) then
+        if null = web3 then
             invalidArg "web3" "web3 argument should not be null"
 
         async {
@@ -554,7 +554,7 @@ module Server =
             let contractAddress = TokenManager.GetTokenContractAddress currency
 
             let contractHandler = web3.Eth.GetContractHandler contractAddress
-            if (contractHandler = null) then
+            if null = contractHandler then
                 failwith "contractHandler somehow is null"
 
             let! cancelToken = Async.CancellationToken
@@ -681,14 +681,14 @@ module Server =
             | ex ->
                 match FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex with
                 | None ->
-                    return raise (FSharpUtil.ReRaise ex)
+                    return raise <| FSharpUtil.ReRaise ex
                 | Some rpcResponseException ->
                     // FIXME: this is fragile, ideally should respond with an error code
                     if rpcResponseException.Message.StartsWith(insufficientFundsMsg,
                                                                StringComparison.InvariantCultureIgnoreCase) then
                         return raise InsufficientFunds
                     else
-                        return raise (FSharpUtil.ReRaise ex)
+                        return raise <| FSharpUtil.ReRaise ex
         }
 
     let private GetTransactionDetailsFromTransactionReceipt (currency: Currency) (txHash: string)

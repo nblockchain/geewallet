@@ -20,14 +20,14 @@ module Presentation =
         let currency = estimatedFee.Currency
         let estimatedFeeInUsd =
             match FiatValueEstimation.UsdValue(currency) |> Async.RunSynchronously with
-            | Fresh(usdValue) ->
+            | Fresh usdValue ->
                 sprintf "(~%s USD)"
                     (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
             | NotFresh(Cached(usdValue,time)) ->
                 sprintf "(~%s USD [last known rate at %s])"
                     (usdValue * estimatedFee.FeeValue |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
                     (time |> Formatting.ShowSaneDate)
-            | NotFresh(NotAvailable) -> ExchangeRateUnreachableMsg
+            | NotFresh NotAvailable -> ExchangeRateUnreachableMsg
         let feeMsg =
             if transactionCurrency = Currency.DAI &&
                Config.EthTokenEstimationCouldBeBuggyAsInNotAccurate then
@@ -49,7 +49,7 @@ module Presentation =
                             |> Async.RunSynchronously
         let maybeEstimatedAmountInUsd: Option<string> =
             match maybeUsdPrice with
-            | Fresh(usdPrice) ->
+            | Fresh usdPrice ->
                 Some(sprintf "~ %s USD"
                              (trans.Amount * usdPrice
                                  |> Formatting.DecimalAmountRounding CurrencyType.Fiat))
@@ -58,9 +58,9 @@ module Presentation =
                         (trans.Amount * usdPrice
                             |> Formatting.DecimalAmountRounding CurrencyType.Fiat)
                         (time |> Formatting.ShowSaneDate))
-            | NotFresh(NotAvailable) -> None
+            | NotFresh NotAvailable -> None
 
-        Console.WriteLine("Transaction data:")
+        Console.WriteLine "Transaction data:"
         Console.WriteLine("Sender: " + trans.OriginAddress)
         Console.WriteLine("Recipient: " + trans.DestinationAddress)
         let fiatAmount =
