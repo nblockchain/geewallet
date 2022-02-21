@@ -5,9 +5,12 @@ open System
 open GWallet.Backend
 
 //FIXME: convert to record?
-type MinerFee(estimatedFeeInSatoshis: int64,
-              estimationTime: DateTime,
-              currency: Currency) =
+type MinerFee
+    (
+        estimatedFeeInSatoshis: int64,
+        estimationTime: DateTime,
+        currency: Currency
+    ) =
 
     member val EstimatedFeeInSatoshis = estimatedFeeInSatoshis
 
@@ -27,20 +30,24 @@ type MinerFee(estimatedFeeInSatoshis: int64,
         (initialFeeWithAMinimumGasPriceInWeiDictatedByPublicNodes: MinerFee)
         =
         let initialAbsoluteValue =
-            initialFeeWithAMinimumGasPriceInWeiDictatedByPublicNodes.CalculateAbsoluteValue()
-        if initialAbsoluteValue * exchangeRateToFiat >=
-           FiatValueEstimation.SmallestFiatFeeThatIsNoLongerRidiculous then
+            initialFeeWithAMinimumGasPriceInWeiDictatedByPublicNodes.CalculateAbsoluteValue
+                ()
+
+        if initialAbsoluteValue * exchangeRateToFiat
+           >= FiatValueEstimation.SmallestFiatFeeThatIsNoLongerRidiculous then
             initialFeeWithAMinimumGasPriceInWeiDictatedByPublicNodes
         else
             let biggerFee =
                 NBitcoin.Money(
                     FiatValueEstimation.SmallestFiatFeeThatIsNoLongerRidiculous
-                        / exchangeRateToFiat,
+                    / exchangeRateToFiat,
                     NBitcoin.MoneyUnit.BTC
                 )
+
             let estimationTime =
                 initialFeeWithAMinimumGasPriceInWeiDictatedByPublicNodes.EstimationTime
+
             let currency =
                 initialFeeWithAMinimumGasPriceInWeiDictatedByPublicNodes.Currency
-            MinerFee(biggerFee.Satoshi, estimationTime, currency)
 
+            MinerFee(biggerFee.Satoshi, estimationTime, currency)

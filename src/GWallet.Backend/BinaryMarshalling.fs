@@ -9,20 +9,20 @@ module BinaryMarshalling =
 
     let private binFormatter = BinaryFormatter()
 
-    let Serialize obj: array<byte> =
+    let Serialize obj : array<byte> =
         use memStream = new MemoryStream()
         binFormatter.Serialize(memStream, obj)
         memStream.ToArray()
 
-    let Deserialize (buffer: array<byte>) =
+    let Deserialize(buffer: array<byte>) =
         use memStream = new MemoryStream(buffer)
         memStream.Position <- 0L
         binFormatter.Deserialize memStream
 
-    let SerializeToString obj: string =
+    let SerializeToString obj : string =
         let byteArray = Serialize obj
         Convert.ToBase64String byteArray
 
-    let DeserializeFromString (byteArrayString: string) =
+    let DeserializeFromString(byteArrayString: string) =
         let byteArray = Convert.FromBase64String byteArrayString
         Deserialize byteArray

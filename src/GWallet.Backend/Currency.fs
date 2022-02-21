@@ -20,10 +20,10 @@ type Currency =
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
     static member ToStrings() =
         Microsoft.FSharp.Reflection.FSharpType.GetUnionCases(typeof<Currency>)
-            |> Array.map (fun info -> info.Name)
+        |> Array.map(fun info -> info.Name)
 #endif
 
-    static member GetAll(): seq<Currency> =
+    static member GetAll() : seq<Currency> =
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
         FSharpUtil.GetAllElementsFromDiscriminatedUnion<Currency>()
 #else
@@ -37,19 +37,24 @@ type Currency =
         }
 #endif
 
-    static member Parse(currencyString: string): Currency =
-        Currency.GetAll().First(fun currency -> currencyString = currency.ToString())
+    static member Parse(currencyString: string) : Currency =
+        Currency
+            .GetAll()
+            .First(fun currency -> currencyString = currency.ToString())
 
     member self.IsEther() =
         self = Currency.ETC || self = Currency.ETH
+
     member self.IsEthToken() =
         self = Currency.DAI || self = Currency.SAI
+
     member self.IsEtherBased() =
         self.IsEther() || self.IsEthToken()
+
     member self.IsUtxo() =
         self = Currency.BTC || self = Currency.LTC
 
-    member self.DecimalPlaces(): int =
+    member self.DecimalPlaces() : int =
         if self.IsUtxo() then
             8
         elif self.IsEther() then
@@ -57,7 +62,8 @@ type Currency =
         elif self = Currency.SAI || self = Currency.DAI then
             18
         else
-            failwith <| SPrintF1 "Unable to determine decimal places for %A" self
+            failwith
+            <| SPrintF1 "Unable to determine decimal places for %A" self
 
     override self.ToString() =
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
@@ -78,10 +84,15 @@ type Currency =
 // between StringTypeConverter and Currency
 and private StringTypeConverter() =
     inherit TypeConverter()
+
     override __.CanConvertFrom(context, sourceType) =
         sourceType = typeof<string> || base.CanConvertFrom(context, sourceType)
+
     override __.ConvertFrom(context, culture, value) =
         match value with
         | :? string as stringValue ->
-            Seq.find (fun cur -> cur.ToString() = stringValue) (Currency.GetAll()) :> obj
+            Seq.find
+                (fun cur -> cur.ToString() = stringValue)
+                (Currency.GetAll())
+            :> obj
         | _ -> base.ConvertFrom(context, culture, value)

@@ -12,6 +12,7 @@ type AddressLengthRange =
         Minimum: uint32
         Maximum: uint32
     }
+
 type AddressLength =
     | Fixed of seq<uint32>
     | Variable of AddressLengthRange
@@ -27,4 +28,3 @@ exception InvalidJson
 
 exception TransactionAlreadySigned
 exception TransactionNotSignedYet
-
