@@ -902,9 +902,8 @@ type LN() =
             let amount = balanceBeforeFundsReclaimed+ Money(1.0m, MoneyUnit.Satoshi)
             clientWallet.WaitForBalance amount
 
-        // mine blocks while waiting for the fundee's recovery tx to appear in mempool
+        // wait for fundee's recovery tx to appear in mempool
         while bitcoind.GetTxIdsInMempool().Length = 0 do
-            bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
             do! Async.Sleep 500
 
         // Mine the fundee's recovery tx
