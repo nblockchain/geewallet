@@ -50,6 +50,16 @@ type internal CloseChannelError =
             | ExpectedClosingSignedMsg _ -> false
             | ApplyClosingSignedFailed _ -> true
 
+type ConfirmationStatus =
+    | Full
+    | InProgress
+    | WaitingForFirstConf
+
+type ClosureTransaction =
+    | DidNotHappenYet
+    | Tx of ConfirmationStatus * MutualCloseTx
+
+
 (*
     +-------+                              +-------+
     |       |--(1)-----  shutdown  ------->|       |
@@ -334,6 +344,7 @@ type ClosedChannel()=
                                                     {
                                                         Channel = channelAfterApplyClosingSigned
                                                     }
+                                                ClosingTimestampUtc = Some DateTime.UtcNow
                                         }
 
                                     connectedChannelAfterMutualClosePerformed.SaveToWallet()
@@ -353,15 +364,19 @@ type ClosedChannel()=
     static member internal CheckClosingFinished
         (channelStore: ChannelStore)
         (channelId: ChannelIdentifier)
-        : Async<bool>
+        : Async<ClosureTransaction>
         =
         async {
             let! closingTxOpt = channelStore.CheckForClosingTx channelId
             match closingTxOpt with
-            | Some (ClosingTx.MutualClose _closingTx, Some closingTxConfirmations) when
+            | Some (ClosingTx.MutualClose closingTx, Some closingTxConfirmations) when
                 BlockHeightOffset32 closingTxConfirmations >= Settings.DefaultTxMinimumDepth channelStore.Currency ->
                 channelStore.ArchiveChannel channelId
-                return true
+                return Tx (ConfirmationStatus.Full, closingTx)
+            | Some (ClosingTx.MutualClose closingTx, Some _closingTxConfirmations) ->
+                return Tx (ConfirmationStatus.InProgress, closingTx)
+            | Some (ClosingTx.MutualClose closingTx, None) ->
+                return Tx (ConfirmationStatus.WaitingForFirstConf, closingTx)
             | _ ->
-                return false
+                return DidNotHappenYet
         }

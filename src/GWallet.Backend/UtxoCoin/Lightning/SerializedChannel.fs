@@ -67,6 +67,7 @@ type SerializedChannel =
         LocalChannelPubKeys: ChannelPubKeys
         RecoveryTxIdOpt: Option<TransactionIdentifier>
         NodeTransportType: NodeTransportType
+        ClosingTimestampUtc: Option<DateTime>
     }
     static member LightningSerializerSettings currency: JsonSerializerSettings =
         let settings = JsonMarshalling.SerializerSettings

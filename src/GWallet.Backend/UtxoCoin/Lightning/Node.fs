@@ -721,7 +721,7 @@ type Node =
                         transactionBuilder.SendAll targetAddress |> ignore
                         let fee = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
                         transactionBuilder.SendFees fee |> ignore
-                        let recoveryTransaction =
+                        let recoveryTransaction: RecoveryTx =
                             {
                                 ChannelId = channelId
                                 Currency = currency
@@ -809,7 +809,7 @@ type Node =
                     else
                         transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
                 transactionBuilder.SendFees fee |> ignore
-                let recoveryTransaction =
+                let recoveryTransaction: RecoveryTx =
                     {
                         ChannelId = channelId
                         Currency = currency
