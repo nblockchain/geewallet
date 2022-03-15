@@ -90,23 +90,26 @@ newmono_test_integration:
       make &&
       make update-servers
 
-stockmono_snap:
-  image: ubuntu:20.04
-  stage: package
-
-  variables:
-    # Fixes:
-    # "Cannot connect to the Docker daemon. Is the docker daemon running on this host?"
-    DOCKER_HOST: tcp://docker:2375
-  services:
-    # To support docker-in-docker
-    - docker:dind
-
-  script:
-    - ./scripts/snap_build_and_upload_as_docker.sh
-
-  artifacts:
-    paths:
-      - "*.snap"
-    expire_in: 50days
+#
+# Disabled snap generation because of https://bugs.launchpad.net/snappy/+bug/1660957/comments/2
+#
+#stockmono_snap:
+#  image: ubuntu:20.04
+#  stage: package
+#
+#  variables:
+#    # Fixes:
+#    # "Cannot connect to the Docker daemon. Is the docker daemon running on this host?"
+#    DOCKER_HOST: tcp://docker:2375
+#  services:
+#    # To support docker-in-docker
+#    - docker:dind
+#
+#  script:
+#    - ./scripts/snap_build_and_upload_as_docker.sh
+#
+#  artifacts:
+#    paths:
+#      - "*.snap"
+#    expire_in: 50days
 
