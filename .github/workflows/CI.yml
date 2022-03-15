@@ -80,11 +80,10 @@ jobs:
         ./scripts/install_snapcraft.sh
         ./scripts/snap_build.sh
 
-# this step below is commented because we now upload the snap in GitLab:
-#    - name: Upload snap package to Snap Store
-#      env:
-#        SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
-#      run: |
-#        sudo apt update
-#        sudo apt install --yes fsharp
-#        ./scripts/snap_release.sh
+    - name: Upload snap package to Snap Store
+      env:
+        SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
+      run: |
+        sudo apt update
+        sudo apt install --yes fsharp
+        ./scripts/snap_release.sh
