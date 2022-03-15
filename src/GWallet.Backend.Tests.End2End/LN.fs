@@ -156,6 +156,9 @@ type LN() =
             | ChannelStatus.Closing -> ()
             | status -> return failwith (SPrintF1 "unexpected channel status. Expected Closing, got %A" status)
 
+            // Give fundee time to see the closing tx on blockchain
+            do! Async.Sleep 10000
+
             // Mine 10 blocks to make sure closing tx is confirmed
             bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 (uint32 10))
 
@@ -164,10 +167,11 @@ type LN() =
                 if attempt = 10 then
                     return Error "Closing tx not confirmed after maximum attempts"
                 else
-                    let! txIsConfirmed = Lightning.Network.CheckClosingFinished clientWallet.ChannelStore channelId
-                    if txIsConfirmed then
+                    let! closingTxResult = Lightning.Network.CheckClosingFinished clientWallet.ChannelStore channelId
+                    match closingTxResult with
+                    | Tx (Full, _closingTx) ->
                         return Ok ()
-                    else
+                    | _ ->
                         do! Async.Sleep 1000
                         return! waitForClosingTxConfirmed (attempt + 1)
             }
@@ -517,10 +521,11 @@ type LN() =
             if attempt = 10 then
                 return Error "Closing tx not confirmed after maximum attempts"
             else
-                let! txIsConfirmed = Lightning.Network.CheckClosingFinished clientWallet.ChannelStore channelId
-                if txIsConfirmed then
+                let! closingTxResult = Lightning.Network.CheckClosingFinished clientWallet.ChannelStore channelId
+                match closingTxResult with
+                | Tx (Full, _closingTx) ->
                     return Ok ()
-                else
+                | _ ->
                     do! Async.Sleep 1000
                     return! waitForClosingTxConfirmed (attempt + 1)
         }
@@ -1496,3 +1501,102 @@ type LN() =
         (serverWallet :> IDisposable).Dispose()
     }
 
+    [<Category "G2G_MutualCloseCpfp_Funder">]
+    [<Test>]
+    member __.``can cpfp on mutual close (funder)``() = Async.RunSynchronously <| async {
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount =
+            try
+                OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
+            with
+            | ex ->
+                Assert.Inconclusive (
+                    sprintf
+                        "Channel-closing inconclusive because Channel open failed, fix this first: %s"
+                        (ex.ToString())
+                )
+                failwith "unreachable"
+
+        try
+            do! SendMonoHopPayments clientWallet channelId fundingAmount
+        with
+        | ex ->
+            Assert.Inconclusive (
+                sprintf
+                    "Channel-closing inconclusive because sending of monohop payments failed, fix this first: %s"
+                    (ex.ToString())
+            )
+            failwith "unreachable"
+
+        do! ClientCloseChannel clientWallet bitcoind channelId
+
+        TearDown clientWallet bitcoind electrumServer lnd
+    }
+
+
+    [<Category "G2G_MutualCloseCpfp_Fundee">]
+    [<Test>]
+    member __.``can cpfp on mutual close  (fundee)``() = Async.RunSynchronously <| async {
+        let! serverWallet, channelId = AcceptChannelFromGeewalletFunder ()
+
+        do! ReceiveMonoHopPayments serverWallet channelId
+
+        let! closeChannelRes = Lightning.Network.AcceptCloseChannel serverWallet.NodeServer channelId
+        match closeChannelRes with
+        | Ok _ -> ()
+        | Error err -> return failwith (SPrintF1 "failed to accept close channel: %A" err)
+
+        let! oldFeeRate = ElectrumServer.EstimateFeeRate()
+
+        let newFeeRate = oldFeeRate * 5u
+        ElectrumServer.SetEstimatedFeeRate newFeeRate
+
+        let rec waitForClosingTxConfirmed attempt = async {
+            Infrastructure.LogDebug (SPrintF1 "Checking if closing tx is finished, attempt #%d" attempt)
+            if attempt = 10 then
+                return Error "Closing tx not confirmed after maximum attempts"
+            else
+                let! closingTxResult = Lightning.Network.CheckClosingFinished serverWallet.ChannelStore channelId
+                match closingTxResult with
+                | Tx (WaitingForFirstConf, closingTx) ->
+                    let! cpfpCreationRes = ChannelManager.CreateCpfpTxOnMutualClose serverWallet.ChannelStore channelId closingTx serverWallet.Password
+                    match cpfpCreationRes with
+                    | Ok mutualCpfp ->
+                        return Ok (closingTx, mutualCpfp)
+                    | _ -> return Error "Cpfp tx creation failed"
+                | Tx (Full, _) ->
+                    Assert.Inconclusive "Closing tx got confirmed before we get a chance to create cpfp tx"
+                    return Error "Closing tx got confirmed before we get a chance to create cpfp tx"
+                | _ ->
+                    do! Async.Sleep 1000
+                    return! waitForClosingTxConfirmed (attempt + 1)
+        }
+
+        let! closingTxConfirmedRes = waitForClosingTxConfirmed 0
+        match closingTxConfirmedRes with
+        | Ok (mutualCloseTx, mutualCpfpTx) ->
+            let closingTx = Transaction.Parse(mutualCloseTx.Tx.ToString(), Network.RegTest)
+            let! closingTxFee = FeesHelper.GetFeeFromTransaction closingTx
+            let closingTxFeeRate =
+                FeeRatePerKw.FromFeeAndVSize(closingTxFee, uint64 (closingTx.GetVirtualSize()))
+            assert FeesHelper.FeeRatesApproxEqual closingTxFeeRate oldFeeRate
+
+            let cpfpTx = Transaction.Parse(mutualCpfpTx.Tx.ToString(), Network.RegTest)
+            let! txFeeWithCpfp = FeesHelper.GetFeeFromTransaction cpfpTx
+            let txFeeRateWithCpfp =
+                FeeRatePerKw.FromFeeAndVSize(txFeeWithCpfp, uint64 (cpfpTx.GetVirtualSize()))
+            assert (not <| FeesHelper.FeeRatesApproxEqual txFeeRateWithCpfp oldFeeRate)
+            assert (not <| FeesHelper.FeeRatesApproxEqual txFeeRateWithCpfp newFeeRate)
+            let combinedFeeRateWithCpfp =
+                FeeRatePerKw.FromFeeAndVSize(
+                    txFeeWithCpfp + closingTxFee,
+                    uint64 (closingTx.GetVirtualSize() + cpfpTx.GetVirtualSize())
+                )
+            assert FeesHelper.FeeRatesApproxEqual combinedFeeRateWithCpfp newFeeRate
+
+            let! _cpfpTxId = Account.BroadcastRawTransaction serverWallet.Account.Currency (mutualCpfpTx.Tx.ToString())
+
+            return ()
+        | Error err -> return failwith (SPrintF1 "error when waiting for closing tx to confirm: %s" err)
+
+        (serverWallet :> IDisposable).Dispose()
+    }

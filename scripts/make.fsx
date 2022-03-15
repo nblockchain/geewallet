@@ -295,6 +295,7 @@ let RunTests (suite: string) =
             "ChannelRemoteForceClosingByFundee"
             "Revocation"
             "CPFP"
+            "MutualCloseCpfp"
             "UpdateFeeMsg"
         ]
 

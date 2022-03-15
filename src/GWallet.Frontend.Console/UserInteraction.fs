@@ -774,7 +774,7 @@ module UserInteraction =
 
             None
 
-    let ConfirmRecoveryTxFee (txFeeEstimation: IBlockchainFeeInfo) =
+    let ConfirmTxFee (txFeeEstimation: IBlockchainFeeInfo) =
         let maybeUsdPrice =
             FiatValueEstimation.UsdValue txFeeEstimation.Currency |> Async.RunSynchronously
         Presentation.ShowFee maybeUsdPrice txFeeEstimation.Currency txFeeEstimation
