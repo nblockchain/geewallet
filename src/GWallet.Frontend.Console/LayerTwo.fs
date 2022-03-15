@@ -9,6 +9,7 @@ open ResultUtils.Portability
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 open GWallet.Backend.UtxoCoin.Lightning
+open GWallet.Backend.UtxoCoin.Lightning.ChannelManager
 open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -671,7 +672,7 @@ module LayerTwo =
                         let commitmentTx = channelStore.GetCommitmentTx channelInfo.ChannelId
                         let! recoveryTxResult = (Node.Client nodeClient).CreateRecoveryTxForLocalForceClose channelInfo.ChannelId commitmentTx
                         let recoveryTx = UnwrapResult recoveryTxResult "BUG: we should've checked that output is not dust when initiating the force-close"
-                        if UserInteraction.ConfirmRecoveryTxFee recoveryTx.Fee then
+                        if UserInteraction.ConfirmTxFee recoveryTx.Fee then
                             let! txId =
                                 ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx channelStore
                             return seq {
@@ -741,7 +742,7 @@ module LayerTwo =
                                 closingTxHeightOpt.IsNone
                         match recoveryTxResult with
                         | Ok recoveryTx ->
-                            if UserInteraction.ConfirmRecoveryTxFee recoveryTx.Fee then
+                            if UserInteraction.ConfirmTxFee recoveryTx.Fee then
                                 let! txIdString =
                                     ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx channelStore
                                 let txUri = BlockExplorer.GetTransaction (channelStore.Account :> IAccount).Currency txIdString
@@ -774,7 +775,81 @@ module LayerTwo =
             return! UserInteraction.TryWithPasswordAsync tryClaimFunds
         }
 
+    let TimeBeforeCpfpSuggestion = TimeSpan.FromMinutes 15.
 
+    let HandleMutualClose
+        (channelStore: ChannelStore)
+        (channelInfo: ChannelInfo)
+        =
+        async {
+            let justChannelBeingClosedInfo =
+                seq {
+                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                    yield "        channel is being closed"
+                }
+
+            let! closeResult = UtxoCoin.Lightning.Network.CheckClosingFinished channelStore channelInfo.ChannelId
+            match closeResult with
+            | Tx (Full, _closingTx) ->
+                return Seq.empty
+            | Tx (WaitingForFirstConf, closingTx) ->
+                let! isCpfpNeeded =
+                    ChannelManager.IsCpfpNeededForFundingSpendingTx channelStore channelInfo.ChannelId closingTx.Tx.Id
+                let closingTimestampUtc =
+                    UnwrapOption (channelStore.TryGetClosingTimestampUtc channelInfo.ChannelId) "BUG: closing time is empty after mutual close"
+
+                if isCpfpNeeded && closingTimestampUtc.Add(TimeBeforeCpfpSuggestion) < DateTime.UtcNow then
+                    let msg =
+                        sprintf
+                            "Channel %s has been mutually-closed but the closure transaction didn't confirm yet. Do you want to increase the fee (via CPFP)?"
+                            (ChannelId.ToString channelInfo.ChannelId)
+                    let doCpfp = UserInteraction.AskYesNo msg
+                    if doCpfp then
+                        let tryCpfpOnMutualClose password =
+                            async {
+                                let! cpfpTransactionResult =
+                                    CreateCpfpTxOnMutualClose
+                                        channelStore
+                                        channelInfo.ChannelId
+                                        closingTx
+                                        password
+                                match cpfpTransactionResult with
+                                | Ok cpfpTransaction ->
+                                    if UserInteraction.ConfirmTxFee cpfpTransaction.Fee then
+                                        let! _cpfpTransactionId =
+                                            Account.BroadcastRawTransaction channelStore.Currency (cpfpTransaction.Tx.ToString())
+                                        return seq {
+                                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                            yield "        channel is being closed"
+                                            yield "        fee bump transaction broadcasted!"
+                                        }
+                                    else
+                                        return seq {
+                                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                            yield "        channel is being closed"
+                                        }
+                                | Error BalanceBelowDustLimit ->
+                                    return seq {
+                                        yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                        yield "        channel is being closed"
+                                        yield "        local output is below dust limit"
+                                    }
+                                | Error NotEnoughFundsForFees ->
+                                    return seq {
+                                        yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                        yield "        channel is being closed"
+                                        yield "        there wasn't enough funds in the channel to cover the fees"
+                                    }
+                            }
+
+                        return! UserInteraction.TryWithPasswordAsync tryCpfpOnMutualClose
+                    else
+                        return justChannelBeingClosedInfo
+                else
+                    return justChannelBeingClosedInfo
+            | _ ->
+                return justChannelBeingClosedInfo
+        }
 
     let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<unit -> Async<seq<string>>>> =
         seq {
@@ -838,22 +913,8 @@ module LayerTwo =
                     | ChannelStatus.Closing ->
                         yield
                             async {
-                                let! isClosed = UtxoCoin.Lightning.Network.CheckClosingFinished channelStore channelId
-                                let showTheChannel = not isClosed
-                                if showTheChannel then
-                                    return
-                                        fun () ->
-                                            async {
-                                                return seq {
-                                                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo
-                                                    yield "        channel is being closed"
-                                                }
-                                            }
-                                else
-                                    return fun () ->
-                                        async {
-                                            return Seq.empty
-                                        }
+                                return fun () ->
+                                    HandleMutualClose channelStore channelInfo
                                 }
                     | ChannelStatus.LocallyForceClosed locallyForceClosedData ->
                         yield async {

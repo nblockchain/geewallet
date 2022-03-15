@@ -331,6 +331,12 @@ type ChannelMarshalling () =
           "case": "Tor"
         }
       ]
+    },
+    "closingTimestampUtc": {
+      "case": "Some",
+      "fields": [
+        1647341733
+      ]
     }
   }
 }
