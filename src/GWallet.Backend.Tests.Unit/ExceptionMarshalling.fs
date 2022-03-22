@@ -83,7 +83,7 @@ type ExceptionMarshalling () =
                 SerializeBasicException ()
             with
             | _ ->
-                Assert.Inconclusive "Fix the serialization test first"
+                Assert.Fail "Inconclusive: fix the serialization test first"
                 failwith "unreachable"
 
         let ex: Exception = Marshalling.Deserialize basicExSerialized
@@ -107,7 +107,7 @@ type ExceptionMarshalling () =
                 SerializeRealException ()
             with
             | _ ->
-                Assert.Inconclusive "Fix the serialization test first"
+                Assert.Fail "Inconclusive: Fix the serialization test first"
                 failwith "unreachable"
 
         let ex: Exception = Marshalling.Deserialize realExceptionSerialized
@@ -132,7 +132,7 @@ type ExceptionMarshalling () =
                 SerializeInnerException ()
             with
             | _ ->
-                Assert.Inconclusive "Fix the serialization test first"
+                Assert.Fail "Inconclusive: Fix the serialization test first"
                 failwith "unreachable"
 
         let ex: Exception = Marshalling.Deserialize innerExceptionSerialized
@@ -168,7 +168,7 @@ type ExceptionMarshalling () =
                 SerializeCustomException ()
             with
             | _ ->
-                Assert.Inconclusive "Fix the serialization test first"
+                Assert.Fail "Inconclusive: Fix the serialization test first"
                 failwith "unreachable"
 
         let ex: Exception = Marshalling.Deserialize customExceptionSerialized
@@ -192,7 +192,7 @@ type ExceptionMarshalling () =
                 SerializeCustomFSharpException ()
             with
             | _ ->
-                Assert.Inconclusive "Fix the serialization test first"
+                Assert.Fail "Inconclusive: Fix the serialization test first"
                 failwith "unreachable"
 
         let ex: Exception = Marshalling.Deserialize customExceptionSerialized
@@ -221,7 +221,7 @@ type ExceptionMarshalling () =
                 SerializeFullException ()
             with
             | _ ->
-                Assert.Inconclusive "Fix the serialization test first"
+                Assert.Fail "Inconclusive: Fix the serialization test first"
                 failwith "unreachable"
 
         let ex: Exception = Marshalling.Deserialize fullExceptionSerialized
