@@ -198,7 +198,7 @@ type LN() =
                         let accountBalance = Money(channelInfoBeforeAnyPayment.SpendableBalance, MoneyUnit.BTC)
                         TransferAmount (walletToWalletTestPayment1Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
                     let! invoiceOpt = 
-                        lnd.CreateInvoice(transferAmount)
+                        lnd.CreateInvoice transferAmount None
                     let invoice = UnwrapOption invoiceOpt "Failed to create first invoice"
 
                     return! 
@@ -227,7 +227,7 @@ type LN() =
                         let accountBalance = Money(channelInfoBeforeAnyPayment.SpendableBalance, MoneyUnit.BTC)
                         TransferAmount (walletToWalletTestPayment2Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
                     let! invoiceOpt = 
-                        lnd.CreateInvoice(transferAmount)
+                        lnd.CreateInvoice transferAmount None
                     let invoice = UnwrapOption invoiceOpt "Failed to create second invoice"
 
                     return! 
@@ -475,7 +475,50 @@ type LN() =
 
         TearDown clientWallet bitcoind electrumServer lnd
     }
+    
+    [<Test>]
+    member __.``can open channel with LND and send invalid htlc``() = Async.RunSynchronously <| async {
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount = OpenChannelWithFundee None
 
+        let channelInfoBeforeAnyPayment = clientWallet.ChannelStore.ChannelInfo channelId
+        match channelInfoBeforeAnyPayment.Status with
+        | ChannelStatus.Active -> ()
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        let! sendHtlcPayment1Res =
+            async {
+                let transferAmount =
+                    let accountBalance = Money(channelInfoBeforeAnyPayment.SpendableBalance, MoneyUnit.BTC)
+                    TransferAmount (walletToWalletTestPayment1Amount.ToDecimal MoneyUnit.BTC, accountBalance.ToDecimal MoneyUnit.BTC, Currency.BTC)
+                let! invoiceOpt = 
+                    lnd.CreateInvoice transferAmount (TimeSpan.FromSeconds 1. |> Some)
+                let invoice = UnwrapOption invoiceOpt "Failed to create first invoice"
+
+                do! Async.Sleep 2000
+
+                return! 
+                    Lightning.Network.SendHtlcPayment
+                        clientWallet.NodeClient
+                        channelId
+                        (PaymentInvoice.Parse invoice.BOLT11)
+            }
+        match sendHtlcPayment1Res with
+        | Error _err ->
+            let channelInfoAfterPayment1 = clientWallet.ChannelStore.ChannelInfo channelId
+            match channelInfoAfterPayment1.Status with
+            | ChannelStatus.Active -> ()
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+            let! lndBalanceAfterPayment1 = lnd.ChannelBalance()
+
+            if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount then
+                return failwith "incorrect balance after failed payment 1"
+            if lndBalanceAfterPayment1 <> Money.Zero then
+                return failwith "incorrect lnd balance after failed payment 1"
+        | Ok _ ->
+            return failwith "SendHtlcPayment returtned ok"
+        TearDown clientWallet bitcoind electrumServer lnd
+    }
 
     [<Test>]
     member __.``can close channel with LND``() = Async.RunSynchronously <| async {

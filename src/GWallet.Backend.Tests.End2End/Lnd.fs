@@ -145,7 +145,7 @@ type Lnd = {
         return TxId <| uint256 sendCoinsResp.Txid
     }
 
-    member self.CreateInvoice (transferAmount: TransferAmount)
+    member self.CreateInvoice (transferAmount: TransferAmount) (expiryOpt: Option<TimeSpan>)
         : Async<Option<LightningInvoice>> =
         async {
             let amount =
@@ -154,7 +154,7 @@ type Lnd = {
                 DotNetLightning.Utils.LNMoney lnAmount
             let client = self.Client()
             try
-                let expiry = TimeSpan.FromHours 1.
+                let expiry = Option.defaultValue (TimeSpan.FromHours 1.) expiryOpt
                 let invoiceAmount = LightMoney.MilliSatoshis amount.MilliSatoshi
                 let! response =
                     client.CreateInvoice(invoiceAmount, "Test", expiry, CancellationToken.None)
