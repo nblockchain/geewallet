@@ -40,7 +40,8 @@ module public ForceCloseTransaction =
                     (Commitments.RemoteCommitAmount
                         savedChannelState.StaticChannelConfig.IsFunder
                         savedChannelState.StaticChannelConfig.RemoteParams
-                        savedChannelState.RemoteCommit)
+                        savedChannelState.RemoteCommit
+                        savedChannelState.StaticChannelConfig.Type.CommitmentFormat)
                             .ToLocal
                             .ToDecimal(MoneyUnit.Satoshi)
 
@@ -48,7 +49,8 @@ module public ForceCloseTransaction =
                     (Commitments.RemoteCommitAmount
                         savedChannelState.StaticChannelConfig.IsFunder
                         savedChannelState.StaticChannelConfig.RemoteParams
-                        savedChannelState.RemoteCommit)
+                        savedChannelState.RemoteCommit
+                        savedChannelState.StaticChannelConfig.Type.CommitmentFormat)
                             .ToRemote
                             .ToDecimal(MoneyUnit.Satoshi)
 

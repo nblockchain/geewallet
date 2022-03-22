@@ -3,6 +3,7 @@ namespace GWallet.Backend.UtxoCoin.Lightning
 open System
 open System.IO
 open System.Net
+open System.Linq
 
 open NBitcoin
 open DotNetLightning.Chain
@@ -17,17 +18,22 @@ open NOnion.Network
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
+open GWallet.Backend.UtxoCoin.Account
+open GWallet.Backend.UtxoCoin.Lightning.Validation
 open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type internal NodeOpenChannelError =
     | Connect of ConnectError
+    | InitMsgValidation of InitMsgValidationError
     | OpenChannel of OpenChannelError
     interface IErrorMsg with
         member self.Message =
             match self with
             | Connect connectError ->
                 SPrintF1 "error connecting: %s" (connectError :> IErrorMsg).Message
+            | InitMsgValidation validationError ->
+                SPrintF1 "invalid remote party initialization: %s" (validationError :> IErrorMsg).Message
             | OpenChannel openChannelError ->
                 SPrintF1 "error opening channel: %s" (openChannelError :> IErrorMsg).Message
         member __.ChannelBreakdown: bool =
@@ -35,12 +41,15 @@ type internal NodeOpenChannelError =
 
 type internal NodeAcceptChannelError =
     | AcceptPeer of ConnectError
+    | InitMsgValidation of InitMsgValidationError
     | AcceptChannel of AcceptChannelError
     interface IErrorMsg with
         member self.Message =
             match self with
             | AcceptPeer connectError ->
                 SPrintF1 "error accepting connection: %s" (connectError :> IErrorMsg).Message
+            | InitMsgValidation validationError ->
+                SPrintF1 "invalid remote party initialization: %s" (validationError :> IErrorMsg).Message
             | AcceptChannel acceptChannelError ->
                 SPrintF1 "error accepting channel: %s" (acceptChannelError :> IErrorMsg).Message
         member __.ChannelBreakdown: bool =
@@ -254,25 +263,29 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                 |> ignore
             return Error <| (NodeOpenChannelError.Connect connectError :> IErrorMsg)
         | Ok peerNode ->
-            let! outgoingUnfundedChannelRes =
-                OutgoingUnfundedChannel.OpenChannel
-                    peerNode
-                    self.Account
-                    channelCapacity
-            match outgoingUnfundedChannelRes with
-            | Error openChannelError ->
-                if openChannelError.PossibleBug then
-                    let msg =
-                        SPrintF3
-                            "error opening channel with peer %s of capacity %M: %s"
-                            (nodeIdentifier.ToString())
-                            channelCapacity.ValueToSend
-                            (openChannelError :> IErrorMsg).Message
-                    Infrastructure.ReportWarningMessage msg
-                    |> ignore<bool>
-                return Error <| (NodeOpenChannelError.OpenChannel openChannelError :> IErrorMsg)
-            | Ok outgoingUnfundedChannel ->
-                return Ok <| PendingChannel(outgoingUnfundedChannel)
+            match ValidateRemoteInitMsg peerNode.InitMsg with
+            | Error validationError ->
+                return Error <| (NodeOpenChannelError.InitMsgValidation validationError :> IErrorMsg)
+            | Ok _ ->
+                let! outgoingUnfundedChannelRes =
+                    OutgoingUnfundedChannel.OpenChannel
+                        peerNode
+                        self.Account
+                        channelCapacity
+                match outgoingUnfundedChannelRes with
+                | Error openChannelError ->
+                    if openChannelError.PossibleBug then
+                        let msg =
+                            SPrintF3
+                                "error opening channel with peer %s of capacity %M: %s"
+                                (nodeIdentifier.ToString())
+                                channelCapacity.ValueToSend
+                                (openChannelError :> IErrorMsg).Message
+                        Infrastructure.ReportWarningMessage msg
+                        |> ignore<bool>
+                    return Error (NodeOpenChannelError.OpenChannel openChannelError :> IErrorMsg)
+                | Ok outgoingUnfundedChannel ->
+                    return Ok <| PendingChannel outgoingUnfundedChannel
     }
 
     member internal self.SendHtlcPayment (channelId: ChannelIdentifier)
@@ -423,23 +436,27 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
                 |> ignore<bool>
             return Error <| (NodeAcceptChannelError.AcceptPeer connectError :> IErrorMsg)
         | Ok peerNode ->
-            let! fundedChannelRes = FundedChannel.AcceptChannel peerNode self.Account
-            match fundedChannelRes with
-            | Error acceptChannelError ->
-                if acceptChannelError.PossibleBug then
-                    let msg =
-                        SPrintF2
-                            "error accepting channel from peer %s: %s"
-                            (peerNode.NodeEndPoint.ToString())
-                            (acceptChannelError :> IErrorMsg).Message
-                    Infrastructure.ReportWarningMessage msg
-                    |> ignore<bool>
-                return Error <| (NodeAcceptChannelError.AcceptChannel acceptChannelError :> IErrorMsg)
-            | Ok fundedChannel ->
-                let channelId = fundedChannel.ChannelId
-                let txId = fundedChannel.FundingTxId
-                (fundedChannel :> IDisposable).Dispose()
-                return Ok (channelId, txId)
+            match ValidateRemoteInitMsg peerNode.InitMsg with
+            | Error validationError ->
+                return Error (NodeOpenChannelError.InitMsgValidation validationError :> IErrorMsg)
+            | Ok _ ->
+                let! fundedChannelRes = FundedChannel.AcceptChannel peerNode self.Account
+                match fundedChannelRes with
+                | Error acceptChannelError ->
+                    if acceptChannelError.PossibleBug then
+                        let msg =
+                            SPrintF2
+                                "error accepting channel from peer %s: %s"
+                                (peerNode.NodeEndPoint.ToString())
+                                (acceptChannelError :> IErrorMsg).Message
+                        Infrastructure.ReportWarningMessage msg
+                        |> ignore<bool>
+                    return Error <| (NodeAcceptChannelError.AcceptChannel acceptChannelError :> IErrorMsg)
+                | Ok fundedChannel ->
+                    let channelId = fundedChannel.ChannelId
+                    let txId = fundedChannel.FundingTxId
+                    (fundedChannel :> IDisposable).Dispose()
+                    return Ok (channelId, txId)
     }
 
     // use ReceiveLightningEvent instead
@@ -681,6 +698,127 @@ type Node =
         | Server nodeServer -> nodeServer.Account
         :> IAccount
 
+    member self.CreateAnchorFeeBumpForForceClose
+        (channelId: ChannelIdentifier)
+        (commitmentTxString: string)
+        (password: string)
+        : Async<Result<FeeBumpTx, ClosingBalanceBelowDustLimitError>> =
+            async {
+                let account = self.Account
+                let privateKey = Account.GetPrivateKey (account :?> NormalUtxoAccount) password
+                let nodeMasterPrivKey =
+                    match self with
+                    | Client nodeClient -> nodeClient.NodeMasterPrivKey
+                    | Server nodeServer -> nodeServer.NodeMasterPrivKey
+                let currency = self.Account.Currency
+                let serializedChannel = self.ChannelStore.LoadChannel channelId
+                let! feeBumpTransaction = async {
+                    let network =
+                        UtxoCoin.Account.GetNetwork currency
+                    let commitmentTx =
+                        Transaction.Parse(commitmentTxString, network)
+                    let channelPrivKeys =
+                        let channelIndex = serializedChannel.ChannelIndex
+                        nodeMasterPrivKey.ChannelPrivKeys channelIndex
+                    let targetAddress =
+                        let originAddress = self.Account.PublicAddress
+                        BitcoinAddress.Create(originAddress, network)
+                    let! feeRate = async {
+                        let! feeEstimator = FeeEstimator.Create currency
+                        return feeEstimator.FeeRatePerKw
+                    }
+                    let transactionBuilderResult =
+                        ForceCloseFundsRecovery.tryClaimAnchorFromCommitmentTx
+                            channelPrivKeys
+                            serializedChannel.SavedChannelState.StaticChannelConfig
+                            commitmentTx
+                    match transactionBuilderResult with
+                    | Error (LocalAnchorRecoveryError.InvalidCommitmentTx invalidCommitmentTxError) ->
+                        return failwith ("invalid commitment tx for force-closing: " + invalidCommitmentTxError.Message)
+                    | Error LocalAnchorRecoveryError.AnchorNotFound ->
+                        self.ChannelStore.ArchiveChannel channelId
+                        return Error <| ClosingBalanceBelowDustLimit
+                    | Ok transactionBuilder ->
+                        let job =
+                            Account.GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
+                            |> ElectrumClient.GetUnspentTransactionOutputs
+                        let! utxos = Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+
+                        if not (utxos.Any()) then
+                            return raise InsufficientFunds
+                        let possibleInputs =
+                            seq {
+                                for utxo in utxos do
+                                    yield {
+                                        TransactionId = utxo.TxHash
+                                        OutputIndex = utxo.TxPos
+                                        Value = utxo.Value
+                                    }
+                            }
+
+                        // first ones are the smallest ones
+                        let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
+
+                        transactionBuilder.AddKeys privateKey |> ignore<TransactionBuilder>
+                        transactionBuilder.SendAllRemaining targetAddress |> ignore<TransactionBuilder>
+
+                        let requiredParentTxFee = feeRate.AsNBitcoinFeeRate().GetFee commitmentTx
+                        let actualParentTxFee =
+                            serializedChannel.FundingScriptCoin() :> ICoin
+                            |> Array.singleton
+                            |> commitmentTx.GetFee
+                        let deltaParentTxFee = requiredParentTxFee - actualParentTxFee
+
+                        let rec addUtxoForChildFee unusedUtxos =
+                            async {
+                                try
+                                    let fees = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
+                                    return fees, unusedUtxos
+                                with
+                                | :? NBitcoin.NotEnoughFundsException as _ex ->
+                                    match unusedUtxos with
+                                    | [] -> return raise InsufficientFunds
+                                    | head::tail ->
+                                        let! newInput = head |> ConvertToInputOutpointInfo account.Currency
+                                        let newCoin = newInput |> ConvertToICoin (account :?> IUtxoAccount)
+                                        transactionBuilder.AddCoin newCoin |> ignore<TransactionBuilder>
+                                        return! addUtxoForChildFee tail
+                            }
+
+                        let rec addUtxosForParentFeeAndFinalize unusedUtxos =
+                            async {
+                                try
+                                    return transactionBuilder.BuildTransaction true
+                                with
+                                | :? NBitcoin.NotEnoughFundsException as _ex ->
+                                    match unusedUtxos with
+                                    | [] -> return raise InsufficientFunds
+                                    | head::tail ->
+                                        let! newInput = head |> ConvertToInputOutpointInfo account.Currency
+                                        let newCoin = newInput |> ConvertToICoin (account :?> IUtxoAccount)
+                                        transactionBuilder.AddCoin newCoin |> ignore<TransactionBuilder>
+                                        return! addUtxosForParentFeeAndFinalize tail
+                            }
+
+                        let! childFee, unusedUtxos = addUtxoForChildFee inputsOrderedByAmount
+                        transactionBuilder.SendFees (childFee + deltaParentTxFee) |> ignore<TransactionBuilder>
+                        let! transaction = addUtxosForParentFeeAndFinalize unusedUtxos
+
+                        let feeBumpTransaction: FeeBumpTx =
+                            {
+                                ChannelId = channelId
+                                Currency = currency
+                                Fee = MinerFee ((childFee + deltaParentTxFee).Satoshi, DateTime.UtcNow, currency)
+                                Tx =
+                                    {
+                                        NBitcoinTx = transaction
+                                    }
+                            }
+                        return Ok feeBumpTransaction
+                }
+                return feeBumpTransaction
+            }
+
     member self.CreateRecoveryTxForLocalForceClose
         (channelId: ChannelIdentifier)
         (commitmentTxString: string)
@@ -755,6 +893,7 @@ type Node =
                         ForceCloseTxIdOpt =
                             TransactionIdentifier.Parse forceCloseTxId
                             |> Some
+                        ClosingTimestampUtc = Some DateTime.UtcNow
                 }
                 self.ChannelStore.SaveChannel newSerializedChannel
                 return Ok forceCloseTxId
@@ -763,7 +902,6 @@ type Node =
     member self.CreateRecoveryTxForRemoteForceClose
         (channelId: ChannelIdentifier)
         (closingTx: ForceCloseTx)
-        (requiresCpfp: bool)
         : Async<Result<RecoveryTx, ClosingBalanceBelowDustLimitError>> =
         async {
             let nodeMasterPrivKey =
@@ -799,15 +937,7 @@ type Node =
                 return Error <| ClosingBalanceBelowDustLimit
             | Ok transactionBuilder ->
                 transactionBuilder.SendAll targetAddress |> ignore
-                let fee =
-                    if requiresCpfp then
-                        FeeEstimator.EstimateCpfpFee
-                            transactionBuilder
-                            feeRate
-                            closingTx.Tx.NBitcoinTx
-                            (serializedChannel.FundingScriptCoin())
-                    else
-                        transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
+                let fee = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
                 transactionBuilder.SendFees fee |> ignore
                 let recoveryTransaction: RecoveryTx =
                     {

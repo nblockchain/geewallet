@@ -130,6 +130,9 @@ type ChannelMarshalling () =
               "024172921dc95fd529d4e5418e2d59c8037c1d7ff03c10d9c432bbefdff49bb741"
             ]
           }
+        },
+        "type": {
+          "case": "StaticRemoteKey"
         }
       },
       "remotePerCommitmentSecrets": [],

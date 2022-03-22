@@ -654,6 +654,8 @@ module LayerTwo =
             | None -> ()
     }
 
+    let TimeBeforeCpfpSuggestion = TimeSpan.FromMinutes 15.
+
     let private txRecoveryMsg = "A transaction must be sent to recover funds."
 
     let ClaimFundsIfTimelockExpired
@@ -692,13 +694,74 @@ module LayerTwo =
                     trySendRecoveryTx
                     |> UserInteraction.TryWithPasswordAsync
             else
-                return seq {
-                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo
-                    yield sprintf "        channel force-closed"
-                    yield sprintf
-                        "        waiting for %i more confirmations before funds are recovered"
-                        remainingConfirmations
-                }
+                // only check for CPFP if there is 0 confirmations
+                if remainingConfirmations = locallyForceClosedData.ToSelfDelay then
+                    let! isCpfpNeeded =
+                        ChannelManager.IsCpfpNeededForFundingSpendingTx
+                            channelStore
+                            channelInfo.ChannelId
+                            locallyForceClosedData.ForceCloseTxId
+                    if isCpfpNeeded && locallyForceClosedData.ClosingTimestampUtc.Add(TimeBeforeCpfpSuggestion) < DateTime.UtcNow then
+                        let msg =
+                            sprintf
+                                "Channel %s has been force-closed but the closure transaction didn't confirm yet. Do you want to increase the fee (via creation of child transaction, e.g. CPFP)?"
+                                (ChannelId.ToString channelInfo.ChannelId)
+                        if UserInteraction.AskYesNo msg then
+                            let trySendAnchorCpfp (password: string) =
+                                async {
+                                    let nodeClient = Lightning.Connection.StartClient channelStore password
+                                    let commitmentTx = channelStore.GetCommitmentTx channelInfo.ChannelId
+                                    try
+                                        let! feeBumpTxRes = (Node.Client nodeClient).CreateAnchorFeeBumpForForceClose channelInfo.ChannelId commitmentTx password
+                                        let feeBumpTx = UnwrapResult feeBumpTxRes "shouldn't happen because we don't force close a channel if our output is under the dust limit"
+                                        if UserInteraction.ConfirmTxFee feeBumpTx.Fee then
+                                            do! UtxoCoin.Account.BroadcastRawTransaction
+                                                    feeBumpTx.Currency
+                                                    (feeBumpTx.Tx.ToString())
+                                                |> Async.Ignore
+                                            return seq {
+                                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                                yield sprintf "        channel force-closed"
+                                                yield sprintf "        CPFP performed, waiting for %i more confirmations before funds are recovered" remainingConfirmations
+                                            }
+                                        else
+                                            return seq {
+                                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                                yield sprintf "        channel force-closed"
+                                                yield sprintf "        waiting for %i more confirmations before funds are recovered" remainingConfirmations
+                                            }
+                                    with
+                                    | :? InsufficientFunds ->
+                                        return seq {
+                                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                            yield sprintf "        channel force-closed"
+                                            yield sprintf "        CPFP failed due to insufficient funds in your wallet"
+                                            yield sprintf "        waiting for %i more confirmations before funds are recovered" remainingConfirmations
+                                        }
+                                }
+                            return!
+                                trySendAnchorCpfp
+                                |> UserInteraction.TryWithPasswordAsync
+                        else
+                            return seq {
+                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                yield sprintf "        channel force-closed"
+                                yield sprintf "        waiting for %i more confirmations before funds are recovered" remainingConfirmations
+                            }
+                    else
+                        return seq {
+                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                            yield sprintf "        channel force-closed"
+                            yield sprintf "        waiting for %i more confirmations before funds are recovered" remainingConfirmations
+                        }
+                else
+                    return seq {
+                        yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                        yield sprintf "        channel force-closed"
+                        yield sprintf
+                            "        waiting for %i more confirmations before funds are recovered"
+                            remainingConfirmations
+                    }
         }
 
     let FindForceClose
@@ -723,23 +786,79 @@ module LayerTwo =
         (closingTxHeightOpt: Option<uint32>)
         : Async<seq<string>> =
         async {
-            Console.WriteLine(sprintf "Channel %s has been force-closed by the counterparty." (ChannelId.ToString channelInfo.ChannelId))
-            Console.WriteLine txRecoveryMsg
-            let tryClaimFunds password =
-                async {
-                    let nodeClient = Lightning.Connection.StartClient channelStore password
-                    let sendTx =
-                        if closingTxHeightOpt.IsNone then
-                            Console.WriteLine "The remote party tried to perform a forced closing of the channel (probably because it couldn't contact your node) recently (or not so recently if your device has been offline for a while), but their transaction didn't confirm yet."
-                            UserInteraction.AskYesNo "Do you want to send an extra transaction (increasing the fee) that helps the channel to get closed faster? If you don't, your funds in the channel will not be recovered yet."
-                        else
-                            true
-                    if sendTx then
+            if closingTxHeightOpt.IsNone then
+                let! isCpfpNeeded =
+                    ChannelManager.IsCpfpNeededForFundingSpendingTx
+                        channelStore
+                        channelInfo.ChannelId
+                        closingTx.Tx.Id
+                // we can't check for ``LayerTwo.TimeBeforeCPFPSuggestion`` TimeSpan here because we don't know when remote party broadcasted their force close tx
+                if isCpfpNeeded then
+                    if UserInteraction.AskYesNo "You can speed up confirmation by sending a new (child) transaction that would increase the overall fees (CPFP), do you wish to proceed?" then
+                        let trySendAnchorCpfp (password: string) =
+                            async {
+                                let nodeClient = Lightning.Connection.StartClient channelStore password
+                                let commitmentTx = channelStore.GetCommitmentTx channelInfo.ChannelId
+                                try
+                                    let! feeBumpTxRes = (Node.Client nodeClient).CreateAnchorFeeBumpForForceClose channelInfo.ChannelId commitmentTx password
+                                    match feeBumpTxRes with
+                                    | Ok feeBumpTx ->
+                                        if UserInteraction.ConfirmTxFee feeBumpTx.Fee then
+                                            do! UtxoCoin.Account.BroadcastRawTransaction
+                                                    feeBumpTx.Currency
+                                                    (feeBumpTx.Tx.ToString())
+                                                |> Async.Ignore
+                                            return seq {
+                                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                                yield "        channel closed by counterparty"
+                                                yield "        CPFP performed, waiting for 1 confirmation before funds are recovered"
+                                            }
+                                        else
+                                            return seq {
+                                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                                yield "        channel closed by counterparty"
+                                                yield "        waiting for 1 confirmation before funds are recovered"
+                                            }
+                                    | Error ClosingBalanceBelowDustLimit ->
+                                        return seq {
+                                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                            yield "        channel closed by counterparty"
+                                            yield "        Local channel balance was too small (below the \"dust\" limit) so no CPFP were performed."
+                                        }
+                                with
+                                | :? InsufficientFunds ->
+                                    return seq {
+                                        yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                        yield "        channel force-closed"
+                                        yield "        CPFP failed due to insufficient funds in your wallet"
+                                        yield "        waiting for 1 confirmation before funds are recovered"
+                                    }
+                            }
+                        return!
+                            trySendAnchorCpfp
+                            |> UserInteraction.TryWithPasswordAsync
+                    else
+                        return seq {
+                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                            yield "        channel closed by counterparty"
+                            yield "        wait for 1 confirmation to recover your funds"
+                        }
+                else
+                    return seq {
+                        yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                        yield "        channel closed by counterparty"
+                        yield "        wait for 1 confirmation to recover your funds"
+                    }
+            else
+                Console.WriteLine(sprintf "Channel %s has been force-closed by the counterparty." (ChannelId.ToString channelInfo.ChannelId))
+                Console.WriteLine txRecoveryMsg
+                let tryClaimFunds password =
+                    async {
+                        let nodeClient = Lightning.Connection.StartClient channelStore password
                         let! recoveryTxResult =
                             (Node.Client nodeClient).CreateRecoveryTxForRemoteForceClose
                                 channelInfo.ChannelId
                                 closingTx
-                                closingTxHeightOpt.IsNone
                         match recoveryTxResult with
                         | Ok recoveryTx ->
                             if UserInteraction.ConfirmTxFee recoveryTx.Fee then
@@ -764,18 +883,10 @@ module LayerTwo =
                                 yield "        channel closed by counterparty"
                                 yield "        Local channel balance was too small (below the \"dust\" limit) so no funds were recovered."
                             }
-                    else
-                        return seq {
-                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
-                            yield "        channel closed by counterparty"
-                            yield "        remote party's force-close transaction confirmation in progress"
-                        }
-                }
+                    }
 
-            return! UserInteraction.TryWithPasswordAsync tryClaimFunds
+                return! UserInteraction.TryWithPasswordAsync tryClaimFunds
         }
-
-    let TimeBeforeCpfpSuggestion = TimeSpan.FromMinutes 15.
 
     let HandleMutualClose
         (channelStore: ChannelStore)
@@ -801,7 +912,7 @@ module LayerTwo =
                 if isCpfpNeeded && closingTimestampUtc.Add(TimeBeforeCpfpSuggestion) < DateTime.UtcNow then
                     let msg =
                         sprintf
-                            "Channel %s has been mutually-closed but the closure transaction didn't confirm yet. Do you want to increase the fee (via CPFP)?"
+                            "Channel %s has been mutually-closed but the closure transaction didn't confirm yet. Do you want to increase the fee (via creation of child transaction, e.g. CPFP)?"
                             (ChannelId.ToString channelInfo.ChannelId)
                     let doCpfp = UserInteraction.AskYesNo msg
                     if doCpfp then
