@@ -172,7 +172,7 @@ module Account =
                 return None
         }
 
-    let private ConvertToICoin (account: IUtxoAccount) (inputOutpointInfo: TransactionInputOutpointInfo): ICoin =
+    let internal ConvertToICoin (account: IUtxoAccount) (inputOutpointInfo: TransactionInputOutpointInfo): ICoin =
         let txHash = uint256 inputOutpointInfo.TransactionHash
         let scriptPubKeyInBytes = NBitcoin.DataEncoders.Encoders.Hex.DecodeData inputOutpointInfo.DestinationInHex
         let scriptPubKey = Script(scriptPubKeyInBytes)
@@ -216,7 +216,7 @@ module Account =
             Value: Int64;
         }
 
-    let private ConvertToInputOutpointInfo currency (utxo: UnspentTransactionOutputInfo)
+    let internal ConvertToInputOutpointInfo currency (utxo: UnspentTransactionOutputInfo)
                                                : Async<TransactionInputOutpointInfo> =
         async {
             let job = ElectrumClient.GetBlockchainTransaction utxo.TransactionId

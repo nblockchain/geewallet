@@ -42,6 +42,7 @@ type LocallyForceClosedData =
         Currency: Currency
         ToSelfDelay: uint16
         ForceCloseTxId: TransactionIdentifier
+        ClosingTimestampUtc: DateTime
     }
     member self.GetRemainingConfirmations (): Async<uint16> =
         async {
@@ -97,6 +98,7 @@ type ChannelInfo =
                         Currency = currency
                         ToSelfDelay = serializedChannel.SavedChannelState.StaticChannelConfig.LocalParams.ToSelfDelay.Value
                         ForceCloseTxId = forceCloseTxId
+                        ClosingTimestampUtc = UnwrapOption serializedChannel.ClosingTimestampUtc "BUG: closing date is empty after local force close"
                     }
                 | None ->
                     if serializedChannel.NegotiatingState.HasEnteredShutdown() then

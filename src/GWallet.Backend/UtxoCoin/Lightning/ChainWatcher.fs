@@ -82,7 +82,17 @@ module public ChainWatcher =
             }
         
         
-        return! ListAsyncTryPick historyList checkIfRevokedCommitment
+        return!
+            ListAsyncTryPick
+                historyList
+                (fun txInfo ->
+                    // Only check spending txs with at least 1 conf, cause we need at least 1 conf to broadcast our
+                    // penalty tx (because it tries to spend to_remote output as well, which is time-locked for one block)
+                    if txInfo.Height > 0u then
+                        checkIfRevokedCommitment txInfo
+                    else
+                        async { return None })
+
     }
 
     let CheckForChannelFraudsAndSendRevocationTx (accounts: seq<UtxoCoin.NormalUtxoAccount>)

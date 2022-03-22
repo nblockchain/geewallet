@@ -25,6 +25,14 @@ type MutualCloseCpfp =
         Fee: MinerFee
     }
 
+type FeeBumpTx =
+    {
+        ChannelId: ChannelIdentifier
+        Currency: Currency
+        Tx: UtxoTransaction
+        Fee: MinerFee
+    }
+
 type RecoveryTx =
     {
         ChannelId: ChannelIdentifier
