@@ -1131,7 +1131,7 @@ type LN() =
             walletInstance.GetBalance()
 
         // give the fundee plenty of time to broadcast the penalty tx
-        do! Async.Sleep 3000
+        do! Async.Sleep 10000
 
         // mine enough blocks to allow broadcasting the spending tx
         let toSelfDelay = walletInstance.ChannelStore.GetToSelfDelay channelId
