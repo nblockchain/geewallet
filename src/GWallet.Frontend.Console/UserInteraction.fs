@@ -569,18 +569,18 @@ module UserInteraction =
         | CertainCryptoAmount
         | ApproxEquivalentFiatAmount
 
-    let rec private AskAmountOption(): Option<AmountOption> =
+    let rec private AskAmountOption (allowAllBalance: bool): Option<AmountOption> =
         Console.Write("Choose an option from the above: ")
         let optIntroduced = System.Console.ReadLine()
         match Int32.TryParse(optIntroduced) with
-        | false, _ -> AskAmountOption()
+        | false, _ -> AskAmountOption allowAllBalance
         | true, optionParsed ->
             match optionParsed with
             | 0 -> None
             | 1 -> Some AmountOption.CertainCryptoAmount
             | 2 -> Some AmountOption.ApproxEquivalentFiatAmount
-            | 3 -> Some AmountOption.AllBalance
-            | _ -> AskAmountOption()
+            | 3 when allowAllBalance -> Some AmountOption.AllBalance
+            | _ -> AskAmountOption allowAllBalance
 
     let rec AskParticularAmount() =
         Console.Write("Amount: ")
@@ -622,7 +622,7 @@ module UserInteraction =
         }
 
     exception InsufficientBalance
-    let rec internal AskAmount (account: IAccount): Option<TransferAmount> =
+    let rec internal AskAmount (account: IAccount) (allowAllBalance: bool): Option<TransferAmount> =
         let rec AskParticularAmountOption currentBalance (amountOption: AmountOption): Option<TransferAmount> =
             try
                 match amountOption with
@@ -637,7 +637,7 @@ module UserInteraction =
                     match FiatValueEstimation.UsdValue account.Currency |> Async.RunSynchronously with
                     | NotFresh(NotAvailable) ->
                         Presentation.Error "USD exchange rate unreachable (offline?), please choose a different option."
-                        AskAmount account
+                        AskAmount account allowAllBalance
                     | Fresh usdValue ->
                         let maybeCryptoAmount = AskParticularFiatAmountWithRate account.Currency usdValue None
                         match maybeCryptoAmount with
@@ -679,10 +679,11 @@ module UserInteraction =
                 Console.WriteLine "0. Cancel"
                 Console.WriteLine(sprintf "1. Exact amount in %A" account.Currency)
                 Console.WriteLine "2. Approximate amount in USD"
-                Console.WriteLine(sprintf "3. All balance existing in the account (%g %A)"
+                if allowAllBalance then
+                    Console.WriteLine(sprintf "3. All balance existing in the account (%g %A)"
                                           balance account.Currency)
 
-                match AskAmountOption() with
+                match AskAmountOption allowAllBalance with
                 | None -> None
                 | Some amountOption ->
                     AskParticularAmountOption balance amountOption
@@ -712,7 +713,7 @@ module UserInteraction =
             Console.WriteLine "2. Approximate amount in USD"
             Console.WriteLine "3. All spendable balance in the channel"
 
-            let! amountOption = AskAmountOption()
+            let! amountOption = AskAmountOption true
             match amountOption with
             | AmountOption.AllBalance ->
                 return TransferAmount(spendable, balance, channelInfo.Currency)

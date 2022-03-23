@@ -203,7 +203,7 @@ module LayerTwo =
             let currency = (owningAccount :> IAccount).Currency
             let channelStore = ChannelStore owningAccount
 
-            match UserInteraction.AskAmount fundingAccount with
+            match UserInteraction.AskAmount fundingAccount false with
             | None -> return ()
             | Some channelCapacity ->
                 match AskChannelCounterpartyConnectionDetails currency with
@@ -297,8 +297,9 @@ module LayerTwo =
     let OpenChannelFromNormalAccount (account: NormalUtxoAccount): Async<unit> = async {
         let currency = (account :> IAccount).Currency
         let channelStore = ChannelStore account
-
-        match UserInteraction.AskAmount account with
+        //FIXME: we workaround usage of SendAll and wrong funding tx amount by disabling all amount option
+        //for LN open channel. Ideally we should find a better solution.
+        match UserInteraction.AskAmount account false with
         | None -> return ()
         | Some channelCapacity ->
             match AskChannelCounterpartyConnectionDetails currency with
