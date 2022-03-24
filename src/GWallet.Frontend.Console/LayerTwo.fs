@@ -484,6 +484,36 @@ module LayerTwo =
                     UserInteraction.PressAnyKeyToContinue()
         }
 
+    let SendHtlcPayment(): Async<unit> =
+        async {
+            let account = AskLightningAccount None
+            let channelStore = ChannelStore account
+            let channelIdOpt = MaybeAskChannelId channelStore (Some true)
+            match channelIdOpt with
+            | None -> return ()
+            | Some channelId ->
+                let invoiceOpt = UserInteraction.Ask (PaymentInvoice.Parse) "Enter BOLT11 invoice:"
+                //FIXME: No NOnion support for Htlc atm
+                //let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType channelInfo.Currency
+                match invoiceOpt with
+                | None -> ()
+                | Some invoice ->
+                    let trySendPayment password =
+                        async {
+                            let nodeClient = Lightning.Connection.StartClient channelStore password
+                            let! paymentRes = Lightning.Network.SendHtlcPayment nodeClient channelId invoice
+                            match paymentRes with
+                            | Error nodeSendHtlcPaymentError ->
+                                let currency = (account :> IAccount).Currency
+                                Console.WriteLine(sprintf "Error sending htlc: %s" nodeSendHtlcPaymentError.Message)
+                                do! MaybeForceCloseChannel (Node.Client nodeClient) currency channelId nodeSendHtlcPaymentError
+                            | Ok () ->
+                                Console.WriteLine "Payment sent."
+                        }
+                    do! UserInteraction.TryWithPasswordAsync trySendPayment
+                    UserInteraction.PressAnyKeyToContinue()
+        }
+
     let ReceiveLightningEvent(): Async<unit> =
         async {
             let account = AskLightningAccount None

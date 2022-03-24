@@ -12,6 +12,7 @@ open DotNetLightning.Channel.ForceCloseFundsRecovery
 open DotNetLightning.Crypto
 open DotNetLightning.Utils
 open DotNetLightning.Serialization.Msgs
+open DotNetLightning.Payment
 open ResultUtils.Portability
 open NOnion.Directory
 open NOnion.Network
@@ -72,6 +73,24 @@ type internal NodeSendMonoHopPaymentError =
                 (reconnectActiveChannelError :> IErrorMsg).ChannelBreakdown
             | SendPayment sendMonoHopPaymentError ->
                 (sendMonoHopPaymentError :> IErrorMsg).ChannelBreakdown
+
+type internal NodeSendHtlcPaymentError =
+    | Reconnect of ReconnectActiveChannelError
+    | SendPayment of SendHtlcPaymentError
+    interface IErrorMsg with
+        member self.Message =
+            match self with
+            | Reconnect reconnectActiveChannelError ->
+                SPrintF1 "error reconnecting channel: %s" (reconnectActiveChannelError :> IErrorMsg).Message
+            | SendPayment sendHtlcPaymentError ->
+                SPrintF1 "error sending payment on reconnected channel: %s"
+                         (sendHtlcPaymentError :> IErrorMsg).Message
+        member self.ChannelBreakdown: bool =
+            match self with
+            | Reconnect reconnectActiveChannelError ->
+                (reconnectActiveChannelError :> IErrorMsg).ChannelBreakdown
+            | SendPayment sendHtlcPaymentError ->
+                (sendHtlcPaymentError :> IErrorMsg).ChannelBreakdown
 
 type internal NodeReceiveMonoHopPaymentError =
     | Reconnect of ReconnectActiveChannelError
@@ -289,17 +308,8 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
     }
 
     member internal self.SendHtlcPayment (channelId: ChannelIdentifier)
-                                         (transferAmount: TransferAmount)
-                                         (paymentPreImage: uint256)
-                                         (paymentSecret: option<uint256>)
-                                         (associatedData: byte[])
-                                         (outgoingCLTV: BlockHeightOffset32)
+                                         (invoice: PaymentInvoice)
                                              : Async<Result<unit, IErrorMsg>> = async {
-        let amount =
-            let btcAmount = transferAmount.ValueToSend
-            let lnAmount = int64(btcAmount * decimal DotNetLightning.Utils.LNMoneyUnit.BTC)
-            DotNetLightning.Utils.LNMoney lnAmount
-
         let! activeChannelRes =
             ActiveChannel.ConnectReestablish self.ChannelStore nodeMasterPrivKey channelId None
         match activeChannelRes with
@@ -307,17 +317,25 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
             if reconnectActiveChannelError.PossibleBug then
                 let msg =
                     SPrintF2
-                        "error connecting to peer to send monohop payment on channel %s: %s"
+                        "error connecting to peer to send hltc payment on channel %s: %s"
                         (channelId.ToString())
                         (reconnectActiveChannelError :> IErrorMsg).Message
                 Infrastructure.ReportWarningMessage msg
                 |> ignore<bool>
-            return Error <| (NodeSendMonoHopPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
+            return Error <| (NodeSendHtlcPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
         | Ok activeChannel ->
-            let! paymentRes = activeChannel.SendHtlcPayment amount paymentPreImage paymentSecret associatedData outgoingCLTV
+            let! paymentRes = activeChannel.SendHtlcPayment invoice
             match paymentRes with
-            | Error _sendHtlcPaymentError ->
-                return failwith "not implemented"
+            | Error sendHtlcPaymentError ->
+                if sendHtlcPaymentError.PossibleBug then
+                    let msg =
+                        SPrintF2
+                            "error sending hltc payment on channel %s: %s"
+                            (channelId.ToString())
+                            (sendHtlcPaymentError :> IErrorMsg).Message
+                    Infrastructure.ReportWarningMessage msg
+                    |> ignore<bool>
+                return Error <| (NodeSendHtlcPaymentError.SendPayment sendHtlcPaymentError :> IErrorMsg)
             | Ok activeChannelAfterPayment ->
                 (activeChannelAfterPayment :> IDisposable).Dispose()
                 return Ok ()

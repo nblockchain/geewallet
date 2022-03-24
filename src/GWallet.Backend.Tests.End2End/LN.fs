@@ -200,18 +200,12 @@ type LN() =
                     let! invoiceOpt = 
                         lnd.CreateInvoice(transferAmount)
                     let invoice = UnwrapOption invoiceOpt "Failed to create first invoice"
-                    let paymentRequest =
-                        UnwrapResult (PaymentRequest.Parse invoice.BOLT11) "failed to parse payment request 1"
 
                     return! 
                         Lightning.Network.SendHtlcPayment
                             clientWallet.NodeClient
                             channelId
-                            transferAmount
-                            paymentRequest.PaymentHash.Value
-                            paymentRequest.PaymentSecret
-                            (NBitcoin.DataEncoders.HexEncoder().DecodeData(invoice.Id))
-                            paymentRequest.MinFinalCLTVExpiryDelta
+                            (PaymentInvoice.Parse invoice.BOLT11)
                 }
             UnwrapResult sendHtlcPayment1Res "SendHtlcPayment failed"
 
@@ -235,18 +229,12 @@ type LN() =
                     let! invoiceOpt = 
                         lnd.CreateInvoice(transferAmount)
                     let invoice = UnwrapOption invoiceOpt "Failed to create second invoice"
-                    let paymentRequest =
-                        UnwrapResult (PaymentRequest.Parse invoice.BOLT11) "failed to parse payment request 2"
 
                     return! 
                         Lightning.Network.SendHtlcPayment
                             clientWallet.NodeClient
                             channelId
-                            transferAmount
-                            paymentRequest.PaymentHash.Value
-                            paymentRequest.PaymentSecret
-                            (NBitcoin.DataEncoders.HexEncoder().DecodeData(invoice.Id))
-                            paymentRequest.MinFinalCLTVExpiryDelta
+                            (PaymentInvoice.Parse invoice.BOLT11)
                 }
             UnwrapResult sendHtlcPayment2Res "SendHtlcPayment failed"
 
