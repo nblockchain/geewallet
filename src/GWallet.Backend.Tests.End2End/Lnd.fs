@@ -145,6 +145,16 @@ type Lnd = {
         return TxId <| uint256 sendCoinsResp.Txid
     }
 
+    member self.SendPayment(invoice: string): Async<unit> = async {
+        let client = self.Client()
+        let sendCoinsReq =
+            LnrpcSendRequest (
+                Payment_request = invoice
+            )
+        let! _sendCoinsResp = Async.AwaitTask (client.SwaggerClient.SendPaymentSyncAsync sendCoinsReq)
+        return ()
+    }
+
     member self.CreateInvoice (transferAmount: TransferAmount) (expiryOpt: Option<TimeSpan>)
         : Async<Option<LightningInvoice>> =
         async {

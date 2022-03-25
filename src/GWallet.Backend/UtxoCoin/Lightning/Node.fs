@@ -110,6 +110,25 @@ type internal NodeReceiveMonoHopPaymentError =
             | ReceivePayment recvMonoHopPaymentError ->
                 (recvMonoHopPaymentError :> IErrorMsg).ChannelBreakdown
 
+
+type internal NodeReceiveHtlcPaymentError =
+    | Reconnect of ReconnectActiveChannelError
+    | ReceivePayment of RecvHtlcPaymentError
+    interface IErrorMsg with
+        member self.Message =
+            match self with
+            | Reconnect reconnectActiveChannelError ->
+                SPrintF1 "error reconnecting channel: %s" (reconnectActiveChannelError :> IErrorMsg).Message
+            | ReceivePayment recvHtlcPaymentError ->
+                SPrintF1 "error receiving payment on reconnected channel: %s"
+                         (recvHtlcPaymentError :> IErrorMsg).Message
+        member self.ChannelBreakdown: bool =
+            match self with
+            | Reconnect reconnectActiveChannelError ->
+                (reconnectActiveChannelError :> IErrorMsg).ChannelBreakdown
+            | ReceivePayment recvHtlcPaymentError ->
+                (recvHtlcPaymentError :> IErrorMsg).ChannelBreakdown
+
 type NodeInitiateCloseChannelError =
     | Reconnect of IErrorMsg
     | InitiateCloseChannel of IErrorMsg
@@ -191,6 +210,7 @@ type IChannelToBeOpened =
     abstract member ConfirmationsRequired: uint32 with get
 
 type IncomingChannelEvent =
+    | HtlcPayment of isSuccess: bool
     | MonoHopUnidirectionalPayment
     | Shutdown
 
@@ -541,6 +561,28 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
                     return Ok ()
             }
 
+    member private self.HandleUpdateAddHtlcMsg (activeChannel: ActiveChannel)
+        (channelId: ChannelIdentifier)
+        (updateAddHtlcMsg: DotNetLightning.Serialization.Msgs.UpdateAddHTLCMsg)
+        : Async<Result<bool, IErrorMsg>> =
+            async {
+                let! paymentRes = activeChannel.RecvHtlcPayment updateAddHtlcMsg
+                match paymentRes with
+                | Error recvHtlcPaymentError ->
+                    if recvHtlcPaymentError.PossibleBug then
+                        let msg =
+                            SPrintF2
+                                "error accepting htlc on channel %s: %s"
+                                (channelId.ToString())
+                                (recvHtlcPaymentError :> IErrorMsg).Message
+                        Infrastructure.ReportWarningMessage msg
+                        |> ignore<bool>
+                    return Error <| (NodeReceiveHtlcPaymentError.ReceivePayment recvHtlcPaymentError :> IErrorMsg)
+                | Ok (activeChannelAfterPaymentReceived, wasSuccess) ->
+                    (activeChannelAfterPaymentReceived :> IDisposable).Dispose()
+                    return Ok wasSuccess
+            }
+
     // use ReceiveLightningEvent instead
     member internal self.AcceptCloseChannel (channelId: ChannelIdentifier)
                                                 : Async<Result<unit, IErrorMsg>> = async {
@@ -646,6 +688,11 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
                     match res with
                     | Error err -> return Error err
                     | Ok () -> return Ok IncomingChannelEvent.MonoHopUnidirectionalPayment
+                | :? UpdateAddHTLCMsg as updateAddHTLCMsg ->
+                    let! res = self.HandleUpdateAddHtlcMsg activeChannelAfterMsgReceived channelId updateAddHTLCMsg
+                    match res with
+                    | Error err -> return Error err
+                    | Ok wasSucess -> return Ok <| IncomingChannelEvent.HtlcPayment wasSucess
                 | :? ShutdownMsg as shutdownMsg ->
                     let! res = self.HandleShutdownMsg activeChannelAfterMsgReceived shutdownMsg
                     match res with

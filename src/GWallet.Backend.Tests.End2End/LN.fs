@@ -68,6 +68,7 @@ type LN() =
             do! lnd.FundByMining bitcoind
 
             let! feeRate = ElectrumServer.EstimateFeeRate()
+            let fundingAmount = Money(0.1m, MoneyUnit.BTC)
             let acceptChannelTask = Lightning.Network.AcceptChannel serverWallet.NodeServer
             let openChannelTask = async {
                 match serverWallet.NodeEndPoint with
@@ -76,7 +77,7 @@ type LN() =
                     return!
                         lnd.OpenChannel
                             endPoint
-                            (Money(0.002m, MoneyUnit.BTC))
+                            fundingAmount
                             feeRate
                 | EndPointType.Tor _torEndPoint ->
                     return failwith "unreachable because tests use TCP"
@@ -518,6 +519,54 @@ type LN() =
         | Ok _ ->
             return failwith "SendHtlcPayment returtned ok"
         TearDown clientWallet bitcoind electrumServer lnd
+    }
+
+    [<Test>]
+    member __.``can accept channel from LND and receive htlcs``() = Async.RunSynchronously <| async {
+        let! channelId, serverWallet, bitcoind, electrumServer, lnd = AcceptChannelFromLndFunder ()
+
+        let channelInfoBeforeAnyPayment = serverWallet.ChannelStore.ChannelInfo channelId
+        match channelInfoBeforeAnyPayment.Status with
+        | ChannelStatus.Active -> ()
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        let balanceBeforeAnyPayment = Money(channelInfoBeforeAnyPayment.Balance, MoneyUnit.BTC)
+
+        let invoiceManager = InvoiceManagement (serverWallet.Account :?> NormalUtxoAccount, serverWallet.Password)
+
+        let sendLndPayment1Job = async {
+            // Wait for lnd to recognize we're online
+            do! Async.Sleep 10000
+
+            let amountInSatoshis =
+                Convert.ToUInt64 walletToWalletTestPayment1Amount.Satoshi
+            let invoice1InString = invoiceManager.CreateInvoice amountInSatoshis "Payment 1"
+
+            do! lnd.SendPayment invoice1InString
+        }
+        let receiveGeewalletPayment = async {
+            let! receiveMonoHopPaymentRes =
+                Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId
+            return UnwrapResult receiveMonoHopPaymentRes "ReceiveMonoHopPayment failed"
+        }
+
+        let! (_, receiveLightningEventResult) = AsyncExtensions.MixedParallel2 sendLndPayment1Job receiveGeewalletPayment
+
+        match receiveLightningEventResult with
+        | IncomingChannelEvent.HtlcPayment wasSuccess ->
+            Assert.IsTrue (wasSuccess, "htlc payment failed gracefully")
+
+            let channelInfoAfterPayment1 = serverWallet.ChannelStore.ChannelInfo channelId
+            match channelInfoAfterPayment1.Status with
+            | ChannelStatus.Active -> ()
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+            if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> balanceBeforeAnyPayment + walletToWalletTestPayment1Amount then
+                return failwith "incorrect balance after receiving payment 1"
+        | _ ->
+            Assert.Fail "received non-htlc lightning event"
+
+        TearDown serverWallet bitcoind electrumServer lnd
     }
 
     [<Test>]

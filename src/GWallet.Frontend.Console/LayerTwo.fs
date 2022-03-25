@@ -548,6 +548,10 @@ module LayerTwo =
                             do! MaybeForceCloseChannel (Node.Server nodeServer) currency channelId nodeReceiveLightningEventError
                         | Ok msg ->
                             match msg with
+                            | IncomingChannelEvent.HtlcPayment wasSuccess when wasSuccess ->
+                                Console.WriteLine "Payment received."
+                            | IncomingChannelEvent.HtlcPayment _ ->
+                                Console.WriteLine "Payment failed gracefully, funds has been returned to funder."
                             | IncomingChannelEvent.MonoHopUnidirectionalPayment ->
                                 Console.WriteLine "Payment received."
                             | IncomingChannelEvent.Shutdown ->
