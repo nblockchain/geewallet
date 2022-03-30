@@ -769,8 +769,6 @@ type Node =
         (password: string)
         : Async<Result<FeeBumpTx, ClosingBalanceBelowDustLimitError>> =
             async {
-                let account = self.Account
-                let privateKey = Account.GetPrivateKey (account :?> NormalUtxoAccount) password
                 let nodeMasterPrivKey =
                     match self with
                     | Client nodeClient -> nodeClient.NodeMasterPrivKey
@@ -788,10 +786,6 @@ type Node =
                     let targetAddress =
                         let originAddress = self.Account.PublicAddress
                         BitcoinAddress.Create(originAddress, network)
-                    let! feeRate = async {
-                        let! feeEstimator = FeeEstimator.Create currency
-                        return feeEstimator.FeeRatePerKw
-                    }
                     let transactionBuilderResult =
                         ForceCloseFundsRecovery.tryClaimAnchorFromCommitmentTx
                             channelPrivKeys
@@ -804,76 +798,19 @@ type Node =
                         self.ChannelStore.ArchiveChannel channelId
                         return Error <| ClosingBalanceBelowDustLimit
                     | Ok transactionBuilder ->
-                        let job =
-                            Account.GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
-                            |> ElectrumClient.GetUnspentTransactionOutputs
-                        let! utxos = Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
-
-                        if not (utxos.Any()) then
-                            return raise InsufficientFunds
-                        let possibleInputs =
-                            seq {
-                                for utxo in utxos do
-                                    yield {
-                                        TransactionId = utxo.TxHash
-                                        OutputIndex = utxo.TxPos
-                                        Value = utxo.Value
-                                    }
-                            }
-
-                        // first ones are the smallest ones
-                        let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
-
-                        transactionBuilder.AddKeys privateKey |> ignore<TransactionBuilder>
                         transactionBuilder.SendAllRemaining targetAddress |> ignore<TransactionBuilder>
 
-                        let requiredParentTxFee = feeRate.AsNBitcoinFeeRate().GetFee commitmentTx
-                        let actualParentTxFee =
-                            serializedChannel.FundingScriptCoin() :> ICoin
-                            |> Array.singleton
-                            |> commitmentTx.GetFee
-                        let deltaParentTxFee = requiredParentTxFee - actualParentTxFee
-
-                        let rec addUtxoForChildFee unusedUtxos =
-                            async {
-                                try
-                                    let fees = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
-                                    return fees, unusedUtxos
-                                with
-                                | :? NBitcoin.NotEnoughFundsException as _ex ->
-                                    match unusedUtxos with
-                                    | [] -> return raise InsufficientFunds
-                                    | head::tail ->
-                                        let! newInput = head |> ConvertToInputOutpointInfo account.Currency
-                                        let newCoin = newInput |> ConvertToICoin (account :?> IUtxoAccount)
-                                        transactionBuilder.AddCoin newCoin |> ignore<TransactionBuilder>
-                                        return! addUtxoForChildFee tail
-                            }
-
-                        let rec addUtxosForParentFeeAndFinalize unusedUtxos =
-                            async {
-                                try
-                                    return transactionBuilder.BuildTransaction true
-                                with
-                                | :? NBitcoin.NotEnoughFundsException as _ex ->
-                                    match unusedUtxos with
-                                    | [] -> return raise InsufficientFunds
-                                    | head::tail ->
-                                        let! newInput = head |> ConvertToInputOutpointInfo account.Currency
-                                        let newCoin = newInput |> ConvertToICoin (account :?> IUtxoAccount)
-                                        transactionBuilder.AddCoin newCoin |> ignore<TransactionBuilder>
-                                        return! addUtxosForParentFeeAndFinalize tail
-                            }
-
-                        let! childFee, unusedUtxos = addUtxoForChildFee inputsOrderedByAmount
-                        transactionBuilder.SendFees (childFee + deltaParentTxFee) |> ignore<TransactionBuilder>
-                        let! transaction = addUtxosForParentFeeAndFinalize unusedUtxos
+                        let! transaction, fees =
+                            FeeManagement.addFeeInputsWithCpfpSupport
+                                (self.Account, password)
+                                transactionBuilder
+                                (Some (commitmentTx, serializedChannel.FundingScriptCoin()))
 
                         let feeBumpTransaction: FeeBumpTx =
                             {
                                 ChannelId = channelId
                                 Currency = currency
-                                Fee = MinerFee ((childFee + deltaParentTxFee).Satoshi, DateTime.UtcNow, currency)
+                                Fee = MinerFee (fees.Satoshi, DateTime.UtcNow, currency)
                                 Tx =
                                     {
                                         NBitcoinTx = transaction
