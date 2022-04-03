@@ -3803,6 +3803,18 @@
             }
           ]
         }
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "eth-mainnet.alchemyapi.io/v2/3LCPx0Kf-dnXl1v8klcp-DQVes1vtefX",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
       }
     ],
     "ETC": [
