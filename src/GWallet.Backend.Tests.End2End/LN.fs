@@ -4,6 +4,7 @@
 namespace GWallet.Backend.Tests.End2End
 
 open System
+open System.IO
 open System.Threading
 
 open NUnit.Framework
@@ -410,6 +411,112 @@ type LN() =
         let! serverWallet, channelId = AcceptChannelFromGeewalletFunder ()
 
         do! ReceiveMonoHopPayments serverWallet channelId
+
+        (serverWallet :> IDisposable).Dispose()
+    }
+
+    [<Category "G2G_HtlcPayment_Funder">]
+    [<Test>]
+    member __.``can send htlc payments, with geewallet (funder)``() = Async.RunSynchronously <| async {
+        let invoiceFileFromFundeePath =
+            Path.Combine (Path.GetTempPath(), "invoice.txt")
+
+        // Clear the invoice file from previous runs
+        File.Delete (invoiceFileFromFundeePath)
+
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount =
+            try
+                OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
+            with
+            | ex ->
+                Assert.Fail (
+                    sprintf
+                        "Inconclusive: monohop-sending inconclusive because Channel open failed, fix this first: %s"
+                        (ex.ToString())
+                )
+                failwith "unreachable"
+
+        let channelInfoBeforeAnyPayment = clientWallet.ChannelStore.ChannelInfo channelId
+        match channelInfoBeforeAnyPayment.Status with
+        | ChannelStatus.Active -> ()
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        let! sendHtlcPayment1Res =
+            async {
+                let! invoiceInString =
+                    let rec readInvoice (path: string) =
+                        async {
+                            try
+                                let invoiceString = File.ReadAllText path
+                                if String.IsNullOrWhiteSpace invoiceString then
+                                    do! Async.Sleep 500
+                                    return! readInvoice path
+                                else
+                                    return invoiceString
+                            with
+                            | :? FileNotFoundException ->
+                                do! Async.Sleep 500
+                                return! readInvoice path
+                        }
+
+                    readInvoice invoiceFileFromFundeePath
+
+                return! 
+                    Lightning.Network.SendHtlcPayment
+                        clientWallet.NodeClient
+                        channelId
+                        (PaymentInvoice.Parse invoiceInString)
+            }
+        UnwrapResult sendHtlcPayment1Res "SendHtlcPayment failed"
+
+        let channelInfoAfterPayment1 = clientWallet.ChannelStore.ChannelInfo channelId
+        match channelInfoAfterPayment1.Status with
+        | ChannelStatus.Active -> ()
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount then
+            return failwith "incorrect balance after payment 1"
+
+        TearDown clientWallet bitcoind electrumServer lnd
+    }
+
+
+    [<Category "G2G_HtlcPayment_Fundee">]
+    [<Test>]
+    member __.``can receive htlc payments, with geewallet (fundee)``() = Async.RunSynchronously <| async {
+        let! serverWallet, channelId = AcceptChannelFromGeewalletFunder ()
+
+        let channelInfoBeforeAnyPayment = serverWallet.ChannelStore.ChannelInfo channelId
+        match channelInfoBeforeAnyPayment.Status with
+        | ChannelStatus.Active -> ()
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        let balanceBeforeAnyPayment = Money(channelInfoBeforeAnyPayment.Balance, MoneyUnit.BTC)
+
+        let invoiceManager = InvoiceManagement (serverWallet.Account :?> NormalUtxoAccount, serverWallet.Password)
+        let amountInSatoshis =
+            Convert.ToUInt64 walletToWalletTestPayment1Amount.Satoshi
+        let invoice1InString = invoiceManager.CreateInvoice amountInSatoshis "Payment 1"
+
+        File.WriteAllText (Path.Combine (Path.GetTempPath(), "invoice.txt"), invoice1InString)
+
+        let! receiveHtlcPaymentRes =
+            Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId
+        let receiveHtlcPayment = UnwrapResult receiveHtlcPaymentRes "ReceiveHtlcPayment failed"
+        
+        match receiveHtlcPayment with
+        | HtlcPayment wasSuccess ->
+            Assert.IsTrue (wasSuccess, "htlc payment failed gracefully")
+
+            let channelInfoAfterPayment1 = serverWallet.ChannelStore.ChannelInfo channelId
+            match channelInfoAfterPayment1.Status with
+            | ChannelStatus.Active -> ()
+            | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+            if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> balanceBeforeAnyPayment + walletToWalletTestPayment1Amount then
+                return failwith "incorrect balance after receiving payment 1"
+        | _ ->
+            Assert.Fail "received non-htlc lightning event"
 
         (serverWallet :> IDisposable).Dispose()
     }

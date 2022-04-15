@@ -288,6 +288,7 @@ let RunTests (suite: string) =
         [
             "ChannelOpening"
             "MonoHopUnidirectionalPayments"
+            "HtlcPayment"
             "ChannelClosingAfterJustOpening"
             "ChannelClosingAfterSendingMonoHopPayments"
             "ChannelLocalForceClosing"
