@@ -21,6 +21,7 @@ type HtlcSettleFailReason =
     | UnknownPaymentHash
     | IncorrectPaymentAmount
     | RequiredChannelFeatureMissing
+    | BadFinalPayload
 
 type internal LockFundingError =
     | FundingNotConfirmed of FundedChannel * BlockHeightOffset32
@@ -1023,6 +1024,9 @@ and internal ActiveChannel =
                                     OnionError.INCORRECT_PAYMENT_AMOUNT
                                 | RequiredChannelFeatureMissing ->
                                     OnionError.REQUIRED_CHANNEL_FEATURE_MISSING
+                                | BadFinalPayload ->
+                                    //FIXME: this is not the greatest error to represent what happened
+                                    OnionError.TEMPORARY_NODE_FAILURE
                                 |> OnionError.FailureCode
                             Data =
                                 match reason with
@@ -1032,6 +1036,9 @@ and internal ActiveChannel =
                                     FailureMsgData.IncorrectPaymentAmount
                                 | RequiredChannelFeatureMissing ->
                                     FailureMsgData.RequiredChannelFeatureMissing
+                                | BadFinalPayload ->
+                                    //FIXME: this is not the greatest error to represent what happened 
+                                    FailureMsgData.TemporaryNodeFailure
                         }
             }
 
@@ -1143,67 +1150,70 @@ and internal ActiveChannel =
             match onionPayload with
             | Ok (TLVPayload tlvs) ->
                 //Geewallet cannot handle routing payments
-                assert (tlvs |> Array.tryFind ( function | ShortChannelId _ -> true | _ -> false) |> Option.isNone)
-
+                let shortChannelIdOpt = tlvs |> Array.tryFind ( function | ShortChannelId _ -> true | _ -> false)
                 //According to spec these values MUST exist in the payload
-                let amtToForward = tlvs |> Array.pick ( function | AmountToForward amountToForward -> Some amountToForward | _ -> None) 
-                let outgoingCLTV = tlvs |> Array.pick ( function | OutgoingCLTV cltv -> Some cltv | _ -> None)
+                let amountToForwardOpt = tlvs |> Array.tryPick ( function | AmountToForward amountToForward -> Some amountToForward | _ -> None) 
+                let outgoingCLTVOpt = tlvs |> Array.tryPick ( function | OutgoingCLTV cltv -> Some cltv | _ -> None)
 
-                let invoiceOpt =
-                    (InvoiceDataStore connectedChannel.Account)
-                        .LoadInvoiceData()
-                        .TryGetInvoice updateAddHTLCMsg.PaymentHash
+                match shortChannelIdOpt, amountToForwardOpt, outgoingCLTVOpt with
+                | None, Some amountToForward, Some outgoingCLTV ->
+                    let invoiceOpt =
+                        (InvoiceDataStore connectedChannel.Account)
+                            .LoadInvoiceData()
+                            .TryGetInvoice updateAddHTLCMsg.PaymentHash
 
-                match invoiceOpt with
-                | None ->
-                    return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.UnknownPaymentHash
-                | Some invoice ->
-                    assert (invoice.MinFinalCltvExpiry = outgoingCLTV)
-                    if invoice.Amount = amtToForward.ToMoney() && invoice.Amount = updateAddHTLCMsg.Amount.ToMoney() then
-                        // should we do anything wrt CLTV?
-                        let opFullfil = 
-                            {
-                                OperationFulfillHTLC.Id = updateAddHTLCMsg.HTLCId
-                                PaymentPreimage = invoice.PaymentPreimage
-                                // This field is unused, probably because it's ported from eclair
-                                Commit = true
-                            }
- 
-                        let channelAfterFulFillRes =
-                             channelWrapper.Channel.FulFillHTLC opFullfil
-                        match channelAfterFulFillRes with
-                        | Error err ->
-                            let connectedChannelAfterErrorReceived =
-                                { connectedChannel with
-                                    Channel = channelWrapper
-                                }
-                            let! connectedChannelAfterError = connectedChannelAfterErrorReceived.SendError err.Message
-                            let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
-                            return Error <| SettleFailed (brokenChannel, err)
-                        | Ok (channelAfterFulFill, fulfillMsg) ->
-                            let! peerNodeAfterFulFillSent = peerNode.SendMsg fulfillMsg
-                            let connectedChannelAfterFulFillSent =
+                    match invoiceOpt with
+                    | None ->
+                        return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.UnknownPaymentHash
+                    | Some invoice ->
+                        assert (invoice.MinFinalCltvExpiry = outgoingCLTV)
+                        if invoice.Amount = amountToForward.ToMoney() && invoice.Amount = updateAddHTLCMsg.Amount.ToMoney() then
+                            // should we do anything wrt CLTV?
+                            let opFullfil = 
                                 {
-                                    connectedChannel with
-                                        PeerNode = peerNodeAfterFulFillSent
-                                        Channel =
-                                            {
-                                                Channel = channelAfterFulFill
-                                            }
+                                    OperationFulfillHTLC.Id = updateAddHTLCMsg.HTLCId
+                                    PaymentPreimage = invoice.PaymentPreimage
+                                    // This field is unused, probably because it's ported from eclair
+                                    Commit = true
                                 }
+ 
+                            let channelAfterFulFillRes =
+                                 channelWrapper.Channel.FulFillHTLC opFullfil
+                            match channelAfterFulFillRes with
+                            | Error err ->
+                                let connectedChannelAfterErrorReceived =
+                                    { connectedChannel with
+                                        Channel = channelWrapper
+                                    }
+                                let! connectedChannelAfterError = connectedChannelAfterErrorReceived.SendError err.Message
+                                let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+                                return Error <| SettleFailed (brokenChannel, err)
+                            | Ok (channelAfterFulFill, fulfillMsg) ->
+                                let! peerNodeAfterFulFillSent = peerNode.SendMsg fulfillMsg
+                                let connectedChannelAfterFulFillSent =
+                                    {
+                                        connectedChannel with
+                                            PeerNode = peerNodeAfterFulFillSent
+                                            Channel =
+                                                {
+                                                    Channel = channelAfterFulFill
+                                                }
+                                    }
 
-                            connectedChannelAfterFulFillSent.SaveToWallet()
-                            let activeChannel = { ConnectedChannel = connectedChannelAfterFulFillSent }
-                            let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
-                            match activeChannelAfterCommitSentRes with
-                            | Error err -> return Error <| RecvHtlcPaymentError.SendCommit err
-                            | Ok activeChannelAfterCommitSent ->
-                                let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
-                                match activeChannelAfterCommitReceivedRes with
-                                | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
-                                | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, true)
-                    else
-                        return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.IncorrectPaymentAmount
+                                connectedChannelAfterFulFillSent.SaveToWallet()
+                                let activeChannel = { ConnectedChannel = connectedChannelAfterFulFillSent }
+                                let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
+                                match activeChannelAfterCommitSentRes with
+                                | Error err -> return Error <| RecvHtlcPaymentError.SendCommit err
+                                | Ok activeChannelAfterCommitSent ->
+                                    let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
+                                    match activeChannelAfterCommitReceivedRes with
+                                    | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
+                                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, true)
+                        else
+                            return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.IncorrectPaymentAmount
+                | _ ->
+                    return! self.FailHtlc updateAddHTLCMsg.HTLCId BadFinalPayload
             | _ ->
                 return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.RequiredChannelFeatureMissing
     }
