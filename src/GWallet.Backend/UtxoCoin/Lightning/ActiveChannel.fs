@@ -1069,6 +1069,60 @@ and internal ActiveChannel =
                     | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, false)
         }
 
+    member internal self.FailMalformedHtlc (htlc: UpdateAddHTLCMsg) (cryptoError: CryptoError) : Async<Result<ActiveChannel * bool, RecvHtlcPaymentError>> =
+        async {
+            let connectedChannel = self.ConnectedChannel
+            let channelWrapper = connectedChannel.Channel
+            let peerNode = connectedChannel.PeerNode
+
+            let opFail = {
+                OperationFailMalformedHTLC.Id = htlc.HTLCId
+                Sha256OfOnion = htlc.OnionRoutingPacket.ToBytes() |> Crypto.Hashes.SHA256 |> uint256
+                FailureCode =
+                    match cryptoError with
+                    | BadMac ->
+                        OnionError.INVALID_ONION_HMAC
+                    | InvalidPublicKey _ ->
+                        OnionError.INVALID_ONION_KEY
+                    | _ ->
+                        OnionError.INVALID_ONION_VERSION
+                    |> OnionError.FailureCode
+            }
+
+            let channelAfterFailRes = channelWrapper.Channel.FailMalformedHTLC opFail
+            match channelAfterFailRes with
+            | Error err ->
+                let connectedChannelAfterErrorReceived =
+                    { connectedChannel with
+                        Channel = channelWrapper
+                    }
+                let! connectedChannelAfterError = connectedChannelAfterErrorReceived.SendError err.Message
+                let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+                return Error <| SettleFailed (brokenChannel, err)
+            | Ok (channelAfterFail, failMsg) ->
+                let! peerNodeAfterFailSent = peerNode.SendMsg failMsg
+                let connectedChannelAfterFailSent =
+                    {
+                        connectedChannel with
+                            PeerNode = peerNodeAfterFailSent
+                            Channel =
+                                {
+                                    Channel = channelAfterFail
+                                }
+                    }
+
+                connectedChannelAfterFailSent.SaveToWallet()
+                let activeChannel = { ConnectedChannel = connectedChannelAfterFailSent }
+                let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
+                match activeChannelAfterCommitSentRes with
+                | Error err -> return Error <| RecvHtlcPaymentError.SendCommit err
+                | Ok activeChannelAfterCommitSent ->
+                    let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
+                    match activeChannelAfterCommitReceivedRes with
+                    | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
+                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, false)
+        }
+
     member internal self.SettleIncomingHtlc (updateAddHTLCMsg: UpdateAddHTLCMsg)
                                                               : Async<Result<ActiveChannel * bool, RecvHtlcPaymentError>> = async {
         let connectedChannel = self.ConnectedChannel
@@ -1081,11 +1135,8 @@ and internal ActiveChannel =
             |> Sphinx.parsePacket nodePrivateKey (updateAddHTLCMsg.PaymentHash.ToBytes())
 
         match parsedPacketRes with
-        | Error _ ->
-            // Even if we try to send fail for this htlc, DNL gonna crash
-            // in CommitmentsModule#sendFail. What can we do here?
-            ///TODO: fix dnl first then add handling here
-            return failwith "NIE Sphinx.parsePacket failed"
+        | Error err ->
+            return! self.FailMalformedHtlc updateAddHTLCMsg err
         | Ok parsedPacket ->
             let onionPayload =
                 OnionPayload.FromBytes parsedPacket.Payload
