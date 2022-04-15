@@ -1153,13 +1153,8 @@ and internal ActiveChannel =
                                 | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, true)
                     else
                         return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.IncorrectPaymentAmount
-            | Ok (Legacy _legacyPayload) ->
-                // We set variable length onion to mandetory so nodes shouldn't
-                // send us legacy paylaods, if they do we return a featureMissing error
-                // (not sure if it's the best error)
+            | _ ->
                 return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.RequiredChannelFeatureMissing
-            | Error _ ->
-                return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.IncorrectPaymentAmount
     }
 
     member internal self.RecvHtlcPayment (updateAddHTLCMsg: UpdateAddHTLCMsg)
