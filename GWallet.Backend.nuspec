@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
   <metadata>
     <id>GWallet.Backend</id>
@@ -10,7 +10,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>geewallet is a minimalistic and pragmatist crossplatform lightweight opensource brainwallet for people that want to hold the most important cryptocurrencies in the same application with ease and peace of mind.</description>
     <dependencies>
-      <dependency id="DotNetLightning.Kiss" version="1.1.2-date20220322-1031-git-5379324" />
+      <dependency id="DotNetLightning.Kiss" version="1.1.2-date20220324-0924-git-108f79c" />
       <dependency id="FSharp.Core" version="4.7.2" />
       <dependency id="FSharp.Data" version="3.0.0" />
       <dependency id="HtmlAgilityPack" version="1.11.24" />
