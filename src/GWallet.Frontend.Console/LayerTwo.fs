@@ -182,6 +182,8 @@ module LayerTwo =
                         Environment.NewLine
                         (txUri.ToString ())
                 )
+            | Error RevokedTransaction ->
+                failwith "not gonna happen"
             | Error ClosingBalanceBelowDustLimit ->
                 Console.WriteLine "Closing balance of channel was too small (below the \"dust\" limit) so no funds were recovered."
         }
@@ -706,7 +708,7 @@ module LayerTwo =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
                         let commitmentTx = channelStore.GetCommitmentTx channelInfo.ChannelId
-                        let! recoveryTxResult = (Node.Client nodeClient).CreateRecoveryTxForLocalForceClose channelInfo.ChannelId commitmentTx
+                        let! recoveryTxResult = (Node.Client nodeClient).CreateRecoveryTxForForceClose channelInfo.ChannelId commitmentTx
                         let recoveryTx = UnwrapResult recoveryTxResult "BUG: we should've checked that output is not dust when initiating the force-close"
                         if UserInteraction.ConfirmTxFee recoveryTx.Fee then
                             let! txId =
@@ -858,6 +860,10 @@ module LayerTwo =
                                                 yield "        channel closed by counterparty"
                                                 yield "        waiting for 1 confirmation before funds are recovered"
                                             }
+                                    | Error RevokedTransaction ->
+                                        //FIXME: This should be handled by ChainWatcher but
+                                        // what's the safest thing to do here? broadcast a penalty tx?
+                                        return Seq.empty
                                     | Error ClosingBalanceBelowDustLimit ->
                                         return seq {
                                             yield! UserInteraction.DisplayLightningChannelStatus channelInfo
@@ -896,9 +902,9 @@ module LayerTwo =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
                         let! recoveryTxResult =
-                            (Node.Client nodeClient).CreateRecoveryTxForRemoteForceClose
+                            (Node.Client nodeClient).CreateRecoveryTxForForceClose
                                 channelInfo.ChannelId
-                                closingTx
+                                closingTx.Tx
                         match recoveryTxResult with
                         | Ok recoveryTx ->
                             if UserInteraction.ConfirmTxFee recoveryTx.Fee then
@@ -917,6 +923,10 @@ module LayerTwo =
                                     yield sprintf "        channel force-closed"
                                     yield sprintf "        funds have not been recovered yet"
                                 }
+                        | Error RevokedTransaction ->
+                            //FIXME: This should be handled by ChainWatcher but
+                            // what's the safest thing to do here? broadcast a penalty tx?
+                            return Seq.empty
                         | Error ClosingBalanceBelowDustLimit ->
                             return seq {
                                 yield! UserInteraction.DisplayLightningChannelStatus channelInfo

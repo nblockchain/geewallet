@@ -217,9 +217,12 @@ type ChannelStore(account: NormalUtxoAccount) =
             self.ArchivedChannelsDir.Create()
         File.Move (srcFileName, destFileName)
 
-    member self.GetCommitmentTx (channelId: ChannelIdentifier): string =
+    member self.GetCommitmentTx (channelId: ChannelIdentifier): UtxoTransaction =
         let serializedChannel = self.LoadChannel channelId
-        serializedChannel.SavedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.ToHex()
+        let nbitcoinTx = serializedChannel.SavedChannelState.LocalCommit.PublishableTxs.CommitTx.Value
+        {
+            NBitcoinTx = nbitcoinTx
+        }
 
     member self.TryGetClosingTimestampUtc (channelId: ChannelIdentifier): Option<DateTime> =
         let serializedChannel = self.LoadChannel channelId
@@ -312,7 +315,7 @@ type ChannelStore(account: NormalUtxoAccount) =
             | Some (spendingTx, spendingTxConfirmationsOpt) ->
 
                 let obscuredCommitmentNumberOpt =
-                    ForceCloseFundsRecovery.tryGetObscuredCommitmentNumber
+                    ClosingHelpers.tryGetObscuredCommitmentNumber
                         (serializedChannel.FundingScriptCoin().Outpoint)
                         spendingTx
 

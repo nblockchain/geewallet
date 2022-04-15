@@ -4,7 +4,9 @@ open System.Linq
 
 open NBitcoin
 open DotNetLightning.Channel
+open DotNetLightning.Channel.ClosingHelpers
 open DotNetLightning.Utils
+open ResultUtils.Portability
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
@@ -20,10 +22,19 @@ module public ForceCloseTransaction =
                                         : Async<Transaction> =
         async {
             let transactionBuilder =
-                ForceCloseFundsRecovery.createPenaltyTx
-                    perCommitmentSecret
-                    savedChannelState
-                    localChannelPrivKeys
+                let transactionBuilderOpt =
+                    ClosingHelpers.RevokedClose.createPenaltyTx
+                        localChannelPrivKeys
+                        savedChannelState.StaticChannelConfig
+                        savedChannelState.RemoteCommit
+                        perCommitmentSecret
+                match transactionBuilderOpt with
+                | Ok transactionBuilder ->
+                    transactionBuilder
+                | Error Inapplicable ->
+                    failwith "Main output can never be Inapplicable"
+                | Error _ ->
+                    failwith "NIE"
 
             let targetAddress =
                 let originAddress = (account :> IAccount).PublicAddress
@@ -56,7 +67,6 @@ module public ForceCloseTransaction =
 
                 (toLocal + toRemote) * Config.WATCH_TOWER_REWARD_PERCENTAGE / 100m
                 |> Money.Satoshis
-
 
             match rewardAddressOpt with
             | Some rewardAddress ->

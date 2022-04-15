@@ -54,7 +54,7 @@ module public ChainWatcher =
         
         
                 let obscuredCommitmentNumberOpt =
-                    ForceCloseFundsRecovery.tryGetObscuredCommitmentNumber fundingScriptCoin.Outpoint spendingTx
+                    ClosingHelpers.tryGetObscuredCommitmentNumber fundingScriptCoin.Outpoint spendingTx
         
                 match obscuredCommitmentNumberOpt with
                 | Ok obscuredCommitmentNumber ->

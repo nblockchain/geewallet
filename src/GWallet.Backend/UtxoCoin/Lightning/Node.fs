@@ -8,7 +8,7 @@ open System.Linq
 open NBitcoin
 open DotNetLightning.Chain
 open DotNetLightning.Channel
-open DotNetLightning.Channel.ForceCloseFundsRecovery
+open DotNetLightning.Channel.ClosingHelpers
 open DotNetLightning.Crypto
 open DotNetLightning.Utils
 open DotNetLightning.Serialization.Msgs
@@ -268,8 +268,9 @@ type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) 
             with get(): uint32 =
                 self.OutgoingUnfundedChannel.MinimumDepth.Value
 
-type ClosingBalanceBelowDustLimitError =
+type ForceCloseHandlingError =
     | ClosingBalanceBelowDustLimit
+    | RevokedTransaction
 
 type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMasterPrivKey) =
     member val ChannelStore = channelStore
@@ -765,9 +766,9 @@ type Node =
 
     member self.CreateAnchorFeeBumpForForceClose
         (channelId: ChannelIdentifier)
-        (commitmentTxString: string)
+        (commitmentTx: UtxoTransaction)
         (password: string)
-        : Async<Result<FeeBumpTx, ClosingBalanceBelowDustLimitError>> =
+        : Async<Result<FeeBumpTx, ForceCloseHandlingError>> =
             async {
                 let nodeMasterPrivKey =
                     match self with
@@ -778,8 +779,7 @@ type Node =
                 let! feeBumpTransaction = async {
                     let network =
                         UtxoCoin.Account.GetNetwork currency
-                    let commitmentTx =
-                        Transaction.Parse(commitmentTxString, network)
+                    let commitmentTx = commitmentTx.NBitcoinTx
                     let channelPrivKeys =
                         let channelIndex = serializedChannel.ChannelIndex
                         nodeMasterPrivKey.ChannelPrivKeys channelIndex
@@ -787,17 +787,13 @@ type Node =
                         let originAddress = self.Account.PublicAddress
                         BitcoinAddress.Create(originAddress, network)
                     let transactionBuilderResult =
-                        ForceCloseFundsRecovery.tryClaimAnchorFromCommitmentTx
+                        ClosingHelpers.HandleFundingTxSpent
+                            serializedChannel.SavedChannelState
+                            serializedChannel.RemoteNextCommitInfo
                             channelPrivKeys
-                            serializedChannel.SavedChannelState.StaticChannelConfig
                             commitmentTx
                     match transactionBuilderResult with
-                    | Error (LocalAnchorRecoveryError.InvalidCommitmentTx invalidCommitmentTxError) ->
-                        return failwith ("invalid commitment tx for force-closing: " + invalidCommitmentTxError.Message)
-                    | Error LocalAnchorRecoveryError.AnchorNotFound ->
-                        self.ChannelStore.ArchiveChannel channelId
-                        return Error <| ClosingBalanceBelowDustLimit
-                    | Ok transactionBuilder ->
+                    | { AnchorOutput = Ok transactionBuilder } ->
                         transactionBuilder.SendAllRemaining targetAddress |> ignore<TransactionBuilder>
 
                         let! transaction, fees =
@@ -817,14 +813,21 @@ type Node =
                                     }
                             }
                         return Ok feeBumpTransaction
+                    | { AnchorOutput = Error BalanceBelowDustLimit } ->
+                        return Error <| ClosingBalanceBelowDustLimit
+                    | { AnchorOutput = Error Inapplicable } ->
+                        return Error <| RevokedTransaction
+                    | { AnchorOutput = Error UnknownClosingTx } ->
+                        return failwith "Unknown closing tx has been broadcast"
                 }
                 return feeBumpTransaction
             }
 
+    [<Obsolete "This function is obsolete and should only be used in revocation tests">]
     member self.CreateRecoveryTxForLocalForceClose
         (channelId: ChannelIdentifier)
-        (commitmentTxString: string)
-        : Async<Result<RecoveryTx, ClosingBalanceBelowDustLimitError>> =
+        (commitmentTx: UtxoTransaction)
+        : Async<Result<RecoveryTx, ForceCloseHandlingError>> =
             async {
                 let nodeMasterPrivKey =
                     match self with
@@ -835,8 +838,7 @@ type Node =
                 let! recoveryTransactionString = async {
                     let network =
                         UtxoCoin.Account.GetNetwork currency
-                    let commitmentTx =
-                        Transaction.Parse(commitmentTxString, network)
+                    let commitmentTx = commitmentTx.NBitcoinTx
                     let channelPrivKeys =
                         let channelIndex = serializedChannel.ChannelIndex
                         nodeMasterPrivKey.ChannelPrivKeys channelIndex
@@ -847,17 +849,14 @@ type Node =
                         let! feeEstimator = FeeEstimator.Create currency
                         return feeEstimator.FeeRatePerKw
                     }
+
                     let transactionBuilderResult =
-                        ForceCloseFundsRecovery.tryGetFundsFromLocalCommitmentTx
-                            channelPrivKeys
-                            serializedChannel.SavedChannelState.StaticChannelConfig
+                        ClosingHelpers.LocalClose.ClaimCommitTxOutputs
                             commitmentTx
+                            serializedChannel.SavedChannelState.StaticChannelConfig
+                            channelPrivKeys
                     match transactionBuilderResult with
-                    | Error (LocalCommitmentTxRecoveryError.InvalidCommitmentTx invalidCommitmentTxError) ->
-                        return failwith ("invalid commitment tx for force-closing: " + invalidCommitmentTxError.Message)
-                    | Error LocalCommitmentTxRecoveryError.BalanceBelowDustLimit ->
-                        return Error <| ClosingBalanceBelowDustLimit
-                    | Ok transactionBuilder ->
+                    | { MainOutput = Ok transactionBuilder } ->
                         transactionBuilder.SendAll targetAddress |> ignore
                         let fee = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
                         transactionBuilder.SendFees fee |> ignore
@@ -872,19 +871,25 @@ type Node =
                                     }
                             }
                         return Ok recoveryTransaction
+                    | { MainOutput = Error BalanceBelowDustLimit } ->
+                        return Error <| ClosingBalanceBelowDustLimit
+                    | { MainOutput = Error UnknownClosingTx } ->
+                        return failwith "Never happens because commitmentTx is generated by ourselves"
+                    | { MainOutput = Error Inapplicable } ->
+                        return failwith "Main output can never be inapplicable"
                 }
                 return recoveryTransactionString
             }
 
     member self.ForceCloseChannel
         (channelId: ChannelIdentifier)
-        : Async<Result<string, ClosingBalanceBelowDustLimitError>> =
+        : Async<Result<string, ForceCloseHandlingError>> =
         async {
-            let commitmentTxString = self.ChannelStore.GetCommitmentTx channelId
+            let commitmentTx = self.ChannelStore.GetCommitmentTx channelId
             let serializedChannel = self.ChannelStore.LoadChannel channelId
-            let! forceCloseTxId = UtxoCoin.Account.BroadcastRawTransaction self.Account.Currency commitmentTxString
+            let! forceCloseTxId = UtxoCoin.Account.BroadcastRawTransaction self.Account.Currency (commitmentTx.ToString())
             // This should still be done once here to make sure local output isn't dust
-            let! recoveryTxResult = self.CreateRecoveryTxForLocalForceClose channelId commitmentTxString
+            let! recoveryTxResult = self.CreateRecoveryTxForForceClose channelId commitmentTx
             match recoveryTxResult with
             | Error err ->
                 self.ChannelStore.ArchiveChannel channelId
@@ -901,10 +906,10 @@ type Node =
                 return Ok forceCloseTxId
         }
 
-    member self.CreateRecoveryTxForRemoteForceClose
+    member self.CreateRecoveryTxForForceClose
         (channelId: ChannelIdentifier)
-        (closingTx: ForceCloseTx)
-        : Async<Result<RecoveryTx, ClosingBalanceBelowDustLimitError>> =
+        (closingTx: UtxoTransaction)
+        : Async<Result<RecoveryTx, ForceCloseHandlingError>> =
         async {
             let nodeMasterPrivKey =
                 match self with
@@ -923,21 +928,18 @@ type Node =
                 let! feeEstimator = FeeEstimator.Create currency
                 return feeEstimator.FeeRatePerKw
             }
+
             let transactionBuilderResult =
-                ForceCloseFundsRecovery.tryGetFundsFromRemoteCommitmentTx
-                    channelPrivKeys
+                ClosingHelpers.HandleFundingTxSpent
                     serializedChannel.SavedChannelState
-                    closingTx.Tx.NBitcoinTx
+                    serializedChannel.RemoteNextCommitInfo
+                    channelPrivKeys
+                    closingTx.NBitcoinTx
 
             match transactionBuilderResult with
-            | Error (RemoteCommitmentTxRecoveryError.InvalidCommitmentTx invalidCommitmentTxError) ->
-                return failwith ("invalid commitment tx for creating recovery tx: " + invalidCommitmentTxError.Message)
-            | Error (CommitmentNumberFromTheFuture commitmentNumber) ->
-                return failwith (SPrintF1 "commitment number of tx is from the future (%s)" (commitmentNumber.ToString()))
-            | Error RemoteCommitmentTxRecoveryError.BalanceBelowDustLimit ->
-                self.ChannelStore.ArchiveChannel channelId
-                return Error <| ClosingBalanceBelowDustLimit
-            | Ok transactionBuilder ->
+            | { AnchorOutput = Error Inapplicable } ->
+                return Error <| RevokedTransaction
+            | { MainOutput = Ok transactionBuilder } ->
                 transactionBuilder.SendAll targetAddress |> ignore
                 let fee = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
                 transactionBuilder.SendFees fee |> ignore
@@ -952,6 +954,12 @@ type Node =
                             }
                     }
                 return Ok recoveryTransaction
+            | { MainOutput = Error BalanceBelowDustLimit } ->
+                return Error <| ClosingBalanceBelowDustLimit
+            | { MainOutput = Error UnknownClosingTx } ->
+                return failwith "Unknown closing tx has been broadcast"
+            | { MainOutput = Error Inapplicable } ->
+                return failwith "Main output can never be inapplicable"
         }
 
     member self.UpdateFee (channelId: ChannelIdentifier)

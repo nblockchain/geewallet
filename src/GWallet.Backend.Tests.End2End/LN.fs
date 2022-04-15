@@ -845,10 +845,10 @@ type LN() =
             (BlockHeightOffset32 (uint32 locallyForceClosedData.ToSelfDelay))
 
         let! spendingTxResult =
-            let commitmentTxString = clientWallet.ChannelStore.GetCommitmentTx channelId
-            (Lightning.Node.Client clientWallet.NodeClient).CreateRecoveryTxForLocalForceClose
+            let commitmentTx = clientWallet.ChannelStore.GetCommitmentTx channelId
+            (Lightning.Node.Client clientWallet.NodeClient).CreateRecoveryTxForForceClose
                 channelId
-                commitmentTxString
+                commitmentTx
 
         let recoveryTx = UnwrapResult spendingTxResult "Local output is dust, recovery tx cannot be created"
 
@@ -956,10 +956,10 @@ type LN() =
             (BlockHeightOffset32 (uint32 locallyForceClosedData.ToSelfDelay))
 
         let! spendingTxResult =
-            let commitmentTxString = clientWallet.ChannelStore.GetCommitmentTx channelId
-            (Lightning.Node.Client clientWallet.NodeClient).CreateRecoveryTxForLocalForceClose
+            let commitmentTx = clientWallet.ChannelStore.GetCommitmentTx channelId
+            (Lightning.Node.Client clientWallet.NodeClient).CreateRecoveryTxForForceClose
                 channelId
-                commitmentTxString
+                commitmentTx
 
         let recoveryTx = UnwrapResult spendingTxResult "Local output is dust, recovery tx cannot be created"
 
@@ -1017,9 +1017,9 @@ type LN() =
             match closingInfoOpt with
             | Some (ClosingTx.ForceClose closingTx, Some _closingTxConfirmations) ->
                 return!
-                    (Node.Server serverWallet.NodeServer).CreateRecoveryTxForRemoteForceClose
+                    (Node.Server serverWallet.NodeServer).CreateRecoveryTxForForceClose
                         channelId
-                        closingTx
+                        closingTx.Tx
             | _ ->
                 do! Async.Sleep 2000
                 return! waitForRemoteForceClose()
@@ -1082,9 +1082,9 @@ type LN() =
             | _ -> failwith "closing tx is not a force close tx"
 
         let! recoveryTxOpt =
-            (Node.Client clientWallet.NodeClient).CreateRecoveryTxForRemoteForceClose
+            (Node.Client clientWallet.NodeClient).CreateRecoveryTxForForceClose
                 channelId
-                forceCloseTx
+                forceCloseTx.Tx
         let recoveryTx = UnwrapResult recoveryTxOpt "no funds could be recovered"
         let! _recoveryTxId =
             ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx clientWallet.ChannelStore
@@ -1161,10 +1161,10 @@ type LN() =
         do! waitForTimeLockExpired()
 
         let! spendingTxResult =
-            let commitmentTxString = serverWallet.ChannelStore.GetCommitmentTx channelId
-            (Lightning.Node.Server serverWallet.NodeServer).CreateRecoveryTxForLocalForceClose
+            let commitmentTx = serverWallet.ChannelStore.GetCommitmentTx channelId
+            (Lightning.Node.Server serverWallet.NodeServer).CreateRecoveryTxForForceClose
                 channelId
-                commitmentTxString
+                commitmentTx
 
         let recoveryTx = UnwrapResult spendingTxResult "Local output is dust, recovery tx cannot be created"
 
@@ -1319,7 +1319,7 @@ type LN() =
         if Money(channelInfoAfterPayment2.Balance, MoneyUnit.BTC) <> fundingAmount - walletToWalletTestPayment1Amount - walletToWalletTestPayment2Amount then
             return failwith "incorrect balance after payment 1"
 
-        let! _theftTxId = UtxoCoin.Account.BroadcastRawTransaction Currency.BTC commitmentTx
+        let! _theftTxId = UtxoCoin.Account.BroadcastRawTransaction Currency.BTC (commitmentTx.ToString())
 
         // wait for theft transaction to appear in mempool
         while bitcoind.GetTxIdsInMempool().Length = 0 do
@@ -1470,10 +1470,10 @@ type LN() =
         let newFeeRate = oldFeeRate * 5u
         ElectrumServer.SetEstimatedFeeRate newFeeRate
 
-        let commitmentTxString = clientWallet.ChannelStore.GetCommitmentTx channelId
-        let! _commitmentTxIdString = Account.BroadcastRawTransaction Currency.BTC commitmentTxString
+        let wrappedCommitmentTx = clientWallet.ChannelStore.GetCommitmentTx channelId
+        let! _commitmentTxIdString = Account.BroadcastRawTransaction Currency.BTC (wrappedCommitmentTx.ToString())
 
-        let commitmentTx = Transaction.Parse(commitmentTxString, Network.RegTest)
+        let commitmentTx = Transaction.Parse(wrappedCommitmentTx.ToString(), Network.RegTest)
         let! commitmentTxFee = FeesHelper.GetFeeFromTransaction commitmentTx
         let commitmentTxFeeRate =
             FeeRatePerKw.FromFeeAndVSize(commitmentTxFee, uint64 (commitmentTx.GetVirtualSize()))
@@ -1482,7 +1482,7 @@ type LN() =
         let! anchorTxRes =
             (Node.Client clientWallet.NodeClient).CreateAnchorFeeBumpForForceClose
                 channelId
-                (commitmentTx.ToHex())
+                wrappedCommitmentTx
                 clientWallet.Password
         let anchorTxString =
             UnwrapResult

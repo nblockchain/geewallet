@@ -56,11 +56,12 @@ module Settings =
     }
 
     let internal SupportedFeatures (currency: Currency) (fundingOpt: Option<Money>) =
-        let featureBits = FeatureBits.Zero
-        featureBits.SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true
-        featureBits.SetFeature Feature.VariableLengthOnion FeaturesSupport.Mandatory true
-        featureBits.SetFeature Feature.OptionStaticRemoteKey FeaturesSupport.Mandatory true
-        featureBits.SetFeature Feature.OptionAnchorZeroFeeHtlcTx FeaturesSupport.Mandatory true
+        let featureBits =
+            (((FeatureBits.Zero
+                .SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true)
+                .SetFeature Feature.VariableLengthOnion FeaturesSupport.Mandatory true)
+                .SetFeature Feature.OptionStaticRemoteKey FeaturesSupport.Mandatory true)
+                .SetFeature Feature.OptionAnchorZeroFeeHtlcTx FeaturesSupport.Mandatory true
         
         if currency = Currency.LTC then
             let featureType =
@@ -71,7 +72,8 @@ module Settings =
                     FeaturesSupport.Optional
 
             featureBits.SetFeature Feature.OptionSupportLargeChannel featureType true
-        featureBits
+        else
+            featureBits
 
     let internal GetLocalParams (funding: Money)
                                 (currency: Currency)
