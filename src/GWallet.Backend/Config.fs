@@ -4,6 +4,7 @@ open System
 open System.IO
 open System.Linq
 open System.Reflection
+open System.Runtime.InteropServices
 
 open Xamarin.Essentials
 
@@ -33,24 +34,9 @@ module Config =
     //       balances, so you might find discrepancies (e.g. the donut-chart-view)
     let internal NoNetworkBalanceForDebuggingPurposes = false
 
-    let IsWindowsPlatform() =
-        Path.DirectorySeparatorChar = '\\'
+    let IsWindowsPlatform() = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
 
-    let IsMacPlatform() =
-        let macDirs = [ "/Applications"; "/System"; "/Users"; "/Volumes" ]
-        match Environment.OSVersion.Platform with
-        | PlatformID.MacOSX ->
-            true
-        | PlatformID.Unix ->
-            if macDirs.All(fun dir -> Directory.Exists dir) then
-                if not (DeviceInfo.Platform.Equals DevicePlatform.iOS) then
-                    true
-                else
-                    false
-            else
-                false
-        | _ ->
-            false
+    let IsMacPlatform() = RuntimeInformation.IsOSPlatform(OSPlatform.OSX)
 
     let GetMonoVersion(): Option<Version> =
         FSharpUtil.option {
