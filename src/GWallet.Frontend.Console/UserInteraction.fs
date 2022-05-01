@@ -414,7 +414,8 @@ module UserInteraction =
     let rec AskPublicAddress currency (askText: string): string =
         Console.Write askText
         let publicAddress = Console.ReadLine()
-        let validatedAddress =
+
+        let validateAddress () =
             try
                 Account.ValidateAddress currency publicAddress
                     |> Async.RunSynchronously
@@ -477,7 +478,11 @@ module UserInteraction =
                         addressWithValidChecksum
                     else
                         AskPublicAddress currency askText
-        validatedAddress
+
+        if String.IsNullOrWhiteSpace publicAddress then
+            AskPublicAddress currency askText
+        else
+            validateAddress ()
 
     type private AmountOption =
         | AllBalance
