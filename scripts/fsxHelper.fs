@@ -22,7 +22,7 @@ module FsxHelper =
     let FsxRunner =
         match Misc.GuessPlatform() with
         | Misc.Platform.Windows ->
-            Path.Combine(ScriptsDir.FullName, "fsi.bat")
+            Path.Combine(ScriptsDir.FullName, "fsx", "Tools", "fsi.bat")
         | _ ->
             let fsxRunnerEnvVar = Environment.GetEnvironmentVariable "FsxRunner"
             if String.IsNullOrEmpty fsxRunnerEnvVar then

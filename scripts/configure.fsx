@@ -118,24 +118,23 @@ let buildTool: string =
                 | Some xbuildCmd -> xbuildCmd
 
     | Misc.Platform.Windows ->
+        //we need to call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\**\Bin\MSBuild.exe
+
         let programFiles = Environment.GetFolderPath Environment.SpecialFolder.ProgramFilesX86
-        let msbuildPathPrefix = Path.Combine(programFiles, "Microsoft Visual Studio", "2019")
-        let GetMsBuildPath vsEdition =
-            Path.Combine(msbuildPathPrefix, vsEdition, "MSBuild", "Current", "Bin", "MSBuild.exe")
+        let vswhereExe = Path.Combine(programFiles, "Microsoft Visual Studio", "Installer", "vswhere.exe") |> FileInfo
+        ConfigCommandCheck (List.singleton vswhereExe.FullName) |> ignore
 
-        // FIXME: we should use vscheck.exe
-        match
-            ConfigCommandCheck
-                [
-                    GetMsBuildPath "Community"
-                    GetMsBuildPath "Enterprise"
-                    GetMsBuildPath "BuildTools"
-                ]
-                true
-            with
-        | Some theBuildTool -> theBuildTool
-        | _ -> failwith "unreachable"
+        let vswhereCmd =
+            {
+                Command = vswhereExe.FullName
+                Arguments = "-find MSBuild\\**\\Bin\\MSBuild.exe"
+            }
+        let processResult = Process.Execute(vswhereCmd, Echo.Off)
+        if processResult.ExitCode <> 0 then
+            failwith "Some problem when calling vsWhere.exe"
 
+        let msbuildPath = processResult.Output.StdOut.Trim()
+        msbuildPath
 
 let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxArguments(), false, None))
 
