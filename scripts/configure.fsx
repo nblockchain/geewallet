@@ -142,6 +142,21 @@ if not (prefix.Exists) then
     let warning = sprintf "WARNING: prefix doesn't exist: %s" prefix.FullName
     Console.Error.WriteLine warning
 
+let buildConfigFile =
+    Path.Combine(__SOURCE_DIRECTORY__, "build.config")
+    |> FileInfo
+
+let fsxRunner =
+    let fsxRunnerText = "FsxRunner="
+    let buildConfigContents = File.ReadAllLines buildConfigFile.FullName
+    match Array.tryFind (fun (line: string) -> line.StartsWith fsxRunnerText) buildConfigContents with
+    | Some fsxRunnerLine -> fsxRunnerLine.Substring fsxRunnerText.Length
+    | _ ->
+        failwithf
+            "Element '%s' not found in %s file, configure.sh|configure.bat should have injected it, please report this bug"
+            fsxRunnerText
+            buildConfigFile.Name
+
 let lines =
     let toConfigFileLine (keyValuePair: System.Collections.Generic.KeyValuePair<string,string>) =
         sprintf "%s=%s" keyValuePair.Key keyValuePair.Value
@@ -149,9 +164,7 @@ let lines =
     initialConfigFile.Add("Prefix", prefix.FullName)
                      .Add("BuildTool", buildTool)
     |> Seq.map toConfigFileLine
-
-let path = Path.Combine(__SOURCE_DIRECTORY__, "build.config")
-File.AppendAllLines(path, lines |> Array.ofSeq)
+File.AppendAllLines(buildConfigFile.FullName, lines |> Array.ofSeq)
 
 let version = Misc.GetCurrentVersion(rootDir)
 
@@ -165,6 +178,12 @@ Console.WriteLine()
 Console.WriteLine(sprintf
                       "\t* Installation prefix: %s"
                       prefix.FullName)
+Console.WriteLine(sprintf
+                      "\t* F# script runner: %s"
+                      fsxRunner)
+Console.WriteLine(sprintf
+                      "\t* .NET build tool: %s"
+                      buildTool)
 Console.WriteLine()
 
 Console.WriteLine "Configuration succeeded, you can now run `make`"
