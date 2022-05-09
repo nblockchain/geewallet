@@ -371,7 +371,7 @@ type ClosedChannel()=
             match closingTxOpt with
             | Some (ClosingTx.MutualClose closingTx, Some closingTxConfirmations) when
                 BlockHeightOffset32 closingTxConfirmations >= Settings.DefaultTxMinimumDepth channelStore.Currency ->
-                channelStore.ArchiveChannel channelId
+                //channelStore.ArchiveChannel channelId
                 return Tx (ConfirmationStatus.Full, closingTx)
             | Some (ClosingTx.MutualClose closingTx, Some _closingTxConfirmations) ->
                 return Tx (ConfirmationStatus.InProgress, closingTx)

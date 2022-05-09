@@ -412,7 +412,7 @@ module ChannelManager =
 
     let CheckForConfirmedRecovery
         (channelStore: ChannelStore)
-        (channelId: ChannelIdentifier)
+        (_channelId: ChannelIdentifier)
         (recoveryTxId: TransactionIdentifier)
         =
         async {
@@ -424,7 +424,7 @@ module ChannelManager =
                     (ElectrumClient.GetConfirmations (recoveryTxId.ToString()))
                     None
             if BlockHeightOffset32 confirmationCount >= Settings.DefaultTxMinimumDepth currency then
-                channelStore.ArchiveChannel channelId
+                //channelStore.ArchiveChannel channelId
                 return true
             else
                 return false
