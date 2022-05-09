@@ -208,6 +208,7 @@ type LN() =
                             clientWallet.NodeClient
                             channelId
                             (PaymentInvoice.Parse invoice.BOLT11)
+                            true
                 }
             UnwrapResult sendHtlcPayment1Res "SendHtlcPayment failed"
 
@@ -237,6 +238,7 @@ type LN() =
                             clientWallet.NodeClient
                             channelId
                             (PaymentInvoice.Parse invoice.BOLT11)
+                            true
                 }
             UnwrapResult sendHtlcPayment2Res "SendHtlcPayment failed"
 
@@ -466,6 +468,7 @@ type LN() =
                         clientWallet.NodeClient
                         channelId
                         (PaymentInvoice.Parse invoiceInString)
+                        true
             }
         UnwrapResult sendHtlcPayment1Res "SendHtlcPayment failed"
 
@@ -609,6 +612,7 @@ type LN() =
                         clientWallet.NodeClient
                         channelId
                         (PaymentInvoice.Parse invoice.BOLT11)
+                        true
             }
         match sendHtlcPayment1Res with
         | Error _err ->

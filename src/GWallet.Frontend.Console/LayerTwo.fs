@@ -503,7 +503,7 @@ module LayerTwo =
                     let trySendPayment password =
                         async {
                             let nodeClient = Lightning.Connection.StartClient channelStore password
-                            let! paymentRes = Lightning.Network.SendHtlcPayment nodeClient channelId invoice
+                            let! paymentRes = Lightning.Network.SendHtlcPayment nodeClient channelId invoice true
                             match paymentRes with
                             | Error nodeSendHtlcPaymentError ->
                                 let currency = (account :> IAccount).Currency

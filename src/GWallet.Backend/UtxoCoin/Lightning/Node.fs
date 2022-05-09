@@ -330,6 +330,7 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
 
     member internal self.SendHtlcPayment (channelId: ChannelIdentifier)
                                          (invoice: PaymentInvoice)
+                                         (waitForResult: bool)
                                              : Async<Result<unit, IErrorMsg>> = async {
         let! activeChannelRes =
             ActiveChannel.ConnectReestablish self.ChannelStore nodeMasterPrivKey channelId None
@@ -345,7 +346,7 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                 |> ignore<bool>
             return Error <| (NodeSendHtlcPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
         | Ok activeChannel ->
-            let! paymentRes = activeChannel.SendHtlcPayment invoice
+            let! paymentRes = activeChannel.SendHtlcPayment invoice waitForResult
             match paymentRes with
             | Error sendHtlcPaymentError ->
                 if sendHtlcPaymentError.PossibleBug then

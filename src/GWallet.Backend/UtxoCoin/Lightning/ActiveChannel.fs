@@ -866,7 +866,7 @@ and internal ActiveChannel =
                 | Ok activeChannelAfterCommitReceived -> return Ok activeChannelAfterCommitReceived
     }
 
-    member internal self.SendHtlcPayment (invoice: PaymentInvoice) : Async<Result<ActiveChannel, SendHtlcPaymentError>> = async {
+    member internal self.SendHtlcPayment (invoice: PaymentInvoice) (waitForResult: bool): Async<Result<ActiveChannel, SendHtlcPaymentError>> = async {
         let connectedChannel = self.ConnectedChannel
         let peerNode = connectedChannel.PeerNode
         let channel = connectedChannel.Channel
@@ -954,7 +954,7 @@ and internal ActiveChannel =
                     let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
                     match activeChannelAfterCommitReceivedRes with
                     | Error err -> return Error <| SendHtlcPaymentError.RecvCommit err
-                    | Ok activeChannelAfterCommitReceived ->
+                    | Ok activeChannelAfterCommitReceived when waitForResult ->
                         let! activeChannelAfterNewCommitRes = activeChannelAfterCommitReceived.RecvHtlcFulfillOrFail()
                         match (activeChannelAfterNewCommitRes) with
                         | Error err ->
@@ -963,6 +963,8 @@ and internal ActiveChannel =
                             return Ok (activeChannelAfterNewCommit)
                         | Ok (activeChannelAfterNewCommit, false) ->
                             return Error <| SendHtlcPaymentError.ReceivedHtlcFail activeChannelAfterNewCommit
+                    | Ok activeChannelAfterCommitReceived ->
+                        return Ok (activeChannelAfterCommitReceived)
     }
 
     member internal self.RecvMonoHopUnidirectionalPayment (monoHopUnidirectionalPaymentMsg: MonoHopUnidirectionalPaymentMsg)
