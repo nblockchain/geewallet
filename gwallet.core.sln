@@ -20,6 +20,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CE79AB9D
 		Makefile = Makefile
 	EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.LegacyFramework", "src\GWallet.Frontend.XF.LegacyFramework\GWallet.Frontend.XF.LegacyFramework.fsproj", "{AC86213C-C0BA-4919-8CC0-BA5AF9B88691}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{F9448076-88BE-4045-8704-A652D133E036}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC86213C-C0BA-4919-8CC0-BA5AF9B88691}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC86213C-C0BA-4919-8CC0-BA5AF9B88691}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC86213C-C0BA-4919-8CC0-BA5AF9B88691}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC86213C-C0BA-4919-8CC0-BA5AF9B88691}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 	EndGlobalSection
