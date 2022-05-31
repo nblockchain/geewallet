@@ -247,6 +247,8 @@ type internal ConnectedChannel =
             RecoveryTxIdOpt = None
             ClosingTimestampUtc = self.ClosingTimestampUtc
             HtlcDelayedTxs = List.empty
+            BroadcastedHtlcRecoveryTxs = List.empty
+            BroadcastedHtlcTxs = List.empty
         }
         channelStore.SaveChannel serializedChannel
 

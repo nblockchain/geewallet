@@ -44,16 +44,38 @@ type RecoveryTx =
         Fee: MinerFee
     }
 
+type HtlcRecoveryTx =
+    {
+        ChannelId: ChannelIdentifier
+        Currency: Currency
+        HtlcTxId: TransactionIdentifier
+        Tx: UtxoTransaction
+        Fee: MinerFee
+        AmountInSatoshis: AmountInSatoshis
+    }
+
 type HtlcTx =
     {
         ChannelId: ChannelIdentifier
         Currency: Currency
         Tx: UtxoTransaction
+        NeedsRecoveryTx: bool
         Fee: MinerFee
+        AmountInSatoshis: AmountInSatoshis
     }
 
+    /// Returns true if htlc amount is less than or equal to the fees needed to spend it
+    member self.IsDust () =
+        if not self.NeedsRecoveryTx then
+            self.AmountInSatoshis <= (uint64 self.Fee.EstimatedFeeInSatoshis)
+        else
+            let previousSize = self.Tx.NBitcoinTx.GetVirtualSize() |> double
+            //FIXME: hardcoded value
+            let newSize = previousSize + 273.
+            self.AmountInSatoshis <= ((((self.Fee.EstimatedFeeInSatoshis |> double) / previousSize) * newSize) |> System.Convert.ToUInt64)
+
 type HtlcTxsList =
-    {
+    internal {
         ChannelId: ChannelIdentifier
         ClosingTx: Transaction
         Currency: Currency
@@ -63,3 +85,5 @@ type HtlcTxsList =
 
     member self.IsEmpty () =
         Seq.isEmpty self.Transactions
+    member self.IsDone () =
+        self.Done

@@ -165,3 +165,5 @@ type MonoHopUnidirectionalChannel =
 
     member internal self.SpendableBalance(): LNMoney =
         self.Channel.SpendableBalance()
+
+type AmountInSatoshis = uint64

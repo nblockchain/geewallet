@@ -505,6 +505,8 @@ type ChannelMarshalling () =
     },
     "recoveryTxIdOpt": null,
     "htlcDelayedTxs": [],
+    "broadcastedHtlcTxs": [],
+    "broadcastedHtlcRecoveryTxs": [],
     "nodeTransportType": {
       "case": "Server",
       "fields": [

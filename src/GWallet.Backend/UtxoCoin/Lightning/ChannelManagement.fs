@@ -410,6 +410,32 @@ module ChannelManager =
             return txId
         }
 
+    let BroadcastHtlcRecoveryTxAndRemoveFromWatchList
+        (htlcRecoveryTx: HtlcRecoveryTx)
+        (channelStore: ChannelStore)
+        : Async<string>
+        =
+        async {
+            let channelPreRecovery = channelStore.LoadChannel htlcRecoveryTx.ChannelId
+            let! txId =
+                UtxoCoin.Account.BroadcastRawTransaction
+                    htlcRecoveryTx.Currency
+                    (htlcRecoveryTx.Tx.ToString())
+            let htlcToRemove =
+                channelPreRecovery.HtlcDelayedTxs
+                |> Seq.filter (fun (_, htlcTxId) -> htlcTxId = htlcRecoveryTx.HtlcTxId)
+            let channelAfterRecovery =
+                { channelPreRecovery with
+                    HtlcDelayedTxs =
+                        channelPreRecovery.HtlcDelayedTxs
+                        |> List.except htlcToRemove
+                    BroadcastedHtlcRecoveryTxs =
+                        (htlcRecoveryTx.AmountInSatoshis, htlcRecoveryTx.Tx.Id)::channelPreRecovery.BroadcastedHtlcRecoveryTxs    
+                }
+            channelStore.SaveChannel channelAfterRecovery
+            return txId
+        }
+
     let BroadcastHtlcTxAndAddToWatchList
         (htlcTx: HtlcTx)
         (channelStore: ChannelStore)
@@ -422,10 +448,17 @@ module ChannelManager =
                     htlcTx.Currency
                     (htlcTx.Tx.ToString())
             let channelAfterRecovery =
-                { channelPreRecovery with
-                    HtlcDelayedTxs =
-                        htlcTx.Tx.Id :: channelPreRecovery.HtlcDelayedTxs
-                }
+                if htlcTx.NeedsRecoveryTx then
+                    { channelPreRecovery with
+                        HtlcDelayedTxs =
+                            (htlcTx.AmountInSatoshis, htlcTx.Tx.Id) :: channelPreRecovery.HtlcDelayedTxs
+                    }
+                else
+                    { channelPreRecovery with
+                        BroadcastedHtlcRecoveryTxs =
+                            (htlcTx.AmountInSatoshis, htlcTx.Tx.Id) :: channelPreRecovery.BroadcastedHtlcRecoveryTxs
+                    }
+            
             channelStore.SaveChannel channelAfterRecovery
             return txId
         }
@@ -545,4 +578,48 @@ module ChannelManager =
             }
 
             return spendingTxFeeRate.FeePerK < currentFeeRate.FeePerK
+        }
+
+
+    type HtlcResolveType =
+        | Timeout of expiryBlockHeight: int
+        | Success
+        | Penalty
+
+    type HtlcResolveDetails =
+        {
+            Unresolved: List<AmountInSatoshis * HtlcResolveType>
+            WaitingForConfirmationToRecover: List<AmountInSatoshis * TransactionIdentifier>
+            Resolved: List<AmountInSatoshis * TransactionIdentifier>
+        }
+
+    let ListAllHtlcs
+        (channelStore: ChannelStore)
+        (channelId: ChannelIdentifier)
+        =
+        let channel = channelStore.LoadChannel channelId
+        let unresolvedHtlcsData =
+            (HtlcsDataStore channelStore.Account)
+                .LoadHtlcsData(channelId)
+                .ChannelHtlcsData
+        let recoveredHtlcs = channel.BroadcastedHtlcRecoveryTxs @ channel.BroadcastedHtlcTxs
+        let unresolvedHtlcs =
+            unresolvedHtlcsData
+            |> List.map (fun htlcTransaction -> 
+                let amountInSatoshis = htlcTransaction.Amount.ToMoney().Satoshi |> Convert.ToUInt64
+                let resolveType =
+                    match htlcTransaction with
+                    | ClosingHelpers.HtlcTransaction.Timeout (_, _, expiryBlockHeight, _) ->
+                        HtlcResolveType.Timeout (int expiryBlockHeight)
+                    | ClosingHelpers.HtlcTransaction.Penalty _ ->
+                        HtlcResolveType.Penalty
+                    | ClosingHelpers.HtlcTransaction.Success _ ->
+                        HtlcResolveType.Success
+                (amountInSatoshis, resolveType)
+            )
+            
+        {
+            HtlcResolveDetails.Unresolved = unresolvedHtlcs
+            WaitingForConfirmationToRecover = channel.HtlcDelayedTxs
+            Resolved = recoveredHtlcs
         }

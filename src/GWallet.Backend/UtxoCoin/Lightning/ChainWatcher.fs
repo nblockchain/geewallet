@@ -178,15 +178,15 @@ module public ChainWatcher =
                                             return unspentHtlcList
                                         | head::tail ->
                                             match head with
-                                            | HtlcTransaction.Timeout (_, spk, _)
-                                            | HtlcTransaction.Success (_, spk, _) ->
+                                            | HtlcTransaction.Timeout (_, spk, _, _)
+                                            | HtlcTransaction.Success (_, spk, _, _) ->
                                                 let job =  GetElectrumScriptHashFromScriptPubKey spk |> ElectrumClient.GetUnspentTransactionOutputs
                                                 let! utxos = Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
                                                 if utxos |> Seq.isEmpty then
                                                     return! removeSpentOutputs tail unspentHtlcList
                                                 else
                                                     return! removeSpentOutputs tail (head :: unspentHtlcList)
-                                            | HtlcTransaction.Penalty _redeemScript ->
+                                            | HtlcTransaction.Penalty (_redeemScript, _) ->
                                                 return! removeSpentOutputs tail (head :: unspentHtlcList)
                                     }
 
@@ -229,7 +229,7 @@ module public ChainWatcher =
                         CheckForChannelForceCloseAndSaveUnresolvedHtlcs channelId channelStore
         }
 
-    let CheckForReadyToBroadcastHtlcTransactions (channelId: ChannelIdentifier)
+    let CheckForChannelReadyToBroadcastHtlcTransactions (channelId: ChannelIdentifier)
                                                  (channelStore: ChannelStore)
                                                      : Async<HtlcTxsList> = async {
         let currency = (channelStore.Account :> IAccount).Currency
@@ -253,7 +253,7 @@ module public ChainWatcher =
             htlcsData.ChannelHtlcsData
             |> List.choose (fun htlc ->
                 match htlc with
-                | HtlcTransaction.Timeout (_, _, cltvExpiry) when blockHeight > cltvExpiry ->
+                | HtlcTransaction.Timeout (_, _, cltvExpiry, _) when blockHeight > cltvExpiry ->
                     Some htlc
                 | HtlcTransaction.Penalty _
                 | HtlcTransaction.Success _ ->
@@ -273,27 +273,27 @@ module public ChainWatcher =
 
     let CheckForReadyToSpendDelayedHtlcTransactions (channelId: ChannelIdentifier)
                                                     (channelStore: ChannelStore)
-                                                        : Async<List<TransactionIdentifier>> = async {
+                                                        : Async<List<AmountInSatoshis * TransactionIdentifier>> = async {
         let serializedChannel = channelStore.LoadChannel channelId
         let currency = (channelStore.Account :> IAccount).Currency
         let toSelfDelay = serializedChannel.SavedChannelState.StaticChannelConfig.RemoteParams.ToSelfDelay.Value
 
         let delayedTxs = serializedChannel.HtlcDelayedTxs
 
-        let rec checkForConfirmations (transactionsList: List<TransactionIdentifier>) (readyToSpend: List<TransactionIdentifier>) =
+        let rec checkForConfirmations (transactionsList: List<AmountInSatoshis * TransactionIdentifier>) (readyToSpend: List<AmountInSatoshis * TransactionIdentifier>) =
             async {
                 match transactionsList with
                 | [] ->
                     return readyToSpend
-                | head::tail ->
+                | (amount, txId)::tail ->
                     let! confirmationCount =
                         UtxoCoin.Server.Query
                             currency
                             (UtxoCoin.QuerySettings.Default ServerSelectionMode.Fast)
-                            (UtxoCoin.ElectrumClient.GetConfirmations (head.ToString()))
+                            (UtxoCoin.ElectrumClient.GetConfirmations (txId.ToString()))
                             None
                     if confirmationCount >= uint32 toSelfDelay then
-                        return! checkForConfirmations tail (head::readyToSpend)
+                        return! checkForConfirmations tail ((amount, txId)::readyToSpend)
                     else
                         return! checkForConfirmations tail readyToSpend
                     

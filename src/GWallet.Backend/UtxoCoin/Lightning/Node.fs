@@ -906,7 +906,6 @@ type Node =
                 return failwith "Main output can never be inapplicable"
         }
     //FIXME: name
-    //fIXME: local with outside utxos
     member self.CreateHtlcTxForListHead
         (htlcTransactions: HtlcTxsList)
         (password: string)
@@ -945,21 +944,22 @@ type Node =
                         }
                         let fees = txb.EstimateFees (feeRate.AsNBitcoinFeeRate())
                         txb.SendFees fees |> ignore<TransactionBuilder>
-                        return (txb.BuildTransaction true, fees)
+                        return (txb.BuildTransaction true, fees, shouldAddFee)
                     else
                         //TODO: We need to somehow make sure we are not paying more fees than the htlc itself
-                        return! FeeManagement.addFeeInputsWithCpfpSupport (self.ChannelStore.Account, password) txb None
+                        let! tx, fees = FeeManagement.addFeeInputsWithCpfpSupport (self.ChannelStore.Account, password) txb None
+                        return tx, fees, shouldAddFee
                 }
 
             match htlcTransactions.Transactions with
             | [] -> return failwith "This function shouldn't be called if htlcTransaction.IsDone is true"
             | transaction:: rest ->
-                let! finalTx, fees =
+                let! finalTx, fees, shouldAddFees =
                     match transaction with
                     | Timeout _
                     | HtlcTransaction.Success _ ->
                         claimHtlcOutput transaction
-                    | Penalty redeemScript ->
+                    | Penalty (redeemScript, _) ->
                         async {
                             let GetElectrumScriptHashFromScriptPubKey (scriptPubKey: Script) =
                                 let sha = NBitcoin.Crypto.Hashes.SHA256(scriptPubKey.ToBytes())
@@ -1006,7 +1006,7 @@ type Node =
                                         }
                                         let fees = txb.EstimateFees (feeRate.AsNBitcoinFeeRate())
                                         txb.SendFees fees |> ignore<TransactionBuilder>
-                                        return (txb.BuildTransaction true, fees)
+                                        return (txb.BuildTransaction true, fees, false)
                                     | None ->
                                         return failwith "NIE"
                             else
@@ -1018,6 +1018,8 @@ type Node =
                         ChannelId = htlcTransactions.ChannelId
                         Currency = currency
                         Fee = MinerFee (fees.Satoshi, DateTime.UtcNow, currency)
+                        AmountInSatoshis = transaction.Amount.Satoshi |> Convert.ToUInt64
+                        NeedsRecoveryTx = shouldAddFees
                         Tx =
                             {
                                 NBitcoinTx = finalTx
@@ -1028,8 +1030,8 @@ type Node =
 
     member self.CreateRecoveryTxForDelayedHtlcTx
         (channelId: ChannelIdentifier)
-        (readyToSpendTransactionIds: List<TransactionIdentifier>)
-        : Async<List<RecoveryTx>> =
+        (readyToSpendTransactionIdsWithAmount: List<AmountInSatoshis * TransactionIdentifier>)
+        : Async<List<HtlcRecoveryTx>> =
         async {
             let nodeMasterPrivKey =
                 match self with
@@ -1048,11 +1050,11 @@ type Node =
                 let! feeEstimator = FeeEstimator.Create currency
                 return feeEstimator.FeeRatePerKw
             }
-            let rec createRecoveryTx (txIds: List<TransactionIdentifier>) (state) =
+            let rec createRecoveryTx (txIdsWithAmount: List<AmountInSatoshis * TransactionIdentifier>) (state) =
                 async {
-                    match txIds with
+                    match txIdsWithAmount with
                     | [] -> return state
-                    | transactionId:: rest ->
+                    | (amount, transactionId):: rest ->
                         let! htlcDelayedTx =
                             async {
                                 let! htlcDelayedTxStr =
@@ -1091,21 +1093,23 @@ type Node =
 
                             let finalTx = txb.BuildTransaction true
 
-                            let htlcTransaction: RecoveryTx =
+                            let recoveryTx: HtlcRecoveryTx =
                                 {
                                     ChannelId = channelId
                                     Currency = currency
                                     Fee = MinerFee (fees.Satoshi, DateTime.UtcNow, currency)
+                                    HtlcTxId = transactionId
                                     Tx =
                                         {
                                             NBitcoinTx = finalTx
                                         }
+                                    AmountInSatoshis = amount
                                 }
-                            return! createRecoveryTx rest (htlcTransaction::state)
+                            return! createRecoveryTx rest (recoveryTx::state)
                         | None -> return failwith "NIE"                
                 }
 
-            return! createRecoveryTx readyToSpendTransactionIds List.empty
+            return! createRecoveryTx readyToSpendTransactionIdsWithAmount List.empty
         }
 
     member self.UpdateFee (channelId: ChannelIdentifier)

@@ -624,8 +624,8 @@ type LN() =
         let rec waitUntilReadyForBroadcastIsNotEmpty () =
             async {
                 let! _ = ChainWatcher.CheckForChannelForceCloseAndSaveUnresolvedHtlcs channelId clientWallet.ChannelStore
-                let! readyForBroadcast = ChainWatcher.CheckForReadyToBroadcastHtlcTransactions channelId clientWallet.ChannelStore
-                if readyForBroadcast.Done then
+                let! readyForBroadcast = ChainWatcher.CheckForChannelReadyToBroadcastHtlcTransactions channelId clientWallet.ChannelStore
+                if readyForBroadcast.IsDone () then
                     return readyForBroadcast
                 else if readyForBroadcast.IsEmpty () then
                     Console.WriteLine "No ready for broadcast, rechecking"
@@ -720,8 +720,8 @@ type LN() =
                     let rec waitUntilReadyForBroadcastIsNotEmpty () =
                         async {
                             let! _result = ChainWatcher.CheckForChannelForceCloseAndSaveUnresolvedHtlcs channelId serverWallet.ChannelStore
-                            let! readyForBroadcast = ChainWatcher.CheckForReadyToBroadcastHtlcTransactions channelId serverWallet.ChannelStore
-                            if readyForBroadcast.Done then
+                            let! readyForBroadcast = ChainWatcher.CheckForChannelReadyToBroadcastHtlcTransactions channelId serverWallet.ChannelStore
+                            if readyForBroadcast.IsDone () then
                                 return readyForBroadcast
                             else if readyForBroadcast.IsEmpty () then
                                 Console.WriteLine "No ready for broadcast, rechecking"
@@ -882,8 +882,8 @@ type LN() =
 
         let rec waitUntilReadyForBroadcastIsNotEmpty () =
             async {
-                let! readyForBroadcast = ChainWatcher.CheckForReadyToBroadcastHtlcTransactions channelId clientWallet.ChannelStore
-                if readyForBroadcast.Done then
+                let! readyForBroadcast = ChainWatcher.CheckForChannelReadyToBroadcastHtlcTransactions channelId clientWallet.ChannelStore
+                if readyForBroadcast.IsDone () then
                     return readyForBroadcast
                 else if readyForBroadcast.IsEmpty () then
                     Console.WriteLine "No ready for broadcast, rechecking"
@@ -985,8 +985,8 @@ type LN() =
                 let rec waitUntilReadyForBroadcastIsNotEmpty () =
                     async {
                         let! _result = ChainWatcher.CheckForChannelForceCloseAndSaveUnresolvedHtlcs channelId serverWallet.ChannelStore
-                        let! readyForBroadcast = ChainWatcher.CheckForReadyToBroadcastHtlcTransactions channelId serverWallet.ChannelStore
-                        if readyForBroadcast.Done then
+                        let! readyForBroadcast = ChainWatcher.CheckForChannelReadyToBroadcastHtlcTransactions channelId serverWallet.ChannelStore
+                        if readyForBroadcast.IsDone () then
                             return readyForBroadcast
                         else if readyForBroadcast.IsEmpty () then
                             Console.WriteLine "No ready for broadcast, rechecking"
@@ -1191,7 +1191,7 @@ type LN() =
 
         let rec waitUntilReadyForBroadcastIsNotEmpty () =
             async {
-                let! readyForBroadcast = ChainWatcher.CheckForReadyToBroadcastHtlcTransactions channelId clientWallet.ChannelStore
+                let! readyForBroadcast = ChainWatcher.CheckForChannelReadyToBroadcastHtlcTransactions channelId clientWallet.ChannelStore
                 if readyForBroadcast.IsEmpty () then
                     bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
                     do! Async.Sleep 100
@@ -1343,7 +1343,7 @@ type LN() =
 
             let rec waitUntilReadyForBroadcastIsNotEmpty () =
                 async {
-                    let! readyForBroadcast = ChainWatcher.CheckForReadyToBroadcastHtlcTransactions channelId serverWallet.ChannelStore
+                    let! readyForBroadcast = ChainWatcher.CheckForChannelReadyToBroadcastHtlcTransactions channelId serverWallet.ChannelStore
                     if readyForBroadcast.IsEmpty () then
                         bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
                         do! Async.Sleep 100
@@ -1449,7 +1449,7 @@ type LN() =
 
             let rec waitUntilReadyForBroadcastIsNotEmpty () =
                 async {
-                    let! readyForBroadcast = ChainWatcher.CheckForReadyToBroadcastHtlcTransactions channelId serverWallet.ChannelStore
+                    let! readyForBroadcast = ChainWatcher.CheckForChannelReadyToBroadcastHtlcTransactions channelId serverWallet.ChannelStore
                     if readyForBroadcast.IsEmpty () then
                         Console.WriteLine "No ready for broadcast, rechecking"
                         bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
@@ -1494,16 +1494,16 @@ type LN() =
 
             let! readyToSpend2ndStages = checkForReadyToSpend2ndStageClaim()
 
-            let rec spend2ndStages (readyToSpend2ndStages: List<TransactionIdentifier>)  =
+            let rec spend2ndStages (readyToSpend2ndStages: List<AmountInSatoshis * TransactionIdentifier>)  =
                 async {
                     let! recoveryTxs = (Lightning.Node.Server serverWallet.NodeServer).CreateRecoveryTxForDelayedHtlcTx channelId readyToSpend2ndStages
                     Console.WriteLine (sprintf "Broadcasting... %A" recoveryTxs)
-                    let rec broadcastSpendingTxs (recoveryTxs: List<RecoveryTx>) (feeSum: Money) =
+                    let rec broadcastSpendingTxs (recoveryTxs: List<HtlcRecoveryTx>) (feeSum: Money) =
                         async {
                             match recoveryTxs with
                             | [] -> return feeSum
                             | recoveryTx::rest ->
-                                do! UtxoCoin.Account.BroadcastRawTransaction recoveryTx.Currency (recoveryTx.Tx.ToString()) |> Async.Ignore
+                                do! ChannelManager.BroadcastHtlcRecoveryTxAndRemoveFromWatchList recoveryTx serverWallet.ChannelStore |> Async.Ignore
                                 bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
 
                                 return! broadcastSpendingTxs rest (feeSum + (Money.Satoshis recoveryTx.Fee.EstimatedFeeInSatoshis))
@@ -1588,7 +1588,7 @@ type LN() =
 
         let rec waitUntilReadyForBroadcastIsNotEmpty () =
             async {
-                let! readyForBroadcast = ChainWatcher.CheckForReadyToBroadcastHtlcTransactions channelId clientWallet.ChannelStore
+                let! readyForBroadcast = ChainWatcher.CheckForChannelReadyToBroadcastHtlcTransactions channelId clientWallet.ChannelStore
                 if readyForBroadcast.IsEmpty () then
                     Console.WriteLine "No ready for broadcast, rechecking"
                     bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
@@ -1633,16 +1633,16 @@ type LN() =
 
         let! readyToSpend2ndStages = checkForReadyToSpend2ndStageClaim()
 
-        let rec spend2ndStages (readyToSpend2ndStages: List<TransactionIdentifier>)  =
+        let rec spend2ndStages (readyToSpend2ndStages: List<AmountInSatoshis * TransactionIdentifier>)  =
             async {
                 let! recoveryTxs = (Lightning.Node.Client clientWallet.NodeClient).CreateRecoveryTxForDelayedHtlcTx channelId readyToSpend2ndStages
                 Console.WriteLine (sprintf "Broadcasting... %A" recoveryTxs)
-                let rec broadcastSpendingTxs (recoveryTxs: List<RecoveryTx>) (feeSum: Money) =
+                let rec broadcastSpendingTxs (recoveryTxs: List<HtlcRecoveryTx>) (feeSum: Money) =
                     async {
                         match recoveryTxs with
                         | [] -> return feeSum
                         | recoveryTx::rest ->
-                            do! UtxoCoin.Account.BroadcastRawTransaction recoveryTx.Currency (recoveryTx.Tx.ToString()) |> Async.Ignore
+                            do! ChannelManager.BroadcastHtlcRecoveryTxAndRemoveFromWatchList recoveryTx clientWallet.ChannelStore |> Async.Ignore
                             bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
 
                             return! broadcastSpendingTxs rest (feeSum + (Money.Satoshis recoveryTx.Fee.EstimatedFeeInSatoshis))
