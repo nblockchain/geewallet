@@ -139,7 +139,7 @@ type InvoiceManagement (account: NormalUtxoAccount, password: string) =
                     [
                         TaggedField.PaymentHashTaggedField preImage.Hash
                         TaggedField.MinFinalCltvExpiryTaggedField (BlockHeightOffset32 40u)
-                        TaggedField.ExpiryTaggedField (DateTimeOffset.UtcNow.AddHours (1.))
+                        TaggedField.ExpiryTaggedField (DateTimeOffset.UtcNow.AddYears 1)
                         TaggedField.FeaturesTaggedField (Settings.SupportedFeatures currency None)
                         TaggedField.DescriptionTaggedField description
                     ]
