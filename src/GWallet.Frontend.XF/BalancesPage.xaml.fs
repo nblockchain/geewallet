@@ -9,9 +9,9 @@ open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
 
-open GWallet.Frontend.XF.Controls
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
+open Frontend.FSharp
 
 
 // this type allows us to represent the idea that if we have, for example, 3 LTC and an unknown number of ETC (might
@@ -45,8 +45,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let totalFiatAmountFrame = mainLayout.FindByName<Frame> "totalFiatAmountFrame"
     let totalReadOnlyFiatAmountFrame = mainLayout.FindByName<Frame> "totalReadOnlyFiatAmountFrame"
     let contentLayout = base.FindByName<StackLayout> "contentLayout"
-    let normalChartView = base.FindByName<CircleChartView> "normalChartView"
-    let readonlyChartView = base.FindByName<CircleChartView> "readonlyChartView"
+    let normalChartView = base.FindByName<HoopChartView> "normalChartView"
+    let readonlyChartView = base.FindByName<HoopChartView> "readonlyChartView"
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
@@ -164,18 +164,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 readonlyChartView
             else
                 normalChartView
-        let fullAmount = balances.Sum(fun b -> GetAmountOrDefault b.FiatAmount)
-
+        
         let chartSourceList = 
             balances |> Seq.map (fun balanceState ->
-                 let percentage = 
-                     if fullAmount = 0m then
-                         0m
-                     else
-                         GetAmountOrDefault balanceState.FiatAmount / fullAmount
                  { 
                      Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency
-                     Percentage = float(percentage)
+                     Amount = GetAmountOrDefault balanceState.FiatAmount
                  }
             )
         chartView.SegmentsSource <- chartSourceList
@@ -408,8 +402,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             mainLayout.FindByName<Frame> totalOtherFiatAmountFrameName
 
         let currentChartView,otherChartView =
-            mainLayout.FindByName<CircleChartView> currentChartViewName,
-            mainLayout.FindByName<CircleChartView> otherChartViewName
+            mainLayout.FindByName<HoopChartView> currentChartViewName,
+            mainLayout.FindByName<HoopChartView> otherChartViewName
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Add(fun _ ->

@@ -11,16 +11,20 @@ open System.Threading.Tasks
 open System.ComponentModel
 open Microsoft.FSharp.Collections
 
-type Wallet = { CryptoValue: double ; Stroke: Brush }
+type SegmentInfo = 
+    {
+        Color: Color
+        Amount: decimal
+    }
 type Percentage =  { mutable Percent: double;  Stroke: Brush } 
 
 
 module HoopChart =
 
-    let computeCartesianCoordinate (angle:double) (radius:double) = 
+    let centerX = 50.
+    let centerY = 50.
 
-        let centerX = 50.
-        let centerY = 50.
+    let computeCartesianCoordinate (angle:double) (radius:double) = 
 
         let angleRad = (Math.PI / 180.) * (angle - 90.)
 
@@ -64,32 +68,32 @@ module HoopChart =
                 arcAngle + lengthOfArc
         arcAngle
 
-    let Normalize (wallets: seq<Wallet>)  =
+    let Normalize (segments: seq<SegmentInfo>)  =
         
         let minimumShowablePercentage =  2.
         let visiblePercentageLimit = 1.
         let fullPie = 100.
 
-        let total = wallets |> Seq.sumBy(fun x -> x.CryptoValue)
+        let total = segments |> Seq.sumBy(fun x -> x.Amount) |> float
 
         
-        let innerNormalize (wallet: Wallet) : Option<Percentage> =
+        let innerNormalize (segments: SegmentInfo) : Option<Percentage> =
             
-            let percent = wallet.CryptoValue * fullPie / total
+            let percent = float(segments.Amount) * fullPie / total
             
             if fullPie  >= percent && percent >= minimumShowablePercentage then        
       
-                {Percentage.Percent = percent; Stroke = wallet.Stroke} |> Some
+                {Percentage.Percent = percent; Stroke = SolidColorBrush(segments.Color)} |> Some
             
             elif minimumShowablePercentage > percent && percent >= visiblePercentageLimit then
             
-                {Percentage.Percent = minimumShowablePercentage; Stroke = wallet.Stroke} |> Some
+                {Percentage.Percent = minimumShowablePercentage; Stroke = SolidColorBrush(segments.Color)} |> Some
             
             else 
                 None
 
         let pies =  
-            wallets |> Seq.choose innerNormalize//List.choose innerNormalize
+            segments |> Seq.choose innerNormalize//List.choose innerNormalize
 
 
         
@@ -114,34 +118,22 @@ module HoopChart =
 
         result
 
-    let beautifyAmount (wallet:seq<Wallet>) =
+    let beautifyAmount (wallet:seq<SegmentInfo>) =
         
         let total = 
-            wallet |> Seq.sumBy(fun x -> x.CryptoValue)
+            wallet |> Seq.sumBy(fun x -> x.Amount)
+        let format = if total - floor(total) < 0.01m then "N0" else "N2"
         
-        let value = total.ToString()
-        let mutable balance = value
-        let mutable digits = balance.Length
-
-        let place = 4 
-        
-
-
-        for digit in 1..digits do
-            if place*digit <= digits then
-                
-                balance <- balance.Insert(digits+1-place*digit,",")
-                digits <- balance.Length
-
-        balance
+        total.ToString(format, CultureInfo.InvariantCulture)
 
 
 
-    let makePies (grid:Grid) (wallet:seq<Wallet>) =
+    let makePies (segments: seq<SegmentInfo>) : Grid =
     
         let mutable arcAngle = 0.
-        let slices = Seq.length(wallet)
-        let pies  = Normalize wallet
+        let slices = Seq.length(segments)
+        let pies  = Normalize segments
+        let grid = Grid(HorizontalOptions = LayoutOptions.Center)
         
         for pie in pies do
 
@@ -188,25 +180,113 @@ module HoopChart =
 
                 grid.Children.Add(path)                          
 
+        grid
 
 
 
 
-
-    let create (wallet:seq<Wallet>) = 
-          
-   
+    let create (wallet:seq<SegmentInfo>) = 
+        
         let beautifiedAmount = beautifyAmount wallet
         let grid = Grid()
-        let approx = Label( Text = "~", FontSize = 25., HorizontalOptions = LayoutOptions.Center, TranslationY = 160., TranslationX = -40.)
-        let balance = Label( Text = beautifiedAmount, FontSize = 25., HorizontalOptions = LayoutOptions.Center, TranslationY = 160., TranslationX = 0.)            
-        let currency = Label( Text = "U.S.D.", FontSize = 24., HorizontalOptions = LayoutOptions.Center, TranslationY = 160., TranslationX = 65.)        
-        let total_tag = Label( Text = "Amount Balance", FontSize = 15., HorizontalOptions = LayoutOptions.Center, TranslationY = 200.)
+        let balanceString = "~ " + beautifiedAmount + " U.S.D."
+        let balance = 
+            Label( 
+                Text = balanceString, 
+                FontSize = 25., 
+                HorizontalOptions = LayoutOptions.Center, 
+                VerticalOptions = LayoutOptions.Center,
+                TranslationX = centerX / 2.0)            
+        let total_tag = 
+            Label( 
+                Text = "Amount Balance", 
+                FontSize = 15., 
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                TranslationY = 40.0, 
+                TranslationX = centerX / 2.0)
 
-        grid.Children.Add(approx)
         grid.Children.Add(balance)
-        grid.Children.Add(currency)
         grid.Children.Add(total_tag)
 
-        makePies grid wallet
+        let pies = makePies wallet
+        grid.Children.Add(pies)
+
         grid
+
+
+
+type HoopChartView() =
+    inherit ContentView()
+
+    static let segmentsSourceProperty =
+        BindableProperty.Create("SegmentsSource",
+                                typeof<seq<SegmentInfo>>, typeof<HoopChartView>, null) 
+    static let defaultImageSourceProperty =
+        BindableProperty.Create("DefaultImageSource",
+                                typeof<ImageSource>, typeof<HoopChartView>, null)
+
+    static member SegmentsSourceProperty = segmentsSourceProperty
+    static member DefaultImageSourceProperty = defaultImageSourceProperty
+
+    member self.SegmentsSource
+        with get () = self.GetValue segmentsSourceProperty :?> seq<SegmentInfo>
+        and set (value: seq<SegmentInfo>) = self.SetValue(segmentsSourceProperty, value)
+
+    member self.DefaultImageSource
+        with get () = self.GetValue defaultImageSourceProperty :?> ImageSource
+        and set (value: ImageSource) = self.SetValue(defaultImageSourceProperty, value)
+
+    member private self.CreateAndSetImageSource (imageSource : ImageSource) =
+        let image =
+            Image (
+                HorizontalOptions = LayoutOptions.FillAndExpand,
+                VerticalOptions = LayoutOptions.FillAndExpand,
+                Aspect = Aspect.AspectFit,
+                Source = imageSource
+            )
+        self.Content <- image
+
+    member self.Draw () =
+        let width = 
+            if base.WidthRequest > 0. then 
+                base.WidthRequest 
+            else 
+                base.Width
+        let height = 
+            if base.HeightRequest > 0. then
+                base.HeightRequest 
+            else 
+                base.Height
+
+        if width <= 0. || 
+           height <= 0. || 
+           not base.IsVisible then
+            ()
+        else
+            let nonZeroItems =
+                if self.SegmentsSource <> null then
+                    self.SegmentsSource.Where(fun s -> s.Amount > 0.0m) |> Some
+                else
+                    None
+
+            match nonZeroItems with
+            | None -> ()
+            | Some items when items.Any() ->
+                let chart = HoopChart.create items
+                chart.MinimumWidthRequest <- width
+                chart.MinimumHeightRequest <- height
+                self.Content <- chart
+            | Some _ ->
+                self.CreateAndSetImageSource self.DefaultImageSource
+
+    override self.OnPropertyChanged(propertyName: string) =
+        base.OnPropertyChanged(propertyName)
+        if propertyName = VisualElement.HeightProperty.PropertyName ||
+           propertyName = VisualElement.WidthProperty.PropertyName ||
+           propertyName = VisualElement.HeightRequestProperty.PropertyName || 
+           propertyName = VisualElement.WidthRequestProperty.PropertyName || 
+           propertyName = VisualElement.IsVisibleProperty.PropertyName ||
+           propertyName = HoopChartView.SegmentsSourceProperty.PropertyName ||
+           propertyName = HoopChartView.DefaultImageSourceProperty.PropertyName then
+            self.Draw()
