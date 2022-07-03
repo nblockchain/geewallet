@@ -94,7 +94,6 @@
     </Compile>
     <Compile Include="FrontendHelpers.fs" />
     <Compile Include="GlobalState.fs" />
-    <Compile Include="Controls\CircleChartView.fs" />
     <Compile Include="HoopChart.fs" />
     <Compile Include="PairingFromPage.xaml.fs">
       <DependentUpon>PairingFromPage.xaml</DependentUpon>

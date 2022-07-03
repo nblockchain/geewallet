@@ -94,10 +94,7 @@ module HoopChart =
 
         let pies =  
             segments |> Seq.choose innerNormalize//List.choose innerNormalize
-
-
         
-
         let wholePie = 
             pies |> Seq.sumBy(fun x -> x.Percent)
 
@@ -117,15 +114,6 @@ module HoopChart =
 
 
         result
-
-    let beautifyAmount (wallet:seq<SegmentInfo>) =
-        
-        let total = 
-            wallet |> Seq.sumBy(fun x -> x.Amount)
-        let format = if total - floor(total) < 0.01m then "N0" else "N2"
-        
-        total.ToString(format, CultureInfo.InvariantCulture)
-
 
 
     let makePies (segments: seq<SegmentInfo>) : Grid =
@@ -185,39 +173,47 @@ module HoopChart =
 
 
 
-    let create (wallet:seq<SegmentInfo>) = 
-        
-        let beautifiedAmount = beautifyAmount wallet
-        let grid = Grid()
-        let balanceString = "~ " + beautifiedAmount + " U.S.D."
-        let balance = 
-            Label( 
-                Text = balanceString, 
-                FontSize = 25., 
-                HorizontalOptions = LayoutOptions.Center, 
-                VerticalOptions = LayoutOptions.Center,
-                TranslationX = centerX / 2.0)            
-        let total_tag = 
-            Label( 
-                Text = "Amount Balance", 
-                FontSize = 15., 
-                HorizontalOptions = LayoutOptions.Center,
-                VerticalOptions = LayoutOptions.Center,
-                TranslationY = 40.0, 
-                TranslationX = centerX / 2.0)
-
-        grid.Children.Add(balance)
-        grid.Children.Add(total_tag)
-
-        let pies = makePies wallet
-        grid.Children.Add(pies)
-
-        grid
-
-
-
 type HoopChartView() =
     inherit ContentView()
+
+    let balanceLabel = 
+        Label( 
+            Text = "...", 
+            HorizontalTextAlignment = TextAlignment.Center,
+            FontSize = 25.)
+            
+    let balanceTagLabel = 
+        Label( 
+            Text = "Amount Balance", 
+            FontSize = 15., 
+            HorizontalOptions = LayoutOptions.Center,
+            VerticalOptions = LayoutOptions.Center)
+    
+    let balanceFrame = 
+        let frame = 
+            // we add {V|H}Options=Center* not only to the Label, as a workaround to
+            // https://github.com/xamarin/Xamarin.Forms/issues/4655
+            Frame(
+                HasShadow=false,
+                BackgroundColor=Color.Transparent,
+                BorderColor=Color.Transparent,
+                HorizontalOptions = LayoutOptions.Center, 
+                VerticalOptions = LayoutOptions.Center,
+                TranslationX = HoopChart.centerX / 2.0,
+                TranslationY = HoopChart.centerY / 2.0,
+                Padding=Thickness(0.0),
+                Margin=Thickness(0.0))
+        let stackLayout = 
+            StackLayout(
+                Orientation=StackOrientation.Vertical,
+                VerticalOptions=LayoutOptions.CenterAndExpand,
+                HorizontalOptions=LayoutOptions.Center,
+                Margin=Thickness(0.0))
+        stackLayout.Children.Add(balanceLabel)
+        stackLayout.Children.Add(balanceTagLabel)
+        frame.Content <- stackLayout
+
+        frame
 
     static let segmentsSourceProperty =
         BindableProperty.Create("SegmentsSource",
@@ -236,6 +232,9 @@ type HoopChartView() =
     member self.DefaultImageSource
         with get () = self.GetValue defaultImageSourceProperty :?> ImageSource
         and set (value: ImageSource) = self.SetValue(defaultImageSourceProperty, value)
+
+    member self.BalanceLabel = balanceLabel
+    member self.BalanceFrame = balanceFrame
 
     member private self.CreateAndSetImageSource (imageSource : ImageSource) =
         let image =
@@ -273,9 +272,13 @@ type HoopChartView() =
             match nonZeroItems with
             | None -> ()
             | Some items when items.Any() ->
-                let chart = HoopChart.create items
-                chart.MinimumWidthRequest <- width
-                chart.MinimumHeightRequest <- height
+                let chart = Grid(MinimumWidthRequest = width, MinimumHeightRequest = height)
+                let pies = HoopChart.makePies items
+                // It's important that balanceFrame is added after pie chart, 
+                // because otherwise balanceFrame's input events are blocked
+                chart.Children.Add(pies)
+                chart.Children.Add(balanceFrame)
+
                 self.Content <- chart
             | Some _ ->
                 self.CreateAndSetImageSource self.DefaultImageSource
