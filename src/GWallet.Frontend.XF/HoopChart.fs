@@ -16,7 +16,7 @@ type SegmentInfo =
         Color: Color
         Amount: decimal
     }
-type Percentage =  { mutable Percent: double;  Stroke: Brush } 
+type Percentage =  { Percent: double;  Stroke: Brush } 
 
 
 module HoopChart =
