@@ -184,7 +184,7 @@ type HoopChartView() =
             
     let balanceTagLabel = 
         Label( 
-            Text = "Amount Balance", 
+            Text = "Total Assets:", 
             FontSize = 15., 
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center)
@@ -209,8 +209,8 @@ type HoopChartView() =
                 VerticalOptions=LayoutOptions.CenterAndExpand,
                 HorizontalOptions=LayoutOptions.Center,
                 Margin=Thickness(0.0))
-        stackLayout.Children.Add(balanceLabel)
         stackLayout.Children.Add(balanceTagLabel)
+        stackLayout.Children.Add(balanceLabel)
         frame.Content <- stackLayout
 
         frame
