@@ -26,7 +26,7 @@ type RpcErrorCode =
     | UnknownBlockNumber = -32602
     | GatewayTimeout = -32050
     | EmptyResponse = -32042
-
+    | DailyRequestCountExceededSoRequestRateLimited = -32005
 
 type ServerCannotBeResolvedException =
     inherit CommunicationUnsuccessfulException
