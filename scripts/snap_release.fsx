@@ -97,14 +97,19 @@ else
     | GitHub ->
         let snapcraftLoginEnvVarValue = Environment.GetEnvironmentVariable "SNAPCRAFT_LOGIN"
         if String.IsNullOrEmpty snapcraftLoginEnvVarValue then
-            failwith "SNAPCRAFT_LOGIN-prefixed env var not found; note: manual logging for release has been disabled, only automated CI jobs can upload now"
-        File.WriteAllText(snapcraftLoginFileName, snapcraftLoginEnvVarValue)
+            if orgOrUsername = "nblockchain" && repoName = "geewallet" then
+                failwith "SNAPCRAFT_LOGIN env var not found; note: manual logging for release has been disabled, only automated CI jobs can upload now"
+            else
+                // this must be a fork, do nothing
+                Console.WriteLine "SNAPCRAFT_LOGIN not found in likely GitHub fork repo, skipping log-in"
+        else
+            File.WriteAllText(snapcraftLoginFileName, snapcraftLoginEnvVarValue)
     | _ ->
         if orgOrUsername = "nblockchain" && repoName = "geewallet" then
             failwith "In the case of GitLab, the 'snapcraft.login' file should already be here, copied by the docker scripts to the docker container"
         else
             // this must be a fork, do nothing
-            ()
+            Console.WriteLine "snapcraft.login file not found in likely GitLab fork repo, skipping log-in"
 
 Console.WriteLine "Checking if this is a tag commit..."
 
