@@ -123,6 +123,7 @@ module ServerRegistry =
             // as these servers can only serve very limited set of queries (e.g. only balance?) their stats are skewed and
             // they create exception when being queried for advanced ones (e.g. latest block)
             server.ServerInfo.NetworkPath.Contains "blockscout" ||
+            server.ServerInfo.NetworkPath.Contains "nodes.mewapi.io/rpc/eth" ||
 
             // there was a mistake when adding this server to geewallet's JSON: it was added in the ETC currency instead of ETH
             (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethrpc.mewapi.io")
