@@ -1,3 +1,7 @@
 @ECHO OFF
 
-CALL scripts\fsi.bat scripts\configure.fsx %*
+IF NOT EXIST "scripts\fsx\Tools\fsi.bat" (
+    git submodule sync --recursive && git submodule update --init --recursive
+)
+echo FsxRunner=scripts\fsx\Tools\fsi.bat > scripts\build.config
+CALL scripts\fsx\Tools\fsi.bat scripts\configure.fsx %*

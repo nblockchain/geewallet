@@ -3350,31 +3350,6 @@
     "ETH": [
       {
         "ServerInfo": {
-          "NetworkPath": "nodes.mewapi.io/rpc/eth",
-          "ConnectionType": {
-            "Encrypted": true,
-            "Protocol": {
-              "Case": "Http"
-            }
-          }
-        },
-        "CommunicationHistory": {
-          "Case": "Some",
-          "Fields": [
-            {
-              "Item1": {
-                "TimeSpan": "00:00:00.3579232",
-                "Status": {
-                  "Case": "Success"
-                }
-              },
-              "Item2": "2022-04-16T12:53:11.606748Z"
-            }
-          ]
-        }
-      },
-      {
-        "ServerInfo": {
           "NetworkPath": "cloudflare-eth.com/",
           "ConnectionType": {
             "Encrypted": true,

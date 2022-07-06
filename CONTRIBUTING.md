@@ -175,8 +175,12 @@ Fixes https://gitlab.com/nblockchain/geewallet/issues/45
 [1] http://foo.bar/baz
 ```
 
-As you can see, the example above would be for a commit message that fixes
-the issue #45. **Area** usually refers to the project name, but without the need
+As you can see, writing a commit message is generally like writing an e-mail: it
+has a title at the top which is normally a short sentence (but not ended with a
+dot, like most titles), and a body that starts in the 3rd line and which contains
+one or many paragraphs (each ending with a dot, as it's text in prose). In
+particular, the example above would be for a commit message that fixes the
+issue #45. **Area** usually refers to the project name, but without the need
 to include the `GWallet` prefix (for example changing the `GWallet.Backend`
 project would mean you only use `Backend` as area). The **Sub-area** may refer
 to a folder or module inside the area, but it's not a strict mapping.

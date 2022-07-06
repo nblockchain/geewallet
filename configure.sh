@@ -31,7 +31,7 @@ else
                     exit 1
                 fi
                 echo "Populating sub-fsx module..."
-                git submodule update --init
+                git submodule sync --recursive && git submodule update --init --recursive
             fi
 
             # fsharpi is broken in Ubuntu 19.04/19.10/20.04 ( https://github.com/fsharp/fsharp/issues/740 )

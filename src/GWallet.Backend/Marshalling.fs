@@ -150,9 +150,13 @@ module Marshalling =
 
     let ExtractType(json: string): Type =
         let wrapper = JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json
-        if Object.ReferenceEquals(null, wrapper) then
-            failwith <| SPrintF1 "Failed to extract type from JSON: %s" json
-        Type.GetType wrapper.TypeName
+        if Object.ReferenceEquals(wrapper, null) then
+            failwith <| SPrintF1 "Failed to extract type from JSON (null check): %s" json
+        try
+            Type.GetType wrapper.TypeName
+        with
+        | :? NullReferenceException as _nre ->
+            failwith <| SPrintF1 "Failed to extract type from JSON (NRE): %s" json
 
     // FIXME: should we rather use JContainer.Parse? it seems JObject.Parse wouldn't detect error in this: {A:{"B": 1}}
     //        (for more info see replies of https://stackoverflow.com/questions/6903477/need-a-string-json-validator )

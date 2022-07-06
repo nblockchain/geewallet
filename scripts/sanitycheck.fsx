@@ -227,7 +227,7 @@ let SanityCheckNugetPackages () =
                         FsxHelper.NugetSolutionPackagesDir.Name
                         FsxHelper.NugetSolutionPackagesDir.FullName
                 )
-                Console.Error.WriteLine "Forgot to `git submodule update --init`?"
+                Console.Error.WriteLine "Maybe you forgot to issue the commands `git submodule sync --recursive && git submodule update --init --recursive`?"
                 Environment.Exit 1
 
             seq {
