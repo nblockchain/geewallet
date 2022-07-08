@@ -542,7 +542,7 @@ module LayerTwo =
                         | _ -> ()
 
                         Console.WriteLine "Waiting for funder to connect..."
-                        let! receiveLightningEventRes = Lightning.Network.ReceiveLightningEvent nodeServer channelId
+                        let! receiveLightningEventRes = Lightning.Network.ReceiveLightningEvent nodeServer channelId true
                         match receiveLightningEventRes with
                         | Error nodeReceiveLightningEventError ->
                             let currency = (account :> IAccount).Currency
@@ -550,10 +550,15 @@ module LayerTwo =
                             do! MaybeForceCloseChannel (Node.Server nodeServer) currency channelId nodeReceiveLightningEventError
                         | Ok msg ->
                             match msg with
-                            | IncomingChannelEvent.HtlcPayment wasSuccess when wasSuccess ->
-                                Console.WriteLine "Payment received."
-                            | IncomingChannelEvent.HtlcPayment _ ->
-                                Console.WriteLine "Payment failed gracefully, funds has been returned to funder."
+                            | IncomingChannelEvent.HtlcPayment status ->
+                                match status with
+                                | HTLCSettleStatus.Success ->
+                                    Console.WriteLine "Payment received."
+                                | HTLCSettleStatus.Fail ->
+                                    Console.WriteLine "Payment failed gracefully, funds has been returned to funder."
+                                | HTLCSettleStatus.NotSettled ->
+                                    Console.WriteLine "This should not happen beacuse ReceiveLightningEvent's settleHTLCImmediately is true in Frontend"
+                                
                             | IncomingChannelEvent.MonoHopUnidirectionalPayment ->
                                 Console.WriteLine "Payment received."
                             | IncomingChannelEvent.Shutdown ->

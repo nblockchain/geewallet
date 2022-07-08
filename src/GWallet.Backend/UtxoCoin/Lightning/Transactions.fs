@@ -1,5 +1,8 @@
 ﻿namespace GWallet.Backend.UtxoCoin.Lightning
 
+open NBitcoin
+open DotNetLightning.Channel.ClosingHelpers
+
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
 
@@ -40,3 +43,23 @@ type RecoveryTx =
         Tx: UtxoTransaction
         Fee: MinerFee
     }
+
+type HtlcTx =
+    {
+        ChannelId: ChannelIdentifier
+        Currency: Currency
+        Tx: UtxoTransaction
+        Fee: MinerFee
+    }
+
+type HtlcTxsList =
+    {
+        ChannelId: ChannelIdentifier
+        ClosingTx: Transaction
+        Currency: Currency
+        Transactions: list<HtlcTransaction>
+        Done: bool
+    }
+
+    member self.IsEmpty () =
+        Seq.isEmpty self.Transactions

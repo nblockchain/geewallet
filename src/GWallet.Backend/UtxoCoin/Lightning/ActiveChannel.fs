@@ -23,6 +23,11 @@ type HtlcSettleFailReason =
     | RequiredChannelFeatureMissing
     | BadFinalPayload
 
+type HTLCSettleStatus =
+    | Success
+    | Fail
+    | NotSettled
+
 type internal LockFundingError =
     | FundingNotConfirmed of FundedChannel * BlockHeightOffset32
     | FundingOnChainLocationUnknown of FundedChannel
@@ -1007,7 +1012,7 @@ and internal ActiveChannel =
             | Ok activeChannelAfterCommitSent -> return Ok activeChannelAfterCommitSent
     }
 
-    member internal self.FailHtlc (id: HTLCId) (reason: HtlcSettleFailReason) : Async<Result<ActiveChannel * bool, RecvHtlcPaymentError>> =
+    member internal self.FailHtlc (id: HTLCId) (reason: HtlcSettleFailReason) : Async<Result<ActiveChannel * HTLCSettleStatus, RecvHtlcPaymentError>> =
         async {
             let connectedChannel = self.ConnectedChannel
             let channelWrapper = connectedChannel.Channel
@@ -1075,10 +1080,10 @@ and internal ActiveChannel =
                     let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
                     match activeChannelAfterCommitReceivedRes with
                     | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
-                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, false)
+                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, HTLCSettleStatus.Fail)
         }
 
-    member internal self.FailMalformedHtlc (htlc: UpdateAddHTLCMsg) (cryptoError: CryptoError) : Async<Result<ActiveChannel * bool, RecvHtlcPaymentError>> =
+    member internal self.FailMalformedHtlc (htlc: UpdateAddHTLCMsg) (cryptoError: CryptoError) : Async<Result<ActiveChannel * HTLCSettleStatus, RecvHtlcPaymentError>> =
         async {
             let connectedChannel = self.ConnectedChannel
             let channelWrapper = connectedChannel.Channel
@@ -1129,11 +1134,11 @@ and internal ActiveChannel =
                     let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
                     match activeChannelAfterCommitReceivedRes with
                     | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
-                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, false)
+                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, HTLCSettleStatus.Fail)
         }
 
     member internal self.SettleIncomingHtlc (updateAddHTLCMsg: UpdateAddHTLCMsg)
-                                                              : Async<Result<ActiveChannel * bool, RecvHtlcPaymentError>> = async {
+                                                              : Async<Result<ActiveChannel * HTLCSettleStatus, RecvHtlcPaymentError>> = async {
         let connectedChannel = self.ConnectedChannel
         let channelWrapper = connectedChannel.Channel
         let peerNode = connectedChannel.PeerNode
@@ -1211,7 +1216,7 @@ and internal ActiveChannel =
                                     let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
                                     match activeChannelAfterCommitReceivedRes with
                                     | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
-                                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, true)
+                                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, HTLCSettleStatus.Success)
                         else
                             return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.IncorrectPaymentAmount
                 | _ ->
@@ -1220,8 +1225,8 @@ and internal ActiveChannel =
                 return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.RequiredChannelFeatureMissing
     }
 
-    member internal self.RecvHtlcPayment (updateAddHTLCMsg: UpdateAddHTLCMsg)
-                                                              : Async<Result<ActiveChannel * bool, RecvHtlcPaymentError>> = async {
+    member internal self.RecvHtlcPayment (updateAddHTLCMsg: UpdateAddHTLCMsg) (settleImmediately: bool)
+                                                              : Async<Result<ActiveChannel * HTLCSettleStatus, RecvHtlcPaymentError>> = async {
         let connectedChannel = self.ConnectedChannel
         let channelWrapper = connectedChannel.Channel
         let currency = (connectedChannel.Account :> IAccount).Currency
@@ -1269,8 +1274,10 @@ and internal ActiveChannel =
             let! activeChannelAfterCommitSentRes = activeChannelAfterCommitReceived.SendCommit()
             match activeChannelAfterCommitSentRes with
             | Error err -> return Error <| RecvHtlcPaymentError.SendCommit err
-            | Ok activeChannelAfterCommitSent ->
+            | Ok activeChannelAfterCommitSent when settleImmediately ->
                 return! activeChannelAfterCommitSent.SettleIncomingHtlc updateAddHTLCMsg
+            | Ok activeChannelAfterCommitSent ->
+                return Ok (activeChannelAfterCommitSent, HTLCSettleStatus.NotSettled)
     }
 
     member internal self.AcceptUpdateFee (): Async<Result<ActiveChannel, AcceptUpdateFeeError>> = async {

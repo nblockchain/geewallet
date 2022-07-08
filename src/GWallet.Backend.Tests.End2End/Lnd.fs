@@ -224,7 +224,7 @@ type Lnd = {
         | err -> return Error err
     }
 
-    member self.CloseChannel (fundingOutPoint: OutPoint)
+    member self.CloseChannel (fundingOutPoint: OutPoint) (force: bool)
         : Async<unit> =
         async {
             let client = self.Client()
@@ -233,7 +233,7 @@ type Lnd = {
             try
                 let! _response =
                     Async.AwaitTask
-                    <| client.SwaggerClient.CloseChannelAsync(fundingTxIdStr, int64 fundingOutputIndex)
+                    <| client.SwaggerClient.CloseChannelAsync(fundingTxIdStr, int64 fundingOutputIndex, force)
                 return ()
             with
             | ex ->

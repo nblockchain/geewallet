@@ -90,6 +90,7 @@
     <Compile Include="UtxoCoin\Lightning\ForceCloseTransaction.fs" />
     <Compile Include="UtxoCoin\Lightning\BreachDataManagement.fs" />
     <Compile Include="UtxoCoin\Lightning\InvoiceManagement.fs" />
+    <Compile Include="UtxoCoin\Lightning\HtlcDataManagement.fs" />
     <Compile Include="UtxoCoin\Lightning\Watcher\TowerClient.fs" />
     <Compile Include="UtxoCoin\Lightning\Network.fs" />
     <Compile Include="UtxoCoin\Lightning\MsgStream.fs" />

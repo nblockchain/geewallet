@@ -246,6 +246,7 @@ type internal ConnectedChannel =
             NodeTransportType = self.PeerNode.NodeTransportType
             RecoveryTxIdOpt = None
             ClosingTimestampUtc = self.ClosingTimestampUtc
+            HtlcDelayedTxs = List.empty
         }
         channelStore.SaveChannel serializedChannel
 

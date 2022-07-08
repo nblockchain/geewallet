@@ -66,6 +66,7 @@ type SerializedChannel =
         ForceCloseTxIdOpt: Option<TransactionIdentifier>
         LocalChannelPubKeys: ChannelPubKeys
         RecoveryTxIdOpt: Option<TransactionIdentifier>
+        HtlcDelayedTxs: List<TransactionIdentifier>
         NodeTransportType: NodeTransportType
         ClosingTimestampUtc: Option<DateTime>
     }

@@ -410,6 +410,26 @@ module ChannelManager =
             return txId
         }
 
+    let BroadcastHtlcTxAndAddToWatchList
+        (htlcTx: HtlcTx)
+        (channelStore: ChannelStore)
+        : Async<string>
+        =
+        async {
+            let channelPreRecovery = channelStore.LoadChannel htlcTx.ChannelId
+            let! txId =
+                UtxoCoin.Account.BroadcastRawTransaction
+                    htlcTx.Currency
+                    (htlcTx.Tx.ToString())
+            let channelAfterRecovery =
+                { channelPreRecovery with
+                    HtlcDelayedTxs =
+                        htlcTx.Tx.Id :: channelPreRecovery.HtlcDelayedTxs
+                }
+            channelStore.SaveChannel channelAfterRecovery
+            return txId
+        }
+
     let CheckForConfirmedRecovery
         (channelStore: ChannelStore)
         (_channelId: ChannelIdentifier)

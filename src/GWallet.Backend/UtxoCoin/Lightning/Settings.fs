@@ -85,7 +85,7 @@ module Settings =
                 | LTC -> 200UL
                 | _ -> failwith "Unsupported currency"
                 |> Money
-            MaxHTLCValueInFlightMSat = LNMoney 1000000000L
+            MaxHTLCValueInFlightMSat = LNMoney.FromMoney funding
             ChannelReserveSatoshis = funding * Config.ChannelReservePercentage / 100L
             HTLCMinimumMSat = LNMoney 1000L
             // see https://github.com/lightning/bolts/blob/master/02-peer-protocol.md#the-open_channel-message
