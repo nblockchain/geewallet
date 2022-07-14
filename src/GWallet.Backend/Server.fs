@@ -124,6 +124,11 @@ module ServerRegistry =
             // they create exception when being queried for advanced ones (e.g. latest block)
             server.ServerInfo.NetworkPath.Contains "blockscout" ||
 
+            // Blockstream electrum servers doesn't support sending verbose transactions, we use this functionality
+            // for getting confirmations of a transaction, this causes geewallet to crash. See:
+            // https://github.com/Blockstream/electrs/pull/36
+            server.ServerInfo.NetworkPath.Contains "blockstream" ||
+
             // there was a mistake when adding this server to geewallet's JSON: it was added in the ETC currency instead of ETH
             (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethrpc.mewapi.io")
 
