@@ -111,7 +111,10 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             | Some warning ->
                 async {
                     do!
-                        this.DisplayAlert("Alert", warning, "OK")
+                        (fun () ->
+                            this.DisplayAlert("Alert", warning, "OK")
+                        )
+                        |> Device.InvokeOnMainThreadAsync
                         |> Async.AwaitTask
                 }
             | None ->
@@ -138,9 +141,9 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             async {
                 let! mainThreadSynchContext =
                     Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+                do! Async.SwitchToContext mainThreadSynchContext
                 let! continueAnyway = Async.AwaitTask displayTask
                 if continueAnyway then
-                    do! Async.SwitchToContext mainThreadSynchContext
                     do! submit()
                     return ()
                 else
@@ -149,8 +152,12 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         else
             submit () |> FrontendHelpers.DoubleCheckCompletionAsync false
 
-    member this.OnMoreInfoButtonClicked(_sender: Object, _args: EventArgs) =
+    member private this.DisplayInfo() =
         this.DisplayAlert("Info", "Please note that geewallet is a brain-wallet, which means that this personal information is not registered in any server or any location outside your device, not even saved in your device. It will just be combined and hashed to generate a unique secret which is called a 'private key' which will allow you to recover your funds if you install the application again (in this or other device) later. \r\n\r\n(If it is your first time using this wallet and just want to test it quickly without any funds or low amounts, you can just input any data that is long enough to be considered valid.)", "OK")
+
+    member this.OnMoreInfoButtonClicked(_sender: Object, _args: EventArgs) =
+        this.DisplayInfo
+        |> Device.InvokeOnMainThreadAsync
         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     member __.OnOkButtonClicked(_sender: Object, _args: EventArgs) =
