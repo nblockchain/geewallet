@@ -14,7 +14,7 @@ namespace GWallet.Frontend.XF.Android
 {
 	
 	
-	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Xamarin.Android.Build.Tasks", "12.2.4.160")]
+	[global::System.CodeDom.Compiler.GeneratedCodeAttribute("Xamarin.Android.Build.Tasks", "12.2.8.165")]
 	public partial class Resource
 	{
 		
