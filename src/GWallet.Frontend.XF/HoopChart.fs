@@ -24,11 +24,8 @@ type HoopChartView() =
 
     let mutable state = Uninitialized
 
-    let referenceHoopRadius = 100.0
-    let hoopStrokeThickness = 5.0 // make a property?
-
     // Child UI elements
-    let balanceLabel = Label(HorizontalTextAlignment = TextAlignment.Center, FontSize = 25.0)
+    let balanceLabel = Label(HorizontalTextAlignment = TextAlignment.Center, FontSize = 25.0, MaxLines=1)
     let balanceTagLabel = 
         Label( 
             Text = "Account Balance", 
@@ -65,7 +62,7 @@ type HoopChartView() =
             Aspect = Aspect.AspectFit
         )
 
-    let hoop = AbsoluteLayout()
+    let hoop = Grid()
 
     // Properties
     static let segmentsSourceProperty =
@@ -86,15 +83,20 @@ type HoopChartView() =
 
     member this.BalanceLabel = balanceLabel
     member this.BalanceFrame = balanceFrame
+
+    // Layout properties
+    member this.MinimumChartSize = 200.0
+    member this.MinimumLogoSize = 50.0
+    member this.HoopStrokeThickness = 5.0
     
     // Chart shapes
-    member private this.GetHoopShapes(segments: seq<SegmentInfo>) : seq<Shape> =
+    member private this.GetHoopShapes(segments: seq<SegmentInfo>, radius: float) : seq<Shape> =
         // not using actual data for now
         let deg2rad angle = System.Math.PI * (angle / 180.0)
-        let rSmall = hoopStrokeThickness/2.0
-        let r = referenceHoopRadius - rSmall
+        let minorRadius = this.HoopStrokeThickness/2.0
+        let r = radius - minorRadius
         let angleToPoint angle =
-            Point(cos (deg2rad angle) * r + r + rSmall, sin (deg2rad angle) * r + r + rSmall)
+            Point(cos (deg2rad angle) * r + radius, sin (deg2rad angle) * r + radius)
         seq { 
             for angle in 0.0 .. 90.0 .. 360.0 do
                 let startPoint = angleToPoint angle
@@ -108,9 +110,13 @@ type HoopChartView() =
                 geom.Figures.Add(figure)
                 path.Data <- geom
                 path.Stroke <- SolidColorBrush(Color.FromHsv(angle/360.0, 0.7, 0.8))
-                path.StrokeThickness <- hoopStrokeThickness
+                path.StrokeThickness <- this.HoopStrokeThickness
                 yield path 
         }
+    
+    member private this.RepopulateHoop(segments, sideLength) =
+        hoop.Children.Clear()
+        this.GetHoopShapes(segments, sideLength / 2.0) |> Seq.iter hoop.Children.Add
 
     // Layout
     override this.LayoutChildren(x, y, width, height) = 
@@ -119,7 +125,7 @@ type HoopChartView() =
         | Empty -> 
             let bounds = Rectangle.FromLTRB(x, y, x + width, y + height)
             defaultImage.Layout(bounds)
-        | NonEmpty(_) -> 
+        | NonEmpty(segments) -> 
             let smallerSide = min width height
             let dx = (max 0.0 (width - smallerSide)) / 2.0
             let dy = (max 0.0 (height - smallerSide)) / 2.0
@@ -127,22 +133,22 @@ type HoopChartView() =
 
             balanceFrame.Layout(bounds)
 
-            hoop.AnchorX <- 0.0
-            hoop.AnchorY <- 0.0
-            hoop.Scale <- smallerSide / (referenceHoopRadius * 2.0)
+            if abs(hoop.Height - smallerSide) > 0.1 then
+                this.RepopulateHoop(segments, smallerSide)
+            
             hoop.Layout(bounds)
 
     override this.OnMeasure(widthConstraint, heightConstraint) =
-        let smallerRequestedSize = min widthConstraint heightConstraint |> min 200.0
-        let minWidth = 
+        let smallerRequestedSize = min widthConstraint heightConstraint |> min this.MinimumChartSize
+        let minSize = 
             match state with
             | Uninitialized -> 0.0
-            | Empty -> 50.0
+            | Empty -> this.MinimumLogoSize
             | NonEmpty(_) -> 
-                let sizeFactor = 1.1 // maybe calculate actual factor based on geometry?
-                balanceFrame.Measure(smallerRequestedSize, smallerRequestedSize).Request.Width * sizeFactor
-        let sizeToRequest = max smallerRequestedSize minWidth
-        SizeRequest(Size(sizeToRequest, sizeToRequest), Size(minWidth, minWidth))
+                let size = balanceLabel.Measure(smallerRequestedSize, smallerRequestedSize).Request
+                (sqrt(size.Width*size.Width + size.Height*size.Height) + this.HoopStrokeThickness) * 1.1
+        let sizeToRequest = max smallerRequestedSize minSize
+        SizeRequest(Size(sizeToRequest, sizeToRequest), Size(minSize, minSize))
     
     // Updates
     member private this.SetState(newState: HoopChartState) =
@@ -155,8 +161,8 @@ type HoopChartView() =
                 this.Children.Add(defaultImage)
             | NonEmpty(segments) ->
                 this.Children.Clear()
-                hoop.Children.Clear()
-                this.GetHoopShapes(segments) |> Seq.iter hoop.Children.Add
+                if this.Width > 0.0 && this.Height > 0.0 then
+                    this.RepopulateHoop(segments, min this.Width this.Height)
                 this.Children.Add(hoop)
                 this.Children.Add(balanceFrame)
 
