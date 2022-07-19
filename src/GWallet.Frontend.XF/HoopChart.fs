@@ -19,6 +19,13 @@ type private HoopChartState =
     | NonEmpty of seq<SegmentInfo>
 
 
+type private HoopSector =
+    {
+        Fraction: float
+        Color: Color
+    }
+
+
 type HoopChartView() =
     inherit Layout<View>()
 
@@ -87,32 +94,58 @@ type HoopChartView() =
     // Layout properties
     member this.MinimumChartSize = 200.0
     member this.MinimumLogoSize = 50.0
-    member this.HoopStrokeThickness = 5.0
+    member this.HoopStrokeThickness = 7.5
     
     // Chart shapes
     member private this.GetHoopShapes(segments: seq<SegmentInfo>, radius: float) : seq<Shape> =
-        // not using actual data for now
         let deg2rad angle = System.Math.PI * (angle / 180.0)
-        let minorRadius = this.HoopStrokeThickness/2.0
+        let t = this.HoopStrokeThickness
+        let minorRadius = t/2.0
         let r = radius - minorRadius
         let angleToPoint angle =
             Point(cos (deg2rad angle) * r + radius, sin (deg2rad angle) * r + radius)
-        seq { 
-            for angle in 0.0 .. 90.0 .. 360.0 do
-                let startPoint = angleToPoint angle
-                let endPoint = angleToPoint (angle + 90.0)
+        
+        let l = r * System.Math.PI * 2.0
+        let spacingFraction = t / l * 0.75
+
+        let visibleSectors =
+            let sum = segments |> Seq.sumBy (fun x -> x.Amount)
+            segments |> Seq.choose (fun x -> 
+                let fraction = float(x.Amount / sum)
+                if fraction >= spacingFraction then
+                    Some({ Fraction=fraction; Color=x.Color })
+                else 
+                    None)
+
+        let normalizedSectors =
+            let sum = visibleSectors |> Seq.sumBy (fun x -> x.Fraction)
+            visibleSectors |> Seq.map (fun x -> { x with Fraction=x.Fraction/sum })
+
+        let spacingAngle = 360.0 * spacingFraction
+        let angles =
+            normalizedSectors
+            |> Seq.scan (fun currAngle sector -> currAngle + (360.0 * sector.Fraction)) 0.0
+        let anglePairs = Seq.append (Seq.pairwise angles) (Seq.singleton ((Seq.last angles), 360.0))
+        
+        Seq.map2
+            (fun sector (startAngle, endAngle) ->
+                let startPoint = angleToPoint (startAngle + spacingAngle)
+                let endPoint = angleToPoint (endAngle - spacingAngle)
+                let arcAngle = endAngle - startAngle - spacingAngle*2.0
                 let path = Path()
                 let geom = PathGeometry()
                 let figure = PathFigure()
                 figure.StartPoint <- startPoint
-                let segment = ArcSegment(endPoint, Size(r, r), 90.0, SweepDirection.Clockwise, false)
+                let segment = ArcSegment(endPoint, Size(r, r), arcAngle, SweepDirection.Clockwise, arcAngle > 180.0)
                 figure.Segments.Add(segment)
                 geom.Figures.Add(figure)
                 path.Data <- geom
-                path.Stroke <- SolidColorBrush(Color.FromHsv(angle/360.0, 0.7, 0.8))
-                path.StrokeThickness <- this.HoopStrokeThickness
-                yield path 
-        }
+                path.Stroke <- SolidColorBrush(sector.Color)
+                path.StrokeThickness <- t
+                path.StrokeLineCap <- PenLineCap.Round
+                path :> Shape)
+            normalizedSectors
+            anglePairs
     
     member private this.RepopulateHoop(segments, sideLength) =
         hoop.Children.Clear()
