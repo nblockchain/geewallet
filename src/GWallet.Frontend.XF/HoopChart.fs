@@ -99,21 +99,21 @@ type HoopChartView() =
     // Chart shapes
     member private this.GetHoopShapes(segments: seq<SegmentInfo>, radius: float) : seq<Shape> =
         let deg2rad angle = System.Math.PI * (angle / 180.0)
-        let t = this.HoopStrokeThickness
-        let minorRadius = t/2.0
-        let r = radius - minorRadius
+        let thickness = this.HoopStrokeThickness
+        let minorRadius = thickness/2.0
+        let circleRadius = radius - minorRadius
         let angleToPoint angle =
-            Point(cos (deg2rad angle) * r + radius, sin (deg2rad angle) * r + radius)
+            Point(cos (deg2rad angle) * circleRadius + radius, sin (deg2rad angle) * circleRadius + radius)
         
-        let l = r * System.Math.PI * 2.0
-        let spacingFraction = t / l * 0.75
+        let circleLength = circleRadius * System.Math.PI * 2.0
+        let spacingFraction = thickness / circleLength * 0.75
 
         let visibleSectors =
-            let sum = segments |> Seq.sumBy (fun x -> x.Amount)
-            segments |> Seq.choose (fun x -> 
-                let fraction = float(x.Amount / sum)
+            let sum = segments |> Seq.sumBy (fun each -> each.Amount)
+            segments |> Seq.choose (fun segment -> 
+                let fraction = float(segment.Amount / sum)
                 if fraction >= spacingFraction then
-                    Some({ Fraction=fraction; Color=x.Color })
+                    Some({ Fraction=fraction; Color=segment.Color })
                 else 
                     None)
 
@@ -136,12 +136,12 @@ type HoopChartView() =
                 let geom = PathGeometry()
                 let figure = PathFigure()
                 figure.StartPoint <- startPoint
-                let segment = ArcSegment(endPoint, Size(r, r), arcAngle, SweepDirection.Clockwise, arcAngle > 180.0)
+                let segment = ArcSegment(endPoint, Size(circleRadius, circleRadius), arcAngle, SweepDirection.Clockwise, arcAngle > 180.0)
                 figure.Segments.Add(segment)
                 geom.Figures.Add(figure)
                 path.Data <- geom
                 path.Stroke <- SolidColorBrush(sector.Color)
-                path.StrokeThickness <- t
+                path.StrokeThickness <- thickness
                 path.StrokeLineCap <- PenLineCap.Round
                 path :> Shape)
             normalizedSectors
