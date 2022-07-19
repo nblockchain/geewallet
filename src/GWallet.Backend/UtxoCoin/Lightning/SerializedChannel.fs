@@ -117,7 +117,7 @@ type SerializedChannel =
         let fee =
             if self.IsFunder() then
                 let feeRate = self.SavedChannelState.LocalCommit.Spec.FeeRatePerKw
-                let weight = COMMITMENT_TX_BASE_WEIGHT
+                let weight = self.SavedChannelState.StaticChannelConfig.Type.CommitmentFormat.CommitWeight
                 LNMoney.FromMoney <| feeRate.CalculateFeeFromWeight weight
             else
                 LNMoney.Zero
