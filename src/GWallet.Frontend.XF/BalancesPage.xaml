@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:GWallet.Frontend.XF"
-             xmlns:fsharp="clr-namespace:Frontend.FSharp"
+             xmlns:local="clr-namespace:GWallet.Frontend.XF" 
+             xmlns:controls="clr-namespace:GWallet.Frontend.XF.Controls"
              x:Class="GWallet.Frontend.XF.BalancesPage">
     <StackLayout x:Name="mainLayout"
                  Padding="0,0,0,0"
@@ -14,11 +14,11 @@
                      VerticalOptions="FillAndExpand"
                      HorizontalOptions="FillAndExpand">         
 
-            <fsharp:HoopChartView x:Name="normalChartView"
+            <controls:HoopChartView x:Name="normalChartView"
                                      HorizontalOptions="FillAndExpand"
                                      VerticalOptions="FillAndExpand"/>
 
-            <fsharp:HoopChartView x:Name="readonlyChartView"
+            <controls:HoopChartView x:Name="readonlyChartView"
                                      IsVisible="False"
                                      HorizontalOptions="FillAndExpand"
                                      VerticalOptions="FillAndExpand"/>

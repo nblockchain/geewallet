@@ -9,8 +9,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
+    <Compile Include="Controls\HoopChart.fs" />
     <Folder Include="img\" />
-    <Folder Include="Controls\" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\img\btc_grey_60x60.png">
@@ -93,7 +93,6 @@
       <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
     <Compile Include="FrontendHelpers.fs" />
-    <Compile Include="HoopChart.fs" />
     <Compile Include="GlobalState.fs" />
     <Compile Include="PairingFromPage.xaml.fs">
       <DependentUpon>PairingFromPage.xaml</DependentUpon>

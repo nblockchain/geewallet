@@ -11,7 +11,7 @@ open Xamarin.Essentials
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
-open Frontend.FSharp
+open GWallet.Frontend.XF.Controls
 
 
 // this type allows us to represent the idea that if we have, for example, 3 LTC and an unknown number of ETC (might

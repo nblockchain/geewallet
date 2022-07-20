@@ -1,9 +1,8 @@
-﻿namespace Frontend.FSharp
+﻿namespace GWallet.Frontend.XF.Controls
 
 
 open Xamarin.Forms
 open Xamarin.Forms.Shapes
-
 
 
 type SegmentInfo = 
@@ -24,6 +23,10 @@ type private HoopSector =
         Fraction: float
         Color: Color
     }
+    with
+        static member Create(fraction: float, color: Color) =
+            assert(fraction >= 0.0 && fraction <= 1.0)
+            { Fraction = fraction; Color = color }
 
 
 type HoopChartView() =
@@ -35,7 +38,7 @@ type HoopChartView() =
     let balanceLabel = Label(HorizontalTextAlignment = TextAlignment.Center, FontSize = 25.0, MaxLines=1)
     let balanceTagLabel = 
         Label( 
-            Text = "Account Balance", 
+            Text = "Total Assets:", 
             FontSize = 15.0, 
             HorizontalOptions = LayoutOptions.Center,
             VerticalOptions = LayoutOptions.Center,
@@ -57,8 +60,8 @@ type HoopChartView() =
                 VerticalOptions = LayoutOptions.CenterAndExpand,
                 HorizontalOptions = LayoutOptions.Center
             )
-        stackLayout.Children.Add(balanceTagLabel)
-        stackLayout.Children.Add(balanceLabel)
+        stackLayout.Children.Add balanceTagLabel
+        stackLayout.Children.Add balanceLabel
         frame.Content <- stackLayout
 
         frame
@@ -115,13 +118,13 @@ type HoopChartView() =
             segments |> Seq.choose (fun segment -> 
                 let fraction = float(segment.Amount / sum)
                 if fraction >= spacingFraction then
-                    Some({ Fraction=fraction; Color=segment.Color })
+                    Some(HoopSector.Create(fraction, segment.Color))
                 else 
                     None)
 
         let normalizedSectors =
-            let sum = visibleSectors |> Seq.sumBy (fun x -> x.Fraction)
-            visibleSectors |> Seq.map (fun x -> { x with Fraction=x.Fraction/sum })
+            let sum = visibleSectors |> Seq.sumBy (fun each -> each.Fraction)
+            visibleSectors |> Seq.map (fun each -> { each with Fraction = each.Fraction/sum })
 
         let spacingAngle = 360.0 * spacingFraction
         let angles =
@@ -134,17 +137,18 @@ type HoopChartView() =
                 let startPoint = angleToPoint (startAngle + spacingAngle/2.0)
                 let endPoint = angleToPoint (endAngle - spacingAngle/2.0)
                 let arcAngle = endAngle - startAngle - spacingAngle
-                let path = Path()
                 let geom = PathGeometry()
-                let figure = PathFigure()
-                figure.StartPoint <- startPoint
+                let figure = PathFigure(StartPoint = startPoint)
                 let segment = ArcSegment(endPoint, Size(circleRadius, circleRadius), arcAngle, SweepDirection.Clockwise, arcAngle > 180.0)
                 figure.Segments.Add(segment)
                 geom.Figures.Add(figure)
-                path.Data <- geom
-                path.Stroke <- SolidColorBrush(sector.Color)
-                path.StrokeThickness <- thickness
-                path.StrokeLineCap <- PenLineCap.Round
+                let path = 
+                    Path(
+                        Data = geom, 
+                        Stroke = SolidColorBrush(sector.Color), 
+                        StrokeThickness = thickness, 
+                        StrokeLineCap = PenLineCap.Round
+                    )
                 path :> Shape)
             normalizedSectors
             anglePairs
@@ -154,24 +158,24 @@ type HoopChartView() =
         this.GetHoopShapes(segments, sideLength / 2.0) |> Seq.iter hoop.Children.Add
 
     // Layout
-    override this.LayoutChildren(x, y, width, height) = 
+    override this.LayoutChildren(xCoord, yCoord, width, height) = 
         match state with
         | Uninitialized -> ()
         | Empty -> 
-            let bounds = Rectangle.FromLTRB(x, y, x + width, y + height)
-            emptyStateWidget.Layout(bounds)
+            let bounds = Rectangle.FromLTRB(xCoord, yCoord, xCoord + width, yCoord + height)
+            emptyStateWidget.Layout bounds
         | NonEmpty(segments) -> 
             let smallerSide = min width height
-            let dx = (max 0.0 (width - smallerSide)) / 2.0
-            let dy = (max 0.0 (height - smallerSide)) / 2.0
-            let bounds = Rectangle.FromLTRB(x + dx, y + dy, x + dx + smallerSide, y + dy + smallerSide)
+            let xOffset = (max 0.0 (width - smallerSide)) / 2.0
+            let yOffset = (max 0.0 (height - smallerSide)) / 2.0
+            let bounds = Rectangle.FromLTRB(xCoord + xOffset, yCoord + yOffset, xCoord + xOffset + smallerSide, yCoord + yOffset + smallerSide)
 
-            balanceFrame.Layout(bounds)
+            balanceFrame.Layout bounds
 
             if abs(hoop.Height - smallerSide) > 0.1 then
                 this.RepopulateHoop(segments, smallerSide)
             
-            hoop.Layout(bounds)
+            hoop.Layout bounds
 
     override this.OnMeasure(widthConstraint, heightConstraint) =
         let smallerRequestedSize = min widthConstraint heightConstraint |> min this.MinimumChartSize
@@ -179,9 +183,10 @@ type HoopChartView() =
             match state with
             | Uninitialized -> 0.0
             | Empty -> this.MinimumLogoSize
-            | NonEmpty(_) -> 
+            | NonEmpty _ -> 
                 let size = balanceLabel.Measure(smallerRequestedSize, smallerRequestedSize).Request
-                (sqrt(size.Width*size.Width + size.Height*size.Height) + this.HoopStrokeThickness) * 1.1
+                let factor = 1.1 // to add som visual space between label and chart
+                (sqrt(size.Width*size.Width + size.Height*size.Height) + this.HoopStrokeThickness) * factor
         let sizeToRequest = max smallerRequestedSize minSize
         SizeRequest(Size(sizeToRequest, sizeToRequest), Size(minSize, minSize))
     
@@ -194,21 +199,21 @@ type HoopChartView() =
             | Empty ->
                 this.Children.Clear()
                 emptyStateWidget.Children.Clear()
-                emptyStateWidget.Children.Add(balanceFrame)
-                emptyStateWidget.Children.Add(defaultImage)
-                this.Children.Add(emptyStateWidget)
+                emptyStateWidget.Children.Add balanceFrame
+                emptyStateWidget.Children.Add defaultImage
+                this.Children.Add emptyStateWidget
             | NonEmpty(segments) ->
                 this.Children.Clear()
                 if this.Width > 0.0 && this.Height > 0.0 then
                     this.RepopulateHoop(segments, min this.Width this.Height)
-                this.Children.Add(hoop)
-                this.Children.Add(balanceFrame)
+                this.Children.Add hoop
+                this.Children.Add balanceFrame
 
     member private this.UpdateChart() =
         let nonZeroSegments =
             match this.SegmentsSource with
             | null -> Seq.empty
-            | segments -> segments |> Seq.filter (fun x -> x.Amount > 0.0m)
+            | segments -> segments |> Seq.filter (fun segment -> segment.Amount > 0.0m)
 
         if nonZeroSegments |> Seq.isEmpty |> not then
             this.SetState(NonEmpty(nonZeroSegments))
@@ -216,7 +221,7 @@ type HoopChartView() =
             this.SetState(Empty)
 
     override this.OnPropertyChanged(propertyName: string) =
-        base.OnPropertyChanged(propertyName)
+        base.OnPropertyChanged propertyName
         if propertyName = HoopChartView.SegmentsSourceProperty.PropertyName then
             this.UpdateChart()
         elif propertyName = HoopChartView.DefaultImageSourceProperty.PropertyName then
