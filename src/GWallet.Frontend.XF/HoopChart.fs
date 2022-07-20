@@ -106,7 +106,7 @@ type HoopChartView() =
             Point(cos (deg2rad angle) * circleRadius + radius, sin (deg2rad angle) * circleRadius + radius)
         
         let circleLength = circleRadius * System.Math.PI * 2.0
-        let spacingFraction = thickness / circleLength * 0.75
+        let spacingFraction = thickness / circleLength * 1.5
 
         let visibleSectors =
             let sum = segments |> Seq.sumBy (fun each -> each.Amount)
@@ -125,13 +125,13 @@ type HoopChartView() =
         let angles =
             normalizedSectors
             |> Seq.scan (fun currAngle sector -> currAngle + (360.0 * sector.Fraction)) 0.0
-        let anglePairs = Seq.append (Seq.pairwise angles) (Seq.singleton ((Seq.last angles), 360.0))
+        let anglePairs = Seq.pairwise angles
         
         Seq.map2
             (fun sector (startAngle, endAngle) ->
-                let startPoint = angleToPoint (startAngle + spacingAngle)
-                let endPoint = angleToPoint (endAngle - spacingAngle)
-                let arcAngle = endAngle - startAngle - spacingAngle*2.0
+                let startPoint = angleToPoint (startAngle + spacingAngle/2.0)
+                let endPoint = angleToPoint (endAngle - spacingAngle/2.0)
+                let arcAngle = endAngle - startAngle - spacingAngle
                 let path = Path()
                 let geom = PathGeometry()
                 let figure = PathFigure()
@@ -202,7 +202,7 @@ type HoopChartView() =
     member private this.UpdateChart() =
         let nonZeroSegments =
             match this.SegmentsSource with
-            | null ->  Seq.empty
+            | null -> Seq.empty
             | segments -> segments |> Seq.filter (fun x -> x.Amount > 0.0m)
 
         if nonZeroSegments |> Seq.isEmpty |> not then
