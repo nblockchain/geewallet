@@ -48,7 +48,8 @@ type HoopChartView() =
                 HasShadow = false,
                 BackgroundColor = Color.Transparent,
                 BorderColor = Color.Transparent,
-                Padding = Thickness(0.0)
+                Padding = Thickness(0.0),
+                HorizontalOptions = LayoutOptions.CenterAndExpand
             )
         let stackLayout = 
             StackLayout(
@@ -70,6 +71,7 @@ type HoopChartView() =
         )
 
     let hoop = Grid()
+    let emptyStateWidget = StackLayout(Orientation = StackOrientation.Horizontal)
 
     // Properties
     static let segmentsSourceProperty =
@@ -157,7 +159,7 @@ type HoopChartView() =
         | Uninitialized -> ()
         | Empty -> 
             let bounds = Rectangle.FromLTRB(x, y, x + width, y + height)
-            defaultImage.Layout(bounds)
+            emptyStateWidget.Layout(bounds)
         | NonEmpty(segments) -> 
             let smallerSide = min width height
             let dx = (max 0.0 (width - smallerSide)) / 2.0
@@ -191,7 +193,10 @@ type HoopChartView() =
             | Uninitialized -> failwith "Invalid state"
             | Empty ->
                 this.Children.Clear()
-                this.Children.Add(defaultImage)
+                emptyStateWidget.Children.Clear()
+                emptyStateWidget.Children.Add(balanceFrame)
+                emptyStateWidget.Children.Add(defaultImage)
+                this.Children.Add(emptyStateWidget)
             | NonEmpty(segments) ->
                 this.Children.Clear()
                 if this.Width > 0.0 && this.Height > 0.0 then
