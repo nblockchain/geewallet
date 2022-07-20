@@ -40,13 +40,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let normalAccountsBalanceSets = normalBalanceStates.Select(fun balState -> balState.BalanceSet)
     let readOnlyAccountsBalanceSets = readOnlyBalanceStates.Select(fun balState -> balState.BalanceSet)
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
-    let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
-    let totalReadOnlyFiatAmountLabel = mainLayout.FindByName<Label> "totalReadOnlyFiatAmountLabel"
-    let totalFiatAmountFrame = mainLayout.FindByName<Frame> "totalFiatAmountFrame"
-    let totalReadOnlyFiatAmountFrame = mainLayout.FindByName<Frame> "totalReadOnlyFiatAmountFrame"
     let contentLayout = base.FindByName<StackLayout> "contentLayout"
-    let normalChartView = base.FindByName<CircleChartView> "normalChartView"
-    let readonlyChartView = base.FindByName<CircleChartView> "readonlyChartView"
+    let normalChartView = base.FindByName<HoopChartView> "normalChartView"
+    let readonlyChartView = base.FindByName<HoopChartView> "readonlyChartView"
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
@@ -75,7 +71,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                            (Formatting.DecimalAmountRounding CurrencyType.Fiat atLeastAmount)
                            (FrontendHelpers.MaybeReturnOutdatedMarkForOldDate time)
 
-        totalFiatAmountLabel.Text <- SPrintF1 "Total Assets:\n%s" strBalance
+        totalFiatAmountLabel.Text <- strBalance
 
     let rec UpdateGlobalFiatBalance (acc: Option<MaybeCached<TotalBalance>>)
                                     (fiatBalances: List<MaybeCached<decimal>>)
@@ -164,18 +160,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 readonlyChartView
             else
                 normalChartView
-        let fullAmount = balances.Sum(fun b -> GetAmountOrDefault b.FiatAmount)
-
+        
         let chartSourceList = 
             balances |> Seq.map (fun balanceState ->
-                 let percentage = 
-                     if fullAmount = 0m then
-                         0m
-                     else
-                         GetAmountOrDefault balanceState.FiatAmount / fullAmount
                  { 
                      Color = FrontendHelpers.GetCryptoColor balanceState.BalanceSet.Account.Currency
-                     Percentage = float(percentage)
+                     Amount = GetAmountOrDefault balanceState.FiatAmount
                  }
             )
         chartView.SegmentsSource <- chartSourceList
@@ -302,7 +292,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                 None
 
         let readOnlyAccountsBalanceUpdate =
-            this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel true
+            this.UpdateGlobalBalance state readOnlyBalancesJob readonlyChartView.BalanceLabel true
 
         let allCancelSources,allBalanceUpdates =
             if (not onlyReadOnlyAccounts) then
@@ -313,7 +303,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                         None
 
                 let normalAccountsBalanceUpdate =
-                    this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel false
+                    this.UpdateGlobalBalance state normalBalancesJob normalChartView.BalanceLabel false
 
                 let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
 
@@ -389,12 +379,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             cancelSource.Dispose()
 
     member private this.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
-        let totalCurrentFiatAmountFrameName,totalOtherFiatAmountFrameName =
-            if readOnly then
-                "totalReadOnlyFiatAmountFrame","totalFiatAmountFrame"
-            else
-                "totalFiatAmountFrame","totalReadOnlyFiatAmountFrame"
-
         let currentChartViewName,otherChartViewName =
             if readOnly then
                 "readonlyChartView","normalChartView"
@@ -403,13 +387,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
         let switchingToReadOnly = not readOnly
 
-        let totalCurrentFiatAmountFrame,totalOtherFiatAmountFrame =
-            mainLayout.FindByName<Frame> totalCurrentFiatAmountFrameName,
-            mainLayout.FindByName<Frame> totalOtherFiatAmountFrameName
-
         let currentChartView,otherChartView =
-            mainLayout.FindByName<CircleChartView> currentChartViewName,
-            mainLayout.FindByName<CircleChartView> otherChartViewName
+            mainLayout.FindByName<HoopChartView> currentChartViewName,
+            mainLayout.FindByName<HoopChartView> otherChartViewName
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Add(fun _ ->
@@ -422,9 +402,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
             if shouldNotOpenNewPage then
                 Device.BeginInvokeOnMainThread(fun _ ->
-                    totalCurrentFiatAmountFrame.IsVisible <- false
                     currentChartView.IsVisible <- false
-                    totalOtherFiatAmountFrame.IsVisible <- true
                     otherChartView.IsVisible <- true
                 )
                 let balancesStatesToPopulate =
@@ -461,7 +439,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         FrontendHelpers.SwitchToNewPage this page true
 
         )
-        totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
+        currentChartView.BalanceFrame.GestureRecognizers.Add tapGestureRecognizer
         tapGestureRecognizer
 
     member this.PopulateGridInitially () =
@@ -479,11 +457,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let labels,color =
             if readOnly then
                 let color = Color.DarkBlue
-                totalReadOnlyFiatAmountLabel.TextColor <- color
+                readonlyChartView.BalanceLabel.TextColor <- color
                 readOnlyAccountsBalanceSets,color
             else
                 let color = Color.DarkRed
-                totalFiatAmountLabel.TextColor <- color
+                normalChartView.BalanceLabel.TextColor <- color
                 normalAccountsBalanceSets,color
 
         for balanceSet in labels do
@@ -524,8 +502,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
             this.PopulateGridInitially ()
 
-            this.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances totalFiatAmountLabel
-            this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances totalReadOnlyFiatAmountLabel
+            this.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances normalChartView.BalanceLabel
+            this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances readonlyChartView.BalanceLabel
         )
 
         this.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync false
