@@ -27,18 +27,18 @@ over `Foo []`.
 `singleton` function of the List/Array/Seq modules, instead of the less verbose
 (and easy to misinterpret, e.g. think it's a list when it's an array, or
 viceversa): `[ oneItem ]` or `[| oneItem |]`. (If inside a match case, then
-rather use `oneItem::List.Empty` instead of `[oneItem].)
+rather use `oneItem::List.Empty` instead of `[oneItem]`.)
 * We prefer the generic notation `Foo<Bar>` rather than `Bar Foo` (see
 https://github.com/fsprojects/fantomas/issues/712 ).
 * We prefer to not use the shadowing practice, even if the F# compiler allows it
 (not to confuse shadowing with mutation, which is also discouraged anyway).
-* We prefer to write parenthesis only when strictly necessary (e.g. in F# they
+* We prefer to write parentheses only when strictly necessary (e.g. in F# they
 are not required for `if` clauses, unlike C#) or for readability purposes (e.g.
 when it's not clear what operator would be applied first, as not everyone knows
 the rules of the language for default operator precedence by heart).
 * Whenever possible, we prefer to use currified arguments (instead of tuples),
 should we need to use F# partial application.
-* We avoid to write the keyword `new` for instances of non-IDisposable types.
+* We avoid writing the keyword `new` for instances of non-IDisposable types.
 * When dealing with `Option<Foo>` elements, we consider it's much safer to use
 `match` patterns (or the functions `Option.iter` and `Option.exists`) instead
 of using the less safe approaches  `x.IsSome && x.Value = ...` or
@@ -119,7 +119,7 @@ structures.
 with `Job`, and variables with `Task<'T>` should be suffixed with `Task`.
 * When adding NUnit tests, don't use `[<Test>]let Foo` and naked `module Bar`
 syntax, but `[<Test>]member __.Foo` and `[<TestFixture>]type Bar()` (note the
-parenthesis, as it's an important bit), otherwise the tests might not run in
+parentheses, as it's an important bit), otherwise the tests might not run in
 all platforms.
 * When dealing with exceptions in async{} code, we prefer normal try-with
 blocks instead of using `Async.Catch`, because the latter incentivizes the
