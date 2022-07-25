@@ -138,19 +138,20 @@ type HoopChartView() =
                 let endPoint = angleToPoint (endAngle - spacingAngle/2.0)
                 let arcAngle = endAngle - startAngle - spacingAngle
                 let path =
-                    if arcAngle / 360.0 * circleLength < 1.0 then // Workaround for Android where very small arcs wouldn't render
+                    // Workaround for Android where very small arcs wouldn't render
+                    if arcAngle / 360.0 * circleLength < 1.0 then 
                         let midPoint = Point((startPoint.X + endPoint.X) / 2.0, (startPoint.Y + endPoint.Y) / 2.0)
                         let geom = EllipseGeometry(midPoint, thickness/2.0, thickness/2.0)
-                        Path(Data = geom, Fill = SolidColorBrush(sector.Color))
+                        Path(Data = geom, Fill = SolidColorBrush sector.Color)
                     else
                         let geom = PathGeometry()
                         let figure = PathFigure(StartPoint = startPoint)
                         let segment = ArcSegment(endPoint, Size(circleRadius, circleRadius), arcAngle, SweepDirection.Clockwise, arcAngle > 180.0)
-                        figure.Segments.Add(segment)
-                        geom.Figures.Add(figure)
+                        figure.Segments.Add segment
+                        geom.Figures.Add figure
                         Path(
                             Data = geom, 
-                            Stroke = SolidColorBrush(sector.Color), 
+                            Stroke = SolidColorBrush sector.Color, 
                             StrokeThickness = thickness, 
                             StrokeLineCap = PenLineCap.Round
                         )
