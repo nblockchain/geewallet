@@ -2,7 +2,6 @@
 
 open System
 open System.Linq
-open System.Threading
 open System.Threading.Tasks
 
 open Xamarin.Forms
@@ -55,8 +54,6 @@ module FrontendHelpers =
     let internal BigFontSize = 22.
 
     let internal MediumFontSize = 20.
-
-    let internal MagicGtkNumber = 20.
 
     let private defaultFiatCurrency = "USD"
 

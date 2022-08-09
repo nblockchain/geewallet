@@ -14,7 +14,7 @@ module Initialization =
         Infrastructure.SetupExceptionHook ()
 
     let internal LandingPage(): NavigationPage =
-        let state = GlobalInit ()
+        GlobalInit ()
 
         let accounts = Account.GetAllActiveAccounts()
         let landingPage:Page =
