@@ -372,9 +372,9 @@ type LN() =
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel-closing inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: channel-closing inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -403,9 +403,9 @@ type LN() =
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Monohop-sending inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: monohop-sending inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -434,9 +434,9 @@ type LN() =
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel-closing inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: channel-closing inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -445,9 +445,9 @@ type LN() =
             do! SendMonoHopPayments clientWallet channelId fundingAmount
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Channel-closing inconclusive because sending of monohop payments failed, fix this first: %s"
+                    "Inconclusive: channel-closing inconclusive because sending of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -498,9 +498,9 @@ type LN() =
                 OpenChannelWithFundee None
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel-closing inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: channel-closing inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -553,9 +553,9 @@ type LN() =
                 AcceptChannelFromLndFunder ()
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel-closing inconclusive because Channel accept failed, fix this first: %s"
+                        "Inconclusive: channel-closing inconclusive because Channel accept failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -617,9 +617,9 @@ type LN() =
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel local-force-closing inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: channel local-force-closing inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -628,9 +628,9 @@ type LN() =
             do! SendMonoHopPayments clientWallet channelId fundingAmount
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Channel local-force-closing inconclusive because sending of monohop payments failed, fix this first: %s"
+                    "Inconclusive: channel local-force-closing inconclusive because sending of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -692,9 +692,9 @@ type LN() =
                 AcceptChannelFromGeewalletFunder ()
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel local-force-closing inconclusive because Channel accept failed, fix this first: %s"
+                        "Inconclusive: channel local-force-closing inconclusive because Channel accept failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -703,9 +703,9 @@ type LN() =
             do! ReceiveMonoHopPayments serverWallet channelId
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Channel remote-force-closing inconclusive because receiving of monohop payments failed, fix this first: %s"
+                    "Inconclusive: channel remote-force-closing inconclusive because receiving of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -721,9 +721,9 @@ type LN() =
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel remote-force-closing inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: channel remote-force-closing inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -732,9 +732,9 @@ type LN() =
             do! SendMonoHopPayments clientWallet channelId fundingAmount
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Channel remote-force-closing inconclusive because sending of monohop payments failed, fix this first: %s"
+                    "Inconclusive: channel remote-force-closing inconclusive because sending of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -806,9 +806,9 @@ type LN() =
                 AcceptChannelFromGeewalletFunder ()
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel remote-force-closing inconclusive because Channel accept failed, fix this first: %s"
+                        "Inconclusive: channel remote-force-closing inconclusive because Channel accept failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -817,9 +817,9 @@ type LN() =
             do! ReceiveMonoHopPayments serverWallet channelId
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Channel remote-force-closing inconclusive because receiving of monohop payments failed, fix this first: %s"
+                    "Inconclusive: channel remote-force-closing inconclusive because receiving of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -860,9 +860,9 @@ type LN() =
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel remote-force-closing inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: channel remote-force-closing inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -871,9 +871,9 @@ type LN() =
             do! SendMonoHopPayments clientWallet channelId fundingAmount
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Channel remote-force-closing inconclusive because sending of monohop payments failed, fix this first: %s"
+                    "Inconclusive: channel remote-force-closing inconclusive because sending of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -938,9 +938,9 @@ type LN() =
                 AcceptChannelFromGeewalletFunder ()
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel remote-force-closing inconclusive because Channel accept failed, fix this first: %s"
+                        "Inconclusive: channel remote-force-closing inconclusive because Channel accept failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -949,9 +949,9 @@ type LN() =
             do! ReceiveMonoHopPayments serverWallet channelId
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Channel remote-force-closing inconclusive because receiving of monohop payments failed, fix this first: %s"
+                    "Inconclusive: channel remote-force-closing inconclusive because receiving of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -1263,9 +1263,9 @@ type LN() =
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "CPFP inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: CPFP inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -1274,9 +1274,9 @@ type LN() =
             do! SendMonoHopPayments clientWallet channelId fundingAmount
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "CPFP inconclusive because sending of monohop payments failed, fix this first: %s"
+                    "Inconclusive: CPFP inconclusive because sending of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -1309,9 +1309,9 @@ type LN() =
                 AcceptChannelFromGeewalletFunder ()
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel remote-force-closing inconclusive because Channel accept failed, fix this first: %s"
+                        "Inconclusive: channel remote-force-closing inconclusive because Channel accept failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -1320,9 +1320,9 @@ type LN() =
             do! ReceiveMonoHopPayments serverWallet channelId
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "CPFP inconclusive because receiving of monohop payments failed, fix this first: %s"
+                    "Inconclusive: CPFP inconclusive because receiving of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -1406,9 +1406,9 @@ type LN() =
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "UpdateFee message support inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: UpdateFee message support inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -1418,9 +1418,9 @@ type LN() =
             do! SendMonoHopPayments clientWallet channelId fundingAmount
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "UpdateFee message support inconclusive because sending of monohop payments failed, fix this first: %s"
+                    "Inconclusive: UpdateFee message support inconclusive because sending of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -1438,9 +1438,9 @@ type LN() =
             do! SendMonoHopPayments clientWallet channelId currentBalance
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Sending of monohop payments failed after UpdateFee message handling: %s"
+                    "Inconclusive: sending of monohop payments failed after UpdateFee message handling: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -1458,9 +1458,9 @@ type LN() =
                 AcceptChannelFromGeewalletFunder ()
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "UpdateFee message support inconclusive because Channel accept failed, fix this first: %s"
+                        "Inconclusive: UpdateFee message support inconclusive because Channel accept failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -1471,9 +1471,9 @@ type LN() =
             do! ReceiveMonoHopPayments serverWallet channelId
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "UpdateFee message support inconclusive because receiving of monohop payments failed, fix this first: %s"
+                    "Inconclusive: UpdateFee message support inconclusive because receiving of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -1487,9 +1487,9 @@ type LN() =
             do! ReceiveMonoHopPayments serverWallet channelId
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Receiving of monohop payments failed after UpdateFee message handling: %s"
+                    "Inconclusive: receiving of monohop payments failed after UpdateFee message handling: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -1510,9 +1510,9 @@ type LN() =
                 OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
             with
             | ex ->
-                Assert.Inconclusive (
+                Assert.Fail (
                     sprintf
-                        "Channel-closing inconclusive because Channel open failed, fix this first: %s"
+                        "Inconclusive: channel-closing inconclusive because Channel open failed, fix this first: %s"
                         (ex.ToString())
                 )
                 failwith "unreachable"
@@ -1521,9 +1521,9 @@ type LN() =
             do! SendMonoHopPayments clientWallet channelId fundingAmount
         with
         | ex ->
-            Assert.Inconclusive (
+            Assert.Fail (
                 sprintf
-                    "Channel-closing inconclusive because sending of monohop payments failed, fix this first: %s"
+                    "Inconclusive: channel-closing inconclusive because sending of monohop payments failed, fix this first: %s"
                     (ex.ToString())
             )
             failwith "unreachable"
@@ -1565,7 +1565,7 @@ type LN() =
                         return Ok (closingTx, mutualCpfp)
                     | _ -> return Error "CPFP tx creation failed"
                 | Tx (Full, _) ->
-                    Assert.Inconclusive "Closing tx got confirmed before we get a chance to create CPFP tx"
+                    Assert.Fail "Inconclusive: Closing tx got confirmed before we get a chance to create CPFP tx"
                     return Error "Closing tx got confirmed before we get a chance to create CPFP tx"
                 | _ ->
                     do! Async.Sleep 1000
