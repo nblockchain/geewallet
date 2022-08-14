@@ -218,20 +218,11 @@
     <Reference Include="System.IO.Pipelines">
       <HintPath>..\..\packages\System.IO.Pipelines.4.5.3\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
     </Reference>
-    <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\ZXing.Net.Mobile.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\zxing.portable.dll</HintPath>
-    </Reference>
     <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\ZXingNetMobile.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.9.99--date20220814-1008.git-a2aea05\lib\xamarinios10\ZXingNetMobile.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\ZXing.Net.Mobile.Forms.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms.iOS">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.iOS10\ZXing.Net.Mobile.Forms.iOS.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.9.99--date20220814-1008.git-a2aea05\lib\xamarinios10\ZXing.Net.Mobile.Forms.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\netstandard2.0\FSharp.Core.dll</HintPath>
@@ -291,10 +282,14 @@
       <HintPath>..\..\packages\HtmlAgilityPack.1.11.24\lib\netstandard2.0\HtmlAgilityPack.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Essentials">
-      <HintPath>..\..\packages\DotNetEssentials.1.5.99999--date20220728-1035.git-5b73a4b\lib\xamarinios10\Xamarin.Essentials.dll</HintPath>
+      <HintPath>..\..\packages\DotNetEssentials.1.6.0--date20220814-0324.git-7f6e466\lib\xamarinios10\Xamarin.Essentials.dll</HintPath>
     </Reference>
     <Reference Include="OpenTK-1.0" />
     <Reference Include="System.Numerics.Vectors" />
+    <Reference Include="System.Drawing.Common.dll" />
+    <Reference Include="zxing">
+      <HintPath>..\..\packages\ZXing.Net.0.16.6\lib\netstandard2.1\zxing.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <Import Project="..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
   <Import Project="..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets')" />

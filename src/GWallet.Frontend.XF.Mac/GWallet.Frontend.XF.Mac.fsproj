@@ -108,20 +108,11 @@
     <Reference Include="System.IO.Pipelines">
       <HintPath>..\..\packages\System.IO.Pipelines.4.5.3\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
     </Reference>
-    <Reference Include="ZXing.Net.Mobile.Core">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.Mac\ZXing.Net.Mobile.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="zxing.portable">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.Mac\zxing.portable.dll</HintPath>
-    </Reference>
     <Reference Include="ZXingNetMobile">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.Mac\ZXingNetMobile.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.2.9.99--date20220814-1008.git-a2aea05\lib\xamarinmac20\ZXingNetMobile.dll</HintPath>
     </Reference>
     <Reference Include="ZXing.Net.Mobile.Forms">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.Mac\ZXing.Net.Mobile.Forms.dll</HintPath>
-    </Reference>
-    <Reference Include="ZXing.Net.Mobile.Forms.macOS">
-      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.0.10.0-date20191006-0346.git-18fb927\lib\Xamarin.Mac\ZXing.Net.Mobile.Forms.macOS.dll</HintPath>
+      <HintPath>..\..\packages\ZXing.Net.Xamarin.Forms.2.9.99--date20220814-1008.git-a2aea05\lib\xamarinmac20\ZXing.Net.Mobile.Forms.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\netstandard2.0\FSharp.Core.dll</HintPath>
@@ -181,10 +172,15 @@
       <HintPath>..\..\packages\HtmlAgilityPack.1.11.24\lib\netstandard2.0\HtmlAgilityPack.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Essentials">
-      <HintPath>..\..\packages\DotNetEssentials.1.5.99999--date20220728-1035.git-5b73a4b\lib\xamarinmac20\Xamarin.Essentials.dll</HintPath>
+      <HintPath>..\..\packages\DotNetEssentials.1.6.0--date20220814-0324.git-7f6e466\lib\xamarinmac20\Xamarin.Essentials.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing.Common.dll" />
     <Reference Include="System.Numerics.Vectors" />
+    <Reference Include="OpenTK" />
+    <Reference Include="zxing">
+      <HintPath>..\..\packages\ZXing.Net.0.16.6\lib\netstandard2.1\zxing.dll</HintPath>
+    </Reference>
+    <Reference Include="netstandard" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Resources\" />
