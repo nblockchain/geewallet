@@ -23,6 +23,8 @@ type ReceivePage(account: IAccount,
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let paymentButton = mainLayout.FindByName<Button> "paymentButton"
+    let transactionHistoryButton =
+        mainLayout.FindByName<Button> "viewTransactionHistoryButton"
 
     let paymentCaption = "Send Payment"
     let paymentCaptionInColdStorage = "Signoff Payment Offline"
@@ -58,25 +60,11 @@ type ReceivePage(account: IAccount,
         balanceLabel.FontSize <- FrontendHelpers.BigFontSize
         fiatBalanceLabel.FontSize <- FrontendHelpers.MediumFontSize
 
-        let size = 200
-        let encodingOptions = EncodingOptions(Height = size,
-                                              Width = size)
-        let barCode = ZXingBarcodeImageView(HorizontalOptions = LayoutOptions.Center,
-                                            VerticalOptions = LayoutOptions.Center,
-                                            BarcodeFormat = BarcodeFormat.QR_CODE,
-                                            BarcodeValue = account.PublicAddress,
-                                            HeightRequest = float size,
-                                            WidthRequest = float size,
-                                            BarcodeOptions = encodingOptions)
-        mainLayout.Children.Add(barCode)
-
-        let transactionHistoryButton = Button(Text = "View transaction history...")
-        transactionHistoryButton.Clicked.Subscribe(fun _ ->
-            BlockExplorer.GetTransactionHistory account
-                |> Xamarin.Essentials.Launcher.OpenAsync
-                |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-        ) |> ignore
-        mainLayout.Children.Add(transactionHistoryButton)
+        let qrCode = mainLayout.FindByName<ZXingBarcodeImageView> "qrCode"
+        if isNull qrCode then
+            failwith "Couldn't find QR code"
+        qrCode.BarcodeValue <- account.PublicAddress
+        qrCode.IsVisible <- true
 
         let currentConnectivityInstance = Connectivity.NetworkAccess
         if currentConnectivityInstance = NetworkAccess.Internet then
@@ -103,6 +91,11 @@ type ReceivePage(account: IAccount,
         ) |> ignore
         mainLayout.Children.Add(backButton)
         //</workaround> (NOTE: this also exists in PairingFromPage.xaml.fs)
+
+    member __.OnViewTransactionHistoryClicked(_sender: Object, _args: EventArgs) =
+        BlockExplorer.GetTransactionHistory account
+            |> Xamarin.Essentials.Launcher.OpenAsync
+            |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     member this.OnSendPaymentClicked(sender: Object, args: EventArgs) =
         let newReceivePageFunc = (fun _ ->
