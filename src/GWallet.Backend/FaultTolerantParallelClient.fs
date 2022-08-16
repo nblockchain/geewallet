@@ -534,10 +534,23 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                 if (howManyFuncs < numberOfConsistentResponsesRequired) then
                     return raise(ArgumentException("number of funcs must be equal or higher than numberOfConsistentResponsesRequired",
                                                    "funcs"))
-            | AverageBetweenResponses(minimumNumberOfResponses,_) ->
-                if (int minimumNumberOfResponses > numberOfParallelJobsAllowed) then
-                    return raise(ArgumentException("numberOfParallelJobsAllowed should be equal or higher than minimumNumberOfResponses for the averageFunc",
-                                                   "settings"))
+            | AverageBetweenResponses(minimumNumberOfResponsesRequired, _) ->
+                if (int minimumNumberOfResponsesRequired) > numberOfParallelJobsAllowed then
+                    return raise
+                        <| ArgumentException(
+                            SPrintF2
+                                "numberOfParallelJobsAllowed (%i) should be equal or higher than minimumNumberOfResponsesRequired (%u) for the averageFunc"
+                                numberOfParallelJobsAllowed minimumNumberOfResponsesRequired,
+                            "settings"
+                        )
+                if (int minimumNumberOfResponsesRequired) > funcs.Length then
+                    return raise
+                        <| ArgumentException(
+                            SPrintF2
+                                "number of funcs (%i) should be equal or higher than minimumNumberOfResponsesRequired (%u) for the averageFunc"
+                                funcs.Length minimumNumberOfResponsesRequired,
+                            "funcs"
+                        )
             | OneServerConsistentWithCertainValueOrTwoServers _ ->
                 ()
         | _ -> ()

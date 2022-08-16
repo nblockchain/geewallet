@@ -1,6 +1,6 @@
 name: CI
 
-on: [push]
+on: [push, pull_request]
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
