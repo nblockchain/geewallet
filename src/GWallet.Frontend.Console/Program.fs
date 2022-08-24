@@ -401,7 +401,9 @@ let rec PerformOperation (activeAccounts: seq<IAccount>): unit =
     | Operations.AcceptChannel ->
         LayerTwo.AcceptChannel() |> Async.RunSynchronously
     | Operations.SendLightningPayment ->
-        LayerTwo.SendPayment() |> Async.RunSynchronously
+        LayerTwo.SendHtlcPayment() |> Async.RunSynchronously
+    | Operations.CreateInvoice ->
+        LayerTwo.CreateInvoice() |> Async.RunSynchronously
     | Operations.ReceiveLightningEvent ->
         LayerTwo.ReceiveLightningEvent() |> Async.RunSynchronously
     | Operations.CloseChannel ->
@@ -445,6 +447,7 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
 
 let rec ProgramMainLoop() =
     let activeAccounts = Account.GetAllActiveAccounts()
+
     let channelStatusJobs: seq<Async<unit -> Async<seq<string>>>> = LayerTwo.GetChannelStatuses activeAccounts
     let revokedTxCheckJobs: seq<Async<Option<string>>> =
         Lightning.ChainWatcher.CheckForChannelFraudsAndSendRevocationTx
@@ -456,6 +459,21 @@ let rec ProgramMainLoop() =
     let channelInfoInteractions, accountStatusesLines, _ =
         AsyncExtensions.MixedParallel3 channelInfoInteractionsJob displayAccountStatusesJob revokedTxCheckJob
         |> Async.RunSynchronously
+
+    let unresolvedHtlcsCheckJobs: seq<Async<bool>> =
+        Lightning.ChainWatcher.CheckForForceCloseAndSaveUnresolvedHtlcs
+        <| activeAccounts.OfType<UtxoCoin.NormalUtxoAccount>()
+    let unresolvedHtlcsCheckJob: Async<array<bool>> = Async.Parallel unresolvedHtlcsCheckJobs
+    unresolvedHtlcsCheckJob |> Async.RunSynchronously |> ignore<array<bool>>
+
+    LayerTwo.HandleReadyToResolveHtlc activeAccounts
+    |> Async.RunSynchronously
+
+    LayerTwo.HandleReadyToRecoverDelayedHtlcs activeAccounts
+    |> Async.RunSynchronously
+
+    //Rerun unresolved check
+    unresolvedHtlcsCheckJob |> Async.RunSynchronously |> ignore<array<bool>>
 
     Console.WriteLine ()
     Console.WriteLine "*** STATUS ***"

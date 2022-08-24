@@ -64,7 +64,7 @@ type ChannelStatus =
     | FundingBroadcastButNotLocked of FundingBroadcastButNotLockedData
     | Closing
     | LocallyForceClosed of LocallyForceClosedData
-    | RecoveryTxSent of TransactionIdentifier
+    | RecoveryTxSentOrNotNeeded of Option<TransactionIdentifier>
     | Active
 
 type ChannelInfo =
@@ -87,10 +87,14 @@ type ChannelInfo =
                                                      : ChannelInfo =
         let fundingTxId = TransactionIdentifier.FromHash (serializedChannel.FundingScriptCoin().Outpoint.Hash)
         let status =
-            match serializedChannel.RecoveryTxIdOpt with
-            | Some recoveryTxId ->
-                ChannelStatus.RecoveryTxSent recoveryTxId
-            | None ->
+            match serializedChannel.MainBalanceRecoveryStatus with
+            | RecoveryTxSent txId ->
+                txId
+                |> Some
+                |> ChannelStatus.RecoveryTxSentOrNotNeeded
+            | NotNeeded ->
+                ChannelStatus.RecoveryTxSentOrNotNeeded None
+            | Unresolved ->
                 match serializedChannel.ForceCloseTxIdOpt with
                 | Some forceCloseTxId ->
                     ChannelStatus.LocallyForceClosed {
@@ -217,9 +221,12 @@ type ChannelStore(account: NormalUtxoAccount) =
             self.ArchivedChannelsDir.Create()
         File.Move (srcFileName, destFileName)
 
-    member self.GetCommitmentTx (channelId: ChannelIdentifier): string =
+    member self.GetCommitmentTx (channelId: ChannelIdentifier): UtxoTransaction =
         let serializedChannel = self.LoadChannel channelId
-        serializedChannel.SavedChannelState.LocalCommit.PublishableTxs.CommitTx.Value.ToHex()
+        let nbitcoinTx = serializedChannel.SavedChannelState.LocalCommit.PublishableTxs.CommitTx.Value
+        {
+            NBitcoinTx = nbitcoinTx
+        }
 
     member self.TryGetClosingTimestampUtc (channelId: ChannelIdentifier): Option<DateTime> =
         let serializedChannel = self.LoadChannel channelId
@@ -312,7 +319,7 @@ type ChannelStore(account: NormalUtxoAccount) =
             | Some (spendingTx, spendingTxConfirmationsOpt) ->
 
                 let obscuredCommitmentNumberOpt =
-                    ForceCloseFundsRecovery.tryGetObscuredCommitmentNumber
+                    ClosingHelpers.tryGetObscuredCommitmentNumber
                         (serializedChannel.FundingScriptCoin().Outpoint)
                         spendingTx
 
@@ -385,6 +392,17 @@ module ChannelManager =
         let dummyAddr = NBitcoin.BitcoinWitScriptAddress (nullScriptId, network)
         UtxoCoin.Account.EstimateTransferFeeForDestination (account :?> IUtxoAccount) amount dummyAddr
 
+    let MarkRecoveryTxAsNotNeeded
+        (channelId: ChannelIdentifier)
+        (channelStore: ChannelStore)
+        =
+        let channelPreRecovery = channelStore.LoadChannel channelId
+        let channelAfterRecovery =
+            { channelPreRecovery with
+                MainBalanceRecoveryStatus = NotNeeded
+            }
+        channelStore.SaveChannel channelAfterRecovery
+
     let BroadcastRecoveryTxAndCloseChannel
         (recoveryTx: RecoveryTx)
         (channelStore: ChannelStore)
@@ -398,33 +416,66 @@ module ChannelManager =
                     (recoveryTx.Tx.ToString())
             let channelAfterRecovery =
                 { channelPreRecovery with
-                    RecoveryTxIdOpt =
+                    MainBalanceRecoveryStatus =
                         recoveryTx.Tx.NBitcoinTx.GetHash()
                         |> TransactionIdentifier.FromHash
-                        |> Some
+                        |> RecoveryTxSent
                 }
             channelStore.SaveChannel channelAfterRecovery
             return txId
         }
 
-    let CheckForConfirmedRecovery
+    let BroadcastHtlcRecoveryTxAndRemoveFromWatchList
+        (htlcRecoveryTx: HtlcRecoveryTx)
         (channelStore: ChannelStore)
-        (channelId: ChannelIdentifier)
-        (recoveryTxId: TransactionIdentifier)
+        : Async<string>
         =
         async {
-            let currency = channelStore.Currency
-            let! confirmationCount =
-                Server.Query
-                    currency
-                    (QuerySettings.Default ServerSelectionMode.Fast)
-                    (ElectrumClient.GetConfirmations (recoveryTxId.ToString()))
-                    None
-            if BlockHeightOffset32 confirmationCount >= Settings.DefaultTxMinimumDepth currency then
-                channelStore.ArchiveChannel channelId
-                return true
-            else
-                return false
+            let channelPreRecovery = channelStore.LoadChannel htlcRecoveryTx.ChannelId
+            let! txId =
+                UtxoCoin.Account.BroadcastRawTransaction
+                    htlcRecoveryTx.Currency
+                    (htlcRecoveryTx.Tx.ToString())
+            let htlcToRemove =
+                channelPreRecovery.HtlcDelayedTxs
+                |> Seq.filter (fun (_, htlcTxId) -> htlcTxId = htlcRecoveryTx.HtlcTxId)
+            let channelAfterRecovery =
+                { channelPreRecovery with
+                    HtlcDelayedTxs =
+                        channelPreRecovery.HtlcDelayedTxs
+                        |> List.except htlcToRemove
+                    BroadcastedHtlcRecoveryTxs =
+                        (htlcRecoveryTx.AmountInSatoshis, htlcRecoveryTx.Tx.Id)::channelPreRecovery.BroadcastedHtlcRecoveryTxs    
+                }
+            channelStore.SaveChannel channelAfterRecovery
+            return txId
+        }
+
+    let BroadcastHtlcTxAndAddToWatchList
+        (htlcTx: HtlcTx)
+        (channelStore: ChannelStore)
+        : Async<string>
+        =
+        async {
+            let channelPreRecovery = channelStore.LoadChannel htlcTx.ChannelId
+            let! txId =
+                UtxoCoin.Account.BroadcastRawTransaction
+                    htlcTx.Currency
+                    (htlcTx.Tx.ToString())
+            let channelAfterRecovery =
+                if htlcTx.NeedsRecoveryTx then
+                    { channelPreRecovery with
+                        HtlcDelayedTxs =
+                            (htlcTx.AmountInSatoshis, htlcTx.Tx.Id) :: channelPreRecovery.HtlcDelayedTxs
+                    }
+                else
+                    { channelPreRecovery with
+                        BroadcastedHtlcRecoveryTxs =
+                            (htlcTx.AmountInSatoshis, htlcTx.Tx.Id) :: channelPreRecovery.BroadcastedHtlcRecoveryTxs
+                    }
+
+            channelStore.SaveChannel channelAfterRecovery
+            return txId
         }
 
     type MutualCloseCpfpCreationError =
@@ -522,4 +573,83 @@ module ChannelManager =
             }
 
             return spendingTxFeeRate.FeePerK < currentFeeRate.FeePerK
+        }
+
+
+    type HtlcResolveType =
+        | Timeout of expiryBlockHeight: int
+        | Success
+        | Penalty
+
+    type HtlcResolveDetails =
+        {
+            Unresolved: List<AmountInSatoshis * HtlcResolveType>
+            WaitingForConfirmationToRecover: List<AmountInSatoshis * TransactionIdentifier>
+            Resolved: List<AmountInSatoshis * TransactionIdentifier>
+        }
+
+    let ListAllHtlcs
+        (channelStore: ChannelStore)
+        (channelId: ChannelIdentifier)
+        =
+        let channel = channelStore.LoadChannel channelId
+        let unresolvedHtlcsData =
+            (HtlcsDataStore channelStore.Account)
+                .LoadHtlcsData(channelId)
+                .ChannelHtlcsData
+        let recoveredHtlcs = channel.BroadcastedHtlcRecoveryTxs @ channel.BroadcastedHtlcTxs
+        let unresolvedHtlcs =
+            unresolvedHtlcsData
+            |> List.map (fun htlcTransaction ->
+                let amountInSatoshis = htlcTransaction.Amount.ToMoney().Satoshi |> Convert.ToUInt64
+                let resolveType =
+                    match htlcTransaction with
+                    | ClosingHelpers.HtlcTransaction.Timeout (_, _, expiryBlockHeight, _) ->
+                        HtlcResolveType.Timeout (int expiryBlockHeight)
+                    | ClosingHelpers.HtlcTransaction.Penalty _ ->
+                        HtlcResolveType.Penalty
+                    | ClosingHelpers.HtlcTransaction.Success _ ->
+                        HtlcResolveType.Success
+                (amountInSatoshis, resolveType)
+            )
+
+        {
+            HtlcResolveDetails.Unresolved = unresolvedHtlcs
+            WaitingForConfirmationToRecover = channel.HtlcDelayedTxs
+            Resolved = recoveredHtlcs
+        }
+
+    let CheckForFinishedRecoveryAndArchive
+        (channelStore: ChannelStore)
+        (channelId: ChannelIdentifier)
+        (recoveryTxIdOpt: option<TransactionIdentifier>)
+        =
+        async {
+            let currency = channelStore.Currency
+            let! confirmationCount =
+                async {
+                    match recoveryTxIdOpt with
+                    | Some recoveryTxId ->
+                        let! confirmationCount =
+                            Server.Query
+                                currency
+                                (QuerySettings.Default ServerSelectionMode.Fast)
+                                (ElectrumClient.GetConfirmations (recoveryTxId.ToString()))
+                                None
+                        return BlockHeightOffset32 confirmationCount
+                    | None ->
+                        // Recovery tx was not needed so we fake it as confirmed
+                        return Settings.DefaultTxMinimumDepth currency
+                }
+            if confirmationCount >= Settings.DefaultTxMinimumDepth currency then
+                let noInProgressHtlcRecovery =
+                    let allHtlcs = ListAllHtlcs channelStore channelId
+                    allHtlcs.WaitingForConfirmationToRecover.IsEmpty && allHtlcs.Unresolved.IsEmpty
+                if noInProgressHtlcRecovery then
+                    channelStore.ArchiveChannel channelId
+                    return true
+                else
+                    return false
+            else
+                return false
         }

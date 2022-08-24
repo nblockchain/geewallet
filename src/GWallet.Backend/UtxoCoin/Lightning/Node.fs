@@ -8,10 +8,11 @@ open System.Linq
 open NBitcoin
 open DotNetLightning.Chain
 open DotNetLightning.Channel
-open DotNetLightning.Channel.ForceCloseFundsRecovery
+open DotNetLightning.Channel.ClosingHelpers
 open DotNetLightning.Crypto
 open DotNetLightning.Utils
 open DotNetLightning.Serialization.Msgs
+open DotNetLightning.Payment
 open ResultUtils.Portability
 open NOnion.Directory
 open NOnion.Network
@@ -55,41 +56,41 @@ type internal NodeAcceptChannelError =
         member __.ChannelBreakdown: bool =
             false
 
-type internal NodeSendMonoHopPaymentError =
+type internal NodeSendHtlcPaymentError =
     | Reconnect of ReconnectActiveChannelError
-    | SendPayment of SendMonoHopPaymentError
+    | SendPayment of SendHtlcPaymentError
     interface IErrorMsg with
         member self.Message =
             match self with
             | Reconnect reconnectActiveChannelError ->
                 SPrintF1 "error reconnecting channel: %s" (reconnectActiveChannelError :> IErrorMsg).Message
-            | SendPayment sendMonoHopPaymentError ->
+            | SendPayment sendHtlcPaymentError ->
                 SPrintF1 "error sending payment on reconnected channel: %s"
-                         (sendMonoHopPaymentError :> IErrorMsg).Message
+                         (sendHtlcPaymentError :> IErrorMsg).Message
         member self.ChannelBreakdown: bool =
             match self with
             | Reconnect reconnectActiveChannelError ->
                 (reconnectActiveChannelError :> IErrorMsg).ChannelBreakdown
-            | SendPayment sendMonoHopPaymentError ->
-                (sendMonoHopPaymentError :> IErrorMsg).ChannelBreakdown
+            | SendPayment sendHtlcPaymentError ->
+                (sendHtlcPaymentError :> IErrorMsg).ChannelBreakdown
 
-type internal NodeReceiveMonoHopPaymentError =
+type internal NodeReceiveHtlcPaymentError =
     | Reconnect of ReconnectActiveChannelError
-    | ReceivePayment of RecvMonoHopPaymentError
+    | ReceivePayment of RecvHtlcPaymentError
     interface IErrorMsg with
         member self.Message =
             match self with
             | Reconnect reconnectActiveChannelError ->
                 SPrintF1 "error reconnecting channel: %s" (reconnectActiveChannelError :> IErrorMsg).Message
-            | ReceivePayment recvMonoHopPaymentError ->
+            | ReceivePayment recvHtlcPaymentError ->
                 SPrintF1 "error receiving payment on reconnected channel: %s"
-                         (recvMonoHopPaymentError :> IErrorMsg).Message
+                         (recvHtlcPaymentError :> IErrorMsg).Message
         member self.ChannelBreakdown: bool =
             match self with
             | Reconnect reconnectActiveChannelError ->
                 (reconnectActiveChannelError :> IErrorMsg).ChannelBreakdown
-            | ReceivePayment recvMonoHopPaymentError ->
-                (recvMonoHopPaymentError :> IErrorMsg).ChannelBreakdown
+            | ReceivePayment recvHtlcPaymentError ->
+                (recvHtlcPaymentError :> IErrorMsg).ChannelBreakdown
 
 type NodeInitiateCloseChannelError =
     | Reconnect of IErrorMsg
@@ -172,6 +173,7 @@ type IChannelToBeOpened =
     abstract member ConfirmationsRequired: uint32 with get
 
 type IncomingChannelEvent =
+    | HtlcPayment of status: HtlcSettleStatus
     | MonoHopUnidirectionalPayment
     | Shutdown
 
@@ -229,8 +231,9 @@ type PendingChannel internal (outgoingUnfundedChannel: OutgoingUnfundedChannel) 
             with get(): uint32 =
                 self.OutgoingUnfundedChannel.MinimumDepth.Value
 
-type ClosingBalanceBelowDustLimitError =
+type ForceCloseHandlingError =
     | ClosingBalanceBelowDustLimit
+    | RevokedTransaction
 
 type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMasterPrivKey) =
     member val ChannelStore = channelStore
@@ -289,17 +292,9 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
     }
 
     member internal self.SendHtlcPayment (channelId: ChannelIdentifier)
-                                         (transferAmount: TransferAmount)
-                                         (paymentPreImage: uint256)
-                                         (paymentSecret: option<uint256>)
-                                         (associatedData: byte[])
-                                         (outgoingCLTV: BlockHeightOffset32)
+                                         (invoice: PaymentInvoice)
+                                         (waitForResult: bool)
                                              : Async<Result<unit, IErrorMsg>> = async {
-        let amount =
-            let btcAmount = transferAmount.ValueToSend
-            let lnAmount = int64(btcAmount * decimal DotNetLightning.Utils.LNMoneyUnit.BTC)
-            DotNetLightning.Utils.LNMoney lnAmount
-
         let! activeChannelRes =
             ActiveChannel.ConnectReestablish self.ChannelStore nodeMasterPrivKey channelId
         match activeChannelRes with
@@ -307,60 +302,30 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
             if reconnectActiveChannelError.PossibleBug then
                 let msg =
                     SPrintF2
-                        "error connecting to peer to send monohop payment on channel %s: %s"
+                        "error connecting to peer to send HTLC payment on channel %s: %s"
                         (channelId.ToString())
                         (reconnectActiveChannelError :> IErrorMsg).Message
                 Infrastructure.ReportWarningMessage msg
                 |> ignore<bool>
-            return Error <| (NodeSendMonoHopPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
+            return Error <| (NodeSendHtlcPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
         | Ok activeChannel ->
-            let! paymentRes = activeChannel.SendHtlcPayment amount paymentPreImage paymentSecret associatedData outgoingCLTV
+            let! paymentRes = activeChannel.SendHtlcPayment invoice waitForResult
             match paymentRes with
-            | Error _sendHtlcPaymentError ->
-                return failwith "not implemented"
-            | Ok activeChannelAfterPayment ->
-                (activeChannelAfterPayment :> IDisposable).Dispose()
-                return Ok ()
-
-
-    }
-
-    member internal self.SendMonoHopPayment (channelId: ChannelIdentifier)
-                                            (transferAmount: TransferAmount)
-                                                : Async<Result<unit, IErrorMsg>> = async {
-        let amount =
-            let btcAmount = transferAmount.ValueToSend
-            let lnAmount = int64(btcAmount * decimal DotNetLightning.Utils.LNMoneyUnit.BTC)
-            DotNetLightning.Utils.LNMoney lnAmount
-        let! activeChannelRes =
-            ActiveChannel.ConnectReestablish self.ChannelStore nodeMasterPrivKey channelId
-        match activeChannelRes with
-        | Error reconnectActiveChannelError ->
-            if reconnectActiveChannelError.PossibleBug then
-                let msg =
-                    SPrintF2
-                        "error connecting to peer to send monohop payment on channel %s: %s"
-                        (channelId.ToString())
-                        (reconnectActiveChannelError :> IErrorMsg).Message
-                Infrastructure.ReportWarningMessage msg
-                |> ignore<bool>
-            return Error <| (NodeSendMonoHopPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
-        | Ok activeChannel ->
-            let! paymentRes = activeChannel.SendMonoHopUnidirectionalPayment amount
-            match paymentRes with
-            | Error sendMonoHopPaymentError ->
-                if sendMonoHopPaymentError.PossibleBug then
+            | Error sendHtlcPaymentError ->
+                if sendHtlcPaymentError.PossibleBug then
                     let msg =
                         SPrintF2
-                            "error sending monohop payment on channel %s: %s"
+                            "error sending HTLC payment on channel %s: %s"
                             (channelId.ToString())
-                            (sendMonoHopPaymentError :> IErrorMsg).Message
+                            (sendHtlcPaymentError :> IErrorMsg).Message
                     Infrastructure.ReportWarningMessage msg
                     |> ignore<bool>
-                return Error <| (NodeSendMonoHopPaymentError.SendPayment sendMonoHopPaymentError :> IErrorMsg)
+                return Error <| (NodeSendHtlcPaymentError.SendPayment sendHtlcPaymentError :> IErrorMsg)
             | Ok activeChannelAfterPayment ->
                 (activeChannelAfterPayment :> IDisposable).Dispose()
                 return Ok ()
+
+
     }
 
     member internal self.InitiateCloseChannel (channelId: ChannelIdentifier): Async<Result<unit, NodeInitiateCloseChannelError>> =
@@ -456,68 +421,27 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
                     return Ok (channelId, txId)
     }
 
-    // use ReceiveLightningEvent instead
-    member internal self.ReceiveMonoHopPayment (channelId: ChannelIdentifier)
-                                                   : Async<Result<unit, IErrorMsg>> = async {
-        let! activeChannelRes = ActiveChannel.AcceptReestablish self.ChannelStore self.TransportListener channelId
-        match activeChannelRes with
-        | Error reconnectActiveChannelError ->
-            if reconnectActiveChannelError.PossibleBug then
-                let msg =
-                    SPrintF2
-                        "error accepting connection from peer to receive monohop payment on channel %s: %s"
-                        (channelId.ToString())
-                        (reconnectActiveChannelError :> IErrorMsg).Message
-                Infrastructure.ReportWarningMessage msg
-                |> ignore<bool>
-            return Error <| (NodeReceiveMonoHopPaymentError.Reconnect reconnectActiveChannelError :> IErrorMsg)
-        | Ok activeChannel ->
-            let connectedChannel = activeChannel.ConnectedChannel
-            Infrastructure.LogDebug "Waiting for lightning message"
-            let rec recv (peerNode: PeerNode) =
-                async {
-                    let! recvChannelMsgRes = peerNode.RecvChannelMsg()
-                    match recvChannelMsgRes with
-                    | Error err ->
-                        return failwith <| SPrintF1 "Received error while waiting for lightning message: %s" (err :> IErrorMsg).Message
-                    | Ok (peerNodeAfterMsgReceived, channelMsg) ->
-                        match channelMsg with
-                        | :? DotNetLightning.Serialization.Msgs.MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
-                            let activeChannelAfterMsgReceived =
-                                { activeChannel with
-                                    ConnectedChannel =
-                                        { activeChannel.ConnectedChannel
-                                            with PeerNode = peerNodeAfterMsgReceived }}
-
-                            return! self.HandleMonoHopUnidirectionalPaymentMsg activeChannelAfterMsgReceived channelId monoHopUnidirectionalPaymentMsg
-                        | :? FundingLockedMsg ->
-                            return! recv(peerNodeAfterMsgReceived)
-                        | msg ->
-                            return failwith <| SPrintF1 "Unexpected msg while waiting for monohop payment message: %As" msg
-                }
-            return! recv(connectedChannel.PeerNode)
-    }
-
-    member private self.HandleMonoHopUnidirectionalPaymentMsg (activeChannel: ActiveChannel)
+    member private self.HandleUpdateAddHtlcMsg (activeChannel: ActiveChannel)
         (channelId: ChannelIdentifier)
-        (monoHopUnidirectionalPaymentMsg: DotNetLightning.Serialization.Msgs.MonoHopUnidirectionalPaymentMsg)
-        : Async<Result<unit, IErrorMsg>> =
+        (updateAddHtlcMsg: DotNetLightning.Serialization.Msgs.UpdateAddHTLCMsg)
+        (settleImmediately: bool)
+        : Async<Result<HtlcSettleStatus, IErrorMsg>> =
             async {
-                let! paymentRes = activeChannel.RecvMonoHopUnidirectionalPayment monoHopUnidirectionalPaymentMsg
+                let! paymentRes = activeChannel.RecvHtlcPayment updateAddHtlcMsg settleImmediately
                 match paymentRes with
-                | Error recvMonoHopPaymentError ->
-                    if recvMonoHopPaymentError.PossibleBug then
+                | Error recvHtlcPaymentError ->
+                    if recvHtlcPaymentError.PossibleBug then
                         let msg =
                             SPrintF2
-                                "error accepting monohop payment on channel %s: %s"
+                                "error accepting HTLC on channel %s: %s"
                                 (channelId.ToString())
-                                (recvMonoHopPaymentError :> IErrorMsg).Message
+                                (recvHtlcPaymentError :> IErrorMsg).Message
                         Infrastructure.ReportWarningMessage msg
                         |> ignore<bool>
-                    return Error <| (NodeReceiveMonoHopPaymentError.ReceivePayment recvMonoHopPaymentError :> IErrorMsg)
-                | Ok activeChannelAfterPaymentReceived ->
+                    return Error <| (NodeReceiveHtlcPaymentError.ReceivePayment recvHtlcPaymentError :> IErrorMsg)
+                | Ok (activeChannelAfterPaymentReceived, status) ->
                     (activeChannelAfterPaymentReceived :> IDisposable).Dispose()
-                    return Ok ()
+                    return Ok status
             }
 
     // use ReceiveLightningEvent instead
@@ -600,7 +524,7 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
                 return Ok ()
         }
 
-    member internal self.ReceiveLightningEvent (channelId: ChannelIdentifier)
+    member internal self.ReceiveLightningEvent (channelId: ChannelIdentifier) (settleHTLCImmediately: bool)
                                                    : Async<Result<IncomingChannelEvent, IErrorMsg>> = async {
         let rec receiveEvent (activeChannel: ActiveChannel) = async {
             Infrastructure.LogDebug "Waiting for lightning message"
@@ -620,11 +544,11 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
                         ConnectedChannel = connectedChannelAfterMsgReceived
                 }
                 match channelMsg with
-                | :? MonoHopUnidirectionalPaymentMsg as monoHopUnidirectionalPaymentMsg ->
-                    let! res = self.HandleMonoHopUnidirectionalPaymentMsg activeChannelAfterMsgReceived channelId monoHopUnidirectionalPaymentMsg
+                | :? UpdateAddHTLCMsg as updateAddHTLCMsg ->
+                    let! res = self.HandleUpdateAddHtlcMsg activeChannelAfterMsgReceived channelId updateAddHTLCMsg settleHTLCImmediately
                     match res with
                     | Error err -> return Error err
-                    | Ok () -> return Ok IncomingChannelEvent.MonoHopUnidirectionalPayment
+                    | Ok status -> return Ok <| IncomingChannelEvent.HtlcPayment status
                 | :? ShutdownMsg as shutdownMsg ->
                     let! res = self.HandleShutdownMsg activeChannelAfterMsgReceived shutdownMsg
                     match res with
@@ -697,12 +621,10 @@ type Node =
 
     member self.CreateAnchorFeeBumpForForceClose
         (channelId: ChannelIdentifier)
-        (commitmentTxString: string)
+        (commitmentTx: UtxoTransaction)
         (password: string)
-        : Async<Result<FeeBumpTx, ClosingBalanceBelowDustLimitError>> =
+        : Async<Result<FeeBumpTx, ForceCloseHandlingError>> =
             async {
-                let account = self.Account
-                let privateKey = Account.GetPrivateKey (account :?> NormalUtxoAccount) password
                 let nodeMasterPrivKey =
                     match self with
                     | Client nodeClient -> nodeClient.NodeMasterPrivKey
@@ -712,194 +634,74 @@ type Node =
                 let! feeBumpTransaction = async {
                     let network =
                         UtxoCoin.Account.GetNetwork currency
-                    let commitmentTx =
-                        Transaction.Parse(commitmentTxString, network)
+                    let commitmentTx = commitmentTx.NBitcoinTx
                     let channelPrivKeys =
                         let channelIndex = serializedChannel.ChannelIndex
                         nodeMasterPrivKey.ChannelPrivKeys channelIndex
                     let targetAddress =
                         let originAddress = self.Account.PublicAddress
                         BitcoinAddress.Create(originAddress, network)
-                    let! feeRate = async {
-                        let! feeEstimator = FeeEstimator.Create currency
-                        return feeEstimator.FeeRatePerKw
-                    }
                     let transactionBuilderResult =
-                        ForceCloseFundsRecovery.tryClaimAnchorFromCommitmentTx
+                        ClosingHelpers.HandleFundingTxSpent
+                            serializedChannel.SavedChannelState
+                            serializedChannel.RemoteNextCommitInfo
                             channelPrivKeys
-                            serializedChannel.SavedChannelState.StaticChannelConfig
                             commitmentTx
                     match transactionBuilderResult with
-                    | Error (LocalAnchorRecoveryError.InvalidCommitmentTx invalidCommitmentTxError) ->
-                        return failwith ("invalid commitment tx for force-closing: " + invalidCommitmentTxError.Message)
-                    | Error LocalAnchorRecoveryError.AnchorNotFound ->
-                        self.ChannelStore.ArchiveChannel channelId
-                        return Error <| ClosingBalanceBelowDustLimit
-                    | Ok transactionBuilder ->
-                        let job =
-                            Account.GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
-                            |> ElectrumClient.GetUnspentTransactionOutputs
-                        let! utxos = Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
-
-                        if not (utxos.Any()) then
-                            return raise InsufficientFunds
-                        let possibleInputs =
-                            seq {
-                                for utxo in utxos do
-                                    yield {
-                                        TransactionId = utxo.TxHash
-                                        OutputIndex = utxo.TxPos
-                                        Value = utxo.Value
-                                    }
-                            }
-
-                        // first ones are the smallest ones
-                        let inputsOrderedByAmount = possibleInputs.OrderBy(fun utxo -> utxo.Value) |> List.ofSeq
-
-                        transactionBuilder.AddKeys privateKey |> ignore<TransactionBuilder>
+                    | { AnchorOutput = Ok transactionBuilder } ->
                         transactionBuilder.SendAllRemaining targetAddress |> ignore<TransactionBuilder>
 
-                        let requiredParentTxFee = feeRate.AsNBitcoinFeeRate().GetFee commitmentTx
-                        let actualParentTxFee =
-                            serializedChannel.FundingScriptCoin() :> ICoin
-                            |> Array.singleton
-                            |> commitmentTx.GetFee
-                        let deltaParentTxFee = requiredParentTxFee - actualParentTxFee
-
-                        let rec addUtxoForChildFee unusedUtxos =
-                            async {
-                                try
-                                    let fees = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
-                                    return fees, unusedUtxos
-                                with
-                                | :? NBitcoin.NotEnoughFundsException as _ex ->
-                                    match unusedUtxos with
-                                    | [] -> return raise InsufficientFunds
-                                    | head::tail ->
-                                        let! newInput = head |> ConvertToInputOutpointInfo account.Currency
-                                        let newCoin = newInput |> ConvertToICoin (account :?> IUtxoAccount)
-                                        transactionBuilder.AddCoin newCoin |> ignore<TransactionBuilder>
-                                        return! addUtxoForChildFee tail
-                            }
-
-                        let rec addUtxosForParentFeeAndFinalize unusedUtxos =
-                            async {
-                                try
-                                    return transactionBuilder.BuildTransaction true
-                                with
-                                | :? NBitcoin.NotEnoughFundsException as _ex ->
-                                    match unusedUtxos with
-                                    | [] -> return raise InsufficientFunds
-                                    | head::tail ->
-                                        let! newInput = head |> ConvertToInputOutpointInfo account.Currency
-                                        let newCoin = newInput |> ConvertToICoin (account :?> IUtxoAccount)
-                                        transactionBuilder.AddCoin newCoin |> ignore<TransactionBuilder>
-                                        return! addUtxosForParentFeeAndFinalize tail
-                            }
-
-                        let! childFee, unusedUtxos = addUtxoForChildFee inputsOrderedByAmount
-                        transactionBuilder.SendFees (childFee + deltaParentTxFee) |> ignore<TransactionBuilder>
-                        let! transaction = addUtxosForParentFeeAndFinalize unusedUtxos
+                        let! transaction, fees =
+                            FeeManagement.AddFeeInputsWithCpfpSupport
+                                (self.Account, password)
+                                transactionBuilder
+                                (Some (commitmentTx, serializedChannel.FundingScriptCoin()))
 
                         let feeBumpTransaction: FeeBumpTx =
                             {
                                 ChannelId = channelId
                                 Currency = currency
-                                Fee = MinerFee ((childFee + deltaParentTxFee).Satoshi, DateTime.UtcNow, currency)
+                                Fee = MinerFee (fees.Satoshi, DateTime.UtcNow, currency)
                                 Tx =
                                     {
                                         NBitcoinTx = transaction
                                     }
                             }
                         return Ok feeBumpTransaction
+                    | { AnchorOutput = Error BalanceBelowDustLimit } ->
+                        return Error <| ClosingBalanceBelowDustLimit
+                    | { AnchorOutput = Error Inapplicable } ->
+                        return Error <| RevokedTransaction
+                    | { AnchorOutput = Error UnknownClosingTx } ->
+                        return failwith "Unknown closing tx has been broadcast"
                 }
                 return feeBumpTransaction
             }
 
-    member self.CreateRecoveryTxForLocalForceClose
-        (channelId: ChannelIdentifier)
-        (commitmentTxString: string)
-        : Async<Result<RecoveryTx, ClosingBalanceBelowDustLimitError>> =
-            async {
-                let nodeMasterPrivKey =
-                    match self with
-                    | Client nodeClient -> nodeClient.NodeMasterPrivKey
-                    | Server nodeServer -> nodeServer.NodeMasterPrivKey
-                let currency = self.Account.Currency
-                let serializedChannel = self.ChannelStore.LoadChannel channelId
-                let! recoveryTransactionString = async {
-                    let network =
-                        UtxoCoin.Account.GetNetwork currency
-                    let commitmentTx =
-                        Transaction.Parse(commitmentTxString, network)
-                    let channelPrivKeys =
-                        let channelIndex = serializedChannel.ChannelIndex
-                        nodeMasterPrivKey.ChannelPrivKeys channelIndex
-                    let targetAddress =
-                        let originAddress = self.Account.PublicAddress
-                        BitcoinAddress.Create(originAddress, network)
-                    let! feeRate = async {
-                        let! feeEstimator = FeeEstimator.Create currency
-                        return feeEstimator.FeeRatePerKw
-                    }
-                    let transactionBuilderResult =
-                        ForceCloseFundsRecovery.tryGetFundsFromLocalCommitmentTx
-                            channelPrivKeys
-                            serializedChannel.SavedChannelState.StaticChannelConfig
-                            commitmentTx
-                    match transactionBuilderResult with
-                    | Error (LocalCommitmentTxRecoveryError.InvalidCommitmentTx invalidCommitmentTxError) ->
-                        return failwith ("invalid commitment tx for force-closing: " + invalidCommitmentTxError.Message)
-                    | Error LocalCommitmentTxRecoveryError.BalanceBelowDustLimit ->
-                        return Error <| ClosingBalanceBelowDustLimit
-                    | Ok transactionBuilder ->
-                        transactionBuilder.SendAll targetAddress |> ignore
-                        let fee = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
-                        transactionBuilder.SendFees fee |> ignore
-                        let recoveryTransaction: RecoveryTx =
-                            {
-                                ChannelId = channelId
-                                Currency = currency
-                                Fee = MinerFee (fee.Satoshi, DateTime.UtcNow, currency)
-                                Tx =
-                                    {
-                                        NBitcoinTx = transactionBuilder.BuildTransaction true
-                                    }
-                            }
-                        return Ok recoveryTransaction
-                }
-                return recoveryTransactionString
-            }
-
     member self.ForceCloseChannel
         (channelId: ChannelIdentifier)
-        : Async<Result<string, ClosingBalanceBelowDustLimitError>> =
+        : Async<string> =
         async {
-            let commitmentTxString = self.ChannelStore.GetCommitmentTx channelId
+            let commitmentTx = self.ChannelStore.GetCommitmentTx channelId
             let serializedChannel = self.ChannelStore.LoadChannel channelId
-            let! forceCloseTxId = UtxoCoin.Account.BroadcastRawTransaction self.Account.Currency commitmentTxString
-            // This should still be done once here to make sure local output isn't dust
-            let! recoveryTxResult = self.CreateRecoveryTxForLocalForceClose channelId commitmentTxString
-            match recoveryTxResult with
-            | Error err ->
-                self.ChannelStore.ArchiveChannel channelId
-                return Error err
-            | Ok _recoveryTx ->
-                let newSerializedChannel = {
-                    serializedChannel with
-                        ForceCloseTxIdOpt =
-                            TransactionIdentifier.Parse forceCloseTxId
-                            |> Some
-                        ClosingTimestampUtc = Some DateTime.UtcNow
-                }
-                self.ChannelStore.SaveChannel newSerializedChannel
-                return Ok forceCloseTxId
+            let! forceCloseTxId = UtxoCoin.Account.BroadcastRawTransaction self.Account.Currency (commitmentTx.ToString())
+            // We keep this here so it can mark the channel as recoveryUnneeded if balance is below dust limit
+            do! self.CreateRecoveryTxForForceClose channelId commitmentTx |> Async.Ignore
+            let newSerializedChannel = {
+                serializedChannel with
+                    ForceCloseTxIdOpt =
+                        TransactionIdentifier.Parse forceCloseTxId
+                        |> Some
+                    ClosingTimestampUtc = Some DateTime.UtcNow
+            }
+            self.ChannelStore.SaveChannel newSerializedChannel
+            return forceCloseTxId
         }
 
-    member self.CreateRecoveryTxForRemoteForceClose
+    member self.CreateRecoveryTxForForceClose
         (channelId: ChannelIdentifier)
-        (closingTx: ForceCloseTx)
-        : Async<Result<RecoveryTx, ClosingBalanceBelowDustLimitError>> =
+        (closingTx: UtxoTransaction)
+        : Async<Result<RecoveryTx, ForceCloseHandlingError>> =
         async {
             let nodeMasterPrivKey =
                 match self with
@@ -918,21 +720,18 @@ type Node =
                 let! feeEstimator = FeeEstimator.Create currency
                 return feeEstimator.FeeRatePerKw
             }
+
             let transactionBuilderResult =
-                ForceCloseFundsRecovery.tryGetFundsFromRemoteCommitmentTx
-                    channelPrivKeys
+                ClosingHelpers.HandleFundingTxSpent
                     serializedChannel.SavedChannelState
-                    closingTx.Tx.NBitcoinTx
+                    serializedChannel.RemoteNextCommitInfo
+                    channelPrivKeys
+                    closingTx.NBitcoinTx
 
             match transactionBuilderResult with
-            | Error (RemoteCommitmentTxRecoveryError.InvalidCommitmentTx invalidCommitmentTxError) ->
-                return failwith ("invalid commitment tx for creating recovery tx: " + invalidCommitmentTxError.Message)
-            | Error (CommitmentNumberFromTheFuture commitmentNumber) ->
-                return failwith (SPrintF1 "commitment number of tx is from the future (%s)" (commitmentNumber.ToString()))
-            | Error RemoteCommitmentTxRecoveryError.BalanceBelowDustLimit ->
-                self.ChannelStore.ArchiveChannel channelId
-                return Error <| ClosingBalanceBelowDustLimit
-            | Ok transactionBuilder ->
+            | { AnchorOutput = Error Inapplicable } ->
+                return Error <| RevokedTransaction
+            | { MainOutput = Ok transactionBuilder } ->
                 transactionBuilder.SendAll targetAddress |> ignore
                 let fee = transactionBuilder.EstimateFees (feeRate.AsNBitcoinFeeRate())
                 transactionBuilder.SendFees fee |> ignore
@@ -947,6 +746,221 @@ type Node =
                             }
                     }
                 return Ok recoveryTransaction
+            | { MainOutput = Error BalanceBelowDustLimit } ->
+                ChannelManager.MarkRecoveryTxAsNotNeeded channelId self.ChannelStore
+                return Error <| ClosingBalanceBelowDustLimit
+            | { MainOutput = Error UnknownClosingTx } ->
+                return failwith "Unknown closing tx has been broadcast"
+            | { MainOutput = Error Inapplicable } ->
+                return failwith "Main output can never be inapplicable"
+        }
+
+    member self.CreateHtlcTxForHtlcTxsList
+        (htlcTransactions: HtlcTxsList)
+        (password: string)
+        : Async<HtlcTx * HtlcTxsList> =
+        async {
+            match htlcTransactions.ClosingTxOpt with
+            | None ->
+                return failwith "This function shouldn't be called if htlcTransaction.IsEmpty is true"
+            | Some closingTx ->
+                let nodeMasterPrivKey =
+                    match self with
+                    | Client nodeClient -> nodeClient.NodeMasterPrivKey
+                    | Server nodeServer -> nodeServer.NodeMasterPrivKey
+                let serializedChannel = self.ChannelStore.LoadChannel htlcTransactions.ChannelId
+                let currency = self.Account.Currency
+                let network = UtxoCoin.Account.GetNetwork currency
+                let channelPrivKeys =
+                    let channelIndex = serializedChannel.ChannelIndex
+                    nodeMasterPrivKey.ChannelPrivKeys channelIndex
+                let targetAddress =
+                    let originAddress = self.Account.PublicAddress
+                    BitcoinAddress.Create(originAddress, network)
+
+                let claimHtlcOutput (transaction) =
+                    async {
+                        let txb, shouldAddFee =
+                            ClosingHelpers.ClaimHtlcOutput
+                                transaction
+                                serializedChannel.SavedChannelState
+                                serializedChannel.RemoteNextCommitInfo
+                                closingTx
+                                channelPrivKeys
+                        txb.SendAllRemaining targetAddress |> ignore
+
+                        if not shouldAddFee then
+                            let! feeRate = async {
+                                let! feeEstimator = FeeEstimator.Create currency
+                                return feeEstimator.FeeRatePerKw
+                            }
+                            let fees = txb.EstimateFees (feeRate.AsNBitcoinFeeRate())
+                            txb.SendFees fees |> ignore<TransactionBuilder>
+                            return (txb.BuildTransaction true, fees, shouldAddFee)
+                        else
+                            //TODO: We need to somehow make sure we are not paying more fees than the htlc itself
+                            let! tx, fees = FeeManagement.AddFeeInputsWithCpfpSupport (self.ChannelStore.Account, password) txb None
+                            return tx, fees, shouldAddFee
+                    }
+
+                match htlcTransactions.Transactions with
+                | [] -> return failwith "This function shouldn't be called if htlcTransaction.IsDone is true"
+                | transaction:: rest ->
+                    let! finalTx, fees, shouldAddFees =
+                        match transaction with
+                        | Timeout _
+                        | HtlcTransaction.Success _ ->
+                            claimHtlcOutput transaction
+                        | Penalty (redeemScript, _) ->
+                            async {
+                                let GetElectrumScriptHashFromScriptPubKey (scriptPubKey: Script) =
+                                    let sha = NBitcoin.Crypto.Hashes.SHA256(scriptPubKey.ToBytes())
+                                    let reversedSha = sha.Reverse().ToArray()
+                                    NBitcoin.DataEncoders.Encoders.Hex.EncodeData reversedSha
+
+                                let scriptPubKey = redeemScript.WitHash.ScriptPubKey
+                                let outputIndex =
+                                    (closingTx.Outputs.AsIndexedOutputs()
+                                    |> Seq.find (fun output -> output.TxOut.ScriptPubKey = scriptPubKey)).N
+
+                                let job =  GetElectrumScriptHashFromScriptPubKey scriptPubKey |> ElectrumClient.GetUnspentTransactionOutputs
+                                let! utxos = Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+                                if not (utxos |> Seq.exists (fun utxo -> utxo.TxHash = closingTx.GetHash().ToString() && utxo.TxPos = int outputIndex)) then
+                                    let job =  GetElectrumScriptHashFromScriptPubKey scriptPubKey |> ElectrumClient.GetBlockchainScriptHashHistory
+                                    let! hashHistory = Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+                                    let findSpending2ndStage (spendingTx: BlockchainScriptHashHistoryInnerResult) =
+                                        async {
+                                            let job = ElectrumClient.GetBlockchainTransaction spendingTx.TxHash
+                                            let! spendingTxStr = Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+                                            let spendingTx = Transaction.Parse (spendingTxStr, network)
+                                            let spendingTxInput =
+                                                spendingTx.Inputs
+                                                |> Seq.tryFind (fun inp -> inp.PrevOut.Hash = closingTx.GetHash() && inp.PrevOut.N = outputIndex)
+                                            if spendingTxInput.IsSome then
+                                                return Some spendingTx
+                                            else
+                                                return None
+                                        }
+                                    let! spendingTxOpt = ListAsyncTryPick hashHistory findSpending2ndStage
+                                    match spendingTxOpt with
+                                    | None ->
+                                        return failwith "BUG: couldn't claim delayed htlc tx (via penalty): couldn't find 2nd stage tx"
+                                    | Some spendingTx ->
+                                        let txbOpt =
+                                            ClosingHelpers.ClaimDelayedHtlcTx closingTx spendingTx serializedChannel.SavedChannelState serializedChannel.RemoteNextCommitInfo channelPrivKeys
+                                        match txbOpt with
+                                        | Some txb ->
+                                            txb.SendAllRemaining targetAddress |> ignore
+                                            let! feeRate = async {
+                                                let! feeEstimator = FeeEstimator.Create currency
+                                                return feeEstimator.FeeRatePerKw
+                                            }
+                                            let fees = txb.EstimateFees (feeRate.AsNBitcoinFeeRate())
+                                            txb.SendFees fees |> ignore<TransactionBuilder>
+                                            return (txb.BuildTransaction true, fees, false)
+                                        | None ->
+                                            return failwith "BUG: couldn't claim delayed htlc tx (via penalty): ClaimDelayedHtlcTx returned None"
+                                else
+                                    return! claimHtlcOutput transaction
+                            }
+
+                    let htlcTransaction: HtlcTx =
+                        {
+                            ChannelId = htlcTransactions.ChannelId
+                            Currency = currency
+                            Fee = MinerFee (fees.Satoshi, DateTime.UtcNow, currency)
+                            AmountInSatoshis = transaction.Amount.Satoshi |> Convert.ToUInt64
+                            NeedsRecoveryTx = shouldAddFees
+                            Tx =
+                                {
+                                    NBitcoinTx = finalTx
+                                }
+                        }
+                    return htlcTransaction, { htlcTransactions with Transactions = rest }
+        }
+
+    member self.CreateRecoveryTxForDelayedHtlcTx
+        (channelId: ChannelIdentifier)
+        (readyToSpendTransactionIdsWithAmount: List<AmountInSatoshis * TransactionIdentifier>)
+        : Async<List<HtlcRecoveryTx>> =
+        async {
+            let nodeMasterPrivKey =
+                match self with
+                | Client nodeClient -> nodeClient.NodeMasterPrivKey
+                | Server nodeServer -> nodeServer.NodeMasterPrivKey
+            let serializedChannel = self.ChannelStore.LoadChannel channelId
+            let currency = self.Account.Currency
+            let network = UtxoCoin.Account.GetNetwork currency
+            let channelPrivKeys =
+                let channelIndex = serializedChannel.ChannelIndex
+                nodeMasterPrivKey.ChannelPrivKeys channelIndex
+            let targetAddress =
+                let originAddress = self.Account.PublicAddress
+                BitcoinAddress.Create(originAddress, network)
+            let! feeRate = async {
+                let! feeEstimator = FeeEstimator.Create currency
+                return feeEstimator.FeeRatePerKw
+            }
+            let rec createRecoveryTx (txIdsWithAmount: List<AmountInSatoshis * TransactionIdentifier>) (state) =
+                async {
+                    match txIdsWithAmount with
+                    | [] -> return state
+                    | (amount, transactionId):: rest ->
+                        let! htlcDelayedTx =
+                            async {
+                                let! htlcDelayedTxStr =
+                                    Server.Query
+                                        currency
+                                        (QuerySettings.Default ServerSelectionMode.Fast)
+                                        (ElectrumClient.GetBlockchainTransaction (transactionId.ToString()))
+                                        None
+                                return Transaction.Parse (htlcDelayedTxStr, network)
+                            }
+
+                        let! closingTx =
+                            async {
+                                let! htlcDelayedTxStr =
+                                    Server.Query
+                                        currency
+                                        (QuerySettings.Default ServerSelectionMode.Fast)
+                                        (ElectrumClient.GetBlockchainTransaction (serializedChannel.ForceCloseTxIdOpt.Value.ToString()))
+                                        None
+                                return Transaction.Parse (htlcDelayedTxStr, network)
+                            }
+                        //FIXME:this should be a  result
+                        let transactionBuilderOpt =
+                            ClosingHelpers.ClaimDelayedHtlcTx
+                                closingTx
+                                htlcDelayedTx
+                                serializedChannel.SavedChannelState
+                                serializedChannel.RemoteNextCommitInfo
+                                channelPrivKeys
+                        match transactionBuilderOpt with
+                        | Some txb ->
+                            txb.SendAll targetAddress |> ignore<TransactionBuilder>
+
+                            let fees = txb.EstimateFees (feeRate.AsNBitcoinFeeRate())
+                            txb.SendFees fees |> ignore<TransactionBuilder>
+
+                            let finalTx = txb.BuildTransaction true
+
+                            let recoveryTx: HtlcRecoveryTx =
+                                {
+                                    ChannelId = channelId
+                                    Currency = currency
+                                    Fee = MinerFee (fees.Satoshi, DateTime.UtcNow, currency)
+                                    HtlcTxId = transactionId
+                                    Tx =
+                                        {
+                                            NBitcoinTx = finalTx
+                                        }
+                                    AmountInSatoshis = amount
+                                }
+                            return! createRecoveryTx rest (recoveryTx::state)
+                        | None -> return failwith "BUG: could not create a recovery tx: ClaimDelayedHtlcTx returned None"
+                }
+
+            return! createRecoveryTx readyToSpendTransactionIdsWithAmount List.empty
         }
 
     member self.UpdateFee (channelId: ChannelIdentifier)

@@ -8,6 +8,7 @@ open DotNetLightning.Channel
 open DotNetLightning.Utils
 open DotNetLightning.Serialization
 open DotNetLightning.Serialization.Msgs
+open DotNetLightning.Payment
 open ResultUtils.Portability
 
 open GWallet.Backend
@@ -15,6 +16,17 @@ open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 open GWallet.Backend.UtxoCoin
 open GWallet.Backend.UtxoCoin.Lightning.Watcher
+
+type HtlcSettleFailReason =
+    | UnknownPaymentHash
+    | IncorrectPaymentAmount
+    | RequiredChannelFeatureMissing
+    | BadFinalPayload
+
+type HtlcSettleStatus =
+    | Success
+    | Fail
+    | NotSettled
 
 type internal LockFundingError =
     | FundingNotConfirmed of FundedChannel * BlockHeightOffset32
@@ -138,22 +150,34 @@ type internal RecvCommitError =
         | ExpectedCommitmentSigned _
         | InvalidCommitmentSigned _ -> false
 
-type internal SendMonoHopPaymentError =
-    | InvalidMonoHopPayment of ActiveChannel * InvalidMonoHopUnidirectionalPaymentError
+type internal RecvFulfillOrFailError =
+    | RecvFulfill of RecvMsgError
+    | PeerErrorMessageInsteadOfHtlcFulfill of BrokenChannel * PeerErrorMessage
+    | ExpectedHtlcFulfillOrFail of ILightningMsg
+    | InvalidCHtlcFulfillOrFail of BrokenChannel * ChannelError
     | SendCommit of SendCommitError
     | RecvCommit of RecvCommitError
     interface IErrorMsg with
         member self.Message =
             match self with
-            | InvalidMonoHopPayment (_, err) ->
-                SPrintF1 "Invalid monohop payment: %s" err.Message
+            | RecvFulfill err ->
+                SPrintF1 "Error receiving HTLC fulfill: %s" (err :> IErrorMsg).Message
+            | PeerErrorMessageInsteadOfHtlcFulfill (_, err) ->
+                SPrintF1 "Peer sent us an error message instead of HTLC fulfill: %s" (err :> IErrorMsg).Message
+            | ExpectedHtlcFulfillOrFail msg ->
+                SPrintF1 "Expected HTLC fulfill, got %A" (msg.GetType())
+            | InvalidCHtlcFulfillOrFail (_, err) ->
+                SPrintF1 "Invalid HTLC fulfill: %s" err.Message
             | SendCommit err ->
                 SPrintF1 "Error sending commitment: %s" (err :> IErrorMsg).Message
             | RecvCommit err ->
                 SPrintF1 "Error receiving commitment: %s" (err :> IErrorMsg).Message
         member self.ChannelBreakdown: bool =
             match self with
-            | InvalidMonoHopPayment _ -> false
+            | RecvFulfill recvMsgError -> (recvMsgError :> IErrorMsg).ChannelBreakdown
+            | PeerErrorMessageInsteadOfHtlcFulfill _
+            | ExpectedHtlcFulfillOrFail _ -> true
+            | InvalidCHtlcFulfillOrFail _ -> false
             | SendCommit sendCommitError ->
                 (sendCommitError :> IErrorMsg).ChannelBreakdown
             | RecvCommit recvCommitError ->
@@ -161,39 +185,87 @@ type internal SendMonoHopPaymentError =
 
     member internal self.PossibleBug =
         match self with
-        | InvalidMonoHopPayment _ -> false
+        | RecvFulfill err -> err.PossibleBug
+        | PeerErrorMessageInsteadOfHtlcFulfill _
+        | ExpectedHtlcFulfillOrFail _
+        | InvalidCHtlcFulfillOrFail _ -> false
         | SendCommit err -> err.PossibleBug
         | RecvCommit err -> err.PossibleBug
 
-and internal RecvMonoHopPaymentError =
-    | RecvMonoHopPayment of RecvMsgError
-    | PeerErrorMessageInsteadOfMonoHopPayment of BrokenChannel * PeerErrorMessage
-    | InvalidMonoHopPayment of BrokenChannel * ChannelError
-    | ExpectedMonoHopPayment of ILightningMsg
-    | RecvCommit of RecvCommitError
+and internal SendHtlcPaymentError =
+    | NoMultiHopHtlcSupport
+    | InvalidHtlcPayment of ActiveChannel * InvalidUpdateAddHTLCError
     | SendCommit of SendCommitError
+    | RecvCommit of RecvCommitError
+    | RecvFulfillOrFail of RecvFulfillOrFailError
+    | ReceivedHtlcFail of ActiveChannel
     interface IErrorMsg with
         member self.Message =
             match self with
-            | RecvMonoHopPayment err ->
-                SPrintF1 "Error receiving monohop payment message: %s" (err :> IErrorMsg).Message
-            | PeerErrorMessageInsteadOfMonoHopPayment (_, err) ->
-                SPrintF1 "Peer sent us an error message instead of a monohop payment: %s" (err :> IErrorMsg).Message
-            | InvalidMonoHopPayment (_, err) ->
-                SPrintF1 "Invalid monohop payment message: %s" err.Message
-            | ExpectedMonoHopPayment msg ->
-                SPrintF1 "Expected monohop payment msg, got %A" (msg.GetType())
+            | NoMultiHopHtlcSupport -> "Multihop HTLC payments are unsupported"
+            | InvalidHtlcPayment (_, err) ->
+                SPrintF1 "Invalid HTLC payment: %s" err.Message
+            | SendCommit err ->
+                SPrintF1 "Error sending commitment: %s" (err :> IErrorMsg).Message
+            | RecvCommit err ->
+                SPrintF1 "Error receiving commitment: %s" (err :> IErrorMsg).Message
+            | RecvFulfillOrFail err ->
+                SPrintF1 "Error receiving fulfill or fail: %s" (err :> IErrorMsg).Message
+            | ReceivedHtlcFail _ -> "Error received HTLC fail"
+        member self.ChannelBreakdown: bool =
+            match self with
+            | NoMultiHopHtlcSupport _ -> false
+            | InvalidHtlcPayment _ -> false
+            | SendCommit sendCommitError ->
+                (sendCommitError :> IErrorMsg).ChannelBreakdown
+            | RecvCommit recvCommitError ->
+                (recvCommitError :> IErrorMsg).ChannelBreakdown
+            | RecvFulfillOrFail recvFulfillOrFailError ->
+                (recvFulfillOrFailError :> IErrorMsg).ChannelBreakdown
+            | ReceivedHtlcFail _ -> false
+
+    member internal self.PossibleBug =
+        match self with
+        | NoMultiHopHtlcSupport _ -> false
+        | InvalidHtlcPayment _ -> false
+        | SendCommit err -> err.PossibleBug
+        | RecvCommit err -> err.PossibleBug
+        | RecvFulfillOrFail err -> err.PossibleBug
+        | ReceivedHtlcFail _ -> false
+
+and internal RecvHtlcPaymentError =
+    | RecvHtlcPayment of RecvMsgError
+    | PeerErrorMessageInsteadOfHtlcPayment of BrokenChannel * PeerErrorMessage
+    | InvalidHtlcPayment of BrokenChannel * ChannelError
+    | ExpectedHtlcPayment of ILightningMsg
+    | RecvCommit of RecvCommitError
+    | SendCommit of SendCommitError
+    | SettleFailed of BrokenChannel * ChannelError
+    interface IErrorMsg with
+        member self.Message =
+            match self with
+            | RecvHtlcPayment err ->
+                SPrintF1 "Error receiving HTLC payment message: %s" (err :> IErrorMsg).Message
+            | PeerErrorMessageInsteadOfHtlcPayment (_, err) ->
+                SPrintF1 "Peer sent us an error message instead of a HTLC payment: %s" (err :> IErrorMsg).Message
+            | InvalidHtlcPayment (_, err) ->
+                SPrintF1 "Invalid HTLC payment msg: %s" err.Message
+            | SettleFailed (_, err) ->
+                SPrintF1 "Could not settle HTLC payment: %s" err.Message
+            | ExpectedHtlcPayment msg ->
+                SPrintF1 "Expected HTLC payment msg, got %A" (msg.GetType())
             | RecvCommit err ->
                 SPrintF1 "Error receiving commitment: %s" (err :> IErrorMsg).Message
             | SendCommit err ->
                 SPrintF1 "Error sending commitment: %s" (err :> IErrorMsg).Message
         member self.ChannelBreakdown: bool =
             match self with
-            | RecvMonoHopPayment recvMsgError ->
+            | RecvHtlcPayment recvMsgError ->
                 (recvMsgError :> IErrorMsg).ChannelBreakdown
-            | PeerErrorMessageInsteadOfMonoHopPayment _ -> true
-            | InvalidMonoHopPayment _ -> true
-            | ExpectedMonoHopPayment _ -> false
+            | PeerErrorMessageInsteadOfHtlcPayment _ -> true
+            | InvalidHtlcPayment _ -> true
+            | SettleFailed _ -> true
+            | ExpectedHtlcPayment _ -> false
             | RecvCommit recvCommitError ->
                 (recvCommitError :> IErrorMsg).ChannelBreakdown
             | SendCommit sendCommitError ->
@@ -201,12 +273,13 @@ and internal RecvMonoHopPaymentError =
 
     member internal self.PossibleBug =
         match self with
-        | RecvMonoHopPayment err -> err.PossibleBug
+        | RecvHtlcPayment err -> err.PossibleBug
         | RecvCommit err -> err.PossibleBug
         | SendCommit err -> err.PossibleBug
-        | PeerErrorMessageInsteadOfMonoHopPayment _
-        | InvalidMonoHopPayment _
-        | ExpectedMonoHopPayment _ -> false
+        | PeerErrorMessageInsteadOfHtlcPayment _
+        | SettleFailed _ -> true
+        | InvalidHtlcPayment _
+        | ExpectedHtlcPayment _ -> false
 
 and internal AcceptUpdateFeeError =
     | RecvUpdateFee of RecvMsgError
@@ -577,34 +650,41 @@ and internal ActiveChannel =
             | _ -> return Error <| ExpectedCommitmentSigned channelMsg
     }
 
-    member private self.RecvHtlcFulfill(): Async<Result<ActiveChannel, SendMonoHopPaymentError>> = async {
+    member private self.RecvHtlcFulfillOrFail(): Async<Result<ActiveChannel * bool, RecvFulfillOrFailError>> = async {
         let connectedChannel = self.ConnectedChannel
         let peerNode = connectedChannel.PeerNode
         let channel = connectedChannel.Channel
 
         let! recvChannelMsgRes = peerNode.RecvChannelMsg()
         match recvChannelMsgRes with
-        | Error (RecvMsg _recvMsgError) -> return failwith "not implemetend"
-        | Error (ReceivedPeerErrorMessage (peerNodeAfterHtlcFulfillReceived, _errorMessage)) ->
-            let _connectedChannelAfterError = {
+        | Error (RecvMsg recvMsgError) -> return Error <| RecvFulfillOrFailError.RecvFulfill recvMsgError
+        | Error (ReceivedPeerErrorMessage (peerNodeAfterHtlcFulfillReceived, errorMessage)) ->
+            let connectedChannelAfterError = {
                 connectedChannel with
                     PeerNode = peerNodeAfterHtlcFulfillReceived
                     Channel = channel
             }
-            return failwith "not implemetend"
-        | Ok (peerNodeAfterHtlcFulfillReceived, channelMsg) ->
+            let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+            return Error <| PeerErrorMessageInsteadOfHtlcFulfill (brokenChannel, errorMessage)
+        | Ok (peerNodeAfterHtlcResultReceived, channelMsg) ->
             match channelMsg with
             | :? UpdateFulfillHTLCMsg as theirFulfillMsg ->
                 let channelAfterFulfillMsgRes =
                     channel.Channel.ApplyUpdateFulfillHTLC theirFulfillMsg
                 match channelAfterFulfillMsgRes with
                 | Error err ->
-                    return failwith (SPrintF1 "not implemetend %s" err.Message)
+                    let connectedChannelAfterError = {
+                        connectedChannel with
+                            PeerNode = peerNodeAfterHtlcResultReceived
+                            Channel = channel
+                    }
+                    let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+                    return Error <| InvalidCHtlcFulfillOrFail (brokenChannel, err)
                 | Ok channelAfterFulfillMsg ->
                     let connectedChannelAfterFulfillMsg = {
                         connectedChannel with
-                            PeerNode = peerNodeAfterHtlcFulfillReceived
-                            Channel = 
+                            PeerNode = peerNodeAfterHtlcResultReceived
+                            Channel =
                                 {
                                     Channel = channelAfterFulfillMsg
                                 }
@@ -614,62 +694,404 @@ and internal ActiveChannel =
                     let activeChannel = { ConnectedChannel = connectedChannelAfterFulfillMsg }
                     let! activeChannelAfterCommitReceivedRes = activeChannel.RecvCommit()
                     match activeChannelAfterCommitReceivedRes with
-                    | Error _err -> return failwith "not implemetend"
+                    | Error err -> return Error <| RecvFulfillOrFailError.RecvCommit err
                     | Ok activeChannelAfterCommitReceived ->
                         let! activeChannelAfterCommitSentRes = activeChannelAfterCommitReceived.SendCommit()
                         match activeChannelAfterCommitSentRes with
-                        | Error _err -> return failwith "not implemetend"
-                        | Ok activeChannelAfterCommitSent -> return Ok activeChannelAfterCommitSent
-            | _ -> return failwith "not implemetend"
+                        | Error err -> return Error <| RecvFulfillOrFailError.SendCommit err
+                        | Ok activeChannelAfterCommitSent -> return Ok (activeChannelAfterCommitSent, true)
+            | :? UpdateFailHTLCMsg as theirFailMsg ->
+                let channelAfterFailMsgRes =
+                    channel.Channel.ApplyUpdateFailHTLC theirFailMsg
+                match channelAfterFailMsgRes with
+                | Error err ->
+                    let connectedChannelAfterError = {
+                        connectedChannel with
+                            PeerNode = peerNodeAfterHtlcResultReceived
+                            Channel = channel
+                    }
+                    let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+                    return Error <| InvalidCHtlcFulfillOrFail (brokenChannel, err)
+                | Ok channelAfterFailMsg ->
+                    let connectedChannelAfterFailMsg = {
+                        connectedChannel with
+                            PeerNode = peerNodeAfterHtlcResultReceived
+                            Channel =
+                                {
+                                    Channel = channelAfterFailMsg
+                                }
+                    }
+                    connectedChannelAfterFailMsg.SaveToWallet()
+                    let activeChannel = { ConnectedChannel = connectedChannelAfterFailMsg }
+                    let! activeChannelAfterCommitReceivedRes = activeChannel.RecvCommit()
+                    match activeChannelAfterCommitReceivedRes with
+                    | Error err -> return Error <| RecvFulfillOrFailError.RecvCommit err
+                    | Ok activeChannelAfterCommitReceived ->
+                        let! activeChannelAfterCommitSentRes = activeChannelAfterCommitReceived.SendCommit()
+                        match activeChannelAfterCommitSentRes with
+                        | Error err -> return Error <| RecvFulfillOrFailError.SendCommit err
+                        | Ok activeChannelAfterCommitSent -> return Ok (activeChannelAfterCommitSent, false)
+            | :? UpdateFailMalformedHTLCMsg as theirFailMsg ->
+                let channelAfterFailMsgRes =
+                    channel.Channel.ApplyUpdateFailMalformedHTLC theirFailMsg
+                match channelAfterFailMsgRes with
+                | Error err ->
+                    let connectedChannelAfterError = {
+                        connectedChannel with
+                            PeerNode = peerNodeAfterHtlcResultReceived
+                            Channel = channel
+                    }
+                    let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+                    return Error <| InvalidCHtlcFulfillOrFail (brokenChannel, err)
+                | Ok channelAfterFailMsg ->
+                    let connectedChannelAfterFailMsg = {
+                        connectedChannel with
+                            PeerNode = peerNodeAfterHtlcResultReceived
+                            Channel =
+                                {
+                                    Channel = channelAfterFailMsg
+                                }
+                    }
+                    connectedChannelAfterFailMsg.SaveToWallet()
+                    let activeChannel = { ConnectedChannel = connectedChannelAfterFailMsg }
+                    let! activeChannelAfterCommitReceivedRes = activeChannel.RecvCommit()
+                    match activeChannelAfterCommitReceivedRes with
+                    | Error err -> return Error <| RecvFulfillOrFailError.RecvCommit err
+                    | Ok activeChannelAfterCommitReceived ->
+                        let! activeChannelAfterCommitSentRes = activeChannelAfterCommitReceived.SendCommit()
+                        match activeChannelAfterCommitSentRes with
+                        | Error err -> return Error <| RecvFulfillOrFailError.SendCommit err
+                        | Ok activeChannelAfterCommitSent -> return Ok (activeChannelAfterCommitSent, false)
+            | _ -> return Error <| ExpectedHtlcFulfillOrFail channelMsg
     }
 
-    member internal self.SendMonoHopUnidirectionalPayment (amount: LNMoney)
-                                                     : Async<Result<ActiveChannel, SendMonoHopPaymentError>> = async {
-        let connectedChannel = self.ConnectedChannel
-        let peerNode = connectedChannel.PeerNode
-        let channel = connectedChannel.Channel
-
-        let monoHopUnidirectionalPaymentMsgAndChannelRes =
-            channel.Channel.MonoHopUnidirectionalPayment amount
-        match monoHopUnidirectionalPaymentMsgAndChannelRes with
-        | Error (InvalidMonoHopUnidirectionalPayment err) ->
-            return Error <| SendMonoHopPaymentError.InvalidMonoHopPayment (self, err)
-        | Error err -> return failwith <| SPrintF1 "error executing mono hop payment command: %s" err.Message
-        | Ok (channelAfterMonoHopPayment, monoHopUnidirectionalPaymentMsg) ->
-            let! peerNodeAfterMonoHopPaymentSent = peerNode.SendMsg monoHopUnidirectionalPaymentMsg
-            let connectedChannelAfterMonoHopPaymentSent =
-                {
-                    connectedChannel with
-                        PeerNode = peerNodeAfterMonoHopPaymentSent
-                        Channel =
-                            {
-                                Channel = channelAfterMonoHopPayment
-                            }
-                }
-            connectedChannelAfterMonoHopPaymentSent.SaveToWallet()
-            let activeChannel = { ConnectedChannel = connectedChannelAfterMonoHopPaymentSent }
-            let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
-            match activeChannelAfterCommitSentRes with
-            | Error err -> return Error <| SendMonoHopPaymentError.SendCommit err
-            | Ok activeChannelAfterCommitSent ->
-                let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
-                match activeChannelAfterCommitReceivedRes with
-                | Error err -> return Error <| SendMonoHopPaymentError.RecvCommit err
-                | Ok activeChannelAfterCommitReceived -> return Ok activeChannelAfterCommitReceived
-    }
-
-    member internal self.SendHtlcPayment (amount: LNMoney)
-                                         (paymentPreimage: uint256)
-                                         (paymentSecretOpt: uint256 option)
-                                         (associatedData: byte[])
-                                         (outgoingCLTV: BlockHeightOffset32)
-                                                     : Async<Result<ActiveChannel, Exception>> = async {
+    member internal self.SendHtlcPayment (invoice: PaymentInvoice) (waitForResult: bool): Async<Result<ActiveChannel, SendHtlcPaymentError>> = async {
         let connectedChannel = self.ConnectedChannel
         let peerNode = connectedChannel.PeerNode
         let channel = connectedChannel.Channel
         let currency = (connectedChannel.Account :> IAccount).Currency
 
         let sessionKey = new NBitcoin.Key()
+
+        let paymentRequest = invoice.PaymentRequest
+        let amount =
+            match paymentRequest.AmountValue with
+            | Some invoiceAmount ->
+                invoiceAmount
+            | None ->
+                failwith "Geewallet doesn't support invoices without amount field"
+
+        let associatedData = paymentRequest.PaymentHash.ToBytes()
+
+        if paymentRequest.NodeIdValue.Value <> channel.RemoteNodeId.Value then
+            return Error <| SendHtlcPaymentError.NoMultiHopHtlcSupport
+        else
+            let! currentBlockHeight = async {
+                let! blockHeightResponse =
+                    Server.Query currency
+                        (QuerySettings.Default ServerSelectionMode.Fast)
+                        (ElectrumClient.SubscribeHeaders ())
+                        None
+                return
+                    uint32 blockHeightResponse.Height
+            }
+            let expiryBlockHeight = currentBlockHeight + paymentRequest.MinFinalCLTVExpiryDelta.Value
+
+            let tlvs =
+                match paymentRequest.PaymentSecret with
+                | Some paymentSecret ->
+                    [|
+                        HopPayloadTLV.AmountToForward amount
+                        HopPayloadTLV.OutgoingCLTV expiryBlockHeight
+                        HopPayloadTLV.PaymentData
+                            (
+                                PaymentSecret.Create paymentSecret,
+                                amount
+                            )
+                    |]
+                | None ->
+                    [|
+                        HopPayloadTLV.AmountToForward amount
+                        HopPayloadTLV.OutgoingCLTV expiryBlockHeight
+                    |]
+
+            let realm0Data = (TLVPayload tlvs).ToBytes()
+            let onionPacket =
+                Sphinx.PacketAndSecrets.Create
+                    (
+                        sessionKey, 
+                        (List.singleton channel.RemoteNodeId.Value),
+                        (List.singleton realm0Data),
+                        associatedData,
+                        Sphinx.PacketFiller.DeterministicPacketFiller
+                    )
+
+            let channelAndAddHtlcMsgRes =
+                channel.Channel.AddHTLC
+                    {
+                        OperationAddHTLC.Amount = amount
+                        PaymentHash = paymentRequest.PaymentHash
+                        Expiry = BlockHeight expiryBlockHeight
+                        Onion = onionPacket.Packet
+                        Upstream = None
+                        Origin = Origin.Local
+                        CurrentHeight = BlockHeight currentBlockHeight
+                    }
+
+            match channelAndAddHtlcMsgRes with
+            | Error (InvalidUpdateAddHTLC err) ->
+                return Error <| SendHtlcPaymentError.InvalidHtlcPayment (self, err)
+            | Error err -> return failwith <| SPrintF1 "error executing HTLC payment command: %s" err.Message
+            | Ok (channelAfterAddHtlcPayment, addHtlcMsg) ->
+                let! peerNodeAfterAddHtlcSent = peerNode.SendMsg addHtlcMsg
+                let connectedChannelAfterAddHtlcSent =
+                    {
+                        connectedChannel with
+                            PeerNode = peerNodeAfterAddHtlcSent
+                            Channel =
+                                {
+                                    Channel = channelAfterAddHtlcPayment
+                                }
+                    }
+                connectedChannelAfterAddHtlcSent.SaveToWallet()
+                let activeChannel = { ConnectedChannel = connectedChannelAfterAddHtlcSent }
+                let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
+                match activeChannelAfterCommitSentRes with
+                | Error err -> return Error <| SendHtlcPaymentError.SendCommit err
+                | Ok activeChannelAfterCommitSent ->
+                    let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
+                    match activeChannelAfterCommitReceivedRes with
+                    | Error err -> return Error <| SendHtlcPaymentError.RecvCommit err
+                    | Ok activeChannelAfterCommitReceived when waitForResult ->
+                        let! activeChannelAfterNewCommitRes = activeChannelAfterCommitReceived.RecvHtlcFulfillOrFail()
+                        match (activeChannelAfterNewCommitRes) with
+                        | Error err ->
+                            return Error <| SendHtlcPaymentError.RecvFulfillOrFail err
+                        | Ok (activeChannelAfterNewCommit, true) ->
+                            return Ok (activeChannelAfterNewCommit)
+                        | Ok (activeChannelAfterNewCommit, false) ->
+                            return Error <| SendHtlcPaymentError.ReceivedHtlcFail activeChannelAfterNewCommit
+                    | Ok activeChannelAfterCommitReceived ->
+                        return Ok (activeChannelAfterCommitReceived)
+    }
+
+    member internal self.FailHtlc (id: HTLCId) (reason: HtlcSettleFailReason) : Async<Result<ActiveChannel * HtlcSettleStatus, RecvHtlcPaymentError>> =
+        async {
+            let connectedChannel = self.ConnectedChannel
+            let channelWrapper = connectedChannel.Channel
+            let peerNode = connectedChannel.PeerNode
+
+            let opFail = {
+                OperationFailHTLC.Id = id
+                Reason =
+                    Choice2Of2
+                        {
+                            FailureMsg.Code =
+                                match reason with
+                                | UnknownPaymentHash ->
+                                    OnionError.UNKNOWN_PAYMENT_HASH
+                                | IncorrectPaymentAmount ->
+                                    OnionError.INCORRECT_PAYMENT_AMOUNT
+                                | RequiredChannelFeatureMissing ->
+                                    OnionError.REQUIRED_CHANNEL_FEATURE_MISSING
+                                | BadFinalPayload ->
+                                    //FIXME: this is not the greatest error to represent what happened
+                                    OnionError.TEMPORARY_NODE_FAILURE
+                                |> OnionError.FailureCode
+                            Data =
+                                match reason with
+                                | UnknownPaymentHash ->
+                                    FailureMsgData.UnknownPaymentHash
+                                | IncorrectPaymentAmount ->
+                                    FailureMsgData.IncorrectPaymentAmount
+                                | RequiredChannelFeatureMissing ->
+                                    FailureMsgData.RequiredChannelFeatureMissing
+                                | BadFinalPayload ->
+                                    //FIXME: this is not the greatest error to represent what happened
+                                    FailureMsgData.TemporaryNodeFailure
+                        }
+            }
+
+            let channelAfterFailRes = channelWrapper.Channel.FailHTLC opFail
+            match channelAfterFailRes with
+            | Error err ->
+                let connectedChannelAfterErrorReceived =
+                    { connectedChannel with
+                        Channel = channelWrapper
+                    }
+                let! connectedChannelAfterError = connectedChannelAfterErrorReceived.SendError err.Message
+                let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+                return Error <| SettleFailed (brokenChannel, err)
+            | Ok (channelAfterFail, failMsg) ->
+                let! peerNodeAfterFailSent = peerNode.SendMsg failMsg
+                let connectedChannelAfterFailSent =
+                    {
+                        connectedChannel with
+                            PeerNode = peerNodeAfterFailSent
+                            Channel =
+                                {
+                                    Channel = channelAfterFail
+                                }
+                    }
+
+                connectedChannelAfterFailSent.SaveToWallet()
+                let activeChannel = { ConnectedChannel = connectedChannelAfterFailSent }
+                let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
+                match activeChannelAfterCommitSentRes with
+                | Error err -> return Error <| RecvHtlcPaymentError.SendCommit err
+                | Ok activeChannelAfterCommitSent ->
+                    let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
+                    match activeChannelAfterCommitReceivedRes with
+                    | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
+                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, HtlcSettleStatus.Fail)
+        }
+
+    member internal self.FailMalformedHtlc (htlc: UpdateAddHTLCMsg) (cryptoError: CryptoError) : Async<Result<ActiveChannel * HtlcSettleStatus, RecvHtlcPaymentError>> =
+        async {
+            let connectedChannel = self.ConnectedChannel
+            let channelWrapper = connectedChannel.Channel
+            let peerNode = connectedChannel.PeerNode
+
+            let opFail = {
+                OperationFailMalformedHTLC.Id = htlc.HTLCId
+                Sha256OfOnion = htlc.OnionRoutingPacket.ToBytes() |> Crypto.Hashes.SHA256 |> uint256
+                FailureCode =
+                    match cryptoError with
+                    | BadMac ->
+                        OnionError.INVALID_ONION_HMAC
+                    | InvalidPublicKey _ ->
+                        OnionError.INVALID_ONION_KEY
+                    | _ ->
+                        OnionError.INVALID_ONION_VERSION
+                    |> OnionError.FailureCode
+            }
+
+            let channelAfterFailRes = channelWrapper.Channel.FailMalformedHTLC opFail
+            match channelAfterFailRes with
+            | Error err ->
+                let connectedChannelAfterErrorReceived =
+                    { connectedChannel with
+                        Channel = channelWrapper
+                    }
+                let! connectedChannelAfterError = connectedChannelAfterErrorReceived.SendError err.Message
+                let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+                return Error <| SettleFailed (brokenChannel, err)
+            | Ok (channelAfterFail, failMsg) ->
+                let! peerNodeAfterFailSent = peerNode.SendMsg failMsg
+                let connectedChannelAfterFailSent =
+                    {
+                        connectedChannel with
+                            PeerNode = peerNodeAfterFailSent
+                            Channel =
+                                {
+                                    Channel = channelAfterFail
+                                }
+                    }
+
+                connectedChannelAfterFailSent.SaveToWallet()
+                let activeChannel = { ConnectedChannel = connectedChannelAfterFailSent }
+                let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
+                match activeChannelAfterCommitSentRes with
+                | Error err -> return Error <| RecvHtlcPaymentError.SendCommit err
+                | Ok activeChannelAfterCommitSent ->
+                    let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
+                    match activeChannelAfterCommitReceivedRes with
+                    | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
+                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, HtlcSettleStatus.Fail)
+        }
+
+    member internal self.SettleIncomingHtlc (updateAddHTLCMsg: UpdateAddHTLCMsg)
+                                                              : Async<Result<ActiveChannel * HtlcSettleStatus, RecvHtlcPaymentError>> = async {
+        let connectedChannel = self.ConnectedChannel
+        let channelWrapper = connectedChannel.Channel
+        let peerNode = connectedChannel.PeerNode
+        let nodePrivateKey = channelWrapper.Channel.NodeSecret.RawKey()
+
+        let parsedPacketRes =
+            updateAddHTLCMsg.OnionRoutingPacket.ToBytes()
+            |> Sphinx.parsePacket nodePrivateKey (updateAddHTLCMsg.PaymentHash.ToBytes())
+
+        match parsedPacketRes with
+        | Error err ->
+            return! self.FailMalformedHtlc updateAddHTLCMsg err
+        | Ok parsedPacket ->
+            let onionPayload =
+                OnionPayload.FromBytes parsedPacket.Payload
+            match onionPayload with
+            | Ok (TLVPayload tlvs) ->
+                //Geewallet cannot handle routing payments
+                let shortChannelIdOpt = tlvs |> Array.tryFind ( function | ShortChannelId _ -> true | _ -> false)
+                //According to spec these values MUST exist in the payload
+                let amountToForwardOpt = tlvs |> Array.tryPick ( function | AmountToForward amountToForward -> Some amountToForward | _ -> None) 
+                let outgoingCLTVOpt = tlvs |> Array.tryPick ( function | OutgoingCLTV cltv -> Some cltv | _ -> None)
+
+                match shortChannelIdOpt, amountToForwardOpt, outgoingCLTVOpt with
+                | None, Some amountToForward, Some _outgoingCLTV ->
+                    let invoiceOpt =
+                        (InvoiceDataStore connectedChannel.Account)
+                            .LoadInvoiceData()
+                            .TryGetInvoice updateAddHTLCMsg.PaymentHash
+
+                    match invoiceOpt with
+                    | None ->
+                        return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.UnknownPaymentHash
+                    | Some invoice ->
+                        if invoice.Amount = amountToForward.ToMoney() && invoice.Amount = updateAddHTLCMsg.Amount.ToMoney() then
+                            //FIXME: should we do anything wrt CLTV?
+                            let opFullfil =
+                                {
+                                    OperationFulfillHTLC.Id = updateAddHTLCMsg.HTLCId
+                                    PaymentPreimage = invoice.PaymentPreimage
+                                    // This field is unused, probably because it's ported from eclair
+                                    Commit = true
+                                }
+
+                            let channelAfterFulFillRes =
+                                 channelWrapper.Channel.FulFillHTLC opFullfil
+                            match channelAfterFulFillRes with
+                            | Error err ->
+                                let connectedChannelAfterErrorReceived =
+                                    { connectedChannel with
+                                        Channel = channelWrapper
+                                    }
+                                let! connectedChannelAfterError = connectedChannelAfterErrorReceived.SendError err.Message
+                                let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
+                                return Error <| SettleFailed (brokenChannel, err)
+                            | Ok (channelAfterFulFill, fulfillMsg) ->
+                                let! peerNodeAfterFulFillSent = peerNode.SendMsg fulfillMsg
+                                let connectedChannelAfterFulFillSent =
+                                    {
+                                        connectedChannel with
+                                            PeerNode = peerNodeAfterFulFillSent
+                                            Channel =
+                                                {
+                                                    Channel = channelAfterFulFill
+                                                }
+                                    }
+
+                                connectedChannelAfterFulFillSent.SaveToWallet()
+                                let activeChannel = { ConnectedChannel = connectedChannelAfterFulFillSent }
+                                let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
+                                match activeChannelAfterCommitSentRes with
+                                | Error err -> return Error <| RecvHtlcPaymentError.SendCommit err
+                                | Ok activeChannelAfterCommitSent ->
+                                    let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
+                                    match activeChannelAfterCommitReceivedRes with
+                                    | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
+                                    | Ok activeChannelAfterCommitReceived -> return Ok (activeChannelAfterCommitReceived, HtlcSettleStatus.Success)
+                        else
+                            return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.IncorrectPaymentAmount
+                | _ ->
+                    return! self.FailHtlc updateAddHTLCMsg.HTLCId BadFinalPayload
+            | _ ->
+                return! self.FailHtlc updateAddHTLCMsg.HTLCId HtlcSettleFailReason.RequiredChannelFeatureMissing
+    }
+
+    member internal self.RecvHtlcPayment (updateAddHTLCMsg: UpdateAddHTLCMsg) (settleImmediately: bool)
+                                                              : Async<Result<ActiveChannel * HtlcSettleStatus, RecvHtlcPaymentError>> = async {
+        let connectedChannel = self.ConnectedChannel
+        let channelWrapper = connectedChannel.Channel
+        let currency = (connectedChannel.Account :> IAccount).Currency
 
         let! blockHeight = async {
             let! blockHeightResponse =
@@ -678,68 +1100,13 @@ and internal ActiveChannel =
                     (ElectrumClient.SubscribeHeaders ())
                     None
             return
-                (blockHeightResponse.Height |> uint32) + outgoingCLTV.Value
+                (blockHeightResponse.Height |> uint32) |> BlockHeight
         }
 
-        let tlvs =
-            match paymentSecretOpt with
-            | Some paymentSecret ->
-                [| HopPayloadTLV.AmountToForward amount; HopPayloadTLV.OutgoingCLTV blockHeight; HopPayloadTLV.PaymentData(PaymentSecret.Create(paymentSecret), amount) |]
-            | None ->
-                [| HopPayloadTLV.AmountToForward amount; HopPayloadTLV.OutgoingCLTV blockHeight |]
-
-        let realm0Data = TLVPayload(tlvs).ToBytes()
-        let onionPacket = Sphinx.PacketAndSecrets.Create (sessionKey, [channel.RemoteNodeId.Value], [realm0Data], associatedData, Sphinx.PacketFiller.DeterministicPacketFiller)
-
-        let channelAndAddHtlcMsgRes =
-            channel.Channel.AddHTLC
-                {
-                    OperationAddHTLC.Amount = amount
-                    PaymentHash = PaymentHash.PaymentHash paymentPreimage
-                    Expiry = BlockHeight blockHeight
-                    Onion = onionPacket.Packet
-                    Upstream = None
-                    Origin = None
-                    CurrentHeight = BlockHeight.Zero
-                }
-
-        match channelAndAddHtlcMsgRes with
-        | Error err -> return failwith <| SPrintF1 "error executing htlc payment command: %s" err.Message
-        | Ok (channelAfterAddHtlcPayment, addHtlcMsg) ->
-            let! peerNodeAfterAddHtlcSent = peerNode.SendMsg addHtlcMsg
-            let connectedChannelAfterAddHtlcSent = {
-                connectedChannel with
-                    PeerNode = peerNodeAfterAddHtlcSent
-                    Channel =
-                        {
-                            Channel = channelAfterAddHtlcPayment
-                        }
-            }
-            connectedChannelAfterAddHtlcSent.SaveToWallet()
-            let activeChannel = { ConnectedChannel = connectedChannelAfterAddHtlcSent }
-            let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
-            match activeChannelAfterCommitSentRes with
-            | Error _err -> return failwith "not implemented"
-            | Ok activeChannelAfterCommitSent ->
-                let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
-                match activeChannelAfterCommitReceivedRes with
-                | Error _err -> return failwith "not implemented"
-                | Ok activeChannelAfterCommitReceived ->
-                    let! activeChannelAfterNewCommitRes = activeChannelAfterCommitReceived.RecvHtlcFulfill()
-                    match (activeChannelAfterNewCommitRes) with
-                    |Error _err -> return failwith "not implemented"
-                    | Ok activeChannelAfterNewCommit ->
-                        return Ok (activeChannelAfterNewCommit)
-    }
-
-    member internal self.RecvMonoHopUnidirectionalPayment (monoHopUnidirectionalPaymentMsg: MonoHopUnidirectionalPaymentMsg)
-                                                              : Async<Result<ActiveChannel, RecvMonoHopPaymentError>> = async {
-        let connectedChannel = self.ConnectedChannel
-        let channelWrapper = connectedChannel.Channel
-
         let channelAfterMonoHopPaymentReceivedRes =
-            channelWrapper.Channel.ApplyMonoHopUnidirectionalPayment
-                monoHopUnidirectionalPaymentMsg
+            channelWrapper.Channel.ApplyUpdateAddHTLC
+                updateAddHTLCMsg
+                blockHeight
 
         match channelAfterMonoHopPaymentReceivedRes with
         | Error err ->
@@ -749,7 +1116,7 @@ and internal ActiveChannel =
                 }
             let! connectedChannelAfterError = connectedChannelAfterErrorReceived.SendError err.Message
             let brokenChannel = { BrokenChannel.ConnectedChannel = connectedChannelAfterError }
-            return Error <| InvalidMonoHopPayment (brokenChannel, err)
+            return Error <| InvalidHtlcPayment (brokenChannel, err)
         | Ok channelAfterMonoHopPaymentReceived ->
             let connectedChannelAfterMonoHopPaymentReceived =
                 {
@@ -764,12 +1131,15 @@ and internal ActiveChannel =
             let activeChannel = { ConnectedChannel = connectedChannelAfterMonoHopPaymentReceived }
             let! activeChannelAfterCommitReceivedRes = activeChannel.RecvCommit()
             match activeChannelAfterCommitReceivedRes with
-            | Error err -> return Error <| RecvMonoHopPaymentError.RecvCommit err
+            | Error err -> return Error <| RecvHtlcPaymentError.RecvCommit err
             | Ok activeChannelAfterCommitReceived ->
             let! activeChannelAfterCommitSentRes = activeChannelAfterCommitReceived.SendCommit()
             match activeChannelAfterCommitSentRes with
-            | Error err -> return Error <| RecvMonoHopPaymentError.SendCommit err
-            | Ok activeChannelAfterCommitSent -> return Ok activeChannelAfterCommitSent
+            | Error err -> return Error <| RecvHtlcPaymentError.SendCommit err
+            | Ok activeChannelAfterCommitSent when settleImmediately ->
+                return! activeChannelAfterCommitSent.SettleIncomingHtlc updateAddHTLCMsg
+            | Ok activeChannelAfterCommitSent ->
+                return Ok (activeChannelAfterCommitSent, HtlcSettleStatus.NotSettled)
     }
 
     member internal self.AcceptUpdateFee (): Async<Result<ActiveChannel, AcceptUpdateFeeError>> = async {

@@ -38,13 +38,10 @@ module public Network =
     let public CheckClosingFinished = ClosedChannel.CheckClosingFinished
 
     let public SendHtlcPayment (nodeClient: NodeClient) = nodeClient.SendHtlcPayment
-    let public SendMonoHopPayment (nodeClient: NodeClient) = nodeClient.SendMonoHopPayment
     let public ConnectLockChannelFunding (nodeClient: NodeClient) = nodeClient.ConnectLockChannelFunding
 
     let public AcceptChannel (nodeServer: NodeServer) = nodeServer.AcceptChannel ()
 
-    [<Obsolete "Use ReceiveLightningEvent instead">]
-    let public ReceiveMonoHopPayment (nodeServer: NodeServer) = nodeServer.ReceiveMonoHopPayment
 
     let public ReceiveLightningEvent (nodeServer: NodeServer) = nodeServer.ReceiveLightningEvent
     let public AcceptLockChannelFunding (nodeServer: NodeServer) = nodeServer.AcceptLockChannelFunding

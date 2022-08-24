@@ -56,10 +56,13 @@ module Settings =
     }
 
     let internal SupportedFeatures (currency: Currency) (fundingOpt: Option<Money>) =
-        let featureBits = FeatureBits.Zero
-        featureBits.SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true
-        featureBits.SetFeature Feature.OptionStaticRemoteKey FeaturesSupport.Mandatory true
-        featureBits.SetFeature Feature.OptionAnchorZeroFeeHtlcTx FeaturesSupport.Mandatory true
+        let featureBits =
+            (((FeatureBits.Zero
+                .SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true)
+                .SetFeature Feature.VariableLengthOnion FeaturesSupport.Mandatory true)
+                .SetFeature Feature.OptionStaticRemoteKey FeaturesSupport.Mandatory true)
+                .SetFeature Feature.OptionAnchorZeroFeeHtlcTx FeaturesSupport.Mandatory true
+
         if currency = Currency.LTC then
             let featureType =
                 match fundingOpt with
@@ -69,7 +72,8 @@ module Settings =
                     FeaturesSupport.Optional
 
             featureBits.SetFeature Feature.OptionSupportLargeChannel featureType true
-        featureBits
+        else
+            featureBits
 
     let internal GetLocalParams (funding: Money)
                                 (currency: Currency)
@@ -81,7 +85,7 @@ module Settings =
                 | LTC -> 200UL
                 | _ -> failwith "Unsupported currency"
                 |> Money
-            MaxHTLCValueInFlightMSat = LNMoney 10000L
+            MaxHTLCValueInFlightMSat = LNMoney.FromMoney funding
             ChannelReserveSatoshis = funding * Config.ChannelReservePercentage / 100L
             HTLCMinimumMSat = LNMoney 1000L
             // see https://github.com/lightning/bolts/blob/master/02-peer-protocol.md#the-open_channel-message

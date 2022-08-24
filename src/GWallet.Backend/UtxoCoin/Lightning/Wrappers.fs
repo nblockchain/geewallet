@@ -6,10 +6,12 @@ open NBitcoin
 open DotNetLightning.Channel
 open DotNetLightning.Chain
 open DotNetLightning.Crypto
+open DotNetLightning.Payment
 open DotNetLightning.Utils
 open ResultUtils.Portability
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 
@@ -72,6 +74,18 @@ type UtxoTransaction =
 
     override self.ToString() =
         self.NBitcoinTx.ToHex()
+
+//FIXME: better error handling
+type PaymentInvoice =
+    internal {
+        PaymentRequest: PaymentRequest
+    }
+
+    static member Parse (invoiceStr: string) =
+        {
+            PaymentRequest =
+                UnwrapResult (PaymentRequest.Parse invoiceStr) "Invalid invoice"
+        }
 
 type MonoHopUnidirectionalChannel =
     internal {
@@ -151,3 +165,5 @@ type MonoHopUnidirectionalChannel =
 
     member internal self.SpendableBalance(): LNMoney =
         self.Channel.SpendableBalance()
+
+type AmountInSatoshis = uint64

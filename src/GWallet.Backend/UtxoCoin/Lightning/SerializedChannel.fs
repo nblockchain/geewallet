@@ -29,7 +29,7 @@ type SerializedCommitments =
         ProposedRemoteChanges: list<IUpdateMsg>
         LocalNextHTLCId: HTLCId
         RemoteNextHTLCId: HTLCId
-        OriginChannels: Map<HTLCId, HTLCSource>
+        OriginChannels: Map<HTLCId, Origin>
     }
 
 type private CommitmentsJsonConverter() =
@@ -55,6 +55,13 @@ type private CommitmentsJsonConverter() =
             OriginChannels = state.OriginChannels
         })
 
+type MainBalanceRecoveryStatus =
+    | RecoveryTxSent of txId: TransactionIdentifier
+    // Main balance was dust
+    | NotNeeded
+    // Channel is either open or we haven't gotten to send a recovery tx
+    | Unresolved
+
 type SerializedChannel =
     {
         ChannelIndex: int
@@ -65,7 +72,10 @@ type SerializedChannel =
         AccountFileName: string
         ForceCloseTxIdOpt: Option<TransactionIdentifier>
         LocalChannelPubKeys: ChannelPubKeys
-        RecoveryTxIdOpt: Option<TransactionIdentifier>
+        MainBalanceRecoveryStatus: MainBalanceRecoveryStatus
+        HtlcDelayedTxs: List<AmountInSatoshis * TransactionIdentifier>
+        BroadcastedHtlcTxs: List<AmountInSatoshis * TransactionIdentifier>
+        BroadcastedHtlcRecoveryTxs: List<AmountInSatoshis * TransactionIdentifier>
         NodeTransportType: NodeTransportType
         ClosingTimestampUtc: Option<DateTime>
     }

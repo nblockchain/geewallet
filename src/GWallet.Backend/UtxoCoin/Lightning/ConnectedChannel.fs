@@ -245,8 +245,11 @@ type internal ConnectedChannel =
             ForceCloseTxIdOpt = None            
             LocalChannelPubKeys = self.Channel.ChannelPrivKeys.ToChannelPubKeys()
             NodeTransportType = self.PeerNode.NodeTransportType
-            RecoveryTxIdOpt = None
+            MainBalanceRecoveryStatus = Unresolved
             ClosingTimestampUtc = self.ClosingTimestampUtc
+            HtlcDelayedTxs = List.empty
+            BroadcastedHtlcRecoveryTxs = List.empty
+            BroadcastedHtlcTxs = List.empty
         }
         channelStore.SaveChannel serializedChannel
 

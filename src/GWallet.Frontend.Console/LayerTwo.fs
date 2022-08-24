@@ -171,19 +171,15 @@ module LayerTwo =
         (channelId: ChannelIdentifier)
         : Async<unit> =
         async {
-            let! forceCloseTxIdResult = node.ForceCloseChannel channelId
+            let! forceCloseTxId = node.ForceCloseChannel channelId
             Console.WriteLine (sprintf "Channel %s force closed" (ChannelId.ToString channelId))
-            match forceCloseTxIdResult with
-            | Ok forceCloseTxId ->
-                let txUri = BlockExplorer.GetTransaction currency forceCloseTxId
-                Console.WriteLine (
-                    sprintf
-                        "Funds recovered in this transaction:%s%s"
-                        Environment.NewLine
-                        (txUri.ToString ())
-                )
-            | Error ClosingBalanceBelowDustLimit ->
-                Console.WriteLine "Closing balance of channel was too small (below the \"dust\" limit) so no funds were recovered."
+            let txUri = BlockExplorer.GetTransaction currency forceCloseTxId
+            Console.WriteLine (
+                sprintf
+                    "Channel closed in this transaction:%s%s"
+                    Environment.NewLine
+                    (txUri.ToString ())
+            )
         }
 
     let MaybeForceCloseChannel
@@ -455,7 +451,7 @@ module LayerTwo =
             UserInteraction.PressAnyKeyToContinue()
         }
 
-    let SendPayment(): Async<unit> =
+    let SendHtlcPayment(): Async<unit> =
         async {
             let account = AskLightningAccount None
             let channelStore = ChannelStore account
@@ -463,26 +459,52 @@ module LayerTwo =
             match channelIdOpt with
             | None -> return ()
             | Some channelId ->
-                let channelInfo = channelStore.ChannelInfo channelId
-                let transferAmountOpt = UserInteraction.AskLightningAmount channelInfo
-                match transferAmountOpt with
+                let invoiceOpt = UserInteraction.Ask (PaymentInvoice.Parse) "Enter invoice (in BOLT11 format)"
+                //FIXME: No NOnion support for Htlc atm
+                //let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType channelInfo.Currency
+                match invoiceOpt with
                 | None -> ()
-                | Some transferAmount ->
+                | Some invoice ->
                     let trySendPayment password =
                         async {
                             let nodeClient = Lightning.Connection.StartClient channelStore password
                             Console.WriteLine "Connecting..."
-                            let! paymentRes = Lightning.Network.SendMonoHopPayment nodeClient channelId transferAmount
+                            let! paymentRes = Lightning.Network.SendHtlcPayment nodeClient channelId invoice true
                             match paymentRes with
-                            | Error nodeSendMonoHopPaymentError ->
+                            | Error nodeSendHtlcPaymentError ->
                                 let currency = (account :> IAccount).Currency
-                                Console.WriteLine(sprintf "Error sending monohop payment: %s" nodeSendMonoHopPaymentError.Message)
-                                do! MaybeForceCloseChannel (Node.Client nodeClient) currency channelId nodeSendMonoHopPaymentError
+                                Console.WriteLine(sprintf "Error sending HTLC: %s" nodeSendHtlcPaymentError.Message)
+                                do! MaybeForceCloseChannel (Node.Client nodeClient) currency channelId nodeSendHtlcPaymentError
                             | Ok () ->
                                 Console.WriteLine "Payment sent."
                         }
                     do! UserInteraction.TryWithPasswordAsync trySendPayment
                     UserInteraction.PressAnyKeyToContinue()
+        }
+
+    let CreateInvoice(): Async<unit>=
+        async {
+            let account = AskLightningAccount None
+            //FIXME: add support for specific expiration date
+            //FIXME: better messages
+            let rec createInvoice password =
+                async {
+                    let amountInSatoshisOpt =
+                        UserInteraction.Ask Convert.ToUInt64 "Enter invoice amount in satoshis"
+                    match amountInSatoshisOpt with
+                    | Some amountInSatoshis ->
+                        let descriptionOpt = UserInteraction.Ask id "Enter invoice description"
+                        match descriptionOpt with
+                        | Some description ->
+                            let invoiceManager = InvoiceManagement (account, password)
+                            let invoiceInString = invoiceManager.CreateInvoice amountInSatoshis description
+                            Console.WriteLine (sprintf "Invoice: %s" invoiceInString)
+                        | None ->
+                            return! createInvoice password
+                    | None ->
+                        return! createInvoice password
+                }
+            do! UserInteraction.TryWithPasswordAsync createInvoice
         }
 
     let ReceiveLightningEvent(): Async<unit> =
@@ -507,7 +529,7 @@ module LayerTwo =
                         use! nodeServer = Lightning.Connection.StartServer channelStore password nodeServerType
 
                         Console.WriteLine "Waiting for funder to connect..."
-                        let! receiveLightningEventRes = Lightning.Network.ReceiveLightningEvent nodeServer channelId
+                        let! receiveLightningEventRes = Lightning.Network.ReceiveLightningEvent nodeServer channelId true
                         match receiveLightningEventRes with
                         | Error nodeReceiveLightningEventError ->
                             let currency = (account :> IAccount).Currency
@@ -515,6 +537,15 @@ module LayerTwo =
                             do! MaybeForceCloseChannel (Node.Server nodeServer) currency channelId nodeReceiveLightningEventError
                         | Ok msg ->
                             match msg with
+                            | IncomingChannelEvent.HtlcPayment status ->
+                                match status with
+                                | HtlcSettleStatus.Success ->
+                                    Console.WriteLine "Payment received."
+                                | HtlcSettleStatus.Fail ->
+                                    Console.WriteLine "Payment failed gracefully, funds has been returned to funder."
+                                | HtlcSettleStatus.NotSettled ->
+                                    failwith "This should not happen beacuse ReceiveLightningEvent's settleHTLCImmediately is true in Frontend"
+
                             | IncomingChannelEvent.MonoHopUnidirectionalPayment ->
                                 Console.WriteLine "Payment received."
                             | IncomingChannelEvent.Shutdown ->
@@ -670,23 +701,32 @@ module LayerTwo =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
                         let commitmentTx = channelStore.GetCommitmentTx channelInfo.ChannelId
-                        let! recoveryTxResult = (Node.Client nodeClient).CreateRecoveryTxForLocalForceClose channelInfo.ChannelId commitmentTx
-                        let recoveryTx = UnwrapResult recoveryTxResult "BUG: we should've checked that output is not dust when initiating the force-close"
-                        if UserInteraction.ConfirmTxFee recoveryTx.Fee then
-                            let! txId =
-                                ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx channelStore
+                        let! recoveryTxResult = (Node.Client nodeClient).CreateRecoveryTxForForceClose channelInfo.ChannelId commitmentTx
+                        match recoveryTxResult with
+                        | Ok recoveryTx ->
+                            if UserInteraction.ConfirmTxFee recoveryTx.Fee then
+                                let! txId =
+                                    ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx channelStore
+                                return seq {
+                                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                    yield sprintf "        channel force-closed"
+                                    yield sprintf "        funds have been recovered and sent back to the wallet"
+                                    yield sprintf "        Transaction ID of recovery transaction is %s" txId
+                                }
+                            else
+                                return seq {
+                                    yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                                    yield sprintf "        channel force-closed"
+                                    yield sprintf "        funds have not been recovered yet"
+                                }
+                        | Error ClosingBalanceBelowDustLimit ->
                             return seq {
                                 yield! UserInteraction.DisplayLightningChannelStatus channelInfo
-                                yield sprintf "        channel force-closed"
-                                yield sprintf "        funds have been recovered and sent back to the wallet"
-                                yield sprintf "        txid of recovery transaction is %s" txId
+                                yield "        channel closed by us"
+                                yield "        Local channel balance was too small (below the \"dust\" limit) so no funds were recovered."
                             }
-                        else
-                            return seq {
-                                yield! UserInteraction.DisplayLightningChannelStatus channelInfo
-                                yield sprintf "        channel force-closed"
-                                yield sprintf "        funds have not been recovered yet"
-                            }
+                        | Error err ->
+                            return failwith <| SPrintF1 "BUG: CreateRecoveryTxForForceClose returned error(%A) when claiming main balance after local force close" err
                     }
                 return!
                     trySendRecoveryTx
@@ -817,6 +857,10 @@ module LayerTwo =
                                                 yield "        channel closed by counterparty"
                                                 yield "        waiting for 1 confirmation before funds are recovered"
                                             }
+                                    | Error RevokedTransaction ->
+                                        //FIXME: This should be handled by ChainWatcher but
+                                        // what's the safest thing to do here? broadcast a penalty tx?
+                                        return Seq.empty
                                     | Error ClosingBalanceBelowDustLimit ->
                                         return seq {
                                             yield! UserInteraction.DisplayLightningChannelStatus channelInfo
@@ -854,9 +898,9 @@ module LayerTwo =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
                         let! recoveryTxResult =
-                            (Node.Client nodeClient).CreateRecoveryTxForRemoteForceClose
+                            (Node.Client nodeClient).CreateRecoveryTxForForceClose
                                 channelInfo.ChannelId
-                                closingTx
+                                closingTx.Tx
                         match recoveryTxResult with
                         | Ok recoveryTx ->
                             if UserInteraction.ConfirmTxFee recoveryTx.Fee then
@@ -875,6 +919,10 @@ module LayerTwo =
                                     yield sprintf "        channel force-closed"
                                     yield sprintf "        funds have not been recovered yet"
                                 }
+                        | Error RevokedTransaction ->
+                            //FIXME: This should be handled by ChainWatcher but
+                            // what's the safest thing to do here? broadcast a penalty tx?
+                            return Seq.empty
                         | Error ClosingBalanceBelowDustLimit ->
                             return seq {
                                 yield! UserInteraction.DisplayLightningChannelStatus channelInfo
@@ -960,6 +1008,63 @@ module LayerTwo =
                 return justChannelBeingClosedInfo
         }
 
+    let HandleReadyToResolveHtlc (accounts: seq<IAccount>) =
+        async {
+            let normalUtxoAccounts = accounts.OfType<UtxoCoin.NormalUtxoAccount>()
+            for account in normalUtxoAccounts do
+                let channelStore = ChannelStore account
+                let channelIds =
+                    channelStore.ListChannelIds()
+                for channelId in channelIds do
+                    let! htlcTxsList = ChainWatcher.CheckForChannelReadyToBroadcastHtlcTransactions channelId channelStore
+                    let rec tryCreateHtlcTx (htlcTxsList: HtlcTxsList) (password: string) =
+                        async {
+                            if htlcTxsList.IsEmpty() then
+                                return ()
+                            else
+                                let nodeClient = Lightning.Connection.StartClient channelStore password
+                                let! htlcTx, htlcTxsList = (Node.Client nodeClient).CreateHtlcTxForHtlcTxsList htlcTxsList password
+                                if htlcTx.IsDust() then
+                                    return! tryCreateHtlcTx htlcTxsList password
+                                else
+                                    do! ChannelManager.BroadcastHtlcTxAndAddToWatchList htlcTx channelStore |> Async.Ignore
+                                    return! tryCreateHtlcTx htlcTxsList password
+                        }
+                    if htlcTxsList.IsEmpty() |> not then
+                        do! tryCreateHtlcTx htlcTxsList |> UserInteraction.TryWithPasswordAsync
+        }
+
+    let HandleReadyToRecoverDelayedHtlcs (accounts: seq<IAccount>) =
+        async {
+            let normalUtxoAccounts = accounts.OfType<UtxoCoin.NormalUtxoAccount>()
+            for account in normalUtxoAccounts do
+                let channelStore = ChannelStore account
+                let channelIds =
+                    channelStore.ListChannelIds()
+                for channelId in channelIds do
+                    let! delayedHtlcsTxsList = ChainWatcher.CheckForReadyToSpendDelayedHtlcTransactions channelId channelStore
+                    let tryCreateRecoveryTx (delayedHtlcsTxsList: List<AmountInSatoshis * TransactionIdentifier>) (password: string) =
+                        async {
+                            if delayedHtlcsTxsList |> List.isEmpty then
+                                return ()
+                            else
+                                let nodeClient = Lightning.Connection.StartClient channelStore password
+                                let! htlcRecoveryTxs = (Node.Client nodeClient).CreateRecoveryTxForDelayedHtlcTx channelId delayedHtlcsTxsList
+                                let rec broadcastRecoveryTxs (htlcRecoveryTxs) =
+                                    async {
+                                        match htlcRecoveryTxs with
+                                        | [] ->
+                                            return ()
+                                        | recoveryTx::rest ->
+                                            do! ChannelManager.BroadcastHtlcRecoveryTxAndRemoveFromWatchList recoveryTx channelStore |> Async.Ignore
+                                            return! broadcastRecoveryTxs rest
+                                    }
+                                return! broadcastRecoveryTxs htlcRecoveryTxs
+                        }
+                    if delayedHtlcsTxsList |> List.isEmpty |> not then
+                        do! tryCreateRecoveryTx delayedHtlcsTxsList |> UserInteraction.TryWithPasswordAsync
+        }
+
     let GetChannelStatuses (accounts: seq<IAccount>): seq<Async<unit -> Async<seq<string>>>> =
         seq {
             let normalUtxoAccounts = accounts.OfType<UtxoCoin.NormalUtxoAccount>()
@@ -1039,10 +1144,14 @@ module LayerTwo =
                                         channelInfo
                                         locallyForceClosedData
                         }
-                    | ChannelStatus.RecoveryTxSent recoveryTxId -> 
+                    | ChannelStatus.RecoveryTxSentOrNotNeeded recoveryTxIdOpt ->
                         yield async {
-                            let! isRecoveryTxConfirmed = ChannelManager.CheckForConfirmedRecovery channelStore channelId recoveryTxId
-                            if isRecoveryTxConfirmed then
+                            let! isRecoveryFinished =
+                                ChannelManager.CheckForFinishedRecoveryAndArchive
+                                    channelStore
+                                    channelId
+                                    recoveryTxIdOpt
+                            if isRecoveryFinished then
                                 return
                                     fun () ->
                                         async {

@@ -3,6 +3,7 @@
 open NBitcoin
 open DotNetLightning.Utils
 open DotNetLightning.Chain
+open DotNetLightning.Channel
 
 open GWallet.Backend.UtxoCoin
 

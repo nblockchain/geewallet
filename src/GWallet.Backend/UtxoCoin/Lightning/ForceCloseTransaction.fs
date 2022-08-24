@@ -4,7 +4,9 @@ open System.Linq
 
 open NBitcoin
 open DotNetLightning.Channel
+open DotNetLightning.Channel.ClosingHelpers
 open DotNetLightning.Utils
+open ResultUtils.Portability
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
@@ -20,10 +22,21 @@ module public ForceCloseTransaction =
                                         : Async<Transaction> =
         async {
             let transactionBuilder =
-                ForceCloseFundsRecovery.createPenaltyTx
-                    perCommitmentSecret
-                    savedChannelState
-                    localChannelPrivKeys
+                let transactionBuilderOpt =
+                    ClosingHelpers.RevokedClose.createPenaltyTx
+                        localChannelPrivKeys
+                        savedChannelState.StaticChannelConfig
+                        savedChannelState.RemoteCommit
+                        perCommitmentSecret
+                match transactionBuilderOpt with
+                | Ok transactionBuilder ->
+                    transactionBuilder
+                | Error Inapplicable ->
+                    failwith "Main output can never be inapplicable"
+                | Error UnknownClosingTx ->
+                    failwith "BUG: CreatePenaltyTx failed due to unknown closing tx"
+                | Error BalanceBelowDustLimit ->
+                    failwith "BUG: CreatePenaltyTx failed due to balance below dust limit"
 
             let targetAddress =
                 let originAddress = (account :> IAccount).PublicAddress

@@ -24,8 +24,9 @@ type internal Operations =
     | OpenChannel             = 10
     | AcceptChannel           = 11
     | SendLightningPayment    = 12
-    | ReceiveLightningEvent   = 13
-    | CloseChannel            = 14
+    | CreateInvoice           = 13
+    | ReceiveLightningEvent   = 14
+    | CloseChannel            = 15
 
 type WhichAccount =
     All of seq<IAccount> | MatchingWith of IAccount
@@ -90,6 +91,7 @@ module UserInteraction =
         | Operations.CreateAccounts -> noHotAccounts
         | Operations.OpenChannel
         | Operations.AcceptChannel
+        | Operations.CreateInvoice
             -> not noAccountsAtAll
         | Operations.SendLightningPayment ->
             activeAccounts.OfType<NormalUtxoAccount>().SelectMany(fun account ->
