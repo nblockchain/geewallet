@@ -145,7 +145,19 @@ type Lnd = {
         return TxId <| uint256 sendCoinsResp.Txid
     }
 
-    member self.CreateInvoice (transferAmount: TransferAmount)
+    member self.SendPayment(invoice: string)
+        : Async<unit> =
+        async {
+            let client = self.Client()
+            let sendCoinsReq =
+                LnrpcSendRequest (
+                    Payment_request = invoice
+                )
+            let! _sendCoinsResp = Async.AwaitTask (client.SwaggerClient.SendPaymentSyncAsync sendCoinsReq)
+            return ()
+        }
+
+    member self.CreateInvoice (transferAmount: TransferAmount) (expiryOpt: Option<TimeSpan>)
         : Async<Option<LightningInvoice>> =
         async {
             let amount =
@@ -154,7 +166,7 @@ type Lnd = {
                 DotNetLightning.Utils.LNMoney lnAmount
             let client = self.Client()
             try
-                let expiry = TimeSpan.FromHours 1.
+                let expiry = Option.defaultValue (TimeSpan.FromHours 1.) expiryOpt
                 let invoiceAmount = LightMoney.MilliSatoshis amount.MilliSatoshi
                 let! response =
                     client.CreateInvoice(invoiceAmount, "Test", expiry, CancellationToken.None)
@@ -214,7 +226,7 @@ type Lnd = {
         | err -> return Error err
     }
 
-    member self.CloseChannel (fundingOutPoint: OutPoint)
+    member self.CloseChannel (fundingOutPoint: OutPoint) (force: bool)
         : Async<unit> =
         async {
             let client = self.Client()
@@ -223,7 +235,7 @@ type Lnd = {
             try
                 let! _response =
                     Async.AwaitTask
-                    <| client.SwaggerClient.CloseChannelAsync(fundingTxIdStr, int64 fundingOutputIndex)
+                    <| client.SwaggerClient.CloseChannelAsync(fundingTxIdStr, int64 fundingOutputIndex, force)
                 return ()
             with
             | ex ->

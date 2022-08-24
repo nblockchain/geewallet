@@ -287,13 +287,15 @@ let RunTests (suite: string) =
     let twoProcessTestNames =
         [
             "ChannelOpening"
-            "MonoHopUnidirectionalPayments"
+            "HtlcPayment"
             "ChannelClosingAfterJustOpening"
-            "ChannelClosingAfterSendingMonoHopPayments"
+            "ChannelClosingAfterSendingHTLCPayments"
             "ChannelLocalForceClosing"
             "ChannelRemoteForceClosingByFunder"
             "ChannelRemoteForceClosingByFundee"
             "Revocation"
+            "HtlcPaymentRevocationCloseByFunder"
+            "HtlcPaymentRevocationCloseByFundee"
             "CPFP"
             "MutualCloseCpfp"
             "UpdateFeeMsg"
