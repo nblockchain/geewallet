@@ -100,7 +100,7 @@ type ChannelInfo =
                     ChannelStatus.LocallyForceClosed {
                         Network = serializedChannel.SavedChannelState.StaticChannelConfig.Network
                         Currency = currency
-                        ToSelfDelay = serializedChannel.SavedChannelState.StaticChannelConfig.LocalParams.ToSelfDelay.Value
+                        ToSelfDelay = serializedChannel.SavedChannelState.StaticChannelConfig.RemoteParams.ToSelfDelay.Value
                         ForceCloseTxId = forceCloseTxId
                         ClosingTimestampUtc = UnwrapOption serializedChannel.ClosingTimestampUtc "BUG: closing date is empty after local force close"
                     }
