@@ -2414,6 +2414,70 @@ type LN() =
         return ()
     }
 
+    [<Test>]
+    member __.``can force-close channel with lnd``() = Async.RunSynchronously <| async {
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount =
+            try
+                OpenChannelWithFundee None
+            with
+            | ex ->
+                Assert.Fail (
+                    sprintf
+                        "Inconclusive: channel-closing inconclusive because Channel open failed, fix this first: %s"
+                        (ex.ToString())
+                )
+                failwith "unreachable"
+
+        let! _forceCloseTxId = (Lightning.Node.Client clientWallet.NodeClient).ForceCloseChannel channelId
+
+        let locallyForceClosedData =
+            match (clientWallet.ChannelStore.ChannelInfo channelId).Status with
+            | ChannelStatus.LocallyForceClosed locallyForceClosedData ->
+                locallyForceClosedData
+            | status -> failwith (SPrintF1 "unexpected channel status. Expected LocallyForceClosed, got %A" status)
+
+        // wait for force-close transaction to appear in mempool
+        while bitcoind.GetTxIdsInMempool().Length = 0 do
+            do! Async.Sleep 500
+
+        Infrastructure.LogDebug (SPrintF1 "the time lock is %i blocks" locallyForceClosedData.ToSelfDelay)
+
+        let! balanceBeforeFundsReclaimed = clientWallet.GetBalance()
+
+        // Mine the force-close tx into a block
+        bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
+
+        // Mine blocks to release time-lock
+        bitcoind.GenerateBlocksToDummyAddress
+            (BlockHeightOffset32 (uint32 locallyForceClosedData.ToSelfDelay))
+
+        let! spendingTxResult =
+            let commitmentTx = clientWallet.ChannelStore.GetCommitmentTx channelId
+            (Lightning.Node.Client clientWallet.NodeClient).CreateRecoveryTxForForceClose
+                channelId
+                commitmentTx
+
+        let recoveryTx = UnwrapResult spendingTxResult "Local output is dust, recovery tx cannot be created"
+
+        let! _recoveryTxId =
+            ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx clientWallet.ChannelStore
+
+        // wait for spending transaction to appear in mempool
+        while bitcoind.GetTxIdsInMempool().Length = 0 do
+            do! Async.Sleep 500
+
+        // Mine the spending tx into a block
+        bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
+
+        Infrastructure.LogDebug "waiting for our wallet balance to increase"
+        let! _balanceAfterFundsReclaimed =
+            let amount = balanceBeforeFundsReclaimed + Money(1.0m, MoneyUnit.Satoshi)
+            clientWallet.WaitForBalance amount
+
+        TearDown clientWallet bitcoind electrumServer lnd
+    }
+
+
     [<Category "G2G_UpdateFeeMsg_Funder">]
     [<Test>]
     member __.``can update fee after sending htlc payments (funder)``() = Async.RunSynchronously <| async {
