@@ -271,3 +271,115 @@ module RapidGossipSyncer =
         (extraHops: DotNetLightning.Payment.ExtraHop list list) 
         : seq<IRoutingHopInfo> =
         routingState.GetRoute sourceNodeId targetNodeId paymentAmount currentBlockHeight routeParams extraHops
+
+
+[<Obsolete("Gossip queries were replaced by RGS (see RapidGossipSyncer)")>]
+module GossipQueries =
+    exception RoutingQueryException of string
+
+    [<Obsolete("Gossip queries were replaced by RGS (see RapidGossipSyncer)")>]
+    let internal QueryRoutingGossip (currency: Currency) (nodeIdentifier: NodeIdentifier) : Async<seq<IRoutingMsg>> =
+        async {
+            let firstBlocknum = 0u
+            let numberOfBlocks = 0xffffffffu
+            let currency = currency
+            let chainHash = 
+                match currency with
+                | BTC -> Network.Main.GenesisHash
+                | _ -> failwith <| SPrintF1 "Unsupported currency: %A" currency
+            let queryMsg = 
+                { 
+                    QueryChannelRangeMsg.ChainHash=chainHash
+                    FirstBlockNum=BlockHeight(firstBlocknum)
+                    NumberOfBlocks=numberOfBlocks
+                    TLVs=[||]
+                }
+
+            try
+                let! initialNode = 
+                    let throwawayPrivKey = NodeMasterPrivKey.NodeMasterPrivKey(ExtKey())
+                    let purpose = ConnectionPurpose.Routing
+                    PeerNode.Connect throwawayPrivKey nodeIdentifier currency Money.Zero purpose
+            
+                // step 1: send query_channel_range, read all replies and collect short channel ids from them
+                let! initialNode = 
+                    match initialNode with
+                    | Ok(node) -> node.SendMsg queryMsg
+                    | Error(e) -> raise (RoutingQueryException <| e.ToString())
+        
+                let shortChannelIds = ResizeArray<ShortChannelId>()
+
+                let rec queryShortChannelIds (node: PeerNode) : Async<PeerNode> =
+                    async {
+                        let! response = node.MsgStream.RecvMsg()
+                        match response with
+                        | Error(e) -> 
+                            return raise (RoutingQueryException <| e.ToString())
+                        | Ok(newState, (:? ReplyChannelRangeMsg as replyChannelRange)) -> 
+                            let node = { node with MsgStream = newState }
+                            shortChannelIds.AddRange replyChannelRange.ShortIds
+                            if replyChannelRange.Complete then
+                                return node
+                            else
+                                return! queryShortChannelIds node
+                        | Ok(newState, msg) -> 
+                            // ignore all other messages
+                            let logMsg = 
+                                SPrintF1 "Received unexpected message while processing reply_channel_range messages:\n %A" msg
+                            Infrastructure.LogDebug logMsg
+                            return! queryShortChannelIds { node with MsgStream = newState }
+                    }
+
+                let! node = queryShortChannelIds initialNode
+
+                let batchSize = 1000
+                let batches = shortChannelIds |> Seq.chunkBySize batchSize |> Collections.Generic.Queue
+                let results = ResizeArray<IRoutingMsg>()
+
+                // step 2: split shortChannelIds into batches and for each batch:
+                // - send query_short_channel_ids
+                // - receive routing messages and add them to result until we get reply_short_channel_ids_end
+                let rec processMessages (node: PeerNode) : Async<PeerNode> =
+                    async {
+                        let! response = node.MsgStream.RecvMsg()
+                        match response with
+                        | Error(e) -> 
+                            return raise (RoutingQueryException <| e.ToString())
+                        | Ok(newState, (:? IRoutingMsg as msg)) -> 
+                            let node = { node with MsgStream = newState }
+                            match msg with
+                            | :? ReplyShortChannelIdsEndMsg as _channelIdsEnd -> 
+                                if batches.Count = 0 then
+                                    return node // end processing
+                                else
+                                    return! sendNextBatch node
+                            | _ ->
+                                results.Add msg
+                                return! processMessages node
+                        | Ok(newState, msg) -> 
+                            // ignore all other messages
+                            let logMsg = 
+                                SPrintF1 "Received unexpected message while processing routing messages:\n %A" msg
+                            Infrastructure.LogDebug logMsg
+                            return! processMessages { node with MsgStream = newState }
+                    }
+                and sendNextBatch (node: PeerNode) : Async<PeerNode> =
+                    async {
+                        let queryShortIdsMsg =
+                            {
+                                QueryShortChannelIdsMsg.ChainHash=chainHash
+                                ShortIdsEncodingType=EncodingType.SortedPlain
+                                ShortIds=batches.Dequeue()
+                                TLVs=[||]
+                            }
+                        let! node = node.SendMsg queryShortIdsMsg
+                        return! processMessages node
+                    }
+
+                do! sendNextBatch node |> Async.Ignore
+        
+                return (results :> seq<_>)
+            with
+            | :? RoutingQueryException as _exn ->
+                return Seq.empty
+        }

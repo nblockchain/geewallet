@@ -11,6 +11,12 @@ open DotNetLightning.Channel
 
 open GWallet.Backend
 
+
+type ConnectionPurpose =
+    | ChannelOpening
+    | Routing
+
+
 module Settings =
 
     let Currencies = [| Currency.BTC; Currency.LTC |] :> seq<Currency>
@@ -55,13 +61,17 @@ module Settings =
         MaxToSelfDelay = MaxToSelfDelay currency
     }
 
-    let internal SupportedFeatures (currency: Currency) (fundingOpt: Option<Money>) =
+    let internal SupportedFeatures (currency: Currency) (fundingOpt: Option<Money>) (purpose: ConnectionPurpose) =
         let featureBits =
-            (((FeatureBits.Zero
-                .SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true)
+            ((FeatureBits.Zero.SetFeature Feature.OptionDataLossProtect FeaturesSupport.Optional true)
                 .SetFeature Feature.VariableLengthOnion FeaturesSupport.Mandatory true)
-                .SetFeature Feature.OptionStaticRemoteKey FeaturesSupport.Mandatory true)
-                .SetFeature Feature.OptionAnchorZeroFeeHtlcTx FeaturesSupport.Mandatory true
+                .SetFeature Feature.OptionStaticRemoteKey FeaturesSupport.Mandatory true      
+        let featureBits =
+            match purpose with
+            | Routing -> 
+                featureBits.SetFeature Feature.ChannelRangeQueries FeaturesSupport.Mandatory true
+            | ChannelOpening -> 
+                featureBits.SetFeature Feature.OptionAnchorZeroFeeHtlcTx FeaturesSupport.Mandatory true
 
         if currency = Currency.LTC then
             let featureType =
@@ -91,5 +101,5 @@ module Settings =
             // see https://github.com/lightning/bolts/blob/master/02-peer-protocol.md#the-open_channel-message
             ToSelfDelay = ToSelfDelay currency
             MaxAcceptedHTLCs = uint16 10
-            Features = SupportedFeatures currency (Some funding)
+            Features = SupportedFeatures currency (Some funding) ChannelOpening
         }

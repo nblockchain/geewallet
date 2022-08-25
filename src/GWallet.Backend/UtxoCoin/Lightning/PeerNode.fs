@@ -42,8 +42,9 @@ and internal PeerNode =
                                    (nodeIndentifier: NodeIdentifier)
                                    (currency: Currency)
                                    (fundingAmount: Money)
+                                   (purpose: ConnectionPurpose)
                                        : Async<Result<PeerNode, ConnectError>> = async {
-        let! connectRes = MsgStream.Connect nodeMasterPrivKey nodeIndentifier currency fundingAmount
+        let! connectRes = MsgStream.Connect nodeMasterPrivKey nodeIndentifier currency fundingAmount purpose
         match connectRes with
         | Error connectError -> return Error connectError
         | Ok (initMsg, msgStream) ->
@@ -155,5 +156,4 @@ and internal PeerNode =
                     return failwith <| SPrintF1 "unreachable %A" msg
         }
         recv self.MsgStream
-
 

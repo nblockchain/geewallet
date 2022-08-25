@@ -253,6 +253,7 @@ type NodeClient internal (channelStore: ChannelStore, nodeMasterPrivKey: NodeMas
                 nodeIdentifier
                 ((self.Account :> IAccount).Currency)
                 (Money(channelCapacity.ValueToSend, MoneyUnit.BTC))
+                ConnectionPurpose.ChannelOpening
         match connectRes with
         | Error connectError ->
             if connectError.PossibleBug then
