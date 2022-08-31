@@ -32,6 +32,7 @@ type MainActivity() =
         base.OnCreate (bundle)
         Xamarin.Forms.Forms.Init (this, bundle)
 
+        Xamarin.Essentials.Platform.Init(this, bundle)
         ZXing.Net.Mobile.Forms.Android.Platform.Init()
 
         this.LoadApplication (new GWallet.Frontend.XF.App ())
