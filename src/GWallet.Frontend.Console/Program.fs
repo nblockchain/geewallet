@@ -456,8 +456,9 @@ let rec ProgramMainLoop() =
     let channelInfoInteractionsJob: Async<array<unit -> Async<seq<string>>>> = Async.Parallel channelStatusJobs
     let displayAccountStatusesJob =
         UserInteraction.DisplayAccountStatuses(WhichAccount.All activeAccounts)
-    let channelInfoInteractions, accountStatusesLines, _ =
-        AsyncExtensions.MixedParallel3 channelInfoInteractionsJob displayAccountStatusesJob revokedTxCheckJob
+    let gossipSyncJob = GWallet.Backend.UtxoCoin.Lightning.RapidGossipSyncer.Sync() 
+    let channelInfoInteractions, accountStatusesLines, _, _ =
+        AsyncExtensions.MixedParallel4 channelInfoInteractionsJob displayAccountStatusesJob revokedTxCheckJob gossipSyncJob
         |> Async.RunSynchronously
 
     let unresolvedHtlcsCheckJobs: seq<Async<bool>> =

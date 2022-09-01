@@ -104,6 +104,7 @@
     <Compile Include="UtxoCoin\Lightning\ChainWatcher.fs" />
     <Compile Include="UtxoCoin\Lightning\Node.fs" />
     <Compile Include="UtxoCoin\Lightning\PublicHelpers.fs" />
+    <Compile Include="UtxoCoin\Lightning\RapidGossipSyncer.fs" />
     <Compile Include="Ether\EtherExceptions.fs" />
     <Compile Include="Ether\EtherMinerFee.fs" />
     <Compile Include="Ether\TransactionMetadata.fs" />
@@ -350,6 +351,9 @@
     </Reference>
     <Reference Include="System.Text.Encodings.Web">
       <HintPath>..\..\packages\System.Text.Encodings.Web.5.0.1\lib\net461\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="QuikGraph">
+      <HintPath>..\..\packages\QuikGraph.2.5.0\lib\net45\QuikGraph.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\packages\Microsoft.VisualStudio.Threading.Analyzers.16.9.60\build\Microsoft.VisualStudio.Threading.Analyzers.targets" Condition="Exists('..\..\packages\Microsoft.VisualStudio.Threading.Analyzers.16.9.60\build\Microsoft.VisualStudio.Threading.Analyzers.targets')" />

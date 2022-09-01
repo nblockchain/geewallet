@@ -42,6 +42,7 @@
       <dependency id="System.Net.WebSockets.Client" version="4.3.2" />
       <dependency id="System.Numerics.Vectors" version="4.5.0" />
       <dependency id="System.ObjectModel" version="4.3.0" />
+      <dependency id="QuikGraph" version="2.5.0" />
       <dependency id="System.Reflection" version="4.3.0" />
       <dependency id="System.Reflection.Emit" version="4.7.0" />
       <dependency id="System.Reflection.Emit.Lightweight" version="4.6.0" />
