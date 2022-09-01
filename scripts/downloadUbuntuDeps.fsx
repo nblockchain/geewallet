@@ -14,7 +14,6 @@ open Process
 let binFolderName = "bin"
 let outputSubFolder = "apt"
 let outputFolder = Path.Combine(binFolderName, outputSubFolder)
-let packageDependencies = "fsharp"::[]
 let packageDependencies = "fsharp"::("libgtk2.0-cil-dev"::[])
 
 let currentDir = Directory.GetCurrentDirectory()
