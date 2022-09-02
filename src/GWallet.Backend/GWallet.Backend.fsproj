@@ -299,7 +299,7 @@
       <HintPath>..\..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Essentials">
-      <HintPath>..\..\packages\DotNetEssentials.1.6.0--date20220814-0324.git-7f6e466\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
+      <HintPath>..\..\packages\DotNetEssentials.1.6.1--date20220823-0234.git-14ad2d3\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
     </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
