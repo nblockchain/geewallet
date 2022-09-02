@@ -136,7 +136,7 @@
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
-    <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="3.0.0--date20220823-0340.git-4a60491" />
-    <PackageReference Include="DotNetEssentials" Version="1.6.1--date20220823-0234.git-14ad2d3" />
+    <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="2.9.99--date20220814-1008.git-a2aea05" />
+    <PackageReference Include="DotNetEssentials" Version="1.6.0--date20220814-0324.git-7f6e466" />
   </ItemGroup>
 </Project>
