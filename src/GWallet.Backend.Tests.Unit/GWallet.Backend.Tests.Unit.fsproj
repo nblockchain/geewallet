@@ -84,7 +84,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Chaos.NaCl-Portable">
-      <HintPath>..\..\packages\NOnion.0.1.0--date20220201-0818.git-4a224d8\lib\netstandard2.0\Chaos.NaCl-Portable.dll</HintPath>
+      <HintPath>..\..\packages\NOnion.0.1.0--date20220425-1029.git-182fdff\lib\netstandard2.0\Chaos.NaCl-Portable.dll</HintPath>
     </Reference>
     <Reference Include="FSharpx.Collections">
       <HintPath>..\..\packages\FSharpx.Collections.3.0.1\lib\netstandard2.0\FSharpx.Collections.dll</HintPath>
@@ -94,7 +94,7 @@
     </Reference>
     <Reference Include="mscorlib" />
     <Reference Include="NOnion">
-      <HintPath>..\..\packages\NOnion.0.1.0--date20220201-0818.git-4a224d8\lib\netstandard2.0\NOnion.dll</HintPath>
+      <HintPath>..\..\packages\NOnion.0.1.0--date20220425-1029.git-182fdff\lib\netstandard2.0\NOnion.dll</HintPath>
     </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\..\packages\NUnit.2.6.4\lib\nunit.framework.dll</HintPath>
