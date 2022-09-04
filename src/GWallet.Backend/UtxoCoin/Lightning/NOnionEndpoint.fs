@@ -14,58 +14,30 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 type NOnionEndPoint =
     {
         NodeId: PublicKey
-        IntroductionPoint: IntroductionPointPublicInfo
+        Url: string
     }
 
-    static member IsNOnionConnection(text: string): bool =
-        text.StartsWith "geewallet+nonion://"
+    static member private GetUri (url: string) =
+        UriBuilder(url).Uri
+
+    static member IsOnionConnection(text: string): bool =
+        let uri = NOnionEndPoint.GetUri text
+        uri.Host.EndsWith ".onion"
 
     static member Parse (currency: Currency) (text: string) : NOnionEndPoint =
-        if not (NOnionEndPoint.IsNOnionConnection text) then
+        if not (NOnionEndPoint.IsOnionConnection text) then
             raise <| FormatException "Not an onion address"
-
-        let uri = System.Uri text
-        let queryStringSegments = HttpUtility.ParseQueryString uri.Query
-
-        let encryptionKey = queryStringSegments.["EncryptionKey"]
-        let authKey = queryStringSegments.["AuthKey"]
-        let onionKey = queryStringSegments.["OnionKey"]
-        let fingerPrint = queryStringSegments.["Fingerprint"]
-        let masterPublicKey = queryStringSegments.["MasterPublicKey"]
-
-        // Passing base64 encoded strings in URL: https://stackoverflow.com/a/5835352/4824925
-        let replaceForDecode (text: string) =
-            text.Replace('.', '+').Replace('_', '/').Replace('-', '=')
+        let uri = NOnionEndPoint.GetUri text
 
         {
             NodeId = PublicKey.Parse currency uri.UserInfo
-            IntroductionPoint =
-                {
-                    Address = uri.Host
-                    Port = uri.Port
-                    EncryptionKey = replaceForDecode encryptionKey
-                    AuthKey = replaceForDecode authKey
-                    OnionKey = replaceForDecode onionKey
-                    Fingerprint = replaceForDecode fingerPrint
-                    MasterPublicKey = replaceForDecode masterPublicKey
-                }
+            Url = uri.Authority
         }
 
     override self.ToString() =
-        // Passing base64 encoded strings in URL: https://stackoverflow.com/a/5835352/4824925
-        let replaceForEncode (text: string) =
-            text.Replace('+', '.').Replace('/', '_').Replace('=', '-')
-
-        let introPoint = self.IntroductionPoint
-        SPrintF8 "geewallet+nonion://%s@%s:%d?EncryptionKey=%s&AuthKey=%s&OnionKey=%s&Fingerprint=%s&MasterPublicKey=%s"
+        SPrintF2 "%s@%s"
             (self.NodeId.ToString())
-            introPoint.Address
-            introPoint.Port
-            (replaceForEncode introPoint.EncryptionKey)
-            (replaceForEncode introPoint.AuthKey)
-            (replaceForEncode self.IntroductionPoint.OnionKey)
-            (replaceForEncode introPoint.Fingerprint)
-            (replaceForEncode introPoint.MasterPublicKey)
+            self.Url
 
 type NodeIdentifier =
     | TcpEndPoint of NodeEndPoint
@@ -94,7 +66,7 @@ type NodeServerType =
 
 type NodeClientType =
     | Tcp of counterPartyIP: IPEndPoint
-    | Tor
+    | Tor of hostUrl: string
 
 type NodeTransportType =
     | Server of NodeServerType

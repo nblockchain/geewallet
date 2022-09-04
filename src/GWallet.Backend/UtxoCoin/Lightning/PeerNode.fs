@@ -49,8 +49,8 @@ and internal PeerNode =
         | Ok (initMsg, msgStream) ->
             let nodeClientType =
                 match nodeIndentifier with
-                | NodeIdentifier.TorEndPoint _ ->
-                    NodeClientType.Tor
+                | NodeIdentifier.TorEndPoint nonionEndPoint ->
+                    NodeClientType.Tor nonionEndPoint.Url
                 | NodeIdentifier.TcpEndPoint nodeEndPoint ->
                     NodeClientType.Tcp nodeEndPoint.IPEndPoint
             return Ok {

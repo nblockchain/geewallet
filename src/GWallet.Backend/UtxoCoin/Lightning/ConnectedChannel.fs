@@ -151,26 +151,27 @@ type internal ConnectedChannel =
     static member internal ConnectFromWallet (channelStore: ChannelStore)
                                              (nodeMasterPrivKey: NodeMasterPrivKey)
                                              (channelId: ChannelIdentifier)
-                                             (nonionEndPoint: Option<NOnionEndPoint>)
                                                  : Async<Result<ConnectedChannel, ReconnectError>> = async {
         let! serializedChannel, channel =
             ConnectedChannel.LoadChannel channelStore nodeMasterPrivKey channelId
         let! connectRes =
             let nodeId = channel.RemoteNodeId
             let nodeIdentifier =
-                match nonionEndPoint with
-                | Some introPoint ->
-                    NodeIdentifier.TorEndPoint introPoint
-                | None ->
-                    match serializedChannel.NodeTransportType with
-                    | NodeTransportType.Client (NodeClientType.Tcp counterPartyIP) ->
-                        NodeIdentifier.TcpEndPoint
-                            {
-                                NodeEndPoint.NodeId = PublicKey nodeId.Value
-                                IPEndPoint = counterPartyIP
-                            }
-                    | _ ->
-                        failwith "Unreachable because channel's user is fundee and not the funder"
+                match serializedChannel.NodeTransportType with
+                | NodeTransportType.Client (NodeClientType.Tcp counterPartyIP) ->
+                    NodeIdentifier.TcpEndPoint
+                        {
+                            NodeEndPoint.NodeId = PublicKey nodeId.Value
+                            IPEndPoint = counterPartyIP
+                        }
+                | NodeTransportType.Client (NodeClientType.Tor hostUrl) ->
+                    NodeIdentifier.TorEndPoint
+                        {
+                            NOnionEndPoint.NodeId = PublicKey nodeId.Value
+                            Url = hostUrl
+                        }
+                | _ ->
+                    failwith "Unreachable because channel's user is fundee and not the funder"
             PeerNode.Connect
                 nodeMasterPrivKey
                 nodeIdentifier

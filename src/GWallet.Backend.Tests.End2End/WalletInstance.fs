@@ -179,7 +179,7 @@ type ClientWalletInstance private (wallet: WalletInstance, nodeClient: NodeClien
         bitcoind.GenerateBlocks (BlockHeightOffset32 minimumDepth) self.Address
 
         do! self.WaitForFundingConfirmed channelId
-        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding self.NodeClient channelId None
+        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding self.NodeClient channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
         let channelInfo = self.ChannelStore.ChannelInfo channelId

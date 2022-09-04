@@ -148,7 +148,7 @@ type LN() =
 
     let ClientCloseChannel (clientWallet: ClientWalletInstance) (bitcoind: Bitcoind) channelId =
         async {
-            let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId None
+            let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId
             match closeChannelRes with
             | Ok _ -> ()
             | Error err -> return failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
@@ -278,7 +278,6 @@ type LN() =
                     clientWallet.NodeClient
                     channelId
                     transferAmount
-                    None
             UnwrapResult sendMonoHopPayment1Res "SendMonoHopPayment failed"
 
             let channelInfoAfterPayment1 = clientWallet.ChannelStore.ChannelInfo channelId
@@ -300,7 +299,6 @@ type LN() =
                     clientWallet.NodeClient
                     channelId
                     transferAmount
-                    None
             UnwrapResult sendMonoHopPayment2Res "SendMonoHopPayment failed"
 
             let channelInfoAfterPayment2 = clientWallet.ChannelStore.ChannelInfo channelId
@@ -505,7 +503,7 @@ type LN() =
                 )
                 failwith "unreachable"
 
-        let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId None
+        let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId
         match closeChannelRes with
         | Ok _ -> ()
         | Error err -> return failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
@@ -1082,7 +1080,7 @@ type LN() =
             }
             waitForFundingConfirmed()
 
-        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding walletInstance.NodeClient channelId None
+        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding walletInstance.NodeClient channelId
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
@@ -1101,7 +1099,6 @@ type LN() =
                 walletInstance.NodeClient
                 channelId
                 transferAmount
-                None
         UnwrapResult sendMonoHopPayment1Res "SendMonoHopPayment failed"
 
         let channelInfoAfterPayment1 = walletInstance.ChannelStore.ChannelInfo channelId
@@ -1122,7 +1119,6 @@ type LN() =
                 walletInstance.NodeClient
                 channelId
                 transferAmount
-                None
         UnwrapResult sendMonoHopPayment2Res "SendMonoHopPayment failed"
 
         let channelInfoAfterPayment2 = walletInstance.ChannelStore.ChannelInfo channelId
@@ -1407,7 +1403,7 @@ type LN() =
         let! newFeeRateOpt = clientWallet.ChannelStore.FeeUpdateRequired channelId
         let newFeeRate = UnwrapOption newFeeRateOpt "Fee update should be required"
         let! updateFeeRes =
-            (Node.Client clientWallet.NodeClient).UpdateFee channelId newFeeRate None
+            (Node.Client clientWallet.NodeClient).UpdateFee channelId newFeeRate
         UnwrapResult updateFeeRes "UpdateFee failed"
 
         let channelInfoAfterUpdateMessageFee = clientWallet.ChannelStore.ChannelInfo channelId
