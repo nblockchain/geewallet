@@ -9,8 +9,10 @@ open DotNetLightning.Serialization
 open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Utils
 open ResultUtils.Portability
+open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 open QuikGraph
+open QuikGraph.Algorithms
 
 
 type internal RoutingGrpahEdge = 
@@ -26,6 +28,76 @@ type internal RoutingGrpahEdge =
             member this.Target = this.Target
 
 type internal RoutingGraph = ArrayAdjacencyGraph<NodeId, RoutingGrpahEdge>
+
+
+module private RoutingHeuristics =
+    // code moslty from DotNetLightning
+    let BLOCK_TIME_TWO_MONTHS = 8640us |> BlockHeightOffset16
+    let CAPACITY_CHANNEL_LOW = LNMoney.Satoshis(1000L)
+
+    let CAPACITY_CHANNEL_HIGH =
+        DotNetLightning.Channel.ChannelConstants.MAX_FUNDING_SATOSHIS.Satoshi
+        |> LNMoney.Satoshis
+
+    [<Literal>]
+    let CLTV_LOW = 9L
+
+    [<Literal>]
+    let CLTV_HIGH = 2016
+
+    let normalize(v, min, max) : double =
+        if (v <= min) then
+            0.00001
+        else if (v > max) then
+            0.99999
+        else
+            (v - min) / (max - min)
+
+    // factors?
+    let CLTVDeltaFactor = 1.0
+    let CapacityFactor = 1.0
+
+
+module private EdgeWeightCaluculation =
+    // code is partly from DotNetLightning
+
+    let nodeFee (baseFee: LNMoney) (proportionalFee: int64) (paymentAmount: LNMoney) =
+        baseFee + LNMoney.Satoshis(decimal(paymentAmount.Satoshi * proportionalFee) / 1000000.0m)
+        
+    let edgeFeeCost (amountWithFees: LNMoney) (edge: RoutingGrpahEdge) =
+        let { Update = update } = edge
+        let result =
+            nodeFee
+                update.FeeBaseMSat 
+                (int64 update.FeeProportionalMillionths)
+                amountWithFees
+        // We can't have zero fee cost because it causes weight to be 0 regardless of expiry_delta
+        LNMoney.Max(result, LNMoney.MilliSatoshis(1))
+
+    /// Computes the weight for the given edge
+    let edgeWeight (paymentAmount: LNMoney) (edge: RoutingGrpahEdge) : float =
+        let feeCost = float (edgeFeeCost paymentAmount edge).Value
+        let channelCLTVDelta = edge.Update.CLTVExpiryDelta
+        let edgeMaxCapacity =
+            edge.Update.HTLCMaximumMSat
+            |> Option.defaultValue(RoutingHeuristics.CAPACITY_CHANNEL_LOW)
+        if edgeMaxCapacity < paymentAmount then
+            infinity // chanel capacity is too small, reject edge
+        else
+            let capFactor =
+                1.0 - RoutingHeuristics.normalize(
+                        float edgeMaxCapacity.MilliSatoshi,
+                        float RoutingHeuristics.CAPACITY_CHANNEL_LOW.MilliSatoshi,
+                        float RoutingHeuristics.CAPACITY_CHANNEL_HIGH.MilliSatoshi)
+            let cltvFactor =
+                RoutingHeuristics.normalize(
+                    float channelCLTVDelta.Value,
+                    float RoutingHeuristics.CLTV_LOW,
+                    float RoutingHeuristics.CLTV_HIGH)
+            let factor = 
+                cltvFactor * RoutingHeuristics.CLTVDeltaFactor 
+                + capFactor * RoutingHeuristics.CapacityFactor
+            factor * feeCost
 
 
 module RapidGossipSyncer =
@@ -270,4 +342,37 @@ module RapidGossipSyncer =
 
             return ()
         }
+    
+    let GetRoute (account: UtxoCoin.NormalUtxoAccount) (nodeAddress: string) (numSatoshis: decimal) =
+        let targetNodeId = NodeIdentifier.TcpEndPoint(NodeEndPoint.Parse Currency.BTC nodeAddress).NodeId
+        
+        let nodeIds = 
+            seq {
+                let channelStore = ChannelStore account
+                for channelId in channelStore.ListChannelIds() do
+                    let serializedChannel = channelStore.LoadChannel channelId
+                    yield serializedChannel.SavedChannelState.StaticChannelConfig.RemoteNodeId
+            }
+        
+        let paymentAmount = LNMoney.Satoshis(numSatoshis)
 
+        let result = 
+            match nodeIds |> Seq.tryHead with
+            | Some(ourNodeId) ->
+                let tryGetPath = 
+                    routingState.Graph.ShortestPathsDijkstra(
+                        System.Func<RoutingGrpahEdge, float>(EdgeWeightCaluculation.edgeWeight paymentAmount), 
+                        ourNodeId)
+                match tryGetPath.Invoke targetNodeId with
+                | true, path -> path
+                | false, _ -> Seq.empty      
+            | None -> Seq.empty
+        
+        if Seq.isEmpty result then
+            System.Console.WriteLine("Could not find route to " + nodeAddress)
+        else
+            System.Console.WriteLine("Shortest route to " + nodeAddress)
+            for edge in result do
+                System.Console.WriteLine(SPrintF1 "%A" edge)
+                System.Console.WriteLine(SPrintF1 "Weight: %f" (EdgeWeightCaluculation.edgeWeight paymentAmount edge))
+        ignore result // Can't return result now because it depends on DNL types
