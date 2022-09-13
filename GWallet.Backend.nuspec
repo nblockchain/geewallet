@@ -24,6 +24,7 @@
       <dependency id="Newtonsoft.Json" version="12.0.2" />
       <dependency id="NOnion" version="0.12.0--date20221114-1053.git-d750cfe" />
       <dependency id="Portable.BouncyCastle" version="1.8.10" />
+      <dependency id="QuikGraph" version="2.5.0" />
       <dependency id="SharpRaven" version="2.4.0" />
       <dependency id="StreamJsonRpc" version="2.8.21" />
       <dependency id="System.Buffers" version="4.5.1" />
@@ -42,7 +43,6 @@
       <dependency id="System.Net.WebSockets.Client" version="4.3.2" />
       <dependency id="System.Numerics.Vectors" version="4.5.0" />
       <dependency id="System.ObjectModel" version="4.3.0" />
-      <dependency id="QuikGraph" version="2.5.0" />
       <dependency id="System.Reflection" version="4.3.0" />
       <dependency id="System.Reflection.Emit" version="4.7.0" />
       <dependency id="System.Reflection.Emit.Lightweight" version="4.6.0" />

@@ -1,5 +1,6 @@
 ﻿namespace GWallet.Backend.UtxoCoin.Lightning
 
+open System
 open System.IO
 open System.Net.Http
 open System.Linq
@@ -8,11 +9,26 @@ open NBitcoin
 open DotNetLightning.Serialization
 open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Utils
+open QuikGraph
+open QuikGraph.Algorithms
+
 open ResultUtils.Portability
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
-open QuikGraph
-open QuikGraph.Algorithms
+
+
+/// Information about hop in multi-hop payments
+/// Used in edge cost calculation and onion packet creation.
+/// Cannot reuse RoutingGrpahEdge because route can contain extra hops
+/// through private channel (ExtraHop type)
+type internal IRoutingHopInfo =
+    abstract NodeId: NodeId
+    abstract ShortChannelId: ShortChannelId
+    abstract FeeBaseMSat: LNMoney
+    abstract FeeProportionalMillionths: uint32
+    abstract CltvExpiryDelta: uint32
+    abstract HTLCMaximumMSat: LNMoney option
+    abstract HTLCMinimumMSat: LNMoney
 
 
 type internal RoutingGrpahEdge = 
@@ -22,10 +38,19 @@ type internal RoutingGrpahEdge =
         ShortChannelId : ShortChannelId
         Update: UnsignedChannelUpdateMsg
     }
-    with
-        interface IEdge<NodeId> with
-            member this.Source = this.Source
-            member this.Target = this.Target
+    interface IEdge<NodeId> with
+        member this.Source = this.Source
+        member this.Target = this.Target
+
+    interface IRoutingHopInfo with
+        override self.NodeId = self.Source
+        override self.ShortChannelId = self.Update.ShortChannelId
+        override self.FeeBaseMSat = self.Update.FeeBaseMSat
+        override self.FeeProportionalMillionths = self.Update.FeeProportionalMillionths
+        override self.CltvExpiryDelta = self.Update.CLTVExpiryDelta.Value |> uint32
+        override self.HTLCMaximumMSat = self.Update.HTLCMaximumMSat
+        override self.HTLCMinimumMSat = self.Update.HTLCMinimumMSat
+
 
 type internal RoutingGraph = ArrayAdjacencyGraph<NodeId, RoutingGrpahEdge>
 
@@ -33,7 +58,7 @@ type internal RoutingGraph = ArrayAdjacencyGraph<NodeId, RoutingGrpahEdge>
 module private RoutingHeuristics =
     // code moslty from DotNetLightning
     let BLOCK_TIME_TWO_MONTHS = 8640us |> BlockHeightOffset16
-    let CAPACITY_CHANNEL_LOW = LNMoney.Satoshis(1000L)
+    let CAPACITY_CHANNEL_LOW = LNMoney.Satoshis 1000L
 
     let CAPACITY_CHANNEL_HIGH =
         DotNetLightning.Channel.ChannelConstants.MAX_FUNDING_SATOSHIS.Satoshi
@@ -54,35 +79,36 @@ module private RoutingHeuristics =
             (v - min) / (max - min)
 
     // factors?
-    let CLTVDeltaFactor = 1.0
+    let CltvDeltaFactor = 1.0
     let CapacityFactor = 1.0
 
 
-module private EdgeWeightCaluculation =
+module internal EdgeWeightCaluculation =
     // code is partly from DotNetLightning
 
     let nodeFee (baseFee: LNMoney) (proportionalFee: int64) (paymentAmount: LNMoney) =
         baseFee + LNMoney.Satoshis(decimal(paymentAmount.Satoshi * proportionalFee) / 1000000.0m)
         
-    let edgeFeeCost (amountWithFees: LNMoney) (edge: RoutingGrpahEdge) =
-        let { Update = update } = edge
+    let edgeFeeCost (amountWithFees: LNMoney) (edge: IRoutingHopInfo) =
         let result =
             nodeFee
-                update.FeeBaseMSat 
-                (int64 update.FeeProportionalMillionths)
+                edge.FeeBaseMSat 
+                (int64 edge.FeeProportionalMillionths)
                 amountWithFees
         // We can't have zero fee cost because it causes weight to be 0 regardless of expiry_delta
         LNMoney.Max(result, LNMoney.MilliSatoshis(1))
 
     /// Computes the weight for the given edge
-    let edgeWeight (paymentAmount: LNMoney) (edge: RoutingGrpahEdge) : float =
+    let edgeWeight (paymentAmount: LNMoney) (edge: IRoutingHopInfo) : float =
         let feeCost = float (edgeFeeCost paymentAmount edge).Value
-        let channelCLTVDelta = edge.Update.CLTVExpiryDelta
+        let channelCLTVDelta = edge.CltvExpiryDelta
         let edgeMaxCapacity =
-            edge.Update.HTLCMaximumMSat
+            edge.HTLCMaximumMSat
             |> Option.defaultValue(RoutingHeuristics.CAPACITY_CHANNEL_LOW)
         if edgeMaxCapacity < paymentAmount then
             infinity // chanel capacity is too small, reject edge
+        elif paymentAmount < edge.HTLCMinimumMSat then
+            infinity // our payment is too small for the channel, reject edge
         else
             let capFactor =
                 1.0 - RoutingHeuristics.normalize(
@@ -91,18 +117,18 @@ module private EdgeWeightCaluculation =
                         float RoutingHeuristics.CAPACITY_CHANNEL_HIGH.MilliSatoshi)
             let cltvFactor =
                 RoutingHeuristics.normalize(
-                    float channelCLTVDelta.Value,
+                    float channelCLTVDelta,
                     float RoutingHeuristics.CLTV_LOW,
                     float RoutingHeuristics.CLTV_HIGH)
             let factor = 
-                cltvFactor * RoutingHeuristics.CLTVDeltaFactor 
+                cltvFactor * RoutingHeuristics.CltvDeltaFactor 
                 + capFactor * RoutingHeuristics.CapacityFactor
             factor * feeCost
 
 
 module RapidGossipSyncer =
     
-    let private RGSPrefix = [| 76uy; 68uy; 75uy; 1uy |]
+    let private RgsPrefix = [| 76uy; 68uy; 75uy; 1uy |]
 
     type internal CompactAnnouncment =
         {
@@ -127,28 +153,28 @@ module RapidGossipSyncer =
             Forward: UnsignedChannelUpdateMsg option
             Backward: UnsignedChannelUpdateMsg option
         }
-        with
-            static member Empty = { Forward = None; Backward = None }
+        static member Empty = { Forward = None; Backward = None }
     
-            member self.With(update: UnsignedChannelUpdateMsg) =
-                let isForward = (update.ChannelFlags &&& 1uy) = 0uy
-                if isForward then
-                    match self.Forward with
-                    | Some(prevUpd) when update.Timestamp < prevUpd.Timestamp -> self
-                    | _ -> { self with Forward = Some(update) }
-                else
-                    match self.Backward with
-                    | Some(prevUpd) when update.Timestamp < prevUpd.Timestamp -> self
-                    | _ -> { self with Backward = Some(update) }
+        member self.With(update: UnsignedChannelUpdateMsg) =
+            let isForward = (update.ChannelFlags &&& 1uy) = 0uy
+            if isForward then
+                match self.Forward with
+                | Some(prevUpd) when update.Timestamp < prevUpd.Timestamp -> self
+                | _ -> { self with Forward = Some(update) }
+            else
+                match self.Backward with
+                | Some(prevUpd) when update.Timestamp < prevUpd.Timestamp -> self
+                | _ -> { self with Backward = Some(update) }
 
-            member self.Combine(other: ChannelUpdates) =
-                let combine upd1opt upd2opt : UnsignedChannelUpdateMsg option =
-                    match upd1opt, upd2opt with
-                    | None, None -> None
-                    | Some(_), None -> upd1opt
-                    | None, Some(_) -> upd2opt
-                    | Some(upd1), Some(upd2) -> if upd1.Timestamp > upd2.Timestamp then upd1opt else upd2opt
-                { Forward = combine self.Forward other.Forward; Backward = combine self.Backward other.Backward }
+        member self.Combine(other: ChannelUpdates) =
+            let combine upd1opt upd2opt : UnsignedChannelUpdateMsg option =
+                match upd1opt, upd2opt with
+                | None, None -> None
+                | Some(_), None -> upd1opt
+                | None, Some(_) -> upd2opt
+                | Some(upd1), Some(upd2) -> if upd1.Timestamp > upd2.Timestamp then upd1opt else upd2opt
+            { Forward = combine self.Forward other.Forward; Backward = combine self.Backward other.Backward }
+
 
     /// see https://github.com/lightningdevkit/rust-lightning/tree/main/lightning-rapid-gossip-sync/#custom-channel-update
     module internal CustomChannelUpdateFlags =
@@ -161,12 +187,14 @@ module RapidGossipSyncer =
         let CltvExpiryDelta = 64uy
         let IncrementalUpdate = 128uy
     
-    /// Class responsible for storing and updating routing graph
-    type internal RoutingState() =
-        let announcements = System.Collections.Generic.HashSet<CompactAnnouncment>()
-        let mutable updates: Map<ShortChannelId, ChannelUpdates> = Map.empty
-        let mutable lastSyncTimestamp = 0u
-        let mutable routingGraph: RoutingGraph = RoutingGraph(AdjacencyGraph())
+    
+    type internal RoutingGraphData private(announcements: Set<CompactAnnouncment>, 
+                                           updates: Map<ShortChannelId, ChannelUpdates>,
+                                           lastSyncTimestamp: uint32,
+                                           blacklistedChannels: Set<ShortChannelId>,
+                                           routingGraph: RoutingGraph) =
+        
+        new() = RoutingGraphData(Set.empty, Map.empty, 0u, Set.empty, RoutingGraph(AdjacencyGraph()))
 
         member self.LastSyncTimestamp = lastSyncTimestamp
 
@@ -174,55 +202,72 @@ module RapidGossipSyncer =
 
         member self.Update (newAnnouncements : seq<CompactAnnouncment>) 
                            (newUpdates: Map<ShortChannelId, ChannelUpdates>) 
-                           (syncTimestamp: uint32) =
-            announcements.UnionWith newAnnouncements
+                           (syncTimestamp: uint32) : RoutingGraphData =
+            let announcements = 
+                announcements 
+                |> Set.union (newAnnouncements |> Set.ofSeq)
+                |> Set.filter (fun ann -> not (blacklistedChannels |> Set.contains ann.ShortChannelId))
             
-            if updates.IsEmpty then
-                updates <- newUpdates
-            else
-                newUpdates |> Map.iter (fun channelId newUpd ->
-                    match updates |> Map.tryFind channelId with
-                    | Some(upd) ->
-                        updates <- updates |> Map.add channelId (upd.Combine newUpd)
-                    | None ->
-                        updates <- updates |> Map.add channelId newUpd )
+            let updates =
+                if updates.IsEmpty then
+                    newUpdates
+                else
+                    let mutable tmpUpdates = updates
+                    newUpdates |> Map.iter (fun channelId newUpd ->
+                        match tmpUpdates |> Map.tryFind channelId with
+                        | Some upd ->
+                            tmpUpdates <- tmpUpdates |> Map.add channelId (upd.Combine newUpd)
+                        | None ->
+                            tmpUpdates <- tmpUpdates |> Map.add channelId newUpd )
+                    tmpUpdates
 
             let baseGraph = AdjacencyGraph<NodeId, RoutingGrpahEdge>()
 
             for ann in announcements do
                 let updates = updates.[ann.ShortChannelId]
-                
-                let addEdge source traget (upd : UnsignedChannelUpdateMsg) =
-                    let edge = { Source=source; Target=traget; ShortChannelId=upd.ShortChannelId; Update=upd }
+                    
+                let addEdge source target (upd : UnsignedChannelUpdateMsg) =
+                    let edge = { Source = source; Target = target; ShortChannelId = upd.ShortChannelId; Update = upd }
                     baseGraph.AddVerticesAndEdge edge |> ignore
                 
                 updates.Forward |> Option.iter (addEdge ann.NodeId1 ann.NodeId2)
                 updates.Backward |> Option.iter (addEdge ann.NodeId2 ann.NodeId1)
 
-            routingGraph <- RoutingGraph(baseGraph)
-            lastSyncTimestamp <- syncTimestamp
+            RoutingGraphData(announcements, updates, syncTimestamp, blacklistedChannels, RoutingGraph(baseGraph))
 
-    let internal routingState = RoutingState()
+        member self.BlacklistChannel(shortChannelId: ShortChannelId) =
+            let newBlacklistedChannels = blacklistedChannels |> Set.add shortChannelId
+            let baseGraph = AdjacencyGraph<NodeId, RoutingGrpahEdge>()
+            baseGraph.AddVerticesAndEdgeRange(
+                self.Graph.Edges |> Seq.filter (fun edge ->  edge.ShortChannelId <> shortChannelId))
+                |> ignore
+            RoutingGraphData(announcements, updates, self.LastSyncTimestamp, newBlacklistedChannels, RoutingGraph(baseGraph))
+
+        member self.GetChannelUpdates() =
+            updates
+
+    let mutable internal routingState = RoutingGraphData()
 
     let Sync () =
         async {
             use httpClient = new HttpClient()
-
+            
             let! gossipData =
-                let url = SPrintF1 "https://rapidsync.lightningdevkit.org/snapshot/%d" routingState.LastSyncTimestamp
+                let timestamp = routingState.LastSyncTimestamp
+                let url = SPrintF1 "https://rapidsync.lightningdevkit.org/snapshot/%d" timestamp
                 httpClient.GetByteArrayAsync url
                 |> Async.AwaitTask
 
             use memStream = new MemoryStream(gossipData)
             use lightningReader = new LightningReaderStream(memStream)
 
-            let prefix = Array.zeroCreate RGSPrefix.Length
+            let prefix = Array.zeroCreate RgsPrefix.Length
             
             do! lightningReader.ReadAsync(prefix, 0, prefix.Length)
                 |> Async.AwaitTask
                 |> Async.Ignore
 
-            if not (Enumerable.SequenceEqual (prefix, RGSPrefix)) then
+            if not (Enumerable.SequenceEqual (prefix, RgsPrefix)) then
                 failwith "Invalid version prefix"
 
             let chainHash = lightningReader.ReadUInt256 true
@@ -230,7 +275,8 @@ module RapidGossipSyncer =
                 failwith "Invalid chain hash"
 
             let lastSeenTimestamp = lightningReader.ReadUInt32 false
-            let backdatedTimestamp = lastSeenTimestamp - uint (24 * 3600 * 7)
+            let secondsInWeek = uint (24 * 3600 * 7)
+            let backdatedTimestamp = lastSeenTimestamp - secondsInWeek
 
             let nodeIdsCount = lightningReader.ReadUInt32 false
             let nodeIds = 
@@ -263,11 +309,11 @@ module RapidGossipSyncer =
 
             let updatesCount = lightningReader.ReadUInt32 false
 
-            let defaultCltvExpiryDelta: uint16 = lightningReader.ReadUInt16 false
-            let defaultHtlcMinimumMSat: uint64 = lightningReader.ReadUInt64 false
-            let defaultFeeBaseMSat: uint32 = lightningReader.ReadUInt32 false
+            let defaultCltvExpiryDelta = lightningReader.ReadUInt16 false |> BlockHeightOffset16
+            let defaultHtlcMinimumMSat = lightningReader.ReadUInt64 false |> LNMoney.MilliSatoshis
+            let defaultFeeBaseMSat = lightningReader.ReadUInt32 false |> LNMoney.MilliSatoshis
             let defaultFeeProportionalMillionths: uint32 = lightningReader.ReadUInt32 false
-            let defaultHtlcMaximumMSat: uint64 = lightningReader.ReadUInt64 false
+            let defaultHtlcMaximumMSat = lightningReader.ReadUInt64 false |> LNMoney.MilliSatoshis
 
             let rec readUpdates (remainingCount: uint) (previousShortChannelId: uint64) (updates: Map<ShortChannelId, ChannelUpdates>) =
                 if remainingCount = 0u then
@@ -278,54 +324,88 @@ module RapidGossipSyncer =
                     let standardChannelFlagMask = 0b11uy
                     let standardChannelFlag = customChannelFlag &&& standardChannelFlagMask
 
-                    if customChannelFlag &&& CustomChannelUpdateFlags.IncrementalUpdate > 0uy then
-                        failwith "We don't support increamental updates yet!"        
+                    let isIncremental = 
+                        customChannelFlag &&& CustomChannelUpdateFlags.IncrementalUpdate > 0uy
 
                     let cltvExpiryDelta =
                         if customChannelFlag &&& CustomChannelUpdateFlags.CltvExpiryDelta > 0uy then
-                            lightningReader.ReadUInt16 false
+                            lightningReader.ReadUInt16 false |> BlockHeightOffset16 |> Some
                         else
-                            defaultCltvExpiryDelta
+                            None
 
                     let htlcMinimumMSat =
                         if customChannelFlag &&& CustomChannelUpdateFlags.HtlcMinimumMsat > 0uy then
-                            lightningReader.ReadUInt64 false
+                            lightningReader.ReadUInt64 false |> LNMoney.MilliSatoshis |> Some
                         else
-                            defaultHtlcMinimumMSat
+                            None
 
                     let feeBaseMSat =
                         if customChannelFlag &&& CustomChannelUpdateFlags.FeeBaseMsat > 0uy then
-                            lightningReader.ReadUInt32 false
+                            lightningReader.ReadUInt32 false |> LNMoney.MilliSatoshis |> Some
                         else
-                            defaultFeeBaseMSat
+                            None
 
                     let feeProportionalMillionths =
                         if customChannelFlag &&& CustomChannelUpdateFlags.FeeProportionalMillionths > 0uy then
-                            lightningReader.ReadUInt32 false
+                            lightningReader.ReadUInt32 false |> Some
                         else
-                            defaultFeeProportionalMillionths
+                            None
                     
                     let htlcMaximumMSat =
                         if customChannelFlag &&& CustomChannelUpdateFlags.HtlcMaximumMsat > 0uy then
-                            lightningReader.ReadUInt64 false
+                            lightningReader.ReadUInt64 false |> LNMoney.MilliSatoshis |> Some
                         else
-                            defaultHtlcMaximumMSat
+                            None
 
                     let structuredShortChannelId = shortChannelId |> ShortChannelId.FromUInt64
-
+                    
                     let channelUpdate =
-                        {
-                            UnsignedChannelUpdateMsg.ShortChannelId = structuredShortChannelId
-                            Timestamp = backdatedTimestamp
-                            ChainHash = Network.Main.GenesisHash
-                            ChannelFlags = standardChannelFlag
-                            MessageFlags = 1uy
-                            CLTVExpiryDelta = cltvExpiryDelta |> BlockHeightOffset16
-                            HTLCMinimumMSat = htlcMinimumMSat |> LNMoney.MilliSatoshis
-                            FeeBaseMSat = feeBaseMSat |> LNMoney.MilliSatoshis
-                            FeeProportionalMillionths = feeProportionalMillionths 
-                            HTLCMaximumMSat = htlcMaximumMSat |> LNMoney.MilliSatoshis |> Some
-                        }
+                        let baseUpdateOption =
+                            if isIncremental then
+                                match updates |> Map.tryFind structuredShortChannelId with
+                                | Some baseUpdates ->
+                                    let isForward = (standardChannelFlag &&& 1uy) = 0uy
+                                    if isForward then baseUpdates.Forward else baseUpdates.Backward
+                                | None -> 
+#if DEBUG
+                                    Console.WriteLine(SPrintF1 "Could not find base update for channel %A" structuredShortChannelId)
+#endif
+                                    None
+                            else
+                                None
+
+                        match baseUpdateOption with
+                        | Some baseUpdate ->
+                            {
+                                baseUpdate with
+                                    Timestamp = backdatedTimestamp
+                                    CLTVExpiryDelta = cltvExpiryDelta |> Option.defaultValue baseUpdate.CLTVExpiryDelta
+                                    HTLCMinimumMSat = htlcMinimumMSat |> Option.defaultValue baseUpdate.HTLCMinimumMSat
+                                    FeeBaseMSat = feeBaseMSat |> Option.defaultValue baseUpdate.FeeBaseMSat
+                                    FeeProportionalMillionths = 
+                                        feeProportionalMillionths |> Option.defaultValue baseUpdate.FeeProportionalMillionths
+                                    HTLCMaximumMSat = 
+                                        match htlcMaximumMSat with
+                                        | Some _ -> htlcMaximumMSat
+                                        | None -> baseUpdate.HTLCMaximumMSat
+                            } 
+                        | None ->
+                            {
+                                UnsignedChannelUpdateMsg.ShortChannelId = structuredShortChannelId
+                                Timestamp = backdatedTimestamp
+                                ChainHash = Network.Main.GenesisHash
+                                ChannelFlags = standardChannelFlag
+                                MessageFlags = 1uy
+                                CLTVExpiryDelta = cltvExpiryDelta |> Option.defaultValue defaultCltvExpiryDelta
+                                HTLCMinimumMSat = htlcMinimumMSat |> Option.defaultValue defaultHtlcMinimumMSat
+                                FeeBaseMSat = feeBaseMSat |> Option.defaultValue defaultFeeBaseMSat
+                                FeeProportionalMillionths = 
+                                    feeProportionalMillionths |> Option.defaultValue defaultFeeProportionalMillionths
+                                HTLCMaximumMSat = 
+                                    match htlcMaximumMSat with
+                                    | Some _ -> htlcMaximumMSat
+                                    | None -> Some defaultHtlcMaximumMSat
+                            }
 
                     let newUpdates =
                         let oldValue =
@@ -336,16 +416,33 @@ module RapidGossipSyncer =
 
                     readUpdates (remainingCount - 1u) shortChannelId newUpdates
 
-            let updates = readUpdates updatesCount 0UL Map.empty
+            let updates = readUpdates updatesCount 0UL (routingState.GetChannelUpdates())
 
-            routingState.Update announcements updates lastSeenTimestamp
+            routingState <- routingState.Update announcements updates lastSeenTimestamp
 
             return ()
         }
+
+    let internal BlacklistChannel (shortChannelId: ShortChannelId) =
+        routingState <- routingState.BlacklistChannel shortChannelId
     
-    let GetRoute (account: UtxoCoin.NormalUtxoAccount) (nodeAddress: string) (numSatoshis: decimal) =
+    /// Get shortest route from source to target node taking cahnnel fees and cltv expiry deltas into account.
+    /// Don't use channels that have insufficient capacity for given paymentAmount.
+    /// See EdgeWeightCaluculation.edgeWeight.
+    /// If no routes can be found, return empty sequence.
+    let internal GetRoute (sourceNodeId: NodeId) (targetNodeId: NodeId) (paymentAmount: LNMoney) : seq<RoutingGrpahEdge> =
+        let tryGetPath = 
+            routingState.Graph.ShortestPathsDijkstra(
+                System.Func<RoutingGrpahEdge, float>(EdgeWeightCaluculation.edgeWeight paymentAmount), 
+                sourceNodeId)
+        match tryGetPath.Invoke targetNodeId with
+        | true, path -> path
+        | false, _ -> Seq.empty
+
+    let DebugGetRoute (account: UtxoCoin.NormalUtxoAccount) (nodeAddress: string) (numSatoshis: decimal) =
+        let paymentAmount = LNMoney.Satoshis numSatoshis
         let targetNodeId = NodeIdentifier.TcpEndPoint(NodeEndPoint.Parse Currency.BTC nodeAddress).NodeId
-        
+            
         let nodeIds = 
             seq {
                 let channelStore = ChannelStore account
@@ -353,26 +450,18 @@ module RapidGossipSyncer =
                     let serializedChannel = channelStore.LoadChannel channelId
                     yield serializedChannel.SavedChannelState.StaticChannelConfig.RemoteNodeId
             }
-        
-        let paymentAmount = LNMoney.Satoshis(numSatoshis)
 
         let result = 
             match nodeIds |> Seq.tryHead with
-            | Some(ourNodeId) ->
-                let tryGetPath = 
-                    routingState.Graph.ShortestPathsDijkstra(
-                        System.Func<RoutingGrpahEdge, float>(EdgeWeightCaluculation.edgeWeight paymentAmount), 
-                        ourNodeId)
-                match tryGetPath.Invoke targetNodeId with
-                | true, path -> path
-                | false, _ -> Seq.empty      
+            | Some ourNodeId ->
+                GetRoute ourNodeId targetNodeId paymentAmount
             | None -> Seq.empty
         
         if Seq.isEmpty result then
-            System.Console.WriteLine("Could not find route to " + nodeAddress)
+            Console.WriteLine("Could not find route to " + nodeAddress)
         else
-            System.Console.WriteLine("Shortest route to " + nodeAddress)
+            Console.WriteLine("Shortest route to " + nodeAddress)
             for edge in result do
-                System.Console.WriteLine(SPrintF1 "%A" edge)
-                System.Console.WriteLine(SPrintF1 "Weight: %f" (EdgeWeightCaluculation.edgeWeight paymentAmount edge))
+                Console.WriteLine(SPrintF1 "%A" edge)
+                Console.WriteLine(SPrintF1 "Weight: %f" (EdgeWeightCaluculation.edgeWeight paymentAmount edge))
         ignore result // Can't return result now because it depends on DNL types

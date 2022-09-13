@@ -456,7 +456,7 @@ let rec ProgramMainLoop() =
     let channelInfoInteractionsJob: Async<array<unit -> Async<seq<string>>>> = Async.Parallel channelStatusJobs
     let displayAccountStatusesJob =
         UserInteraction.DisplayAccountStatuses(WhichAccount.All activeAccounts)
-    let gossipSyncJob = GWallet.Backend.UtxoCoin.Lightning.RapidGossipSyncer.Sync() 
+    let gossipSyncJob = Lightning.RapidGossipSyncer.Sync() 
     let channelInfoInteractions, accountStatusesLines, _, _ =
         AsyncExtensions.MixedParallel4 channelInfoInteractionsJob displayAccountStatusesJob revokedTxCheckJob gossipSyncJob
         |> Async.RunSynchronously
@@ -480,7 +480,7 @@ let rec ProgramMainLoop() =
     activeAccounts.OfType<UtxoCoin.NormalUtxoAccount>()
     |> Seq.tryHead
     |> Option.iter (fun acc ->
-        UtxoCoin.Lightning.RapidGossipSyncer.GetRoute 
+        UtxoCoin.Lightning.RapidGossipSyncer.DebugGetRoute 
             acc
             "0213028043ba544713750c363067b6b13fcd3a6eeb68d60ce84aec1827e5b284cf@172.81.183.116:9735"
             1000.0m

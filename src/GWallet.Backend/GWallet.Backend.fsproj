@@ -95,6 +95,7 @@
     <Compile Include="UtxoCoin\Lightning\Network.fs" />
     <Compile Include="UtxoCoin\Lightning\MsgStream.fs" />
     <Compile Include="UtxoCoin\Lightning\PeerNode.fs" />
+    <Compile Include="UtxoCoin\Lightning\RapidGossipSyncer.fs" />
     <Compile Include="UtxoCoin\Lightning\ConnectedChannel.fs" />
     <Compile Include="UtxoCoin\Lightning\BrokenChannel.fs" />
     <Compile Include="UtxoCoin\Lightning\OutgoingUnfundedChannel.fs" />
@@ -104,7 +105,6 @@
     <Compile Include="UtxoCoin\Lightning\ChainWatcher.fs" />
     <Compile Include="UtxoCoin\Lightning\Node.fs" />
     <Compile Include="UtxoCoin\Lightning\PublicHelpers.fs" />
-    <Compile Include="UtxoCoin\Lightning\RapidGossipSyncer.fs" />
     <Compile Include="Ether\EtherExceptions.fs" />
     <Compile Include="Ether\EtherMinerFee.fs" />
     <Compile Include="Ether\TransactionMetadata.fs" />
