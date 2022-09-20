@@ -248,15 +248,42 @@ module RapidGossipSyncer =
 
     let mutable internal routingState = RoutingGraphData()
 
-    let Sync () =
-        async {
-            use httpClient = new HttpClient()
-            
-            let! gossipData =
-                let timestamp = routingState.LastSyncTimestamp
+    /// Get gossip data either from RGS server, or from cache (if present).
+    /// Only full dumps are cached. If data is received from server, cache is updated.
+    /// Empty array means absence of data
+    let private GetGossipData (timestamp: uint32) : Async<byte[]> =
+        let isFullSync = timestamp = 0u
+        let fullSyncFileInfo = FileInfo(Path.Combine(Config.GetCacheDir().FullName, "rgsFullSyncData.bin"))
+        let twoWeeksAgo = DateTime.UtcNow - TimeSpan.FromDays(14.0)
+        
+        async { 
+            if isFullSync && fullSyncFileInfo.Exists && fullSyncFileInfo.LastWriteTimeUtc > twoWeeksAgo then
+                return File.ReadAllBytes fullSyncFileInfo.FullName
+            elif timestamp >= uint32 ((DateTime.UtcNow - TimeSpan.FromDays(1.0)).UnixTimestamp()) then
+                // RGS server is designed to take daily timestamps (00:00 of every day), so no new data is available
+                return Array.empty
+            else
                 let url = SPrintF1 "https://rapidsync.lightningdevkit.org/snapshot/%d" timestamp
-                httpClient.GetByteArrayAsync url
-                |> Async.AwaitTask
+                use httpClient = new HttpClient()
+
+                let! response = httpClient.GetAsync url |> Async.AwaitTask
+                if response.StatusCode = Net.HttpStatusCode.NotFound then
+                    // error 404, most likely no data available
+                    // see https://github.com/lightningdevkit/rapid-gossip-sync-server/issues/16
+                    return Array.empty
+                else
+                    let! data = response.Content.ReadAsByteArrayAsync()  |> Async.AwaitTask
+                    if isFullSync then
+                        File.WriteAllBytes(fullSyncFileInfo.FullName, data)
+                    return data
+        }
+
+    let private SyncUsingTimestamp (timestamp: uint32) =
+        async {
+            let! gossipData = GetGossipData timestamp
+
+            if Array.isEmpty gossipData then
+                return ()
 
             use memStream = new MemoryStream(gossipData)
             use lightningReader = new LightningReaderStream(memStream)
@@ -421,6 +448,17 @@ module RapidGossipSyncer =
             routingState <- routingState.Update announcements updates lastSeenTimestamp
 
             return ()
+        }
+
+    let private FullSync() = SyncUsingTimestamp 0u
+    let private IncrementalSync() = SyncUsingTimestamp routingState.LastSyncTimestamp
+
+    let Sync() =
+        async {
+            if routingState.LastSyncTimestamp = 0u then
+                // always do full sync on fresh start
+                do! FullSync()
+            do! IncrementalSync()
         }
 
     let internal BlacklistChannel (shortChannelId: ShortChannelId) =
