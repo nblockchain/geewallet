@@ -81,6 +81,7 @@
     <Compile Include="ExceptionMarshalling.fs" />
     <Compile Include="ChannelMarshalling.fs" />
     <Compile Include="NOnionEndpoint.fs" />
+    <Compile Include="RapidGossipSyncer.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Chaos.NaCl-Portable">

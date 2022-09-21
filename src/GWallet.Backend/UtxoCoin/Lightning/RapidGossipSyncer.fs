@@ -246,7 +246,11 @@ module RapidGossipSyncer =
         member self.GetChannelUpdates() =
             updates
 
-    let mutable internal routingState = RoutingGraphData()
+    let mutable private routingState = RoutingGraphData()
+
+    // functions for testing
+    let GetLastSyncTimestamp() = routingState.LastSyncTimestamp
+    let GetGraphEdgeCount() = routingState.Graph.EdgeCount
 
     /// Get gossip data either from RGS server, or from cache (if present).
     /// Only full dumps are cached. If data is received from server, cache is updated.
@@ -278,10 +282,8 @@ module RapidGossipSyncer =
                     return data
         }
 
-    let private SyncUsingTimestamp (timestamp: uint32) =
+    let SyncUsingData (gossipData: byte[]) =
         async {
-            let! gossipData = GetGossipData timestamp
-
             if Array.isEmpty gossipData then
                 return ()
 
@@ -446,12 +448,19 @@ module RapidGossipSyncer =
             let updates = readUpdates updatesCount 0UL (routingState.GetChannelUpdates())
 
             routingState <- routingState.Update announcements updates lastSeenTimestamp
-
-            return ()
         }
 
-    let private FullSync() = SyncUsingTimestamp 0u
-    let private IncrementalSync() = SyncUsingTimestamp routingState.LastSyncTimestamp
+    let private FullSync() = 
+        async { 
+            let! data = GetGossipData 0u
+            return! SyncUsingData data
+        }
+
+    let private IncrementalSync() = 
+        async { 
+            let! data = GetGossipData routingState.LastSyncTimestamp
+            return! SyncUsingData data
+        }
 
     let Sync() =
         async {
