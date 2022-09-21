@@ -468,8 +468,10 @@ module LayerTwo =
                     let trySendPayment password =
                         async {
                             let nodeClient = Lightning.Connection.StartClient channelStore password
+                            let feeAcceptancePredicate (feeAmountSatoshis: decimal) =
+                                UserInteraction.AskYesNo (sprintf "Total fee: %.3f Satoshi. Proceed?" feeAmountSatoshis)
                             Console.WriteLine "Connecting..."
-                            let! paymentRes = Lightning.Network.SendHtlcPayment nodeClient channelId invoice true
+                            let! paymentRes = Lightning.Network.SendHtlcPayment nodeClient channelId invoice true feeAcceptancePredicate
                             match paymentRes with
                             | Error nodeSendHtlcPaymentError ->
                                 let currency = (account :> IAccount).Currency

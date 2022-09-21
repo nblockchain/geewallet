@@ -242,6 +242,7 @@ type LN() =
                             channelId
                             (PaymentInvoice.Parse invoice.BOLT11)
                             true
+                            (fun _ -> true)
                 }
             UnwrapResult sendHtlcPayment1Res "SendHtlcPayment failed"
 
@@ -272,6 +273,7 @@ type LN() =
                             channelId
                             (PaymentInvoice.Parse invoice.BOLT11)
                             true
+                            (fun _ -> true)
                 }
             UnwrapResult sendHtlcPayment2Res "SendHtlcPayment failed"
 
@@ -313,6 +315,7 @@ type LN() =
                     channelId
                     (PaymentInvoice.Parse invoiceInString)
                     true
+                    (fun _ -> true)
         }
 
     let ReceiveHtlcPaymentToGW (channelId) (serverWallet: ServerWalletInstance) (fileName: string) =
@@ -1199,6 +1202,7 @@ type LN() =
                         channelId
                         (PaymentInvoice.Parse invoiceInString)
                         false
+                        (fun _ -> true)
             }
         UnwrapResult sendHtlcPayment1Res "SendHtlcPayment failed"
 
@@ -1215,6 +1219,7 @@ type LN() =
                         channelId
                         (PaymentInvoice.Parse invoiceInString)
                         false
+                        (fun _ -> true)
             }
         UnwrapResult sendHtlcPayment2Res "SendHtlcPayment failed"
 
@@ -1460,6 +1465,7 @@ type LN() =
                         channelId
                         (PaymentInvoice.Parse invoiceInString)
                         false
+                        (fun _ -> true)
             }
         UnwrapResult sendHtlcPayment1Res "SendHtlcPayment failed"
 
@@ -1474,6 +1480,7 @@ type LN() =
                         channelId
                         (PaymentInvoice.Parse invoiceInString)
                         false
+                        (fun _ -> true)
             }
         UnwrapResult sendHtlcPayment2Res "SendHtlcPayment failed"
 
@@ -1788,6 +1795,7 @@ type LN() =
                         channelId
                         (PaymentInvoice.Parse invoice.BOLT11)
                         true
+                        (fun _ -> true)
             }
         match sendHtlcPayment1Res with
         | Error _err ->
@@ -1834,6 +1842,7 @@ type LN() =
                         channelId
                         (PaymentInvoice.Parse invoice.BOLT11)
                         false
+                        (fun _ -> true)
             }
         Console.WriteLine("*** line " + __LINE__)
         let fundingOutPoint =
@@ -2254,6 +2263,7 @@ type LN() =
                         channelId
                         (PaymentInvoice.Parse invoice.BOLT11)
                         false
+                        (fun _ -> true)
             }
         Console.WriteLine("*** line " + __LINE__)
         let! _forceCloseTxId = (Lightning.Node.Client clientWallet.NodeClient).ForceCloseChannel channelId

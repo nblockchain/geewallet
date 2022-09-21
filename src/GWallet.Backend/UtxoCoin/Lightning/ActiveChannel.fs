@@ -233,6 +233,7 @@ and internal SendHtlcPaymentError =
     | RecvCommit of RecvCommitError
     | RecvFulfillOrFail of RecvFulfillOrFailError
     | ReceivedHtlcFail of ActiveChannel
+    | UserAbort
     interface IErrorMsg with
         member self.Message =
             match self with
@@ -246,6 +247,7 @@ and internal SendHtlcPaymentError =
             | RecvFulfillOrFail err ->
                 SPrintF1 "Error receiving fulfill or fail: %s" (err :> IErrorMsg).Message
             | ReceivedHtlcFail _ -> "Error received HTLC fail"
+            | UserAbort -> "Payment cancelled by user"
         member self.ChannelBreakdown: bool =
             match self with
             | NoRouteFound _ -> false
@@ -257,6 +259,7 @@ and internal SendHtlcPaymentError =
             | RecvFulfillOrFail recvFulfillOrFailError ->
                 (recvFulfillOrFailError :> IErrorMsg).ChannelBreakdown
             | ReceivedHtlcFail _ -> false
+            | UserAbort -> false
 
     member internal self.PossibleBug =
         match self with
@@ -266,6 +269,7 @@ and internal SendHtlcPaymentError =
         | RecvCommit err -> err.PossibleBug
         | RecvFulfillOrFail err -> err.PossibleBug
         | ReceivedHtlcFail _ -> false
+        | UserAbort -> false
 
 and internal RecvHtlcPaymentError =
     | RecvHtlcPayment of RecvMsgError
@@ -958,7 +962,10 @@ and internal ActiveChannel =
                 Sphinx.PacketFiller.DeterministicPacketFiller
             )
 
-    member internal self.SendHtlcPayment (invoice: PaymentInvoice) (waitForResult: bool): Async<Result<ActiveChannel, SendHtlcPaymentError>> = async {
+    member internal self.SendHtlcPayment (invoice: PaymentInvoice) 
+                                         (waitForResult: bool)
+                                         (feeAcceptancePredicate: decimal -> bool)
+                                         : Async<Result<ActiveChannel, SendHtlcPaymentError>> = async {
         let connectedChannel = self.ConnectedChannel
         let peerNode = connectedChannel.PeerNode
         let channel = connectedChannel.Channel
@@ -992,58 +999,61 @@ and internal ActiveChannel =
         match self.GetHopsAndFinalAmountsForHtlcPayment sourceNode targetNode paymentRequest amount currentBlockHeight with
         | Error err -> return Error err
         | Ok({ Hops = hops; FinalAmount = finalAmount; FinalCltv = expiryBlockHeight }) ->
-            
-            // Sphinx.PacketAndSecrets.Create expects lists of hop data and node pubKeys 
-            // that are in forward order, so we must reverse them
-            let onionPacket = self.GetOnionPacketForHtlcPayment sessionKey associatedData (hops |> Array.rev)
+            let totalFee = finalAmount - amount
+            if feeAcceptancePredicate(decimal(totalFee.MilliSatoshi) / 1000.0m) then
+                // Sphinx.PacketAndSecrets.Create expects lists of hop data and node pubKeys 
+                // that are in forward order, so we must reverse them
+                let onionPacket = self.GetOnionPacketForHtlcPayment sessionKey associatedData (hops |> Array.rev)
 
-            let channelAndAddHtlcMsgRes =
-                channel.Channel.AddHTLC
-                    {
-                        OperationAddHTLC.Amount = finalAmount
-                        PaymentHash = paymentRequest.PaymentHash
-                        Expiry = BlockHeight expiryBlockHeight
-                        Onion = onionPacket.Packet
-                        Upstream = None
-                        Origin = Origin.Local
-                        CurrentHeight = BlockHeight currentBlockHeight
-                    }
+                let channelAndAddHtlcMsgRes =
+                    channel.Channel.AddHTLC
+                        {
+                            OperationAddHTLC.Amount = finalAmount
+                            PaymentHash = paymentRequest.PaymentHash
+                            Expiry = BlockHeight expiryBlockHeight
+                            Onion = onionPacket.Packet
+                            Upstream = None
+                            Origin = Origin.Local
+                            CurrentHeight = BlockHeight currentBlockHeight
+                        }
 
-            match channelAndAddHtlcMsgRes with
-            | Error (InvalidUpdateAddHTLC err) ->
-                return Error <| SendHtlcPaymentError.InvalidHtlcPayment (self, err)
-            | Error err -> return failwith <| SPrintF1 "error executing HTLC payment command: %s" err.Message
-            | Ok (channelAfterAddHtlcPayment, addHtlcMsg) ->
-                let! peerNodeAfterAddHtlcSent = peerNode.SendMsg addHtlcMsg
-                let connectedChannelAfterAddHtlcSent =
-                    {
-                        connectedChannel with
-                            PeerNode = peerNodeAfterAddHtlcSent
-                            Channel =
-                                {
-                                    Channel = channelAfterAddHtlcPayment
-                                }
-                    }
-                connectedChannelAfterAddHtlcSent.SaveToWallet()
-                let activeChannel = { ConnectedChannel = connectedChannelAfterAddHtlcSent }
-                let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
-                match activeChannelAfterCommitSentRes with
-                | Error err -> return Error <| SendHtlcPaymentError.SendCommit err
-                | Ok activeChannelAfterCommitSent ->
-                    let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
-                    match activeChannelAfterCommitReceivedRes with
-                    | Error err -> return Error <| SendHtlcPaymentError.RecvCommit err
-                    | Ok activeChannelAfterCommitReceived when waitForResult ->
-                        let! activeChannelAfterNewCommitRes = activeChannelAfterCommitReceived.RecvHtlcFulfillOrFail hops onionPacket.SharedSecrets
-                        match (activeChannelAfterNewCommitRes) with
-                        | Error err ->
-                            return Error <| SendHtlcPaymentError.RecvFulfillOrFail err
-                        | Ok (activeChannelAfterNewCommit, true) ->
-                            return Ok (activeChannelAfterNewCommit)
-                        | Ok (activeChannelAfterNewCommit, false) ->
-                            return Error <| SendHtlcPaymentError.ReceivedHtlcFail activeChannelAfterNewCommit
-                    | Ok activeChannelAfterCommitReceived ->
-                        return Ok (activeChannelAfterCommitReceived)
+                match channelAndAddHtlcMsgRes with
+                | Error (InvalidUpdateAddHTLC err) ->
+                    return Error <| SendHtlcPaymentError.InvalidHtlcPayment (self, err)
+                | Error err -> return failwith <| SPrintF1 "error executing HTLC payment command: %s" err.Message
+                | Ok (channelAfterAddHtlcPayment, addHtlcMsg) ->
+                    let! peerNodeAfterAddHtlcSent = peerNode.SendMsg addHtlcMsg
+                    let connectedChannelAfterAddHtlcSent =
+                        {
+                            connectedChannel with
+                                PeerNode = peerNodeAfterAddHtlcSent
+                                Channel =
+                                    {
+                                        Channel = channelAfterAddHtlcPayment
+                                    }
+                        }
+                    connectedChannelAfterAddHtlcSent.SaveToWallet()
+                    let activeChannel = { ConnectedChannel = connectedChannelAfterAddHtlcSent }
+                    let! activeChannelAfterCommitSentRes = activeChannel.SendCommit()
+                    match activeChannelAfterCommitSentRes with
+                    | Error err -> return Error <| SendHtlcPaymentError.SendCommit err
+                    | Ok activeChannelAfterCommitSent ->
+                        let! activeChannelAfterCommitReceivedRes = activeChannelAfterCommitSent.RecvCommit()
+                        match activeChannelAfterCommitReceivedRes with
+                        | Error err -> return Error <| SendHtlcPaymentError.RecvCommit err
+                        | Ok activeChannelAfterCommitReceived when waitForResult ->
+                            let! activeChannelAfterNewCommitRes = activeChannelAfterCommitReceived.RecvHtlcFulfillOrFail hops onionPacket.SharedSecrets
+                            match (activeChannelAfterNewCommitRes) with
+                            | Error err ->
+                                return Error <| SendHtlcPaymentError.RecvFulfillOrFail err
+                            | Ok (activeChannelAfterNewCommit, true) ->
+                                return Ok (activeChannelAfterNewCommit)
+                            | Ok (activeChannelAfterNewCommit, false) ->
+                                return Error <| SendHtlcPaymentError.ReceivedHtlcFail activeChannelAfterNewCommit
+                        | Ok activeChannelAfterCommitReceived ->
+                            return Ok (activeChannelAfterCommitReceived)
+            else
+                return Error SendHtlcPaymentError.UserAbort
     }
 
     member internal self.FailHtlc (id: HTLCId) (reason: HtlcSettleFailReason) : Async<Result<ActiveChannel * HtlcSettleStatus, RecvHtlcPaymentError>> =
