@@ -9,6 +9,7 @@ open DotNetLightning.Utils
 open DotNetLightning.Serialization
 open DotNetLightning.Serialization.Msgs
 open DotNetLightning.Payment
+open DotNetLightning.Routing
 open ResultUtils.Portability
 
 open GWallet.Backend
@@ -17,19 +18,6 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 open GWallet.Backend.UtxoCoin
 open GWallet.Backend.UtxoCoin.Lightning.Watcher
 
-
-module ExtraHop =
-    let internal ToIRoutingHopInfo (extraHop : ExtraHop) =
-        { new IRoutingHopInfo with
-            override self.NodeId = extraHop.NodeIdValue
-            override self.ShortChannelId = extraHop.ShortChannelIdValue
-            override self.FeeBaseMSat = extraHop.FeeBaseValue
-            override self.FeeProportionalMillionths = extraHop.FeeProportionalMillionthsValue
-            override self.CltvExpiryDelta = extraHop.CLTVExpiryDeltaValue.Value |> uint32
-            // Folowing values are only used in edge weight calculation
-            override self.HTLCMaximumMSat = Some RoutingHeuristics.CAPACITY_CHANNEL_HIGH
-            override self.HTLCMinimumMSat = LNMoney.Zero
-        }
 
 /// Information about a hop in multi-hop htlc payment.
 /// Non-final hops have ShortChannelId but no PaymentSecret, 
@@ -837,32 +825,8 @@ and internal ActiveChannel =
         
         if sourceNode <> targetNode then // Multihop payment
             let route = 
-                let directRoute =
-                    UtxoCoin.Lightning.RapidGossipSyncer.GetRoute sourceNode targetNode amount
-                    |> Seq.cast<IRoutingHopInfo>
-                    |> Seq.toArray
-                if Array.isEmpty directRoute then
-                    seq {
-                        for extraRoute in paymentRequest.RoutingInfo do
-                            match extraRoute with
-                            | head :: _ -> 
-                                let publicPart = 
-                                    UtxoCoin.Lightning.RapidGossipSyncer.GetRoute sourceNode head.NodeIdValue amount
-                                    |> Seq.cast<IRoutingHopInfo>
-                                    |> Seq.toArray
-                                if not <| Array.isEmpty publicPart then
-                                    let extraPart = extraRoute |> Seq.map ExtraHop.ToIRoutingHopInfo |> Seq.toArray
-                                    yield Array.append publicPart extraPart
-                            | _ -> ()
-                    }
-                    |> Seq.sortBy (
-                        fun route -> 
-                            route 
-                            |> Array.sumBy (fun hopInfo -> EdgeWeightCaluculation.edgeWeight amount hopInfo))
-                    |> Seq.tryHead
-                    |> Option.defaultValue [||]
-                else
-                    directRoute
+                RapidGossipSyncer.GetRoute sourceNode targetNode amount currentBlockHeight RouteParams.Default paymentRequest.RoutingInfo
+                |> Seq.toArray
             if Seq.isEmpty route then
                 Error(SendHtlcPaymentError.NoRouteFound targetNode)
             else
@@ -878,7 +842,7 @@ and internal ActiveChannel =
                     Array.scan 
                         (fun runningTotal (hopInfo: IRoutingHopInfo) -> 
                             runningTotal + 
-                            UtxoCoin.Lightning.EdgeWeightCaluculation.nodeFee 
+                            EdgeWeightCaluculation.nodeFee 
                                 hopInfo.FeeBaseMSat
                                 (int64 hopInfo.FeeProportionalMillionths)
                                 runningTotal)
