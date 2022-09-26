@@ -355,7 +355,7 @@ module FSharpUtil =
 
     let option = OptionBuilder()
 
-    let Retry<'T, 'TException when 'TException :> Exception> sourceFunc retryCount: Async<'T> =
+    let Retry<'T, 'TException, 'T2Exception when 'TException :> Exception and 'T2Exception :> Exception> sourceFunc retryCount: Async<'T> =
         async {
             let rec retrySourceFunc currentRetryCount =
                 async {
@@ -364,12 +364,18 @@ module FSharpUtil =
                     with
                     | ex ->
                         match FindException<'TException> ex with
-                        | Some ex ->
+                        | Some _ ->
                             if currentRetryCount = 0 then
                                 return raise <| ReRaise ex
                             return! retrySourceFunc (currentRetryCount - 1)
                         | None ->
-                            return raise <| ReRaise ex
+                            match FindException<'T2Exception> ex with
+                            | Some _ ->
+                                if currentRetryCount = 0 then
+                                    return raise <| ReRaise ex
+                                return! retrySourceFunc (currentRetryCount - 1)
+                            | None ->
+                                return raise <| ReRaise ex 
                 }
             return! retrySourceFunc retryCount
         }
