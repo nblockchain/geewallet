@@ -362,10 +362,14 @@ module FSharpUtil =
                     try
                         return! sourceFunc()
                     with
-                    | :? 'TException as ex ->
-                        if currentRetryCount = 0 then
+                    | ex ->
+                        match FindException<'TException> ex with
+                        | Some ex ->
+                            if currentRetryCount = 0 then
+                                return raise <| ReRaise ex
+                            return! retrySourceFunc (currentRetryCount - 1)
+                        | None ->
                             return raise <| ReRaise ex
-                        return! retrySourceFunc (currentRetryCount - 1)
                 }
             return! retrySourceFunc retryCount
         }
