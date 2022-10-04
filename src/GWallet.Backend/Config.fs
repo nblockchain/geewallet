@@ -100,6 +100,7 @@ module Config =
     let internal DEFAULT_WATCHTOWER = ("127.0.0.1", 18666)
 
     let internal TOR_CONNECTION_RETRY_COUNT = 10
+    let internal TOR_DESCRIPTOR_UPLOAD_RETRY_COUNT = 2
 
     let ChannelReservePercentage = 1
 

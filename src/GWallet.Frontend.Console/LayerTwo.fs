@@ -66,7 +66,7 @@ module LayerTwo =
                 "Do you want to supply the channel counterparty connection string as used embedded in QR codes (if the recipient is geewallet say Yes)?"
         if useQRString then
             let getNodeType (currency: Currency) (text: string): NodeIdentifier =
-                if NOnionEndPoint.IsNOnionConnection text then
+                if NOnionEndPoint.IsOnionConnection text then
                     NodeIdentifier.TorEndPoint (NOnionEndPoint.Parse currency text)
                 else
                     NodeIdentifier.TcpEndPoint (NodeEndPoint.Parse currency text)
@@ -112,7 +112,7 @@ module LayerTwo =
     let rec internal AskConnectionType(): NodeServerType =
         Console.WriteLine "Available types of connection:"
         Console.WriteLine "1. TCP"
-        Console.WriteLine "2. Onion"
+        Console.WriteLine "2. TOR"
         Console.Write "Choose the connection type: "
 
         let text = Console.ReadLine().Trim()
@@ -384,9 +384,7 @@ module LayerTwo =
                     let tryClose password =
                         async {
                             let nodeClient = Lightning.Connection.StartClient channelStore password
-
-                            let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType currency
-                            let! closeRes = Lightning.Network.CloseChannel nodeClient channelId connectionString
+                            let! closeRes = Lightning.Network.CloseChannel nodeClient channelId
                             match closeRes with
                             | Error closeError ->
                                 Console.WriteLine(sprintf "Error closing channel: %s" (closeError :> IErrorMsg).Message)
@@ -464,14 +462,13 @@ module LayerTwo =
             | Some channelId ->
                 let channelInfo = channelStore.ChannelInfo channelId
                 let transferAmountOpt = UserInteraction.AskLightningAmount channelInfo
-                let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType channelInfo.Currency
                 match transferAmountOpt with
                 | None -> ()
                 | Some transferAmount ->
                     let trySendPayment password =
                         async {
                             let nodeClient = Lightning.Connection.StartClient channelStore password
-                            let! paymentRes = Lightning.Network.SendMonoHopPayment nodeClient channelId transferAmount connectionString
+                            let! paymentRes = Lightning.Network.SendMonoHopPayment nodeClient channelId transferAmount
                             match paymentRes with
                             | Error nodeSendMonoHopPaymentError ->
                                 let currency = (account :> IAccount).Currency
@@ -503,11 +500,6 @@ module LayerTwo =
                 let tryReceiveLightningEvent password =
                     async {
                         use! nodeServer = Lightning.Connection.StartServer channelStore password nodeServerType
-
-                        match Lightning.Network.EndPoint nodeServer with
-                        | EndPointType.Tor endPoint ->
-                            Console.WriteLine(sprintf "This node, connect to it: %s" (endPoint.ToString()))
-                        | _ -> ()
 
                         Console.WriteLine "Waiting for funder to connect..."
                         let! receiveLightningEventRes = Lightning.Network.ReceiveLightningEvent nodeServer channelId
@@ -568,27 +560,27 @@ module LayerTwo =
                     "Ensure the fundee is ready to accept a connection to lock the funding, \
                     then press any key to continue."
                 Console.ReadKey true |> ignore
-
-                let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType currency
                 let tryLock password =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
-                        let sublockFundingAsync = Lightning.Network.ConnectLockChannelFunding nodeClient channelId connectionString
+                        let sublockFundingAsync = Lightning.Network.ConnectLockChannelFunding nodeClient channelId
                         return! lockChannelInternal (Node.Client nodeClient) sublockFundingAsync
                     }
 
                 UserInteraction.TryWithPasswordAsync tryLock
             else
-                let connectionType = AskConnectionType()
+                let nodeServerType =
+                    match channelInfo.NodeTransportType with
+                    | NodeTransportType.Server nodeServerType ->
+                        nodeServerType
+                    | NodeTransportType.Client _ ->
+                        failwith "BUG: channelInfo.IsFunder returned false but TransportType shows that we're the funder"
 
                 let tryLock password =
                     async {
-                        use! nodeServer = Lightning.Connection.StartServer channelStore password connectionType
-
-                        match Lightning.Network.EndPoint nodeServer with
-                        | EndPointType.Tor endPoint ->
-                            Console.WriteLine(sprintf "This node, connect to it: %s" (endPoint.ToString()))
-                        | _ -> ()
+                        use! nodeServer = Lightning.Connection.StartServer channelStore password nodeServerType
+                        
+                        Console.WriteLine("Waiting for funder to connect...")
 
                         let sublockFundingAsync = Lightning.Network.AcceptLockChannelFunding nodeServer channelId
                         return! lockChannelInternal (Node.Server nodeServer) sublockFundingAsync
@@ -636,14 +628,12 @@ module LayerTwo =
                     | 1 -> Some ()
                     | _ -> readInput()
 
-            let connectionString = UserInteraction.MaybeAskChannelConnectionString channelInfo.NodeTransportType channelInfo.Currency
-
             match readInput() with
             | Some () ->
                 let tryUpdateFee password =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
-                        let! updateFeeRes = (Node.Client nodeClient).UpdateFee channelId feeRate connectionString
+                        let! updateFeeRes = (Node.Client nodeClient).UpdateFee channelId feeRate
                         match updateFeeRes with
                         | Error updateFeeError ->
                             Console.WriteLine(sprintf "Error updating fee: %s" updateFeeError.Message)

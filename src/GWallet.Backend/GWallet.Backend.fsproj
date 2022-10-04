@@ -117,7 +117,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Chaos.NaCl-Portable">
-      <HintPath>..\..\packages\NOnion.0.1.0--date20220425-1029.git-182fdff\lib\netstandard2.0\Chaos.NaCl-Portable.dll</HintPath>
+      <HintPath>..\..\packages\NOnion.0.1.0--date20221004-1240.git-1233daf\lib\netstandard2.0\Chaos.NaCl-Portable.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\net45\FSharp.Data.dll</HintPath>
@@ -145,7 +145,7 @@
       <HintPath>..\..\packages\Nerdbank.Streams.2.6.81\lib\netstandard2.0\Nerdbank.Streams.dll</HintPath>
     </Reference>
     <Reference Include="NOnion">
-      <HintPath>..\..\packages\NOnion.0.1.0--date20220425-1029.git-182fdff\lib\netstandard2.0\NOnion.dll</HintPath>
+      <HintPath>..\..\packages\NOnion.0.1.0--date20221004-1240.git-1233daf\lib\netstandard2.0\NOnion.dll</HintPath>
     </Reference>
     <Reference Include="StreamJsonRpc">
       <HintPath>..\..\packages\StreamJsonRpc.2.8.21\lib\netstandard2.0\StreamJsonRpc.dll</HintPath>

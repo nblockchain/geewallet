@@ -189,7 +189,7 @@ type internal TransportListener =
             let localIpEndPoint = tcp.LocalEndpoint :?> IPEndPoint
             EndPointType.Tcp (NodeEndPoint.FromParts nodeId localIpEndPoint)
         | IncomingConnectionMethod.Tor tor ->
-            EndPointType.Tor ({ NOnionEndPoint.NodeId = nodeId; IntroductionPoint = tor.Export() })
+            EndPointType.Tor ({ NOnionEndPoint.NodeId = nodeId; Url = tor.ExportUrl() })
 
 
 type PeerErrorMessage =
@@ -421,13 +421,10 @@ type internal TransportStream =
         (nonionEndPoint: NOnionEndPoint)
         : Async<Result<TorServiceClient, seq<SocketException>>> =
         async {
-            let introductionIpEndPoint = ((IPAddress.Parse nonionEndPoint.IntroductionPoint.Address, nonionEndPoint.IntroductionPoint.Port) |> IPEndPoint)
-            Infrastructure.LogDebug <| SPrintF1 "Connecting over TOR to %A..." introductionIpEndPoint
-
             let! directory = TorOperations.GetTorDirectory()
             try
-                let! torClient = TorOperations.TorConnect directory nonionEndPoint.IntroductionPoint
-                Infrastructure.LogDebug <| SPrintF1 "Connected %s" nonionEndPoint.IntroductionPoint.Address
+                let! torClient = TorOperations.TorConnect directory nonionEndPoint.Url
+                Infrastructure.LogDebug <| SPrintF1 "Connected %s" nonionEndPoint.Url
                 return Ok torClient
             with
             | ex ->

@@ -22,7 +22,7 @@
       <dependency id="NBitcoin.Altcoins" version="3.0.8" />
       <dependency id="Nethereum" version="0.95.0--date20210125-0551.git-05a29e9" />
       <dependency id="Newtonsoft.Json" version="12.0.2" />
-      <dependency id="NOnion" version="0.1.0--date20220425-1029.git-182fdff" />
+      <dependency id="NOnion" version="0.1.0--date20221004-1240.git-1233daf" />
       <dependency id="Portable.BouncyCastle" version="1.8.10" />
       <dependency id="SharpRaven" version="2.4.0" />
       <dependency id="StreamJsonRpc" version="2.8.21" />

@@ -331,7 +331,10 @@ type ChannelMarshalling () =
       "case": "Client",
       "fields": [
         {
-          "case": "Tor"
+          "case": "Tor",
+          "fields": [
+            "hixrvmbuy7ffhwlogfx337qnw7v2xpf4ogxl3c6yzetcfq2ho3nl3dqd.onion"
+          ]
         }
       ]
     },
