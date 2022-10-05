@@ -144,10 +144,7 @@ fixes upstream.
 
 # Workflow best practices
 
-* If you want to contribute a change to this project, you should create a
-MergeRequest in gitlab (not a PullRequest in github). The repo in gitlab is in:
-https://gitlab.com/nblockchain/gweeallet
-* When contributing a MergeRequest, separate your commits in units of work
+* When contributing a PullRequest, separate your commits in units of work
 (don't mix changes that have different concerns in the same commit). Don't
 forget to include all explanations and reasonings in the commit messages,
 instead of just leaving them as part of the MergeRequest description.
@@ -156,7 +153,7 @@ single push), so that we can have a CI status for each commit in the MR. This
 is a best practice because it will make sure that the build is not broken in
 between commits (otherwise, future developers may have a hard time when
 trying to bisect bugs). If you have already pushed your commits to the remote
-in one push, this can be re-done by using our [gitpush1by1.fsx](https://gitlab.com/nblockchain/fsx/-/blob/master/Tools/gitPush1by1.fsx)
+in one push, this can be re-done by using our [gitpush1by1.fsx](https://github.com/nblockchain/fsx/blob/master/Tools/gitPush1by1.fsx)
 script, or this technique manually: https://stackoverflow.com/a/3230241/544947
 * Git commit messages should follow this style:
 
@@ -168,7 +165,7 @@ the change that is not self-explanatory). Don't hesitate to be very verbose
 here, adding any references you may need, in this way[1], or even @nicknames of
 people that helped. Manually crop your lines to not be longer than 64 chars.
 
-Fixes https://gitlab.com/nblockchain/geewallet/issues/45
+Fixes https://github.com/nblockchain/geewallet/issues/45
 
 [1] http://foo.bar/baz
 ```
