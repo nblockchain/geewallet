@@ -69,7 +69,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux-vanilla:
+  linux-vanilla--stockmono:
     runs-on: ubuntu-20.04
     container:
       image: "ubuntu:20.04"
@@ -105,8 +105,47 @@ jobs:
     - name: integration tests
       run: make update-servers
 
+  linux-vanilla--newmono:
+    runs-on: ubuntu-20.04
+    container:
+      image: "ubuntu:20.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install all dependencies
+      run: sudo apt install --yes git make curl fsharp nunit-console
+    - name: install last version of mono (Microsoft APT repositories)
+      run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: check mono version
+      run: mono --version
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
+
   snap_pkg_build:
-    needs: [linux-github, linux-vanilla, windows, macOS]
+    needs: [linux-github, linux-vanilla--stockmono, linux-vanilla--newmono, windows, macOS]
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
