@@ -6,7 +6,7 @@ geewallet is a minimalistic and pragmatist crossplatform lightweight opensource 
 
 [![Licence](https://img.shields.io/github/license/nblockchain/geewallet.svg)](https://github.com/nblockchain/geewallet/blob/master/LICENCE.txt)
 
-| Branch            | Description                                                            | CI status (build & test suite)                                                                                                                                                |
+| Branch            | Description                                                            | Build & Test status                                                                         |
 | ----------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | stable (v0.2.x)   | Console frontend. Currencies supported: BTC, LTC, ETC, ETH, DAI        | [![GitHubCI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/CI/badge.svg?branch=stable)](https://github.com/nblockchain/geewallet/commits/stable) |
 | master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | [![GitHubCI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/CI/badge.svg?branch=master)](https://github.com/nblockchain/geewallet/commits/master) |
