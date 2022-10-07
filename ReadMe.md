@@ -6,14 +6,13 @@ geewallet is a minimalistic and pragmatist crossplatform lightweight opensource 
 
 [![Licence](https://img.shields.io/github/license/nblockchain/geewallet.svg)](https://github.com/nblockchain/geewallet/blob/master/LICENCE.txt)
 
-| Branch            | Description                                                            | CI status (build & test suite)                                                                                                                                                |
+| Branch            | Description                                                            | Build & Test status                                                                         |
 | ----------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| stable (v0.2.x)   | Console frontend. Currencies supported: BTC, LTC, ETC, ETH, DAI        | Linux: [![Linux CI pipeline status badge](https://gitlab.com/nblockchain/geewallet/badges/stable/pipeline.svg)](https://gitlab.com/nblockchain/geewallet/commits/stable)      |
-| master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | Linux: [![Linux CI pipeline status badge](https://gitlab.com/nblockchain/geewallet/badges/master/pipeline.svg)](https://gitlab.com/nblockchain/geewallet/commits/master) <br/>macOS: [![macOS CI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/macOS/badge.svg)](https://github.com/nblockchain/geewallet/commits/master) <br/>Windows: [![Windows CI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/windows/badge.svg)](https://github.com/nblockchain/geewallet/commits/master) |
-| frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | Linux: [![Linux CI pipeline status badge](https://gitlab.com/nblockchain/geewallet/badges/frontend/pipeline.svg)](https://gitlab.com/nblockchain/geewallet/commits/frontend)  |
+| stable (v0.2.x)   | Console frontend. Currencies supported: BTC, LTC, ETC, ETH, DAI        | [![GitHubCI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/CI/badge.svg?branch=stable)](https://github.com/nblockchain/geewallet/commits/stable) |
+| master (v0.3.x)   | main branch where ongoing development takes place (unstable)           | [![GitHubCI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/CI/badge.svg?branch=master)](https://github.com/nblockchain/geewallet/commits/master) |
+| frontend (v0.4.x) | + Xamarin.Forms frontends (Android & iOS & Gtk & macOS & UWP)          | [![GitHubCI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/CI/badge.svg?branch=frontend)](https://github.com/nblockchain/geewallet/commits/frontend) |
 
 [![Balances mobile-page screenshot](https://raw.githubusercontent.com/nblockchain/geewallet/master/img/screenshots/maciosandroid-balances.png)](https://raw.githubusercontent.com/nblockchain/geewallet/master/img/screenshots/maciosandroid-balances.png)
-
 
 ## Features
 
@@ -139,7 +138,7 @@ make.bat
 
 ## Thanks
 
-Special thanks to all the [contributors](https://gitlab.com/knocte/geewallet/graphs/frontend) (we recently surpassed 10! if you count the contributions that are in review at the moment). Without forgetting as well the amazing developers that contribute(d) to the great opensource libraries that this project uses; some examples:
+Special thanks to all the [contributors](https://github.com/nblockchain/geewallet/graphs/contributors) (we recently surpassed 10! if you count the contributions that are in review at the moment). Without forgetting as well the amazing developers that contribute(d) to the great opensource libraries that this project uses; some examples:
 
 - @juanfranblanco: Nethereum
 - @nicolasdorier, @joemphilips: NBitcoin
