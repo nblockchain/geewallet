@@ -328,6 +328,7 @@ module LayerTwo =
                         let tryOpen password =
                             async {
                                 let nodeClient = Lightning.Connection.StartClient channelStore password
+                                Console.WriteLine "Connecting..."
                                 let! pendingChannelRes =
                                     Lightning.Network.OpenChannel
                                         nodeClient
@@ -384,6 +385,7 @@ module LayerTwo =
                     let tryClose password =
                         async {
                             let nodeClient = Lightning.Connection.StartClient channelStore password
+                            Console.WriteLine "Connecting..."
                             let! closeRes = Lightning.Network.CloseChannel nodeClient channelId
                             match closeRes with
                             | Error closeError ->
@@ -432,6 +434,7 @@ module LayerTwo =
 
             let tryAccept password =
                 async {
+                    Console.WriteLine "Connecting..."
                     use! nodeServer = Lightning.Connection.StartServer channelStore password connectionType
 
                     let nodeAddress =
@@ -468,6 +471,7 @@ module LayerTwo =
                     let trySendPayment password =
                         async {
                             let nodeClient = Lightning.Connection.StartClient channelStore password
+                            Console.WriteLine "Connecting..."
                             let! paymentRes = Lightning.Network.SendMonoHopPayment nodeClient channelId transferAmount
                             match paymentRes with
                             | Error nodeSendMonoHopPaymentError ->
@@ -499,6 +503,7 @@ module LayerTwo =
                         failwith "MaybeAskChannelId should not return an outgoing (funder) channel"
                 let tryReceiveLightningEvent password =
                     async {
+                        Console.WriteLine "Connecting..."
                         use! nodeServer = Lightning.Connection.StartServer channelStore password nodeServerType
 
                         Console.WriteLine "Waiting for funder to connect..."
@@ -563,6 +568,7 @@ module LayerTwo =
                 let tryLock password =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
+                        Console.WriteLine "Connecting..."
                         let sublockFundingAsync = Lightning.Network.ConnectLockChannelFunding nodeClient channelId
                         return! lockChannelInternal (Node.Client nodeClient) sublockFundingAsync
                     }
@@ -578,6 +584,7 @@ module LayerTwo =
 
                 let tryLock password =
                     async {
+                        Console.WriteLine "Connecting..."
                         use! nodeServer = Lightning.Connection.StartServer channelStore password nodeServerType
                         
                         Console.WriteLine("Waiting for funder to connect...")
@@ -633,6 +640,7 @@ module LayerTwo =
                 let tryUpdateFee password =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
+                        Console.WriteLine "Connecting..."
                         let! updateFeeRes = (Node.Client nodeClient).UpdateFee channelId feeRate
                         match updateFeeRes with
                         | Error updateFeeError ->
