@@ -4,10 +4,12 @@ open System
 open System.IO
 open System.Net
 open System.Text.RegularExpressions
+open System.Diagnostics
 
 open NOnion
 open NOnion.Directory
 open NOnion.Services
+open NOnion.Network
 open Org.BouncyCastle.Crypto.Parameters
 open Org.BouncyCastle.Crypto.Generators
 open Org.BouncyCastle.Security
@@ -32,23 +34,77 @@ module internal TorOperations =
             File.WriteAllBytes(serviceKeyPath, masterPrivateKey.GetEncoded())
             masterPrivateKey
 
-    let GetRandomTorFallbackDirectoryEndPoint() =
+    let GetFastestTorFallbackDirectoryServer() =
         match Caching.Instance.GetServers
             (ServerType.ProtocolServer ServerProtocol.Tor)
-            |> Shuffler.Unsort
+            |> Seq.sortBy
+                (fun server ->
+                    match server.CommunicationHistory with
+                    | Some(historyInfo, _) when historyInfo.Status = Status.Success ->
+                        historyInfo.TimeSpan.TotalMilliseconds
+                    | _ -> infinity )
             |> Seq.tryHead with
-        | Some server ->
+        | Some server -> server
+        | None ->
+            failwith "Couldn't find any Tor server"
+
+    let internal GetEndpointForServer(server: ServerDetails): IPEndPoint =
+        let endpoint =
             match server.ServerInfo.ConnectionType.Protocol with
             | Protocol.Tcp port ->
                 IPEndPoint(IPAddress.Parse server.ServerInfo.NetworkPath, int32 port)
             | _ -> failwith "Invalid Tor directory. Tor directories must have an IP and port."
-        | None ->
-            failwith "Couldn't find any Tor server"
+
+        endpoint
+
+    let NewClientWithMeasurement(server: ServerDetails): Async<TorGuard> =
+        let endpoint = GetEndpointForServer server
+        async {
+            let stopwatch = Stopwatch()
+            stopwatch.Start()
+
+            try
+                let! torGuard = TorGuard.NewClient endpoint
+                stopwatch.Stop()
+                let historyFact = { TimeSpan = stopwatch.Elapsed; Fault = None }
+                Caching.Instance.SaveServerLastStat
+                    (fun srv -> srv = server)
+                    historyFact
+                return torGuard
+            with
+            | ex ->
+                stopwatch.Stop()
+                let exInfo =
+                    {
+                        TypeFullName = ex.GetType().FullName
+                        Message = ex.Message
+                    }
+                let historyFact = { TimeSpan = stopwatch.Elapsed; Fault = Some exInfo }
+                Caching.Instance.SaveServerLastStat
+                    (fun srv -> srv = server)
+                    historyFact
+                return raise <| FSharpUtil.ReRaise ex
+        }
+
+    let GetTorGuardForServer(server:ServerDetails): Async<TorGuard> =
+        async {
+            return! FSharpUtil.Retry<TorGuard, NOnionException>
+                (fun _ ->
+                    NewClientWithMeasurement server
+                )
+                Config.TOR_CONNECTION_RETRY_COUNT
+        }
 
     let internal GetTorDirectory(): Async<TorDirectory> =
         async {
             return! FSharpUtil.Retry<TorDirectory, NOnionException>
-                (fun _ -> TorDirectory.Bootstrap (GetRandomTorFallbackDirectoryEndPoint()) (Config.GetCacheDir()))
+                (fun _ ->
+                    async {
+                        let server = GetFastestTorFallbackDirectoryServer()
+                        let! guard = NewClientWithMeasurement server
+                        return! TorDirectory.BootstrapWithGuard guard (Config.GetCacheDir())
+                    }
+                )
                 Config.TOR_CONNECTION_RETRY_COUNT
         }
 
