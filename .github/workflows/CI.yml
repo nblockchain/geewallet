@@ -83,8 +83,8 @@ jobs:
       run: sudo apt install -y libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
+    - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
+      run: make || make || make || make
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
@@ -159,8 +159,8 @@ jobs:
       run: sudo apt install -y libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
+    - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
+      run: make || make || make || make
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
@@ -210,8 +210,8 @@ jobs:
       run: sudo apt install -y libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
+    - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
+      run: make || make || make || make
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
@@ -286,8 +286,8 @@ jobs:
       run: sudo apt install -y libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
+    - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
+      run: make || make || make || make
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
