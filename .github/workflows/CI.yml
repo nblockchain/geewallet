@@ -84,6 +84,7 @@ jobs:
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
+      # TODO: remove retry when we migrate to .NET6
       run: make || make || make || make
     - name: sanity check
       run: make sanitycheck
@@ -160,6 +161,7 @@ jobs:
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
+      # TODO: remove retry when we migrate to .NET6
       run: make || make || make || make
     - name: sanity check
       run: make sanitycheck
@@ -211,6 +213,7 @@ jobs:
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
+      # TODO: remove retry when we migrate to .NET6
       run: make || make || make || make
     - name: sanity check
       run: make sanitycheck
@@ -287,6 +290,7 @@ jobs:
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
+      # TODO: remove retry when we migrate to .NET6
       run: make || make || make || make
     - name: sanity check
       run: make sanitycheck
@@ -319,7 +323,8 @@ jobs:
         sudo apt update
         sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
         ./scripts/install_snapcraft.sh
-        ./scripts/snap_build.sh
+        # retry 3 times because of flakey nuget; TODO: remove retry when we migrate to .NET6
+        ./scripts/snap_build.sh || ./scripts/snap_build.sh || ./scripts/snap_build.sh || ./scripts/snap_build.sh
 
     - name: Upload snap package to Snap Store
       env:
