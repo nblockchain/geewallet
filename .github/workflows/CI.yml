@@ -79,6 +79,8 @@ jobs:
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
     - name: check mono version
       run: mono --version
+    - name: install GTK libs (dependency of GTK frontend)
+      run: sudo apt install -y libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -153,6 +155,8 @@ jobs:
 
     - name: check mono version
       run: mono --version
+    - name: install GTK libs (dependency of GTK frontend)
+      run: sudo apt install -y libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -202,6 +206,8 @@ jobs:
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
     - name: check mono version
       run: mono --version
+    - name: install GTK libs (dependency of GTK frontend)
+      run: sudo apt install -y libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -276,6 +282,8 @@ jobs:
 
     - name: check mono version
       run: mono --version
+    - name: install GTK libs (dependency of GTK frontend)
+      run: sudo apt install -y libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
