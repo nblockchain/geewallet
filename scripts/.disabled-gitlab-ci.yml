@@ -1,3 +1,5 @@
+NOTE: before re-enabling this file, please re-enable its reference to it in scripts/bump.fsx
+
 stages:
   - buildenv
   - build

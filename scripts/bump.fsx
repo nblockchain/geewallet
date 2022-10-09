@@ -47,11 +47,17 @@ let filesToBumpFullVersion: seq<string> =
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
         "snap/snapcraft.yaml"
     ]
+
+let isGitLabCiDisabled = true
+
 let gitLabCiYml = ".gitlab-ci.yml"
 let filesToGitAdd: seq<string> =
-    Seq.append filesToBumpFullVersion [
-        gitLabCiYml
-    ]
+    if not isGitLabCiDisabled then
+        Seq.append filesToBumpFullVersion [
+            gitLabCiYml
+        ]
+    else
+        filesToBumpFullVersion
 
 let replaceScript =
     Path.Combine(rootDir.FullName, "scripts", "fsx", "Tools", "replace.fsx")
@@ -110,7 +116,8 @@ let Bump(toStable: bool): Version*Version =
         else
             "50years","50days"
 
-    Replace gitLabCiYml expiryFrom expiryTo
+    if not isGitLabCiDisabled then
+        Replace gitLabCiYml expiryFrom expiryTo
 
     for file in filesToBumpFullVersion do
         Replace file (fullVersion.ToString()) (newFullVersion.ToString())
