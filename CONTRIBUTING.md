@@ -149,7 +149,14 @@ fixes upstream.
 * When contributing a PullRequest, separate your commits in units of work
 (don't mix changes that have different concerns in the same commit). Don't
 forget to include all explanations and reasonings in the commit messages,
-instead of just leaving them as part of the MergeRequest description.
+instead of just leaving them as part of the PullRequest description.
+* If you want to contribute a script, do not use PowerShell or Bash, but
+an F# script. The reason to not use PowerShell is a personal preference
+from the maintainer of this project (and his suspicion that it might not
+be 100% guaranteed to be crossplatform); and the reason not to use Bash
+is because it's only Unix compatible (we cannot assume WSL is installed
+in Windows), and in general because it's too undeterministic and old, more
+info here: https://news.ycombinator.com/item?id=33116310
 * Push each commit separately (instead of sending more than 1 commit in a
 single push), so that we can have a CI status for each commit in the MR. This
 is a best practice because it will make sure that the build is not broken in
