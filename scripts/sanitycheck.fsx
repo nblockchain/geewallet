@@ -82,11 +82,10 @@ let FindOffendingPrintfUsage () =
     let findScript = Path.Combine (FsxHelper.RootDir.FullName, "scripts", "find.fsx")
     let excludeFolders =
         String.Format (
-            "scripts{0}" +
-            "src{1}GWallet.Frontend.Console{0}" +
-            "src{1}GWallet.Backend.Tests.Unit{0}" +
-            "src{1}GWallet.Backend.Tests.End2End{0}" +
-            "src{1}GWallet.Backend{1}FSharpUtil.fs",
+            "GWallet.Frontend.Console{0}" +
+            "GWallet.Backend.Tests.Unit{0}" +
+            "GWallet.Backend.Tests.End2End{0}" +
+            "GWallet.Backend{1}FSharpUtil.fs",
             Path.PathSeparator,
             Path.DirectorySeparatorChar
         )
@@ -99,7 +98,11 @@ let FindOffendingPrintfUsage () =
                                 excludeFolders
                                 "printf failwithf"
         }
+    let currentDir = Directory.GetCurrentDirectory()
+    let srcDir = Path.Combine(currentDir, "src")
+    Directory.SetCurrentDirectory srcDir
     let findProc = Process.SafeExecute (proc, Echo.All)
+    Directory.SetCurrentDirectory currentDir
     if findProc.Output.StdOut.Trim().Length > 0 then
         Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf detected; use SPrintF1/SPrintF2/... instead"
         Environment.Exit 1

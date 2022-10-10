@@ -330,6 +330,9 @@ match maybeTarget with
 | Some("check") ->
     RunTests "Unit"
 
+| Some "check-end2end" ->
+    RunTests "End2End"
+
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
     JustBuild buildConfig None

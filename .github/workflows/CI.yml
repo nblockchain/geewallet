@@ -68,6 +68,10 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: end to end tests
+      run: |
+        . ./scripts/install_regtest_dependencies.sh
+        make check-end2end
 
   linux22-github--msbuild:
     runs-on: ubuntu-22.04
@@ -93,6 +97,10 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: end to end tests
+      run: |
+        . ./scripts/install_regtest_dependencies.sh
+        make check-end2end
 
   linux22-vanilla--stockmono:
     runs-on: ubuntu-22.04
@@ -129,6 +137,10 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: end to end tests
+      run: |
+        . ./scripts/install_regtest_dependencies.sh
+        make check-end2end
 
   linux22-vanilla--newmono:
     runs-on: ubuntu-22.04
@@ -167,6 +179,10 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: end to end tests
+      run: |
+        . ./scripts/install_regtest_dependencies.sh
+        make check-end2end
 
 
   linux20-github--xbuild:
@@ -191,6 +207,10 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: end to end tests
+      run: |
+        . ./scripts/install_regtest_dependencies.sh
+        make check-end2end
 
   linux20-github--msbuild:
     runs-on: ubuntu-20.04
@@ -216,6 +236,10 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: end to end tests
+      run: |
+        . ./scripts/install_regtest_dependencies.sh
+        make check-end2end
 
   linux20-vanilla--stockmono:
     runs-on: ubuntu-20.04
@@ -252,6 +276,10 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: end to end tests
+      run: |
+        . ./scripts/install_regtest_dependencies.sh
+        make check-end2end
 
   linux20-vanilla--newmono:
     runs-on: ubuntu-20.04
@@ -290,6 +318,10 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: end to end tests
+      run: |
+        . ./scripts/install_regtest_dependencies.sh
+        make check-end2end
 
   conventions:
     runs-on: ubuntu-20.04

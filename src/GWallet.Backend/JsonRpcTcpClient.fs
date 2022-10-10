@@ -36,9 +36,15 @@ type ServerNameResolvedToInvalidAddressException =
 type JsonRpcTcpClient (host: string, port: uint32) =
 
     let ResolveAsync (hostName: string): Async<Option<IPAddress>> = async {
-        // FIXME: loop over all addresses?
-        let! hostEntry = Dns.GetHostEntryAsync hostName |> Async.AwaitTask
-        return hostEntry.AddressList |> Array.tryHead
+        if hostName <> "127.0.0.1" then
+            let! hostEntry = Dns.GetHostEntryAsync hostName |> Async.AwaitTask
+            // FIXME: loop over all addresses?
+            return hostEntry.AddressList |> Array.tryHead
+        else
+            return
+                hostName
+                |> IPAddress.Parse
+                |> Some
     }
 
     let exceptionMsg = "JsonRpcSharp faced some problem when trying communication"
@@ -50,7 +56,8 @@ type JsonRpcTcpClient (host: string, port: uint32) =
             | Some ipAddressOption ->
                 match ipAddressOption with
                 | Some ipAddress ->
-                    if ipAddress.ToString().StartsWith("127.0.0.") then
+                    if Config.BitcoinNet() <> NBitcoin.Network.RegTest &&
+                       ipAddress.ToString().StartsWith "127.0.0." then
                         let msg = SPrintF2 "Server '%s' resolved to localhost IP '%s'" host (ipAddress.ToString())
                         return raise <| ServerNameResolvedToInvalidAddressException (msg)
                     else

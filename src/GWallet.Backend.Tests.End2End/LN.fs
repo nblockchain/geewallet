@@ -228,14 +228,14 @@ type ElectrumServer = {
                 "electrumx_server"
                 ""
                 (Map.ofList <| [
-                    "SERVICES", "tcp://[::1]:50001";
+                    "SERVICES", "tcp://127.0.0.1:50001";
                     "COIN", "BitcoinSegwit";
                     "NET", "regtest";
                     "DAEMON_URL", bitcoind.RpcUrl;
                     "DB_DIRECTORY", dbDir
                 ])
                 true
-        processWrapper.WaitForMessage (fun msg -> msg.EndsWith "TCP server listening on [::1]:50001")
+        processWrapper.WaitForMessage (fun msg -> msg.Contains "TCP server listening on 127.0.0.1:50001")
         {
             DbDir = dbDir
             ProcessWrapper = processWrapper

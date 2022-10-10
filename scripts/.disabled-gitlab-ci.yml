@@ -5,6 +5,7 @@ stages:
   - build
   - unit_tests
   - integration_tests
+  - end2end_tests
   - package
 
 stockmono_buildenv:
@@ -49,6 +50,17 @@ stockmono_test_integration:
     - make
     - make update-servers
 
+stockmono_test_end2end:
+  image: $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA
+  stage: end2end_tests
+  script:
+    - source ./scripts/install_regtest_dependencies.sh
+    - apt-get install -y nunit-console
+
+    - ./configure.sh
+    - make
+    - make check-end2end
+
 newmono_buildenv:
   image: docker:19.03.12
   stage: buildenv
@@ -91,6 +103,16 @@ newmono_test_integration:
     - ./configure.sh &&
       make &&
       make update-servers
+
+newmono_test_end2end:
+  image: $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
+  stage: end2end_tests
+  script:
+    - source ./scripts/install_regtest_dependencies.sh
+
+    - apt install -y nunit-console
+
+    - time (./configure.sh && make && make check-end2end)
 
 #
 # Disabled snap generation because of https://bugs.launchpad.net/snappy/+bug/1660957/comments/2
