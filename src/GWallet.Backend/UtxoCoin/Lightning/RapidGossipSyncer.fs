@@ -183,9 +183,9 @@ module RapidGossipSyncer =
                                         let isForward = (standardChannelFlag &&& 1uy) = 0uy
                                         if isForward then baseUpdates.Forward else baseUpdates.Backward
                                     | None -> 
-    #if DEBUG
-                                        Console.WriteLine(SPrintF1 "Could not find base update for channel %A" structuredShortChannelId)
-    #endif
+                                        Infrastructure.LogDebug
+                                            <| SPrintF1 "Could not find base update for channel %A" structuredShortChannelId
+                                        
                                         None
                                 else
                                     None
