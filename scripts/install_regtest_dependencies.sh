@@ -22,9 +22,7 @@ sudo cp target/release/electrs /bin/electrs
 cd ..
 
 # Install lnd
-sudo apt install -y curl tar gzip unzip make git
-curl -OJL https://golang.org/dl/go1.14.4.linux-amd64.tar.gz
-sudo tar -C /usr/local -xzf go1.14.4.linux-amd64.tar.gz
+sudo apt install -y curl tar gzip unzip make git golang
 git clone https://github.com/lightningnetwork/lnd
 cd lnd
 git checkout v0.10.3-beta
