@@ -2766,6 +2766,282 @@ type LN() =
 
         (serverWallet :> IDisposable).Dispose()
     }
+    
+    [<Test>]
+    member __.``reestablish is correct for channels in sync``() = Async.RunSynchronously <| async {
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount = OpenChannelWithFundee None
+
+        let checkReestablish () = 
+            async {
+                let channelStateBeforeReestablish = clientWallet.ChannelStore.LoadChannel(channelId).SavedChannelState
+                try
+                    let! reestablishResult = clientWallet.NodeClient.ConnectReestablish channelId
+                    UnwrapResult reestablishResult "error in reestablish" |> ignore
+                with
+                | exn ->
+                    Assert.Fail <| exn.ToString()
+                let channelStateAfterReestablish = clientWallet.ChannelStore.LoadChannel(channelId).SavedChannelState
+                // Equality doesn't work properly for some types in SavedChannelState (NBitcoin types wrappers in particular),
+                // so only compare some properties
+                Assert.AreEqual(channelStateBeforeReestablish.RemoteCommit.Index, channelStateAfterReestablish.RemoteCommit.Index)
+                Assert.AreEqual(channelStateBeforeReestablish.LocalCommit.Index, channelStateAfterReestablish.LocalCommit.Index)
+            }
+
+        do! checkReestablish()
+
+        do! SendHtlcPaymentsToLnd clientWallet lnd channelId fundingAmount
+
+        do! checkReestablish()
+
+        TearDown clientWallet bitcoind electrumServer lnd
+    }
+
+    [<Test>]
+    member __.``reestablish is correct when local node fell behind remote``() = Async.RunSynchronously <| async {
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, fundingAmount = OpenChannelWithFundee None
+        
+        let channelStateBeforePayment = clientWallet.ChannelStore.LoadChannel(channelId).SavedChannelState
+        
+        do! SendHtlcPaymentsToLnd clientWallet lnd channelId fundingAmount
+        
+        let serializedChannel = clientWallet.ChannelStore.LoadChannel channelId
+        let updatedSerializedChannel = 
+            { serializedChannel with SavedChannelState = channelStateBeforePayment }
+        clientWallet.ChannelStore.SaveChannel updatedSerializedChannel
+        
+        try
+            let! reestablishResult = clientWallet.NodeClient.ConnectReestablish channelId
+            match reestablishResult with
+            | Error(ReconnectActiveChannelError.Reconnect(ReconnectError.Reestablish(ReestablishError.OutOfSync false))) -> ()
+            | result ->
+                Assert.Fail(sprintf "Expected OutOfSync, got %A" result)
+
+            let channelStateAfterReestablish = clientWallet.ChannelStore.LoadChannel(channelId).SavedChannelState
+            Assert.That(
+                channelStateAfterReestablish.RemoteCurrentPerCommitmentPoint.IsSome, 
+                "Should store my_current_per_commitment_point")
+        with
+        | exn ->
+            Assert.Fail <| exn.ToString()
+
+        TearDown clientWallet bitcoind electrumServer lnd
+    }
+
+    [<Test>]
+    member __.``can retrieve funds from channel if local node fell behind remote``() = Async.RunSynchronously <| async {
+        let! channelId, serverWallet, bitcoind, electrumServer, lnd = AcceptChannelFromLndFunder ()
+
+        let channelInfoBeforeAnyPayment = serverWallet.ChannelStore.ChannelInfo channelId
+        match channelInfoBeforeAnyPayment.Status with
+        | ChannelStatus.Active -> ()
+        | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+
+        let balanceBeforeAnyPayment = Money(channelInfoBeforeAnyPayment.Balance, MoneyUnit.BTC)
+
+        let invoiceManager = InvoiceManagement (serverWallet.Account :?> NormalUtxoAccount, serverWallet.Password)
+        
+        let sendLndPayment1Job (paymentAmount: Money) = async {
+            // Wait for lnd to recognize we're online
+            do! Async.Sleep 10000
+
+            let amountInSatoshis =
+                Convert.ToUInt64 paymentAmount.Satoshi
+            let invoice1InString = invoiceManager.CreateInvoice amountInSatoshis "Payment 1"
+
+            do! lnd.SendPayment invoice1InString
+        }
+        let receiveGeewalletPayment = async {
+            let! receiveHtlcPaymentRes =
+                Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId true
+            return UnwrapResult receiveHtlcPaymentRes "ReceiveHtlcPayment failed"
+        }
+
+        let! (_, receiveLightningEventResult) =
+            AsyncExtensions.MixedParallel2
+                (sendLndPayment1Job walletToWalletTestPayment1Amount)
+                receiveGeewalletPayment
+
+        match receiveLightningEventResult with
+        | IncomingChannelEvent.HtlcPayment _status ->
+            let channelInfoAfterPayment1 = serverWallet.ChannelStore.ChannelInfo channelId
+            if Money(channelInfoAfterPayment1.Balance, MoneyUnit.BTC) <> balanceBeforeAnyPayment + walletToWalletTestPayment1Amount then
+                return failwith "incorrect balance after receiving payment 1"
+        | _ ->
+            Assert.Fail "received non-htlc lightning event"
+            
+        let serializedChannelAfterPayment1 = serverWallet.ChannelStore.LoadChannel channelId
+            
+        let! (_, receiveLightningEventResult2) =
+            AsyncExtensions.MixedParallel2
+                (sendLndPayment1Job walletToWalletTestPayment2Amount)
+                receiveGeewalletPayment
+                
+        let channelInfoAfterPayment2 = serverWallet.ChannelStore.ChannelInfo channelId
+        match receiveLightningEventResult2 with
+        | IncomingChannelEvent.HtlcPayment _status ->
+            if Money(channelInfoAfterPayment2.Balance, MoneyUnit.BTC) <>
+               balanceBeforeAnyPayment + walletToWalletTestPayment1Amount + walletToWalletTestPayment2Amount then
+                return failwith "incorrect balance after receiving payment 2"
+        | _ ->
+            Assert.Fail "received non-htlc lightning event"
+        
+        serverWallet.ChannelStore.SaveChannel serializedChannelAfterPayment1
+        
+        let! reestablishResult =
+            ActiveChannel.AcceptReestablish serverWallet.ChannelStore serverWallet.NodeServer.TransportListener channelId
+        match reestablishResult with
+        | Error(ReconnectActiveChannelError.Reconnect(ReconnectError.Reestablish(ReestablishError.OutOfSync false))) -> ()
+        | result ->
+            Assert.Fail(sprintf "Expected OutOfSync, got %A" result)
+            
+        // LND has received error from us an is force-closing the channel now
+        
+        let rec waitForClosingTx () =
+            async {
+                let! forceCloseResult = serverWallet.ChannelStore.CheckForClosingTx channelId
+                match forceCloseResult with
+                | Some (ClosingTx.ForceClose commitmentTx, _closingTxConfirmations) ->
+                    return commitmentTx
+                | _ ->
+                   do! Async.Sleep 1000
+                   return! waitForClosingTx()
+            }
+        
+        let! closingTx = waitForClosingTx()
+        
+        bitcoind.GenerateBlocksToDummyAddress(BlockHeightOffset32 1u)
+        
+        let! recoveryTxResult =
+            (Node.Server serverWallet.NodeServer).CreateRecoveryTxForForceClose
+                channelId
+                closingTx.Tx
+        match recoveryTxResult with
+        | Ok recoveryTx ->
+            let! txIdString =
+                ChannelManager.BroadcastRecoveryTxAndCloseChannel recoveryTx serverWallet.ChannelStore
+            // wait for recovery tx to appear in mempool
+            while bitcoind.GetTxIdsInMempool().Length = 0 do
+                do! Async.Sleep 500
+            // Mine the recovery tx
+            bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
+            
+            let channelInfoAfterForceClose = serverWallet.ChannelStore.ChannelInfo channelId
+            match channelInfoAfterForceClose.Status with
+            | RecoveryTxSentOrNotNeeded(Some txId) ->
+                Assert.AreEqual(txId, TransactionIdentifier.Parse txIdString)
+            | status -> Assert.Fail(sprintf "Expected RecoveryTxSentOrNotNeeded(Some tx), got %A" status)
+            let expectedBalance = balanceBeforeAnyPayment + walletToWalletTestPayment1Amount + walletToWalletTestPayment2Amount
+            let possibleFees = Money.Coins 0.0001m
+            let! balanceAfterRecovery = serverWallet.WaitForBalance(expectedBalance - possibleFees)
+            Assert.That((expectedBalance - balanceAfterRecovery).Abs() < possibleFees)
+        | Error err ->
+            Assert.Fail("Error recovering funds: " + err.ToString())
+        
+        TearDown serverWallet bitcoind electrumServer lnd
+    }
+
+    [<Test>]
+    [<Category "G2G_ReestablishRemoteLate_Fundee">]
+    member __.``reestablish is correct when remote node is behind local (fundee)``() = Async.RunSynchronously <| async {
+        let! serverWallet, channelId = AcceptChannelFromGeewalletFunder()
+        
+        let channelStateBeforePayment = serverWallet.ChannelStore.LoadChannel(channelId).SavedChannelState
+                
+        do! ReceiveHtlcPaymentToGW channelId serverWallet "invoice.txt" |> Async.Ignore
+
+        let serializedChannel = serverWallet.ChannelStore.LoadChannel channelId
+        let updatedSerializedChannel = 
+            { serializedChannel with SavedChannelState = channelStateBeforePayment }
+        serverWallet.ChannelStore.SaveChannel updatedSerializedChannel
+        
+        do! ActiveChannel.AcceptReestablish serverWallet.ChannelStore serverWallet.NodeServer.TransportListener channelId |> Async.Ignore
+
+        (serverWallet :> IDisposable).Dispose()
+    }
+    
+    [<Test>]
+    [<Category "G2G_ReestablishRemoteLate_Funder">]
+    member __.``reestablish is correct when remote node is behind local (funder)``() = Async.RunSynchronously <| async {
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount = 
+            OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
+        
+        let! sendResult = SendHtlcPaymentToGW channelId clientWallet "invoice.txt"
+        UnwrapResult sendResult "Sending HTLC failed"
+        
+        try
+            let! reestablishResult = clientWallet.NodeClient.ConnectReestablish channelId
+            match reestablishResult with
+            | Error(ReconnectActiveChannelError.Reconnect(ReconnectError.Reestablish(ReestablishError.OutOfSync true))) -> ()
+            | result ->
+                Assert.Fail(sprintf "Expected OutOfSync, got %A" result)
+            let channelStateAfterReestablish = clientWallet.ChannelStore.LoadChannel(channelId).SavedChannelState
+            Assert.That(
+                channelStateAfterReestablish.RemoteCurrentPerCommitmentPoint.IsNone, 
+                "Should not store my_current_per_commitment_point")
+        with
+        | exn ->
+            Assert.Fail <| exn.ToString()
+        
+        TearDown clientWallet bitcoind electrumServer lnd
+    }
+
+    [<Test>]
+    [<Category "G2G_ReestablishRemoteLying_Fundee">]
+    member __.``reestablish is correct when remote node has wrong data_loss_protect (fundee)``() = Async.RunSynchronously <| async {
+        let! serverWallet, channelId = AcceptChannelFromGeewalletFunder()
+        
+        do! ReceiveHtlcPaymentToGW channelId serverWallet "invoice.txt" |> Async.Ignore
+
+        let serializedChannel = serverWallet.ChannelStore.LoadChannel channelId
+        // we modify SavedChannelState in such way that channel_reestablish message formed from it
+        // will contain larger than expected next_revocation_number and wrong your_last_per_commitment_secret
+        let updatedSerializedChannel = 
+            let fakeNextCommitmentNumber = serializedChannel.SavedChannelState.RemoteCommit.Index.NextCommitment()
+            let perCommitmentSecrets = serializedChannel.SavedChannelState.RemotePerCommitmentSecrets
+            let corruptedPerCommitmentSecrets = 
+                perCommitmentSecrets
+                    .InsertPerCommitmentSecret
+                        (perCommitmentSecrets.NextCommitmentNumber())
+                        (PerCommitmentSecret(new Key()))
+            { serializedChannel with 
+                SavedChannelState = 
+                    { serializedChannel.SavedChannelState with
+                        RemotePerCommitmentSecrets = 
+                            UnwrapResult corruptedPerCommitmentSecrets "Could not update RemotePerCommitmentSecrets"
+                        RemoteCommit = 
+                            { serializedChannel.SavedChannelState.RemoteCommit with Index = fakeNextCommitmentNumber } } }
+        serverWallet.ChannelStore.SaveChannel updatedSerializedChannel
+        
+        do! ActiveChannel.AcceptReestablish serverWallet.ChannelStore serverWallet.NodeServer.TransportListener channelId |> Async.Ignore
+
+        (serverWallet :> IDisposable).Dispose()
+    }
+    
+    [<Test>]
+    [<Category "G2G_ReestablishRemoteLying_Funder">]
+    member __.``reestablish is correct when remote node has wrong data_loss_protect (funder)``() = Async.RunSynchronously <| async {
+        let! channelId, clientWallet, bitcoind, electrumServer, lnd, _fundingAmount = 
+            OpenChannelWithFundee (Some Config.FundeeNodeEndpoint)
+        
+        let! sendResult = SendHtlcPaymentToGW channelId clientWallet "invoice.txt"
+        UnwrapResult sendResult "Sending HTLC failed"
+        
+        try
+            let! reestablishResult = clientWallet.NodeClient.ConnectReestablish channelId
+            match reestablishResult with
+            | Error(ReconnectActiveChannelError.Reconnect(ReconnectError.Reestablish(ReestablishError.WrongDataLossProtect))) -> ()
+            | result ->
+                Assert.Fail(sprintf "Expected WrongDataLossProtect, got %A" result)
+            let channelStateAfterReestablish = clientWallet.ChannelStore.LoadChannel(channelId).SavedChannelState
+            Assert.That(
+                channelStateAfterReestablish.RemoteCurrentPerCommitmentPoint.IsNone, 
+                "Should not store my_current_per_commitment_point")
+        with
+        | exn ->
+            Assert.Fail <| exn.Message
+        
+        TearDown clientWallet bitcoind electrumServer lnd
+    }
 
 
     [<SetUp>]

@@ -5,6 +5,7 @@ open System.Net
 
 open NBitcoin
 open DotNetLightning.Channel
+open DotNetLightning.Channel.ChannelSyncing
 open DotNetLightning.Utils
 open DotNetLightning.Serialization.Msgs
 open ResultUtils.Portability
@@ -20,6 +21,10 @@ type internal ReestablishError =
     | PeerErrorResponse of PeerNode * PeerErrorMessage
     | ExpectedReestablishMsg of ILightningMsg
     | ExpectedReestablishOrFundingLockedMsg of ILightningMsg
+    | ChannelError of ChannelError
+    | WrongChannelId of given: ChannelId * expected: ChannelId
+    | OutOfSync of closeChannel: bool
+    | WrongDataLossProtect
     interface IErrorMsg with
         member self.Message =
             match self with
@@ -31,6 +36,14 @@ type internal ReestablishError =
                 SPrintF1 "Expected channel_reestablish, got %A" (msg.GetType())
             | ExpectedReestablishOrFundingLockedMsg msg ->
                 SPrintF1 "Expected channel_reestablish or funding_locked, got %A" (msg.GetType())
+            | ChannelError channelError ->
+                SPrintF1 "Channel error: %s" channelError.Message
+            | WrongChannelId (given, expected) ->
+                SPrintF2 "Wrong channel_id. Expected: %A, given: %A" expected.Value given.Value
+            | OutOfSync _ ->
+                "Channel is out of sync"
+            | WrongDataLossProtect -> 
+                "Wrong data loss protect values"
         member self.ChannelBreakdown: bool =
             match self with
             | RecvReestablish recvMsgError ->
@@ -38,6 +51,10 @@ type internal ReestablishError =
             | PeerErrorResponse _ -> true
             | ExpectedReestablishMsg _ -> false
             | ExpectedReestablishOrFundingLockedMsg _ -> false
+            | ChannelError channelError -> channelError.RecommendedAction <> ChannelConsumerAction.Ignore
+            | WrongChannelId _ -> false
+            | OutOfSync closeChannel -> closeChannel
+            | WrongDataLossProtect -> true
 
     member internal self.PossibleBug =
         match self with
@@ -45,6 +62,10 @@ type internal ReestablishError =
         | PeerErrorResponse _
         | ExpectedReestablishMsg _
         | ExpectedReestablishOrFundingLockedMsg _ -> false
+        | ChannelError _ -> false
+        | OutOfSync _ -> false
+        | WrongChannelId _ -> false
+        | WrongDataLossProtect -> false
 
 type internal ReconnectError =
     | Connect of ConnectError
@@ -101,6 +122,7 @@ type internal ConnectedChannel =
 
     static member private Reestablish (peerNode: PeerNode)
                                       (channel: MonoHopUnidirectionalChannel)
+                                      (channelStore: ChannelStore)
                                           : Async<Result<PeerNode * MonoHopUnidirectionalChannel, ReestablishError>> = async {
         let channelId = channel.ChannelId
         let ourReestablishMsg = channel.Channel.CreateChannelReestablish()
@@ -135,17 +157,73 @@ type internal ConnectedChannel =
         }
         match reestablishRes with
         | Error err -> return Error err
-        | Ok (peerNodeAfterReestablishReceived, _theirReestablishMsg) ->
-            // TODO: check their reestablish msg
-            //
-            // A channel_reestablish message contains the channel ID as well as
-            // information specifying what state the remote node thinks the channel
-            // is in. So we need to check that the channel IDs match, validate that
-            // the information they've sent us makes sense, and possibly re-send
-            // commitments. Aside from checking the channel ID this is the sort of
-            // thing that should be handled by DNL, except DNL doesn't have an
-            // ApplyChannelReestablish command.
-            return Ok (peerNodeAfterReestablishReceived, channel)
+        | Ok (peerNodeAfterReestablishReceived, theirReestablishMsg) ->
+            // Check their reestablish msg
+            // See https://github.com/lightning/bolts/blob/master/02-peer-protocol.md#message-retransmission
+            if theirReestablishMsg.ChannelId <> channelId.DnlChannelId then
+                return Error <| WrongChannelId(theirReestablishMsg.ChannelId, channelId.DnlChannelId)
+            else
+                if ourReestablishMsg.NextCommitmentNumber = CommitmentNumber.FirstCommitment.NextCommitment()
+                    && theirReestablishMsg.NextCommitmentNumber = CommitmentNumber.FirstCommitment.NextCommitment() then
+                    // ?
+                    return Ok(peerNodeAfterReestablishReceived, channel)
+                else
+                    let channelSyncResult = channel.Channel.ApplyChannelReestablish theirReestablishMsg
+                    let channelAfterApplyReestablish = { channel with Channel = channelSyncResult.Channel }
+                    match channelSyncResult.SyncResult with
+                    | SyncResult.Success [] ->
+                        return Ok(peerNodeAfterReestablishReceived, channelAfterApplyReestablish)
+                    | SyncResult.Success _messages ->
+                        // Since GWallet doesn't have listening mode in which it waits for messages 
+                        // and processes whatever it receives, implementing retransmitting of messages
+                        // is problematic. So for now, just send an error and close the channel.
+                        do! 
+                            peerNodeAfterReestablishReceived.SendError 
+                                "sync error - retransmitting of messages is not supported" 
+                                (Some channelId.DnlChannelId) 
+                            |> Async.Ignore
+                        return Error <| OutOfSync true
+                    | SyncResult.LocalLateProven _ ->
+                        Infrastructure.LogError("Sync error: " + channelSyncResult.ErrorMessage)
+                        do! 
+                            peerNodeAfterReestablishReceived.SendError 
+                                "sync error - we were using outdated commitment" 
+                                (Some channelId.DnlChannelId)
+                            |> Async.Ignore
+                        // SHOULD store my_current_per_commitment_point to retrieve funds 
+                        // should the sending node broadcast its commitment transaction on-chain
+                        let serializedChannel = channelStore.LoadChannel channelId
+                        let updatedSerializedChannel = 
+                            { serializedChannel with SavedChannelState = channelAfterApplyReestablish.Channel.SavedChannelState }
+                        channelStore.SaveChannel updatedSerializedChannel
+
+                        return Error <| OutOfSync false
+                    | SyncResult.LocalLateUnproven _ ->
+                        Infrastructure.LogError("Sync error: " + channelSyncResult.ErrorMessage)
+                        do! 
+                            /// message as in eclair
+                            let errorMessage = "please publish your local commitment"
+                            peerNodeAfterReestablishReceived.SendError 
+                                errorMessage
+                                (Some channelId.DnlChannelId) 
+                            |> Async.Ignore
+                        return Error <| OutOfSync false
+                    | SyncResult.RemoteLate ->
+                        Infrastructure.LogError("Sync error: " + channelSyncResult.ErrorMessage)
+                        do! 
+                            peerNodeAfterReestablishReceived.SendError 
+                                "sync error - you are using outdated commitment" 
+                                (Some channelId.DnlChannelId) 
+                            |> Async.Ignore
+                        return Error <| OutOfSync true
+                    | SyncResult.RemoteLying _ ->
+                        Infrastructure.LogError("Sync error: " + channelSyncResult.ErrorMessage)
+                        do! 
+                            peerNodeAfterReestablishReceived.SendError 
+                                "sync error - you provided incorrect data in data_loss_protect" 
+                                (Some channelId.DnlChannelId) 
+                            |> Async.Ignore
+                        return Error <| WrongDataLossProtect
     }
 
     static member internal ConnectFromWallet (channelStore: ChannelStore)
@@ -182,7 +260,7 @@ type internal ConnectedChannel =
         | Error connectError -> return Error <| Connect connectError
         | Ok peerNode ->
             let! reestablishRes =
-                ConnectedChannel.Reestablish peerNode channel
+                ConnectedChannel.Reestablish peerNode channel channelStore
             match reestablishRes with
             | Error reestablishError -> return Error <| Reestablish reestablishError
             | Ok (peerNodeAfterReestablish, channelAfterReestablish) ->
@@ -216,7 +294,7 @@ type internal ConnectedChannel =
         | Error connectError -> return Error <| Connect connectError
         | Ok peerNode ->
             let! reestablishRes =
-                ConnectedChannel.Reestablish peerNode channel
+                ConnectedChannel.Reestablish peerNode channel channelStore
             match reestablishRes with
             | Error reestablishError -> return Error <| Reestablish reestablishError
             | Ok (peerNodeAfterReestablish, channelAfterReestablish) ->
