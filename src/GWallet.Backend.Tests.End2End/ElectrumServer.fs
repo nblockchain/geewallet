@@ -3,6 +3,8 @@
 open System
 open System.IO
 
+open GWallet.Backend.FSharpUtil.UwpHacks
+
 type ElectrumServer = {
     DbDir: string
     ProcessWrapper: ProcessWrapper
@@ -18,18 +20,22 @@ type ElectrumServer = {
         Directory.CreateDirectory dbDir |> ignore
         let processWrapper =
             ProcessWrapper.New
-                "electrumx_server"
-                ""
-                (Map.ofList <| [
-                    "SERVICES", "tcp://127.0.0.1:50001";
-                    "COIN", "BitcoinSegwit";
-                    "NET", "regtest";
-                    "DAEMON_URL", bitcoind.RpcUrl;
-                    "DB_DIRECTORY", dbDir
-                ])
-                true
-
-        processWrapper.WaitForMessage (fun msg -> msg.Contains "TCP server listening on 127.0.0.1:50001")
+                "electrs"
+                (SPrintF3
+                    "\
+                    --db-dir %s \
+                    --daemon-dir %s \
+                    --network regtest \
+                    --electrum-rpc-addr 127.0.0.1:50001 \
+                    --daemon-rpc-addr %s \
+                    "
+                    dbDir
+                    bitcoind.DataDir
+                    (bitcoind.RpcAddr())
+                )
+                Map.empty
+                false
+        processWrapper.WaitForMessage (fun msg -> msg.Contains "Electrum Rust Server")
 
         do! Async.Sleep 5000
 

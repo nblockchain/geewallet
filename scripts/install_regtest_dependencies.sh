@@ -5,8 +5,6 @@ set -eux
 
 # This is needed to find lnd in PATH
 export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
-# This is needed to convince electrum to run on CI as root
-export ALLOW_ROOT=1
 
 
 # Install bitcoin core
@@ -14,11 +12,14 @@ sudo apt install -y curl tar gzip
 curl -OJL https://bitcoin.org/bin/bitcoin-core-0.20.0/bitcoin-0.20.0-x86_64-linux-gnu.tar.gz
 sudo tar -C /usr/local --strip-components 1 -xzf bitcoin-0.20.0-x86_64-linux-gnu.tar.gz
 
-# Install electrumx
-sudo apt install -y curl unzip python3-pip
-curl -L https://github.com/spesmilo/electrumx/archive/1.16.0.zip -o electrumx-1.16.0.zip
-unzip electrumx-1.16.0.zip
-pip3 install ./electrumx-1.16.0
+# Install electrs
+sudo DEBIAN_FRONTEND="noninteractive" apt install -y clang cmake build-essential cargo
+git clone https://github.com/romanz/electrs.git
+cd electrs
+git checkout v0.8.9
+cargo build --locked --release
+sudo cp target/release/electrs /bin/electrs
+cd ..
 
 # Install lnd
 sudo apt install -y curl tar gzip unzip make git
