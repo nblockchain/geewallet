@@ -16,7 +16,7 @@ sudo tar -C /usr/local --strip-components 1 -xzf bitcoin-0.20.0-x86_64-linux-gnu
 sudo DEBIAN_FRONTEND="noninteractive" apt install -y clang cmake build-essential cargo
 git clone https://github.com/romanz/electrs.git
 cd electrs
-git checkout v0.8.9
+git checkout v0.8.10
 cargo build --locked --release
 sudo cp target/release/electrs /bin/electrs
 cd ..
