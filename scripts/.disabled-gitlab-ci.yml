@@ -114,6 +114,17 @@ newmono_test_end2end:
 
     - time (./configure.sh && make && make check-end2end)
 
+newmono_nuget:
+  image: $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
+  stage: package
+  variables:
+    DEFAULT_REF_TO_NUGET_PUSH: "*lightning*"
+  script:
+    - ./scripts/install_mono_from_microsoft_deb_packages.sh
+    - ./configure.sh
+    - make
+    - ./scripts/nugetPush.fsx 0.3.325.0 $NUGET_API_KEY
+
 #
 # Disabled snap generation because of https://bugs.launchpad.net/snappy/+bug/1660957/comments/2
 #

@@ -338,6 +338,7 @@ jobs:
     - name: Validate current commit (last commit) with commitlint
       run: npx commitlint --from HEAD~1 --to HEAD --verbose
 
+
   snap_pkg:
 
     needs:
@@ -370,3 +371,40 @@ jobs:
         sudo apt update
         sudo apt install --yes fsharp
         ./scripts/snap_release.sh
+
+
+  nuget_pkg:
+
+    needs:
+    # in theory this could run in parallel to snap_pkg, but then we would need to duplicate
+    # all the deps of snap_pkg below, so we prefer better DRY than faster pipelines
+    - snap_pkg
+
+    runs-on: ubuntu-20.04
+    container:
+      image: "ubuntu:20.04"
+
+    env:
+      DEFAULT_REF_TO_NUGET_PUSH: "*lightning*"
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install dependencies
+      run: |
+        sudo apt install -y make git
+        # needed to download NuGet
+        sudo apt install -y curl
+        ./scripts/install_mono_from_microsoft_deb_packages.sh
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: build
+      run: |
+        ./configure.sh
+        make
+    - name: generate & publish nuget package
+      run: ./scripts/nugetPush.fsx 0.3.325.0 $NUGET_API_KEY
