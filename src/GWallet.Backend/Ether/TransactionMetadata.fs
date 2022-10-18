@@ -2,6 +2,7 @@
 
 open GWallet.Backend
 
+// FIXME: now that MinerFee implements IBlockchainInfo, no need to use TxMetadata in many places
 type TransactionMetadata =
     {
         Fee: MinerFee;
@@ -10,6 +11,6 @@ type TransactionMetadata =
         TransactionCount: int64;
     }
     interface IBlockchainFeeInfo with
-        member self.FeeEstimationTime with get() = self.Fee.EstimationTime
-        member self.FeeValue with get() = self.Fee.CalculateAbsoluteValue()
-        member self.Currency with get() = self.Fee.Currency
+        member self.FeeEstimationTime = (self.Fee :> IBlockchainFeeInfo).FeeEstimationTime
+        member self.FeeValue = (self.Fee :> IBlockchainFeeInfo).FeeValue
+        member self.Currency = (self.Fee :> IBlockchainFeeInfo).Currency

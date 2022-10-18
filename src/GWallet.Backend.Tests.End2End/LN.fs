@@ -813,7 +813,7 @@ type LN() =
                 return! waitForRemoteForceClose()
         }
         let! recoveryTxStringOpt = waitForRemoteForceClose()
-        let recoveryTxString = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
+        let recoveryTxString, _ = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
         let! _recoveryTxId =
             UtxoCoin.Account.BroadcastRawTransaction
                 Currency.BTC
@@ -876,7 +876,7 @@ type LN() =
                 channelId
                 forceCloseTx
                 false
-        let recoveryTxString = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
+        let recoveryTxString, _ = UnwrapResult recoveryTxStringOpt "no funds could be recovered"
         let! _recoveryTxId =
             UtxoCoin.Account.BroadcastRawTransaction
                 Currency.BTC
@@ -1128,7 +1128,7 @@ type LN() =
             (Node.Client walletInstance.NodeClient).CreateRecoveryTxForLocalForceClose
                 channelId
                 commitmentTx
-        let spendingTxString = UnwrapResult spendingTxStringRes "failed to create spending tx"
+        let spendingTxString, _ = UnwrapResult spendingTxStringRes "failed to create spending tx"
         let! spendingTxIdOpt = async {
             try
                 let! spendingTxId = UtxoCoin.Account.BroadcastRawTransaction Currency.BTC spendingTxString
@@ -1326,7 +1326,7 @@ type LN() =
                 channelId
                 wrappedForceCloseTx
                 false
-        let recoveryTxStringNoCpfp =
+        let recoveryTxStringNoCpfp, _ =
             UnwrapResult
                 recoveryTxStringNoCpfpRes
                 "force close failed to recover funds from the commitment tx"
@@ -1348,7 +1348,7 @@ type LN() =
                 channelId
                 wrappedForceCloseTx
                 true
-        let recoveryTxStringWithCpfp =
+        let recoveryTxStringWithCpfp, _ =
             UnwrapResult
                 recoveryTxStringWithCpfpRes
                 "force close failed to recover funds from the commitment tx"

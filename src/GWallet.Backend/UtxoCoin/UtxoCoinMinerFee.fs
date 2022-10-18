@@ -2,6 +2,8 @@
 
 open System
 
+open NBitcoin
+
 open GWallet.Backend
 
 //FIXME: convert to record?
@@ -17,7 +19,7 @@ type MinerFee(estimatedFeeInSatoshis: int64,
 
     member __.CalculateAbsoluteValue() =
         let money = NBitcoin.Money.Satoshis estimatedFeeInSatoshis
-        money.ToDecimal NBitcoin.MoneyUnit.BTC
+        money.ToUnit MoneyUnit.BTC
 
     // FIXME: we should share some code between this method and EtherMinerFee's
     static member GetHigherFeeThanRidiculousFee
@@ -44,3 +46,7 @@ type MinerFee(estimatedFeeInSatoshis: int64,
                 initialFeeWithAMinimumGasPriceInWeiDictatedByPublicNodes.Currency
             MinerFee(biggerFee.Satoshi, estimationTime, currency)
 
+    interface IBlockchainFeeInfo with
+        member self.FeeEstimationTime = self.EstimationTime
+        member self.FeeValue = self.CalculateAbsoluteValue()
+        member self.Currency = self.Currency
