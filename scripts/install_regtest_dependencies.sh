@@ -21,11 +21,15 @@ cargo build --locked --release
 sudo cp target/release/electrs /bin/electrs
 cd ..
 
+# install golang
+curl -OJL https://go.dev/dl/go1.17.5.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.17.5.linux-amd64.tar.gz
+
 # Install lnd
-sudo apt install -y curl tar gzip unzip make git golang
+sudo apt install -y curl tar gzip unzip make git
 git clone https://github.com/lightningnetwork/lnd
 cd lnd
-git checkout v0.10.3-beta
+git checkout v0.14.1-beta
 make
 make install
 cd ..

@@ -55,7 +55,8 @@ type Lnd = {
                 args
                 Map.empty
                 false
-        processWrapper.WaitForMessage (fun msg -> msg.EndsWith "password gRPC proxy started at 127.0.0.2:8080")
+        processWrapper.WaitForMessage (fun msg -> msg.EndsWith "gRPC proxy started at 127.0.0.2:8080")
+        processWrapper.WaitForMessage (fun msg -> msg.EndsWith "Waiting for wallet encryption password. Use `lncli create` to create a wallet, `lncli unlock` to unlock an existing wallet, or `lncli changepassword` to change the password of an existing wallet and unlock it.")
         let connectionString =
             ""
             + "type=lnd-rest;"
@@ -73,6 +74,7 @@ type Lnd = {
             )
 
         let! _ = Async.AwaitTask <| lndClient.SwaggerClient.InitWalletAsync initWalletReq
+        bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
         processWrapper.WaitForMessage (fun msg -> msg.EndsWith "Server listening on 127.0.0.2:9735")
         return {
             LndDir = lndDir
