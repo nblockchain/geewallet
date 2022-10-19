@@ -53,13 +53,17 @@ stockmono_test_integration:
 stockmono_test_end2end:
   image: $CI_REGISTRY_IMAGE/stock_env:$CI_COMMIT_SHA
   stage: end2end_tests
+  artifacts:
+    when: on_failure
+    paths:
+      - end2end-stockmono.txt
   script:
     - source ./scripts/install_regtest_dependencies.sh
-    - apt-get install -y nunit-console
 
+    - apt install -y timelimit nunit-console
     - ./configure.sh
     - make
-    - make check-end2end
+    - timeout 125m make check-end2end | tee end2end-stockmono.txt
 
 newmono_buildenv:
   image: docker:19.03.12
@@ -107,12 +111,16 @@ newmono_test_integration:
 newmono_test_end2end:
   image: $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
   stage: end2end_tests
+  artifacts:
+    when: on_failure
+    paths:
+      - end2end-newmono.txt
   script:
     - source ./scripts/install_regtest_dependencies.sh
 
-    - apt install -y nunit-console
+    - apt install -y timelimit nunit-console
 
-    - time (./configure.sh && make && make check-end2end)
+    - time (./configure.sh && make && timeout 125m make check-end2end | tee end2end-newmono.txt )
 
 newmono_nuget:
   image: $CI_REGISTRY_IMAGE/new_env:$CI_COMMIT_SHA
