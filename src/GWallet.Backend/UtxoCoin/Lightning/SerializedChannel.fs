@@ -63,11 +63,10 @@ type SerializedChannel =
         RemoteNextCommitInfo: Option<RemoteNextCommitInfo>
         NegotiatingState: NegotiatingState
         AccountFileName: string
-        // FIXME: should store just RemoteNodeEndPoint instead of CounterpartyIP+RemoteNodeId?
-        CounterpartyIP: IPEndPoint
         ForceCloseTxIdOpt: Option<TransactionIdentifier>
         LocalChannelPubKeys: ChannelPubKeys
         RecoveryTxIdOpt: Option<TransactionIdentifier>
+        NodeTransportType: NodeTransportType
     }
     static member LightningSerializerSettings currency: JsonSerializerSettings =
         let settings = JsonMarshalling.SerializerSettings

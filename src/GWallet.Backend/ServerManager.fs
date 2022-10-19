@@ -31,7 +31,7 @@ module ServerManager =
         let eyeBtcServers = UtxoCoin.ElectrumServerSeedList.ExtractServerListFromWebPage btc
 
         let baseLineBtcServers =
-            match baseLineServers.TryGetValue btc with
+            match baseLineServers.TryGetValue (ServerType.CurrencyServer btc) with
             | true,baseLineBtcServers ->
                 baseLineBtcServers
             | false,_ ->
@@ -46,7 +46,7 @@ module ServerManager =
         let eyeLtcServers = UtxoCoin.ElectrumServerSeedList.ExtractServerListFromWebPage ltc
 
         let baseLineLtcServers =
-            match baseLineServers.TryGetValue ltc with
+            match baseLineServers.TryGetValue (ServerType.CurrencyServer ltc) with
             | true,baseLineLtcServers ->
                 baseLineLtcServers
             | false,_ ->
@@ -56,22 +56,22 @@ module ServerManager =
                             |> Seq.map fromElectrumServerToGenericServerDetails
                             |> Seq.append baseLineLtcServers
 
-        for KeyValue(currency,servers) in baseLineServers do
-            Infrastructure.LogInfo (SPrintF2 "%i %A servers from baseline JSON file" (servers.Count()) currency)
+        for KeyValue(serverType, servers) in baseLineServers do
+            Infrastructure.LogInfo (SPrintF2 "%i %A servers from baseline JSON file" (servers.Count()) serverType)
 
-            match currency with
-            | Currency.BTC ->
+            match serverType with
+            | ServerType.CurrencyServer Currency.BTC ->
                 Infrastructure.LogInfo (SPrintF1 "%i BTC servers from electrum repository" (electrumBtcServers.Count()))
                 Infrastructure.LogInfo (SPrintF1 "%i BTC servers from bitcoin-eye" (eyeBtcServers.Count()))
-            | Currency.LTC ->
+            | ServerType.CurrencyServer Currency.LTC ->
                 Infrastructure.LogInfo (SPrintF1 "%i LTC servers from electrum repository" (electrumLtcServers.Count()))
                 Infrastructure.LogInfo (SPrintF1 "%i LTC servers from bitcoin-eye" (eyeLtcServers.Count()))
             | _ ->
                 ()
 
         let allCurrenciesServers =
-            baseLineServers.Add(Currency.BTC, allBtcServers)
-                           .Add(Currency.LTC, allLtcServers)
+            baseLineServers.Add(ServerType.CurrencyServer Currency.BTC, allBtcServers)
+                           .Add(ServerType.CurrencyServer Currency.LTC, allLtcServers)
 
         let allServersJson = ServerRegistry.Serialize allCurrenciesServers
         File.WriteAllText(ServerRegistry.ServersEmbeddedResourceFileName, allServersJson)
@@ -163,7 +163,7 @@ module ServerManager =
 
                 // because ETH tokens use ETH servers
                 if not (currency.IsEthToken()) then
-                    let serversForSpecificCurrency = Caching.Instance.GetServers currency
+                    let serversForSpecificCurrency = Caching.Instance.GetServers (ServerType.CurrencyServer currency)
                     match GetDummyBalanceAction currency serversForSpecificCurrency with
                     | None -> ()
                     | Some job -> yield job

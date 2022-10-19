@@ -148,11 +148,11 @@ module ElectrumServerSeedList =
             raise <| Exception("Can't retreive raw data from github's electrum repo, try again later?", webEx)
 
     let DefaultBtcList =
-        Caching.Instance.GetServers Currency.BTC
+        Caching.Instance.GetServers (ServerType.CurrencyServer Currency.BTC)
             |> List.ofSeq
 
     let DefaultLtcList =
-        Caching.Instance.GetServers Currency.LTC
+        Caching.Instance.GetServers (ServerType.CurrencyServer Currency.LTC)
             |> List.ofSeq
 
     let Randomize currency =

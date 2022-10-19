@@ -71,12 +71,16 @@ type LN() =
             let! feeRate = ElectrumServer.EstimateFeeRate()
             let acceptChannelTask = Lightning.Network.AcceptChannel serverWallet.NodeServer
             let openChannelTask = async {
-                do! lnd.ConnectTo serverWallet.NodeEndPoint
-                return!
-                    lnd.OpenChannel
-                        serverWallet.NodeEndPoint
-                        (Money(0.002m, MoneyUnit.BTC))
-                        feeRate
+                match serverWallet.NodeEndPoint with
+                | EndPointType.Tcp endPoint ->
+                    do! lnd.ConnectTo endPoint
+                    return!
+                        lnd.OpenChannel
+                            endPoint
+                            (Money(0.002m, MoneyUnit.BTC))
+                            feeRate
+                | EndPointType.Tor _torEndPoint ->
+                    return failwith "unreachable because tests use TCP"
             }
 
             let! acceptChannelRes, openChannelRes = AsyncExtensions.MixedParallel2 acceptChannelTask openChannelTask
@@ -144,7 +148,7 @@ type LN() =
 
     let ClientCloseChannel (clientWallet: ClientWalletInstance) (bitcoind: Bitcoind) channelId =
         async {
-            let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId
+            let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId None
             match closeChannelRes with
             | Ok _ -> ()
             | Error err -> return failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
@@ -270,6 +274,7 @@ type LN() =
                     clientWallet.NodeClient
                     channelId
                     transferAmount
+                    None
             UnwrapResult sendMonoHopPayment1Res "SendMonoHopPayment failed"
 
             let channelInfoAfterPayment1 = clientWallet.ChannelStore.ChannelInfo channelId
@@ -291,6 +296,7 @@ type LN() =
                     clientWallet.NodeClient
                     channelId
                     transferAmount
+                    None
             UnwrapResult sendMonoHopPayment2Res "SendMonoHopPayment failed"
 
             let channelInfoAfterPayment2 = clientWallet.ChannelStore.ChannelInfo channelId
@@ -495,7 +501,7 @@ type LN() =
                 )
                 failwith "unreachable"
 
-        let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId
+        let! closeChannelRes = Lightning.Network.CloseChannel clientWallet.NodeClient channelId None
         match closeChannelRes with
         | Ok _ -> ()
         | Error err -> return failwith (SPrintF1 "error when closing channel: %s" (err :> IErrorMsg).Message)
@@ -558,10 +564,14 @@ type LN() =
             let fundingOutPointIndex = channelInfo.FundingOutPointIndex
             OutPoint(fundingTxId, fundingOutPointIndex)
         let closeChannelTask = async {
-            do! lnd.ConnectTo serverWallet.NodeEndPoint
-            do! Async.Sleep 1000
-            do! lnd.CloseChannel fundingOutPoint
-            return ()
+            match serverWallet.NodeEndPoint with
+            | EndPointType.Tcp endPoint ->
+                do! lnd.ConnectTo endPoint
+                do! Async.Sleep 1000
+                do! lnd.CloseChannel fundingOutPoint
+                return ()
+            | EndPointType.Tor _torEndPoint ->
+                failwith "this should be a nonexistent case as all LND tests are done using TCP at the moment and TCP connections will always have a NodeEndPoint"
         }
         let awaitCloseTask = async {
             let rec receiveEvent () = async {
@@ -1039,7 +1049,7 @@ type LN() =
         let! pendingChannelRes =
             Lightning.Network.OpenChannel
                 walletInstance.NodeClient
-                Config.FundeeNodeEndpoint
+                (NodeIdentifier.TcpEndPoint Config.FundeeNodeEndpoint)
                 transferAmount
         let pendingChannel = UnwrapResult pendingChannelRes "OpenChannel failed"
         let minimumDepth = (pendingChannel :> IChannelToBeOpened).ConfirmationsRequired
@@ -1069,7 +1079,7 @@ type LN() =
             }
             waitForFundingConfirmed()
 
-        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding walletInstance.NodeClient channelId
+        let! lockFundingRes = Lightning.Network.ConnectLockChannelFunding walletInstance.NodeClient channelId None
         UnwrapResult lockFundingRes "LockChannelFunding failed"
 
         let channelInfo = walletInstance.ChannelStore.ChannelInfo channelId
@@ -1088,6 +1098,7 @@ type LN() =
                 walletInstance.NodeClient
                 channelId
                 transferAmount
+                None
         UnwrapResult sendMonoHopPayment1Res "SendMonoHopPayment failed"
 
         let channelInfoAfterPayment1 = walletInstance.ChannelStore.ChannelInfo channelId
@@ -1108,6 +1119,7 @@ type LN() =
                 walletInstance.NodeClient
                 channelId
                 transferAmount
+                None
         UnwrapResult sendMonoHopPayment2Res "SendMonoHopPayment failed"
 
         let channelInfoAfterPayment2 = walletInstance.ChannelStore.ChannelInfo channelId
@@ -1412,7 +1424,7 @@ type LN() =
         let! newFeeRateOpt = clientWallet.ChannelStore.FeeUpdateRequired channelId
         let newFeeRate = UnwrapOption newFeeRateOpt "Fee update should be required"
         let! updateFeeRes =
-            (Node.Client clientWallet.NodeClient).UpdateFee channelId newFeeRate
+            (Node.Client clientWallet.NodeClient).UpdateFee channelId newFeeRate None
         UnwrapResult updateFeeRes "UpdateFee failed"
 
         let channelInfoAfterUpdateMessageFee = clientWallet.ChannelStore.ChannelInfo channelId

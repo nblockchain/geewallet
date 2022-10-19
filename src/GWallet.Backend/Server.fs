@@ -1,6 +1,9 @@
 ﻿namespace GWallet.Backend
 
 open System
+open System.ComponentModel
+
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type ExceptionInfo =
     { TypeFullName: string
@@ -72,21 +75,64 @@ type ServerDetails =
                 | None -> None
                 | Some (h,_) -> Some h
 
-type ServerRanking = Map<Currency,seq<ServerDetails>>
+//FIXME: when adding other protocols remember to update ServerType.ToString() 
+// and ServerTypeConverter.ConvertFrom to support other protocols
+// (it currently only support one protocol).
+type ServerProtocol =
+    //HACK: check ServerType.ProtocolServerTor
+    | Tor
+
+[<TypeConverter(typeof<ServerTypeConverter>)>]
+type ServerType =
+    | CurrencyServer of Currency
+    | ProtocolServer of ServerProtocol
+
+    static member ProtocolServerTor = "ProtocolServer Tor"
+
+    override self.ToString() =
+        match self with
+        | CurrencyServer currency ->
+            SPrintF1 "CurrencyServer %s" (currency.ToString())
+        | ProtocolServer _proto ->
+            ServerType.ProtocolServerTor
+
+// the reason we have used "and" is because of the circular reference
+// between ServerTypeConverter and ServerType
+and private ServerTypeConverter() =
+    inherit TypeConverter()
+    override __.CanConvertFrom(context, sourceType) =
+        sourceType = typeof<string> || base.CanConvertFrom(context, sourceType)
+    override __.ConvertFrom(context, culture, value) =
+        match value with
+        | :? string as stringValue ->
+            let serverTypeSegments = stringValue.Split ' '
+            match serverTypeSegments.[0] with
+            | "CurrencyServer" ->
+               let currency = Seq.find (fun cur -> cur.ToString() = serverTypeSegments.[1]) (Currency.GetAll())
+               ServerType.CurrencyServer currency :> obj
+            | "ProtocolServer" when stringValue = ServerType.ProtocolServerTor ->
+                ServerType.ProtocolServer ServerProtocol.Tor :> obj
+            | _ -> failwith "Invalid json value for ServerType"
+        | _ -> base.ConvertFrom(context, culture, value)
+
+    override __.ConvertTo(context, culture, value, destinationType) =
+        base.ConvertTo(context, culture, value, destinationType);
+
+type ServerRanking = Map<ServerType, seq<ServerDetails>>
 
 module ServerRegistry =
 
     let ServersEmbeddedResourceFileName = "servers.json"
 
     let internal TryFindValue (map: ServerRanking) (serverPredicate: ServerDetails -> bool)
-                                  : Option<Currency*ServerDetails> =
-        let rec tryFind currencyAndServers server =
-            match currencyAndServers with
+                                  : Option<ServerType*ServerDetails> =
+        let rec tryFind serverTypeAndServers server =
+            match serverTypeAndServers with
             | [] -> None
-            | (currency, servers)::tail ->
+            | (serverType, servers)::tail ->
                 match Seq.tryFind serverPredicate servers with
                 | None -> tryFind tail server
-                | Some foundServer -> Some (currency, foundServer)
+                | Some foundServer -> Some (serverType, foundServer)
         let listMap = Map.toList map
         tryFind listMap serverPredicate
 
@@ -118,19 +164,24 @@ module ServerRegistry =
                 |> Map.ofSeq
         removeDupesInternal servers initialServersMap
 
-    let internal RemoveBlackListed (cs: Currency*seq<ServerDetails>): seq<ServerDetails> =
-        let isBlackListed currency server =
+    let internal RemoveBlackListed (cs: ServerType*seq<ServerDetails>): seq<ServerDetails> =
+        let isBlackListed serverType server =
+            match serverType with
+            | ServerType.CurrencyServer currency ->
+
             // as these servers can only serve very limited set of queries (e.g. only balance?) their stats are skewed and
             // they create exception when being queried for advanced ones (e.g. latest block)
-            server.ServerInfo.NetworkPath.Contains "blockscout" ||
+                server.ServerInfo.NetworkPath.Contains "blockscout" ||
 
             // there was a mistake when adding this server to geewallet's JSON: it was added in the ETC currency instead of ETH
-            (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethrpc.mewapi.io")
+                (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethrpc.mewapi.io")
 
-        let currency,servers = cs
-        Seq.filter (fun server -> not (isBlackListed currency server)) servers
+            | _ -> false
 
-    let RemoveCruft (cs: Currency*seq<ServerDetails>): seq<ServerDetails> =
+        let serverType,servers = cs
+        Seq.filter (fun server -> not (isBlackListed serverType server)) servers
+
+    let RemoveCruft (cs: ServerType*seq<ServerDetails>): seq<ServerDetails> =
         cs |> RemoveBlackListed |> RemoveDupes
 
     let internal Sort (servers: seq<ServerDetails>): seq<ServerDetails> =
@@ -156,7 +207,7 @@ module ServerRegistry =
         let rearrangedServers =
             servers
             |> Map.toSeq
-            |> Seq.map (fun (currency, servers) -> currency, ((currency,servers) |> RemoveCruft |> Sort))
+            |> Seq.map (fun (serverType, servers) -> serverType, ((serverType,servers) |> RemoveCruft |> Sort))
             |> Map.ofSeq
         Marshalling.Serialize rearrangedServers
 
@@ -173,21 +224,21 @@ module ServerRegistry =
             } |> Set.ofSeq
 
         seq {
-            for currency in allKeys do
+            for serverType in allKeys do
                 let allServersFrom1 =
-                    match ranking1.TryFind currency with
+                    match ranking1.TryFind serverType with
                     | None -> Seq.empty
                     | Some servers -> servers
                 let allServersFrom2 =
-                    match ranking2.TryFind currency with
+                    match ranking2.TryFind serverType with
                     | None -> Seq.empty
                     | Some servers ->
                         servers
-                let allServers = (currency, Seq.append allServersFrom1 allServersFrom2)
+                let allServers = (serverType, Seq.append allServersFrom1 allServersFrom2)
                                  |> RemoveCruft
                                  |> Sort
 
-                yield currency, allServers
+                yield serverType, allServers
         } |> Map.ofSeq
 
     let private BitcoinRegTestServers =
@@ -208,13 +259,13 @@ module ServerRegistry =
         ]
 
     // needs to receive unit because regTest network is assigned later (mutable)
-    let private ServersRankingBaseline () =
+    let private ServersRankingBaseline(): Map<ServerType,seq<ServerDetails>> =
         let baseline =
             Deserialize (Config.ExtractEmbeddedResourceFileContents ServersEmbeddedResourceFileName)
         if Config.BitcoinNet() = NBitcoin.Network.RegTest then
             // In regtest mode, replace the regular bitcoin servers with just
             // the locally-running electrum server
-            Map.add Currency.BTC BitcoinRegTestServers baseline
+            Map.add (ServerType.CurrencyServer Currency.BTC) BitcoinRegTestServers baseline
         else
             baseline
 
