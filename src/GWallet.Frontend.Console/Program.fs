@@ -183,7 +183,7 @@ let SendPaymentOfSpecificAmount (account: IAccount)
 let SendPayment() =
     let account = UserInteraction.AskAccount()
     let destination = UserInteraction.AskPublicAddress account.Currency "Destination address: "
-    let maybeAmount = UserInteraction.AskAmount account
+    let maybeAmount = UserInteraction.AskAmount account true
     match maybeAmount with
     | None -> ()
     | Some(amount) ->
