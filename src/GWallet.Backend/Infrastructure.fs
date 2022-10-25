@@ -95,7 +95,11 @@ module Infrastructure =
 
     let LogDebug (log: string) =
         if Config.DebugLog then
-            LogInfo <| SPrintF1 "DEBUG: %s" log
+            LogInfo <|
+                SPrintF2
+                    "DEBUG(%s): %s"
+                    (DateTime.Now.ToString("HH:mm:ss.fff"))
+                    log
 
     let internal ReportMessage (message: string)
 #if DEBUG
