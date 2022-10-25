@@ -12,6 +12,8 @@ jobs:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -24,6 +26,9 @@ jobs:
       run: git clean -fdx && ./configure.sh && make strict
     - name: build in RELEASE mode
       run: git clean -fdx && ./configure.sh && make release
+    # TODO: use fsx's scripts compilation when we migrate to .NET6 (to use `#r "nuget: Microsoft.Build"` instead of `#r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"`)
+    #- name: compile .fsx scripts
+    #  run: dotnet fsi ./scripts/fsx/compileFSharpScripts.fsx
     - name: integration tests
       run: make update-servers
 
@@ -31,6 +36,8 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -43,6 +50,9 @@ jobs:
       run: git clean -fdx && .\configure.bat && .\make.bat strict
     - name: re-build in RELEASE mode
       run: git clean -fdx && .\configure.bat && .\make.bat release
+    # TODO: use fsx's scripts compilation when we migrate to .NET6 (to use `#r "nuget: Microsoft.Build"` instead of `#r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"`)
+    #- name: compile .fsx scripts
+    #  run: dotnet fsi ./scripts/fsx/compileFSharpScripts.fsx
     - name: integration tests
       run: .\make update-servers
 
@@ -50,6 +60,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
@@ -73,6 +85,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
@@ -127,6 +141,9 @@ jobs:
       run: git clean -fdx && ./configure.sh && make strict
     - name: build in RELEASE mode
       run: git clean -fdx && ./configure.sh && make release
+    # TODO: use fsx's scripts compilation when we migrate to .NET6 (to use `#r "nuget: Microsoft.Build"` instead of `#r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"`)
+    #- name: compile .fsx scripts
+    #  run: dotnet fsi ./scripts/fsx/compileFSharpScripts.fsx
     - name: integration tests
       run: make update-servers
 
@@ -173,6 +190,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
@@ -296,7 +315,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        submodules: recursive
+        submodules: false
         # needed because of commit-lint, see https://github.com/conventional-changelog/commitlint/issues/3376
         fetch-depth: 0
     - name: Install dependencies of commitlint
