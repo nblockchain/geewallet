@@ -195,7 +195,7 @@ module ServerManager =
             for torServer in torServers do
                 try
                     do!
-                        TorOperations.GetTorGuardForServer torServer
+                        TorOperations.NewClientWithMeasurement torServer
                         |> Async.Ignore
 
                 with

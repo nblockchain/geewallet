@@ -86,15 +86,6 @@ module internal TorOperations =
                 return raise <| FSharpUtil.ReRaise ex
         }
 
-    let GetTorGuardForServer(server:ServerDetails): Async<TorGuard> =
-        async {
-            return! FSharpUtil.Retry<TorGuard, NOnionException>
-                (fun _ ->
-                    NewClientWithMeasurement server
-                )
-                Config.TOR_CONNECTION_RETRY_COUNT
-        }
-
     let internal GetTorDirectory(): Async<TorDirectory> =
         async {
             return! FSharpUtil.Retry<TorDirectory, NOnionException>
