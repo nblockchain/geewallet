@@ -39,6 +39,7 @@
     <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
     <Compile Include="UtxoCoin\TransactionTypes.fs" />
     <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
+    <Compile Include="UtxoCoin\BtcTransactionPrinting.fs" />
     <Compile Include="Ether\EtherExceptions.fs" />
     <Compile Include="Ether\EtherMinerFee.fs" />
     <Compile Include="Ether\TransactionMetadata.fs" />

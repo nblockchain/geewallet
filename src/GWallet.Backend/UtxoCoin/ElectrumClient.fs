@@ -100,6 +100,12 @@ module ElectrumClient =
         return unspentListResult.Result
     }
 
+    let GetBlockchainScriptHashHistory scriptHash (stratumServer: Async<StratumClient>) = async {
+        let! stratumClient = stratumServer
+        let! history = stratumClient.BlockchainScriptHashHistory scriptHash
+        return history.Result
+    }
+
     let GetBlockchainTransaction txHash (stratumServer: Async<StratumClient>) = async {
         let! stratumClient = stratumServer
         let! blockchainTransactionResult = stratumClient.BlockchainTransactionGet txHash
@@ -110,6 +116,12 @@ module ElectrumClient =
     let GetBlockchainTransactionIdFromPos (height: UInt32) (txPos: UInt32) (stratumServer: Async<StratumClient>) = async {
         let! stratumClient = stratumServer
         let! blockchainTransactionResult = stratumClient.BlockchainTransactionIdFromPos height txPos
+        return blockchainTransactionResult.Result
+    }
+
+    let GetBlockchainTransactionVerbose (txHash: string) (stratumServer: Async<StratumClient>) = async {
+        let! stratumClient = stratumServer
+        let! blockchainTransactionResult = stratumClient.BlockchainTransactionGetVerbose txHash
         return blockchainTransactionResult.Result
     }
 
