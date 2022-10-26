@@ -480,5 +480,11 @@ let main argv =
         UpdateServersFile()
     | 1 when argv.[0] = "--update-servers-stats" ->
         UpdateServersStats()
+    | 2 | 3 when argv.[0] = "--print-transactions" ->
+        // --print-transactions <btcAddress> [maxTransactionsCount]
+        if argv.Length = 2 then 
+            UtxoCoin.BtcTransactionPrinting.PrintTransactions UInt32.MaxValue argv.[1]
+        else
+            UtxoCoin.BtcTransactionPrinting.PrintTransactions (uint32 argv.[2]) argv.[1]
     | _ ->
         failwith "Arguments not recognized"
