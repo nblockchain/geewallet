@@ -12,6 +12,8 @@ jobs:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -31,6 +33,8 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -50,6 +54,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
@@ -77,6 +83,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
@@ -189,6 +197,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: false
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
@@ -328,7 +338,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        submodules: recursive
+        submodules: false
         # needed because of commit-lint, see https://github.com/conventional-changelog/commitlint/issues/3376
         fetch-depth: 0
     - name: Install dependencies of commitlint
@@ -407,4 +417,4 @@ jobs:
         ./configure.sh
         make
     - name: generate & publish nuget package
-      run: ./scripts/nugetPush.fsx 0.3.325.0 $NUGET_API_KEY
+      run: ./scripts/fsx/Tools/nugetPush.fsx 0.3.325.0 $NUGET_API_KEY

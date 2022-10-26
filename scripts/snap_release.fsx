@@ -16,9 +16,9 @@ open System.Xml.XPath
 
 #r "System.Configuration"
 open System.Configuration
-#load "InfraLib/Misc.fs"
-#load "InfraLib/Process.fs"
-#load "InfraLib/Git.fs"
+#load "fsx/InfraLib/Misc.fs"
+#load "fsx/InfraLib/Process.fs"
+#load "fsx/InfraLib/Git.fs"
 open FSX.Infrastructure
 open Process
 
@@ -145,15 +145,17 @@ if not (snapFile.FullName.Contains gitTag) then
 Console.WriteLine (sprintf "About to start upload of release %s" gitTag)
 
 // if this fails, use `snapcraft export-login` to generate a new token
-Process.SafeExecute ({ Command = "snapcraft"; Arguments = "login --with snapcraft.login" }, Echo.All)
-|> ignore
+Process.Execute({ Command = "snapcraft"; Arguments = "login --with snapcraft.login" }, Echo.All)
+       .UnwrapDefault() |> ignore<string>
 
 Console.WriteLine "Login successfull. Upload starting..."
 
 // the 'stable' and 'candidate' channels require 'stable' grade in the yaml
-Process.SafeExecute (
-    {
-        Command = "snapcraft"
-        Arguments = sprintf "push %s --release=beta" snapFile.FullName
-    }, Echo.All
-) |> ignore
+let snapPush =
+    Process.Execute(
+        {
+            Command = "snapcraft"
+            Arguments = sprintf "push %s --release=beta" snapFile.FullName
+        }, Echo.All
+    )
+snapPush.UnwrapDefault() |> ignore<string>

@@ -4,9 +4,9 @@ open System
 open System.IO
 #r "System.Configuration"
 open System.Configuration
-#load "InfraLib/Misc.fs"
-#load "InfraLib/Process.fs"
-#load "InfraLib/Git.fs"
+#load "fsx/InfraLib/Misc.fs"
+#load "fsx/InfraLib/Process.fs"
+#load "fsx/InfraLib/Git.fs"
 open FSX.Infrastructure
 open Process
 
@@ -15,7 +15,7 @@ let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let IsStable miniVersion =
     (int miniVersion % 2) = 0
 
-let args = Misc.FsxArguments()
+let args = Misc.FsxOnlyArguments()
 let suppliedVersion =
     if args.Length > 0 then
         if args.Length > 1 then
@@ -89,7 +89,7 @@ let Replace file fromStr toStr =
                                 fromStr
                                 toStr
         }
-    Process.SafeExecute (proc, Echo.All) |> ignore
+    Process.Execute(proc, Echo.All).UnwrapDefault() |> ignore<string>
 
 
 let Bump(toStable: bool): Version*Version =
@@ -141,7 +141,7 @@ let GitCommit (fullVersion: Version) (newFullVersion: Version) =
                 Command = "git"
                 Arguments = sprintf "add %s" file
             }
-        Process.SafeExecute (gitAdd, Echo.Off) |> ignore
+        Process.Execute(gitAdd, Echo.Off).UnwrapDefault() |> ignore<string>
 
     let commitMessage = sprintf "Bump version: %s -> %s" (fullVersion.ToString()) (newFullVersion.ToString())
     let finalCommitMessage =
@@ -154,8 +154,7 @@ let GitCommit (fullVersion: Version) (newFullVersion: Version) =
             Command = "git"
             Arguments = sprintf "commit -m \"%s\"" finalCommitMessage
         }
-    Process.SafeExecute (gitCommit,
-                         Echo.Off) |> ignore
+    Process.Execute(gitCommit, Echo.Off).UnwrapDefault() |> ignore<string>
 
 let GitTag (newFullVersion: Version) =
     if not (IsStable newFullVersion.Build) then
@@ -173,8 +172,7 @@ let GitTag (newFullVersion: Version) =
             Command = "git"
             Arguments = sprintf "tag %s" (newFullVersion.ToString())
         }
-    Process.SafeExecute (gitCreateTag,
-                         Echo.Off) |> ignore
+    Process.Execute(gitCreateTag, Echo.Off).UnwrapDefault() |> ignore<string>
 
 let GitDiff () =
 
@@ -183,9 +181,8 @@ let GitDiff () =
             Command = "git"
             Arguments = "diff"
         }
-    let gitDiffProc = Process.SafeExecute (gitDiff,
-                                           Echo.Off)
-    if gitDiffProc.Output.StdOut.Length > 0 then
+    let gitDiffProc = Process.Execute(gitDiff, Echo.Off)
+    if gitDiffProc.UnwrapDefault().Length > 0 then
         Console.Error.WriteLine "git status is not clean"
         Environment.Exit 1
 
@@ -201,13 +198,13 @@ let RunUpdateServers () =
             Command = makeCommand
             Arguments = "update-servers"
         }
-    Process.SafeExecute(updateServersCmd, Echo.OutputOnly) |> ignore
+    Process.Execute(updateServersCmd, Echo.OutputOnly).UnwrapDefault() |> ignore<string>
     let gitAddJson =
         {
             Command = "git"
             Arguments = "add src/GWallet.Backend/servers.json"
         }
-    Process.SafeExecute (gitAddJson, Echo.Off) |> ignore
+    Process.Execute(gitAddJson, Echo.Off).UnwrapDefault() |> ignore<string>
 
     let commitMessage = sprintf "Backend: update servers.json (pre-bump)"
     let gitCommit =
@@ -215,7 +212,7 @@ let RunUpdateServers () =
             Command = "git"
             Arguments = sprintf "commit -m \"%s\"" commitMessage
         }
-    Process.SafeExecute (gitCommit, Echo.Off) |> ignore
+    Process.Execute(gitCommit, Echo.Off).UnwrapDefault() |> ignore<string>
     GitDiff()
 
 

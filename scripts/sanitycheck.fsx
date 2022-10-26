@@ -15,9 +15,9 @@ open System.Xml.XPath
 
 #r "System.Configuration"
 open System.Configuration
-#load "InfraLib/Misc.fs"
-#load "InfraLib/Process.fs"
-#load "InfraLib/Git.fs"
+#load "fsx/InfraLib/Misc.fs"
+#load "fsx/InfraLib/Process.fs"
+#load "fsx/InfraLib/Git.fs"
 open FSX.Infrastructure
 open Process
 
@@ -101,9 +101,9 @@ let FindOffendingPrintfUsage () =
     let currentDir = Directory.GetCurrentDirectory()
     let srcDir = Path.Combine(currentDir, "src")
     Directory.SetCurrentDirectory srcDir
-    let findProc = Process.SafeExecute (proc, Echo.All)
+    let findProc = Process.Execute (proc, Echo.All)
     Directory.SetCurrentDirectory currentDir
-    if findProc.Output.StdOut.Trim().Length > 0 then
+    if findProc.UnwrapDefault().Trim().Length > 0 then
         Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf detected; use SPrintF1/SPrintF2/... instead"
         Environment.Exit 1
 
