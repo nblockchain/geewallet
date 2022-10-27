@@ -194,7 +194,13 @@ let RunUpdateServers () =
             Command = makeCommand
             Arguments = "update-servers"
         }
-    Process.Execute(updateServersCmd, Echo.OutputOnly).UnwrapDefault() |> ignore<string>
+    let proc = Process.Execute(updateServersCmd, Echo.OutputOnly)
+    match proc.Result with
+    | Error _ ->
+        Console.WriteLine()
+        failwith "Update Servers geewallet operation failed ^"
+    | _ -> ()
+
     let gitAddJson =
         {
             Command = "git"
