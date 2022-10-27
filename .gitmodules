@@ -1,3 +1,3 @@
 [submodule "scripts/fsx"]
 	path = scripts/fsx
-	url = https://gitlab.com/knocte/fsx.git
+	url = https://github.com/nblockchain/fsx.git
