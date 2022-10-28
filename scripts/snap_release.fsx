@@ -42,7 +42,6 @@ let orgOrUsername, repoName =
     | Some remoteUrl ->
         if remoteUrl.StartsWith "git@" then
             failwithf "Expecting an https:// based repo URL but got %s" remoteUrl
-        Console.WriteLine remoteUrl
         // example: https://gitlab-ci-token:[MASKED]@gitlab.com/nblockchain/geewallet.git
         let uri = Uri remoteUrl
         let repoName = uri.Segments.Last()
@@ -51,9 +50,7 @@ let orgOrUsername, repoName =
                 repoName.Substring(0, repoName.Length - ".git".Length)
             else
                 repoName
-        Console.WriteLine repoName
         let orgOrUsername = (uri.Segments.SkipLast 1).Last().TrimEnd '/'
-        Console.WriteLine orgOrUsername
         orgOrUsername, repoName
 
 let webClient = new WebClient()
