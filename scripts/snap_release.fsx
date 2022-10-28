@@ -155,7 +155,7 @@ let snapPush =
     Process.Execute(
         {
             Command = "snapcraft"
-            Arguments = sprintf "push %s --release=beta" snapFile.FullName
+            Arguments = sprintf "upload %s --release=beta" snapFile.FullName
         }, Echo.All
     )
 snapPush.UnwrapDefault() |> ignore<string>
