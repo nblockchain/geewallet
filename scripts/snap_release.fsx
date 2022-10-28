@@ -155,4 +155,12 @@ let snapPush =
             Arguments = sprintf "upload %s --release=beta" snapFile.FullName
         }, Echo.All
     )
-snapPush.UnwrapDefault() |> ignore<string>
+match snapPush.Result with
+| Error _ ->
+    Console.WriteLine()
+    failwith "Upload failed ^"
+| WarningsOrAmbiguous output ->
+    Console.Error.WriteLine "Upload likely succeeded, but review the following warnings:"
+    Console.Error.WriteLine output.StdErr
+    failwith "Please fix the warnings above ^"
+| Success _ -> ()
