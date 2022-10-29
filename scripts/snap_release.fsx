@@ -155,12 +155,12 @@ let snapPush =
             Arguments = sprintf "upload %s --release=beta" snapFile.FullName
         }, Echo.All
     )
+
 match snapPush.Result with
 | Error _ ->
     Console.WriteLine()
     failwith "Upload failed ^"
-| WarningsOrAmbiguous output ->
-    Console.Error.WriteLine "Upload likely succeeded, but review the following warnings:"
-    Console.Error.WriteLine output.StdErr
-    failwith "Please fix the warnings above ^"
-| Success _ -> ()
+
+// FIXME: we shouldn't ignore warnings, but we have to, because of this bug:
+// https://bugs.launchpad.net/snapcraft/+bug/1995159
+| _ -> ()
