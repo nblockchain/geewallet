@@ -5,9 +5,9 @@ open System.IO
 open System.Linq
 
 #r "System.Configuration"
-#load "InfraLib/Misc.fs"
-#load "InfraLib/Process.fs"
-#load "InfraLib/Git.fs"
+#load "fsx/InfraLib/Misc.fs"
+#load "fsx/InfraLib/Process.fs"
+#load "fsx/InfraLib/Git.fs"
 open FSX.Infrastructure
 open Process
 
@@ -50,7 +50,7 @@ let rec FindExcludingDir (dir: DirectoryInfo)
         if excludeItems.All(fun entryToExclude -> entryToExclude.FullName <> dir.FullName) then
             doIt ()
 
-let args = Misc.FsxArguments()
+let args = Misc.FsxOnlyArguments()
 
 let note = "NOTE: by default, some kind of files/folders will be excluded, e.g.: .git/, packages/, bin/, obj/, *.exe, *.dll, *.png, ..."
 

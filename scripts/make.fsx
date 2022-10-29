@@ -15,9 +15,9 @@ open System.Xml.XPath
 
 #r "System.Configuration"
 open System.Configuration
-#load "InfraLib/Misc.fs"
-#load "InfraLib/Process.fs"
-#load "InfraLib/Git.fs"
+#load "fsx/InfraLib/Misc.fs"
+#load "fsx/InfraLib/Process.fs"
+#load "fsx/InfraLib/Git.fs"
 open FSX.Infrastructure
 open Process
 
@@ -123,22 +123,29 @@ let RunNugetCommand (command: string) echoMode (safe: bool) =
             { Command = "mono"; Arguments = sprintf "%s %s" FsxHelper.NugetExe.FullName command }
         | _ ->
             { Command = FsxHelper.NugetExe.FullName; Arguments = command }
+    let proc = Process.Execute(nugetCmd, echoMode)
+
     if safe then
-        Process.SafeExecute (nugetCmd, echoMode)
-    else
-        Process.Execute (nugetCmd, echoMode)
+        proc.UnwrapDefault() |> ignore<string>
+
+    proc
 
 let PrintNugetVersion () =
     if not (FsxHelper.NugetExe.Exists) then
         false
     else
-        let nugetProc = RunNugetCommand String.Empty Echo.Off false
-        Console.WriteLine nugetProc.Output.StdOut
-        if nugetProc.ExitCode = 0 then
-            true
-        else
-            Console.Error.WriteLine nugetProc.Output.StdErr
+        let nugetProc = RunNugetCommand String.Empty Echo.OutputOnly false
+        match nugetProc.Result with
+        | ProcessResultState.Success _ -> true
+        | ProcessResultState.WarningsOrAmbiguous _output ->
             Console.WriteLine()
+            Console.Out.Flush()
+
+            failwith
+                "nuget process succeeded but its output contained warnings ^"
+        | ProcessResultState.Error(_exitCode, _output) ->
+            Console.WriteLine()
+            Console.Out.Flush()
             failwith "nuget process' output contained errors ^"
 
 let BuildSolution
@@ -170,10 +177,13 @@ let BuildSolution
                             configOptions
                             extraOptions
     let buildProcess = Process.Execute ({ Command = buildTool; Arguments = buildArgs }, Echo.All)
-    if (buildProcess.ExitCode <> 0) then
+    match buildProcess.Result with
+    | Error _ ->
+        Console.WriteLine()
         Console.Error.WriteLine (sprintf "%s build failed" buildTool)
         PrintNugetVersion() |> ignore
         Environment.Exit 1
+    | _ -> ()
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let buildTool = Map.tryFind "BuildTool" buildConfigContents
@@ -289,7 +299,7 @@ let RunFrontend (frontend: Frontend) (buildConfig: BinaryConfig) (maybeArgs: Opt
     proc.WaitForExit()
     proc
 
-let maybeTarget = GatherTarget (Misc.FsxArguments(), None)
+let maybeTarget = GatherTarget (Misc.FsxOnlyArguments(), None)
 match maybeTarget with
 | None ->
     MakeAll None |> ignore
@@ -326,13 +336,16 @@ match maybeTarget with
     if (Directory.Exists (pathToFolderToBeZipped)) then
         Directory.Delete (pathToFolderToBeZipped, true)
 
-    let pathToFrontend,_ = GetPathToFrontend frontend release
-    let zipRun = Process.Execute({ Command = "cp"
-                                   Arguments = sprintf "-rfvp %s %s" pathToFrontend.FullName pathToFolderToBeZipped },
-                                 Echo.All)
-    if (zipRun.ExitCode <> 0) then
+    let pathToFrontend,_ = GetPathToFrontend release
+    let cpRun = Process.Execute({ Command = "cp"
+                                  Arguments = sprintf "-rfvp %s %s" pathToFrontend.FullName pathToFolderToBeZipped },
+                                Echo.All)
+    match cpRun.Result with
+    | Error _ ->
+        Console.WriteLine()
         Console.Error.WriteLine "Precopy for ZIP compression failed"
         Environment.Exit 1
+    | _ -> ()
 
     let previousCurrentDir = Directory.GetCurrentDirectory()
     Directory.SetCurrentDirectory binDir
@@ -340,9 +353,12 @@ match maybeTarget with
                       Arguments = sprintf "%s -r %s %s"
                                       zipCommand zipName zipNameWithoutExtension }
     let zipRun = Process.Execute(zipLaunch, Echo.All)
-    if (zipRun.ExitCode <> 0) then
+    match zipRun.Result with
+    | Error _ ->
+        Console.WriteLine()
         Console.Error.WriteLine "ZIP compression failed"
         Environment.Exit 1
+    | _ -> ()
     Directory.SetCurrentDirectory previousCurrentDir
 
 | Some("check") ->
@@ -393,9 +409,12 @@ match maybeTarget with
 
     let nunitRun = Process.Execute(runnerCommand,
                                    Echo.All)
-    if (nunitRun.ExitCode <> 0) then
+    match nunitRun.Result with
+    | Error _ ->
+        Console.WriteLine()
         Console.Error.WriteLine "Tests failed"
         Environment.Exit 1
+    | _ -> ()
 
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
@@ -429,9 +448,14 @@ match maybeTarget with
     if not (Directory.Exists(finalLauncherScriptInDestDir.Directory.FullName)) then
         Directory.CreateDirectory(finalLauncherScriptInDestDir.Directory.FullName) |> ignore
     File.Copy(launcherScriptFile.FullName, finalLauncherScriptInDestDir.FullName, true)
-    if Process.Execute({ Command = "chmod"; Arguments = sprintf "ugo+x %s" finalLauncherScriptInDestDir.FullName },
-                        Echo.Off).ExitCode <> 0 then
-        failwith "Unexpected chmod failure, please report this bug"
+    Process.Execute(
+        {
+            Command = "chmod"
+            Arguments =
+                sprintf "ugo+x %s" finalLauncherScriptInDestDir.FullName
+        },
+        Echo.Off
+    ).Unwrap("Unexpected chmod failure, please report this bug") |> ignore<string>
 
 | Some("run") ->
     let frontend,buildConfig = MakeAll None
@@ -466,14 +490,13 @@ match maybeTarget with
         |> ignore
 
     let sanityCheckScript = Path.Combine(FsxHelper.ScriptsDir.FullName, "sanitycheck.fsx")
-    Process.SafeExecute (
+    Process.Execute(
         {
             Command = FsxHelper.FsxRunner
             Arguments = sanityCheckScript
         },
         Echo.All
-    )
-    |> ignore
+    ).UnwrapDefault() |> ignore<string>
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)

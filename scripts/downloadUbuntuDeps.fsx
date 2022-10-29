@@ -46,13 +46,18 @@ let installScriptFileName = "install.sh"
 try
     Unix.DownloadAptPackagesRecursively packageDependencies
     Unix.InstallAptPackageIfNotAlreadyInstalled "dpkg-dev"
-    let scanPkg = Process.SafeExecute({ Command = "dpkg-scanpackages"; Arguments = "." },
-                                      Echo.Off)
-    File.WriteAllText ("Packages", scanPkg.Output.StdOut)
+    let scanPkg =
+        Process.Execute(
+            { Command = "dpkg-scanpackages"; Arguments = "." },
+            Echo.Off
+        )
+    File.WriteAllText ("Packages", scanPkg.UnwrapDefault())
     File.WriteAllText (installScriptFileName, installScriptContents)
-    Process.SafeExecute({ Command = "chmod"
-                          Arguments = sprintf "ugo+x %s" installScriptFileName },
-                        Echo.All)
+    Process.Execute(
+        { Command = "chmod"
+          Arguments = sprintf "ugo+x %s" installScriptFileName },
+        Echo.All
+    ).UnwrapDefault() |> ignore<string>
 finally
     Directory.SetCurrentDirectory currentDir
 
@@ -61,9 +66,11 @@ Unix.InstallAptPackageIfNotAlreadyInstalled "zip"
 let binDir = Path.Combine(currentDir, binFolderName)
 Directory.SetCurrentDirectory binDir
 let zipNameWithoutExtension = outputSubFolder
-Process.SafeExecute({ Command = "zip"
-                      Arguments = sprintf "-r %s.zip %s" zipNameWithoutExtension outputSubFolder },
-                    Echo.All)
+Process.Execute(
+    { Command = "zip"
+      Arguments = sprintf "-r %s.zip %s" zipNameWithoutExtension outputSubFolder },
+    Echo.All
+).UnwrapDefault() |> ignore<string>
 
 Console.WriteLine ()
 Console.WriteLine (sprintf "Success. All your files are in the '%s' folder and inside the '%s/%s.zip' file."

@@ -5,9 +5,9 @@ open System.IO
 
 #r "System.Configuration"
 open System.Configuration
-#load "InfraLib/Misc.fs"
-#load "InfraLib/Process.fs"
-#load "InfraLib/Unix.fs"
+#load "fsx/InfraLib/Misc.fs"
+#load "fsx/InfraLib/Process.fs"
+#load "fsx/InfraLib/Unix.fs"
 open FSX.Infrastructure
 open Process
 

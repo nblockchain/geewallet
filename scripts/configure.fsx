@@ -5,9 +5,9 @@ open System.IO
 
 #r "System.Configuration"
 open System.Configuration
-#load "InfraLib/Misc.fs"
-#load "InfraLib/Process.fs"
-#load "InfraLib/Git.fs"
+#load "fsx/InfraLib/Misc.fs"
+#load "fsx/InfraLib/Process.fs"
+#load "fsx/InfraLib/Git.fs"
 open FSX.Infrastructure
 open Process
 
@@ -60,10 +60,10 @@ let initialConfigFile =
         let pkgConfigCmd = { Command = pkgConfig
                              Arguments = sprintf "--modversion %s" pkgName }
         let processResult = Process.Execute(pkgConfigCmd, Echo.Off)
-        if processResult.ExitCode <> 0 then
-            failwith "Mono was found but not detected by pkg-config?"
-
-        let monoVersion = processResult.Output.StdOut.Trim()
+        let monoVersion =
+            processResult
+                .Unwrap("Mono was found but not detected by pkg-config?")
+                .Trim()
 
         let currentMonoVersion = Version(monoVersion)
         if 1 = stableVersionOfMono.CompareTo currentMonoVersion then
@@ -130,13 +130,10 @@ let buildTool: string =
                 Arguments = "-find MSBuild\\**\\Bin\\MSBuild.exe"
             }
         let processResult = Process.Execute(vswhereCmd, Echo.Off)
-        if processResult.ExitCode <> 0 then
-            failwith "Some problem when calling vsWhere.exe"
-
-        let msbuildPath = processResult.Output.StdOut.Trim()
+        let msbuildPath = processResult.UnwrapDefault().Trim()
         msbuildPath
 
-let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxArguments(), false, None))
+let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxOnlyArguments(), false, None))
 
 if not (prefix.Exists) then
     let warning = sprintf "WARNING: prefix doesn't exist: %s" prefix.FullName

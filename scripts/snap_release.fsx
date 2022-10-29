@@ -16,9 +16,9 @@ open System.Xml.XPath
 
 #r "System.Configuration"
 open System.Configuration
-#load "InfraLib/Misc.fs"
-#load "InfraLib/Process.fs"
-#load "InfraLib/Git.fs"
+#load "fsx/InfraLib/Misc.fs"
+#load "fsx/InfraLib/Process.fs"
+#load "fsx/InfraLib/Git.fs"
 open FSX.Infrastructure
 open Process
 
@@ -42,7 +42,6 @@ let orgOrUsername, repoName =
     | Some remoteUrl ->
         if remoteUrl.StartsWith "git@" then
             failwithf "Expecting an https:// based repo URL but got %s" remoteUrl
-        Console.WriteLine remoteUrl
         // example: https://gitlab-ci-token:[MASKED]@gitlab.com/nblockchain/geewallet.git
         let uri = Uri remoteUrl
         let repoName = uri.Segments.Last()
@@ -51,9 +50,7 @@ let orgOrUsername, repoName =
                 repoName.Substring(0, repoName.Length - ".git".Length)
             else
                 repoName
-        Console.WriteLine repoName
         let orgOrUsername = (uri.Segments.SkipLast 1).Last().TrimEnd '/'
-        Console.WriteLine orgOrUsername
         orgOrUsername, repoName
 
 let webClient = new WebClient()
@@ -145,15 +142,25 @@ if not (snapFile.FullName.Contains gitTag) then
 Console.WriteLine (sprintf "About to start upload of release %s" gitTag)
 
 // if this fails, use `snapcraft export-login` to generate a new token
-Process.SafeExecute ({ Command = "snapcraft"; Arguments = "login --with snapcraft.login" }, Echo.All)
-|> ignore
+Process.Execute({ Command = "snapcraft"; Arguments = "login --with snapcraft.login" }, Echo.All)
+       .UnwrapDefault() |> ignore<string>
 
 Console.WriteLine "Login successfull. Upload starting..."
 
 // the 'stable' and 'candidate' channels require 'stable' grade in the yaml
-Process.SafeExecute (
-    {
-        Command = "snapcraft"
-        Arguments = sprintf "push %s --release=stable" snapFile.FullName
-    }, Echo.All
-) |> ignore
+let snapPush =
+    Process.Execute(
+        {
+            Command = "snapcraft"
+            Arguments = sprintf "upload %s --release=stable" snapFile.FullName
+        }, Echo.All
+    )
+
+match snapPush.Result with
+| Error _ ->
+    Console.WriteLine()
+    failwith "Upload failed ^"
+
+// FIXME: we shouldn't ignore warnings, but we have to, because of this bug:
+// https://bugs.launchpad.net/snapcraft/+bug/1995159
+| _ -> ()

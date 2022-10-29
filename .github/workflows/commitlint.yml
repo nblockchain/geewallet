@@ -1,0 +1,19 @@
+name: Lint commit messages
+
+on: pull_request
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Install dependencies of commitlint
+        run: sudo apt install --yes npm && npm install @commitlint/config-conventional
+      - name: Pull our commitlint configuration
+        run: sudo apt install --yes wget && wget https://raw.githubusercontent.com/nblockchain/conventions/master/commitlint.config.ts
+      - name: Validate all commits from PR
+        run: |
+          echo 'Going to run commitlint for ${{ github.event.pull_request.commits }} commits'
+          npx commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
