@@ -232,7 +232,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
             | Misc.Platform.Linux ->
                 let pkgConfigForGtkProc = Process.Execute({ Command = "pkg-config"; Arguments = "gtk-sharp-2.0" }, Echo.All)
                 let isGtkPresent =
-                    (0 = pkgConfigForGtkProc.ExitCode)
+                    match pkgConfigForGtkProc.Result with
+                    | Error _ -> false
+                    | _ -> true
 
                 if isGtkPresent then
                     let solution = LINUX_SOLUTION_FILE
@@ -336,7 +338,7 @@ match maybeTarget with
     if (Directory.Exists (pathToFolderToBeZipped)) then
         Directory.Delete (pathToFolderToBeZipped, true)
 
-    let pathToFrontend,_ = GetPathToFrontend release
+    let pathToFrontend,_ = GetPathToFrontend frontend release
     let cpRun = Process.Execute({ Command = "cp"
                                   Arguments = sprintf "-rfvp %s %s" pathToFrontend.FullName pathToFolderToBeZipped },
                                 Echo.All)
