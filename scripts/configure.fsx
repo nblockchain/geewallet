@@ -130,7 +130,11 @@ let buildTool: string =
                 Arguments = "-find MSBuild\\**\\Bin\\MSBuild.exe"
             }
         let processResult = Process.Execute(vswhereCmd, Echo.Off)
-        let msbuildPath = processResult.UnwrapDefault().Trim()
+        let msbuildPath = 
+            processResult.UnwrapDefault().Split(
+                Array.singleton Environment.NewLine,
+                StringSplitOptions.RemoveEmptyEntries
+            ).[0].Trim()
         msbuildPath
 
 let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxOnlyArguments(), false, None))
