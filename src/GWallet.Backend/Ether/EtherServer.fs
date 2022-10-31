@@ -108,6 +108,9 @@ module Server =
             if webEx.Status = WebExceptionStatus.ConnectFailure then
                 raise <| ServerUnreachableException(exMsg, webEx)
 
+            if webEx.Status = WebExceptionStatus.ProtocolError then
+                raise <| ServerUnreachableException(exMsg, webEx)
+
             if webEx.Status = WebExceptionStatus.SendFailure then
                 raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
 
