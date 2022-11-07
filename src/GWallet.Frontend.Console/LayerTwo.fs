@@ -561,10 +561,6 @@ module LayerTwo =
         Console.WriteLine "In order to continue the funding for the channel needs to be locked"
         let lockFundingAsync =
             if channelInfo.IsFunder then
-                Console.WriteLine
-                    "Ensure the fundee is ready to accept a connection to lock the funding, \
-                    then press any key to continue."
-                Console.ReadKey true |> ignore
                 let tryLock password =
                     async {
                         let nodeClient = Lightning.Connection.StartClient channelStore password
@@ -573,7 +569,19 @@ module LayerTwo =
                         return! lockChannelInternal (Node.Client nodeClient) sublockFundingAsync
                     }
 
-                UserInteraction.TryWithPasswordAsync tryLock
+                let confirmation = 
+                    UserInteraction.AskYesNo 
+                        "Ensure the fundee is ready to accept a connection to lock the funding, \
+                        Do you want to continue?"
+                if not confirmation then 
+                    async {
+                        return seq {
+                            yield! UserInteraction.DisplayLightningChannelStatus channelInfo
+                            yield "        funder didn't confirm to lock the funding!"
+                        }
+                    }
+                else
+                    UserInteraction.TryWithPasswordAsync tryLock
             else
                 let nodeServerType =
                     match channelInfo.NodeTransportType with
