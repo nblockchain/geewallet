@@ -296,7 +296,7 @@ type private GenericWalletOption =
 
 let rec TestPaymentPassword () =
     let password = UserInteraction.AskPassword false
-    if Account.CheckValidPassword password None |> Async.RunSynchronously then
+    if Account.CheckValidPassword password None |> Async.RunSynchronously |> not then
         Console.WriteLine "Try again."
         TestPaymentPassword ()
 
