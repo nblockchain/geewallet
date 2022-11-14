@@ -346,6 +346,8 @@ jobs:
       image: "ubuntu:20.04"
     steps:
     - uses: actions/checkout@v1
+    - name: install sudo
+      run: apt update && apt install --yes sudo
     - name: Generate snap package
       run: |
         sudo apt update
