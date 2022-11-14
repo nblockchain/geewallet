@@ -104,7 +104,7 @@ module internal TorOperations =
         async {
             return! FSharpUtil.Retry<TorServiceHost, NOnionException>
                 (fun _ -> async { 
-                    let torHost = TorServiceHost(directory, Config.TOR_DESCRIPTOR_UPLOAD_RETRY_COUNT, Config.TOR_CONNECTION_RETRY_COUNT, GetTorServiceKey() |> Some) 
+                    let torHost = new TorServiceHost(directory, Config.TOR_DESCRIPTOR_UPLOAD_RETRY_COUNT, Config.TOR_CONNECTION_RETRY_COUNT, GetTorServiceKey() |> Some) 
                     do! torHost.Start()
                     return torHost
                 })
