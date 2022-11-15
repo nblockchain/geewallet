@@ -6,6 +6,7 @@ open System.Net
 open System.Text.RegularExpressions
 open System.Diagnostics
 
+open ResultUtils.Portability
 open NOnion
 open NOnion.Directory
 open NOnion.Services
@@ -110,11 +111,18 @@ module internal TorOperations =
                 Config.TOR_CONNECTION_RETRY_COUNT
         }
 
-    let internal TorConnect directory url =
+    let internal TorConnect directory url: 
+        Async<Result<TorServiceClient, NOnionException>> =
         async {
-            return! FSharpUtil.Retry<TorServiceClient, NOnionException>
-                (fun _ -> TorServiceClient.Connect directory url)
-                Config.TOR_CONNECTION_RETRY_COUNT
+            try
+                let! connectedServiceClient = 
+                    FSharpUtil.Retry<TorServiceClient, NOnionException>
+                        (fun _ -> TorServiceClient.Connect directory url)
+                        Config.TOR_CONNECTION_RETRY_COUNT
+                return Ok connectedServiceClient
+            with
+            | :? NOnionException as ex ->
+                return Error ex
         }
 
     let internal ExtractServerListFromGithub() : List<(string*string)> =
