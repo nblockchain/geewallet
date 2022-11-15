@@ -10,6 +10,7 @@ open NBitcoin
 open DotNetLightning.Peer
 open DotNetLightning.Utils
 open ResultUtils.Portability
+open NOnion
 open NOnion.Network
 open NOnion.Directory
 open NOnion.Services
@@ -35,9 +36,13 @@ type PeerDisconnectedError =
     member internal self.PossibleBug =
         not self.Abruptly
 
+type TCPError = 
+    | NOnionError of NOnionException
+    | SocketError of seq<SocketException>
+
 type HandshakeError =
-    | TcpConnect of seq<SocketException>
-    | TcpAccept of seq<SocketException>
+    | TcpConnect of TCPError
+    | TcpAccept of TCPError
     | DisconnectedOnAct1 of PeerDisconnectedError
     | InvalidAct1 of PeerError
     | DisconnectedOnAct2 of PeerDisconnectedError
@@ -48,11 +53,21 @@ type HandshakeError =
         member self.Message =
             match self with
             | TcpConnect errs ->
-                let messages = Seq.map (fun (err: SocketException) -> err.Message) errs
-                SPrintF1 "TCP connection failed: %s" (String.concat "; " messages)
+                match errs with
+                | TCPError.NOnionError err ->
+                    let message = err.Message
+                    SPrintF1 "TCP connection failed: %s" message
+                | TCPError.SocketError errs ->
+                    let messages = Seq.map (fun (err: SocketException) -> err.Message) errs
+                    SPrintF1 "TCP connection failed: %s" (String.concat "; " messages)
             | TcpAccept errs ->
-                let messages = Seq.map (fun (err: SocketException) -> err.Message) errs
-                SPrintF1 "TCP accept failed: %s" (String.concat "; " messages)
+                match errs with
+                | TCPError.NOnionError err ->
+                    let message = err.Message
+                    SPrintF1 "TCP accept failed: %s" message
+                | TCPError.SocketError errs ->
+                    let messages = Seq.map (fun (err: SocketException) -> err.Message) errs
+                    SPrintF1 "TCP accept failed: %s" (String.concat "; " messages)
             | DisconnectedOnAct1 err ->
                 SPrintF1 "Peer disconnected before starting handshake: %s" (err :> IErrorMsg).Message
             | InvalidAct1 err ->
@@ -331,7 +346,7 @@ type internal TransportStream =
     static member private TcpTransportConnect
         (localEndPointOpt: Option<IPEndPoint>)
         (remoteEndPoint: IPEndPoint)
-        : Async<Result<TcpClient, seq<SocketException>>> = async {
+        : Async<Result<TcpClient, TCPError>> = async {
         let client = new TcpClient (remoteEndPoint.AddressFamily)
         match localEndPointOpt with
         | Some localEndPoint ->
@@ -351,12 +366,12 @@ type internal TransportStream =
         with
         | ex ->
             client.Close()
-            let socketExceptions = FindSingleException<SocketException> ex
-            return Error socketExceptions
+            let socketExceptions = FindSingleException<SocketException> ex                
+            return Error (TCPError.SocketError socketExceptions)
         }
 
     static member private AcceptAny (listener: IncomingConnectionMethod)
-        : Async<Result<TransportType, seq<SocketException>>> = async {
+        : Async<Result<TransportType, TCPError>> = async {
         try
             match listener with
             | IncomingConnectionMethod.Tcp tcpListener ->
@@ -368,7 +383,7 @@ type internal TransportStream =
         with
         | ex ->
             let socketExceptions = FindSingleException<SocketException> ex
-            return Error socketExceptions
+            return Error (TCPError.SocketError socketExceptions)
     }
 
     static member private ConnectHandshake (client: TransportClientType)
@@ -419,23 +434,27 @@ type internal TransportStream =
 
     static member private TorTransportConnect
         (nonionEndPoint: NOnionEndPoint)
-        : Async<Result<TorServiceClient, seq<SocketException>>> =
+        : Async<Result<TorServiceClient, TCPError>> =
         async {
             let! directory = TorOperations.GetTorDirectory()
             try
-                let! torClient = TorOperations.TorConnect directory nonionEndPoint.Url
-                Infrastructure.LogDebug <| SPrintF1 "Connected %s" nonionEndPoint.Url
-                return Ok torClient
+                let! maybeTorClient = TorOperations.TorConnect directory nonionEndPoint.Url
+                match maybeTorClient with
+                | Ok torClient ->
+                    Infrastructure.LogDebug <| SPrintF1 "Connected %s" nonionEndPoint.Url
+                    return Ok torClient
+                | Error ex ->
+                    return Error (TCPError.NOnionError ex)
             with
             | ex ->
                 let socketExceptions = FindSingleException<SocketException> ex
-                return Error socketExceptions
+                return Error (TCPError.SocketError socketExceptions)
         }
 
     static member private TransportConnect
         (localEndPointOpt: Option<IPEndPoint>)
         (node: NodeIdentifier)
-        : Async<Result<TransportClientType, seq<SocketException>>> =
+        : Async<Result<TransportClientType, TCPError>> =
         async {
             match node with
             | NodeIdentifier.TcpEndPoint remoteEndPoint ->
@@ -470,7 +489,7 @@ type internal TransportStream =
                                                            : Async<Result<TransportStream, HandshakeError>> = async {
         let! clientRes = TransportStream.AcceptAny transportListener.Listener
         match clientRes with
-        | Error socketError -> return Error <| TcpAccept socketError
+        | Error tcpError -> return Error <| TcpAccept tcpError
         | Ok client ->
             let nodeSecret = transportListener.NodeMasterPrivKey.NodeSecret()
             let nodeSecretKey = nodeSecret.RawKey()
