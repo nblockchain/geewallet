@@ -108,6 +108,9 @@ module Server =
             if webEx.Status = WebExceptionStatus.ConnectFailure then
                 raise <| ServerUnreachableException(exMsg, webEx)
 
+            if webEx.Status = WebExceptionStatus.ProtocolError then
+                raise <| ServerUnreachableException(exMsg, webEx)
+
             if webEx.Status = WebExceptionStatus.SendFailure then
                 raise <| ServerChannelNegotiationException(exMsg, webEx.Status, webEx)
 
@@ -211,7 +214,9 @@ module Server =
                     raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                 | d when d = int RpcErrorCode.EmptyResponse ->
                     raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
-                | e when e = int RpcErrorCode.DailyRequestCountExceededSoRequestRateLimited ->
+                | e when e = int RpcErrorCode.ProjectIdSettingsRejection ->
+                    raise <| ServerRefusedException(exMsg, rpcResponseEx)
+                | f when f = int RpcErrorCode.DailyRequestCountExceededSoRequestRateLimited ->
                     raise <| ServerRefusedException(exMsg, rpcResponseEx)
                 | _ ->
                     raise
