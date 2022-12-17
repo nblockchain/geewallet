@@ -74,7 +74,8 @@ This list is the (intended) order of preference for new features:
 - flatpak packaging.
 - In mobile, allow usage when camera permissions have not been granted, by letting the user redirect him to his camera app and take a picture (see https://youtu.be/k1Ssz1dvcpk?t=63).
 - Use of 'bits' instead of BTC as default unit (see https://www.reddit.com/r/Bitcoin/comments/sdhtz0/this_woman_has_resparked_the_sats_vs_bits_debate/ ).
-(See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ )
+(See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ or in case we end up using sats, this "1 over 2" idea is interesting: 
+https://twitter.com/Parman_Public/status/1603698639947599873 )
 - MimbleWimble(Grin) support.
 - Threshold signatures (or asynchronous ones? see https://twitter.com/real_or_random/status/1523964246945636352 ).
 - Use deniable encryption to allow for a duress password/passphrase/pin.
