@@ -32,12 +32,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{C90A30F5-1
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InfraLib", "InfraLib", "{6EE07541-91A1-42C2-A21F-2809BBDC2F50}"
 	ProjectSection(SolutionItems) = preProject
-		scripts\InfraLib\Process.fs = scripts\InfraLib\Process.fs
-		scripts\InfraLib\Git.fs = scripts\InfraLib\Git.fs
-		scripts\InfraLib\Misc.fs = scripts\InfraLib\Misc.fs
-		scripts\InfraLib\Network.fs = scripts\InfraLib\Network.fs
-		scripts\InfraLib\Taiga.fs = scripts\InfraLib\Taiga.fs
-		scripts\InfraLib\Unix.fs = scripts\InfraLib\Unix.fs
+		scripts\fsx\InfraLib\Misc.fs = scripts\fsx\InfraLib\Misc.fs
+		scripts\fsx\InfraLib\Unix.fs = scripts\fsx\InfraLib\Unix.fs
+		scripts\fsx\InfraLib\Taiga.fs = scripts\fsx\InfraLib\Taiga.fs
+		scripts\fsx\InfraLib\Process.fs = scripts\fsx\InfraLib\Process.fs
+		scripts\fsx\InfraLib\Network.fs = scripts\fsx\InfraLib\Network.fs
+		scripts\fsx\InfraLib\Git.fs = scripts\fsx\InfraLib\Git.fs
 	EndProjectSection
 EndProject
 Global
