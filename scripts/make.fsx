@@ -215,8 +215,6 @@ let MakeAll (maybeConstant: Option<string>) =
     buildConfig
 
 let RunFrontend (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
-    let monoVersion = Map.tryFind "MonoPkgConfigVersion" buildConfigContents
-
     let pathToFrontend = Path.Combine(GetPathToFrontendBinariesDir buildConfig, DEFAULT_FRONTEND + ".exe")
 
     let fileName, finalArgs =
