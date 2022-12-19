@@ -18,6 +18,7 @@ open System.Configuration
 #load "fsx/InfraLib/Misc.fs"
 #load "fsx/InfraLib/Process.fs"
 #load "fsx/InfraLib/Git.fs"
+#load "fsx/InfraLib/Unix.fs"
 open FSX.Infrastructure
 open Process
 
@@ -370,14 +371,7 @@ match maybeTarget with
     if not (Directory.Exists(finalLauncherScriptInDestDir.Directory.FullName)) then
         Directory.CreateDirectory(finalLauncherScriptInDestDir.Directory.FullName) |> ignore
     File.Copy(launcherScriptFile.FullName, finalLauncherScriptInDestDir.FullName, true)
-    Process.Execute(
-        {
-            Command = "chmod"
-            Arguments =
-                sprintf "+x %s" finalLauncherScriptInDestDir.FullName
-        },
-        Echo.Off
-    ).Unwrap("Unexpected chmod failure, please report this bug") |> ignore<string>
+    Unix.ChangeMode(finalLauncherScriptInDestDir, "+x", false)
 
 | Some("run") ->
     let buildConfig = MakeAll None
