@@ -374,7 +374,7 @@ match maybeTarget with
         {
             Command = "chmod"
             Arguments =
-                sprintf "ugo+x %s" finalLauncherScriptInDestDir.FullName
+                sprintf "+x %s" finalLauncherScriptInDestDir.FullName
         },
         Echo.Off
     ).Unwrap("Unexpected chmod failure, please report this bug") |> ignore<string>
