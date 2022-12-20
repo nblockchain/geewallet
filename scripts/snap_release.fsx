@@ -25,12 +25,6 @@ open Process
 #load "fsxHelper.fs"
 open GWallet.Scripting
 
-#r "System.Net.Http.dll"
-#r "System.Web.Extensions.dll"
-open System.Web.Script.Serialization
-#load "githubActions.fs"
-open GWallet.Github
-
 type GitProvider =
     | GitHub
     | GitLab
@@ -103,13 +97,13 @@ let gitTag =
         if String.IsNullOrEmpty currentBranch then
             failwith "CI_COMMIT_REF_NAME should be available when GitLab: https://docs.gitlab.com/ee/ci/variables/predefined_variables.html"
 
-        GithubActions.MakeSureGithubCIPassed orgOrUsername repoName commitHash currentBranch
-
         let ciTag = Environment.GetEnvironmentVariable "CI_COMMIT_TAG"
-
         if String.IsNullOrEmpty ciTag then
             Console.WriteLine (sprintf "No tag being set (CI_COMMIT_TAG=%s), skipping release." ciTag)
             Environment.Exit 0
+
+        failwith "GitLab not supported at the moment for Snap release process"
+
         ciTag
 
 if not (snapFile.FullName.Contains gitTag) then
