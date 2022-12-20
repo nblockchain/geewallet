@@ -219,14 +219,18 @@ let MakeAll (maybeConstant: Option<string>) =
     buildConfig
 
 let RunFrontend (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
-    let pathToFrontend = Path.Combine(GetPathToFrontendBinariesDir buildConfig, DEFAULT_FRONTEND + ".exe")
+    let pathToFrontend = Path.Combine(GetPathToFrontendBinariesDir buildConfig, DEFAULT_FRONTEND + ".exe") |> FileInfo
 
     let fileName, finalArgs =
         match maybeArgs with
         | None | Some "" -> pathToFrontend,String.Empty
         | Some args -> pathToFrontend,args
 
-    let startInfo = ProcessStartInfo(FileName = fileName, Arguments = finalArgs, UseShellExecute = false)
+    match Misc.GuessPlatform() with
+    | Misc.Platform.Windows -> ()
+    | _ -> Unix.ChangeMode(pathToFrontend, "+x", false)
+
+    let startInfo = ProcessStartInfo(FileName = fileName.FullName, Arguments = finalArgs, UseShellExecute = false)
     startInfo.EnvironmentVariables.["MONO_ENV_OPTIONS"] <- "--debug"
 
     let proc = Process.Start startInfo
@@ -411,8 +415,8 @@ match maybeTarget with
     let sanityCheckScript = Path.Combine(FsxHelper.ScriptsDir.FullName, "sanitycheck.fsx")
     Process.Execute(
         {
-            Command = FsxHelper.FsxRunner
-            Arguments = sanityCheckScript
+            Command = FsxHelper.FsxRunnerBin
+            Arguments = sprintf "%s %s" FsxHelper.FsxRunnerArg sanityCheckScript
         },
         Echo.All
     ).UnwrapDefault() |> ignore<string>
