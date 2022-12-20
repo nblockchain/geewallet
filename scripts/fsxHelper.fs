@@ -19,16 +19,21 @@ module FsxHelper =
             |> ignore
         dir
 
-    let FsxRunner =
+    let FsxRunnerBin,FsxRunnerArg =
         match Misc.GuessPlatform() with
         | Misc.Platform.Windows ->
-            Path.Combine(ScriptsDir.FullName, "fsx", "Tools", "fsi.bat")
+#if !LEGACY_FRAMEWORK
+            "dotnet", "fsi"
+#else
+            Path.Combine(ScriptsDir.FullName, "fsx", "Tools", "fsi.bat"), String.Empty
+#endif
         | _ ->
-            let fsxRunnerEnvVar = Environment.GetEnvironmentVariable "FsxRunner"
-            if String.IsNullOrEmpty fsxRunnerEnvVar then
-                let msg = "FsxRunner env var not found, it should have been sourced from build.config file"
+            let fsxRunnerBinEnvVar = Environment.GetEnvironmentVariable "FsxRunnerBin"
+            let fsxRunnerArgEnvVar = Environment.GetEnvironmentVariable "FsxRunnerArg"
+            if String.IsNullOrEmpty fsxRunnerBinEnvVar then
+                let msg = "FsxRunnerBin env var not found, it should have been sourced from build.config file"
                 let msgFull =
                     msg + Environment.NewLine +
                     "(maybe you meant to run a Makefile target rather than this script directly; or there is a .sh wrapper script for your .fsx script)"
                 failwith msgFull
-            fsxRunnerEnvVar
+            fsxRunnerBinEnvVar, fsxRunnerArgEnvVar

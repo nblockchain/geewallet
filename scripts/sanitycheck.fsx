@@ -92,8 +92,9 @@ let FindOffendingPrintfUsage () =
 
     let proc =
         {
-            Command = FsxHelper.FsxRunner
-            Arguments = sprintf "%s --exclude=%s %s"
+            Command = FsxHelper.FsxRunnerBin
+            Arguments = sprintf "%s %s --exclude=%s %s"
+                                FsxHelper.FsxRunnerArg
                                 findScript
                                 excludeFolders
                                 "printf failwithf"

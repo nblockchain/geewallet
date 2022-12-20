@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+RUNNER_BIN=invalid
+RUNNER_ARG=invalid
+
 REPL_CHECK_MSG="checking for a working F# REPL..."
 
 if [ ! -f scripts/fsx/configure.sh ]; then
@@ -26,12 +29,14 @@ if ! which fsharpi >/dev/null 2>&1; then
         exit 1
     else
         echo "$FSX_CHECK_MSG" $'found'
-        RUNNER=fsx
+        RUNNER_BIN=fsx
+        RUNNER_ARG=
     fi
 else
     if ! fsharpi scripts/problem.fsx >/dev/null 2>&1; then
         echo "$REPL_CHECK_MSG" $'not found'
 
+        RUNNER_ARG=
         if ! which fsx >/dev/null 2>&1; then
             echo "$FSX_CHECK_MSG" $'not found'
 
@@ -39,16 +44,24 @@ else
             BIN_DIR="`pwd`/bin/fsx"
             mkdir -p $BIN_DIR
             cd scripts/fsx && ./configure.sh --prefix=$BIN_DIR && make install && cd ../..
-            RUNNER="$BIN_DIR/bin/fsx"
+            RUNNER_BIN="$BIN_DIR/bin/fsx"
         else
             echo "$FSX_CHECK_MSG" $'found'
-            RUNNER=fsx
+            RUNNER_BIN=fsx
         fi
     else
         echo "$REPL_CHECK_MSG" $'found'
-        RUNNER=fsharpi
+        RUNNER_BIN=fsharpi
+        RUNNER_ARG="--define:LEGACY_FRAMEWORK"
     fi
 fi
 
-echo "FsxRunner=$RUNNER" > scripts/build.config
-$RUNNER ./scripts/configure.fsx "$@"
+if [ -z "${RUNNER_BIN}" ]; then
+    echo "Variable RUNNER_BIN not set. Please report this bug" && exit 1
+fi
+echo -e "FsxRunnerBin=$RUNNER_BIN" > scripts/build.config
+if [ ! -z "${RUNNER_ARG}" ]; then
+    echo -e "FsxRunnerArg=$RUNNER_ARG" >> scripts/build.config
+fi
+source scripts/build.config
+$RUNNER_BIN $RUNNER_ARG ./scripts/configure.fsx "$@"

@@ -148,14 +148,25 @@ let buildConfigFile =
     |> FileInfo
 
 let fsxRunner =
-    let fsxRunnerText = "FsxRunner="
+    let fsxRunnerBinText = "FsxRunnerBin="
+    let fsxRunnerArgText = "FsxRunnerArg="
     let buildConfigContents = File.ReadAllLines buildConfigFile.FullName
-    match Array.tryFind (fun (line: string) -> line.StartsWith fsxRunnerText) buildConfigContents with
-    | Some fsxRunnerLine -> fsxRunnerLine.Substring fsxRunnerText.Length
+    match Array.tryFind (fun (line: string) -> line.StartsWith fsxRunnerBinText) buildConfigContents with
+    | Some fsxRunnerBinLine ->
+        let runnerBin = fsxRunnerBinLine.Substring fsxRunnerBinText.Length
+        match Array.tryFind (fun (line: string) -> line.StartsWith fsxRunnerArgText) buildConfigContents with
+        | Some fsxRunnerArgLine ->
+            let runnerArg = fsxRunnerArgLine.Substring fsxRunnerArgText.Length
+            if String.IsNullOrEmpty runnerArg then
+                runnerBin
+            else
+                sprintf "%s %s" runnerBin runnerArg
+        | _ ->
+            runnerBin
     | _ ->
         failwithf
             "Element '%s' not found in %s file, configure.sh|configure.bat should have injected it, please report this bug"
-            fsxRunnerText
+            fsxRunnerBinText
             buildConfigFile.Name
 
 let lines =
