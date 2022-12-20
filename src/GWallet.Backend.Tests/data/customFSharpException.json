@@ -4,7 +4,7 @@
   "Value": {
     "HumanReadableSummary": {
       "ExceptionType": "GWallet.Backend.Tests.CustomFSharpException",
-      "Message": "Exception of type 'GWallet.Backend.Tests.CustomFSharpException' was thrown.",
+      "Message": "CustomFSharpException",
       "StackTrace": "",
       "InnerException": null
     },
