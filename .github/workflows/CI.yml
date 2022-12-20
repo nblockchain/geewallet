@@ -56,7 +56,7 @@ jobs:
     - name: integration tests
       run: .\make update-servers
 
-  linux22-github--xbuild:
+  linux22-github:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
@@ -81,7 +81,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux22-github--msbuild:
+  linux22-github--newmono:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
@@ -186,7 +186,7 @@ jobs:
       run: make update-servers
 
 
-  linux20-github--xbuild:
+  linux20-github:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
@@ -211,7 +211,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux20-github--msbuild:
+  linux20-github--newmono:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
@@ -334,12 +334,12 @@ jobs:
     needs:
     - conventions
 
-    - linux22-github--xbuild
-    - linux22-github--msbuild
+    - linux22-github
+    - linux22-github--newmono
     - linux22-vanilla--stockmono
     - linux22-vanilla--newmono
-    - linux20-github--xbuild
-    - linux20-github--msbuild
+    - linux20-github
+    - linux20-github--newmono
     - linux20-vanilla--stockmono
     - linux20-vanilla--newmono
     - windows
