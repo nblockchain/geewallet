@@ -56,6 +56,12 @@ module MarshallingData =
     let RealExceptionExampleInJson =
         ReadEmbeddedResource "realException.json"
 
+    let RealExceptionUnixLegacyExampleInJson =
+        ReadEmbeddedResource "realException_unixLegacy.json"
+
+    let RealExceptionWindowsLegacyExampleInJson =
+        ReadEmbeddedResource "realException_windowsLegacy.json"
+
     let InnerExceptionExampleInJson =
         ReadEmbeddedResource "innerException.json"
 
@@ -65,11 +71,26 @@ module MarshallingData =
     let CustomFSharpExceptionExampleInJson =
         ReadEmbeddedResource "customFSharpException.json"
 
+    let CustomFSharpExceptionLegacyExampleInJson =
+        ReadEmbeddedResource "customFSharpException_legacy.json"
+
     let FullExceptionExampleInJson =
         ReadEmbeddedResource "fullException.json"
 
+    let FullExceptionUnixLegacyExampleInJson =
+        ReadEmbeddedResource "fullException_unixLegacy.json"
 
-    let SerializedExceptionsAreSame actualJsonString expectedJsonString =
+    let FullExceptionWindowsLegacyExampleInJson =
+        ReadEmbeddedResource "fullException_windowsLegacy.json"
+
+    let rec TrimOutsideAndInside(str: string) =
+        let trimmed = str.Replace("  ", " ").Trim()
+        if trimmed = str then
+            trimmed
+        else
+            TrimOutsideAndInside trimmed
+
+    let SerializedExceptionsAreSame actualJsonString expectedJsonString msg =
 
         let actualJsonException = JObject.Parse actualJsonString
         let expectedJsonException = JObject.Parse expectedJsonString
@@ -85,17 +106,14 @@ module MarshallingData =
                 let stackTraceJToken = jsonEx.SelectToken stackTracePath
                 Assert.That(stackTraceJToken, Is.Not.Null, sprintf "Path %s not found in %s" stackTracePath (jsonEx.ToString()))
                 let initialStackTraceJToken = stackTraceJToken.ToString()
-                if initialStackTraceJToken.Length > 0 then
+                if initialStackTraceJToken.Length > 0 && isUnix then
                     Assert.That(initialStackTraceJToken, Is.StringContaining stackTraceFragment,
                                 sprintf "comparing actual '%s' with expected '%s'" actualJsonString expectedJsonString)
                     let endOfStackTrace = initialStackTraceJToken.Substring(initialStackTraceJToken.IndexOf stackTraceFragment)
                     let tweakedEndOfStackTrace =
-                        if isUnix then
-                            endOfStackTrace
-                                .Replace(":line 42", ":41 ")
-                                .Replace(":line 65", ":64 ")
-                        else
-                            endOfStackTrace
+                        endOfStackTrace
+                            .Replace(":line 42", ":41 ")
+                            .Replace(":line 65", ":64 ")
                     stackTraceJToken.Replace (tweakedEndOfStackTrace |> JToken.op_Implicit)
 
                 let binaryFormToken = jsonEx.SelectToken fullBinaryFormPath
@@ -111,8 +129,11 @@ module MarshallingData =
         tweakStackTraces()
 
         let actualBinaryForm = (actualJsonException.SelectToken fullBinaryFormPath).ToString()
-        Assert.That(actualJsonException.ToString(), Is.EqualTo (expectedJsonException.ToString()),
-                    sprintf "Exceptions didn't match. Full binary form was %s" actualBinaryForm)
+        Assert.That(
+            TrimOutsideAndInside(actualJsonException.ToString()),
+            Is.EqualTo (TrimOutsideAndInside(expectedJsonException.ToString())),
+            msg + actualBinaryForm
+        )
 
         true
 
