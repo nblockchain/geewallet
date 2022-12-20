@@ -57,16 +57,19 @@ let buildConfigContents =
                                          configureLaunch)
         Environment.Exit 1
 
+    let configFileLines = File.ReadAllLines buildConfig.FullName
     let skipBlankLines line = not <| String.IsNullOrWhiteSpace line
     let splitLineIntoKeyValueTuple (line:string) =
         let pair = line.Split([|'='|], StringSplitOptions.RemoveEmptyEntries)
         if pair.Length <> 2 then
-            failwithf "All lines in %s must conform to format:\n\tkey=value"
+            failwithf "All lines in '%s' must conform to key=value format, but got: '%s'. All lines: \n%s"
                       buildConfigFileName
+                      line
+                      (File.ReadAllText buildConfig.FullName)
         pair.[0], pair.[1]
 
     let buildConfigContents =
-        File.ReadAllLines buildConfig.FullName
+        configFileLines
         |> Array.filter skipBlankLines
         |> Array.map splitLineIntoKeyValueTuple
         |> Map.ofArray
