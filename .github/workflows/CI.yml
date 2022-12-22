@@ -71,6 +71,7 @@ jobs:
     - name: end to end tests
       run: |
         . ./scripts/install_regtest_dependencies.sh
+        ulimit -Sn `ulimit -Hn`
         make check-end2end
 
   linux22-github--msbuild:
@@ -100,6 +101,7 @@ jobs:
     - name: end to end tests
       run: |
         . ./scripts/install_regtest_dependencies.sh
+        ulimit -Sn `ulimit -Hn`
         make check-end2end
 
   linux22-vanilla--stockmono:
@@ -140,6 +142,7 @@ jobs:
     - name: end to end tests
       run: |
         . ./scripts/install_regtest_dependencies.sh
+        ulimit -Sn `ulimit -Hn`
         make check-end2end
 
   linux22-vanilla--newmono:
@@ -182,6 +185,7 @@ jobs:
     - name: end to end tests
       run: |
         . ./scripts/install_regtest_dependencies.sh
+        ulimit -Sn `ulimit -Hn`
         make check-end2end
 
 
@@ -210,6 +214,7 @@ jobs:
     - name: end to end tests
       run: |
         . ./scripts/install_regtest_dependencies.sh
+        ulimit -Sn `ulimit -Hn`
         make check-end2end
 
   linux20-github--msbuild:
@@ -239,6 +244,7 @@ jobs:
     - name: end to end tests
       run: |
         . ./scripts/install_regtest_dependencies.sh
+        ulimit -Sn `ulimit -Hn`
         make check-end2end
 
   linux20-vanilla--stockmono:
@@ -279,6 +285,7 @@ jobs:
     - name: end to end tests
       run: |
         . ./scripts/install_regtest_dependencies.sh
+        ulimit -Sn `ulimit -Hn`
         make check-end2end
 
   linux20-vanilla--newmono:
@@ -321,6 +328,7 @@ jobs:
     - name: end to end tests
       run: |
         . ./scripts/install_regtest_dependencies.sh
+        ulimit -Sn `ulimit -Hn`
         make check-end2end
 
   conventions:
