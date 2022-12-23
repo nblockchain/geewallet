@@ -17,6 +17,7 @@ type CloudFlareError =
 
 type AbnormalSocketError =
     | ResourceTemporarilyUnavailable = 11
+    | NameOrServiceNotKnown = -131073
 
 type internal UnhandledSocketException =
     inherit Exception
@@ -156,6 +157,8 @@ module Networking =
 
             elif socketException.ErrorCode = int AbnormalSocketError.ResourceTemporarilyUnavailable then
                 ServerRefusedException(newExceptionMsg, ex) :> Exception |> Some
+            elif socketException.ErrorCode = int AbnormalSocketError.NameOrServiceNotKnown then
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
 
             // we mark it as "buggy from old mono" because this sounds like it would be fixed in .NET6
             // (the version when Xamarin will work the .NETCore BCL)
