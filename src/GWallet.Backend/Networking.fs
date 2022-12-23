@@ -18,6 +18,7 @@ type CloudFlareError =
 type AbnormalSocketError =
     | ResourceTemporarilyUnavailable = 11
     | NameOrServiceNotKnown = -131073
+    | NoDataFoundForRequestedName = 11004
 
 type internal UnhandledSocketException =
     inherit Exception
@@ -155,10 +156,13 @@ module Networking =
             elif socketException.ErrorCode = int SocketError.HostNotFound then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
 
+            // FYI these 3 socketErrors below we got them (in the span of less than a day) when upgrading to .NET6:
             elif socketException.ErrorCode = int AbnormalSocketError.ResourceTemporarilyUnavailable then
                 ServerRefusedException(newExceptionMsg, ex) :> Exception |> Some
             elif socketException.ErrorCode = int AbnormalSocketError.NameOrServiceNotKnown then
                 ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
+            elif socketException.ErrorCode = int AbnormalSocketError.NoDataFoundForRequestedName then
+                ServerMisconfiguredException(newExceptionMsg, ex) :> Exception |> Some
 
             // we mark it as "buggy from old mono" because this sounds like it would be fixed in .NET6
             // (the version when Xamarin will work the .NETCore BCL)
