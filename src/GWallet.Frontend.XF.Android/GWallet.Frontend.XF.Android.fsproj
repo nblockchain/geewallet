@@ -12,7 +12,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
-		<PackageReference Include="FSharp.Android.Resource" Version="1.0.0" />
+		<PackageReference Include="FSharp.Android.Resource" Version="1.0.4" />
 		<PackageReference Include="Zlib.Portable" Version="1.11.0" />
 		<PackageReference Include="ZXing.Net" Version="0.16.6" />
 		<PackageReference Include="ZXing.Net.Xamarin" Version="3.0.0--date20220902-0549.git-462686e" />
