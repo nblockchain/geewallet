@@ -7,11 +7,11 @@
 	<ItemGroup>
 		<Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs" Link="Properties\CommonAssemblyInfo.fs" />
 		<Compile Include="Properties\AssemblyInfo.fs" />
-		<None Include="AndroidManifest.xml" />
+		<None Include="Properties\AndroidManifest.xml" />
 		<Compile Include="MainActivity.fs" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Xamarin.Forms" Version="5.0.0.2337" />
+		<PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
 		<PackageReference Include="FSharp.Android.Resource" Version="1.0.0" />
 		<PackageReference Include="Xamarin.Android.Arch.Core.Common" Version="1.1.1.3" />
 		<PackageReference Include="Xamarin.Android.Arch.Core.Runtime" Version="1.1.1.3" />
@@ -107,7 +107,6 @@
 		<PackageReference Include="Xamarin.AndroidX.VersionedParcelable" Version="1.1.1.10" />
 		<PackageReference Include="Xamarin.AndroidX.ViewPager" Version="1.0.0.8" />
 		<PackageReference Include="Xamarin.AndroidX.ViewPager2" Version="1.0.0.10" />
-		<PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
 		<PackageReference Include="Xamarin.Google.Android.Material" Version="1.4.0.2" />
 		<PackageReference Include="Xamarin.Google.Guava.ListenableFuture" Version="1.0.0.2" />
 		<PackageReference Include="Zlib.Portable" Version="1.11.0" />

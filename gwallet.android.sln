@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend", "src\GWallet.Backend\GWallet.Backend.fsproj", "{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}"
-EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.XF", "src\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj", "{9D23A58B-452C-425F-BCAE-A7810E7E36E7}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.XF.Android", "src\GWallet.Frontend.XF.Android\GWallet.Frontend.XF.Android.fsproj", "{27A03FDF-B3B8-4895-BEC3-EF3B412AF17B}"
@@ -27,30 +25,6 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|ARM.ActiveCfg = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|ARM.Build.0 = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|iPhone.ActiveCfg = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|iPhone.Build.0 = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|x64.Build.0 = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|x86.Build.0 = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|ARM.ActiveCfg = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|ARM.Build.0 = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|iPhone.ActiveCfg = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|iPhone.Build.0 = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|x64.ActiveCfg = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|x64.Build.0 = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|x86.ActiveCfg = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|x86.Build.0 = Release|Any CPU
 		{9D23A58B-452C-425F-BCAE-A7810E7E36E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9D23A58B-452C-425F-BCAE-A7810E7E36E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9D23A58B-452C-425F-BCAE-A7810E7E36E7}.Debug|ARM.ActiveCfg = Debug|Any CPU
