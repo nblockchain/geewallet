@@ -30,7 +30,7 @@ jobs:
       run: dotnet restore gwallet.android.sln
     - name: build android project
       run: |
-        msbuild -t:build gwallet.android.sln || msbuild -t:build gwallet.android.sln
+        dotnet build --no-restore gwallet.android.sln || dotnet build --no-restore gwallet.android.sln
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
