@@ -38,7 +38,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{C90A30F5-1
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.Gtk", "src\GWallet.Frontend.XF.Gtk\GWallet.Frontend.XF.Gtk.fsproj", "{578E4F5E-A33D-4C04-BD6C-22B48B789F36}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.Android", "src\GWallet.Frontend.XF.Android\GWallet.Frontend.XF.Android.fsproj", "{24B7E0C6-9113-4430-8614-6E3AED7FE0C0}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.XF.Android", "src\GWallet.Frontend.XF.Android\GWallet.Frontend.XF.Android.fsproj", "{24B7E0C6-9113-4430-8614-6E3AED7FE0C0}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.XF", "src\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj", "{85236682-6463-4209-B66C-E0643EF12B46}"
 EndProject
@@ -307,9 +307,6 @@ Global
 		{5DD656CE-3319-46BB-B47F-BBED8CC722FD}.Release|x64.Build.0 = Release|iPhoneSimulator
 		{5DD656CE-3319-46BB-B47F-BBED8CC722FD}.Release|x86.ActiveCfg = Release|iPhoneSimulator
 		{5DD656CE-3319-46BB-B47F-BBED8CC722FD}.Release|x86.Build.0 = Release|iPhoneSimulator
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{6EE07541-91A1-42C2-A21F-2809BBDC2F50} = {CE79AB9D-0FB9-4606-B7C6-A78C0858CC54}
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
