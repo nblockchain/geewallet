@@ -32,8 +32,32 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  windows:
+  windowsLatest:
     runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: configure
+      run: .\configure.bat
+    - name: build in DEBUG mode
+      run: .\make.bat
+    - name: sanity check
+      run: .\make.bat sanitycheck
+    - name: unit tests
+      run: .\make.bat check
+    - name: re-build in STRICT mode
+      run: git clean -fdx && .\configure.bat && .\make.bat strict
+    - name: re-build in RELEASE mode
+      run: git clean -fdx && .\configure.bat && .\make.bat release
+    # TODO: use fsx's scripts compilation when we migrate to .NET6 (to use `#r "nuget: Microsoft.Build"` instead of `#r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"`)
+    #- name: compile .fsx scripts
+    #  run: dotnet fsi ./scripts/fsx/compileFSharpScripts.fsx
+    - name: integration tests
+      run: .\make update-servers
+
+  windows2019:
+    runs-on: windows-2019
     steps:
     - uses: actions/checkout@v1
       with:
@@ -342,7 +366,8 @@ jobs:
     - linux20-github--newmono
     - linux20-vanilla--stockmono
     - linux20-vanilla--newmono
-    - windows
+    - windowsLatest
+    - windows2019
     - macOS
 
     runs-on: ubuntu-20.04
