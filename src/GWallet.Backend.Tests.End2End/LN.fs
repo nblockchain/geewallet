@@ -347,6 +347,8 @@ type LN() =
         match closeChannelRes with
         | Ok _ -> ()
         | Error err -> return failwith (SPrintF1 "failed to accept close channel: %A" err)
+
+        (serverWallet :> IDisposable).Dispose()
     }
 
     [<Category "G2G_ChannelClosingAfterSendingHTLCPayments_Funder">]
