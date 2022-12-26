@@ -69,14 +69,16 @@ type ExceptionMarshalling () =
         Marshalling.Serialize ex
 
     let msg = "Exceptions didn't match. Full binary form was "
+#if LEGACY_FRAMEWORK
     let legacyMsg = "(Legacy)Exceptions didn't match. Full binary form was "
+#endif
 
     [<Test>]
     member __.``can serialize basic exceptions``() =
         let json = SerializeBasicException ()
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.BasicExceptionExampleInJson msg)
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.BasicExceptionExampleInJson false msg)
 
     [<Test>]
     member __.``can deserialize basic exceptions``() =
@@ -100,16 +102,20 @@ type ExceptionMarshalling () =
         let json = SerializeRealException ()
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
+#if !LEGACY_FRAMEWORK
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionExampleInJson false msg)
+#else
         if Config.IsWindowsPlatform () then
             let serializedExceptionsAreSame =
                 try
-                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionExampleInJson msg
+                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionExampleInJson false msg
                 with
                 | :? AssertionException ->
-                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionWindowsLegacyExampleInJson legacyMsg
+                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionWindowsLegacyExampleInJson false legacyMsg
             Assert.That serializedExceptionsAreSame
         else
-            Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionUnixLegacyExampleInJson legacyMsg)
+            Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.RealExceptionUnixLegacyExampleInJson false legacyMsg)
+#endif
 
     [<Test>]
     member __.``can deserialize real exceptions``() =
@@ -134,7 +140,7 @@ type ExceptionMarshalling () =
         let json = SerializeInnerException ()
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.InnerExceptionExampleInJson msg)
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.InnerExceptionExampleInJson false msg)
 
     [<Test>]
     member __.``can deserialize inner exceptions``() =
@@ -162,7 +168,7 @@ type ExceptionMarshalling () =
         let json = SerializeCustomException ()
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.CustomExceptionExampleInJson msg)
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.CustomExceptionExampleInJson false msg)
 
     [<Test>]
     member __.``serializing custom exception not prepared for binary serialization, throws``() =
@@ -170,7 +176,7 @@ type ExceptionMarshalling () =
         let ex: MarshallingCompatibilityException =
             Assert.Throws(fun _ -> Marshalling.Serialize exToSerialize |> ignore<string>)
         Assert.That(ex, Is.TypeOf<MarshallingCompatibilityException>())
-        Assert.That(ex.Message, Is.StringContaining "GWallet.Backend.Tests.CustomExceptionWithoutSerializationCtor")
+        Assert.That(ex.Message, IsString.WhichContains "GWallet.Backend.Tests.CustomExceptionWithoutSerializationCtor")
 
     [<Test>]
     member __.``can deserialize custom exceptions``() =
@@ -194,16 +200,9 @@ type ExceptionMarshalling () =
         let json = SerializeCustomFSharpException ()
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
-        if Config.IsWindowsPlatform () then
-            let serializedExceptionsAreSame =
-                try
-                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.CustomFSharpExceptionExampleInJson msg
-                with
-                | :? AssertionException ->
-                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.CustomFSharpExceptionLegacyExampleInJson legacyMsg
-            Assert.That serializedExceptionsAreSame
-        else
-            Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.CustomFSharpExceptionLegacyExampleInJson legacyMsg)
+
+        // strangely enough, message would be different between linux_vanilla_dotnet6 and other dotnet6 configs (e.g. Windows, macOS, Linux-github)
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.CustomFSharpExceptionExampleInJson true msg)
 
     [<Test>]
     member __.``can deserialize F# custom exceptions``() =
@@ -232,16 +231,20 @@ type ExceptionMarshalling () =
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
+#if !LEGACY_FRAMEWORK
+        Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionExampleInJson false msg)
+#else
         if Config.IsWindowsPlatform () then
             let serializedExceptionsAreSame =
                 try
-                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionExampleInJson msg
+                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionExampleInJson false msg
                 with
                 | :? AssertionException ->
-                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionWindowsLegacyExampleInJson legacyMsg
+                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionWindowsLegacyExampleInJson false legacyMsg
             Assert.That serializedExceptionsAreSame
         else
-            Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionUnixLegacyExampleInJson legacyMsg)
+            Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionUnixLegacyExampleInJson false legacyMsg)
+#endif
 
     [<Test>]
     member __.``can deserialize full exceptions (all previous features combined)``() =

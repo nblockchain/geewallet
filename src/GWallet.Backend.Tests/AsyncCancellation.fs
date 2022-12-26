@@ -6,6 +6,7 @@ open System.Threading
 open System.Threading.Tasks
 
 open GWallet.Backend
+open FSharpUtil.AsyncExtensions
 
 open NUnit.Framework
 
@@ -38,7 +39,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
         let job2 =
             async { return 0 }
         let longJobThatShouldBeCanceled = async {
-            do! Async.Sleep <| int someLongTime.TotalMilliseconds
+            do! SleepSpan someLongTime
             longFuncFinishedExecution <- true
             return 0
         }
@@ -73,11 +74,11 @@ type FaultTolerantParallelClientAsyncCancellation() =
         let someLongTime = TimeSpan.FromSeconds 1.0
 
         let job1 = async {
-            do! Async.Sleep <| int someLongTime.TotalMilliseconds
+            do! SleepSpan someLongTime
             return 1
         }
         let job2 = async {
-            do! Async.Sleep <| int someLongTime.TotalMilliseconds
+            do! SleepSpan someLongTime
             return 2
         }
 
@@ -258,8 +259,8 @@ type FaultTolerantParallelClientAsyncCancellation() =
 
         let SomeMethodAsync(cancelToken: CancellationToken): Task<unit> =
             let job = async {
-                do! Async.Sleep <| int (someShortTime).TotalMilliseconds
-                do! Async.Sleep <| int (someLongTime).TotalMilliseconds
+                do! SleepSpan someShortTime
+                do! SleepSpan someLongTime
                 longFuncFinishedExecution <- true
             }
             let task =
@@ -272,7 +273,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
         let job1 =
             async {
                 job1started <- true
-                do! Async.Sleep <| int someLongTime.TotalMilliseconds
+                do! SleepSpan someLongTime
                 return 0
             }
         let longJobThatShouldBeCanceled = async {
@@ -330,7 +331,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
         let timeoutTime = TimeSpan.FromSeconds 5.0
 
         let job = async {
-            do! Async.Sleep <| int jobTime.TotalMilliseconds
+            do! SleepSpan jobTime
             return 1
         }
 
@@ -524,7 +525,7 @@ type DotNetAsyncCancellation() =
         let asyncJob = async {
             let task = SomeMethodAsync()
             do! Async.AwaitTask task
-            do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+            do! SleepSpan <| TimeSpan.FromSeconds 2.0
             newCount <- newCount + 100
         }
         let task = Async.StartAsTask (asyncJob, ?cancellationToken = Some cancelSource.Token)
@@ -599,7 +600,7 @@ type DotNetAsyncCancellation() =
         use cancelSource = new CancellationTokenSource()
         let asyncJob = async {
             cancelSource.Cancel()
-            do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+            do! SleepSpan <| TimeSpan.FromSeconds 2.0
             newCount <- newCount + 100
         }
         let task = Async.StartAsTask (asyncJob, ?cancellationToken = Some cancelSource.Token)
@@ -670,7 +671,7 @@ type DotNetAsyncCancellation() =
         let asyncJob = async {
             let task = SomeMethodAsync()
             do! Async.AwaitTask task
-            do! Async.Sleep <| int (TimeSpan.FromSeconds 3.0).TotalMilliseconds
+            do! SleepSpan <| TimeSpan.FromSeconds 3.0
             newCount <- newCount + 1000
         }
         let task = Async.StartAsTask (asyncJob, ?cancellationToken = Some cancelSource.Token)
@@ -701,7 +702,7 @@ type DotNetAsyncCancellation() =
         let asyncJob = async {
             let task = SomeMethodAsync()
             do! Async.AwaitTask task
-            do! Async.Sleep <| int (TimeSpan.FromSeconds 3.0).TotalMilliseconds
+            do! SleepSpan <| TimeSpan.FromSeconds 3.0
             newCount <- newCount + 1000
         }
         let task = Async.StartAsTask (asyncJob, ?cancellationToken = Some cancelSource.Token)
@@ -736,7 +737,7 @@ type DotNetAsyncCancellation() =
         let asyncJob = async {
             let task = SomeMethodAsync()
             do! Async.AwaitTask task
-            do! Async.Sleep <| int (TimeSpan.FromSeconds 3.0).TotalMilliseconds
+            do! SleepSpan <| TimeSpan.FromSeconds 3.0
             newCount <- newCount + 1000
         }
         let task = Async.StartAsTask (asyncJob, ?cancellationToken = Some cancelSource.Token)
@@ -757,10 +758,10 @@ type DotNetAsyncCancellation() =
         let mutable newCount = 1
         let SomeMethodAsync(): Task<unit> =
             let job = async {
-                do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+                do! SleepSpan <| TimeSpan.FromSeconds 2.0
                 newCount <- newCount + 10
                 cancelSource.Cancel()
-                do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+                do! SleepSpan <| TimeSpan.FromSeconds 2.0
                 newCount <- newCount + 100
             }
             let task = Async.StartAsTask(job, ?cancellationToken = Some cancelSource.Token)
@@ -768,7 +769,7 @@ type DotNetAsyncCancellation() =
         let asyncJob = async {
             let task = SomeMethodAsync()
             do! Async.AwaitTask task
-            do! Async.Sleep <| int (TimeSpan.FromSeconds 3.0).TotalMilliseconds
+            do! SleepSpan <| TimeSpan.FromSeconds 3.0
             newCount <- newCount + 1000
         }
         let task = Async.StartAsTask (asyncJob, ?cancellationToken = Some cancelSource.Token)
@@ -789,10 +790,10 @@ type DotNetAsyncCancellation() =
         let mutable newCount = 1
         let SomeMethodAsync(cancelToken: CancellationToken): Task<unit> =
             let job = async {
-                do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+                do! SleepSpan <| TimeSpan.FromSeconds 2.0
                 newCount <- newCount + 10
                 cancelSource.Cancel()
-                do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+                do! SleepSpan <| TimeSpan.FromSeconds 2.0
                 newCount <- newCount + 100
             }
             let task = Async.StartAsTask(job, ?cancellationToken = Some cancelToken)
@@ -801,7 +802,7 @@ type DotNetAsyncCancellation() =
             let! token = Async.CancellationToken
             let task = SomeMethodAsync token
             do! Async.AwaitTask task
-            do! Async.Sleep <| int (TimeSpan.FromSeconds 3.0).TotalMilliseconds
+            do! SleepSpan <| TimeSpan.FromSeconds 3.0
             newCount <- newCount + 1000
         }
         let task = Async.StartAsTask (asyncJob, ?cancellationToken = Some cancelSource.Token)
@@ -886,14 +887,14 @@ type DotNetAsyncCancellation() =
         let token = cancellationSource.Token
         let SomeMethodAsync1(): Async<int> =
             async {
-                do! Async.Sleep <| int (TimeSpan.FromSeconds 1.0).TotalMilliseconds
+                do! SleepSpan <| TimeSpan.FromSeconds 1.0
                 return 1
             }
         let task1 = Async.StartAsTask (SomeMethodAsync1(), ?cancellationToken = Some token)
 
         let SomeMethodAsync2(): Async<int> =
             async {
-                do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+                do! SleepSpan <| TimeSpan.FromSeconds 2.0
                 return 2
             }
         let task2 = Async.StartAsTask (SomeMethodAsync2())
@@ -910,14 +911,14 @@ type DotNetAsyncCancellation() =
         let token = cancellationSource.Token
         let SomeMethodAsync1(): Async<int> =
             async {
-                do! Async.Sleep <| int (TimeSpan.FromSeconds 1.0).TotalMilliseconds
+                do! SleepSpan <| TimeSpan.FromSeconds 1.0
                 return 1
             }
         let task1 = Async.StartAsTask (SomeMethodAsync1(), ?cancellationToken = Some token)
 
         let SomeMethodAsync2(): Async<int> =
             async {
-                do! Async.Sleep <| int (TimeSpan.FromSeconds 2.0).TotalMilliseconds
+                do! SleepSpan <| TimeSpan.FromSeconds 2.0
                 return 2
             }
         let task2 = Async.StartAsTask (SomeMethodAsync2())
@@ -938,7 +939,7 @@ type DotNetAsyncCancellation() =
         let token = cancellationSource.Token
         let SomeMethodAsync1(): Async<int> =
             async {
-                do! Async.Sleep <| int (TimeSpan.FromSeconds 1.0).TotalMilliseconds
+                do! SleepSpan <| TimeSpan.FromSeconds 1.0
                 return 1
             }
         let task = Async.StartAsTask (SomeMethodAsync1(), ?cancellationToken = Some token)

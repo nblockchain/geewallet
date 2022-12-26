@@ -55,7 +55,7 @@ module UserInteraction =
 
     exception NoOperationFound
 
-    let rec FindMatchingOperation<'T> operationIntroduced (allOperations: List<'T*int>): 'T =
+    let rec FindMatchingOperation<'T> (operationIntroduced: string) (allOperations: List<'T*int>): 'T =
         match Int32.TryParse operationIntroduced with
         | false, _ -> raise NoOperationFound
         | true, operationParsed ->
@@ -282,7 +282,7 @@ module UserInteraction =
 
     let DisplayAccountStatuses(whichAccount: WhichAccount): Async<seq<string>> =
         let rec displayAllAndSumBalance (accounts: seq<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>)
-                                         currentIndex
+                                        (currentIndex: int)
                                         (currentSumMap: Map<Currency,Option<decimal*MaybeCached<decimal>>>)
                                         : seq<string> * Map<Currency,Option<decimal*MaybeCached<decimal>>> =
             let account,maybeBalance,maybeUsdValue = accounts.ElementAt currentIndex

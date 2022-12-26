@@ -152,10 +152,41 @@ module Config =
     let RemoveReadOnlyAccount (account: ReadOnlyAccount): unit =
         RemoveAccount account
 
-    let ExtractEmbeddedResourceFileContents resourceName =
+    let ExtractEmbeddedResourceFileContentsFromAssembly (resourceName: string) (assembly: Assembly) =
+        let ress = String.Join(";", assembly.GetManifestResourceNames())
+
+        let fullNameOpt =
+            assembly.GetManifestResourceNames()
+            |> Seq.filter (fun aResourceName ->
+#if !LEGACY_FRAMEWORK
+                                                    aResourceName.EndsWith("." + resourceName)
+#else
+                                                    aResourceName = resourceName
+#endif
+            )
+            |> Seq.tryExactlyOne
+
+        match fullNameOpt with
+        | Some fullName ->
+            use stream = assembly.GetManifestResourceStream fullName
+            if (stream = null) then
+                let failMsg =
+                    SPrintF3 "Embedded resource %s (%s) not found in assembly %s"
+                        resourceName
+                        fullName
+                        assembly.FullName
+                failwith failMsg
+            use reader = new StreamReader(stream)
+            reader.ReadToEnd()
+        | None ->
+            let failMsg =
+                SPrintF3 "Embedded resource %s not found at all in assembly %s (resource names: %s)"
+                    resourceName
+                    assembly.FullName
+                    ress
+            failwith failMsg
+
+    let ExtractEmbeddedResourceFileContents (resourceName: string) =
         let assembly = Assembly.GetExecutingAssembly()
-        use stream = assembly.GetManifestResourceStream resourceName
-        if (stream = null) then
-            failwith <| SPrintF1 "Embedded resource %s not found" resourceName
-        use reader = new StreamReader(stream)
-        reader.ReadToEnd()
+        ExtractEmbeddedResourceFileContentsFromAssembly resourceName assembly
+

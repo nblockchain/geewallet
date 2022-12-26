@@ -1,4 +1,4 @@
-#!/usr/bin/env fsharpi
+#!/usr/bin/env -S dotnet fsi
 
 open System
 open System.IO
