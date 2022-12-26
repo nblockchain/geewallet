@@ -42,6 +42,7 @@ type private WalletInstance (password: string, channelStore: ChannelStore) =
             Account.WipeAll()
 
             oneWalletAtATime.Release() |> ignore
+            Console.WriteLine("*** Wallet instance was disposed of")
 
     member __.Account: IAccount =
         Account.GetAllActiveAccounts() |> Seq.filter (fun x -> x.Currency = Currency.BTC) |> Seq.head

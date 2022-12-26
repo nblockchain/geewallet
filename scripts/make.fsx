@@ -253,7 +253,7 @@ let RunTests (suite: string) =
 
             {
                 Command = nunitCommand
-                Arguments = sprintf "%s%s" maybeExtraArgs testAssembly.FullName
+                Arguments = sprintf "-labels %s%s" maybeExtraArgs testAssembly.FullName
             }
 
         | _ ->
