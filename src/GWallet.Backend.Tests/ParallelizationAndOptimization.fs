@@ -7,6 +7,7 @@ open System.Diagnostics
 open NUnit.Framework
 
 open GWallet.Backend
+open FSharpUtil.AsyncExtensions
 
 
 exception SomeExceptionDuringParallelWork
@@ -98,7 +99,7 @@ type ParallelizationAndOptimization() =
             return raise SomeExceptionDuringParallelWork
         }
         let aJob2 = async {
-            do! Async.Sleep <| int someLongTime.TotalMilliseconds
+            do! SleepSpan someLongTime
             return 0
         }
         let job3Result = 1
@@ -136,7 +137,7 @@ type ParallelizationAndOptimization() =
         let aJob1 =
             async { return 0 }
         let aJob2 = async {
-            do! Async.Sleep <| int someLongTime.TotalMilliseconds
+            do! SleepSpan someLongTime
             return 0
         }
         let aJob3 =
@@ -373,7 +374,7 @@ type ParallelizationAndOptimization() =
             }
 
         let aJob1 = async {
-            do! Async.Sleep 2000
+            do! SleepSpan <| TimeSpan.FromSeconds 2.0
             return 0
         }
         let aJob2 = async {
@@ -453,7 +454,7 @@ type ParallelizationAndOptimization() =
                     for j in 1..int jobsPerRunner do
                         let job = async {
                             if sleep then
-                                do! Async.Sleep <| System.Random().Next(1, 3)
+                                do! Async.Sleep (System.Random().Next(1, 3))
                             let! token = Async.CancellationToken
                             token.ThrowIfCancellationRequested()
                             return j % 2

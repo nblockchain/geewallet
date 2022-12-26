@@ -1,4 +1,4 @@
-#!/usr/bin/env fsharpi
+#!/usr/bin/env -S dotnet fsi
 
 open System
 open System.IO
@@ -24,7 +24,11 @@ open Process
 #load "fsxHelper.fs"
 open GWallet.Scripting
 
+#if LEGACY_FRAMEWORK
 #r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"
+#else
+#r "nuget: Microsoft.Build, Version=16.11.0"
+#endif
 open Microsoft.Build.Construction
 
 
@@ -100,11 +104,25 @@ let FindOffendingPrintfUsage () =
                                 "printf failwithf"
         }
     let findProc = Process.Execute (proc, Echo.All)
-    if findProc.UnwrapDefault().Trim().Length > 0 then
+    let findProcOutput =
+        match findProc.Result with
+        | ProcessResultState.Error (_exitCode, _output) ->
+            Console.WriteLine()
+            Console.Out.Flush()
+            Console.Error.Flush()
+            failwith "Unexpected 'find.fsx' error ^"
+        | ProcessResultState.WarningsOrAmbiguous output ->
+            output.StdOut
+        | ProcessResultState.Success output ->
+            output
+    if findProcOutput.Trim().Length > 0 then
         Console.Error.WriteLine "Illegal usage of printf/printfn/sprintf/sprintfn/failwithf detected; use SPrintF1/SPrintF2/... instead"
         Environment.Exit 1
 
 let SanityCheckNugetPackages () =
+
+    let notPackagesFolder (dir: DirectoryInfo): bool =
+        dir.FullName <> FsxHelper.NugetSolutionPackagesDir.FullName
 
     let notSubmodule (dir: DirectoryInfo): bool =
         let getSubmoduleDirsForThisRepo (): seq<DirectoryInfo> =
@@ -127,6 +145,15 @@ let SanityCheckNugetPackages () =
             .Replace('/', Path.DirectorySeparatorChar)
 
     let sanityCheckNugetPackagesFromSolution (sol: FileInfo) =
+#if !LEGACY_FRAMEWORK
+        let rec findProjectFiles (): seq<FileInfo> =
+            let parsedSolution = SolutionFile.Parse sol.FullName
+            seq {
+                for projPath in (parsedSolution.ProjectsInOrder.Select(fun proj -> normalizeDirSeparatorsPaths proj.AbsolutePath).ToList()) do
+                    if projPath.ToLower().EndsWith ".fsproj" || projPath.ToLower().EndsWith ".csproj" then
+                        yield (FileInfo projPath)
+            }
+#else
         let findPackagesDotConfigFiles (): seq<FileInfo> =
             let parsedSolution = SolutionFile.Parse sol.FullName
             seq {
@@ -136,6 +163,7 @@ let SanityCheckNugetPackages () =
                             if file.Name.ToLower () = "packages.config" then
                                 yield file
             }
+#endif
 
         let rec findNuspecFiles (dir: DirectoryInfo): seq<FileInfo> =
             dir.Refresh ()
@@ -143,14 +171,29 @@ let SanityCheckNugetPackages () =
                 for file in dir.EnumerateFiles () do
                     if (file.Name.ToLower ()).EndsWith ".nuspec" then
                         yield file
-                for subdir in dir.EnumerateDirectories().Where notSubmodule do
+                for subdir in dir.EnumerateDirectories().Where(notSubmodule).Where(notPackagesFolder) do
                     for file in findNuspecFiles subdir do
                         yield file
             }
 
         let getPackageTree (sol: FileInfo): Map<ComparableFileInfo,seq<PackageInfo>> =
+#if !LEGACY_FRAMEWORK
+            let projectFiles = findProjectFiles()
+            let projectElements =
+                seq {
+                    for projectFile in projectFiles do
+                        let xmlDoc = XDocument.Load projectFile.FullName
+                        let query = "//PackageReference"
+                        let pkgReferences = xmlDoc.XPathSelectElements query
+
+                        for pkgReference in pkgReferences do
+                            let id = pkgReference.Attributes().Single(fun attr -> attr.Name.LocalName = "Include").Value
+                            let version = pkgReference.Attributes().Single(fun attr -> attr.Name.LocalName = "Version").Value
+                            yield { File = projectFile }, { PackageId = id; PackageVersion = version; ReqReinstall = None }
+                } |> List.ofSeq
+#else
             let packagesConfigFiles = findPackagesDotConfigFiles()
-            let packageConfigFileElements =
+            let projectElements =
                 seq {
                     for packagesConfigFile in packagesConfigFiles do
                         let xmlDoc = XDocument.Load packagesConfigFile.FullName
@@ -161,6 +204,7 @@ let SanityCheckNugetPackages () =
                                 let reqReinstall = descendant.Attributes().Any(fun attr -> attr.Name.LocalName = "requireReinstallation")
                                 yield { File = packagesConfigFile }, { PackageId = id; PackageVersion = version; ReqReinstall = Some reqReinstall }
                 } |> List.ofSeq
+#endif
 
             let solDir = sol.Directory
             solDir.Refresh ()
@@ -197,7 +241,7 @@ let SanityCheckNugetPackages () =
                             yield { File = nuspecFile }, { PackageId = id; PackageVersion = version; ReqReinstall = None }
                 } |> List.ofSeq
 
-            let allElements = Seq.append packageConfigFileElements nuspecFileElements
+            let allElements = Seq.append projectElements nuspecFileElements
 
             allElements
             |> MapHelper.MergeIntoMap
@@ -212,7 +256,16 @@ let SanityCheckNugetPackages () =
         let getDirectoryNamesForPackagesSet (packages: Map<PackageInfo,seq<DependencyHolder>>): Map<string,seq<DependencyHolder>> =
             seq {
                 for KeyValue (package, prjs) in packages do
-                    yield (sprintf "%s.%s" package.PackageId package.PackageVersion), prjs
+#if !LEGACY_FRAMEWORK
+                    let dirForPackage =
+                        sprintf "%s%s%s"
+                            (package.PackageId.ToLower())
+                            (Path.DirectorySeparatorChar.ToString())
+                            package.PackageVersion
+#else
+                    let dirForPackage = sprintf "%s.%s" package.PackageId package.PackageVersion
+#endif
+                    yield dirForPackage, prjs
             } |> Map.ofSeq
 
         let findMissingPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): Map<string,seq<DependencyHolder>> =
@@ -233,7 +286,10 @@ let SanityCheckNugetPackages () =
 
             seq {
                 for KeyValue (packageDirNameThatShouldExist, prjs) in idealPackageDirs do
-                    if not (packageDirsAbsolutePaths.Contains (Path.Combine(FsxHelper.NugetSolutionPackagesDir.FullName, packageDirNameThatShouldExist))) then
+                    let pkgDirToLookFor =
+                        Path.Combine(FsxHelper.NugetSolutionPackagesDir.FullName, packageDirNameThatShouldExist)
+                        |> DirectoryInfo
+                    if not pkgDirToLookFor.Exists then
                         yield packageDirNameThatShouldExist, prjs
             } |> Map.ofSeq
 
@@ -313,12 +369,14 @@ let SanityCheckNugetPackages () =
                 Console.Error.WriteLine (sprintf "Missing folder for nuget package in submodule: %s (referenced from %s)" missingPkg depHolderNames)
             Environment.Exit 1
 
+#if LEGACY_FRAMEWORK
         let excessPackageDirs = findExcessPackageDirs solDir idealDirList
         if excessPackageDirs.Any () then
             let advice = "remove it with git filter-branch to avoid needless bandwidth: http://stackoverflow.com/a/17824718/6503091"
             for excessPkg in excessPackageDirs do
                 Console.Error.WriteLine(sprintf "Unused nuget package folder: %s (%s)" excessPkg advice)
             Environment.Exit 1
+#endif
 
         let pkgWithMoreThan1VersionPrint (key: string) (packageInfos: seq<ComparableFileInfo*PackageInfo>) =
             Console.Error.WriteLine (sprintf "Package found with more than one version: %s. All occurrences:" key)

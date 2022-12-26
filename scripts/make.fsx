@@ -1,4 +1,4 @@
-#!/usr/bin/env fsharpi
+#!/usr/bin/env -S dotnet fsi
 
 open System
 open System.IO
@@ -147,29 +147,59 @@ let PrintNugetVersion () =
             failwith "nuget process' output contained errors ^"
 
 let BuildSolution
-    (buildTool: string)
+    (buildToolAndBuildArg: string*string)
     (solutionFileName: string)
     (binaryConfig: BinaryConfig)
     (maybeConstant: Option<string>)
     (extraOptions: string)
     =
-    let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
+    let buildTool,buildArg = buildToolAndBuildArg
+
+    let configOption =
+#if !LEGACY_FRAMEWORK
+        sprintf "--configuration %s" (binaryConfig.ToString())
+#else
+        sprintf "/p:Configuration=%s" (binaryConfig.ToString())
+#endif
+
     let defineConstantsFromBuildConfig =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> constants.Split([|";"|], StringSplitOptions.RemoveEmptyEntries) |> Seq.ofArray
         | None -> Seq.empty
+    let defineConstantsSoFar =
+        if solutionFileName.EndsWith "-legacy.sln" then
+            Seq.append ["LEGACY_FRAMEWORK"] defineConstantsFromBuildConfig
+        else
+            defineConstantsFromBuildConfig
     let allDefineConstants =
         match maybeConstant with
-        | Some constant -> Seq.append [constant] defineConstantsFromBuildConfig
-        | None -> defineConstantsFromBuildConfig
+        | Some constant -> Seq.append [constant] defineConstantsSoFar
+        | None -> defineConstantsSoFar
     let configOptions =
         if allDefineConstants.Any() then
             // FIXME: we shouldn't override the project's DefineConstants, but rather set "ExtraDefineConstants"
             // from the command line, and merge them later in the project file: see https://stackoverflow.com/a/32326853/544947
-            sprintf "%s;DefineConstants=%s" configOption (String.Join(";", allDefineConstants))
+            let defineConstants =
+                match binaryConfig with
+                | Release -> allDefineConstants
+                | Debug ->
+                    if not (allDefineConstants.Contains "DEBUG") then
+                        Seq.append allDefineConstants ["DEBUG"]
+                    else
+                        allDefineConstants
+
+            // xbuild: legacy of the legacy!
+            if buildTool = "xbuild" then
+                // see https://github.com/dotnet/sdk/issues/9562
+                let semiColon = "%3B"
+                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
+            else
+                let semiColon = ";"
+                sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
-    let buildArgs = sprintf "%s %s %s"
+    let buildArgs = sprintf "%s %s %s %s"
+                            buildArg
                             solutionFileName
                             configOptions
                             extraOptions
@@ -183,15 +213,40 @@ let BuildSolution
     | _ -> ()
 
 let JustBuild binaryConfig maybeConstant =
-    let buildTool = Map.tryFind "BuildTool" buildConfigContents
-    if buildTool.IsNone then
-        failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+    let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
+    let mainSolution = "gwallet.sln"
+    let buildTool,buildArg,solutionFileName =
+        match maybeBuildTool with
+        | None ->
+            failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+        | Some "dotnet" ->
+#if LEGACY_FRAMEWORK
+            failwith "'dotnet' shouldn't be the build tool when using legacy framework, please report this bug"
+#endif
+            "dotnet", "build", mainSolution
+        | Some otherBuildTool ->
+#if LEGACY_FRAMEWORK
+            let nugetConfig =
+                Path.Combine(
+                    FsxHelper.RootDir.FullName,
+                    "NuGet.config")
+                |> FileInfo
+            let legacyNugetConfig =
+                Path.Combine(
+                    FsxHelper.RootDir.FullName,
+                    "NuGet-legacy.config")
+                |> FileInfo
+
+            File.Copy(legacyNugetConfig.FullName, nugetConfig.FullName, true)
+            otherBuildTool, String.Empty, "gwallet-legacy.sln"
+#else
+            otherBuildTool, String.Empty, mainSolution
+#endif
 
     Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
     BuildSolution
-        buildTool.Value
-        // no need to pass solution file name because there's only 1 solution:
-        String.Empty
+        (buildTool, buildArg)
+        solutionFileName
         binaryConfig
         maybeConstant
         String.Empty
@@ -208,7 +263,11 @@ let MakeCheckCommand (commandName: string) =
         Environment.Exit 1
 
 let GetPathToFrontendBinariesDir (binaryConfig: BinaryConfig) =
+#if LEGACY_FRAMEWORK
     Path.Combine (FsxHelper.RootDir.FullName, "src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString())
+#else
+    Path.Combine (FsxHelper.RootDir.FullName, "src", DEFAULT_FRONTEND, "bin", binaryConfig.ToString(), "net6.0")
+#endif
 
 let GetPathToBackend () =
     Path.Combine (FsxHelper.RootDir.FullName, "src", BACKEND)
@@ -219,18 +278,33 @@ let MakeAll (maybeConstant: Option<string>) =
     buildConfig
 
 let RunFrontend (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
-    let pathToFrontend = Path.Combine(GetPathToFrontendBinariesDir buildConfig, DEFAULT_FRONTEND + ".exe") |> FileInfo
+    let frontEndExtension =
+#if LEGACY_FRAMEWORK
+        ".exe"
+#else
+        ".dll"
+#endif
 
-    let fileName, finalArgs =
-        match maybeArgs with
-        | None | Some "" -> pathToFrontend,String.Empty
-        | Some args -> pathToFrontend,args
+    let pathToFrontend =
+        Path.Combine(GetPathToFrontendBinariesDir buildConfig, DEFAULT_FRONTEND + frontEndExtension) |> FileInfo
 
+#if LEGACY_FRAMEWORK
     match Misc.GuessPlatform() with
     | Misc.Platform.Windows -> ()
     | _ -> Unix.ChangeMode(pathToFrontend, "+x", false)
+#endif
 
-    let startInfo = ProcessStartInfo(FileName = fileName.FullName, Arguments = finalArgs, UseShellExecute = false)
+    let fileName, finalArgs =
+        match maybeArgs with
+#if LEGACY_FRAMEWORK
+        | None | Some "" -> pathToFrontend.FullName, String.Empty
+        | Some args -> pathToFrontend.FullName, args
+#else
+        | None | Some "" -> "dotnet", pathToFrontend.FullName
+        | Some args -> "dotnet", (sprintf "%s %s" pathToFrontend.FullName args)
+#endif
+
+    let startInfo = ProcessStartInfo(FileName = fileName, Arguments = finalArgs, UseShellExecute = false)
     startInfo.EnvironmentVariables.["MONO_ENV_OPTIONS"] <- "--debug"
 
     let proc = Process.Start startInfo
@@ -302,28 +376,42 @@ match maybeTarget with
     Console.WriteLine "Running tests..."
     Console.WriteLine ()
 
-    // so that we get file names in stack traces
-    Environment.SetEnvironmentVariable("MONO_ENV_OPTIONS", "--debug")
-
-    let testAssemblyName = "GWallet.Backend.Tests"
-    let testAssembly =
+    let testProjectName = "GWallet.Backend.Tests"
+#if !LEGACY_FRAMEWORK
+    let testTarget =
         Path.Combine (
             FsxHelper.RootDir.FullName,
             "src",
-            testAssemblyName,
-            "bin",
-            testAssemblyName + ".dll"
+            testProjectName,
+            testProjectName + ".fsproj"
         ) |> FileInfo
-    if not testAssembly.Exists then
-        failwithf "File not found: %s" testAssembly.FullName
+#else
+    // so that we get file names in stack traces
+    Environment.SetEnvironmentVariable("MONO_ENV_OPTIONS", "--debug")
+
+    let testTarget =
+        Path.Combine (
+            FsxHelper.RootDir.FullName,
+            "src",
+            testProjectName,
+            "bin",
+            testProjectName + ".dll"
+        ) |> FileInfo
+#endif
+
+    if not testTarget.Exists then
+        failwithf "File not found: %s" testTarget.FullName
 
     let runnerCommand =
+#if !LEGACY_FRAMEWORK
+        { Command = "dotnet"; Arguments = "test " + testTarget.FullName }
+#else
         match Misc.GuessPlatform() with
         | Misc.Platform.Linux ->
             let nunitCommand = "nunit-console"
             MakeCheckCommand nunitCommand
 
-            { Command = nunitCommand; Arguments = testAssembly.FullName }
+            { Command = nunitCommand; Arguments = testTarget.FullName }
         | _ ->
             if not FsxHelper.NugetExe.Exists then
                 MakeAll None |> ignore
@@ -341,12 +429,12 @@ match maybeTarget with
                                        sprintf "NUnit.Runners.%s" nunitVersion,
                                        "tools",
                                        "nunit-console.exe")
-                Arguments = testAssembly.FullName
+                Arguments = testTarget.FullName
             }
+#endif
 
-    let nunitRun = Process.Execute(runnerCommand,
-                                   Echo.All)
-    match nunitRun.Result with
+    let unitTestsRun = Process.Execute(runnerCommand, Echo.All)
+    match unitTestsRun.Result with
     | Error _ ->
         Console.WriteLine()
         Console.Error.WriteLine "Tests failed"
@@ -401,6 +489,7 @@ match maybeTarget with
 
 | Some "sanitycheck" ->
 
+#if LEGACY_FRAMEWORK
     if not FsxHelper.NugetExe.Exists then
         MakeAll None |> ignore
 
@@ -411,15 +500,27 @@ match maybeTarget with
             microsoftBuildLibVersion (FsxHelper.NugetScriptsPackagesDir().FullName)
     RunNugetCommand installMicrosoftBuildLibRunnerNugetCommand Echo.All true
         |> ignore
+#endif
 
     let sanityCheckScript = Path.Combine(FsxHelper.ScriptsDir.FullName, "sanitycheck.fsx")
-    Process.Execute(
-        {
-            Command = FsxHelper.FsxRunnerBin
-            Arguments = sprintf "%s %s" FsxHelper.FsxRunnerArg sanityCheckScript
-        },
-        Echo.All
-    ).UnwrapDefault() |> ignore<string>
+    let sanityCheckProc =
+        Process.Execute(
+            {
+                Command = FsxHelper.FsxRunnerBin
+                Arguments = sprintf "%s %s" FsxHelper.FsxRunnerArg sanityCheckScript
+            },
+            Echo.All
+        )
+    match sanityCheckProc.Result with
+    | ProcessResultState.Error (_exitCode, _output) ->
+        Console.WriteLine()
+        Console.Out.Flush()
+        Console.Error.Flush()
+        failwith "Unexpected 'sanitycheck.fsx' error ^"
+    | ProcessResultState.WarningsOrAmbiguous output ->
+        ()
+    | ProcessResultState.Success output ->
+        ()
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
