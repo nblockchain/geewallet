@@ -25,12 +25,6 @@ open Process
 #load "fsxHelper.fs"
 open GWallet.Scripting
 
-#r "System.Net.Http.dll"
-#r "System.Web.Extensions.dll"
-open System.Web.Script.Serialization
-#load "githubActions.fs"
-open GWallet.Github
-
 type GitProvider =
     | GitHub
     | GitLab
@@ -86,6 +80,37 @@ let gitProvider =
     else
         failwith onlyCiMsg
 
+Console.WriteLine "Checking if this is a tag commit..."
+
+let gitTag =
+    match gitProvider with
+    | GitHub ->
+        let tagsPrefix = "refs/tags/"
+        if not (githubRef.StartsWith tagsPrefix) then
+            Console.WriteLine (sprintf "No tag being set (GITHUB_REF=%s), skipping release." githubRef)
+            Environment.Exit 0
+        githubRef.Substring tagsPrefix.Length
+
+    | GitLab ->
+        let commitHash = Git.GetLastCommit()
+        let currentBranch = Environment.GetEnvironmentVariable "CI_COMMIT_REF_NAME"
+        if String.IsNullOrEmpty currentBranch then
+            failwith "CI_COMMIT_REF_NAME should be available when GitLab: https://docs.gitlab.com/ee/ci/variables/predefined_variables.html"
+
+        let ciTag = Environment.GetEnvironmentVariable "CI_COMMIT_TAG"
+        if String.IsNullOrEmpty ciTag then
+            Console.WriteLine (sprintf "No tag being set (CI_COMMIT_TAG=%s), skipping release." ciTag)
+            Environment.Exit 0
+
+        failwith "GitLab not supported at the moment for Snap release process"
+
+        ciTag
+
+if not (snapFile.FullName.Contains gitTag) then
+    failwithf "Git tag (%s) doesn't match version in snap package file name (%s)"
+        gitTag
+        snapFile.FullName
+
 let snapcraftLoginFileName = Path.Combine(FsxHelper.RootDir.FullName, "snapcraft.login")
 if File.Exists snapcraftLoginFileName then
     Console.WriteLine "snapcraft.login file found, skipping log-in"
@@ -107,37 +132,6 @@ else
         else
             // this must be a fork, do nothing
             Console.WriteLine "snapcraft.login file not found in likely GitLab fork repo, skipping log-in"
-
-Console.WriteLine "Checking if this is a tag commit..."
-
-let gitTag =
-    match gitProvider with
-    | GitHub ->
-        let tagsPrefix = "refs/tags/"
-        if not (githubRef.StartsWith tagsPrefix) then
-            Console.WriteLine (sprintf "No tag being set (GITHUB_REF=%s), skipping release." githubRef)
-            Environment.Exit 0
-        githubRef.Substring tagsPrefix.Length
-
-    | GitLab ->
-        let commitHash = Git.GetLastCommit()
-        let currentBranch = Environment.GetEnvironmentVariable "CI_COMMIT_REF_NAME"
-        if String.IsNullOrEmpty currentBranch then
-            failwith "CI_COMMIT_REF_NAME should be available when GitLab: https://docs.gitlab.com/ee/ci/variables/predefined_variables.html"
-
-        GithubActions.MakeSureGithubCIPassed orgOrUsername repoName commitHash currentBranch
-
-        let ciTag = Environment.GetEnvironmentVariable "CI_COMMIT_TAG"
-
-        if String.IsNullOrEmpty ciTag then
-            Console.WriteLine (sprintf "No tag being set (CI_COMMIT_TAG=%s), skipping release." ciTag)
-            Environment.Exit 0
-        ciTag
-
-if not (snapFile.FullName.Contains gitTag) then
-    failwithf "Git tag (%s) doesn't match version in snap package file name (%s)"
-        gitTag
-        snapFile.FullName
 
 Console.WriteLine (sprintf "About to start upload of release %s" gitTag)
 

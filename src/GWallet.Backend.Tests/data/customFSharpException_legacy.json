@@ -3,9 +3,9 @@
   "TypeName": "GWallet.Backend.MarshalledException",
   "Value": {
     "HumanReadableSummary": {
-      "ExceptionType": "System.Exception",
-      "Message": "msg",
-      "StackTrace": "  at GWallet.Backend.Tests.ExceptionMarshalling.SerializeRealException()",
+      "ExceptionType": "GWallet.Backend.Tests.CustomFSharpException",
+      "Message": "Exception of type 'GWallet.Backend.Tests.CustomFSharpException' was thrown.",
+      "StackTrace": "",
       "InnerException": null
     },
     "FullBinaryForm": "{binaryMarshalledException}"

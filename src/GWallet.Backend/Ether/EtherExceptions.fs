@@ -15,6 +15,9 @@ type RpcErrorCode =
     // so many different errors use this shitty error code... don't ask me why
     | JackOfAllTradesErrorCode = -32000
 
+    // message was "rejected due to project ID settings" (don't ask me wtf this means)
+    | ProjectIdSettingsRejection = -32002
+
     // ambiguous or generic because I've seen same code applied to two different error messages already:
     // "Transaction with the same hash was already imported. (Transaction with the same hash was already imported.)"
     // AND

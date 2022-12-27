@@ -1,6 +1,6 @@
 name: CI
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
@@ -56,7 +56,7 @@ jobs:
     - name: integration tests
       run: .\make update-servers
 
-  linux22-github--xbuild:
+  linux22-github:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
@@ -81,7 +81,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux22-github--msbuild:
+  linux22-github--newmono:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
@@ -192,7 +192,7 @@ jobs:
       run: make update-servers
 
 
-  linux20-github--xbuild:
+  linux20-github:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
@@ -217,7 +217,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux20-github--msbuild:
+  linux20-github--newmono:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
@@ -335,19 +335,23 @@ jobs:
     - name: Pull our commitlint configuration
       run: sudo apt install wget && wget https://raw.githubusercontent.com/nblockchain/conventions/master/commitlint.config.ts
     - name: Validate current commit (last commit) with commitlint
+      if: github.event_name == 'push'
       run: npx commitlint --from HEAD~1 --to HEAD --verbose
+    - name: Validate PR commits with commitlint
+      if: github.event_name == 'pull_request'
+      run: npx commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
 
   snap_pkg:
 
     needs:
     - conventions
 
-    - linux22-github--xbuild
-    - linux22-github--msbuild
+    - linux22-github
+    - linux22-github--newmono
     - linux22-vanilla--stockmono
     - linux22-vanilla--newmono
-    - linux20-github--xbuild
-    - linux20-github--msbuild
+    - linux20-github
+    - linux20-github--newmono
     - linux20-vanilla--stockmono
     - linux20-vanilla--newmono
     - windows

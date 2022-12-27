@@ -18,6 +18,7 @@ open System.Configuration
 #load "fsx/InfraLib/Misc.fs"
 #load "fsx/InfraLib/Process.fs"
 #load "fsx/InfraLib/Git.fs"
+#load "fsx/InfraLib/Unix.fs"
 open FSX.Infrastructure
 open Process
 
@@ -74,16 +75,19 @@ let buildConfigContents =
                                          configureLaunch)
         Environment.Exit 1
 
+    let configFileLines = File.ReadAllLines buildConfig.FullName
     let skipBlankLines line = not <| String.IsNullOrWhiteSpace line
     let splitLineIntoKeyValueTuple (line:string) =
         let pair = line.Split([|'='|], StringSplitOptions.RemoveEmptyEntries)
         if pair.Length <> 2 then
-            failwithf "All lines in %s must conform to format:\n\tkey=value"
+            failwithf "All lines in '%s' must conform to key=value format, but got: '%s'. All lines: \n%s"
                       buildConfigFileName
+                      line
+                      (File.ReadAllText buildConfig.FullName)
         pair.[0], pair.[1]
 
     let buildConfigContents =
-        File.ReadAllLines buildConfig.FullName
+        configFileLines
         |> Array.filter skipBlankLines
         |> Array.map splitLineIntoKeyValueTuple
         |> Map.ofArray
@@ -284,8 +288,6 @@ let MakeAll (maybeConstant: Option<string>) =
     frontend,buildConfig
 
 let RunFrontend (frontend: Frontend) (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
-    let monoVersion = Map.tryFind "MonoPkgConfigVersion" buildConfigContents
-
     let frontendDir,frontendExecutable = GetPathToFrontend frontend buildConfig
     let pathToFrontend = frontendExecutable.FullName
 
@@ -450,14 +452,7 @@ match maybeTarget with
     if not (Directory.Exists(finalLauncherScriptInDestDir.Directory.FullName)) then
         Directory.CreateDirectory(finalLauncherScriptInDestDir.Directory.FullName) |> ignore
     File.Copy(launcherScriptFile.FullName, finalLauncherScriptInDestDir.FullName, true)
-    Process.Execute(
-        {
-            Command = "chmod"
-            Arguments =
-                sprintf "ugo+x %s" finalLauncherScriptInDestDir.FullName
-        },
-        Echo.Off
-    ).Unwrap("Unexpected chmod failure, please report this bug") |> ignore<string>
+    Unix.ChangeMode(finalLauncherScriptInDestDir, "+x", false)
 
 | Some("run") ->
     let frontend,buildConfig = MakeAll None
