@@ -21,6 +21,7 @@ type Resources = GWallet.Frontend.XF.Android.Resource
             ConfigurationChanges = (ConfigChanges.ScreenSize ||| ConfigChanges.Orientation))>]
 type MainActivity() =
     inherit FormsAppCompatActivity()
+    do Resource.UpdateIdValues()
 
     override this.OnRequestPermissionsResult(requestCode: int, permissions: string[], grantResults: Permission[]) =
         ZXing.Net.Mobile.Android.PermissionsHandler.OnRequestPermissionsResult(requestCode, permissions, grantResults)
