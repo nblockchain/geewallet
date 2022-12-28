@@ -57,11 +57,13 @@ type ElectrumServer = {
             let averageFee (feesFromDifferentServers: list<decimal>): decimal =
                 feesFromDifferentServers.Sum() / decimal (List.length feesFromDifferentServers)
             let estimateFeeJob = ElectrumClient.EstimateFee 6
+            Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
             Server.Query
                 Currency.BTC
                 (QuerySettings.FeeEstimation averageFee)
                 estimateFeeJob
                 None
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let satPerKB = (Money (btcPerKB, MoneyUnit.BTC)).ToUnit MoneyUnit.Satoshi
         // 4 weight units per byte. See segwit specs.
         let kwPerKB = 4m

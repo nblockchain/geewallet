@@ -76,19 +76,28 @@ type LN() =
     let AcceptChannelFromLndFunder () =
         async {
             let! serverWallet = ServerWalletInstance.New Config.FundeeLightningIPEndpoint None
+            Console.WriteLine("*** line " + __LINE__)
             let! bitcoind = Bitcoind.Start()
+            Console.WriteLine("*** line " + __LINE__)
             let! electrumServer = ElectrumServer.Start bitcoind
+            Console.WriteLine("*** line " + __LINE__)
             let! lnd = Lnd.Start bitcoind
+            Console.WriteLine("*** line " + __LINE__)
 
             do! lnd.FundByMining bitcoind
+            Console.WriteLine("*** line " + __LINE__)
 
             let! feeRate = ElectrumServer.EstimateFeeRate()
+            Console.WriteLine("*** line " + __LINE__)
             let fundingAmount = Money(0.1m, MoneyUnit.BTC)
+            Console.WriteLine("*** line " + __LINE__)
             let acceptChannelTask = Lightning.Network.AcceptChannel serverWallet.NodeServer
+            Console.WriteLine("*** line " + __LINE__)
             let openChannelTask = async {
                 match serverWallet.NodeEndPoint with
                 | EndPointType.Tcp endPoint ->
                     do! lnd.ConnectTo endPoint
+                    Console.WriteLine("*** line " + __LINE__)
                     return!
                         lnd.OpenChannel
                             endPoint
@@ -99,24 +108,31 @@ type LN() =
             }
 
             let! acceptChannelRes, openChannelRes = AsyncExtensions.MixedParallel2 acceptChannelTask openChannelTask
+            Console.WriteLine("*** line " + __LINE__)
             let (channelId, _) = UnwrapResult acceptChannelRes "AcceptChannel failed"
+            Console.WriteLine("*** line " + __LINE__)
             UnwrapResult openChannelRes "lnd.OpenChannel failed"
+            Console.WriteLine("*** line " + __LINE__)
 
             // Wait for the funding transaction to appear in mempool
             while bitcoind.GetTxIdsInMempool().Length = 0 do
                 Thread.Sleep 500
+            Console.WriteLine("*** line " + __LINE__)
 
             // Mine blocks on top of the funding transaction to make it confirmed.
             let minimumDepth = BlockHeightOffset32 6u
             bitcoind.GenerateBlocksToDummyAddress minimumDepth
+            Console.WriteLine("*** line " + __LINE__)
 
             do! serverWallet.WaitForFundingConfirmed channelId
+            Console.WriteLine("*** line " + __LINE__)
 
             let initialInterval = TimeSpan.FromSeconds 1.0
 
             let rec tryAcceptLock (backoff: TimeSpan) =
                 async {
                     let! lockFundingRes = Lightning.Network.AcceptLockChannelFunding serverWallet.NodeServer channelId
+                    Console.WriteLine("*** line " + __LINE__)
                     match lockFundingRes with
                     | Error error ->
                             let backoffMillis = (int backoff.TotalMilliseconds)
@@ -129,11 +145,14 @@ type LN() =
                 }
 
             do! tryAcceptLock initialInterval
+            Console.WriteLine("*** line " + __LINE__)
 
             let channelInfo = serverWallet.ChannelStore.ChannelInfo channelId
+            Console.WriteLine("*** line " + __LINE__)
             match channelInfo.Status with
             | ChannelStatus.Active -> ()
             | status -> return failwith (SPrintF1 "unexpected channel status. Expected Active, got %A" status)
+            Console.WriteLine("*** line " + __LINE__)
 
             return channelId, serverWallet, bitcoind, electrumServer, lnd
         }

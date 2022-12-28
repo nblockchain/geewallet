@@ -198,8 +198,10 @@ type ClientWalletInstance private (wallet: WalletInstance, nodeClient: NodeClien
 type ServerWalletInstance private (wallet: WalletInstance, nodeServer: NodeServer) =
     static member New (listenEndpoint: IPEndPoint) (privateKeyOpt: Option<Key>): Async<ServerWalletInstance> = async {
         let! wallet = WalletInstance.New privateKeyOpt
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let! nodeServer =
             Connection.StartServer wallet.ChannelStore wallet.Password (listenEndpoint |> NodeServerType.Tcp)
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         return new ServerWalletInstance(wallet, nodeServer)
     }
 

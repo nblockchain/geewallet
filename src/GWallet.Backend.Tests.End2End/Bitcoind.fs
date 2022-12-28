@@ -26,10 +26,12 @@ type Bitcoind = {
     static member Start(): Async<Bitcoind> = async {
         let dataDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         Directory.CreateDirectory dataDir |> ignore
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let rpcUser = Path.GetRandomFileName()
         let rpcPassword = Path.GetRandomFileName()
         let confPath = Path.Combine(dataDir, "bitcoin.conf")
         let fakeFeeRate = UtxoCoin.ElectrumClient.RegTestFakeFeeRate
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         File.WriteAllText(
             confPath,
             SPrintF1
@@ -45,6 +47,7 @@ type Bitcoind = {
                 rpcport=18554"
                 fakeFeeRate
         )
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
 
         let processWrapper =
             ProcessWrapper.New
@@ -52,9 +55,12 @@ type Bitcoind = {
                 (SPrintF1 "-regtest -datadir=%s" dataDir)
                 Map.empty
                 false
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         processWrapper.WaitForMessage (fun msg -> msg.EndsWith "init message: Done loading")
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
 
         do! Async.Sleep 2000
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
 
         return {
             DataDir = dataDir
@@ -86,9 +92,12 @@ type Bitcoind = {
                 (SPrintF1 "-regtest -datadir=%s getrawmempool" self.DataDir)
                 Map.empty
                 false
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let lines = bitcoinCli.ReadToEnd()
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let output = String.concat "\n" lines
         let txIdList = JsonConvert.DeserializeObject<list<string>> output
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         List.map (fun (txIdString: string) -> TxId <| uint256 txIdString) txIdList
 
     member this.RpcAddr(): string =

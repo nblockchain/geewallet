@@ -32,6 +32,7 @@ type Lnd = {
     static member Start(bitcoind: Bitcoind): Async<Lnd> = async {
         let lndDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName())
         Directory.CreateDirectory lndDir |> ignore
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let processWrapper =
             let args =
                 ""
@@ -55,8 +56,11 @@ type Lnd = {
                 args
                 Map.empty
                 false
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         processWrapper.WaitForMessage (fun msg -> msg.EndsWith "gRPC proxy started at 127.0.0.2:8080")
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         processWrapper.WaitForMessage (fun msg -> msg.EndsWith "Waiting for wallet encryption password. Use `lncli create` to create a wallet, `lncli unlock` to unlock an existing wallet, or `lncli changepassword` to change the password of an existing wallet and unlock it.")
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let connectionString =
             ""
             + "type=lnd-rest;"
@@ -64,18 +68,25 @@ type Lnd = {
             + "allowinsecure=true;"
             + "macaroonfilepath=" + Path.Combine(lndDir, "data/chain/bitcoin/regtest/admin.macaroon")
         let clientFactory = new LightningClientFactory(NBitcoin.Network.RegTest) :> ILightningClientFactory
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let lndClient = clientFactory.Create connectionString :?> LndClient
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let walletPassword = Path.GetRandomFileName()
         let! genSeedResp = Async.AwaitTask <| lndClient.SwaggerClient.GenSeedAsync(null, null)
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let initWalletReq =
             LnrpcInitWalletRequest (
                 Wallet_password = Encoding.ASCII.GetBytes walletPassword,
                 Cipher_seed_mnemonic = genSeedResp.Cipher_seed_mnemonic
             )
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
 
         let! _ = Async.AwaitTask <| lndClient.SwaggerClient.InitWalletAsync initWalletReq
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         bitcoind.GenerateBlocksToDummyAddress (BlockHeightOffset32 1u)
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         processWrapper.WaitForMessage (fun msg -> msg.EndsWith "Server listening on 127.0.0.2:9735")
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         return {
             LndDir = lndDir
             ProcessWrapper = processWrapper
@@ -186,6 +197,7 @@ type Lnd = {
 
     member self.ConnectTo (nodeEndPoint: NodeEndPoint): Async<unit> =
         let client = self.Client()
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let nodeInfo =
             let pubKey =
                 let stringified = nodeEndPoint.NodeId.ToString()
@@ -196,6 +208,7 @@ type Lnd = {
             let! connResult =
                 (client :> ILightningClient).ConnectTo nodeInfo
                 |> Async.AwaitTask
+            Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
             match connResult with
             | ConnectionResult.CouldNotConnect ->
                 return failwith "could not connect"
@@ -252,8 +265,10 @@ type Lnd = {
     member self.FundByMining (bitcoind: Bitcoind)
                                  : Async<unit> = async {
         let! lndDepositAddress = self.GetDepositAddress()
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let blocksMinedToLnd = BlockHeightOffset32 1u
         bitcoind.GenerateBlocks blocksMinedToLnd lndDepositAddress
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
 
         // Geewallet cannot use these outputs, even though they are encumbered with an output
         // script from its wallet. This is because they come from coinbase. Coinbase outputs are
@@ -267,6 +282,7 @@ type Lnd = {
             use key = new Key()
             key.PubKey.GetAddress(ScriptPubKeyType.Segwit, Network.RegTest)
         bitcoind.GenerateBlocks maturityDurationInNumberOfBlocks someMinerThrowAwayAddress
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
 
         // We confirm the one block mined to LND, by waiting for LND to see the chain
         // at a height which has that block matured. The height at which the block will
@@ -276,6 +292,8 @@ type Lnd = {
         // to use the constants defined in NBitcoin, but you have to keep in mind that
         // the coinbase maturity may be defined differently in other coins.
         do! self.WaitForBlockHeight (BlockHeight.Zero + blocksMinedToLnd + maturityDurationInNumberOfBlocks)
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         do! self.WaitForBalance (Money(50UL, MoneyUnit.BTC))
+        Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
     }
 
