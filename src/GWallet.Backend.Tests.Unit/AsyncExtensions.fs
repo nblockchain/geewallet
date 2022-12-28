@@ -265,3 +265,70 @@ type AsyncExtensions() =
         Assert.That(results.[1], Is.EqualTo shortJobRes)
         Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
         Assert.That(longJobFinished, Is.EqualTo true, "#after")
+
+    [<Test>]
+    member __.``Async.MixedParallel2 cancels all jobs if there's an exception in one'``() =
+        let shortTime = TimeSpan.FromSeconds 2.
+        let shortJob = async {
+            do! Async.Sleep (int shortTime.TotalMilliseconds)
+            return failwith "pepe"
+        }
+
+        let mutable longJobFinished = false
+        let longTime = TimeSpan.FromSeconds 3.
+        let longJob = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return 1
+        }
+
+        let result =
+            try
+                FSharpUtil.AsyncExtensions.MixedParallel2 longJob shortJob
+                |> Async.RunSynchronously |> Some
+            with
+            | _ -> None
+
+        Assert.That(result, Is.EqualTo None)
+        Assert.That(longJobFinished, Is.EqualTo false, "#before")
+        Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
+        Assert.That(longJobFinished, Is.EqualTo false, "#after")
+
+    [<Test>]
+    member __.``Async.MixedParallel3 cancels all jobs if there's an exception in one'``() =
+        let shortTime = TimeSpan.FromSeconds 2.
+        let shortJob = async {
+            do! Async.Sleep (int shortTime.TotalMilliseconds)
+            return failwith "pepe"
+        }
+
+        
+        let longTime = TimeSpan.FromSeconds 3.
+
+        let mutable longJobFinished = false
+        let longJob = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return 1
+        }
+
+        let mutable longJob2Finished = false
+        let longJob2 = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return 2.0
+        }
+
+        let result =
+            try
+                FSharpUtil.AsyncExtensions.MixedParallel3 longJob shortJob longJob2
+                |> Async.RunSynchronously |> Some
+            with
+            | _ -> None
+
+        Assert.That(result, Is.EqualTo None)
+        Assert.That(longJobFinished, Is.EqualTo false, "#before")
+        Assert.That(longJob2Finished, Is.EqualTo false, "#before")
+        Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
+        Assert.That(longJobFinished, Is.EqualTo false, "#after")
+        Assert.That(longJob2Finished, Is.EqualTo false, "#before")
