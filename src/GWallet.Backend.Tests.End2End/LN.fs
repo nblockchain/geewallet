@@ -684,10 +684,10 @@ type LN() =
     [<Category "G2G_Revocation_Funder">]
     [<Test>]
     member __.``can revoke commitment tx (funder)``() = Async.RunSynchronously <| async {
-        use! walletInstance = ClientWalletInstance.New None
-        use! bitcoind = Bitcoind.Start()
-        use! _electrumServer = ElectrumServer.Start bitcoind
-        use! lnd = Lnd.Start bitcoind
+        let! walletInstance = ClientWalletInstance.New None
+        let! bitcoind = Bitcoind.Start()
+        let! electrumServer = ElectrumServer.Start bitcoind
+        let! lnd = Lnd.Start bitcoind
 
         // As explained in the other test, geewallet cannot use coinbase outputs.
         // To work around that we mine a block to a LND instance and afterwards tell
@@ -855,6 +855,8 @@ type LN() =
 
         // give the fundee plenty of time to see that their tx was mined
         do! Async.Sleep 10000
+
+        TearDown walletInstance bitcoind electrumServer lnd
 
         return ()
     }
