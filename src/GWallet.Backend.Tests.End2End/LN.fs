@@ -841,7 +841,7 @@ type LN() =
 
         match spendingTxIdOpt with
         | Some spendingTxId ->
-            return failwith (SPrintF1 "successfully broadcast spending tx (%s)" spendingTxId)
+            return failwith (SPrintF1 "successfully broadcast spending tx (%s) - revokation didn't prevent fraud" spendingTxId)
         | None -> ()
 
         let! accountBalanceAfterSpendingTheftTx =
