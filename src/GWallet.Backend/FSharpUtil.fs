@@ -139,36 +139,28 @@ module FSharpUtil =
             failwith <| UwpHacks.SPrintF1 "error unwrapping Option: %s" msg
 
     module AsyncExtensions =
+        let private makeBoxed (job: Async<'a>) : Async<obj> = 
+            async { 
+                let! result = job
+                return box result
+            }
 
         let MixedParallel2 (a: Async<'T1>) (b: Async<'T2>): Async<'T1*'T2> =
             async {
-                let aJob = Async.StartChild a
-                let bJob = Async.StartChild b
-
-                let! aStartedJob = aJob
-                let! bStartedJob = bJob
-
-                let! aJobResult = aStartedJob
-                let! bJobResult = bStartedJob
-
-                return aJobResult,bJobResult
+                let! results = Async.Parallel [| makeBoxed a ; makeBoxed b |]
+                return (unbox<'T1> results.[0]), (unbox<'T2> results.[1])
             }
 
         let MixedParallel3 (a: Async<'T1>) (b: Async<'T2>) (c: Async<'T3>): Async<'T1*'T2*'T3> =
             async {
-                let aJob = Async.StartChild a
-                let bJob = Async.StartChild b
-                let cJob = Async.StartChild c
+                let! results = Async.Parallel [| makeBoxed a ; makeBoxed b; makeBoxed c |]
+                return (unbox<'T1> results.[0]), (unbox<'T2> results.[1]), (unbox<'T3> results.[2])
+            }
 
-                let! aStartedJob = aJob
-                let! bStartedJob = bJob
-                let! cStartedJob = cJob
-
-                let! aJobResult = aStartedJob
-                let! bJobResult = bStartedJob
-                let! cJobResult = cStartedJob
-
-                return aJobResult,bJobResult,cJobResult
+        let MixedParallel4 (a: Async<'T1>) (b: Async<'T2>) (c: Async<'T3>) (d: Async<'T4>): Async<'T1*'T2*'T3*'T4> =
+            async {
+                let! results = Async.Parallel [| makeBoxed a ; makeBoxed b; makeBoxed c; makeBoxed d |]
+                return (unbox<'T1> results.[0]), (unbox<'T2> results.[1]), (unbox<'T3> results.[2]), (unbox<'T4> results.[3])
             }
 
         // efficient raise
