@@ -332,3 +332,50 @@ type AsyncExtensions() =
         Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
         Assert.That(longJobFinished, Is.EqualTo false, "#after")
         Assert.That(longJob2Finished, Is.EqualTo false, "#before")
+
+    [<Test>]
+    member __.``Async.MixedParallel4 cancels all jobs if there's an exception in one'``() =
+        let shortTime = TimeSpan.FromSeconds 2.
+        let shortJob = async {
+            do! Async.Sleep (int shortTime.TotalMilliseconds)
+            return failwith "pepe"
+        }
+
+        let longTime = TimeSpan.FromSeconds 3.
+
+        let mutable longJobFinished = false
+        let longJob = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return 1
+        }
+
+        let mutable longJob2Finished = false
+        let longJob2 = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return 2.0
+        }
+
+        let mutable longJob3Finished = false
+        let longJob3 = async {
+            do! Async.Sleep (int longTime.TotalMilliseconds)
+            longJobFinished <- true
+            return 3I
+        }
+
+        let result =
+            try
+                FSharpUtil.AsyncExtensions.MixedParallel4 longJob shortJob longJob2 longJob3
+                |> Async.RunSynchronously |> Some
+            with
+            | _ -> None
+
+        Assert.That(result, Is.EqualTo None)
+        Assert.That(longJobFinished, Is.EqualTo false, "#before")
+        Assert.That(longJob2Finished, Is.EqualTo false, "#before - 2")
+        Assert.That(longJob3Finished, Is.EqualTo false, "#before - 3")
+        Threading.Thread.Sleep(TimeSpan.FromSeconds 7.0)
+        Assert.That(longJobFinished, Is.EqualTo false, "#after")
+        Assert.That(longJob2Finished, Is.EqualTo false, "#after - 2")
+        Assert.That(longJob3Finished, Is.EqualTo false, "#after - 3")
