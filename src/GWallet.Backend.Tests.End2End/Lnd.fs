@@ -204,17 +204,22 @@ type Lnd = {
                 let unstringified = PubKey stringified
                 unstringified
             NodeInfo (pubKey, nodeEndPoint.IPEndPoint.Address.ToString(), nodeEndPoint.IPEndPoint.Port)
-        async {
+        let rec tryConnect numRetries = async {
             let! connResult =
                 (client :> ILightningClient).ConnectTo nodeInfo
                 |> Async.AwaitTask
             Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
             match connResult with
             | ConnectionResult.CouldNotConnect ->
-                return failwith "could not connect"
+                if numRetries <= 0 then
+                    return failwith "could not connect"
+                else
+                    do! Async.Sleep 5000
+                    return! tryConnect (numRetries - 1)
             | _ ->
                 return ()
         }
+        tryConnect 5
 
     member self.OpenChannel (nodeEndPoint: NodeEndPoint)
                             (amount: Money)
