@@ -60,7 +60,6 @@ jobs:
     - name: integration tests
       run: .\make update-servers
     - name: compile .fsx scripts
-      shell: bash
       run: |
         dotnet new tool-manifest
 
