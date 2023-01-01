@@ -32,10 +32,8 @@ jobs:
       run: |
         dotnet new tool-manifest
 
-        dotnet tool install fsxc
-
-        # to not compile .fsx scripts that come from the fsx submodule
-        find ./scripts/fsx -type f -name "*.fsx" | xargs -t -I {} rm {}
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -64,10 +62,8 @@ jobs:
       run: |
         dotnet new tool-manifest
 
-        dotnet tool install fsxc
-
-        # to not compile .fsx scripts that come from the fsx submodule
-        find ./scripts/fsx -type f -name "*.fsx" | xargs -t -I {} rm {}
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -196,10 +192,8 @@ jobs:
       run: |
         dotnet new tool-manifest
 
-        dotnet tool install fsxc
-
-        # to not compile .fsx scripts that come from the fsx submodule
-        find ./scripts/fsx -type f -name "*.fsx" | xargs -t -I {} rm {}
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 

@@ -13,14 +13,18 @@ open System.Xml
 open System.Xml.Linq
 open System.Xml.XPath
 
+#if !LEGACY_FRAMEWORK
+#r "nuget: Fsdk"
+#else
 #r "System.Configuration"
 open System.Configuration
-#load "fsx/InfraLib/Misc.fs"
-#load "fsx/InfraLib/Process.fs"
-#load "fsx/InfraLib/Git.fs"
-#load "fsx/InfraLib/Unix.fs"
-open FSX.Infrastructure
-open Process
+#load "fsx/Fsdk/Misc.fs"
+#load "fsx/Fsdk/Process.fs"
+#load "fsx/Fsdk/Git.fs"
+#load "fsx/Fsdk/Unix.fs"
+#endif
+open Fsdk
+open Fsdk.Process
 
 #load "fsxHelper.fs"
 open GWallet.Scripting

@@ -6,22 +6,22 @@ RUNNER_ARG=invalid
 
 REPL_CHECK_MSG="checking for a working F# REPL..."
 
-if [ ! -f scripts/fsx/configure.sh ]; then
-    if ! which git >/dev/null 2>&1; then
-        echo "checking for git... not found" $'\n'
-
-        echo "$0" $'failed, please install "git" (to populate submodule) first'
-        exit 1
-    fi
-    echo "Populating sub-fsx module..."
-    git submodule sync --recursive && git submodule update --init --recursive
-fi
-
 if which dotnet >/dev/null 2>&1; then
     echo "$REPL_CHECK_MSG" $'found'
     RUNNER_BIN=dotnet
     RUNNER_ARG=fsi
 else
+
+    if [ ! -f scripts/fsx/configure.sh ]; then
+        if ! which git >/dev/null 2>&1; then
+            echo "checking for git... not found" $'\n'
+
+            echo "$0" $'failed, please install "git" (to populate submodule) first'
+            exit 1
+        fi
+        echo "Populating sub-fsx module..."
+        git submodule sync --recursive && git submodule update --init --recursive
+    fi
 
     FSX_CHECK_MSG="checking for fsx..."
     if ! which fsharpi >/dev/null 2>&1; then
@@ -60,6 +60,7 @@ else
             RUNNER_ARG="--define:LEGACY_FRAMEWORK"
         fi
     fi
+
 fi
 
 if [ -z "${RUNNER_BIN}" ]; then
