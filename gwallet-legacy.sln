@@ -30,14 +30,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{C90A30F5-1
 		ReadMe.md = ReadMe.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InfraLib", "InfraLib", "{6EE07541-91A1-42C2-A21F-2809BBDC2F50}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Fsdk", "Fsdk", "{6EE07541-91A1-42C2-A21F-2809BBDC2F50}"
 	ProjectSection(SolutionItems) = preProject
-		scripts\fsx\InfraLib\Misc.fs = scripts\fsx\InfraLib\Misc.fs
-		scripts\fsx\InfraLib\Unix.fs = scripts\fsx\InfraLib\Unix.fs
-		scripts\fsx\InfraLib\Taiga.fs = scripts\fsx\InfraLib\Taiga.fs
-		scripts\fsx\InfraLib\Process.fs = scripts\fsx\InfraLib\Process.fs
-		scripts\fsx\InfraLib\Network.fs = scripts\fsx\InfraLib\Network.fs
-		scripts\fsx\InfraLib\Git.fs = scripts\fsx\InfraLib\Git.fs
+		scripts\fsx\Fsdk\Misc.fs = scripts\fsx\Fsdk\Misc.fs
+		scripts\fsx\Fsdk\Unix.fs = scripts\fsx\Fsdk\Unix.fs
+		scripts\fsx\Fsdk\Taiga.fs = scripts\fsx\Fsdk\Taiga.fs
+		scripts\fsx\Fsdk\Process.fs = scripts\fsx\Fsdk\Process.fs
+		scripts\fsx\Fsdk\Network.fs = scripts\fsx\Fsdk\Network.fs
+		scripts\fsx\Fsdk\Git.fs = scripts\fsx\Fsdk\Git.fs
 	EndProjectSection
 EndProject
 Global

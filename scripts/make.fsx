@@ -13,14 +13,18 @@ open System.Xml
 open System.Xml.Linq
 open System.Xml.XPath
 
+#if !LEGACY_FRAMEWORK
+#r "nuget: Fsdk"
+#else
 #r "System.Configuration"
 open System.Configuration
-#load "fsx/InfraLib/Misc.fs"
-#load "fsx/InfraLib/Process.fs"
-#load "fsx/InfraLib/Git.fs"
-#load "fsx/InfraLib/Unix.fs"
-open FSX.Infrastructure
-open Process
+#load "fsx/Fsdk/Misc.fs"
+#load "fsx/Fsdk/Process.fs"
+#load "fsx/Fsdk/Git.fs"
+#load "fsx/Fsdk/Unix.fs"
+#endif
+open Fsdk
+open Fsdk.Process
 
 #load "fsxHelper.fs"
 open GWallet.Scripting
@@ -348,28 +352,21 @@ match maybeTarget with
         Directory.Delete (pathToFolderToBeZipped, true)
 
     let pathToFrontend = GetPathToFrontendBinariesDir release
-    let cpRun = Process.Execute({ Command = "cp"
-                                  Arguments = sprintf "-rfvp %s %s" pathToFrontend pathToFolderToBeZipped },
-                                Echo.All)
-    match cpRun.Result with
-    | Error _ ->
-        Console.WriteLine()
-        Console.Error.WriteLine "Precopy for ZIP compression failed"
-        Environment.Exit 1
-    | _ -> ()
-
+    Process.Execute(
+        {
+            Command = "cp"
+            Arguments =
+                sprintf "-rfvp %s %s" pathToFrontend pathToFolderToBeZipped
+        },
+        Echo.All
+    ).UnwrapDefault() |> ignore<string>
     let previousCurrentDir = Directory.GetCurrentDirectory()
     Directory.SetCurrentDirectory binDir
     let zipLaunch = { Command = zipCommand
                       Arguments = sprintf "%s -r %s %s"
                                       zipCommand zipName zipNameWithoutExtension }
-    let zipRun = Process.Execute(zipLaunch, Echo.All)
-    match zipRun.Result with
-    | Error _ ->
-        Console.WriteLine()
-        Console.Error.WriteLine "ZIP compression failed"
-        Environment.Exit 1
-    | _ -> ()
+    Process.Execute(zipLaunch, Echo.All).UnwrapDefault()
+    |> ignore<string>
     Directory.SetCurrentDirectory previousCurrentDir
 
 | Some("check") ->
@@ -433,13 +430,8 @@ match maybeTarget with
             }
 #endif
 
-    let unitTestsRun = Process.Execute(runnerCommand, Echo.All)
-    match unitTestsRun.Result with
-    | Error _ ->
-        Console.WriteLine()
-        Console.Error.WriteLine "Tests failed"
-        Environment.Exit 1
-    | _ -> ()
+    Process.Execute(runnerCommand, Echo.All).UnwrapDefault()
+    |> ignore<string>
 
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
@@ -503,24 +495,13 @@ match maybeTarget with
 #endif
 
     let sanityCheckScript = Path.Combine(FsxHelper.ScriptsDir.FullName, "sanitycheck.fsx")
-    let sanityCheckProc =
-        Process.Execute(
-            {
-                Command = FsxHelper.FsxRunnerBin
-                Arguments = sprintf "%s %s" FsxHelper.FsxRunnerArg sanityCheckScript
-            },
-            Echo.All
-        )
-    match sanityCheckProc.Result with
-    | ProcessResultState.Error (_exitCode, _output) ->
-        Console.WriteLine()
-        Console.Out.Flush()
-        Console.Error.Flush()
-        failwith "Unexpected 'sanitycheck.fsx' error ^"
-    | ProcessResultState.WarningsOrAmbiguous output ->
-        ()
-    | ProcessResultState.Success output ->
-        ()
+    Process.Execute(
+        {
+            Command = FsxHelper.FsxRunnerBin
+            Arguments = sprintf "%s %s" FsxHelper.FsxRunnerArg sanityCheckScript
+        },
+        Echo.All
+    ).UnwrapDefault() |> ignore<string>
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)

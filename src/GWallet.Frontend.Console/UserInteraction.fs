@@ -31,7 +31,7 @@ module UserInteraction =
         |> ignore<ConsoleKeyInfo>
         Console.WriteLine ()
 
-    // taken from InfraLib
+    // taken from Fsdk
     let ConsoleReadPasswordLine() =
         // taken from http://stackoverflow.com/questions/3404421/password-masking-console-application
         let rec ConsoleReadPasswordLineInternal(pwd: string) =

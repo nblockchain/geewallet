@@ -32,13 +32,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{8B75DE92
 		scripts\bump.fsx = scripts\bump.fsx
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InfraLib", "InfraLib", "{F5486E53-31A9-40E3-A289-DA1B9730BE7C}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Fsdk", "Fsdk", "{F5486E53-31A9-40E3-A289-DA1B9730BE7C}"
 	ProjectSection(SolutionItems) = preProject
-		scripts\fsx\InfraLib\Git.fs = scripts\fsx\InfraLib\Git.fs
-		scripts\fsx\InfraLib\Misc.fs = scripts\fsx\InfraLib\Misc.fs
-		scripts\fsx\InfraLib\Network.fs = scripts\fsx\InfraLib\Network.fs
-		scripts\fsx\InfraLib\Process.fs = scripts\fsx\InfraLib\Process.fs
-		scripts\fsx\InfraLib\Unix.fs = scripts\fsx\InfraLib\Unix.fs
+		scripts\fsx\Fsdk\Git.fs = scripts\fsx\Fsdk\Git.fs
+		scripts\fsx\Fsdk\Misc.fs = scripts\fsx\Fsdk\Misc.fs
+		scripts\fsx\Fsdk\Network.fs = scripts\fsx\Fsdk\Network.fs
+		scripts\fsx\Fsdk\Process.fs = scripts\fsx\Fsdk\Process.fs
+		scripts\fsx\Fsdk\Unix.fs = scripts\fsx\Fsdk\Unix.fs
 	EndProjectSection
 EndProject
 Global

@@ -3,7 +3,7 @@ namespace GWallet.Scripting
 open System
 open System.IO
 
-open FSX.Infrastructure
+open Fsdk
 
 module FsxHelper =
 

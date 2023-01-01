@@ -4,12 +4,16 @@ open System
 open System.IO
 open System.Linq
 
+#if !LEGACY_FRAMEWORK
+#r "nuget: Fsdk"
+#else
 #r "System.Configuration"
-#load "fsx/InfraLib/Misc.fs"
-#load "fsx/InfraLib/Process.fs"
-#load "fsx/InfraLib/Git.fs"
-open FSX.Infrastructure
-open Process
+#load "fsx/Fsdk/Misc.fs"
+#load "fsx/Fsdk/Process.fs"
+#load "fsx/Fsdk/Git.fs"
+#endif
+open Fsdk
+open Fsdk.Process
 
 let FindInFile (file: FileInfo)
                (maybeExcludeItems: Option<seq<FileSystemInfo>>)
