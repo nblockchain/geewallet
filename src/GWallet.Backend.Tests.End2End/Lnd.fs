@@ -209,12 +209,16 @@ type Lnd = {
                 (client :> ILightningClient).ConnectTo nodeInfo
                 |> Async.AwaitTask
             Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
+            Console.WriteLine(sprintf "*** connResult = %A" connResult)
             match connResult with
             | ConnectionResult.CouldNotConnect ->
                 if numRetries <= 0 then
+                    Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
                     return failwith "could not connect"
                 else
+                    Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
                     do! Async.Sleep 5000
+                    Console.WriteLine(sprintf "*** line %s of %s" __LINE__ __SOURCE_FILE__)
                     return! tryConnect (numRetries - 1)
             | _ ->
                 return ()
