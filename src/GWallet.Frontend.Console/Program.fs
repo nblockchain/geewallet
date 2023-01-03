@@ -538,8 +538,8 @@ module Program =
         | 2 | 3 when argv.[0] = "--print-transactions" ->
             // --print-transactions <btcAddress> [maxTransactionsCount]
             if argv.Length = 2 then 
-                UtxoCoin.BtcTransactionPrinting.PrintTransactions UInt32.MaxValue argv.[1]
+                UtxoCoin.BtcTransactionPrinting.PrintTransactions None argv.[1]
             else
-                UtxoCoin.BtcTransactionPrinting.PrintTransactions (uint32 argv.[2]) argv.[1]
+                UtxoCoin.BtcTransactionPrinting.PrintTransactions (Some <| uint32 argv.[2]) argv.[1]
         | _ ->
             failwith "Arguments not recognized"
