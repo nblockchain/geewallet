@@ -16,7 +16,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     let _ = base.LoadFromXaml(typeof<WelcomePage>)
 
     let mainLayout = base.FindByName<StackLayout> "mainLayout"
-    let infoLayout = mainLayout.FindByName<StackLayout> "infoLayout"
+    let infoGrid = mainLayout.FindByName<Grid> "infoGrid"
     let passphraseEntry = mainLayout.FindByName<Entry> "passphraseEntry"
     let passphraseConfirmationEntry = mainLayout.FindByName<Entry> "passphraseConfirmationEntry"
 
@@ -161,7 +161,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     member __.OnOkButtonClicked(_sender: Object, _args: EventArgs) =
-        infoLayout.IsVisible <- false
+        infoGrid.IsVisible <- false
         if isNull passphraseEntry.Text || passphraseEntry.Text.Trim().Length = 0 then
             passphraseEntry.Focus() |> ignore
 

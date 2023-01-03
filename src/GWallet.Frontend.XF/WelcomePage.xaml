@@ -11,16 +11,18 @@
                FontSize="Large"
                Margin="20,20,20,20"/>
 
-        <StackLayout
-            x:Name="infoLayout"
-            Orientation="Horizontal"
-            Padding="0,60,0,60"
-            >
+        <Grid
+            x:Name="infoGrid" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
             <Label Text="This is not a sign-up or log-in page. This form allows you to create a new wallet (or recover a previously created one). None of the data introduced here will leave the device, it will solely be used to produce a confidential secret (private key)."
+                   Grid.Column="0" 
                    VerticalOptions="Center" HorizontalOptions="Center"
                    FontSize="Small"
                    />
-            <StackLayout Orientation="Vertical">
+            <StackLayout Grid.Column="1" Orientation="Vertical">
                 <Button x:Name="moreInfoButton"
                         Text="More info"
                         VerticalOptions="Center" HorizontalOptions="Center"
@@ -32,7 +34,7 @@
                         FontSize="Small"
                         Clicked="OnOkButtonClicked" />
             </StackLayout>
-        </StackLayout>
+        </Grid>
 
         <Entry x:Name="passphraseEntry" IsPassword="true"
                Placeholder="Input your new secret recovery phrase"
