@@ -9,6 +9,18 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 
 module BtcTransactionPrinting =
+    type private ProcessedHistoryEntry =
+        {
+            Date: DateTime
+            Outputs: NBitcoin.TxOutList 
+        }
+
+    type private EntryWithSharedAddress =
+        {
+            Date: DateTime
+            SharedOutputs: seq<NBitcoin.TxOut>
+        }
+
     let GetBitcoinPriceForDate (date: DateTime) : Async<Result<decimal, Exception>> =
         async {
             try
@@ -26,7 +38,8 @@ module BtcTransactionPrinting =
                 return Error ex
         }
 
-    let PrintTransactions (maxTransactionsCount: uint32) (btcAddress: string) =
+    let PrintTransactions (maxTransactionsCountOption: uint32 option) (btcAddress: string) =
+        let maxTransactionsCount = defaultArg maxTransactionsCountOption UInt32.MaxValue
         let address = NBitcoin.BitcoinAddress.Create(btcAddress, NBitcoin.Network.Main)
         async { 
             let scriptHash = Account.GetElectrumScriptHashFromPublicAddress Currency.BTC btcAddress
@@ -70,13 +83,82 @@ module BtcTransactionPrinting =
                                 Console.WriteLine("Could not get bitcoin price for the date. An error has occured:\n" + exn.ToString())
                             Console.WriteLine(SPrintF1 "date: %A UTC" dateTime)
                             Console.WriteLine()
-                            return! processHistory rest (maxTransactionsToPrint - 1u)
+                            let! otherEntries = processHistory rest (maxTransactionsToPrint - 1u)
+                            return { Date = dateTime; Outputs = transactionInfo.Outputs } :: otherEntries
                         else
                             return! processHistory rest maxTransactionsToPrint
                     }
-                | _ -> async { return () }
+                | _ -> async { return [] }
             
-            do! processHistory sortedHistory maxTransactionsCount
+            let! processedEntries = processHistory sortedHistory maxTransactionsCount
+
+            if maxTransactionsCountOption.IsSome then
+                let getAddress (output: NBitcoin.TxOut) = 
+                    output.ScriptPubKey.GetDestinationAddress NBitcoin.Network.Main
+
+                let allAddressesExceptOurs = 
+                    processedEntries 
+                    |> Seq.collect(
+                        fun entry -> 
+                            entry.Outputs 
+                            |> Seq.map getAddress)
+                    |> Seq.filter (fun each -> each <> address)
+                    |> Seq.distinct
+                    |> Seq.cache
+
+                let sharedAddresses =
+                    allAddressesExceptOurs
+                    |> Seq.filter (
+                        fun addr ->
+                            processedEntries
+                            |> Seq.forall(
+                                fun entry -> 
+                                    entry.Outputs 
+                                    |> Seq.exists (fun output -> output.IsTo addr) ) )
+                    |> Seq.cache
+
+                let entriesWithSharedAddresses =
+                    processedEntries
+                    |> Seq.choose (
+                        fun entry -> 
+                            let sharedOutputs =
+                                entry.Outputs 
+                                |> Seq.filter (
+                                    fun output -> 
+                                        sharedAddresses |> Seq.exists (fun addr -> output.IsTo addr))
+                            if sharedOutputs |> Seq.isEmpty then 
+                                None 
+                            else 
+                                let outputsToOurAddress = entry.Outputs |> Seq.filter (fun output -> output.IsTo address)
+                                Some { 
+                                    SharedOutputs = sharedOutputs |> Seq.append outputsToOurAddress
+                                    Date = entry.Date 
+                                } )
+                    |> Seq.cache
+
+                if (entriesWithSharedAddresses |> Seq.length) >= 2 then
+                    Console.WriteLine(SPrintF1 "Transactions with outputs shared with %A:\n" address)
+                    for entry in entriesWithSharedAddresses do
+                        let totalAmount = 
+                            entry.SharedOutputs 
+                            |> Seq.sumBy (fun txOut -> txOut.Value)
+                        let sharedOutputs = 
+                            entry.SharedOutputs 
+                            |> Seq.groupBy getAddress
+                        let currentSharedAddresses = 
+                            sharedOutputs 
+                            |> Seq.map fst
+
+                        Console.WriteLine(SPrintF1 "Transaction with outputs to %s" (String.Join(", ", currentSharedAddresses)))
+                        Console.WriteLine(SPrintF1 "Date: %A UTC" entry.Date)
+                        Console.WriteLine(SPrintF1 "Total BTC: %A" totalAmount)
+                        for addr, outputs in sharedOutputs do
+                            let amount = outputs |> Seq.sumBy (fun txOut -> txOut.Value)
+                            let percentage = 
+                                amount.ToDecimal(NBitcoin.MoneyUnit.BTC) / totalAmount.ToDecimal(NBitcoin.MoneyUnit.BTC) * 100.0m
+                            Console.WriteLine(SPrintF3 "Sent %A BTC to %A (%s%%)" amount addr (percentage.ToString("F2")))
+                        Console.WriteLine()
+
             Console.WriteLine("End of results")
             Console.ReadKey() |> ignore
             return 0
