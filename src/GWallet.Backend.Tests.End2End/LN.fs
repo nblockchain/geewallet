@@ -1914,18 +1914,24 @@ type LN() =
         let invoiceManager = InvoiceManagement (serverWallet.Account :?> NormalUtxoAccount, serverWallet.Password)
 
         let sendLndPayment1Job = async {
+            Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
             do! Async.Sleep 10000
+            Console.WriteLine("*** line " + __LINE__)
 
             let amountInSatoshis =
                 Convert.ToUInt64 walletToWalletTestPayment1Amount.Satoshi
             let invoice1InString = invoiceManager.CreateInvoice amountInSatoshis "Payment 1"
 
+            Console.WriteLine("*** line " + __LINE__)
             do! lnd.SendPayment invoice1InString
+            Console.WriteLine("*** line " + __LINE__)
         }
         let receiveGeewalletPayment = async {
+            Console.WriteLine("*** line " + __LINE__)
             let! receiveHtlcPaymentRes =
                 Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId true
+            Console.WriteLine("*** line " + __LINE__)
             return UnwrapResult receiveHtlcPaymentRes "ReceiveHtlcPayment failed"
         }
 
@@ -1963,19 +1969,24 @@ type LN() =
         let invoiceManager = InvoiceManagement (serverWallet.Account :?> NormalUtxoAccount, serverWallet.Password)
         Console.WriteLine("*** line " + __LINE__)
         let sendLndPayment1Job = async {
+            Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
             do! Async.Sleep 10000
+            Console.WriteLine("*** line " + __LINE__)
 
             let amountInSatoshis =
                 Convert.ToUInt64 walletToWalletTestPayment1Amount.Satoshi
             let invoice1InString = invoiceManager.CreateInvoice amountInSatoshis "Payment 1"
+            Console.WriteLine("*** line " + __LINE__)
 
             // We use `Async.Start` because send payment api doesn't return until payment is settled (which doesn't happen immediately in this test)
             lnd.SendPayment invoice1InString |> Async.Start
         }
         let receiveGeewalletPayment = async {
+            Console.WriteLine("*** line " + __LINE__)
             let! receiveHtlcPaymentRes =
                 Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId false
+            Console.WriteLine("*** line " + __LINE__)
             return UnwrapResult receiveHtlcPaymentRes "ReceiveHtlcPayment failed"
         }
 
@@ -2069,19 +2080,24 @@ type LN() =
         let invoiceManager = InvoiceManagement (serverWallet.Account :?> NormalUtxoAccount, serverWallet.Password)
         Console.WriteLine("*** line " + __LINE__)
         let sendLndPayment1Job = async {
+            Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
             do! Async.Sleep 10000
+            Console.WriteLine("*** line " + __LINE__)
 
             let amountInSatoshis =
                 Convert.ToUInt64 walletToWalletTestPayment1Amount.Satoshi
             let invoice1InString = invoiceManager.CreateInvoice amountInSatoshis "Payment 1"
+            Console.WriteLine("*** line " + __LINE__)
 
             // We use `Async.Start` because send payment api doesn't return until payment is settled (which doesn't happen immediately in this test)
             lnd.SendPayment invoice1InString |> Async.Start
         }
         let receiveGeewalletPayment = async {
+            Console.WriteLine("*** line " + __LINE__)
             let! receiveHtlcPaymentRes =
                 Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId false
+            Console.WriteLine("*** line " + __LINE__)
             return UnwrapResult receiveHtlcPaymentRes "ReceiveHtlcPayment failed"
         }
 
@@ -2415,16 +2431,22 @@ type LN() =
         let closeChannelTask = async {
             match serverWallet.NodeEndPoint with
             | EndPointType.Tcp endPoint ->
+                Console.WriteLine("*** line " + __LINE__)
                 do! lnd.ConnectTo endPoint
+                Console.WriteLine("*** line " + __LINE__)
                 do! Async.Sleep 1000
+                Console.WriteLine("*** line " + __LINE__)
                 do! lnd.CloseChannel fundingOutPoint false
+                Console.WriteLine("*** line " + __LINE__)
                 return ()
             | EndPointType.Tor _torEndPoint ->
                 failwith "this should be a nonexistent case as all LND tests are done using TCP at the moment and TCP connections will always have a NodeEndPoint"
         }
         let awaitCloseTask = async {
             let rec receiveEvent () = async {
+                Console.WriteLine("*** line " + __LINE__)
                 let! receivedEvent = Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId true
+                Console.WriteLine("*** line " + __LINE__)
                 match receivedEvent with
                 | Error err ->
                     return Error (SPrintF1 "Failed to receive shutdown msg from LND: %A" err)
