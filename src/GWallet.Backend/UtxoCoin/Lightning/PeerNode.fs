@@ -128,7 +128,9 @@ and internal PeerNode =
 
     member internal self.RecvChannelMsg(): Async<Result<PeerNode * IChannelMsg, RecvChannelMsgError>> =
         let rec recv (msgStream: MsgStream) = async {
+            Console.WriteLine(SPrintF2 "*** line %s of %s" __LINE__ __SOURCE_FILE__)
             let! recvMsgRes = msgStream.RecvMsg()
+            Console.WriteLine(SPrintF2 "*** line %s of %s" __LINE__ __SOURCE_FILE__)
             match recvMsgRes with
             | Error recvMsgError -> return Error <| RecvMsg recvMsgError
             | Ok (msgStreamAfterMsgReceived, msg) ->

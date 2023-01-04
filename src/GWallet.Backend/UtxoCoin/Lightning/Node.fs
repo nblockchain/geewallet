@@ -535,7 +535,9 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
             Infrastructure.LogDebug "Waiting for lightning message"
             let connectedChannel = activeChannel.ConnectedChannel
             let peerNode = connectedChannel.PeerNode
+            Console.WriteLine(SPrintF2 "*** line %s of %s" __LINE__ __SOURCE_FILE__)
             let! recvChannelMsgRes = peerNode.RecvChannelMsg()
+            Console.WriteLine(SPrintF2 "*** line %s of %s" __LINE__ __SOURCE_FILE__)
             match recvChannelMsgRes with
             | Error err ->
                 return failwith <| SPrintF1 "Received error while waiting for lightning message: %s" (err :> IErrorMsg).Message
@@ -563,7 +565,9 @@ type NodeServer internal (channelStore: ChannelStore, transportListener: Transpo
                     Infrastructure.LogDebug <| SPrintF2 "Ignoring this msg (%A): %A" (channelMsg.GetType()) channelMsg
                     return! receiveEvent activeChannelAfterMsgReceived
         }
+        Console.WriteLine(SPrintF2 "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let! activeChannelRes = ActiveChannel.AcceptReestablish self.ChannelStore self.TransportListener channelId
+        Console.WriteLine(SPrintF2 "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         match activeChannelRes with
         | Error reconnectActiveChannelError ->
             if reconnectActiveChannelError.PossibleBug then

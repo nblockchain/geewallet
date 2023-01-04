@@ -170,7 +170,9 @@ type internal MsgStream =
     }
 
     member internal self.RecvMsg(): Async<Result<MsgStream * ILightningMsg, RecvMsgError>> = async {
+        Console.WriteLine(SPrintF2 "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         let! recvBytesRes = self.TransportStream.RecvBytes()
+        Console.WriteLine(SPrintF2 "*** line %s of %s" __LINE__ __SOURCE_FILE__)
         match recvBytesRes with
         | Error recvBytesError -> return Error <| RecvBytes recvBytesError
         | Ok (transportStream, bytes) ->
