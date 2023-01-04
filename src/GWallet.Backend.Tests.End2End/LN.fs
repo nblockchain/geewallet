@@ -1915,6 +1915,8 @@ type LN() =
 
         let sendLndPayment1Job = async {
             Console.WriteLine("*** line " + __LINE__)
+            do! Async.SwitchToNewThread()
+            Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
             do! Async.Sleep 10000
             Console.WriteLine("*** line " + __LINE__)
@@ -1928,6 +1930,8 @@ type LN() =
             Console.WriteLine("*** line " + __LINE__)
         }
         let receiveGeewalletPayment = async {
+            Console.WriteLine("*** line " + __LINE__)
+            do! Async.SwitchToNewThread()
             Console.WriteLine("*** line " + __LINE__)
             let! receiveHtlcPaymentRes =
                 Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId true
@@ -1970,6 +1974,8 @@ type LN() =
         Console.WriteLine("*** line " + __LINE__)
         let sendLndPayment1Job = async {
             Console.WriteLine("*** line " + __LINE__)
+            do! Async.SwitchToNewThread()
+            Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
             do! Async.Sleep 10000
             Console.WriteLine("*** line " + __LINE__)
@@ -1983,6 +1989,8 @@ type LN() =
             lnd.SendPayment invoice1InString |> Async.Start
         }
         let receiveGeewalletPayment = async {
+            Console.WriteLine("*** line " + __LINE__)
+            do! Async.SwitchToNewThread()
             Console.WriteLine("*** line " + __LINE__)
             let! receiveHtlcPaymentRes =
                 Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId false
@@ -2081,6 +2089,8 @@ type LN() =
         Console.WriteLine("*** line " + __LINE__)
         let sendLndPayment1Job = async {
             Console.WriteLine("*** line " + __LINE__)
+            do! Async.SwitchToNewThread()
+            Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
             do! Async.Sleep 10000
             Console.WriteLine("*** line " + __LINE__)
@@ -2094,6 +2104,8 @@ type LN() =
             lnd.SendPayment invoice1InString |> Async.Start
         }
         let receiveGeewalletPayment = async {
+            Console.WriteLine("*** line " + __LINE__)
+            do! Async.SwitchToNewThread()
             Console.WriteLine("*** line " + __LINE__)
             let! receiveHtlcPaymentRes =
                 Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId false
