@@ -2841,8 +2841,12 @@ type LN() =
         let invoiceManager = InvoiceManagement (serverWallet.Account :?> NormalUtxoAccount, serverWallet.Password)
         
         let sendLndPayment1Job (paymentAmount: Money) = async {
+            Console.WriteLine("*** line " + __LINE__)
+            do! Async.SwitchToNewThread()
+            Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
             do! Async.Sleep 25000
+            Console.WriteLine("*** line " + __LINE__)
 
             let amountInSatoshis =
                 Convert.ToUInt64 paymentAmount.Satoshi
@@ -2851,8 +2855,12 @@ type LN() =
             do! lnd.SendPayment invoice1InString
         }
         let receiveGeewalletPayment = async {
+            Console.WriteLine("*** line " + __LINE__)
+            do! Async.SwitchToNewThread()
+            Console.WriteLine("*** line " + __LINE__)
             let! receiveHtlcPaymentRes =
                 Lightning.Network.ReceiveLightningEvent serverWallet.NodeServer channelId true
+            Console.WriteLine("*** line " + __LINE__)
             return UnwrapResult receiveHtlcPaymentRes "ReceiveHtlcPayment failed"
         }
 
