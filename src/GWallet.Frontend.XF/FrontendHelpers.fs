@@ -4,10 +4,13 @@ open System
 open System.Linq
 open System.Threading.Tasks
 
+#if !XAMARIN
+open Microsoft.Maui.Controls
+#else
 open Xamarin.Forms
 open ZXing
 open ZXing.Mobile
-
+#endif
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -40,7 +43,7 @@ module FrontendHelpers =
 
     type IAugmentablePayPage =
         abstract member AddTransactionScanner: unit -> unit
-
+    #if XAMARIN
     let IsDesktop() =
         match Device.RuntimePlatform with
         | Device.Android | Device.iOS ->
@@ -50,7 +53,7 @@ module FrontendHelpers =
         | _ ->
             // TODO: report a sentry warning
             false
-
+    
     let internal BigFontSize = 22.
 
     let internal MediumFontSize = 20.
@@ -88,7 +91,7 @@ module FrontendHelpers =
                                                     (Formatting.DecimalAmountRounding CurrencyType.Fiat fiatBalance)
                                                     defaultFiatCurrency
                                                     (MaybeReturnOutdatedMarkForOldDate time)
-
+    
     let internal GetCryptoColor(currency: Currency) =
         match currency with
         | Currency.BTC -> Color.FromRgb(245, 146, 47)
@@ -230,13 +233,17 @@ module FrontendHelpers =
         let allCancelSources =
             Seq.map fst sourcesAndJobs
         allCancelSources,parallelJobs
-
+    #endif
     let private MaybeCrash (canBeCanceled: bool) (ex: Exception) =
         let LastResortBail() =
             // this is just in case the raise(throw) doesn't really tear down the program:
             Infrastructure.LogError ("FATAL PROBLEM: " + ex.ToString())
             Infrastructure.LogError "MANUAL FORCED SHUTDOWN NOW"
+            #if XAMARIN
             Device.PlatformServices.QuitApplication()
+            #else
+            Application.Current.Quit()
+            #endif
 
         if null = ex then
             ()
@@ -255,7 +262,7 @@ module FrontendHelpers =
                 )
                 raise ex
                 LastResortBail()
-
+ 
     // when running Task<unit> or Task<T> where we want to ignore the T, we should still make sure there is no exception,
     // & if there is, bring it to the main thread to fail fast, report to Sentry, etc, otherwise it gets ignored
     let DoubleCheckCompletion<'T> (task: Task<'T>) =
@@ -310,7 +317,7 @@ module FrontendHelpers =
                 |> Async.AwaitTask
             return ()
         }
-
+    #if XAMARIN
     let ChangeTextAndChangeBack (button: Button) (newText: string) =
         let initialText = button.Text
         button.IsEnabled <- false
@@ -416,4 +423,4 @@ module FrontendHelpers =
     let GetSizedColoredImageSource name color size =
         let sizedColoredName = SPrintF2 "%s_%s" name color
         GetSizedImageSource sizedColoredName size
-
+    #endif

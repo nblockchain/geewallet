@@ -2,10 +2,16 @@
 
 open System
 open System.Linq
-
+#if !XAMARIN
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.Networking
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
+#endif
+
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
@@ -129,10 +135,12 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                         Account.GenerateMasterPrivateKey passphraseEntry.Text dateTime (emailEntry.Text.ToLower())
                             |> Async.StartAsTask
                     do! Async.SwitchToContext mainThreadSynchContext
+                    #if XAMARIN
                     let welcomePage () =
                         WelcomePage2 (state, masterPrivKeyTask)
                             :> Page
                     do! FrontendHelpers.SwitchToNewPageDiscardingCurrentOneAsync this welcomePage
+                    #endif
                 }
 
         if dobDatePicker.Date.Date = middleDateEighteenYearsAgo.Date then

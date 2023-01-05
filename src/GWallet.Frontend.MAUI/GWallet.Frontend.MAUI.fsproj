@@ -60,8 +60,14 @@
     <EmbeddedResource Include="img\sai_red_120x120.png" />
     <EmbeddedResource Include="img\sai_red_60x60.png" />
     <EmbeddedResource Include="MainPage.xaml" />
+    <EmbeddedResource Include="..\GWallet.Frontend.XF\WelcomePage.xaml" />
+    <Compile Include="..\GWallet.Frontend.XF\FrontendHelpers.fs" />
+    <Compile Include="..\GWallet.Frontend.XF\GlobalState.fs" />
     <Compile Include="MainPage.xaml.fs">
       <DependentUpon>MainPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\WelcomePage.xaml.fs">
+      <DependentUpon>..\GWallet.Frontend.XF\WelcomePage.xaml</DependentUpon>
     </Compile>
     <EmbeddedResource Include="AppShell.xaml" />
     <Compile Include="AppShell.xaml.fs">

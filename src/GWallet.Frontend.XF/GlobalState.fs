@@ -1,6 +1,9 @@
 ﻿namespace GWallet.Frontend.XF
-
+#if !Xamarin
+open Microsoft.Maui.Controls
+#else
 open Xamarin.Forms
+#endif
 
 type GlobalState() =
 
