@@ -29,7 +29,7 @@ sudo tar -C /usr/local -xzf go1.17.5.linux-amd64.tar.gz
 sudo apt install -y curl tar gzip unzip make git
 git clone https://github.com/lightningnetwork/lnd
 cd lnd
-git checkout v0.14.5-beta
+git checkout v0.15.4-beta
 make
 make install
 cd ..
