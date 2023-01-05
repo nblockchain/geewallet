@@ -9,8 +9,8 @@ export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
 
 # Install bitcoin core
 sudo apt install -y curl tar gzip
-curl -OJL https://bitcoin.org/bin/bitcoin-core-0.20.0/bitcoin-0.20.0-x86_64-linux-gnu.tar.gz
-sudo tar -C /usr/local --strip-components 1 -xzf bitcoin-0.20.0-x86_64-linux-gnu.tar.gz
+curl -OJL https://bitcoin.org/bin/bitcoin-core-22.0/bitcoin-22.0-x86_64-linux-gnu.tar.gz
+sudo tar -C /usr/local --strip-components 1 -xzf bitcoin-22.0-x86_64-linux-gnu.tar.gz
 
 # Install electrs
 sudo DEBIAN_FRONTEND="noninteractive" apt install -y clang cmake build-essential cargo
