@@ -1927,7 +1927,7 @@ type LN() =
             do! Async.SwitchToNewThread()
             Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
-            do! Async.Sleep 10000
+            do! Async.Sleep 25000
             Console.WriteLine("*** line " + __LINE__)
 
             let amountInSatoshis =
@@ -1986,7 +1986,7 @@ type LN() =
             do! Async.SwitchToNewThread()
             Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
-            do! Async.Sleep 10000
+            do! Async.Sleep 25000
             Console.WriteLine("*** line " + __LINE__)
 
             let amountInSatoshis =
@@ -2101,7 +2101,7 @@ type LN() =
             do! Async.SwitchToNewThread()
             Console.WriteLine("*** line " + __LINE__)
             // Wait for lnd to recognize we're online
-            do! Async.Sleep 10000
+            do! Async.Sleep 25000
             Console.WriteLine("*** line " + __LINE__)
 
             let amountInSatoshis =
@@ -2842,7 +2842,7 @@ type LN() =
         
         let sendLndPayment1Job (paymentAmount: Money) = async {
             // Wait for lnd to recognize we're online
-            do! Async.Sleep 10000
+            do! Async.Sleep 25000
 
             let amountInSatoshis =
                 Convert.ToUInt64 paymentAmount.Satoshi
