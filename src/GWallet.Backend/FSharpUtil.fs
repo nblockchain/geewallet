@@ -133,6 +133,7 @@ module FSharpUtil =
             }
 
         // a mix between Async.WhenAny and Async.Choice
+        // FIXME: add documentation about this, because it's not clear
         let WhenAnyAndAll<'T>(jobs: seq<Async<'T>>): Async<Async<array<'T>>> =
             let taskSource = TaskCompletionSource<unit>()
             let wrap (job: Async<'T>) =
