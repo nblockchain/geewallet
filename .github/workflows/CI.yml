@@ -312,6 +312,18 @@ jobs:
 
   conventions:
     runs-on: ubuntu-20.04
+    needs:
+    - linux22-github
+    - linux22-github--newmono
+    - linux22-vanilla--stockmono
+    - linux22-vanilla--newmono
+    - linux20-github
+    - linux20-github--newmono
+    - linux20-vanilla--stockmono
+    - linux20-vanilla--newmono
+    - windows
+    - macOS
+
     steps:
     - uses: actions/checkout@v2
       with:
@@ -335,17 +347,6 @@ jobs:
 
     needs:
     - conventions
-
-    - linux22-github
-    - linux22-github--newmono
-    - linux22-vanilla--stockmono
-    - linux22-vanilla--newmono
-    - linux20-github
-    - linux20-github--newmono
-    - linux20-vanilla--stockmono
-    - linux20-vanilla--newmono
-    - windows
-    - macOS
 
     runs-on: ubuntu-20.04
     steps:
