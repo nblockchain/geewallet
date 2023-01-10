@@ -16,51 +16,17 @@ open Fsdk
 open Fsdk.Process
 
 
-let ConfigCommandCheck (commandNamesByOrderOfPreference: seq<string>) (exitIfNotFound: bool): Option<string> =
-    let rec configCommandCheck currentCommandNamesQueue allCommands =
-        match Seq.tryHead currentCommandNamesQueue with
-        | Some currentCommand ->
-            Console.Write (sprintf "checking for %s... " currentCommand)
-            if not (Process.CommandWorksInShell currentCommand) then
-                Console.WriteLine "not found"
-                configCommandCheck (Seq.tail currentCommandNamesQueue) allCommands
-            else
-                Console.WriteLine "found"
-                currentCommand |> Some
-        | None ->
-            Console.Error.WriteLine (sprintf "configure: error, please install %s" (String.Join(" or ", List.ofSeq allCommands)))
-            if exitIfNotFound then
-                Environment.Exit 1
-                failwith "unreachable"
-            else
-                None
-
-    configCommandCheck commandNamesByOrderOfPreference commandNamesByOrderOfPreference
-
-
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 
 let initialConfigFile, buildTool =
     match Misc.GuessPlatform() with
     | Misc.Platform.Windows ->
         let buildTool=
-            match ConfigCommandCheck ["dotnet"] false with
+            match Process.ConfigCommandCheck ["dotnet"] false true with
             | Some _ -> "dotnet"
             | None ->
-
-                //we need to call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\**\Bin\MSBuild.exe
-                let programFiles = Environment.GetFolderPath Environment.SpecialFolder.ProgramFilesX86
-                let vswhereExe = Path.Combine(programFiles, "Microsoft Visual Studio", "Installer", "vswhere.exe") |> FileInfo
-                ConfigCommandCheck (List.singleton vswhereExe.FullName) |> ignore
-
-                let vswhereCmd =
-                    {
-                        Command = vswhereExe.FullName
-                        Arguments = "-find MSBuild\\**\\Bin\\MSBuild.exe"
-                    }
-                let processResult = Process.Execute(vswhereCmd, Echo.Off)
                 let msbuildPath =
-                    processResult.UnwrapDefault().Split(
+                    Process.VsWhere("MSBuild\\**\\Bin\\MSBuild.exe").Split(
                         Array.singleton Environment.NewLine,
                         StringSplitOptions.RemoveEmptyEntries
                     ).[0].Trim()
@@ -69,21 +35,21 @@ let initialConfigFile, buildTool =
         Map.empty, buildTool
     | platform (* Unix *) ->
 
-        ConfigCommandCheck ["make"] true |> ignore
+        Process.ConfigCommandCheck ["make"] true true |> ignore
 
-        match ConfigCommandCheck ["dotnet"] false with
+        match Process.ConfigCommandCheck ["dotnet"] false true with
         | Some _ -> Map.empty, "dotnet"
         | None ->
 
-            ConfigCommandCheck ["mono"] true |> ignore
-            ConfigCommandCheck ["fsharpc"] true |> ignore
+            Process.ConfigCommandCheck ["mono"] true true |> ignore
+            Process.ConfigCommandCheck ["fsharpc"] true true |> ignore
 
             // needed by NuGet.Restore.targets & the "update-servers" Makefile target
-            ConfigCommandCheck ["curl"] true
+            Process.ConfigCommandCheck ["curl"] true true
                 |> ignore
 
             if platform = Misc.Platform.Mac then
-                match ConfigCommandCheck [ "msbuild"; "xbuild" ] true with
+                match Process.ConfigCommandCheck [ "msbuild"; "xbuild" ] true true with
                 | Some theBuildTool -> Map.empty, theBuildTool
                 | _ -> failwith "unreachable"
             else
@@ -91,13 +57,13 @@ let initialConfigFile, buildTool =
                     // yes, msbuild tests for the existence of this file path below (a folder named xbuild, not msbuild),
                     // because $MSBuildExtensionsPath32 evaluates to /usr/lib/mono/xbuild (for historical reasons)
                     if File.Exists "/usr/lib/mono/xbuild/Microsoft/VisualStudio/v16.0/FSharp/Microsoft.FSharp.Targets" then
-                        match ConfigCommandCheck [ "msbuild"; "xbuild" ] true with
+                        match Process.ConfigCommandCheck [ "msbuild"; "xbuild" ] true true with
                         | Some theBuildTool -> theBuildTool
                         | _ -> failwith "unreachable"
                     else
                         // if the above file doesn't exist, even though F# is installed (because we already checked for 'fsharpc'),
                         // the version installed is too old, and doesn't work with msbuild, so it's better to use xbuild
-                        match ConfigCommandCheck [ "xbuild" ] false with
+                        match Process.ConfigCommandCheck [ "xbuild" ] false true with
                         | None ->
                             Console.Error.WriteLine "An alternative to installing mono-xbuild is upgrading your F# installtion to v5.0"
                             Environment.Exit 1
@@ -105,7 +71,7 @@ let initialConfigFile, buildTool =
                         | Some xbuildCmd -> xbuildCmd
 
                 let pkgConfig = "pkg-config"
-                ConfigCommandCheck [pkgConfig] true |> ignore
+                Process.ConfigCommandCheck [pkgConfig] true true |> ignore
 
                 let pkgName = "mono"
                 let stableVersionOfMono = Version("6.6")
