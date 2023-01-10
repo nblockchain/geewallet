@@ -189,6 +189,28 @@ let BuildSolution
         Environment.Exit 1
     | _ -> ()
 
+let CopyXamlFiles() = 
+    let files = [| "WelcomePage.xaml"; "WelcomePage.xaml.fs" |]
+    for file in files do
+        let sourcePath = Path.Combine([| "src"; "GWallet.Frontend.XF"; file |])
+        let destPath = Path.Combine([| "src"; "GWallet.Frontend.MAUI"; file |])
+            
+        File.Copy(sourcePath, destPath, true)
+        if file.Split([| "." |], StringSplitOptions.RemoveEmptyEntries) |> Array.last = "xaml" then
+            let mutable fileText = File.ReadAllText(destPath)
+            fileText <- fileText.Replace("http://xamarin.com/schemas/2014/forms","http://schemas.microsoft.com/dotnet/2021/maui")
+            fileText <- fileText.Replace("GWallet.Frontend.XF", "GWallet.Frontend.MAUI")
+            File.WriteAllText(destPath, fileText)
+
+let RemoveCopiedFiles() = 
+    let files = [| "WelcomePage.xaml"; "WelcomePage.xaml.fs" |]
+    for file in files do
+        let destPath = Path.Combine([| "src"; "GWallet.Frontend.MAUI"; file |])
+        File.Delete(destPath)
+
+let BuildMauiProject() =
+    ()
+
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let buildTool = Map.tryFind "BuildTool" buildConfigContents
     if buildTool.IsNone then
@@ -495,6 +517,12 @@ match maybeTarget with
         Echo.All
     ).UnwrapDefault() |> ignore<string>
 
+| Some "maui" ->
+    CopyXamlFiles()
+    BuildMauiProject()
+    //RemoveCopiedFiles()
+
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
     Environment.Exit 2
+
