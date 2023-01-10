@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-sudo apt purge --yes dotnet6
+# hack to disable dotnet detection (can't use apt purge because github VM seems to have it installed in different way)
+sudo rm `which dotnet`
 
 # this is the equivalent of using the 'build-packages' (not stage-packages) section in snapcraft
 # but as we're not using the 'make' plugin, we need to this manually now
