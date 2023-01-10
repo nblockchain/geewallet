@@ -16,7 +16,6 @@ type SomeInnerException() =
 
 [<TestFixture>]
 type FaultTolerance() =
-
     let one_consistent_result_because_this_test_doesnt_test_consistency = 1u
     let not_more_than_one_parallel_job_because_this_test_doesnt_test_parallelization = 1u
     let two_because_its_larger_than_the_length_of_the_server_list_which_has_one_elem = 2u
@@ -373,7 +372,7 @@ type FaultTolerance() =
                                       [ func1; func2; func3; func4 ]
                                           |> Async.RunSynchronously
                                           |> ignore<int> )
-        Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
+        Assert.That(inconsistencyEx.Message, IsString.WhichContains "received: 4, consistent: 2, required: 3")
 
     [<Test>]
     member __.``test new consistency setting designed to take advantage of caching (I)``() =
@@ -544,7 +543,7 @@ type FaultTolerance() =
                                       [ func1; func2; func3whichGetsConsistentAtThirdTry; func4 ]
                                           |> Async.RunSynchronously
                                           |> ignore<int> )
-        Assert.That(inconsistencyEx.Message, Is.StringContaining("received: 4, consistent: 2, required: 3"))
+        Assert.That(inconsistencyEx.Message, IsString.WhichContains "received: 4, consistent: 2, required: 3")
 
     [<Test>]
     member __.``using an average func instead of consistency``() =

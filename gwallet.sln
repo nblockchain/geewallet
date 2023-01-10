@@ -1,43 +1,44 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+# Visual Studio Version 16
+VisualStudioVersion = 25.0.1704.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend", "src\GWallet.Backend\GWallet.Backend.fsproj", "{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.Console", "src\GWallet.Frontend.Console\GWallet.Frontend.Console.fsproj", "{61372C84-76B1-4E02-B7C6-0B034F63E7B3}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.Console", "src\GWallet.Frontend.Console\GWallet.Frontend.Console.fsproj", "{8413EEF5-69F5-499F-AE01-754E9541EF90}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend", "src\GWallet.Backend\GWallet.Backend.fsproj", "{BBA56536-EA42-4DFB-8FD2-A7A2C04DCA98}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests", "src\GWallet.Backend.Tests\GWallet.Backend.Tests.fsproj", "{F9448076-88BE-4045-8704-A652D133E036}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests", "src\GWallet.Backend.Tests\GWallet.Backend.Tests.fsproj", "{7144BA8F-95D8-472B-B408-C5FA9D42DDB5}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{CE79AB9D-0FB9-4606-B7C6-A78C0858CC54}"
-	ProjectSection(SolutionItems) = preProject
-		configure.sh = configure.sh
-		Makefile = Makefile
-		scripts\configure.fsx = scripts\configure.fsx
-		scripts\make.fsx = scripts\make.fsx
-		scripts\make.sh = scripts\make.sh
-		scripts\sanitycheck.fsx = scripts\sanitycheck.fsx
-		scripts\fsxHelper.fs = scripts\fsxHelper.fs
-		scripts\snap_release.fsx = scripts\snap_release.fsx
-		scripts\githubActions.fs = scripts\githubActions.fs
-		scripts\find.fsx = scripts\find.fsx
-		scripts\bump.fsx = scripts\bump.fsx
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{C90A30F5-1423-44B2-A8D4-ED5FEDD4E36F}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{4AD0AB49-B4D1-4B38-B937-38D27012765F}"
 	ProjectSection(SolutionItems) = preProject
 		CONTRIBUTING.md = CONTRIBUTING.md
 		ReadMe.md = ReadMe.md
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InfraLib", "InfraLib", "{6EE07541-91A1-42C2-A21F-2809BBDC2F50}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{8B75DE92-C8FC-4569-8FCC-844E5E2C7350}"
 	ProjectSection(SolutionItems) = preProject
-		scripts\fsx\InfraLib\Misc.fs = scripts\fsx\InfraLib\Misc.fs
-		scripts\fsx\InfraLib\Unix.fs = scripts\fsx\InfraLib\Unix.fs
-		scripts\fsx\InfraLib\Taiga.fs = scripts\fsx\InfraLib\Taiga.fs
-		scripts\fsx\InfraLib\Process.fs = scripts\fsx\InfraLib\Process.fs
-		scripts\fsx\InfraLib\Network.fs = scripts\fsx\InfraLib\Network.fs
-		scripts\fsx\InfraLib\Git.fs = scripts\fsx\InfraLib\Git.fs
+		configure.sh = configure.sh
+		Makefile = Makefile
+		configure.bat = configure.bat
+		scripts\configure.fsx = scripts\configure.fsx
+		scripts\make.fsx = scripts\make.fsx
+		scripts\make.sh = scripts\make.sh
+		make.bat = make.bat
+		scripts\sanitycheck.fsx = scripts\sanitycheck.fsx
+		scripts\fsxHelper.fs = scripts\fsxHelper.fs
+		scripts\snap_release.sh = scripts\snap_release.sh
+		scripts\snap_release.fsx = scripts\snap_release.fsx
+		scripts\find.fsx = scripts\find.fsx
+		scripts\bump.fsx = scripts\bump.fsx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Fsdk", "Fsdk", "{F5486E53-31A9-40E3-A289-DA1B9730BE7C}"
+	ProjectSection(SolutionItems) = preProject
+		scripts\fsx\Fsdk\Git.fs = scripts\fsx\Fsdk\Git.fs
+		scripts\fsx\Fsdk\Misc.fs = scripts\fsx\Fsdk\Misc.fs
+		scripts\fsx\Fsdk\Network.fs = scripts\fsx\Fsdk\Network.fs
+		scripts\fsx\Fsdk\Process.fs = scripts\fsx\Fsdk\Process.fs
+		scripts\fsx\Fsdk\Unix.fs = scripts\fsx\Fsdk\Unix.fs
 	EndProjectSection
 EndProject
 Global
@@ -46,23 +47,26 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8413EEF5-69F5-499F-AE01-754E9541EF90}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8413EEF5-69F5-499F-AE01-754E9541EF90}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8413EEF5-69F5-499F-AE01-754E9541EF90}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8413EEF5-69F5-499F-AE01-754E9541EF90}.Release|Any CPU.Build.0 = Release|Any CPU
-		{F9448076-88BE-4045-8704-A652D133E036}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F9448076-88BE-4045-8704-A652D133E036}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{6EE07541-91A1-42C2-A21F-2809BBDC2F50} = {CE79AB9D-0FB9-4606-B7C6-A78C0858CC54}
+		{61372C84-76B1-4E02-B7C6-0B034F63E7B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61372C84-76B1-4E02-B7C6-0B034F63E7B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61372C84-76B1-4E02-B7C6-0B034F63E7B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61372C84-76B1-4E02-B7C6-0B034F63E7B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BBA56536-EA42-4DFB-8FD2-A7A2C04DCA98}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBA56536-EA42-4DFB-8FD2-A7A2C04DCA98}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBA56536-EA42-4DFB-8FD2-A7A2C04DCA98}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBA56536-EA42-4DFB-8FD2-A7A2C04DCA98}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7144BA8F-95D8-472B-B408-C5FA9D42DDB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7144BA8F-95D8-472B-B408-C5FA9D42DDB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7144BA8F-95D8-472B-B408-C5FA9D42DDB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7144BA8F-95D8-472B-B408-C5FA9D42DDB5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1C0EF666-8C98-40BC-9D3E-BF2290A20686}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{F5486E53-31A9-40E3-A289-DA1B9730BE7C} = {8B75DE92-C8FC-4569-8FCC-844E5E2C7350}
 	EndGlobalSection
 EndGlobal
