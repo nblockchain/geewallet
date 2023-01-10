@@ -77,10 +77,17 @@ let Replace file fromStr toStr =
                 Arguments = replaceScript.FullName
             }
         | _ ->
+#if !LEGACY_FRAMEWORK
+            {
+                Command = "dotnet"
+                Arguments = sprintf "fsi %s" replaceScript.FullName
+            }
+#else
             {
                 Command = replaceScript.FullName
                 Arguments = String.Empty
             }
+#endif
     let proc =
         {
             baseReplaceCommand with
