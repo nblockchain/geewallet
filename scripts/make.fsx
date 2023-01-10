@@ -119,6 +119,7 @@ FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
 exec mono "$FRONTEND_PATH" "$@"
 """
 
+#if LEGACY_FRAMEWORK
 let PrintNugetVersion () =
     if not (FsxHelper.NugetExe.Exists) then
         false
@@ -141,6 +142,7 @@ let PrintNugetVersion () =
             Console.WriteLine()
             Console.Out.Flush()
             failwith "nuget process' output contained errors ^"
+#endif
 
 let BuildSolution
     (buildToolAndBuildArg: string*string)
@@ -204,7 +206,9 @@ let BuildSolution
     | Error _ ->
         Console.WriteLine()
         Console.Error.WriteLine (sprintf "%s build failed" buildTool)
+#if LEGACY_FRAMEWORK
         PrintNugetVersion() |> ignore
+#endif
         Environment.Exit 1
     | _ -> ()
 
@@ -315,12 +319,14 @@ match maybeTarget with
 | Some("release") ->
     JustBuild BinaryConfig.Release None
 
+#if LEGACY_FRAMEWORK
 | Some "nuget" ->
     Console.WriteLine "This target is for debugging purposes."
 
     if not (PrintNugetVersion()) then
         Console.Error.WriteLine "Nuget executable has not been downloaded yet, try `make` alone first"
         Environment.Exit 1
+#endif
 
 | Some("zip") ->
     let zipCommand = "zip"
