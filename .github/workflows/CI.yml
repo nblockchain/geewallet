@@ -362,6 +362,8 @@ jobs:
 
   conventions:
     runs-on: ubuntu-20.04
+    container:
+      image: "ubuntu:22.04"
     needs:
     - linux22-github
     - linux22-github--newmono
@@ -376,13 +378,18 @@ jobs:
     - macOS
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v1
       with:
         submodules: false
-        # needed because of commit-lint, see https://github.com/conventional-changelog/commitlint/issues/3376
-        fetch-depth: 0
     - name: Install dependencies of commitlint
-      run: sudo apt install --yes npm
+      run: |
+        apt update
+        apt install --yes sudo
+
+        sudo apt install --yes git npm
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
     - name: Pull our commitlint configuration
       run: |
         git clone https://github.com/nblockchain/conventions.git
