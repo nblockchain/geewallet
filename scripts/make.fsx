@@ -31,11 +31,14 @@ let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
 let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
 let MAC_SOLUTION_FILE = "gwallet.mac.sln"
-let MAUI_PROJECT_FILE = Path.Combine([| 
-    "src"
-    "GWallet.Frontend.MAUI"
-    "GWallet.Frontend.MAUI.fsproj"
-|])
+let MAUI_PROJECT_FILE = 
+    Path.Combine(
+        [| 
+            "src"
+            "GWallet.Frontend.MAUI"
+            "GWallet.Frontend.MAUI.fsproj"
+        |]
+    )
 let BACKEND = "GWallet.Backend"
 
 type Frontend =
