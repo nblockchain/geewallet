@@ -1,4 +1,9 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if !XAMARIN
+namespace GWallet.Frontend.MAUI
+#else
+namespace GWallet.Frontend.XF
+#endif
+
 #if !Xamarin
 open Microsoft.Maui.Controls
 #else

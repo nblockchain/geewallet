@@ -1,5 +1,8 @@
-﻿namespace GWallet.Frontend.XF
-
+﻿#if !XAMARIN
+namespace GWallet.Frontend.MAUI
+#else
+namespace GWallet.Frontend.XF
+#endif
 open System
 open System.Linq
 open System.Threading.Tasks
