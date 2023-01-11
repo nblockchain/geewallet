@@ -100,3 +100,7 @@ fabric.properties
 .fake
 .ionide
 
+# Maui generated codes
+src/GWallet.Frontend.Maui/WelcomePage.xaml
+src/GWallet.Frontend.Maui/WelcomePage.xaml.fs
+
