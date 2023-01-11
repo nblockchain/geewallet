@@ -1,4 +1,4 @@
-﻿namespace MauiGW
+﻿namespace GWallet.Frontend.MAUI
 
 open Android.App
 open Microsoft.Maui
@@ -7,6 +7,6 @@ open Microsoft.Maui
 type MainApplication(handle, ownership) =
     inherit MauiApplication(handle, ownership)
 
-    do MauiGW.Resource.UpdateIdValues()
+    do GWallet.Frontend.MAUI.Resource.UpdateIdValues()
     
     override _.CreateMauiApp() = MauiProgram.CreateMauiApp()

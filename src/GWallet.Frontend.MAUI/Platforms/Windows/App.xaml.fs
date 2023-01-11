@@ -1,7 +1,7 @@
 ﻿// To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
 
-namespace MauiGW.WinUI
+namespace GWallet.Frontend.MAUI.WinUI
 
 open Microsoft.UI.Xaml
 open Microsoft.Maui

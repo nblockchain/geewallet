@@ -2,8 +2,8 @@
 <ContentPage  
              xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:local="clr-namespace:MauiGW"
-             x:Class="MauiGW.MainPage">
+             xmlns:local="clr-namespace:GWallet.Frontend.MAUI"
+             x:Class="GWallet.Frontend.MAUI.MainPage">
     <StackLayout x:Name="mainLayout"
                  VerticalOptions="Center"
                  Padding="20,20,20,20">

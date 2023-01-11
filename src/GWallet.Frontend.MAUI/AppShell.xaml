@@ -2,9 +2,9 @@
 <Shell
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:local="clr-namespace:MauiGW"
+    xmlns:local="clr-namespace:GWallet.Frontend.MAUI"
     Shell.FlyoutBehavior="Disabled"
-    x:Class="MauiGW.AppShell">
+    x:Class="GWallet.Frontend.MAUI.AppShell">
 
     <ShellContent
         Title="Home"

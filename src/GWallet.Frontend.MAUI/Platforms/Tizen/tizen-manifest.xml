@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<manifest package="com.companyname.MauiGW" version="1.0.0" api-version="7" xmlns="http://tizen.org/ns/packages">
+<manifest package="com.companyname.GWallet.Frontend.MAUI" version="1.0.0" api-version="7" xmlns="http://tizen.org/ns/packages">
   <profile name="common" />
-  <ui-application appid="com.companyname.MauiGW" exec="MauiGW.dll" multiple="false" nodisplay="false" taskmanage="true" type="dotnet" launch_mode="single">
-    <label>MauiGW</label>
+  <ui-application appid="com.companyname.GWallet.Frontend.MAUI" exec="GWallet.Frontend.MAUI.dll" multiple="false" nodisplay="false" taskmanage="true" type="dotnet" launch_mode="single">
+    <label>GWallet.Frontend.MAUI</label>
     <icon>appicon.xhigh.png</icon>
     <metadata key="http://tizen.org/metadata/prefer_dotnet_aot" value="true" />
   </ui-application>

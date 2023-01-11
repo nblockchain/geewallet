@@ -1,4 +1,4 @@
-namespace MauiGW
+namespace GWallet.Frontend.MAUI
 
 open System
 open Microsoft.Maui

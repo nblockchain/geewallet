@@ -1,8 +1,8 @@
 ﻿<maui:MauiWinUIApplication
-    x:Class="MauiGW.WinUI.App"
+    x:Class="GWallet.Frontend.MAUI.WinUI.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:maui="using:Microsoft.Maui"
-    xmlns:local="using:MauiGW.WinUI">
+    xmlns:local="using:GWallet.Frontend.MAUI.WinUI">
 
 </maui:MauiWinUIApplication>
