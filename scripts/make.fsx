@@ -31,6 +31,11 @@ let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
 let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
 let MAC_SOLUTION_FILE = "gwallet.mac.sln"
+let MAUI_PROJECT_FILE = Path.Combine([| 
+    "src"
+    "GWallet.Frontend.MAUI"
+    "GWallet.Frontend.MAUI.fsproj"
+|])
 let BACKEND = "GWallet.Backend"
 
 type Frontend =
@@ -196,20 +201,37 @@ let CopyXamlFiles() =
         let destPath = Path.Combine([| "src"; "GWallet.Frontend.MAUI"; file |])
             
         File.Copy(sourcePath, destPath, true)
-        if file.Split([| "." |], StringSplitOptions.RemoveEmptyEntries) |> Array.last = "xaml" then
-            let mutable fileText = File.ReadAllText(destPath)
+        let extenstion = file.Split([| "." |], StringSplitOptions.RemoveEmptyEntries) |> Array.last
+        let mutable fileText = File.ReadAllText(destPath)
+        if extenstion = "xaml" then
             fileText <- fileText.Replace("http://xamarin.com/schemas/2014/forms","http://schemas.microsoft.com/dotnet/2021/maui")
-            fileText <- fileText.Replace("GWallet.Frontend.XF", "GWallet.Frontend.MAUI")
-            File.WriteAllText(destPath, fileText)
+        fileText <- fileText.Replace("GWallet.Frontend.XF", "GWallet.Frontend.MAUI")
+        File.WriteAllText(destPath, fileText)
 
-let RemoveCopiedFiles() = 
-    let files = [| "WelcomePage.xaml"; "WelcomePage.xaml.fs" |]
-    for file in files do
-        let destPath = Path.Combine([| "src"; "GWallet.Frontend.MAUI"; file |])
-        File.Delete(destPath)
+let DotNetBuild
+    (solutionProjectFileName: string)
+    (binaryConfig: BinaryConfig)
+    (args: string)
+    (ignoreError: bool)
+    =
+    let configOption = sprintf "-c %s" (binaryConfig.ToString())
+    let buildArgs = (sprintf "build %s %s %s" configOption solutionProjectFileName args)
+    let buildProcess = Process.Execute ({ Command = "dotnet"; Arguments = buildArgs }, Echo.All)
+    match buildProcess.Result with
+    | Error _ ->
+        if not ignoreError then
+            Console.WriteLine()
+            Console.Error.WriteLine "dotnet build failed"
+            PrintNugetVersion() |> ignore
+            Environment.Exit 1
+        else
+            ()
+    | _ -> ()
 
-let BuildMauiProject() =
-    ()
+
+let BuildMauiProject binaryConfig =
+    DotNetBuild MAUI_PROJECT_FILE binaryConfig "--framework net6.0-android" true
+    DotNetBuild MAUI_PROJECT_FILE binaryConfig "--framework net6.0-android" false
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let buildTool = Map.tryFind "BuildTool" buildConfigContents
@@ -253,6 +275,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                     ExplicitRestore solution
 
                     MSBuildRestoreAndBuild solution
+
+                    CopyXamlFiles()
+                    BuildMauiProject binaryConfig
 
                 Frontend.Console
             | Misc.Platform.Linux ->
@@ -519,8 +544,7 @@ match maybeTarget with
 
 | Some "maui" ->
     CopyXamlFiles()
-    BuildMauiProject()
-    //RemoveCopiedFiles()
+    BuildMauiProject BinaryConfig.Debug
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
