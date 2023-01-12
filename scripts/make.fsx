@@ -196,7 +196,13 @@ let BuildSolution
                     else
                         allDefineConstants
 
-            sprintf "%s;DefineConstants=%s" configOption (String.Join(";", defineConstants))
+            if buildTool = "xbuild" then
+                // see https://github.com/dotnet/sdk/issues/9562
+                let semiColon = "%3B"
+                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
+            else
+                let semiColon = ";"
+                sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
     let buildArgs = sprintf "%s %s %s"
