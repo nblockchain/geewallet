@@ -172,16 +172,10 @@ let BuildSolution
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> constants.Split([|";"|], StringSplitOptions.RemoveEmptyEntries) |> Seq.ofArray
         | None -> Seq.empty
-    let defineConstantsSoFar =
-        if solutionFileName.EndsWith "maui.sln" |> not then
-            Seq.append ["XAMARIN"] defineConstantsFromBuildConfig
-        else
-            defineConstantsFromBuildConfig
     let allDefineConstants =
         match maybeConstant with
-        | Some constant -> Seq.append [constant] defineConstantsSoFar
-        | None -> defineConstantsSoFar
-
+        | Some constant -> Seq.append [constant] defineConstantsFromBuildConfig
+        | None -> defineConstantsFromBuildConfig
 
     let configOptions =
         if allDefineConstants.Any() then
