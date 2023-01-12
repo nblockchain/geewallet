@@ -172,16 +172,31 @@ let BuildSolution
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> constants.Split([|";"|], StringSplitOptions.RemoveEmptyEntries) |> Seq.ofArray
         | None -> Seq.empty
+    let defineConstantsSoFar =
+        if not(solutionFileName.EndsWith "maui.sln") then
+            Seq.append ["XAMARIN"] defineConstantsFromBuildConfig
+        else
+            defineConstantsFromBuildConfig
     let allDefineConstants =
         match maybeConstant with
-        | Some constant -> Seq.append [constant] defineConstantsFromBuildConfig
-        | None -> defineConstantsFromBuildConfig
+        | Some constant -> Seq.append [constant] defineConstantsSoFar
+        | None -> defineConstantsSoFar
+
 
     let configOptions =
         if allDefineConstants.Any() then
             // FIXME: we shouldn't override the project's DefineConstants, but rather set "ExtraDefineConstants"
             // from the command line, and merge them later in the project file: see https://stackoverflow.com/a/32326853/544947
-            sprintf "%s;DefineConstants=%s" configOption (String.Join(";", allDefineConstants))
+            let defineConstants =
+                match binaryConfig with
+                | Release -> allDefineConstants
+                | Debug ->
+                    if not (allDefineConstants.Contains "DEBUG") then
+                        Seq.append allDefineConstants ["DEBUG"]
+                    else
+                        allDefineConstants
+
+            sprintf "%s;DefineConstants=%s" configOption (String.Join(";", defineConstants))
         else
             configOption
     let buildArgs = sprintf "%s %s %s"
