@@ -202,7 +202,7 @@ let BuildSolution
                 sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
             else
                 let semiColon = ";"
-                sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
+                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
     let buildArgs = sprintf "%s %s %s"
