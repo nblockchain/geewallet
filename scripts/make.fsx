@@ -204,7 +204,7 @@ let BuildSolution
                 let semiColon = ";"
                 match Misc.GuessPlatform () with
                 | Misc.Platform.Windows ->
-                    sprintf "%s \"/p:DefineConstants=\\\"%s\\\"\"" configOption (String.Join(semiColon, defineConstants))
+                    sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
                 | _ -> 
                     sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
