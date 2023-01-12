@@ -92,6 +92,14 @@ module FSharpUtil =
                 return box result
             }
 
+        // FIXME: remove once we can stop supporting old versions of FSharpCore
+        let SleepSpan (span: TimeSpan) =
+#if LEGACY_FRAMEWORK
+            Async.Sleep (int span.TotalMilliseconds)
+#else
+            Async.Sleep span
+#endif
+
         let MixedParallel2 (a: Async<'T1>) (b: Async<'T2>): Async<'T1*'T2> =
             async {
                 let! results = Async.Parallel [| makeBoxed a ; makeBoxed b |]
@@ -133,6 +141,7 @@ module FSharpUtil =
             }
 
         // a mix between Async.WhenAny and Async.Choice
+        // FIXME: add documentation about this, because it's not clear
         let WhenAnyAndAll<'T>(jobs: seq<Async<'T>>): Async<Async<array<'T>>> =
             let taskSource = TaskCompletionSource<unit>()
             let wrap (job: Async<'T>) =

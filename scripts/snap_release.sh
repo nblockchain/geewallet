@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -exo pipefail
 
 BUILD_CONFIG="./scripts/build.config"
 if [ ! -f "$BUILD_CONFIG" ]; then
@@ -11,4 +11,4 @@ fi
 snapcraft --version
 
 source "$BUILD_CONFIG"
-FsxRunner=$FsxRunner $FsxRunner ./scripts/snap_release.fsx "$@"
+FsxRunnerBin=$FsxRunnerBin FsxRunnerArg=$FsxRunnerArg $FsxRunnerBin $FsxRunnerArg ./scripts/snap_release.fsx "$@"

@@ -161,21 +161,41 @@ module Config =
     let RemoveReadOnlyAccount (account: ReadOnlyAccount): unit =
         RemoveAccount account
 
-    let ExtractEmbeddedResourceFileContents resourceName =
+    let ExtractEmbeddedResourceFileContentsFromAssembly (resourceName: string) (assembly: Assembly) =
+        let ress = String.Join(";", assembly.GetManifestResourceNames())
+
+        let fullNameOpt =
+            assembly.GetManifestResourceNames()
+            |> Seq.filter (fun aResourceName ->
+#if !LEGACY_FRAMEWORK
+                                                    aResourceName.EndsWith("." + resourceName)
+#else
+                                                    aResourceName = resourceName
+#endif
+            )
+            |> Seq.tryExactlyOne
+
+        match fullNameOpt with
+        | Some fullName ->
+            use stream = assembly.GetManifestResourceStream fullName
+            if (stream = null) then
+                let failMsg =
+                    SPrintF3 "Embedded resource %s (%s) not found in assembly %s"
+                        resourceName
+                        fullName
+                        assembly.FullName
+                failwith failMsg
+            use reader = new StreamReader(stream)
+            reader.ReadToEnd()
+        | None ->
+            let failMsg =
+                SPrintF3 "Embedded resource %s not found at all in assembly %s (resource names: %s)"
+                    resourceName
+                    assembly.FullName
+                    ress
+            failwith failMsg
+
+    let ExtractEmbeddedResourceFileContents (resourceName: string) =
         let assembly = Assembly.GetExecutingAssembly()
-        let allEmbeddedResources = assembly.GetManifestResourceNames()
-        let resourceList = String.Join(",", allEmbeddedResources)
-        let assemblyResourceName = allEmbeddedResources.FirstOrDefault(fun r -> r.EndsWith resourceName)
-        if (assemblyResourceName = null) then
-            failwith <| SPrintF3 "Embedded resource %s not found in %s. Resource list: %s"
-                      resourceName
-                      (assembly.ToString())
-                      resourceList
-        use stream = assembly.GetManifestResourceStream assemblyResourceName
-        if (stream = null) then
-            failwith <| SPrintF3 "Assertion failed: Embedded resource %s not found in %s. Resource list: %s"
-                                  resourceName
-                                  (assembly.ToString())
-                                  resourceList
-        use reader = new StreamReader(stream)
-        reader.ReadToEnd()
+        ExtractEmbeddedResourceFileContentsFromAssembly resourceName assembly
+

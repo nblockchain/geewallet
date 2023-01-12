@@ -26,11 +26,16 @@ jobs:
       run: git clean -fdx && ./configure.sh && make strict
     - name: build in RELEASE mode
       run: git clean -fdx && ./configure.sh && make release
-    # TODO: use fsx's scripts compilation when we migrate to .NET6 (to use `#r "nuget: Microsoft.Build"` instead of `#r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"`)
-    #- name: compile .fsx scripts
-    #  run: dotnet fsi ./scripts/fsx/compileFSharpScripts.fsx
     - name: integration tests
       run: make update-servers
+    - name: compile .fsx scripts
+      run: |
+        dotnet new tool-manifest
+
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   windows:
     runs-on: windows-latest
@@ -50,11 +55,17 @@ jobs:
       run: git clean -fdx && .\configure.bat && .\make.bat strict
     - name: re-build in RELEASE mode
       run: git clean -fdx && .\configure.bat && .\make.bat release
-    # TODO: use fsx's scripts compilation when we migrate to .NET6 (to use `#r "nuget: Microsoft.Build"` instead of `#r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"`)
-    #- name: compile .fsx scripts
-    #  run: dotnet fsi ./scripts/fsx/compileFSharpScripts.fsx
     - name: integration tests
       run: .\make update-servers
+    - name: compile .fsx scripts
+      shell: bash
+      run: |
+        dotnet new tool-manifest
+
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux22-github:
     runs-on: ubuntu-22.04
@@ -144,11 +155,50 @@ jobs:
       run: git clean -fdx && ./configure.sh && make strict
     - name: build in RELEASE mode
       run: git clean -fdx && ./configure.sh && make release
-    # TODO: use fsx's scripts compilation when we migrate to .NET6 (to use `#r "nuget: Microsoft.Build"` instead of `#r "../.nuget/packages/Microsoft.Build.16.11.0/lib/net472/Microsoft.Build.dll"`)
-    #- name: compile .fsx scripts
-    #  run: dotnet fsi ./scripts/fsx/compileFSharpScripts.fsx
     - name: integration tests
       run: make update-servers
+
+  linux22-vanilla--dotnet6:
+    runs-on: ubuntu-22.04
+    container:
+      image: "ubuntu:22.04"
+    steps:
+    - uses: actions/checkout@v1
+    # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
+    #  with:
+    #    submodules: 'true'
+
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6
+
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+    - name: compile .fsx scripts
+      run: |
+        dotnet new tool-manifest
+
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux22-vanilla--newmono:
     runs-on: ubuntu-22.04
@@ -324,32 +374,14 @@ jobs:
 
   conventions:
     runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: false
-        # needed because of commit-lint, see https://github.com/conventional-changelog/commitlint/issues/3376
-        fetch-depth: 0
-    - name: Install dependencies of commitlint
-      run: sudo apt install --yes npm && npm install @commitlint/config-conventional
-    - name: Pull our commitlint configuration
-      run: sudo apt install wget && wget https://raw.githubusercontent.com/nblockchain/conventions/master/commitlint.config.ts
-    - name: Validate current commit (last commit) with commitlint
-      if: github.event_name == 'push'
-      run: npx commitlint --from HEAD~1 --to HEAD --verbose
-    - name: Validate PR commits with commitlint
-      if: github.event_name == 'pull_request'
-      run: npx commitlint --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
-
-  snap_pkg:
-
+    container:
+      image: "ubuntu:22.04"
     needs:
-    - conventions
-
     - linux22-github
     - linux22-github--newmono
     - linux22-vanilla--stockmono
     - linux22-vanilla--newmono
+    - linux22-vanilla--dotnet6
     - linux20-github
     - linux20-github--newmono
     - linux20-vanilla--stockmono
@@ -357,15 +389,51 @@ jobs:
     - windows
     - macOS
 
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: Install dependencies of commitlint
+      run: |
+        apt update
+        apt install --yes sudo
+
+        sudo apt install --yes git npm
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+    - name: Pull our commitlint configuration
+      run: |
+        git clone https://github.com/nblockchain/conventions.git
+        rm -rf ./conventions/.git/
+    - name: Validate current commit (last commit) with commitlint
+      if: github.event_name == 'push'
+      run: ./conventions/commitlint.sh --from HEAD~1 --to HEAD --verbose
+    - name: Validate PR commits with commitlint
+      if: github.event_name == 'pull_request'
+      run: ./conventions/commitlint.sh --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
+
+  snap_pkg:
+
+    needs:
+    - conventions
+
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
-    - name: Generate snap package
+    - name: Install snap tools
       run: |
         sudo apt update
         sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
         ./scripts/install_snapcraft.sh
-        # retry 3 times because of flakey nuget; TODO: remove retry when we migrate to .NET6
+
+    # hack to disable dotnet detection (can't use apt purge because github VM seems to have it installed in different way)
+    - name: Remove dotnet exec (hack)
+      run: sudo rm `which dotnet`
+
+    - name: Generate snap package
+      run: |
+        # retry 3 times because of flakey nuget; TODO: remove retry when we migrate the snap pkg to .NET6
         ./scripts/snap_build.sh || ./scripts/snap_build.sh || ./scripts/snap_build.sh || ./scripts/snap_build.sh
 
     - name: Upload snap package to Snap Store
