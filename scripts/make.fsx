@@ -202,7 +202,11 @@ let BuildSolution
                 sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
             else
                 let semiColon = ";"
-                sprintf "%s /p:DefineConstants=%s" configOption (String.Join(semiColon, defineConstants))
+                match Misc.GuessPlatform () with
+                | Misc.Platform.Windows ->
+                    sprintf "%s /p:DefineConstants=%s" configOption (String.Join(semiColon, defineConstants))
+                | _ -> 
+                    sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
     let buildArgs = sprintf "%s %s %s"
