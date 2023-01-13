@@ -51,7 +51,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: ./scripts/CI/linux_pkg_install.sh fsharp nunit-console
     - name: check mono version
       run: mono --version
     - name: configure
@@ -74,7 +74,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: ./scripts/CI/linux_pkg_install.sh fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
     - name: check mono version
@@ -104,10 +104,8 @@ jobs:
     #  with:
     #    submodules: 'true'
 
-    - name: install sudo
-      run: apt update && apt install --yes sudo
-    - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+    - name: install missing dependencies
+      run: ./scripts/CI/linux_pkg_install.sh git make curl fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -140,10 +138,9 @@ jobs:
     #  with:
     #    submodules: 'true'
 
-    - name: install sudo
-      run: apt update && apt install --yes sudo
-    - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+    - name: install missing dependencies
+      run: ./scripts/CI/linux_pkg_install.sh git make curl fsharp nunit-console
+
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -174,7 +171,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: ./scripts/CI/linux_pkg_install.sh fsharp nunit-console
     - name: check mono version
       run: mono --version
     - name: configure
@@ -197,7 +194,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: ./scripts/CI/linux_pkg_install.sh fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
     - name: check mono version
@@ -227,10 +224,8 @@ jobs:
     #  with:
     #    submodules: 'true'
 
-    - name: install sudo
-      run: apt update && apt install --yes sudo
-    - name: install all dependencies
-      run: sudo apt install --yes git make curl fsharp nunit-console
+    - name: install missing dependencies
+      run: ./scripts/CI/linux_pkg_install.sh git make curl fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -263,10 +258,8 @@ jobs:
     #  with:
     #    submodules: 'true'
 
-    - name: install sudo
-      run: apt update && apt install --yes sudo
-    - name: install all dependencies
-      run: sudo apt install --yes git make curl fsharp nunit-console
+    - name: install missing dependencies
+      run: ./scripts/CI/linux_pkg_install.sh git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -307,9 +300,11 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
+    - name: install missing dependencies
+      run: ./scripts/CI/linux_pkg_install.sh git
+
     - name: Generate snap package
       run: |
-        sudo apt update
         ./scripts/install_snapcraft.sh
         sudo ./scripts/snap_build.sh
 
@@ -328,11 +323,13 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: snap
+    - name: prepare apt
+      run: ./scripts/CI/linux_pkg_init.sh
+    - name: install missing dependencies
+      run: ./scripts/CI/linux_pkg_install.sh fsharp
     - name: Upload snap package to Snap Store
       env:
         SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
       run: |
-        sudo apt update
-        sudo apt install --yes fsharp
         ./scripts/install_snapcraft.sh
         ./configure.sh && ./scripts/snap_release.sh
