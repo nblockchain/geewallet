@@ -28,18 +28,25 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: '6.0.425'
     - name: Install specific Xamarin.iOS and Xamarin.Android versions
       run: |
         wget https://download.visualstudio.microsoft.com/download/pr/81c41aaa-a3d7-4875-8416-d04b472379b7/21d9f6c5ad3a6bc2479b2ec4b0685b6c/xamarin.ios-16.0.0.72.pkg
         sudo installer -pkg xamarin.ios-16.0.0.72.pkg -target /
         wget https://aka.ms/xamarin-android-commercial-d17-3-macos --output-document=xamarin.android-13.0.0.0.pkg
         sudo installer -pkg xamarin.android-13.0.0.0.pkg -target /
+    - name: Install Android 31 SDK
+      run: |
+        brew install --cask android-commandlinetools
+        echo y | sdkmanager 'build-tools;31.0.0' --sdk_root=/Users/runner/Library/Android/sdk
+        echo y | sdkmanager "platform-tools" "platforms;android-31" --sdk_root=/Users/runner/Library/Android/sdk
     - name: Check versions
       run: |
         mono --version
         /Library/Frameworks/Xamarin.iOS.framework/Versions/Current/bin/mtouch --version
         ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/
+    - name: install maui workload
+      run: dotnet workload install maui
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -140,15 +147,6 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: '6.0.x'
-    - name: Install JDK 21
-      # needed for MAUI Android build
-      run: |
-        Invoke-WebRequest -Uri https://aka.ms/download-jdk/microsoft-jdk-11-windows-x64.msi -OutFile jdk-11.msi -UseBasicParsing
-        Start-Process msiexec.exe -Wait -ArgumentList '/I jdk-11.msi /quiet'
-    - name: Build Maui Frontend
-      run: |
-        dotnet workload install maui
-        dotnet build src\GWallet.Frontend.Maui\GWallet.Frontend.Maui.fsproj --framework net6.0-android || dotnet build src\GWallet.Frontend.Maui\GWallet.Frontend.Maui.fsproj --framework net6.0-android
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
