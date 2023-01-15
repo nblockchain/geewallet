@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31611.283
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Backend.NetStandard", "src\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj", "{AEE8C358-E147-4976-A439-7391F8EA8ACD}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.Maui", "src\GWallet.Frontend.Maui\GWallet.Frontend.Maui.fsproj", "{D6C1C0C8-FD57-476F-8A60-BA99D8346045}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AEE8C358-E147-4976-A439-7391F8EA8ACD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEE8C358-E147-4976-A439-7391F8EA8ACD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEE8C358-E147-4976-A439-7391F8EA8ACD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEE8C358-E147-4976-A439-7391F8EA8ACD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6C1C0C8-FD57-476F-8A60-BA99D8346045}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6C1C0C8-FD57-476F-8A60-BA99D8346045}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6C1C0C8-FD57-476F-8A60-BA99D8346045}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{D6C1C0C8-FD57-476F-8A60-BA99D8346045}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6C1C0C8-FD57-476F-8A60-BA99D8346045}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6C1C0C8-FD57-476F-8A60-BA99D8346045}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {61F7FB11-1E47-470C-91E2-47F8143E1572}
+	EndGlobalSection
+EndGlobal

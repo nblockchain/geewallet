@@ -73,7 +73,11 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: '6.0.x'
+    - name: Build Maui Frontend
+      run: |
+        dotnet workload install maui
+        dotnet build src\GWallet.Frontend.Maui\GWallet.Frontend.Maui.fsproj --framework net6.0-android || dotnet build src\GWallet.Frontend.Maui\GWallet.Frontend.Maui.fsproj --framework net6.0-android
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
