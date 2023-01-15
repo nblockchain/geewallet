@@ -34,9 +34,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="MainPage.xaml" />
-    <Compile Include="MainPage.xaml.fs">
-      <DependentUpon>MainPage.xaml</DependentUpon>
+    <EmbeddedResource Include="WelcomePage.xaml" />
+    <Compile Include="..\GWallet.Frontend.XF\FrontendHelpers.fs" />
+    <Compile Include="..\GWallet.Frontend.XF\GlobalState.fs" />
+    <Compile Include="..\GWallet.Frontend.XF\WelcomePage.xaml.fs">
+      <DependentUpon>WelcomePage.xaml</DependentUpon>
     </Compile>
     <EmbeddedResource Include="AppShell.xaml" />
     <Compile Include="AppShell.xaml.fs">
