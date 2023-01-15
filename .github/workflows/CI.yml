@@ -29,6 +29,8 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: '6.0.113'
+    - name: install maui workload
+      run: dotnet workload install maui
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -114,15 +116,6 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: '6.0.x'
-    - name: Install JDK 21
-      # needed for MAUI Android build
-      run: |
-        Invoke-WebRequest -Uri https://aka.ms/download-jdk/microsoft-jdk-11-windows-x64.msi -OutFile jdk-11.msi -UseBasicParsing
-        Start-Process msiexec.exe -Wait -ArgumentList '/I jdk-11.msi /quiet'
-    - name: Build Maui Frontend
-      run: |
-        dotnet workload install maui
-        dotnet build src\GWallet.Frontend.Maui\GWallet.Frontend.Maui.fsproj --framework net6.0-android || dotnet build src\GWallet.Frontend.Maui\GWallet.Frontend.Maui.fsproj --framework net6.0-android
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
