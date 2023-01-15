@@ -1,15 +1,22 @@
-﻿namespace GWallet.Frontend.XF
-
+﻿#if !XAMARIN
+namespace GWallet.Frontend.Maui
+#else
+namespace GWallet.Frontend.XF
+#endif
 open System
 open System.Linq
 open System.Threading.Tasks
 
+#if !XAMARIN
+open Microsoft.Maui.Controls
+open Microsoft.Maui.ApplicationModel
+#else
 open Xamarin.Forms
 open Xamarin.Essentials
 open ZXing
 open ZXing.Mobile
+#endif
 open Fsdk
-
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -42,7 +49,7 @@ module FrontendHelpers =
 
     type IAugmentablePayPage =
         abstract member AddTransactionScanner: unit -> unit
-
+#if XAMARIN
     let IsDesktop() =
         match Device.RuntimePlatform with
         | Device.Android | Device.iOS ->
@@ -232,13 +239,17 @@ module FrontendHelpers =
         let allCancelSources =
             Seq.map fst sourcesAndJobs
         allCancelSources,parallelJobs
-
+#endif
     let private MaybeCrash (canBeCanceled: bool) (ex: Exception) =
         let LastResortBail() =
             // this is just in case the raise(throw) doesn't really tear down the program:
             Infrastructure.LogError ("FATAL PROBLEM: " + ex.ToString())
             Infrastructure.LogError "MANUAL FORCED SHUTDOWN NOW"
+#if XAMARIN
             Device.PlatformServices.QuitApplication()
+#else
+            Application.Current.Quit()
+#endif
 
         if null = ex then
             ()
@@ -312,7 +323,7 @@ module FrontendHelpers =
                 |> Async.AwaitTask
             return ()
         }
-
+#if XAMARIN
     let ChangeTextAndChangeBack (button: Button) (newText: string) =
         let initialText = button.Text
         button.IsEnabled <- false
@@ -418,4 +429,4 @@ module FrontendHelpers =
     let GetSizedColoredImageSource name color size =
         let sizedColoredName = SPrintF2 "%s_%s" name color
         GetSizedImageSource sizedColoredName size
-
+#endif
