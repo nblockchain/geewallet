@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:GWallet.Frontend.Maui"
+             x:Class="GWallet.Frontend.Maui.MainPage">
+	<StackLayout x:Name="mainLayout"
+                 VerticalOptions="Center"
+                 Padding="20,20,20,20">
+		<Label Text="Welcome to geewallet" x:Name="welcomeLabel"
+               VerticalOptions="Center" HorizontalOptions="Center"
+               FontSize="Large"
+               Margin="20,20,20,20"/>
+
+		<Grid
+            x:Name="infoGrid" >
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="2*" />
+				<ColumnDefinition Width="*" />
+			</Grid.ColumnDefinitions>
+			<Label Grid.Column="0" Text="This is not a sign-up or log-in page. This form allows you to create a new wallet (or recover a previously created one). None of the data introduced here will leave the device, it will solely be used to produce a confidential secret (private key)."
+                   VerticalOptions="Center" HorizontalOptions="Center"
+                   FontSize="Small"
+                   />
+			<StackLayout Grid.Column="1" Orientation="Vertical">
+				<Button x:Name="moreInfoButton"
+                        Text="More info"
+                        VerticalOptions="Center" HorizontalOptions="Center"
+                        FontSize="Small"
+                        Clicked="OnMoreInfoButtonClicked" />
+				<Button x:Name="okButton"
+                        Text="Ok"
+                        VerticalOptions="Center" HorizontalOptions="Center"
+                        FontSize="Small"
+                        Clicked="OnOkButtonClicked" />
+			</StackLayout>
+		</Grid>
+
+		<Entry x:Name="passphraseEntry" IsPassword="true"
+               Placeholder="Input your new secret recovery phrase"
+               TextChanged="OnPassphraseTextChanged" />
+		<Entry x:Name="passphraseConfirmationEntry" IsPassword="true"
+               Placeholder="Repeat your secret recovery phrase"
+               TextChanged="OnPassphraseTextChanged" />
+
+		<StackLayout Orientation="Horizontal">
+			<Label Text="Date of Birth (d/m/y):"
+                   FontSize="Small"
+                   HorizontalOptions="Start"
+                   VerticalOptions="Center" />
+			<DatePicker x:Name="dobDatePicker"
+                        Format="dd/MM/yyyy"
+                        HorizontalOptions="End"
+                        VerticalOptions="Center"
+                        DateSelected="OnDobDateChanged" />
+		</StackLayout>
+
+		<Entry x:Name="emailEntry" IsPassword="false"
+               Placeholder="E-mail address"
+               Keyboard="Email"
+               TextChanged="OnEmailTextChanged" />
+
+		<Button x:Name="nextButton"
+                Text="Next" IsEnabled="false"
+                HorizontalOptions="Center"
+                Clicked="OnNextButtonClicked" />
+	</StackLayout>
+</ContentPage>
