@@ -5,6 +5,8 @@ open System.Net
 open System.Net.Sockets
 open System.Runtime.Serialization
 
+open Fsdk
+
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 // https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Cloudflare

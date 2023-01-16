@@ -7,6 +7,7 @@ open System.Reflection
 open System.Runtime.InteropServices
 
 open Xamarin.Essentials
+open Fsdk
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 

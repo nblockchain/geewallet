@@ -12,6 +12,7 @@ open Nethereum.Signer
 open Nethereum.KeyStore
 open Nethereum.Util
 open Nethereum.KeyStore.Crypto
+open Fsdk
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks

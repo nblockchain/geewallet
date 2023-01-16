@@ -4,6 +4,7 @@ open System
 open System.Net
 
 open FSharp.Data
+open Fsdk
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 

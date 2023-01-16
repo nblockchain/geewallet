@@ -5,8 +5,10 @@ open System.Diagnostics
 open System.Threading
 open System.Threading.Tasks
 
+open Fsdk
+open Fsdk.FSharpUtil
+
 open GWallet.Backend
-open FSharpUtil.AsyncExtensions
 
 open NUnit.Framework
 

@@ -5,9 +5,10 @@ open System.Threading
 open System.Diagnostics
 
 open NUnit.Framework
+open Fsdk
+open Fsdk.FSharpUtil
 
 open GWallet.Backend
-open FSharpUtil.AsyncExtensions
 
 
 exception SomeExceptionDuringParallelWork
