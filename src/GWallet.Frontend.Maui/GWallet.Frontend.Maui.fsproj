@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>net6.0-android;net6.0-ios;net6.0-maccatalyst</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('linux'))">net6.0-gtk</TargetFrameworks>
     <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
     <!-- <TargetFrameworks>$(TargetFrameworks);net6.0-tizen</TargetFrameworks> -->
     <OutputType>Exe</OutputType>
@@ -40,16 +41,32 @@
     <PropertyGroup>
       <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
+  <PropertyGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
+    <UseMaui>false</UseMaui>
+    <MauiSubmodulePath>$(MSBuildProjectDirectory)\..\..\dependencies\maui\</MauiSubmodulePath>
+    <_MauiBuildTasksLocation>$(MauiSubmodulePath).nuspec\</_MauiBuildTasksLocation>
+    <GtkProjectFolder>Platforms\Gtk\</GtkProjectFolder>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.5" />
+    <ProjectReference Include="$(MauiSubmodulePath)src\BlazorWebView\src\Maui\Microsoft.AspNetCore.Components.WebView.Maui.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)src\Essentials\src\Essentials.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)src\Controls\src\Core\Controls.Core.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)src\Controls\src\Xaml\Controls.Xaml.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)src\Core\src\Core.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)src\Compatibility\Core\src\Compatibility.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)src\Controls\Foldable\src\Controls.Foldable.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)src\Controls\Maps\src\Controls.Maps.csproj" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="WelcomePage.xaml" />
     <Compile Include="..\GWallet.Frontend.XF\FrontendHelpers.fs" />
     <Compile Include="..\GWallet.Frontend.XF\GlobalState.fs" />
     <Compile Include="..\GWallet.Frontend.XF\WelcomePage.xaml.fs">
       <DependentUpon>WelcomePage.xaml</DependentUpon>
-    </Compile>
-    <EmbeddedResource Include="AppShell.xaml" />
-    <Compile Include="AppShell.xaml.fs">
-      <DependentUpon>AppShell.xaml</DependentUpon>
     </Compile>
     <EmbeddedResource Include="App.xaml" />
     <Compile Include="App.xaml.fs">
@@ -84,6 +101,11 @@
 
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="6.0.3" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
+    <Compile Include="$(GtkProjectFolder)GtkApp.fs" />
+    <Compile Include="$(GtkProjectFolder)Program.fs" />
   </ItemGroup>
 
   <ItemGroup Condition="$(TargetPlatformIdentifier) == 'android'">
@@ -130,5 +152,7 @@
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj" />
   </ItemGroup>
+  
+  <Import Condition="$(TargetPlatformIdentifier) == 'gtk'" Project="$(MauiSubmodulePath)src\Maui.InTree.props"/>
 
 </Project>
