@@ -438,6 +438,7 @@ let GetPathToBackend () =
 let MakeAll (maybeConstant: Option<string>) =
     let buildConfig = BinaryConfig.Debug
     let frontend,_ = JustBuild buildConfig maybeConstant
+    CopyXamlFiles()
     frontend,buildConfig
 
 let RunFrontend (frontend: Frontend) (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =

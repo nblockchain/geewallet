@@ -1,13 +1,23 @@
 ﻿namespace GWallet.Frontend.Maui
 
-open Microsoft.Maui.Hosting
+#if GTK
+open Gdk
+open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.DependencyInjection.Extensions
+#endif
+open Microsoft.Maui.Controls.Compatibility.Hosting
 open Microsoft.Maui.Controls.Hosting
+open Microsoft.Maui.Hosting
 
 type MauiProgram =
     static member CreateMauiApp() =
         MauiApp
             .CreateBuilder()
             .UseMauiApp<App>()
+#if GTK 
+            .UseMauiCompatibility()
+#endif
             .ConfigureFonts(fun fonts ->
                 fonts
                     .AddFont("OpenSans-Regular.ttf", "OpenSansRegular")

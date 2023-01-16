@@ -1,3 +1,6 @@
 [submodule "scripts/fsx"]
 	path = scripts/fsx
 	url = https://github.com/nblockchain/fsx.git
+[submodule "dependencies/maui"]
+	path = dependencies/maui
+	url = https://github.com/nblockchain/CrossMaui.git
