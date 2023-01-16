@@ -469,6 +469,7 @@ let MakeAll (maybeConstant: Option<string>) =
 #endif
     let buildConfig = BinaryConfig.Debug
     let frontend,_ = JustBuild buildConfig maybeConstant
+    CopyXamlFiles()
     frontend,buildConfig
 
 let RunFrontend (frontend: FrontendApp) (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
