@@ -368,7 +368,7 @@ let SanityCheckNugetPackages () =
         if excessPackageDirs.Any () then
             let advice = "remove it with git filter-branch to avoid needless bandwidth: http://stackoverflow.com/a/17824718/6503091"
             for excessPkg in excessPackageDirs do
-                Console.Error.WriteLine(sprintf "Unused nuget package folder: %s (%s)" excessPkg advice)
+                Console.Error.WriteLine(sprintf "Unused nuget package folder for solution dir %s: %s (%s)" solDir.Name excessPkg advice)
             Environment.Exit 1
 #endif
 
@@ -414,8 +414,8 @@ let SanityCheckNugetPackages () =
                 if file.Name.ToLower().EndsWith ".sln" then
                     yield file
             for subdir in dir.EnumerateDirectories().Where notSubmodule do
-                for solutionDir in findSolutions subdir do
-                    yield solutionDir
+                for solution in findSolutions subdir do
+                    yield solution
         }
 
     let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
