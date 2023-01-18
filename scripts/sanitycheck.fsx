@@ -181,7 +181,7 @@ let SanityCheckNugetPackages () =
                         let pkgReferences = xmlDoc.XPathSelectElements query
 
                         for pkgReference in pkgReferences do
-                            let id = pkgReference.Attributes().Single(fun attr -> attr.Name.LocalName = "Include").Value
+                            let id = pkgReference.Attributes().Single(fun attr -> attr.Name.LocalName = "Include" || attr.Name.LocalName = "Update").Value
                             let version = pkgReference.Attributes().Single(fun attr -> attr.Name.LocalName = "Version").Value
                             yield { File = projectFile }, { PackageId = id; PackageVersion = version; ReqReinstall = None }
                 } |> List.ofSeq
