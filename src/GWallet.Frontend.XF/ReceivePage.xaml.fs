@@ -97,7 +97,7 @@ type ReceivePage(account: IAccount,
             |> Xamarin.Essentials.Launcher.OpenAsync
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
-    member this.OnSendPaymentClicked(sender: Object, args: EventArgs) =
+    member this.OnSendPaymentClicked(_sender: Object, _args: EventArgs) =
         let newReceivePageFunc = (fun _ ->
             ReceivePage(account, usdRate, balancesPage, balanceWidgetsFromBalancePage) :> Page
         )
@@ -115,7 +115,7 @@ type ReceivePage(account: IAccount,
 
         FrontendHelpers.SwitchToNewPage this sendPage false
 
-    member this.OnCopyToClipboardClicked(sender: Object, args: EventArgs) =
+    member this.OnCopyToClipboardClicked(_sender: Object, _args: EventArgs) =
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
         FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
 

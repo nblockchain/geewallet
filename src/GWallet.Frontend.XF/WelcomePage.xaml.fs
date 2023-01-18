@@ -105,7 +105,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = WelcomePage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime())
 
-    member this.OnNextButtonClicked(sender: Object, args: EventArgs) =
+    member this.OnNextButtonClicked(_sender: Object, _args: EventArgs) =
         let submit () =
             match VerifyPassphraseIsGoodAndSecureEnough() with
             | Some warning ->
@@ -165,12 +165,12 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         if isNull passphraseEntry.Text || passphraseEntry.Text.Trim().Length = 0 then
             passphraseEntry.Focus() |> ignore
 
-    member this.OnDobDateChanged (sender: Object, args: DateChangedEventArgs) =
+    member this.OnDobDateChanged (_sender: Object, _args: DateChangedEventArgs) =
         MaybeEnableNextButton ()
 
-    member this.OnEmailTextChanged(sender: Object, args: EventArgs) =
+    member this.OnEmailTextChanged(_sender: Object, _args: EventArgs) =
         MaybeEnableNextButton ()
 
-    member this.OnPassphraseTextChanged(sender: Object, args: EventArgs) =
+    member this.OnPassphraseTextChanged(_sender: Object, _args: EventArgs) =
         MaybeEnableNextButton ()
 

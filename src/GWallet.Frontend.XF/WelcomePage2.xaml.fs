@@ -44,7 +44,7 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
     new() = WelcomePage2(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),
                          new Task<array<byte>>(fun _ -> null))
 
-    member this.OnFinishButtonClicked(sender: Object, args: EventArgs) =
+    member this.OnFinishButtonClicked(_sender: Object, _args: EventArgs) =
         if password.Text <> passwordConfirmation.Text then
             this.DisplayAlert("Alert", "Payment passwords don't match, please try again", "OK") |> ignore
         else
@@ -60,7 +60,7 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
                 FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this loadingPage
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
-    member this.OnPasswordTextChanged(sender: Object, args: EventArgs) =
+    member this.OnPasswordTextChanged(_sender: Object, _args: EventArgs) =
         MaybeEnableFinishButton()
 
     

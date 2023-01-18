@@ -11,7 +11,7 @@ module Main =
 
     [<EntryPoint>]
     [<STAThread>]
-    let main argv =
+    let main _argv =
         Gtk.Application.Init()
         Forms.Init()
 
