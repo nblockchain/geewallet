@@ -54,14 +54,14 @@ type PairingFromPage(previousPage: Page,
         mainLayout.Children.Add(backButton)
         //</workaround> (NOTE: this also exists in ReceivePage.xaml.fs)
 
-    member this.OnCopyToClipboardClicked(sender: Object, args: EventArgs) =
+    member this.OnCopyToClipboardClicked(_sender: Object, _args: EventArgs) =
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
         FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
 
         Clipboard.SetTextAsync qrCodeContents
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
-    member this.OnNextStepClicked(sender: Object, args: EventArgs) =
+    member this.OnNextStepClicked(_sender: Object, _args: EventArgs) =
         match nextButtonCaptionAndSendPage with
         | None ->
             failwith "if next step clicked, last param in ctor should have been Some"

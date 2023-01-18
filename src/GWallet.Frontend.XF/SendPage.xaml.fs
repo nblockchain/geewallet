@@ -112,7 +112,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 destinationAddressEntry.IsEnabled <- false
             )
 
-    member this.OnTransactionScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
+    member this.OnTransactionScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout> "mainLayout"
         let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
 
@@ -134,7 +134,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         )
 
-    member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
+    member this.OnScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
 
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
@@ -181,7 +181,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         this.Navigation.PushModalAsync scanPage
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
-    member this.OnAllBalanceButtonClicked(sender: Object, args: EventArgs): unit =
+    member this.OnAllBalanceButtonClicked(_sender: Object, _args: EventArgs): unit =
         match cachedBalanceAtPageCreation with
         | NotAvailable ->
             failwith "if no balance was available(offline?), allBalance button should have been disabled"
@@ -204,7 +204,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 )
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
-    member this.OnCurrencySelectorTextChanged(sender: Object, args: EventArgs): unit =
+    member this.OnCurrencySelectorTextChanged(_sender: Object, _args: EventArgs): unit =
 
         let currentAmountTypedEntry = mainLayout.FindByName<Entry>("amountToSend")
         let currentAmountTyped = currentAmountTypedEntry.Text
@@ -276,7 +276,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         
         match maybeTxId with
         | None -> ()
-        | Some txIdUrlInBlockExplorer ->
+        | Some _txIdUrlInBlockExplorer ->
             // TODO: allow linking to tx in a button or something?
 
             let showSuccessAndGoBack = async {
@@ -375,7 +375,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             return final
     }
 
-    member private this.IsPasswordUnfilledAndNeeded (mainLayout: StackLayout) =
+    member private this.IsPasswordUnfilledAndNeeded () =
         match account with
         | :? ReadOnlyAccount ->
             false
@@ -386,7 +386,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             else
                 String.IsNullOrEmpty passwordEntry.Text
 
-    member this.OnTransactionEntryTextChanged (sender: Object, args: EventArgs): unit =
+    member this.OnTransactionEntryTextChanged (_sender: Object, _args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout> "mainLayout"
         let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
         let transactionEntryText = transactionEntry.Text
@@ -395,7 +395,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 try
                     Account.ImportTransactionFromJson transactionEntryText |> Some
                 with
-                | :? DeserializationException as dex ->
+                | :? DeserializationException as _dex ->
                     Device.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let errMsg = "Transaction corrupt or invalid"
@@ -527,7 +527,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                             return true
                 }
 
-    member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
+    member this.OnEntryTextChanged(_sender: Object, _args: EventArgs) =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         if (mainLayout = null) then
             //page not yet ready
@@ -538,13 +538,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             let sendOrSignButtonEnabled = sendOrSignButtonEnabledForNow &&
                                           destinationAddressEntry <> null &&
                                           (not (String.IsNullOrEmpty destinationAddressEntry.Text)) &&
-                                          (not (this.IsPasswordUnfilledAndNeeded mainLayout))
+                                          (not (this.IsPasswordUnfilledAndNeeded()))
             Device.BeginInvokeOnMainThread(fun _ ->
                 sendOrSignButton.IsEnabled <- sendOrSignButtonEnabled
             )
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
-    member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
+    member this.OnCancelButtonClicked(_sender: Object, _args: EventArgs) =
         Device.BeginInvokeOnMainThread(fun _ ->
             receivePage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
         )
@@ -632,7 +632,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 | ColdStorageRemoteControl _ ->
                     failwith "remote control should only happen in ReadOnly account handling"
 
-            | :? ReadOnlyAccount as readOnlyAccount ->
+            | :? ReadOnlyAccount as _readOnlyAccount ->
                 let proposal = {
                     OriginAddress = account.PublicAddress;
                     Amount = txInfo.Amount;
@@ -739,7 +739,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 this.ShowWarningAndEnableFormWidgetsAgain errMsg
         } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
-    member this.OnSendOrSignButtonClicked(sender: Object, args: EventArgs): unit =
+    member this.OnSendOrSignButtonClicked(_sender: Object, _args: EventArgs): unit =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
         let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
         let destinationAddress = destinationAddressEntry.Text

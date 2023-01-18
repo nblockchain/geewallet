@@ -42,8 +42,6 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
     let totalReadOnlyFiatAmountLabel = mainLayout.FindByName<Label> "totalReadOnlyFiatAmountLabel"
-    let totalFiatAmountFrame = mainLayout.FindByName<Frame> "totalFiatAmountFrame"
-    let totalReadOnlyFiatAmountFrame = mainLayout.FindByName<Frame> "totalReadOnlyFiatAmountFrame"
     let contentLayout = base.FindByName<StackLayout> "contentLayout"
     let normalChartView = base.FindByName<CircleChartView> "normalChartView"
     let readonlyChartView = base.FindByName<CircleChartView> "readonlyChartView"
@@ -259,8 +257,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         if fiatBalancesList.Any() then
             UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
 
-    member private this.UpdateGlobalBalance (state: FrontendHelpers.IGlobalAppState)
-                                            (balancesJob: Async<array<BalanceState>>)
+    member private this.UpdateGlobalBalance (balancesJob: Async<array<BalanceState>>)
                                             fiatLabel
                                             (readOnly: bool)
                                                 : Async<Option<bool>> =
@@ -302,7 +299,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                 None
 
         let readOnlyAccountsBalanceUpdate =
-            this.UpdateGlobalBalance state readOnlyBalancesJob totalReadOnlyFiatAmountLabel true
+            this.UpdateGlobalBalance readOnlyBalancesJob totalReadOnlyFiatAmountLabel true
 
         let allCancelSources,allBalanceUpdates =
             if (not onlyReadOnlyAccounts) then
@@ -313,12 +310,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                         None
 
                 let normalAccountsBalanceUpdate =
-                    this.UpdateGlobalBalance state normalBalancesJob totalFiatAmountLabel false
+                    this.UpdateGlobalBalance normalBalancesJob totalFiatAmountLabel false
 
                 let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
 
                 let allJobs = Async.Parallel([normalAccountsBalanceUpdate; readOnlyAccountsBalanceUpdate])
-                Seq.append readOnlyCancelSources normalCancelSources,allJobs
+                allCancelSources,allJobs
             else
                 readOnlyCancelSources,Async.Parallel([readOnlyAccountsBalanceUpdate])
                 

@@ -37,7 +37,7 @@ type PairingToPage(balancesPage: Page,
     new() = PairingToPage(DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
                           Seq.empty,Map.empty,(fun (_,_) -> Page()))
 
-    member this.OnScanQrCodeButtonClicked(sender: Object, args: EventArgs): unit =
+    member this.OnScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun result ->
             scanPage.IsScanning <- false
@@ -57,17 +57,17 @@ type PairingToPage(balancesPage: Page,
                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         )
 
-    member this.OnEntryTextChanged(sender: Object, args: EventArgs) =
+    member this.OnEntryTextChanged(_sender: Object, _args: EventArgs) =
         Device.BeginInvokeOnMainThread(fun _ ->
             pairButton.IsEnabled <- not (String.IsNullOrEmpty coldAddressesEntry.Text)
         )
 
-    member this.OnCancelButtonClicked(sender: Object, args: EventArgs) =
+    member this.OnCancelButtonClicked(_sender: Object, _args: EventArgs) =
         Device.BeginInvokeOnMainThread(fun _ ->
             balancesPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
         )
 
-    member this.OnPairButtonClicked(sender: Object, args: EventArgs): unit =
+    member this.OnPairButtonClicked(_sender: Object, _args: EventArgs): unit =
         let watchWalletInfoJson = coldAddressesEntry.Text
         match Deserialize watchWalletInfoJson with
         | None ->
