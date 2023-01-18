@@ -30,6 +30,7 @@ type RpcErrorCode =
     | GatewayTimeout = -32050
     | EmptyResponse = -32042
     | DailyRequestCountExceededSoRequestRateLimited = -32005
+    | CannotFulfillRequest = -32046
 
 type ServerCannotBeResolvedException =
     inherit CommunicationUnsuccessfulException
