@@ -25,12 +25,7 @@ let initialConfigFile, buildTool =
             match Process.ConfigCommandCheck ["dotnet"] false true with
             | Some _ -> "dotnet"
             | None ->
-                let msbuildPath =
-                    Process.VsWhere("MSBuild\\**\\Bin\\MSBuild.exe").Split(
-                        Array.singleton Environment.NewLine,
-                        StringSplitOptions.RemoveEmptyEntries
-                    ).[0].Trim()
-                msbuildPath
+                Process.VsWhere "MSBuild\\**\\Bin\\MSBuild.exe"
 
         Map.empty, buildTool
     | platform (* Unix *) ->
