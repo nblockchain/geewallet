@@ -17,11 +17,13 @@ jobs:
     - name: which dotnet
       run: which dotnet
     - name: hack to remove DOTNET
-      run: sudo mv /usr/local/share/dotnet/dotnet /usr/local/share/dotnet/dotnet6
+      run: sudo mv /usr/local/bin/dotnet /usr/local/bin/dotnet6
     - name: configure
       run: ./configure.sh
     - name: hack to restore DOTNET
-      run: sudo mv /usr/local/share/dotnet/dotnet6 /usr/local/share/dotnet/dotnet
+      run: sudo mv /usr/local/bin/dotnet6 /usr/local/bin/dotnet
+    - name: which dotnet
+      run: which dotnet
     - name: build in DEBUG mode
       run: make
     - name: sanity check
