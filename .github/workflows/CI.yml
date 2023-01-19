@@ -15,9 +15,11 @@ jobs:
       with:
         submodules: false
     - name: hack to remove DOTNET
-      run: sudo rm -f `which dotnet`
+      run: sudo mv /usr/local/share/dotnet/dotnet /usr/local/share/dotnet/dotnet6
     - name: configure
       run: ./configure.sh
+    - name: hack to restore DOTNET
+      run: sudo mv /usr/local/share/dotnet/dotnet6 /usr/local/share/dotnet/dotnet
     - name: build in DEBUG mode
       run: make
     - name: sanity check
