@@ -186,13 +186,16 @@ let BuildSolution
                     else
                         allDefineConstants
 
-            // xbuild: legacy of the legacy!
-            if buildTool = "xbuild" then
+            let semiColon = ";"
+            let semiColonEscaped = "%3B"
+            match buildTool,Misc.GuessPlatform() with
+            | "xbuild", _ ->
+                // xbuild: legacy of the legacy!
                 // see https://github.com/dotnet/sdk/issues/9562
-                let semiColon = "%3B"
+                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColonEscaped, defineConstants))
+            | builtTool, Misc.Platform.Windows when buildTool.ToLower().Contains "msbuild" ->
                 sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
-            else
-                let semiColon = ";"
+            | _ ->
                 sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
