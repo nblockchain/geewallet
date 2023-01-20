@@ -237,10 +237,10 @@ type ExceptionMarshalling () =
         if Config.IsWindowsPlatform () then
             let serializedExceptionsAreSame =
                 try
-                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionExampleInJson false msg
+                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionWindowsLegacyExampleInJson false msg
                 with
                 | :? AssertionException ->
-                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionWindowsLegacyExampleInJson false legacyMsg
+                    MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionExampleInJson false legacyMsg
             Assert.That serializedExceptionsAreSame
         else
             Assert.That(MarshallingData.SerializedExceptionsAreSame json MarshallingData.FullExceptionUnixLegacyExampleInJson false legacyMsg)
