@@ -165,7 +165,7 @@ let BuildSolution
         | Some constants -> constants.Split([|";"|], StringSplitOptions.RemoveEmptyEntries) |> Seq.ofArray
         | None -> Seq.empty
     let defineConstantsSoFar =
-        if solutionFileName.EndsWith "-legacy.sln" then
+        if buildTool <> "dotnet" then
             Seq.append ["LEGACY_FRAMEWORK"] defineConstantsFromBuildConfig
         else
             defineConstantsFromBuildConfig
