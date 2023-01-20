@@ -113,7 +113,9 @@ module MarshallingData =
                     let tweakedEndOfStackTrace =
                         endOfStackTrace
                             .Replace(":line 42", ":41 ")
+                            .Replace(":line 41", ":41 ")
                             .Replace(":line 65", ":64 ")
+                            .Replace(":line 64", ":64 ")
                     stackTraceJToken.Replace (tweakedEndOfStackTrace |> JToken.op_Implicit)
 
                 let binaryFormToken = jsonEx.SelectToken fullBinaryFormPath
