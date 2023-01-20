@@ -99,7 +99,7 @@ jobs:
     container:
       image: "ubuntu:22.04"
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
     #  with:
     #    submodules: 'true'
@@ -108,10 +108,6 @@ jobs:
       run: apt update && apt install --yes sudo
     - name: install all dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
-
-    # workaround for https://github.com/actions/runner/issues/2033
-    - name: ownership workaround
-      run: git config --global --add safe.directory '*'
 
     - name: check mono version
       run: mono --version
@@ -135,7 +131,7 @@ jobs:
     container:
       image: "ubuntu:22.04"
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
     #  with:
     #    submodules: 'true'
@@ -146,10 +142,6 @@ jobs:
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
-
-    # workaround for https://github.com/actions/runner/issues/2033
-    - name: ownership workaround
-      run: git config --global --add safe.directory '*'
 
     - name: check mono version
       run: mono --version
@@ -222,7 +214,7 @@ jobs:
     container:
       image: "ubuntu:20.04"
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
     #  with:
     #    submodules: 'true'
@@ -231,10 +223,6 @@ jobs:
       run: apt update && apt install --yes sudo
     - name: install all dependencies
       run: sudo apt install --yes git make curl fsharp nunit-console
-
-    # workaround for https://github.com/actions/runner/issues/2033
-    - name: ownership workaround
-      run: git config --global --add safe.directory '*'
 
     - name: check mono version
       run: mono --version
@@ -258,7 +246,7 @@ jobs:
     container:
       image: "ubuntu:20.04"
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v3
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
     #  with:
     #    submodules: 'true'
@@ -269,10 +257,6 @@ jobs:
       run: sudo apt install --yes git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
-
-    # workaround for https://github.com/actions/runner/issues/2033
-    - name: ownership workaround
-      run: git config --global --add safe.directory '*'
 
     - name: check mono version
       run: mono --version
