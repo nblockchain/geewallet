@@ -109,10 +109,6 @@ jobs:
     - name: install all dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
 
-    # workaround for https://github.com/actions/runner/issues/2033
-    - name: ownership workaround
-      run: git config --global --add safe.directory '*'
-
     - name: check mono version
       run: mono --version
     - name: configure
@@ -146,10 +142,6 @@ jobs:
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
-
-    # workaround for https://github.com/actions/runner/issues/2033
-    - name: ownership workaround
-      run: git config --global --add safe.directory '*'
 
     - name: check mono version
       run: mono --version
@@ -232,10 +224,6 @@ jobs:
     - name: install all dependencies
       run: sudo apt install --yes git make curl fsharp nunit-console
 
-    # workaround for https://github.com/actions/runner/issues/2033
-    - name: ownership workaround
-      run: git config --global --add safe.directory '*'
-
     - name: check mono version
       run: mono --version
     - name: configure
@@ -269,10 +257,6 @@ jobs:
       run: sudo apt install --yes git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
-
-    # workaround for https://github.com/actions/runner/issues/2033
-    - name: ownership workaround
-      run: git config --global --add safe.directory '*'
 
     - name: check mono version
       run: mono --version
