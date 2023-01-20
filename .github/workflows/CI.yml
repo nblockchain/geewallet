@@ -100,9 +100,6 @@ jobs:
       image: "ubuntu:22.04"
     steps:
     - uses: actions/checkout@v3.3.0
-      with:
-        fetch-depth: 0
-
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
     #  with:
     #    submodules: 'true'
@@ -135,9 +132,6 @@ jobs:
       image: "ubuntu:22.04"
     steps:
     - uses: actions/checkout@v3.3.0
-      with:
-        fetch-depth: 0
-
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
     #  with:
     #    submodules: 'true'
@@ -221,9 +215,6 @@ jobs:
       image: "ubuntu:20.04"
     steps:
     - uses: actions/checkout@v3.3.0
-      with:
-        fetch-depth: 0
-
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
     #  with:
     #    submodules: 'true'
@@ -256,9 +247,6 @@ jobs:
       image: "ubuntu:20.04"
     steps:
     - uses: actions/checkout@v3.3.0
-      with:
-        fetch-depth: 0
-
     # can't use the option below because of error "Input 'submodules' not supported when falling back to download using the GitHub REST API. To create a local Git repository instead, add Git 2.18 or higher to the PATH."
     #  with:
     #    submodules: 'true'
