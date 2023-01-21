@@ -17,8 +17,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3703CCD5
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.iOS", "src\GWallet.Frontend.XF.iOS\GWallet.Frontend.XF.iOS.fsproj", "{5DD656CE-3319-46BB-B47F-BBED8CC722FD}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.Mac", "src\GWallet.Frontend.XF.Mac\GWallet.Frontend.XF.Mac.fsproj", "{9E020D62-9160-49AC-A9CD-476CADAE0B87}"
-EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.Android", "src\GWallet.Frontend.XF.Android\GWallet.Frontend.XF.Android.fsproj", "{24B7E0C6-9113-4430-8614-6E3AED7FE0C0}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend", "src\GWallet.Backend\GWallet.Backend-legacy.fsproj", "{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}"
@@ -71,18 +69,6 @@ Global
 		{5DD656CE-3319-46BB-B47F-BBED8CC722FD}.Release|iPhoneSimulator.Build.0 = Release|iPhoneSimulator
 		{5DD656CE-3319-46BB-B47F-BBED8CC722FD}.Debug|iPhone.ActiveCfg = Debug|iPhone
 		{5DD656CE-3319-46BB-B47F-BBED8CC722FD}.Debug|iPhone.Build.0 = Debug|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Debug|Any CPU.ActiveCfg = Debug|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Debug|Any CPU.Build.0 = Debug|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Release|Any CPU.ActiveCfg = Release|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Release|Any CPU.Build.0 = Release|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Debug|iPhoneSimulator.ActiveCfg = Debug|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Debug|iPhoneSimulator.Build.0 = Debug|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Release|iPhone.ActiveCfg = Release|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Release|iPhone.Build.0 = Release|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Release|iPhoneSimulator.ActiveCfg = Release|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Release|iPhoneSimulator.Build.0 = Release|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Debug|iPhone.ActiveCfg = Debug|iPhone
-		{9E020D62-9160-49AC-A9CD-476CADAE0B87}.Debug|iPhone.Build.0 = Debug|iPhone
 		{24B7E0C6-9113-4430-8614-6E3AED7FE0C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{24B7E0C6-9113-4430-8614-6E3AED7FE0C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{24B7E0C6-9113-4430-8614-6E3AED7FE0C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
