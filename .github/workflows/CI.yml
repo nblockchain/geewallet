@@ -8,12 +8,16 @@ on: [push, pull_request, workflow_dispatch]
 # (msbuild bug?)
 
 jobs:
-  macOS--dotnet-and-mono:
+  macOS--dotnet6-and-mono:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '6.0.x'
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -60,12 +64,16 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  windows--dotnet:
+  windows--dotnet6:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '6.0.x'
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -420,9 +428,9 @@ jobs:
     - linux20-github--newmono
     - linux20-vanilla--stockmono
     - linux20-vanilla--newmono
-    - windows--dotnet
+    - windows--dotnet6
     - windows--legacyFramework
-    - macOS--dotnet-and-mono
+    - macOS--dotnet6-and-mono
     - macOS--mono
 
     steps:
