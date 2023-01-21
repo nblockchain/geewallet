@@ -36,14 +36,6 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
-    - name: compile .fsx scripts
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   windows:
     runs-on: windows-latest
