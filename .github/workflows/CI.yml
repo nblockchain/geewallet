@@ -17,7 +17,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '6.0.113'
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -73,7 +73,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '6.0.113'
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
