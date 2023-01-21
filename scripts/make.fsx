@@ -35,7 +35,7 @@ let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
 let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
-let MAC_SOLUTION_FILE = "gwallet.mac.sln"
+let MAC_SOLUTION_FILE = "gwallet.mac-legacy.sln"
 let BACKEND = "GWallet.Backend"
 
 type Frontend =
