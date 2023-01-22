@@ -4,6 +4,7 @@ open System
 open System.Linq
 
 open NUnit.Framework
+open Fsdk
 
 open GWallet.Backend
 

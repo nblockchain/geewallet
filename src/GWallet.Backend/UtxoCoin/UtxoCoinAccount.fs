@@ -9,6 +9,7 @@ open System.Linq
 
 open NBitcoin
 open NBitcoin.Payment
+open Fsdk
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks

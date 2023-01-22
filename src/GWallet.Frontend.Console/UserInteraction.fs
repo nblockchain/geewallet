@@ -5,6 +5,8 @@ open System.IO
 open System.Linq
 open System.Globalization
 
+open Fsdk
+
 open GWallet.Backend
 
 type internal Operations =
@@ -30,29 +32,7 @@ module UserInteraction =
         Console.ReadKey true
         |> ignore<ConsoleKeyInfo>
         Console.WriteLine ()
-
-    // taken from Fsdk
-    let ConsoleReadPasswordLine() =
-        // taken from http://stackoverflow.com/questions/3404421/password-masking-console-application
-        let rec ConsoleReadPasswordLineInternal(pwd: string) =
-            let key = Console.ReadKey(true)
-
-            if (key.Key = ConsoleKey.Enter) then
-                Console.WriteLine()
-                pwd
-            else
-
-                let newPwd =
-                    if (key.Key = ConsoleKey.Backspace && pwd.Length > 0) then
-                        Console.Write("\b \b")
-                        pwd.Substring(0, pwd.Length - 1)
-                    else
-                        Console.Write("*")
-                        pwd + key.KeyChar.ToString()
-                ConsoleReadPasswordLineInternal(newPwd)
-
-        ConsoleReadPasswordLineInternal(String.Empty)
-
+    
     exception NoOperationFound
 
     let rec FindMatchingOperation<'T> (operationIntroduced: string) (allOperations: List<'T*int>): 'T =
@@ -159,12 +139,12 @@ module UserInteraction =
         else
             Console.Write "Write the secret recovery phrase: "
 
-        let passphrase1 = ConsoleReadPasswordLine()
+        let passphrase1 = Misc.ConsoleReadPasswordLine()
         if not repeat then
             passphrase1
         else
             Console.Write "Repeat the secret recovery phrase: "
-            let passphrase2 = ConsoleReadPasswordLine()
+            let passphrase2 = Misc.ConsoleReadPasswordLine()
             if passphrase1 <> passphrase2 then
                 Presentation.Error "Secret recovery phrases are not the same, please try again."
                 AskPassPhrase repeat
@@ -185,12 +165,12 @@ module UserInteraction =
         else
             Console.Write "Write the password to unlock your account: "
 
-        let password = ConsoleReadPasswordLine()
+        let password = Misc.ConsoleReadPasswordLine()
         if not repeat then
             password
         else
             Console.Write("Repeat the password: ")
-            let password2 = ConsoleReadPasswordLine()
+            let password2 = Misc.ConsoleReadPasswordLine()
             if (password <> password2) then
                 Presentation.Error "Passwords are not the same, please try again."
                 AskPassword(repeat)

@@ -5,6 +5,8 @@ open System.Net
 open System.Net.Sockets
 open System.Runtime.Serialization
 
+open Fsdk
+
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type ProtocolGlitchException =

@@ -91,6 +91,9 @@
     <EmbeddedResource Include="servers.json" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Fsdk">
+      <HintPath>..\..\packages\Fsdk.0.6.0--date20230118-0634.git-b829db2\lib\netstandard2.0\Fsdk.dll</HintPath>
+    </Reference>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\net45\FSharp.Data.dll</HintPath>
     </Reference>
