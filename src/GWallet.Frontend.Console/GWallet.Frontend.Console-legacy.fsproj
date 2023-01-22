@@ -44,6 +44,9 @@
     <DocumentationFile>bin\Release\GWallet.Frontend.Console.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);LEGACY_FRAMEWORK</DefineConstants>
+  </PropertyGroup>
   <Import Project="..\CommonBuildProps-legacy.proj" />
   <Import Condition="'$(FSharpTargetsPath)' != ''" Project="$(FSharpTargetsPath)" />
   <Target Name="BeforeBuild">
