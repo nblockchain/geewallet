@@ -5,6 +5,8 @@ open System.IO
 open System.Linq
 open System.Net.Http
 
+open Fsdk
+
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type CachedNetworkData =

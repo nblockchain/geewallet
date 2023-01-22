@@ -6,6 +6,8 @@ open System.Diagnostics
 open System.Threading
 open System.Threading.Tasks
 
+open Fsdk
+
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 type ResourceUnavailabilityException (message: string, innerOrLastException: Exception) =

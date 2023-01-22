@@ -11,6 +11,7 @@ open Nethereum.Hex.HexTypes
 open Nethereum.Web3
 open Nethereum.RPC.Eth.DTOs
 open Nethereum.StandardTokenEIP20.ContractDefinition
+open Fsdk
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
