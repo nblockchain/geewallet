@@ -137,6 +137,9 @@
     <PackageReference Include="HtmlAgilityPack" Version="1.11.24" />
     <PackageReference Include="DotNetEssentials" Version="1.6.0--date20220814-0324.git-7f6e466" />
     <PackageReference Include="System.Memory" Version="4.5.4" />
+    <PackageReference Include="Fsdk" Version="0.6.0--date20230118-0634.git-b829db2">
+      <GeneratePathProperty></GeneratePathProperty>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="UtxoCoin\" />

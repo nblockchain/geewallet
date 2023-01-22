@@ -6,6 +6,7 @@ open System.Linq
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open ZXing.Net.Mobile.Forms
+open Fsdk
 
 open GWallet.Backend
 

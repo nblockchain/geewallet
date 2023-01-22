@@ -221,6 +221,9 @@
     <Reference Include="zxing.presentation">
       <HintPath>..\..\packages\ZXing.Net.0.16.6\lib\net47\zxing.presentation.dll</HintPath>
     </Reference>
+    <Reference Include="Fsdk">
+      <HintPath>..\..\packages\Fsdk.0.6.0--date20230118-0634.git-b829db2\lib\netstandard2.0\Fsdk.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

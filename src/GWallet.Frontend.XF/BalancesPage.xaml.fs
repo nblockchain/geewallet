@@ -8,6 +8,7 @@ open System.Threading.Tasks
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
+open Fsdk
 
 open GWallet.Frontend.XF.Controls
 open GWallet.Backend

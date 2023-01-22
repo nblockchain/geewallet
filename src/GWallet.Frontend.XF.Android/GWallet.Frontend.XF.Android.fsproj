@@ -252,6 +252,9 @@
     <Reference Include="zxing">
       <HintPath>..\..\packages\ZXing.Net.0.16.6\lib\netstandard2.1\zxing.dll</HintPath>
     </Reference>
+    <Reference Include="Fsdk">
+      <HintPath>..\..\packages\Fsdk.0.6.0--date20230118-0634.git-b829db2\lib\netstandard2.0\Fsdk.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="BouncyCastle.Crypto">

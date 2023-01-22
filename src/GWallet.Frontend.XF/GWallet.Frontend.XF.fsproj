@@ -138,5 +138,8 @@
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
     <PackageReference Include="ZXing.Net.Xamarin.Forms" Version="3.0.0--date20220902-0549.git-462686e" />
     <PackageReference Include="DotNetEssentials" Version="1.6.1--date20220823-0234.git-14ad2d3" />
+    <PackageReference Include="Fsdk" Version="0.6.0--date20230118-0634.git-b829db2">
+      <GeneratePathProperty></GeneratePathProperty>
+    </PackageReference>
   </ItemGroup>
 </Project>

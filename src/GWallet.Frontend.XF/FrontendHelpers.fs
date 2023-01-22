@@ -7,6 +7,7 @@ open System.Threading.Tasks
 open Xamarin.Forms
 open ZXing
 open ZXing.Mobile
+open Fsdk
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
