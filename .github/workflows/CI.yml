@@ -70,12 +70,6 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
-      uses: actions/setup-dotnet@v1.7.2
-      with:
-        dotnet-version: '6.0.113'
-    - name: Install wasm workload
-      run: dotnet workload install wasm-tools 
     - name: Build Maui Frontend
       run: |
         dotnet workload install maui
