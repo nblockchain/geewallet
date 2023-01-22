@@ -112,6 +112,7 @@ type AsyncExtensions() =
         stopWatch.Stop()
 
     [<Test>]
+    // FIXME: this test is flaky, see below
     member __.``basic test for WhenAnyAndAll``() =
         let lockObj = Object()
         let mutable asyncJobsPerformedCount = 0
@@ -137,6 +138,7 @@ type AsyncExtensions() =
             FSharpUtil.AsyncExtensions.WhenAnyAndAll [longJob; shortJob]
             |> Async.RunSynchronously
         Assert.That(stopWatch.Elapsed, Is.LessThan longTime)
+        // FIXME: not sure why the assert below fails sometimes (rarely, but it does)
         Assert.That(stopWatch.Elapsed, Is.GreaterThan shortTime)
         let results =
             subJobs |> Async.RunSynchronously

@@ -226,6 +226,8 @@ module Server =
                     raise <| ServerRefusedException(exMsg, rpcResponseEx)
                 | f when f = int RpcErrorCode.DailyRequestCountExceededSoRequestRateLimited ->
                     raise <| ServerRefusedException(exMsg, rpcResponseEx)
+                | g when g = int RpcErrorCode.CannotFulfillRequest ->
+                    raise <| ServerRefusedException(exMsg, rpcResponseEx)
                 | _ ->
                     raise
                     <| Exception (SPrintF3 "RpcResponseException with RpcError Code <%i> and Message '%s' (%s)"

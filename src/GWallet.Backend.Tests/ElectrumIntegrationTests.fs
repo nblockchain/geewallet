@@ -19,7 +19,7 @@ type ElectrumServerUnitTests() =
                 sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
                         electrumServer.ServerInfo.NetworkPath)
 
-            Assert.That (electrumServer.ServerInfo.NetworkPath, Is.Not.StringEnding ".onion",
+            Assert.That (electrumServer.ServerInfo.NetworkPath, IsString.WhichDoesNotEndWith ".onion",
                 sprintf "BTC servers list should be filtered against onion servers, but %s was found"
                         electrumServer.ServerInfo.NetworkPath)
 
@@ -30,7 +30,7 @@ type ElectrumServerUnitTests() =
                 sprintf "BTC servers list should be filtered against only-TLS compatible servers, but %s was found"
                         electrumServer.ServerInfo.NetworkPath)
 
-            Assert.That (electrumServer.ServerInfo.NetworkPath, Is.Not.StringEnding ".onion",
+            Assert.That (electrumServer.ServerInfo.NetworkPath, IsString.WhichDoesNotEndWith ".onion",
                 sprintf "BTC servers list should be filtered against onion servers, but %s was found"
                         electrumServer.ServerInfo.NetworkPath)
 

@@ -17,7 +17,6 @@ module MarshallingData =
     let private version = executingAssembly.GetName().Version.ToString()
     let private binPath = executingAssembly.Location |> FileInfo
     let private prjPath = Path.Combine(binPath.Directory.FullName, "..") |> DirectoryInfo
-    let private isUnix = not <| Config.IsWindowsPlatform()
 
     let private RemoveJsonFormatting (jsonContent: string): string =
         jsonContent.Replace("\r", String.Empty)
@@ -37,12 +36,8 @@ module MarshallingData =
 
     let private ReadEmbeddedResource resourceName =
         let assembly = Assembly.GetExecutingAssembly()
-        use stream = assembly.GetManifestResourceStream resourceName
-        if (stream = null) then
-            failwithf "Embedded resource %s not found" resourceName
-        use reader = new StreamReader(stream)
-        reader.ReadToEnd()
-            |> Sanitize
+        Config.ExtractEmbeddedResourceFileContentsFromAssembly resourceName assembly
+        |> Sanitize
 
     let UnsignedSaiTransactionExampleInJson =
         ReadEmbeddedResource "unsignedAndFormattedSaiTransaction.json"
@@ -90,7 +85,7 @@ module MarshallingData =
         else
             TrimOutsideAndInside trimmed
 
-    let SerializedExceptionsAreSame actualJsonString expectedJsonString msg =
+    let SerializedExceptionsAreSame actualJsonString expectedJsonString ignoreExMessage msg =
 
         let actualJsonException = JObject.Parse actualJsonString
         let expectedJsonException = JObject.Parse expectedJsonString
@@ -106,27 +101,39 @@ module MarshallingData =
                 let stackTraceJToken = jsonEx.SelectToken stackTracePath
                 Assert.That(stackTraceJToken, Is.Not.Null, sprintf "Path %s not found in %s" stackTracePath (jsonEx.ToString()))
                 let initialStackTraceJToken = stackTraceJToken.ToString()
-                if initialStackTraceJToken.Length > 0 && isUnix then
-                    Assert.That(initialStackTraceJToken, Is.StringContaining stackTraceFragment,
+                if initialStackTraceJToken.Length > 0 then
+                    Assert.That(initialStackTraceJToken, IsString.WhichContains stackTraceFragment,
                                 sprintf "comparing actual '%s' with expected '%s'" actualJsonString expectedJsonString)
                     let endOfStackTrace = initialStackTraceJToken.Substring(initialStackTraceJToken.IndexOf stackTraceFragment)
                     let tweakedEndOfStackTrace =
                         endOfStackTrace
                             .Replace(":line 42", ":41 ")
+                            .Replace(":line 41", ":41 ")
                             .Replace(":line 65", ":64 ")
+                            .Replace(":line 64", ":64 ")
                     stackTraceJToken.Replace (tweakedEndOfStackTrace |> JToken.op_Implicit)
 
                 let binaryFormToken = jsonEx.SelectToken fullBinaryFormPath
                 Assert.That(binaryFormToken, Is.Not.Null, sprintf "Path %s not found in %s" fullBinaryFormPath (jsonEx.ToString()))
                 let initialBinaryFormJToken = binaryFormToken.ToString()
                 if assertBinaryForm then
-                    Assert.That(initialBinaryFormJToken, Is.StringStarting fullBinaryFormBeginning)
+                    Assert.That(initialBinaryFormJToken, IsString.StartingWith fullBinaryFormBeginning)
                 binaryFormToken.Replace (fullBinaryFormBeginning |> JToken.op_Implicit)
 
             tweakStackTraceAndBinaryForm actualJsonException true
             tweakStackTraceAndBinaryForm expectedJsonException false
 
         tweakStackTraces()
+
+        // strangely enough, message would be different between linux_vanilla_dotnet6 and other dotnet6 configs (e.g. Windows, macOS, Linux-github)
+        if ignoreExMessage then
+            let exMessagePath = "Value.HumanReadableSummary.Message"
+            let actualMsgToken = actualJsonException.SelectToken exMessagePath
+            Assert.That(actualMsgToken, Is.Not.Null, sprintf "Path %s not found in %s" exMessagePath (actualJsonException.ToString()))
+            let expectedMsgToken = expectedJsonException.SelectToken exMessagePath
+            Assert.That(expectedMsgToken, Is.Not.Null, sprintf "Path %s not found in %s" exMessagePath (expectedJsonException.ToString()))
+            actualMsgToken.Replace(String.Empty |> JToken.op_Implicit)
+            expectedMsgToken.Replace(String.Empty |> JToken.op_Implicit)
 
         let actualBinaryForm = (actualJsonException.SelectToken fullBinaryFormPath).ToString()
         Assert.That(

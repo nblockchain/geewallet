@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env fsharpi
+#!/usr/bin/env -S dotnet fsi
 
 open System
 open System.IO
@@ -13,14 +13,19 @@ open System.Xml
 open System.Xml.Linq
 open System.Xml.XPath
 
+#if !LEGACY_FRAMEWORK
+#r "nuget: Fsdk"
+#else
 #r "System.Configuration"
 open System.Configuration
-#load "fsx/InfraLib/Misc.fs"
-#load "fsx/InfraLib/Process.fs"
-#load "fsx/InfraLib/Git.fs"
-#load "fsx/InfraLib/Unix.fs"
-open FSX.Infrastructure
-open Process
+#load "fsx/Fsdk/Misc.fs"
+#load "fsx/Fsdk/Process.fs"
+#load "fsx/Fsdk/Network.fs"
+#load "fsx/Fsdk/Git.fs"
+#load "fsx/Fsdk/Unix.fs"
+#endif
+open Fsdk
+open Fsdk.Process
 
 #load "fsxHelper.fs"
 open GWallet.Scripting
@@ -29,8 +34,8 @@ let UNIX_NAME = "geewallet"
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
-let LINUX_SOLUTION_FILE = "gwallet.linux.sln"
-let MAC_SOLUTION_FILE = "gwallet.mac.sln"
+let LINUX_SOLUTION_FILE = "gwallet.linux-legacy.sln"
+let MAC_SOLUTION_FILE = "gwallet.mac-legacy.sln"
 let BACKEND = "GWallet.Backend"
 
 type Frontend =
@@ -120,25 +125,17 @@ FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
 exec mono "$FRONTEND_PATH" "$@"
 """
 
-let RunNugetCommand (command: string) echoMode (safe: bool) =
-    let nugetCmd =
-        match Misc.GuessPlatform() with
-        | Misc.Platform.Linux ->
-            { Command = "mono"; Arguments = sprintf "%s %s" FsxHelper.NugetExe.FullName command }
-        | _ ->
-            { Command = FsxHelper.NugetExe.FullName; Arguments = command }
-    let proc = Process.Execute(nugetCmd, echoMode)
-
-    if safe then
-        proc.UnwrapDefault() |> ignore<string>
-
-    proc
-
+#if LEGACY_FRAMEWORK
 let PrintNugetVersion () =
     if not (FsxHelper.NugetExe.Exists) then
         false
     else
-        let nugetProc = RunNugetCommand String.Empty Echo.OutputOnly false
+        let nugetProc =
+            Network.RunNugetCommand
+                FsxHelper.NugetExe
+                String.Empty
+                Echo.OutputOnly
+                false
         match nugetProc.Result with
         | ProcessResultState.Success _ -> true
         | ProcessResultState.WarningsOrAmbiguous _output ->
@@ -151,32 +148,66 @@ let PrintNugetVersion () =
             Console.WriteLine()
             Console.Out.Flush()
             failwith "nuget process' output contained errors ^"
+#endif
 
 let BuildSolution
-    (buildTool: string)
+    (buildToolAndBuildArg: string*string)
     (solutionFileName: string)
     (binaryConfig: BinaryConfig)
     (maybeConstant: Option<string>)
     (extraOptions: string)
     =
-    let configOption = sprintf "/p:Configuration=%s" (binaryConfig.ToString())
+    let buildTool,buildArg = buildToolAndBuildArg
+
+    let configOption =
+#if !LEGACY_FRAMEWORK
+        sprintf "--configuration %s" (binaryConfig.ToString())
+#else
+        sprintf "/p:Configuration=%s" (binaryConfig.ToString())
+#endif
+
     let defineConstantsFromBuildConfig =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> constants.Split([|";"|], StringSplitOptions.RemoveEmptyEntries) |> Seq.ofArray
         | None -> Seq.empty
+    let defineConstantsSoFar =
+        if buildTool <> "dotnet" then
+            Seq.append ["LEGACY_FRAMEWORK"] defineConstantsFromBuildConfig
+        else
+            defineConstantsFromBuildConfig
     let allDefineConstants =
         match maybeConstant with
-        | Some constant -> Seq.append [constant] defineConstantsFromBuildConfig
-        | None -> defineConstantsFromBuildConfig
+        | Some constant -> Seq.append [constant] defineConstantsSoFar
+        | None -> defineConstantsSoFar
 
     let configOptions =
         if allDefineConstants.Any() then
             // FIXME: we shouldn't override the project's DefineConstants, but rather set "ExtraDefineConstants"
             // from the command line, and merge them later in the project file: see https://stackoverflow.com/a/32326853/544947
-            sprintf "%s;DefineConstants=%s" configOption (String.Join(";", allDefineConstants))
+            let defineConstants =
+                match binaryConfig with
+                | Release -> allDefineConstants
+                | Debug ->
+                    if not (allDefineConstants.Contains "DEBUG") then
+                        Seq.append allDefineConstants ["DEBUG"]
+                    else
+                        allDefineConstants
+
+            let semiColon = ";"
+            let semiColonEscaped = "%3B"
+            match buildTool,Misc.GuessPlatform() with
+            | "xbuild", _ ->
+                // xbuild: legacy of the legacy!
+                // see https://github.com/dotnet/sdk/issues/9562
+                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColonEscaped, defineConstants))
+            | builtTool, Misc.Platform.Windows when buildTool.ToLower().Contains "msbuild" ->
+                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
+            | _ ->
+                sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
-    let buildArgs = sprintf "%s %s %s"
+    let buildArgs = sprintf "%s %s %s %s"
+                            buildArg
                             solutionFileName
                             configOptions
                             extraOptions
@@ -185,19 +216,47 @@ let BuildSolution
     | Error _ ->
         Console.WriteLine()
         Console.Error.WriteLine (sprintf "%s build failed" buildTool)
+#if LEGACY_FRAMEWORK
         PrintNugetVersion() |> ignore
+#endif
         Environment.Exit 1
     | _ -> ()
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
-    let buildTool = Map.tryFind "BuildTool" buildConfigContents
-    if buildTool.IsNone then
-        failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+    let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
+    let mainSolution = DEFAULT_SOLUTION_FILE
+    let buildTool,buildArg,solutionFileName =
+        match maybeBuildTool with
+        | None ->
+            failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+        | Some "dotnet" ->
+#if LEGACY_FRAMEWORK
+            failwith "'dotnet' shouldn't be the build tool when using legacy framework, please report this bug"
+#endif
+            "dotnet", "build", mainSolution
+        | Some otherBuildTool ->
+#if LEGACY_FRAMEWORK
+            let nugetConfig =
+                Path.Combine(
+                    FsxHelper.RootDir.FullName,
+                    "NuGet.config")
+                |> FileInfo
+            let legacyNugetConfig =
+                Path.Combine(
+                    FsxHelper.RootDir.FullName,
+                    "NuGet-legacy.config")
+                |> FileInfo
+
+            File.Copy(legacyNugetConfig.FullName, nugetConfig.FullName, true)
+            otherBuildTool, String.Empty, "gwallet.core-legacy.sln"
+#else
+            otherBuildTool, String.Empty, mainSolution
+#endif
 
     Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
     BuildSolution
-        buildTool.Value
-        DEFAULT_SOLUTION_FILE
+        (buildTool, buildArg)
+        solutionFileName
         binaryConfig
         maybeConstant
         String.Empty
@@ -205,7 +264,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let frontend =
 
         // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
-        if buildTool.Value = "msbuild" then
+        if buildTool = "msbuild" then
 
             // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
             // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
@@ -217,9 +276,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 Process.Execute({ Command = "mono"; Arguments = nugetWorkaroundArgs }, Echo.All) |> ignore
 
             let MSBuildRestoreAndBuild solutionFile =
-                BuildSolution "msbuild" solutionFile binaryConfig maybeConstant "/t:Restore"
+                BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "/t:Restore"
                 // TODO: report as a bug the fact that /t:Restore;Build doesn't work while /t:Restore and later /t:Build does
-                BuildSolution "msbuild" solutionFile binaryConfig maybeConstant "/t:Build"
+                BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "/t:Build"
 
             match Misc.GuessPlatform () with
             | Misc.Platform.Mac ->
@@ -274,9 +333,34 @@ let MakeCheckCommand (commandName: string) =
 
 let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): DirectoryInfo*FileInfo =
     let frontendProjName = frontend.GetProjectName()
-    let dir = Path.Combine (FsxHelper.RootDir.FullName, "src", frontendProjName, "bin", binaryConfig.ToString())
-                  |> DirectoryInfo
-    let mainExecFile = dir.GetFiles("*.exe", SearchOption.TopDirectoryOnly).Single()
+    let dir =
+        Path.Combine(
+            FsxHelper.RootDir.FullName,
+            "src",
+            frontendProjName,
+            "bin",
+            binaryConfig.ToString()
+#if !LEGACY_FRAMEWORK
+            , "net6.0"
+#endif
+        ) |> DirectoryInfo
+
+    let frontEndExtension =
+#if LEGACY_FRAMEWORK
+        ".exe"
+#else
+        ".dll"
+#endif
+
+    let mainExecFile =
+#if LEGACY_FRAMEWORK
+        dir.GetFiles("*" + frontEndExtension, SearchOption.TopDirectoryOnly).Single()
+#else
+        // TODO: this might not work for 'make run' wrt Maui
+        Path.Combine(dir.FullName, sprintf "%s%s" frontendProjName frontEndExtension)
+        |> FileInfo
+#endif
+
     dir,mainExecFile
 
 let GetPathToBackend () =
@@ -288,13 +372,25 @@ let MakeAll (maybeConstant: Option<string>) =
     frontend,buildConfig
 
 let RunFrontend (frontend: Frontend) (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
+
     let frontendDir,frontendExecutable = GetPathToFrontend frontend buildConfig
     let pathToFrontend = frontendExecutable.FullName
 
+#if LEGACY_FRAMEWORK
+    match Misc.GuessPlatform() with
+    | Misc.Platform.Windows -> ()
+    | _ -> Unix.ChangeMode(frontendExecutable, "+x", false)
+#endif
+
     let fileName, finalArgs =
         match maybeArgs with
-        | None | Some "" -> pathToFrontend,String.Empty
-        | Some args -> pathToFrontend,args
+#if LEGACY_FRAMEWORK
+        | None | Some "" -> pathToFrontend, String.Empty
+        | Some args -> pathToFrontend, args
+#else
+        | None | Some "" -> "dotnet", pathToFrontend
+        | Some args -> "dotnet", (sprintf "%s %s" pathToFrontend args)
+#endif
 
     let startInfo = ProcessStartInfo(FileName = fileName, Arguments = finalArgs, UseShellExecute = false)
     startInfo.EnvironmentVariables.["MONO_ENV_OPTIONS"] <- "--debug"
@@ -312,12 +408,14 @@ match maybeTarget with
     JustBuild BinaryConfig.Release None
         |> ignore
 
+#if LEGACY_FRAMEWORK
 | Some "nuget" ->
     Console.WriteLine "This target is for debugging purposes."
 
     if not (PrintNugetVersion()) then
         Console.Error.WriteLine "Nuget executable has not been downloaded yet, try `make` alone first"
         Environment.Exit 1
+#endif
 
 | Some("zip") ->
     let zipCommand = "zip"
@@ -341,84 +439,89 @@ match maybeTarget with
         Directory.Delete (pathToFolderToBeZipped, true)
 
     let pathToFrontend,_ = GetPathToFrontend frontend release
-    let cpRun = Process.Execute({ Command = "cp"
-                                  Arguments = sprintf "-rfvp %s %s" pathToFrontend.FullName pathToFolderToBeZipped },
-                                Echo.All)
-    match cpRun.Result with
-    | Error _ ->
-        Console.WriteLine()
-        Console.Error.WriteLine "Precopy for ZIP compression failed"
-        Environment.Exit 1
-    | _ -> ()
+    Process.Execute(
+        {
+            Command = "cp"
+            Arguments =
+                sprintf "-rfvp %s %s" pathToFrontend.FullName pathToFolderToBeZipped
+        },
+        Echo.All
+    ).UnwrapDefault() |> ignore<string>
 
     let previousCurrentDir = Directory.GetCurrentDirectory()
     Directory.SetCurrentDirectory binDir
     let zipLaunch = { Command = zipCommand
                       Arguments = sprintf "%s -r %s %s"
                                       zipCommand zipName zipNameWithoutExtension }
-    let zipRun = Process.Execute(zipLaunch, Echo.All)
-    match zipRun.Result with
-    | Error _ ->
-        Console.WriteLine()
-        Console.Error.WriteLine "ZIP compression failed"
-        Environment.Exit 1
-    | _ -> ()
+    Process.Execute(zipLaunch, Echo.All).UnwrapDefault()
+    |> ignore<string>
     Directory.SetCurrentDirectory previousCurrentDir
 
 | Some("check") ->
     Console.WriteLine "Running tests..."
     Console.WriteLine ()
 
-    // so that we get file names in stack traces
-    Environment.SetEnvironmentVariable("MONO_ENV_OPTIONS", "--debug")
-
-    let testAssemblyName = "GWallet.Backend.Tests"
-    let testAssembly =
+    let testProjectName = "GWallet.Backend.Tests"
+#if !LEGACY_FRAMEWORK
+    let testTarget =
         Path.Combine (
             FsxHelper.RootDir.FullName,
             "src",
-            testAssemblyName,
-            "bin",
-            testAssemblyName + ".dll"
+            testProjectName,
+            testProjectName + ".fsproj"
         ) |> FileInfo
-    if not testAssembly.Exists then
-        failwithf "File not found: %s" testAssembly.FullName
+#else
+    // so that we get file names in stack traces
+    Environment.SetEnvironmentVariable("MONO_ENV_OPTIONS", "--debug")
+
+    let testTarget =
+        Path.Combine (
+            FsxHelper.RootDir.FullName,
+            "src",
+            testProjectName,
+            "bin",
+            testProjectName + ".dll"
+        ) |> FileInfo
+#endif
+
+    if not testTarget.Exists then
+        failwithf "File not found: %s" testTarget.FullName
 
     let runnerCommand =
+#if !LEGACY_FRAMEWORK
+        { Command = "dotnet"; Arguments = "test " + testTarget.FullName }
+#else
         match Misc.GuessPlatform() with
         | Misc.Platform.Linux ->
             let nunitCommand = "nunit-console"
             MakeCheckCommand nunitCommand
 
-            { Command = nunitCommand; Arguments = testAssembly.FullName }
+            { Command = nunitCommand; Arguments = testTarget.FullName }
         | _ ->
             if not FsxHelper.NugetExe.Exists then
                 MakeAll None |> ignore
 
             let nunitVersion = "2.7.1"
-            let installNUnitRunnerNugetCommand =
-                sprintf
-                    "install NUnit.Runners -Version %s -OutputDirectory %s"
-                    nunitVersion (FsxHelper.NugetScriptsPackagesDir().FullName)
-            RunNugetCommand installNUnitRunnerNugetCommand Echo.All true
-                |> ignore
+            let pkgOutputDir = FsxHelper.NugetScriptsPackagesDir()
+            Network.InstallNugetPackage
+                FsxHelper.NugetExe
+                pkgOutputDir
+                "NUnit.Runners"
+                (Some nunitVersion)
+                Echo.All
+            |> ignore
 
             {
                 Command = Path.Combine(FsxHelper.NugetScriptsPackagesDir().FullName,
                                        sprintf "NUnit.Runners.%s" nunitVersion,
                                        "tools",
                                        "nunit-console.exe")
-                Arguments = testAssembly.FullName
+                Arguments = testTarget.FullName
             }
+#endif
 
-    let nunitRun = Process.Execute(runnerCommand,
-                                   Echo.All)
-    match nunitRun.Result with
-    | Error _ ->
-        Console.WriteLine()
-        Console.Error.WriteLine "Tests failed"
-        Environment.Exit 1
-    | _ -> ()
+    Process.Execute(runnerCommand, Echo.All).UnwrapDefault()
+    |> ignore<string>
 
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
@@ -475,22 +578,27 @@ match maybeTarget with
 
 | Some "sanitycheck" ->
 
+#if LEGACY_FRAMEWORK
     if not FsxHelper.NugetExe.Exists then
         MakeAll None |> ignore
 
     let microsoftBuildLibVersion = "16.11.0"
-    let installMicrosoftBuildLibRunnerNugetCommand =
-        sprintf
-            "install Microsoft.Build -Version %s -OutputDirectory %s"
-            microsoftBuildLibVersion (FsxHelper.NugetScriptsPackagesDir().FullName)
-    RunNugetCommand installMicrosoftBuildLibRunnerNugetCommand Echo.All true
-        |> ignore
+    let pkgOutputDir = FsxHelper.NugetScriptsPackagesDir()
+    Network.InstallNugetPackage
+        FsxHelper.NugetExe
+        pkgOutputDir
+        "Microsoft.Build"
+        (Some microsoftBuildLibVersion)
+        Echo.All
+    |> ignore
+
+#endif
 
     let sanityCheckScript = Path.Combine(FsxHelper.ScriptsDir.FullName, "sanitycheck.fsx")
     Process.Execute(
         {
-            Command = FsxHelper.FsxRunner
-            Arguments = sanityCheckScript
+            Command = FsxHelper.FsxRunnerBin
+            Arguments = sprintf "%s %s" FsxHelper.FsxRunnerArg sanityCheckScript
         },
         Echo.All
     ).UnwrapDefault() |> ignore<string>

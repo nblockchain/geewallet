@@ -22,6 +22,28 @@ type TypeWithNoToStringOverriden =
     | FOO
     | BAR
 
+module IsString =
+    let WhichDoesNotEndWith (str: string) =
+#if !LEGACY_FRAMEWORK
+        Does.Not.EndWith str
+#else
+        Is.Not.StringEnding str
+#endif
+
+    let WhichContains (str: string) =
+#if !LEGACY_FRAMEWORK
+        Does.Contain str
+#else
+        Is.StringContaining str
+#endif
+
+    let StartingWith (str: string) =
+#if !LEGACY_FRAMEWORK
+        Does.StartWith str
+#else
+        Is.StringStarting str
+#endif
+
 [<TestFixture>]
 type FSharpUtilCoverage() =
 
