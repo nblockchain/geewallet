@@ -159,11 +159,7 @@ module Config =
         let fullNameOpt =
             assembly.GetManifestResourceNames()
             |> Seq.filter (fun aResourceName ->
-#if !LEGACY_FRAMEWORK
-                                                    aResourceName.EndsWith("." + resourceName)
-#else
-                                                    aResourceName = resourceName
-#endif
+                aResourceName = resourceName || aResourceName.EndsWith("." + resourceName)
             )
             |> Seq.tryExactlyOne
 
