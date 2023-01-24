@@ -148,6 +148,13 @@ let version = Misc.GetCurrentVersion(rootDir)
 
 let repoInfo = Git.GetRepoInfo()
 
+let backendBuildTool =
+    if buildTool = "dotnet" then "dotnet build" else buildTool
+let frontendBuildTool =
+    if buildTool = "dotnet" then "dotnet build" else buildTool
+let frontendType = "Console"
+let frontendGui = None
+
 Console.WriteLine()
 Console.WriteLine(sprintf
                       "\tConfiguration summary for gwallet %s %s"
@@ -160,8 +167,23 @@ Console.WriteLine(sprintf
                       "\t* F# script runner: %s"
                       fsxRunner)
 Console.WriteLine(sprintf
-                      "\t* .NET build tool: %s"
-                      (if buildTool = "dotnet" then "dotnet build" else buildTool))
+                      "\t* Backend build tool: %s"
+                      backendBuildTool)
+Console.WriteLine(sprintf
+                      "\t* Frontend type: %s"
+                      frontendType)
+Console.WriteLine(sprintf
+                      "\t* Frontend build tool: %s"
+                      frontendBuildTool)
+match frontendGui with
+| Some gui ->
+    Console.WriteLine(
+        sprintf
+            "\t* Frontend GUI: %s"
+            (gui.ToString())
+    )
+| None -> ()
+
 Console.WriteLine()
 
 Console.WriteLine "Configuration succeeded, you can now run `make`"
