@@ -264,7 +264,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6 xbuild
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6 mono-xbuild
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
