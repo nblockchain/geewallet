@@ -333,7 +333,7 @@
       <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json">
-      <HintPath>..\..\packages\Newtonsoft.Json.11.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\..\packages\Newtonsoft.Json.13.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="SharpRaven">
       <HintPath>..\..\packages\SharpRaven.2.4.0\lib\netstandard2.0\SharpRaven.dll</HintPath>
