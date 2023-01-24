@@ -11,9 +11,6 @@ if which dotnet >/dev/null 2>&1; then
     RUNNER_BIN=dotnet
     RUNNER_ARG=fsi
 else
-
-    cp NuGet-legacy.config NuGet.config
-
     if [ ! -f scripts/fsx/configure.sh ]; then
         if ! which git >/dev/null 2>&1; then
             echo "checking for git... not found" $'\n'

@@ -250,15 +250,11 @@ let SanityCheckNugetPackages () =
         let getDirectoryNamesForPackagesSet (packages: Map<PackageInfo,seq<DependencyHolder>>): Map<string,seq<DependencyHolder>> =
             seq {
                 for KeyValue (package, prjs) in packages do
-#if !LEGACY_FRAMEWORK
                     let dirForPackage =
                         sprintf "%s%s%s"
                             (package.PackageId.ToLower())
                             (Path.DirectorySeparatorChar.ToString())
                             package.PackageVersion
-#else
-                    let dirForPackage = sprintf "%s.%s" package.PackageId package.PackageVersion
-#endif
                     yield dirForPackage, prjs
             } |> Map.ofSeq
 

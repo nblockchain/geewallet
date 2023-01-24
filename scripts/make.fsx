@@ -229,18 +229,6 @@ let JustBuild binaryConfig maybeConstant =
             "dotnet", "build", mainSolution
         | Some otherBuildTool ->
 #if LEGACY_FRAMEWORK
-            let nugetConfig =
-                Path.Combine(
-                    FsxHelper.RootDir.FullName,
-                    "NuGet.config")
-                |> FileInfo
-            let legacyNugetConfig =
-                Path.Combine(
-                    FsxHelper.RootDir.FullName,
-                    "NuGet-legacy.config")
-                |> FileInfo
-
-            File.Copy(legacyNugetConfig.FullName, nugetConfig.FullName, true)
             otherBuildTool, String.Empty, "gwallet-legacy.sln"
 #else
             otherBuildTool, String.Empty, mainSolution
