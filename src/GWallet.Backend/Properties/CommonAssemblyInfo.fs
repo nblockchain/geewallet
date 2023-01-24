@@ -1,6 +1,10 @@
 
 namespace GWallet
 
+module VersionInfo =
+    [<Literal>]
+    let VersionString = "0.4.367.0"
+
 open System.Reflection
 
 [<assembly: AssemblyCompany("NBlockchain")>]
@@ -18,8 +22,8 @@ open System.Reflection
 // by using the '*' as shown below:
 // [<assembly: AssemblyVersion("1.0.*")>]
 
-[<assembly: AssemblyVersion("0.3.367.0")>]
-[<assembly: AssemblyFileVersion("0.3.367.0")>]
+[<assembly: AssemblyVersion(VersionInfo.VersionString)>]
+[<assembly: AssemblyFileVersion(VersionInfo.VersionString)>]
 
 do
     ()
