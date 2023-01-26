@@ -271,9 +271,14 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
             let ExplicitRestore projectOrSolutionRelativePath =
                 let nugetWorkaroundArgs =
                     sprintf
-                        "%s restore %s -SolutionDirectory ."
-                        FsxHelper.NugetExe.FullName projectOrSolutionRelativePath
-                Process.Execute({ Command = "mono"; Arguments = nugetWorkaroundArgs }, Echo.All) |> ignore
+                        "restore %s -SolutionDirectory ."
+                        projectOrSolutionRelativePath
+                Network.RunNugetCommand
+                    FsxHelper.NugetExe
+                    nugetWorkaroundArgs
+                    Echo.All
+                    true
+                |> ignore
 
             let MSBuildRestoreAndBuild solutionFile =
                 BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "/t:Restore"
