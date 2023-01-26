@@ -266,6 +266,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
         // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
         if buildTool = "msbuild" then
 
+#if LEGACY_FRAMEWORK
             // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
             // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
             let ExplicitRestore projectOrSolutionRelativePath =
@@ -279,6 +280,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                     Echo.All
                     true
                 |> ignore
+#endif
 
             let MSBuildRestoreAndBuild solutionFile =
                 BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "/t:Restore"
@@ -291,9 +293,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 //this is because building in release requires code signing keys
                 if binaryConfig = BinaryConfig.Debug then
                     let solution = MAC_SOLUTION_FILE
-
+#if LEGACY_FRAMEWORK
                     ExplicitRestore solution
-
+#endif
                     MSBuildRestoreAndBuild solution
 
                 Frontend.Console
@@ -306,9 +308,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 
                 if isGtkPresent then
                     let solution = LINUX_SOLUTION_FILE
-
+#if LEGACY_FRAMEWORK
                     ExplicitRestore solution
-
+#endif
                     MSBuildRestoreAndBuild solution
 
                     Frontend.Gtk
