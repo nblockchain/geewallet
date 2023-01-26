@@ -566,6 +566,12 @@ jobs:
       run: |
         ./scripts/snap_build.sh
 
+    - uses: actions/upload-artifact@v3
+      name: Upload snap package as artifact
+      with:
+        name: snap
+        path: ./*.snap
+
     - name: Upload snap package to Snap Store
       env:
         SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
