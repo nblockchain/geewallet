@@ -21,5 +21,8 @@ open System.Reflection
 [<assembly: AssemblyVersion("0.2.331.0")>]
 [<assembly: AssemblyFileVersion("0.2.331.0")>]
 
+// this one below maps to Product Version in theory
+[<assembly: AssemblyInformationalVersion("0.2.331.0")>]
+
 do
     ()
