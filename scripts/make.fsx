@@ -270,16 +270,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
             // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
             // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
             let ExplicitRestore projectOrSolutionRelativePath =
-                let nugetWorkaroundArgs =
-                    sprintf
-                        "restore %s -SolutionDirectory ."
-                        projectOrSolutionRelativePath
-                Network.RunNugetCommand
-                    FsxHelper.NugetExe
-                    nugetWorkaroundArgs
-                    Echo.All
-                    true
-                |> ignore
+                ()
 #endif
 
             let MSBuildRestoreAndBuild solutionFile =
