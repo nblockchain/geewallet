@@ -125,13 +125,14 @@ let Bump(toStable: bool): Version*Version =
                                        fullVersion.Revision)
             full,newVersion
 
-    let expiryFrom,expiryTo =
-        if toStable then
-            "50days","50years"
-        else
-            "50years","50days"
-
     if not isGitLabCiDisabled then
+        // NOTE: in GitHub there's no need to do this because all jobs default to 90days
+        // and 90days is the maximum anyway (for public repos), see https://docs.github.com/en/actions/learn-github-actions/usage-limits-billing-and-administration#artifact-and-log-retention-policy
+        let expiryFrom,expiryTo =
+            if toStable then
+                "50days","50years"
+            else
+                "50years","50days"
         Replace gitLabCiYml expiryFrom expiryTo
 
     for file in filesToBumpFullVersion do
