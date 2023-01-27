@@ -211,7 +211,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj">
+    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.NetStandard.fsproj">
       <Project>{D1D192E0-F226-40AD-8D81-687F7E6F7DAB}</Project>
       <Name>GWallet.Backend.NetStandard</Name>
     </ProjectReference>

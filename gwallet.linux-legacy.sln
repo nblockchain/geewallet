@@ -1,7 +1,7 @@
 
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.NetStandard", "src\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj", "{949A9225-A1BE-4EDA-A1DA-04AC131CFE9B}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.NetStandard", "src\GWallet.Backend\GWallet.Backend.NetStandard.fsproj", "{949A9225-A1BE-4EDA-A1DA-04AC131CFE9B}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF", "src\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj", "{2C7A1A49-CAD1-4961-866A-D32868AE7D18}"
 EndProject

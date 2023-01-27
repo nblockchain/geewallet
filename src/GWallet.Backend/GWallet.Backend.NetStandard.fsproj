@@ -1,0 +1,109 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Properties\CommonAssemblyInfo.fs">
+    </Compile>
+    <Compile Include="FSharpUtil.fs">
+    </Compile>
+    <Compile Include="Shuffler.fs">
+    </Compile>
+    <Compile Include="BinaryMarshalling.fs">
+    </Compile>
+    <Compile Include="Exceptions.fs">
+    </Compile>
+    <Compile Include="Marshalling.fs">
+    </Compile>
+    <Compile Include="Currency.fs">
+    </Compile>
+    <Compile Include="AccountTypes.fs">
+    </Compile>
+    <Compile Include="Config.fs">
+    </Compile>
+    <Compile Include="Networking.fs">
+    </Compile>
+    <Compile Include="JsonRpcTcpClient.fs">
+    </Compile>
+    <Compile Include="IBlockchainFeeInfo.fs">
+    </Compile>
+    <Compile Include="TransferAmount.fs">
+    </Compile>
+    <Compile Include="Infrastructure.fs">
+    </Compile>
+    <Compile Include="CachingTypes.fs">
+    </Compile>
+    <Compile Include="Server.fs">
+    </Compile>
+    <Compile Include="Caching.fs">
+    </Compile>
+    <Compile Include="Transaction.fs">
+    </Compile>
+    <Compile Include="FaultTolerantParallelClient.fs">
+    </Compile>
+    <Compile Include="FiatValueEstimation.fs">
+    </Compile>
+    <Compile Include="UtxoCoin\ElectrumServer.fs">
+    </Compile>
+    <Compile Include="UtxoCoin\StratumClient.fs">
+    </Compile>
+    <Compile Include="UtxoCoin\ElectrumClient.fs">
+    </Compile>
+    <Compile Include="UtxoCoin\UtxoCoinServer.fs">
+    </Compile>
+    <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs">
+    </Compile>
+    <Compile Include="UtxoCoin\TransactionTypes.fs">
+    </Compile>
+    <Compile Include="UtxoCoin\UtxoCoinAccount.fs">
+    </Compile>
+    <Compile Include="Ether\EtherExceptions.fs">
+    </Compile>
+    <Compile Include="Ether\EtherMinerFee.fs">
+    </Compile>
+    <Compile Include="Ether\TokenManager.fs">
+    </Compile>
+    <Compile Include="Ether\EtherServer.fs">
+    </Compile>
+    <Compile Include="Ether\TransactionMetadata.fs">
+    </Compile>
+    <Compile Include="Ether\EtherAccount.fs">
+    </Compile>
+    <Compile Include="BlockExplorer.fs">
+    </Compile>
+    <Compile Include="WarpKey.fs">
+    </Compile>
+    <Compile Include="Account.fs">
+    </Compile>
+    <Compile Include="Formatting.fs">
+    </Compile>
+    <Compile Include="ServerManager.fs">
+    </Compile>
+    <EmbeddedResource Include="servers.json">
+    </EmbeddedResource>
+    <PackageReference Include="NBitcoin" Version="6.0.17" />
+    <PackageReference Include="FSharp.Data" Version="3.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="Portable.BouncyCastle" Version="1.8.5.2" />
+    <PackageReference Include="SharpRaven" Version="2.4.0" />
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <PackageReference Include="System.IO.Pipelines" Version="4.5.3" />
+    <PackageReference Include="NBitcoin.Altcoins" Version="3.0.8" />
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
+    <PackageReference Include="Nethereum" Version="0.95.0--date20210125-0551.git-05a29e9" />
+    <PackageReference Include="JsonRpcSharp" Version="0.94.0--date20201018-1119.git-05d4006" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.24" />
+    <PackageReference Include="DotNetEssentials" Version="1.6.0--date20220814-0324.git-7f6e466" />
+    <PackageReference Include="System.Memory" Version="4.5.4" />
+    <PackageReference Include="Fsdk" Version="0.6.0--date20230118-0634.git-b829db2">
+      <GeneratePathProperty></GeneratePathProperty>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="UtxoCoin\" />
+    <Folder Include="Ether\" />
+  </ItemGroup>
+</Project>

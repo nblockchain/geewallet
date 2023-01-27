@@ -132,7 +132,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj" />
+    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.NetStandard.fsproj" />
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Xamarin.Forms" Version="5.0.0.2515" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
