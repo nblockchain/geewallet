@@ -52,6 +52,7 @@
     <Folder Include="Ether\" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Fsdk" Version="0.6.0--date20230118-0634.git-b829db2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2">
       <GeneratePathProperty></GeneratePathProperty>
