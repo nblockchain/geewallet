@@ -314,7 +314,7 @@ jobs:
         sudo ./scripts/snap_build.sh
 
     - name: Install snap
-      run: sudo snap install --dangerous *.snap
+      run: sudo snap install *.snap
 
     - name: Test snap
       run: gwallet --version
