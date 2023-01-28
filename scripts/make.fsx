@@ -31,12 +31,23 @@ open Fsdk.Process
 open GWallet.Scripting
 
 let UNIX_NAME = "geewallet"
+
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
-let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
-let LINUX_SOLUTION_FILE = "gwallet.linux-legacy.sln"
-let MAC_SOLUTION_FILE = "gwallet.mac-legacy.sln"
 let BACKEND = "GWallet.Backend"
+
+let DEFAULT_SOLUTION_FILE =
+    Path.Combine (FsxHelper.RootDir.FullName, "src", "gwallet.core.sln")
+    |> FileInfo
+let DEFAULT_SOLUTION_FILE_LEGACY =
+    Path.Combine (FsxHelper.RootDir.FullName, "src", "gwallet.core-legacy.sln")
+    |> FileInfo
+let LINUX_SOLUTION_FILE =
+    Path.Combine (FsxHelper.RootDir.FullName, "src", "gwallet.linux-legacy.sln")
+    |> FileInfo
+let MAC_SOLUTION_FILE =
+    Path.Combine (FsxHelper.RootDir.FullName, "src", "gwallet.mac-legacy.sln")
+    |> FileInfo
 
 type Frontend =
     | Console
@@ -152,7 +163,7 @@ let PrintNugetVersion () =
 
 let BuildSolution
     (buildToolAndBuildArg: string*string)
-    (solutionFileName: string)
+    (solutionFile: FileInfo)
     (binaryConfig: BinaryConfig)
     (maybeConstant: Option<string>)
     (extraOptions: string)
@@ -208,7 +219,7 @@ let BuildSolution
             configOption
     let buildArgs = sprintf "%s %s %s %s"
                             buildArg
-                            solutionFileName
+                            solutionFile.FullName
                             configOptions
                             extraOptions
     let buildProcess = Process.Execute ({ Command = buildTool; Arguments = buildArgs }, Echo.All)
@@ -224,8 +235,7 @@ let BuildSolution
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
-    let mainSolution = DEFAULT_SOLUTION_FILE
-    let buildTool,buildArg,solutionFileName =
+    let buildTool,buildArg,solution =
         match maybeBuildTool with
         | None ->
             failwith "A BuildTool should have been chosen by the configure script, please report this bug"
@@ -233,7 +243,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 #if LEGACY_FRAMEWORK
             failwith "'dotnet' shouldn't be the build tool when using legacy framework, please report this bug"
 #endif
-            "dotnet", "build", mainSolution
+            "dotnet", "build", DEFAULT_SOLUTION_FILE
         | Some otherBuildTool ->
 #if LEGACY_FRAMEWORK
             let nugetConfig =
@@ -248,15 +258,15 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 |> FileInfo
 
             File.Copy(legacyNugetConfig.FullName, nugetConfig.FullName, true)
-            otherBuildTool, String.Empty, "gwallet.core-legacy.sln"
+            otherBuildTool, String.Empty, DEFAULT_SOLUTION_FILE_LEGACY
 #else
-            otherBuildTool, String.Empty, mainSolution
+            otherBuildTool, String.Empty, DEFAULT_SOLUTION_FILE
 #endif
 
     Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
     BuildSolution
         (buildTool, buildArg)
-        solutionFileName
+        solution
         binaryConfig
         maybeConstant
         String.Empty
@@ -269,11 +279,11 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 #if LEGACY_FRAMEWORK
             // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
             // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
-            let ExplicitRestore projectOrSolutionRelativePath =
+            let ExplicitRestore (projectOrSolution: FileInfo) =
                 let nugetWorkaroundArgs =
                     sprintf
                         "restore %s -SolutionDirectory ."
-                        projectOrSolutionRelativePath
+                        projectOrSolution.FullName
                 Network.RunNugetCommand
                     FsxHelper.NugetExe
                     nugetWorkaroundArgs
