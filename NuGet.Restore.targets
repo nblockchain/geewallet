@@ -13,7 +13,10 @@
 		<Curl Condition=" '$(OS)' == 'Windows_NT' ">"$(TEMP)\curl.exe" $(CurlArgs)</Curl>
 		<Curl Condition=" '$(OS)' != 'Windows_NT' ">curl $(CurlArgs)</Curl>
 		<PowerShell Condition=" '$(PowerShell)' == '' ">%WINDIR%\System32\WindowsPowerShell\v1.0\powershell.exe</PowerShell>
-		<ContinueOnRestoreError Condition=" '$(ContinueOnRestoreError)' == '' ">ErrorAndContinue</ContinueOnRestoreError>  
+
+		<!-- see https://learn.microsoft.com/en-us/visualstudio/msbuild/task-element-msbuild -->
+		<ContinueOnRestoreError Condition=" '$(ContinueOnRestoreError)' == '' ">ErrorAndStop</ContinueOnRestoreError>
+
 		<RestoreVerbosity Condition="'$(RestoreVerbosity)' == ''">quiet</RestoreVerbosity>
 		<RestoreLoggingVerbosity Condition="'$(RestoreLoggingVerbosity)' == ''">normal</RestoreLoggingVerbosity>
 		<TargetsFile>$(MSBuildThisFilename)$(MSBuildThisFileExtension)</TargetsFile>
@@ -27,7 +30,7 @@
 	<ItemDefinitionGroup>
 		<RestoreSolution>
 			<Command>Restore</Command>
-			<Args>-verbosity $(RestoreVerbosity)</Args>
+			<Args>-verbosity $(RestoreLoggingVerbosity)</Args>
 		</RestoreSolution>
 	</ItemDefinitionGroup>
 
