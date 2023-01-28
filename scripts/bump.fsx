@@ -51,6 +51,8 @@ let filesToBumpMiniVersion: seq<string> =
 
 let filesToBumpFullVersion: seq<string> =
     Seq.append filesToBumpMiniVersion [
+        "src/GWallet.Backend/GWallet.Backend.fsproj"
+        "src/GWallet.Backend.NetStandard/GWallet.Backend.NetStandard.fsproj"
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
         "snap/snapcraft.yaml"
         "src/GWallet.Frontend.XF.UWP/Package.appxmanifest"
