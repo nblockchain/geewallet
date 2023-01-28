@@ -580,6 +580,13 @@ jobs:
         # retry 3 times because of flakey nuget; TODO: remove retry when we migrate to .NET6 (removing LEGACY_FRAMEWORK support)
         ./scripts/snap_build.sh || ./scripts/snap_build.sh || ./scripts/snap_build.sh || ./scripts/snap_build.sh
 
+    - name: Install snap
+      # dangerous because it's a local snap (not one from the SnapStore)
+      run: sudo snap install --dangerous *.snap
+
+    - name: Test snap
+      run: geewallet --version
+
     - uses: actions/upload-artifact@v3
       name: Upload snap package as artifact
       with:
