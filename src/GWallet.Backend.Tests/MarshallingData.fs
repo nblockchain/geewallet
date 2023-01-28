@@ -14,7 +14,7 @@ open GWallet.Backend.Ether
 module MarshallingData =
 
     let private executingAssembly = Assembly.GetExecutingAssembly()
-    let private version = executingAssembly.GetName().Version.ToString()
+    let private version = VersionHelper.CURRENT_VERSION
     let private binPath = executingAssembly.Location |> FileInfo
     let private prjPath = Path.Combine(binPath.Directory.FullName, "..") |> DirectoryInfo
 
