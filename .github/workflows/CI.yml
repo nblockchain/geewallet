@@ -313,6 +313,12 @@ jobs:
         ./scripts/install_snapcraft.sh
         sudo ./scripts/snap_build.sh
 
+    - name: Install snap
+      run: sudo snap install --dangerous *.snap
+
+    - name: Test snap
+      run: gwallet --version
+
     - name: Upload snap package as artifact
       uses: actions/upload-artifact@v1
       with:
