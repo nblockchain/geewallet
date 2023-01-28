@@ -5,13 +5,12 @@ open System
 open Xamarin.Forms
 open Xamarin.Forms.Platform.GTK
 
+open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 module Main =
 
-    [<EntryPoint>]
-    [<STAThread>]
-    let main _argv =
+    let NormalStartWithNoParameters() =
         Gtk.Application.Init()
         Forms.Init()
 
@@ -34,3 +33,15 @@ module Main =
         window.Show()
         Gtk.Application.Run()
         0
+
+    [<EntryPoint>]
+    [<STAThread>]
+    let main argv =
+        match argv.Length with
+        | 0 ->
+            NormalStartWithNoParameters()
+        | 1 when argv.[0] = "--version" ->
+            Console.WriteLine (SPrintF1 "geewallet v%s" VersionHelper.CURRENT_VERSION)
+            0
+        | _ ->
+            failwith "Arguments not recognized"
