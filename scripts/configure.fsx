@@ -99,7 +99,7 @@ let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-
           Condition=" '$(NuGetRestoreImported)' != 'true' " />
 </Project>
 """
-File.WriteAllText(Path.Combine(rootDir.FullName, "before.gwallet.core-legacy.sln.targets"),
+File.WriteAllText(Path.Combine(rootDir.FullName, "src", "before.gwallet.core-legacy.sln.targets"),
                   targetsFileToExecuteNugetBeforeBuild)
 #endif
 
