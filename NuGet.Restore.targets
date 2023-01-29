@@ -79,12 +79,12 @@
 
 		<Message Importance="$(RestoreLoggingImportance)" Text="Restoring $(_RestoreSolution)..." />
 
-		<Exec Command='$(Mono) "$(NuGet)" $(_RestoreCommand) "$(_RestoreSolution)" -DisableParallelProcessing $(_RestoreArgs)'
+		<Exec Command='$(Mono) "$(_NuGet)" $(_RestoreCommand) "$(_RestoreSolution)" -DisableParallelProcessing $(_RestoreArgs)'
 			  ContinueOnError="$(ContinueOnRestoreError)" 
 			  Condition="'$(_RestoreOutput)' == ''"
 			  WorkingDirectory="$(_RestoreDir)" />
 
-		<Exec Command='$(Mono) "$(NuGet)" $(_RestoreCommand) "$(_RestoreSolution)" -DisableParallelProcessing -OutputDirectory "$(_RestoreOutput)" $(_RestoreArgs)'
+		<Exec Command='$(Mono) "$(_NuGet)" $(_RestoreCommand) "$(_RestoreSolution)" -DisableParallelProcessing -OutputDirectory "$(_RestoreOutput)" $(_RestoreArgs)'
 			  ContinueOnError="$(ContinueOnRestoreError)" 
 			  Condition="'$(_RestoreOutput)' != ''"
 			  WorkingDirectory="$(_RestoreDir)" />
