@@ -53,8 +53,6 @@
 			<_NuGet>$(NuGet)</_NuGet>
 			<_RestoreDir>$(RestoreDir)</_RestoreDir>
 			<_RestoreDir Condition="'$(_RestoreDir)' == ''">%(RestoreSolution.RootDir)%(RestoreSolution.Directory)</_RestoreDir>
-			<!-- Normalizes paths to all be relative to the RestoreDir, to shorten the Exec Command length -->
-			<_NuGet Condition=" '$(RestoreDir)' != ''">$(_NuGet.Replace('$(RestoreDir)', '').TrimStart('/').TrimStart('\'))</_NuGet>
 		</PropertyGroup>
 
 		<CreateProperty Value="%(RestoreSolution.Command)">
