@@ -45,10 +45,36 @@ type BlockchainScriptHashListUnspentResult =
         Result: array<BlockchainScriptHashListUnspentInnerResult>
     }
 
+type BlockchainScriptHashHistoryInnerResult =
+    {
+        TxHash: string
+        Height: uint32
+    }
+
+type BlockchainScriptHashHistoryResult =
+    {
+        Id: int
+        Result: List<BlockchainScriptHashHistoryInnerResult>
+    }
+
 type BlockchainTransactionGetResult =
     {
         Id: int;
         Result: string;
+    }
+
+type BlockchainTransactionGetVerboseInnerResult =
+    {
+        Locktime: uint32
+        Confirmations: uint32
+        Hex: string
+        Time: uint32
+    }
+
+type BlockchainTransactionGetVerboseResult =
+    {
+        Id: int
+        Result: BlockchainTransactionGetVerboseInnerResult
     }
 
 type BlockchainEstimateFeeResult =
@@ -246,6 +272,18 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             return resObj
         }
 
+    member self.BlockchainScriptHashHistory scriptHash: Async<BlockchainScriptHashHistoryResult> =
+        let obj = {
+            Id = 0
+            Method = "blockchain.scripthash.get_history"
+            Params = scriptHash :: List.Empty
+        }
+        let json = Serialize obj
+        async {
+            let! resObj,_ = self.Request<BlockchainScriptHashHistoryResult> json
+            return resObj
+        }
+
     member self.BlockchainTransactionGet txHash: Async<BlockchainTransactionGetResult> =
         let obj = {
             Id = 0;
@@ -255,6 +293,18 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
         async {
             let! resObj,_ = self.Request<BlockchainTransactionGetResult> json
+            return resObj
+        }
+
+    member self.BlockchainTransactionGetVerbose (txHash: string): Async<BlockchainTransactionGetVerboseResult> =
+        let obj = {
+            Id = 0
+            Method = "blockchain.transaction.get"
+            Params = [txHash :> obj; true :> obj]
+        }
+        let json = Serialize obj
+        async {
+            let! resObj,_ = self.Request<BlockchainTransactionGetVerboseResult> json
             return resObj
         }
 
