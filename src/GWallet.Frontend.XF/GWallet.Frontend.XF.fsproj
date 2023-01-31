@@ -67,6 +67,9 @@
     <EmbeddedResource Include="..\..\img\eth_grey_120x120.png">
       <Link>img\eth_grey_120x120.png</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\settings_80x80.png">
+      <Link>img\settings_80x80.png</Link>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\..\img\eth_red_60x60.png">
       <Link>img\eth_red_60x60.png</Link>
     </EmbeddedResource>
@@ -101,6 +104,10 @@
     </Compile>
     <Compile Include="SendPage.xaml.fs">
       <DependentUpon>SendPage.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SettingsPage.xaml.fs">
+      <DependentUpon>SettingsPage.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="PairingToPage.xaml.fs">
