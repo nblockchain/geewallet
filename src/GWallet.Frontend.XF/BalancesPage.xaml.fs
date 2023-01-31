@@ -34,7 +34,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                   currencyImages: Map<Currency*bool,Image>,
                   startWithReadOnlyAccounts: bool)
                       as this =
-    inherit ContentPage()
+    inherit FlyoutPage()
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
 
@@ -46,6 +46,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let contentLayout = base.FindByName<StackLayout> "contentLayout"
     let normalChartView = base.FindByName<CircleChartView> "normalChartView"
     let readonlyChartView = base.FindByName<CircleChartView> "readonlyChartView"
+    let sideMenuImg = base.FindByName<Image> "sideMenuImg"
+    let settingsImgBtn = base.FindByName<ImageButton> "settingsImgBtn"
 
     let standardTimeToRefreshBalances = TimeSpan.FromMinutes 5.0
     let standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow = TimeSpan.FromMinutes 1.0
@@ -500,6 +502,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     member private this.Init () =
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
+        sideMenuImg.Source <- FrontendHelpers.GetSizedImageSource "logo" 512
+        settingsImgBtn.Source <- FrontendHelpers.GetSizedImageSource "settings" 80
 
         let tapGestureRecognizer = TapGestureRecognizer()
         tapGestureRecognizer.Tapped.Subscribe(fun _ ->
@@ -535,3 +539,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             this.StopTimer()
             this.CancelBalanceRefreshJobs()
         )
+
+    member self.OpenFlyoutClicked(_sender: obj, _evArgs: EventArgs) =
+        this.IsPresented <- true
+
+    member self.OpenSettingsTapped(_sender: obj, evArgs: EventArgs) =
+        let title = (evArgs :?> TappedEventArgs).Parameter :?> string
+        let settingsPage () = SettingsPage title :> Page
+        FrontendHelpers.SwitchToNewPage this settingsPage true

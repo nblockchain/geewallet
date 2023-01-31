@@ -1,12 +1,69 @@
-<?xml version="1.0" encoding="utf-8"?>
-<ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FlyoutPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
+             xmlns:ios="clr-namespace:Xamarin.Forms.PlatformConfiguration.iOSSpecific;assembly=Xamarin.Forms.Core"
+             ios:FlyoutPage.ApplyShadow="True"
              xmlns:controls="clr-namespace:GWallet.Frontend.XF.Controls"
              x:Class="GWallet.Frontend.XF.BalancesPage">
-    <StackLayout x:Name="mainLayout"
-                 Padding="0,0,0,0"
-                 VerticalOptions="FillAndExpand">
+
+    <!-- Side menu-->
+    <FlyoutPage.Flyout>
+        <ContentPage Title="FlyoutMenu"
+                     ios:Page.UseSafeArea="True" >
+            <StackLayout Spacing="20" Margin="10,10,15,0">
+
+                <Image HeightRequest="80"
+                       WidthRequest="80"
+                       Margin="0,0,0,10"
+                       x:Name="sideMenuImg"/>
+
+                <StackLayout Spacing="15" Orientation="Horizontal">
+                    <Label VerticalOptions="Center" Text="#"/>
+                    <Label x:Name="inMenuLbl1" Text="Check you still remember your payment password"/>
+                    <StackLayout.GestureRecognizers>
+                        <TapGestureRecognizer CommandParameter="{Binding Text, Source={x:Reference inMenuLbl1}}" Tapped="OpenSettingsTapped"/>
+                    </StackLayout.GestureRecognizers>
+                </StackLayout>
+
+                <StackLayout Spacing="15" Orientation="Horizontal">
+                    <Label VerticalOptions="Center" Text="#"/>
+                    <Label x:Name="inMenuLbl2" Text="Check you still remember your secret recovery phrase"/>
+                    <StackLayout.GestureRecognizers>
+                        <TapGestureRecognizer CommandParameter="{Binding Text, Source={x:Reference inMenuLbl2}}" Tapped="OpenSettingsTapped"/>
+                    </StackLayout.GestureRecognizers>
+                </StackLayout>
+
+                <StackLayout Spacing="15" Orientation="Horizontal">
+                    <Label VerticalOptions="Center" Text="#"/>
+                    <Label x:Name="inMenuLbl3" Text="Wipe your current wallet, in order to start from scratch"/>
+                    <StackLayout.GestureRecognizers>
+                        <TapGestureRecognizer CommandParameter="{Binding Text, Source={x:Reference inMenuLbl3}}" Tapped="OpenSettingsTapped"/>
+                    </StackLayout.GestureRecognizers>
+                </StackLayout>
+            </StackLayout>
+        </ContentPage>
+    </FlyoutPage.Flyout>
+
+    <!-- Main page-->
+    <FlyoutPage.Detail>
+    <ContentPage ios:Page.UseSafeArea="True"
+                    Title="Balances">
+        <StackLayout x:Name="mainLayout"
+                    Padding="0,0,0,0"
+                    VerticalOptions="FillAndExpand">
+
+        <!-- Settings icon-->
+        <ImageButton
+                x:Name="settingsImgBtn"
+                BackgroundColor="Transparent"
+                Padding="0"
+                HeightRequest="30"
+                WidthRequest="30"
+                HorizontalOptions="Start"
+                Margin="10,10,0,0"
+                Clicked="OpenFlyoutClicked"/>
+
 
         <StackLayout Orientation="Horizontal"
                      Padding="15, 10"
@@ -82,3 +139,5 @@
                Margin="0,10,0,10" />
     </StackLayout>
 </ContentPage>
+</FlyoutPage.Detail>
+</FlyoutPage>
