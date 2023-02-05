@@ -109,6 +109,24 @@ module FiatValueEstimation =
             | None, Some usdPriceFromCoinCap ->
                 Some usdPriceFromCoinCap
             | Some usdPriceFromCoinGecko, Some usdPriceFromCoinCap ->
+                let higher = Math.Max(usdPriceFromCoinGecko, usdPriceFromCoinCap)
+                let lower = Math.Min(usdPriceFromCoinGecko, usdPriceFromCoinCap)
+
+                // example: 100USD vs: 66.666USD (or lower)
+                let abnormalDifferenceRate = 1.5m
+                if (higher / lower) > abnormalDifferenceRate then
+                    let err =
+                        SPrintF4 "Alert: difference of USD exchange rate (for %A) between the providers is abnormally high: %M vs %M (H/L > %M)"
+                            currency
+                            usdPriceFromCoinGecko
+                            usdPriceFromCoinCap
+                            abnormalDifferenceRate
+#if DEBUG
+                    failwith err
+#else
+                    Infrastructure.ReportError err
+                    |> ignore<bool>
+#endif
                 let average = (usdPriceFromCoinGecko + usdPriceFromCoinCap) / 2m
                 Some average
 
