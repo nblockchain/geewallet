@@ -88,10 +88,10 @@ module FiatValueEstimation =
             let parsedJsonObj = FSharp.Data.JsonValue.Parse json
             let usdPrice =
                 match parsedJsonObj.TryGetProperty ticker with
-                | None -> failwith <| SPrintF1 "Could not pre-parse %s" json
+                | None -> failwith <| SPrintF2 "Could not pre-parse CoinGecko's JSON (for %A): %s" currency json
                 | Some innerObj ->
                     match innerObj.TryGetProperty "usd" with
-                    | None -> failwith <| SPrintF1 "Could not parse %s" json
+                    | None -> failwith <| SPrintF2 "Could not parse CoinGecko's JSON (for %A): %s" currency json
                     | Some value -> value.AsDecimal()
             return Some usdPrice
     }
