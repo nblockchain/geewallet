@@ -33,7 +33,10 @@ module FiatValueEstimation =
             match currency,provider with
             | Currency.BTC,_ -> "bitcoin"
             | Currency.LTC,_ -> "litecoin"
+
+            // NOTE: don't worry, a second calculation will be performed for SAI, see https://github.com/nblockchain/geewallet/commit/bb7f59271b21d1ab278e4d4dcd9e12a3bdd49ba9
             | Currency.ETH,_ | Currency.SAI,_ -> "ethereum"
+
             | Currency.ETC,_ -> "ethereum-classic"
             | Currency.DAI,PriceProvider.CoinCap -> "multi-collateral-dai"
             | Currency.DAI,_ -> "dai"
