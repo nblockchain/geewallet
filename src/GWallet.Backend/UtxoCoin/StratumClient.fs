@@ -51,6 +51,13 @@ type BlockchainTransactionGetResult =
         Result: string;
     }
 
+// DON'T DELETE, used in external projects
+type BlockchainTransactionIdFromPosResult =
+    {
+        Id: int
+        Result: string
+    }
+
 type BlockchainEstimateFeeResult =
     {
         Id: int;
@@ -255,6 +262,19 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
         let json = Serialize obj
         async {
             let! resObj,_ = self.Request<BlockchainTransactionGetResult> json
+            return resObj
+        }
+
+    // DON'T DELETE, used in external projects
+    member self.BlockchainTransactionIdFromPos height txPos: Async<BlockchainTransactionIdFromPosResult> =
+        let obj = {
+            Id = 0;
+            Method = "blockchain.transaction.id_from_pos";
+            Params = [height :> obj; txPos :> obj]
+        }
+        let json = Serialize obj
+        async {
+            let! resObj,_ = self.Request<BlockchainTransactionIdFromPosResult> json
             return resObj
         }
 
