@@ -15,12 +15,19 @@ module FiatValueEstimation =
     {
       "data": {
         "id": "bitcoin",
+        "rank": "1",
         "symbol": "BTC",
-        "currencySymbol": "x",
-        "type": "crypto",
-        "rateUsd": "6444.3132749056076909"
+        "name": "Bitcoin",
+        "supply": "19281750.0000000000000000",
+        "maxSupply": "21000000.0000000000000000",
+        "marketCapUsd": "450487811256.3001791347094000",
+        "volumeUsd24Hr": "6522579119.6754297896356342",
+        "priceUsd": "23363.4297331051475688",
+        "changePercent24Hr": "-0.0049558876182867",
+        "vwap24Hr": "23430.6497382042627725",
+        "explorer": "https://blockchain.info/"
       },
-      "timestamp": 1536347871542
+      "timestamp": 1675571191130
     }
     """>
 
@@ -34,7 +41,10 @@ module FiatValueEstimation =
             match currency,provider with
             | Currency.BTC,_ -> "bitcoin"
             | Currency.LTC,_ -> "litecoin"
+
+            // NOTE: don't worry, a second calculation will be performed for SAI, see https://github.com/nblockchain/geewallet/commit/bb7f59271b21d1ab278e4d4dcd9e12a3bdd49ba9
             | Currency.ETH,_ | Currency.SAI,_ -> "ethereum"
+
             | Currency.ETC,_ -> "ethereum-classic"
             | Currency.DAI,PriceProvider.CoinCap -> "multi-collateral-dai"
             | Currency.DAI,_ -> "dai"
@@ -42,7 +52,7 @@ module FiatValueEstimation =
             let baseUrl =
                 match provider with
                 | PriceProvider.CoinCap ->
-                    SPrintF1 "https://api.coincap.io/v2/rates/%s" tickerName
+                    SPrintF1 "https://api.coincap.io/v2/assets/%s" tickerName
                 | PriceProvider.CoinGecko ->
                     SPrintF1 "https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd" tickerName
             let uri = Uri baseUrl
@@ -64,14 +74,10 @@ module FiatValueEstimation =
         | Some (_, json) ->
             try
                 let tickerObj = CoinCapProvider.Parse json
-                return Some tickerObj.Data.RateUsd
+                return Some tickerObj.Data.PriceUsd
             with
             | ex ->
-                if currency = ETC then
-                    // interestingly this can throw in CoinCap because retreiving ethereum-classic doesn't work...
-                    return None
-                else
-                    return raise <| FSharpUtil.ReRaise ex
+                return raise (Exception(SPrintF2 "Could not parse CoinCap's JSON (for %A): %s" currency json, ex))
     }
 
     let private QueryCoinGecko currency = async {
@@ -83,10 +89,10 @@ module FiatValueEstimation =
             let parsedJsonObj = FSharp.Data.JsonValue.Parse json
             let usdPrice =
                 match parsedJsonObj.TryGetProperty ticker with
-                | None -> failwith <| SPrintF1 "Could not pre-parse %s" json
+                | None -> failwith <| SPrintF2 "Could not pre-parse CoinGecko's JSON (for %A): %s" currency json
                 | Some innerObj ->
                     match innerObj.TryGetProperty "usd" with
-                    | None -> failwith <| SPrintF1 "Could not parse %s" json
+                    | None -> failwith <| SPrintF2 "Could not parse CoinGecko's JSON (for %A): %s" currency json
                     | Some value -> value.AsDecimal()
             return Some usdPrice
     }
@@ -96,9 +102,6 @@ module FiatValueEstimation =
         let coinCapJob = QueryCoinCap currency
         let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 coinGeckoJob coinCapJob
         let! maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap = bothJobs
-        if maybeUsdPriceFromCoinCap.IsSome && currency = Currency.ETC then
-            Infrastructure.ReportWarningMessage "Currency ETC can now be queried from CoinCap provider?"
-            |> ignore<bool>
         let result =
             match maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap with
             | None, None -> None
@@ -107,6 +110,24 @@ module FiatValueEstimation =
             | None, Some usdPriceFromCoinCap ->
                 Some usdPriceFromCoinCap
             | Some usdPriceFromCoinGecko, Some usdPriceFromCoinCap ->
+                let higher = Math.Max(usdPriceFromCoinGecko, usdPriceFromCoinCap)
+                let lower = Math.Min(usdPriceFromCoinGecko, usdPriceFromCoinCap)
+
+                // example: 100USD vs: 66.666USD (or lower)
+                let abnormalDifferenceRate = 1.5m
+                if (higher / lower) > abnormalDifferenceRate then
+                    let err =
+                        SPrintF4 "Alert: difference of USD exchange rate (for %A) between the providers is abnormally high: %M vs %M (H/L > %M)"
+                            currency
+                            usdPriceFromCoinGecko
+                            usdPriceFromCoinCap
+                            abnormalDifferenceRate
+#if DEBUG
+                    failwith err
+#else
+                    Infrastructure.ReportError err
+                    |> ignore<bool>
+#endif
                 let average = (usdPriceFromCoinGecko + usdPriceFromCoinCap) / 2m
                 Some average
 
