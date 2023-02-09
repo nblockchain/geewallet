@@ -246,7 +246,13 @@ module UserInteraction =
 
             let balanceJob = Account.GetShowableBalanceAndImminentIncomingPayment account mode None
             let usdValueJob = FiatValueEstimation.UsdValue account.Currency
+
+            // TODO: we should maybe use WhenAnyAndAll below instead of MixedParallel2 (or some combination of the two),
+            //       refactoring it first to return Async<'T*Async<array<'T>>> (instead of Async<Async<array<'T>>>) first,
+            //       so that, in case balance retrieval is faster than FiatValEstimation, and the balance is zero, then
+            //       we don't need to query the fiat value at all (micro-optimization?)
             let! (balance,_),usdValue = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdValueJob
+
             return (account,balance,usdValue)
         }
 

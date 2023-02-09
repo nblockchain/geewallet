@@ -297,23 +297,35 @@ module Account =
                 with
                 | :? InvalidPassword ->
                     false
-        match accountOpt with
-        | Some account -> async { return checkValidPasswordForSingleAccount account }
-        | _ ->
-            let checkJobs =
-                seq {
-                    for account in GetAllActiveAccounts().OfType<NormalAccount>() do
-                        yield async {
-                            return checkValidPasswordForSingleAccount account
-                        }
-                }
-            async {
-                let! aggregateSuccess = Async.Parallel checkJobs
-                if aggregateSuccess.All(fun success -> success = true) then
-                    return true
-                else
-                    return false
-            }
+
+        let account =
+            match accountOpt with
+            | Some account -> account
+            | _ ->
+                // Because password check is expensive operation, only check it for one account.
+                // (Ether accounts take about 2 times longer to check, so rather use BTC/LTC)
+                let maybeBtcAccount =
+                    GetAllActiveAccounts().OfType<NormalAccount>()
+                    |> Seq.tryFind (fun acc -> (acc :> IAccount).Currency = Currency.BTC)
+                match maybeBtcAccount with
+                | Some btcAccount -> btcAccount
+                | None ->
+                    let maybeLtcAccount =
+                        GetAllActiveAccounts().OfType<NormalAccount>()
+                        |> Seq.tryFind (fun acc -> (acc :> IAccount).Currency = Currency.LTC)
+                    match maybeLtcAccount with
+                    | Some ltcAccount -> ltcAccount
+                    | None ->
+                        let maybeSomeAccount =
+                            GetAllActiveAccounts().OfType<NormalAccount>()
+                            |> Seq.tryHead
+                        match maybeSomeAccount with
+                        | Some account -> account
+                        | None ->
+                            // the menu "Options" of GWallet.Frontend.Console shouldn't have shown this feature if no accounts
+                            failwith "No accounts found to check valid password. Please report this bug"
+
+        async { return checkValidPasswordForSingleAccount account }
 
     let private CreateArchivedAccount (currency: Currency) (unencryptedPrivateKey: string): ArchivedAccount =
         let fromUnencryptedPrivateKeyToPublicAddressFunc =
