@@ -274,7 +274,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let fiatBalances = resolvedBalances.Select(fun balanceState ->
                                                                      balanceState.FiatAmount)
                                    |> List.ofSeq
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
                     RedrawCircleView readOnly resolvedBalances
                 )
@@ -419,7 +419,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     true
 
             if shouldNotOpenNewPage then
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     totalCurrentFiatAmountFrame.IsVisible <- false
                     currentChartView.IsVisible <- false
                     totalOtherFiatAmountFrame.IsVisible <- true
@@ -515,7 +515,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let allReadOnlyAccountFiatBalances =
             readOnlyBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
 
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             this.AssignColorLabels true
             if startWithReadOnlyAccounts then
                 this.AssignColorLabels false

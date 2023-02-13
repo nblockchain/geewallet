@@ -47,7 +47,7 @@ type PairingFromPage(previousPage: Page,
 
         let backButton = Button(Text = "< Go back")
         backButton.Clicked.Subscribe(fun _ ->
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 previousPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
             )
         ) |> ignore
@@ -66,7 +66,7 @@ type PairingFromPage(previousPage: Page,
         | None ->
             failwith "if next step clicked, last param in ctor should have been Some"
         | Some (_, sendPage) ->
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 let popTask = previousPage.Navigation.PopAsync()
                 sendPage.AddTransactionScanner()
                 popTask |> FrontendHelpers.DoubleCheckCompletionNonGeneric

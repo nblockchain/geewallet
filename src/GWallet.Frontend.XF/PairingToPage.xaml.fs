@@ -5,6 +5,7 @@ open System.Linq
 
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
+open Xamarin.Essentials
 open ZXing.Net.Mobile.Forms
 open Fsdk
 
@@ -43,7 +44,7 @@ type PairingToPage(balancesPage: Page,
         scanPage.add_OnScanResult(fun result ->
             scanPage.IsScanning <- false
 
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
                 //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
                 let task = this.Navigation.PopModalAsync()
@@ -51,7 +52,7 @@ type PairingToPage(balancesPage: Page,
                 task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
             //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
             this.Navigation.PushModalAsync scanPage
@@ -59,12 +60,12 @@ type PairingToPage(balancesPage: Page,
         )
 
     member this.OnEntryTextChanged(_sender: Object, _args: EventArgs) =
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             pairButton.IsEnabled <- not (String.IsNullOrEmpty coldAddressesEntry.Text)
         )
 
     member this.OnCancelButtonClicked(_sender: Object, _args: EventArgs) =
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             balancesPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
         )
 
@@ -73,13 +74,13 @@ type PairingToPage(balancesPage: Page,
         match Deserialize watchWalletInfoJson with
         | None ->
             let msg = "Invalid pairing info format (should be JSON). Did you pair a QR-code from another geewallet instance?"
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 this.DisplayAlert("Alert", msg, "OK")
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         | Some watchWalletInfo ->
 
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 pairButton.IsEnabled <- false
                 pairButton.Text <- "Pairing..."
                 coldAddressesEntry.IsEnabled <- false
@@ -120,7 +121,7 @@ type PairingToPage(balancesPage: Page,
                 let! allResolvedNormalAccountBalances,allResolvedReadOnlyBalances =
                     allBalancesJob
 
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     let newBalancesPage =
                         newBalancesPageFunc(
                             allResolvedNormalAccountBalances,

@@ -66,7 +66,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             let! usdRate = FiatValueEstimation.UsdValue account.Currency
             match usdRate with
             | Fresh _ ->
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     currencySelectorPicker.IsEnabled <- true
                 )
             | _ ->
@@ -85,7 +85,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         sendOrSignButton.Text <- sendCaption
         match account with
         | :? ReadOnlyAccount ->
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 passwordEntry.IsVisible <- false
                 passwordLabel.IsVisible <- false
             )
@@ -106,7 +106,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     member private this.AdjustWidgetsStateAccordingToConnectivity() =
         let currentConnectivityInstance = Connectivity.NetworkAccess
         if currentConnectivityInstance <> NetworkAccess.Internet then
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 currencySelectorPicker.IsEnabled <- false
                 amountToSendEntry.IsEnabled <- false
                 destinationAddressEntry.IsEnabled <- false
@@ -119,7 +119,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun (result:ZXing.Result) ->
             scanPage.IsScanning <- false
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
                 //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
                 let task = this.Navigation.PopModalAsync()
@@ -127,7 +127,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         )
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
             //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
             this.Navigation.PushModalAsync scanPage
@@ -144,7 +144,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
             scanPage.IsScanning <- false
 
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
                 //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
                 let task = this.Navigation.PopModalAsync()
@@ -199,7 +199,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         | NotFresh NotAvailable ->
                             failwith "if no usdRate was available, currencySelectorPicker should have been disabled, so it shouldn't have 'USD' selected"
                     | _ -> cachedBalance
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     amountToSend.Text <- allBalanceAmount.ToString()
                 )
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
@@ -241,13 +241,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     member private this.ShowWarningAndEnableFormWidgetsAgain (msg: string) =
         let showAndEnableJob = async {
-            let! mainThreadSynchContext = Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+            let! mainThreadSynchContext = Async.AwaitTask <| MainThread.GetMainThreadSynchronizationContextAsync()
             let displayTask = this.DisplayAlert("Alert", msg, "OK")
             do! Async.AwaitTask displayTask
             do! Async.SwitchToContext mainThreadSynchContext
             this.ToggleInputWidgetsEnabledOrDisabled true
         }
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             showAndEnableJob |> Async.StartImmediate
         )
 
@@ -280,7 +280,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             // TODO: allow linking to tx in a button or something?
 
             let showSuccessAndGoBack = async {
-                let! mainThreadSynchContext = Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+                let! mainThreadSynchContext = Async.AwaitTask <| MainThread.GetMainThreadSynchronizationContextAsync()
                 let displayTask = this.DisplayAlert("Success", "Transaction sent.", "OK")
                 let newReceivePage = newReceivePageFunc()
                 let navNewReceivePage = NavigationPage(newReceivePage)
@@ -293,7 +293,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let! _ = Async.AwaitTask (this.Navigation.PopAsync())
                 return ()
             }
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 showSuccessAndGoBack |> Async.StartImmediate
             )
 
@@ -303,7 +303,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             return Some destinationAddress
         with
         | InvalidDestinationAddress errMsg ->
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 this.DisplayAlert("Alert", errMsg, "OK")
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
@@ -312,7 +312,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             let possiblePrefixesStr = String.Join(", ", possiblePrefixes)
             let msg =  (SPrintF1 "Address starts with the wrong prefix. Valid prefixes: %s."
                                     possiblePrefixesStr)
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 this.DisplayAlert("Alert", msg, "OK")
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
@@ -349,7 +349,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         failwith <| SPrintF4 "Address introduced '%s' gave a length error with a range that covers its length: %i < %i < %i. Report this bug please."
                             destinationAddress (int minLength) destinationAddress.Length (int maxLength)
 
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 this.DisplayAlert("Alert", msg, "OK")
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
@@ -368,7 +368,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         maybeAddressWithValidChecksum
             if final.IsNone then
                 let msg = "Address doesn't seem to be valid, please try again."
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     this.DisplayAlert("Alert", msg, "OK")
                         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 )
@@ -396,7 +396,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     Account.ImportTransactionFromJson transactionEntryText |> Some
                 with
                 | :? DeserializationException as _dex ->
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let errMsg = "Transaction corrupt or invalid"
                         this.DisplayAlert("Alert", errMsg, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
@@ -407,7 +407,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             | None -> ()
             | Some (Unsigned unsignedTransaction) ->
                 if account.Currency <> unsignedTransaction.Proposal.Amount.Currency then
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err =
                             SPrintF2 "Transaction proposal's currency (%A) doesn't match with this currency's account (%A)"
@@ -415,7 +415,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     )
                 elif account.PublicAddress <> unsignedTransaction.Proposal.OriginAddress then
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err = "Transaction proposal's sender address doesn't match with this currency's account"
                         this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
@@ -428,7 +428,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         transaction <- (ColdStorageMode (Some unsignedTransaction))
                     )
 
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Default
                         destinationAddressEntry.Text <- unsignedTransaction.Proposal.DestinationAddress
                         amountToSendEntry.Text <- unsignedTransaction.Proposal.Amount.ValueToSend.ToString()
@@ -436,7 +436,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     )
             | Some (Signed signedTransaction) ->
                 if account.Currency <> signedTransaction.TransactionInfo.Proposal.Amount.Currency then
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err =
                             SPrintF2 "Transaction's currency (%A) doesn't match with this currency's account (%A)"
@@ -444,7 +444,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     )
                 elif account.PublicAddress <> signedTransaction.TransactionInfo.Proposal.OriginAddress then
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err = "Transaction's sender address doesn't match with this currency's account"
                         this.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
@@ -453,7 +453,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     lock lockObject (fun _ ->
                         transaction <- (ColdStorageRemoteControl (Some signedTransaction))
                     )
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Default
                         sendOrSignButton.IsEnabled <- true
                     )
@@ -469,7 +469,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             match Decimal.TryParse(amountToSend.Text) with
             | false,_ ->
                 async {
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         amountToSend.TextColor <- Color.Red
                         sendOrSignButton.IsEnabled <- false
                         equivalentAmount.Text <- String.Empty
@@ -497,14 +497,14 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         | _ -> lastCachedBalance
 
                     if (amount <= 0.0m || amount > allBalanceInSelectedCurrency) then
-                        Device.BeginInvokeOnMainThread(fun _ ->
+                        MainThread.BeginInvokeOnMainThread(fun _ ->
                             amountToSend.TextColor <- Color.Red
                             if amount > 0.0m then
                                 equivalentAmount.Text <- "(Not enough funds)"
                         )
                         return false
                     else
-                        Device.BeginInvokeOnMainThread(fun _ ->
+                        MainThread.BeginInvokeOnMainThread(fun _ ->
                             amountToSend.TextColor <- Color.Default
                         )
 
@@ -521,7 +521,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                     Formatting.DecimalAmountRounding CurrencyType.Fiat (rate * amount),
                                         "USD"
                             let usdAmount = SPrintF2 "~ %s %s" eqAmount otherCurrency
-                            Device.BeginInvokeOnMainThread(fun _ ->
+                            MainThread.BeginInvokeOnMainThread(fun _ ->
                                 equivalentAmount.Text <- usdAmount
                             )
                             return true
@@ -539,13 +539,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                           destinationAddressEntry <> null &&
                                           (not (String.IsNullOrEmpty destinationAddressEntry.Text)) &&
                                           (not (this.IsPasswordUnfilledAndNeeded()))
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 sendOrSignButton.IsEnabled <- sendOrSignButtonEnabled
             )
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnCancelButtonClicked(_sender: Object, _args: EventArgs) =
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             receivePage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
         )
 
@@ -576,7 +576,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 else
                     signWipCaption
 
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             sendOrSignButton.IsEnabled <- enabled
             cancelButton.IsEnabled <- enabled
             transactionScanQrCodeButton.IsEnabled <- enabled
@@ -643,7 +643,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let coldMsg =
                     "Account belongs to cold storage, so you'll need to scan this as a transaction proposal in the next page."
                 let showWarningAndGoForward = async {
-                    let! mainThreadSynchContext = Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+                    let! mainThreadSynchContext = Async.AwaitTask <| MainThread.GetMainThreadSynchronizationContextAsync()
                     let displayTask = this.DisplayAlert("Alert", coldMsg, "OK")
                     let pairTransactionProposalPage =
                         PairingFromPage(this,
@@ -660,7 +660,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     NavigationPage.SetHasNavigationBar(navPairPage, false)
                     do! Async.AwaitTask (this.Navigation.PushAsync navPairPage)
                 }
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     showWarningAndGoForward |> Async.StartImmediate
                 )
 
@@ -704,14 +704,14 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
                         this.AnswerToFee account txInfo answerToFee
                     }
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         Async.StartImmediate showFee
                     )
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member private this.BroadcastTransaction (signedTransaction): unit =
         let afterSuccessfullBroadcastJob = async {
-            let! mainThreadSynchContext = Async.AwaitTask <| Device.GetMainThreadSynchronizationContextAsync()
+            let! mainThreadSynchContext = Async.AwaitTask <| MainThread.GetMainThreadSynchronizationContextAsync()
             let displayTask = this.DisplayAlert("Success", "Transaction sent.", "OK")
             let newReceivePage = newReceivePageFunc()
             let navNewReceivePage = NavigationPage newReceivePage
@@ -727,7 +727,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         async {
             try
                 let! _ = Account.BroadcastTransaction signedTransaction
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     Async.StartImmediate afterSuccessfullBroadcastJob
                 )
             with
@@ -831,7 +831,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     interface FrontendHelpers.IAugmentablePayPage with
         member this.AddTransactionScanner() =
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 transactionLayout.IsVisible <- true
                 transactionEntry.Text <- String.Empty
                 transactionEntry.IsVisible <- true

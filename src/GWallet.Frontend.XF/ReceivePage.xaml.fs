@@ -85,7 +85,7 @@ type ReceivePage(account: IAccount,
 
         let backButton = Button(Text = "< Go back")
         backButton.Clicked.Subscribe(fun _ ->
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 balancesPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
             )
         ) |> ignore

@@ -5,6 +5,7 @@ open System.Linq
 open System.Threading.Tasks
 
 open Xamarin.Forms
+open Xamarin.Essentials
 open ZXing
 open ZXing.Mobile
 open Fsdk
@@ -114,7 +115,7 @@ module FrontendHelpers =
             | Fresh(amount) ->
                 match maybeFrame, currency, amount with
                 | Some frame, Currency.SAI, 0m | Some frame, Currency.DAI, 0m ->
-                    Device.BeginInvokeOnMainThread(fun _ ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
                         frame.IsVisible <- false
                     )
                 | _ -> ()
@@ -128,7 +129,7 @@ module FrontendHelpers =
                 let cryptoAmountStr = SPrintF2 "%A %s" currency cryptoAmount
                 let fiatAmount,fiatAmountStr = BalanceInUsdString balanceAmount usdRate
                 cryptoAmountStr,fiatAmount,fiatAmountStr
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             balanceLabel.Text <- balanceAmountStr
             fiatBalanceLabel.Text <- fiatAmountStr
         )
@@ -196,7 +197,7 @@ module FrontendHelpers =
         }
         let fullJob =
             let UpdateProgressBar (progressBar: StackLayout) =
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     let firstTransparentFrameFound =
                         progressBar.Children.First(fun x -> x.BackgroundColor = Color.Transparent)
                     firstTransparentFrameFound.BackgroundColor <- GetCryptoColor balanceSet.Account.Currency
@@ -250,7 +251,7 @@ module FrontendHelpers =
                 else
                     true
             if shouldCrash then
-                Device.BeginInvokeOnMainThread(fun _ ->
+                MainThread.BeginInvokeOnMainThread(fun _ ->
                     raise ex
                     LastResortBail()
                 )
@@ -280,7 +281,7 @@ module FrontendHelpers =
         } |> Async.Start
 
     let SwitchToNewPage (currentPage: Page) (createNewPage: unit -> Page) (navBar: bool): unit =
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             let newPage = createNewPage ()
             NavigationPage.SetHasNavigationBar(newPage, false)
             let navPage = NavigationPage newPage
@@ -291,7 +292,7 @@ module FrontendHelpers =
         )
 
     let SwitchToNewPageDiscardingCurrentOne (currentPage: Page) (createNewPage: unit -> Page): unit =
-        Device.BeginInvokeOnMainThread(fun _ ->
+        MainThread.BeginInvokeOnMainThread(fun _ ->
             let newPage = createNewPage ()
             NavigationPage.SetHasNavigationBar(newPage, false)
 
@@ -318,7 +319,7 @@ module FrontendHelpers =
         button.Text <- newText
         Task.Run(fun _ ->
             Task.Delay(TimeSpan.FromSeconds(2.0)).Wait()
-            Device.BeginInvokeOnMainThread(fun _ ->
+            MainThread.BeginInvokeOnMainThread(fun _ ->
                 button.Text <- initialText
                 button.IsEnabled <- true
             )
