@@ -12,7 +12,9 @@
                Margin="20,20,20,20"/>
 
         <Grid
-            x:Name="infoGrid" >
+            x:Name="infoGrid"
+            Padding="0,60,0,60"
+            >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="*" />
@@ -22,7 +24,7 @@
                    VerticalOptions="Center" HorizontalOptions="Center"
                    FontSize="Small"
                    />
-            <StackLayout Grid.Column="1" Orientation="Vertical">
+            <StackLayout Grid.Column="1" Orientation="Vertical" VerticalOptions="Center">
                 <Button x:Name="moreInfoButton"
                         Text="More info"
                         VerticalOptions="Center" HorizontalOptions="Center"
