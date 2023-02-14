@@ -19,7 +19,7 @@
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <Label Text="This is not a sign-up or log-in page. This form allows you to create a new wallet (or recover a previously created one). None of the data introduced here will leave the device, it will solely be used to produce a confidential secret (private key)."
+            <Label Text="This is not a sign-up or log-in page. This form allows you to create a new wallet (or recover a previously created one). No data introduced here will leave the device, it will just be used to produce a confidential secret (private key)."
                    Grid.Column="0" 
                    VerticalOptions="Center" HorizontalOptions="Center"
                    FontSize="Small"
