@@ -15,7 +15,7 @@ Some other items that haven't been prioritized include (likely only intelligible
   * Improve stats.json feeding by 1) collecting new stats at bump.fsx time; 2) disable cancellation in non-FAST mode for this dev-env collection. 
 - Use this logo for BTC when lightning support is merged: https://www.reddit.com/r/Bitcoin/comments/dklkyo/released_this_logo_for_public_use_at_lighting/
 - Migrate from Nethereum to Nethermind, especially if Light Client Support is implemented: https://gitcoin.co/issue/NethermindEth/nethermind/32/3818 (https://github.com/NethermindEth/nethermind/issues/32)
-- Stop using Newtonsoft.Json, in favour for an alternative that doesn't need type converters. Possible options (note: don't suggest to put Chiron in this list because its approach is too manual, so it defeats the point of escaping NewtonsoftJson's type converters):
+- Stop using Newtonsoft.Json, in favour for an alternative that doesn't need type converters. Possible options (note: don't suggest to put Chiron in this list because its approach is too manual, so it defeats the point of fleeing from NewtonsoftJson's type converters):
   * https://github.com/Tarmil/FSharp.SystemTextJson
   * https://github.com/realvictorprm/FSharpCompileTimeJson
   * https://github.com/mausch/Fleece
