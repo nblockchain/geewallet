@@ -464,3 +464,4 @@ module FrontendHelpers =
         let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
         currencyLogoImg
 #endif
+    let DefaultDesktopWindowSize = 500, 1000
