@@ -8,6 +8,10 @@ DEBIAN_FRONTEND=noninteractive sudo apt install -y fsharp build-essential pkg-co
 
 ./configure.sh --prefix=./staging
 make
+if [ `which dotnet` ]
+then
+    make publish
+fi
 make install
 
 #this below is to prevent the possible error "Failed to reuse files from previous run: The 'pull' step of 'gwallet' is out of date: The source has changed on disk."

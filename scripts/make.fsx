@@ -5,6 +5,7 @@ open System.IO
 open System.Linq
 open System.Diagnostics
 
+open System.Runtime.InteropServices
 open System.Text
 open System.Text.RegularExpressions
 #r "System.Core.dll"
@@ -102,6 +103,16 @@ let mainBinariesDir binaryConfig =
         binaryConfig.ToString())
     |> DirectoryInfo
 
+let GetRuntimeId () =
+    let osName =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Linux -> "linux"
+        | Misc.Platform.Windows -> "win"
+        | Misc.Platform.Mac -> "osx"
+    let archName = RuntimeInformation.ProcessArchitecture.ToString().ToLower()
+    sprintf "%s-%s" osName archName
+
+#if LEGACY_FRAMEWORK
 let wrapperScript = """#!/usr/bin/env bash
 set -eo pipefail
 
@@ -118,6 +129,19 @@ DIR_OF_THIS_SCRIPT=$(dirname "$(realpath "$0")")
 FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
 exec mono "$FRONTEND_PATH" "$@"
 """
+#else
+let wrapperScript = """#!/usr/bin/env bash
+set -eo pipefail
+DIR_OF_THIS_SCRIPT=$(dirname "$(realpath "$0")")
+FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT"
+arch=$(uname -i)
+if [ "$arch" != 'x86_64' ]; then
+    echo "$arch not supported (only x86_64 is supported for now), please file a bug"
+    exit 1
+fi
+exec "$FRONTEND_PATH" "$@"
+"""
+#endif
 
 #if LEGACY_FRAMEWORK
 let PrintNugetVersion () =
@@ -436,6 +460,31 @@ match maybeTarget with
     Process.Execute(runnerCommand, Echo.All).UnwrapDefault()
     |> ignore<string>
 
+| Some "publish" ->
+#if LEGACY_FRAMEWORK
+    failwith "Legacy frameworks don't support publish command"
+#else
+    let projectFile =
+        Path.Combine (
+            FsxHelper.RootDir.FullName,
+            "src",
+            DEFAULT_FRONTEND,
+            DEFAULT_FRONTEND + ".fsproj")
+        |> FileInfo
+    let runtimeId = GetRuntimeId()
+    let publishCommand =
+        {
+            Command = "dotnet"
+            Arguments =
+                sprintf
+                    "publish --configuration Release -property:PublishSingleFile=true --self-contained true --runtime %s %s"
+                    runtimeId
+                    projectFile.FullName
+        }
+    Process.Execute(publishCommand, Echo.All).UnwrapDefault()
+    |> ignore<string>
+#endif
+
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
     JustBuild buildConfig None
@@ -455,7 +504,18 @@ match maybeTarget with
 
     Console.WriteLine "Installing..."
     Console.WriteLine ()
-    Misc.CopyDirectoryRecursively (mainBinariesDir buildConfig, libDestDir, [])
+    
+    let publishDir =
+        Path.Combine ((mainBinariesDir buildConfig).FullName, "net6.0", GetRuntimeId(), "publish") 
+        |> DirectoryInfo
+    if publishDir.Exists then
+        // single-file app
+        let executable = Path.Combine(publishDir.FullName, DEFAULT_FRONTEND) |> FileInfo
+        if not libDestDir.Exists then
+            libDestDir.Create()
+        executable.CopyTo(Path.Combine(libDestDir.FullName, DEFAULT_FRONTEND), true) |> ignore
+    else
+        Misc.CopyDirectoryRecursively (mainBinariesDir buildConfig, libDestDir, List.Empty)
 
     let finalLauncherScriptInDestDir = Path.Combine(binDestDir.FullName, launcherScriptFile.Name) |> FileInfo
     if not (Directory.Exists(finalLauncherScriptInDestDir.Directory.FullName)) then
