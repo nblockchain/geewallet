@@ -66,11 +66,16 @@
 
   <ItemGroup>
     <EmbeddedResource Include="WelcomePage.xaml" />
+    <EmbeddedResource Include="WelcomePage2.xaml" />
     <Compile Include="..\GWallet.Frontend.XF\FrontendHelpers.fs" />
     <Compile Include="..\GWallet.Frontend.XF\GlobalState.fs" />
+    <Compile Include="..\GWallet.Frontend.XF\WelcomePage2.xaml.fs">
+      <DependentUpon>WelcomePage2.xaml</DependentUpon>
+    </Compile>
     <Compile Include="..\GWallet.Frontend.XF\WelcomePage.xaml.fs">
       <DependentUpon>WelcomePage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\Initialization.fs" />
     <EmbeddedResource Include="App.xaml" />
     <Compile Include="App.xaml.fs">
       <DependentUpon>App.xaml</DependentUpon>
