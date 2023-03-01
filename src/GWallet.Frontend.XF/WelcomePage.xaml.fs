@@ -20,13 +20,8 @@ open Xamarin.Essentials
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
-// state is unused in Maui for now because it's only used to pass it to
-// WelcomePage2() ctor, which is not created in Maui app yet
-#if !XAMARIN
-type WelcomePage(_state: FrontendHelpers.IGlobalAppState) =
-#else
+
 type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
-#endif
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<WelcomePage>)
@@ -95,9 +90,6 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         else
             None
 
-// ToggleInputWidgetsEnabledOrDisabled is not used since its usage is in another 
-// #if block.
-#if XAMARIN
     let ToggleInputWidgetsEnabledOrDisabled (enabled: bool) =
         let newCreateButtonCaption =
             if enabled then
@@ -113,7 +105,6 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             nextButton.IsEnabled <- enabled
             nextButton.Text <- newCreateButtonCaption
         )
-#endif
 
     do
         dobDatePicker.MaximumDate <- DateTime.UtcNow.Date
@@ -142,7 +133,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                     let! mainThreadSynchContext =
                         Async.AwaitTask <| MainThread.GetMainThreadSynchronizationContextAsync()
                     do! Async.SwitchToContext mainThreadSynchContext
-#if XAMARIN
+
                     let dateTime = dobDatePicker.Date
                     ToggleInputWidgetsEnabledOrDisabled false
                     do! Async.SwitchToThreadPool()
@@ -154,7 +145,6 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                         WelcomePage2 (state, masterPrivKeyTask)
                             :> Page
                     do! FrontendHelpers.SwitchToNewPageDiscardingCurrentOneAsync this welcomePage
-#endif
                 }
 
         if dobDatePicker.Date.Date = middleDateEighteenYearsAgo.Date then
