@@ -19,12 +19,7 @@ open Xamarin.Essentials
 
 open GWallet.Backend
 
-#if !XAMARIN
-// state and masterPrivateKeyGenerationTask are unused for now in MAUI until LoadingPage is ported
-type WelcomePage2(_state: FrontendHelpers.IGlobalAppState, _masterPrivateKeyGenerationTask: Task<array<byte>>) =
-#else
 type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenerationTask: Task<array<byte>>) =
-#endif
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<WelcomePage2>)
@@ -68,16 +63,12 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
             ToggleInputWidgetsEnabledOrDisabled false
 
             async {
-#if XAMARIN                  
                 let! privateKeyBytes = Async.AwaitTask masterPrivateKeyGenerationTask
                 do! Account.CreateAllAccounts privateKeyBytes password.Text
                 let loadingPage () =
                     LoadingPage (state, false)
                         :> Page
-                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this loadingPage
-#else        
-                ()
-#endif                
+                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this loadingPage              
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member this.OnPasswordTextChanged(_sender: Object, _args: EventArgs) =
