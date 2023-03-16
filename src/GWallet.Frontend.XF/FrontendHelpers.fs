@@ -414,7 +414,7 @@ module FrontendHelpers =
                                      ),
                                      UseNativeScanning = true
                                  )
-
+#endif
     let GetImageSource name =
         let thisAssembly = typeof<BalanceState>.Assembly
         let thisAssemblyName = thisAssembly.GetName().Name
@@ -429,4 +429,13 @@ module FrontendHelpers =
     let GetSizedColoredImageSource name color size =
         let sizedColoredName = SPrintF2 "%s_%s" name color
         GetSizedImageSource sizedColoredName size
-#endif
+
+    let StartTimer(interval: TimeSpan, action: unit -> bool) =
+#if XAMARIN
+        Device.StartTimer(interval, Func<bool> action)
+#else
+        let timer = Application.Current.Dispatcher.CreateTimer(Interval = interval, IsRepeating = true)
+        timer.Tick.Add(fun _ ->
+            if not <| action() then timer.Stop() )
+        timer.Start()
+#endif        

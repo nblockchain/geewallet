@@ -100,3 +100,4 @@ fabric.properties
 # Maui generated code
 src/GWallet.Frontend.Maui/WelcomePage.xaml
 src/GWallet.Frontend.Maui/WelcomePage2.xaml
+src/GWallet.Frontend.Maui/LoadingPage.xaml

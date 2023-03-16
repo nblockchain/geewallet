@@ -1,11 +1,23 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if XAMARIN
+namespace GWallet.Frontend.XF
+#else
+namespace GWallet.Frontend.Maui
+#endif
 
 open System
 open System.Linq
 
+#if !XAMARIN
+open Microsoft.Maui
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.ApplicationModel
+open Microsoft.Maui.Devices
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
+#endif
 open Fsdk
 
 open GWallet.Backend
@@ -14,18 +26,23 @@ open GWallet.Backend
 /// true  if just the logo should be shown first, and title text and loading text after some seconds,
 /// false if title text and loading text should be shown immediatly.
 /// </param>
+#if XAMARIN
 type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as self =
+#else
+type LoadingPage(_state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as self =
+#endif
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
 
-    let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let mainLayout = base.FindByName<Grid> "mainLayout"
     let titleLabel = mainLayout.FindByName<Label> "titleLabel"
     let progressBarLayout = base.FindByName<StackLayout> "progressBarLayout"
     let loadingLabel = mainLayout.FindByName<Label> "loadingLabel"
     let dotsMaxCount = 3
     let loadingTextNoDots = loadingLabel.Text
 
+#if XAMARIN
     let allAccounts = Account.GetAllActiveAccounts()
     let normalAccounts = allAccounts.OfType<NormalAccount>() |> List.ofSeq
                          |> List.map (fun account -> account :> IAccount)
@@ -55,8 +72,10 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         }
     let PreLoadCurrencyImages(): Map<Currency*bool,Image> =
         GetAllImages() |> Map.ofSeq
-
-    let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
+#endif
+    
+    let logoImageSizeInPixels= 512
+    let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" logoImageSizeInPixels
     let logoImg = Image(Source = logoImageSource, IsVisible = true)
 
     let mutable keepAnimationTimerActive = true
@@ -85,7 +104,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         )
 
         let dotsAnimationLength = TimeSpan.FromMilliseconds 500.
-        Device.StartTimer(dotsAnimationLength, Func<bool> UpdateDotsLabel)
+        FrontendHelpers.StartTimer(dotsAnimationLength, UpdateDotsLabel)
     do
         self.Init()
 
@@ -93,6 +112,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
 
     member self.Transition(): unit =
+#if XAMARIN
         let currencyImages = PreLoadCurrencyImages()
 
         let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
@@ -121,6 +141,11 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                     :> Page
             FrontendHelpers.SwitchToNewPageDiscardingCurrentOne self balancesPage
         }
+#else
+        async {
+            ()
+        }
+#endif
             |> FrontendHelpers.DoubleCheckCompletionAsync false
 
         ()
@@ -128,12 +153,16 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     member self.Init (): unit =
         if showLogoFirst then
             MainThread.BeginInvokeOnMainThread(fun _ ->
+#if !XAMARIN && GTK
+                logoImg.WidthRequest <- float(logoImageSizeInPixels) / 2.0
+                logoImg.HeightRequest <- float(logoImageSizeInPixels) / 2.0
+#endif
                 mainLayout.Children.Add logoImg
             )
 
             self.Transition()
 
-            Device.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
+            FrontendHelpers.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
                 ShowLoadingText()
 
                 false // do not run timer again
