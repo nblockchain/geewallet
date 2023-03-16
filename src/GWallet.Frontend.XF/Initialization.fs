@@ -25,18 +25,12 @@ module Initialization =
     let internal LandingPage(): NavigationPage =
         GlobalInit ()
 
-#if XAMARIN
         let accounts = Account.GetAllActiveAccounts()
-#endif
         let landingPage:Page =
-#if XAMARIN
             if not (accounts.Any()) then
                 (WelcomePage GlobalState) :> Page
             else
                 (LoadingPage (GlobalState, true)) :> Page
-#else
-            (WelcomePage GlobalState) :> Page
-#endif
 
         let navPage = NavigationPage landingPage
         NavigationPage.SetHasNavigationBar(landingPage, false)
