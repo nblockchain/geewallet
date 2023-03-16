@@ -434,7 +434,7 @@ module FrontendHelpers =
                                      ),
                                      UseNativeScanning = true
                                  )
-
+#endif
     let GetImageSource name =
         let thisAssembly = typeof<BalanceState>.Assembly
         let thisAssemblyName = thisAssembly.GetName().Name
@@ -463,5 +463,14 @@ module FrontendHelpers =
         let imageSource = CreateCurrencyImageSource currency readOnly size
         let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
         currencyLogoImg
+
+    let StartTimer(interval: TimeSpan, action: unit -> bool) =
+#if XAMARIN
+        Device.StartTimer(interval, Func<bool> action)
+#else
+        let timer = Application.Current.Dispatcher.CreateTimer(Interval = interval, IsRepeating = true)
+        timer.Tick.Add(fun _ ->
+            if not <| action() then timer.Stop() )
+        timer.Start()
 #endif
     let DefaultDesktopWindowSize = 500, 1000
