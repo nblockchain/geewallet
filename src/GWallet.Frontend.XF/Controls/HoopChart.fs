@@ -1,8 +1,20 @@
-﻿namespace GWallet.Frontend.XF.Controls
+﻿#if XAMARIN
+namespace GWallet.Frontend.XF.Controls
+#else
+namespace GWallet.Frontend.Maui.Controls
+#endif
 
-
+#if XAMARIN
 open Xamarin.Forms
 open Xamarin.Forms.Shapes
+type Rect = Xamarin.Forms.Rectangle
+#else
+open Microsoft.Maui
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Graphics
+open Microsoft.Maui.Controls.Shapes
+open Microsoft.Maui.Layouts
+#endif
 
 
 type SegmentInfo = 
@@ -30,7 +42,7 @@ type private HoopSector =
 
 
 type HoopChartView() =
-    inherit Layout<View>()
+    inherit AbsoluteLayout()
 
     let mutable state = Uninitialized
 
@@ -41,35 +53,48 @@ type HoopChartView() =
             Text = "Total Assets:", 
             FontSize = 15.0, 
             HorizontalOptions = LayoutOptions.Center,
-            VerticalOptions = LayoutOptions.Center,
-            Margin = Thickness(0.0, -7.5)
+            VerticalOptions = LayoutOptions.Center
         )
 
     let balanceFrame = 
         let frame = 
             Frame(
                 HasShadow = false,
+#if XAMARIN
                 BackgroundColor = Color.Transparent,
                 BorderColor = Color.Transparent,
+#else
+                BackgroundColor = Colors.Transparent,
+                BorderColor = Colors.Transparent,
+#endif
                 Padding = Thickness(0.0),
-                HorizontalOptions = LayoutOptions.CenterAndExpand
+                VerticalOptions = LayoutOptions.Center
             )
-        let stackLayout = 
-            StackLayout(
-                Orientation = StackOrientation.Vertical,
-                VerticalOptions = LayoutOptions.CenterAndExpand,
-                HorizontalOptions = LayoutOptions.Center
-            )
-        stackLayout.Children.Add balanceTagLabel
-        stackLayout.Children.Add balanceLabel
-        frame.Content <- stackLayout
+        let gridLayout = Grid(HorizontalOptions = LayoutOptions.Center, VerticalOptions = LayoutOptions.Center)
+        gridLayout.RowDefinitions.Add(RowDefinition())
+        gridLayout.RowDefinitions.Add(RowDefinition())
+        gridLayout.ColumnDefinitions.Add(ColumnDefinition())
+#if !XAMARIN && GTK
+        gridLayout.Padding <- Thickness(15.0, 0.0, 0.0, 0.0)
+#endif
+
+        gridLayout.Children.Add balanceTagLabel
+        gridLayout.Children.Add balanceLabel
+#if XAMARIN
+        Grid.SetRow(balanceTagLabel, 0)
+        Grid.SetRow(balanceLabel, 1)
+#else
+        gridLayout.SetRow(balanceTagLabel, 0)
+        gridLayout.SetRow(balanceLabel, 1)
+#endif
+        frame.Content <- gridLayout
 
         frame
 
     let defaultImage = 
         Image (
-            HorizontalOptions = LayoutOptions.FillAndExpand,
-            VerticalOptions = LayoutOptions.FillAndExpand,
+            HorizontalOptions = LayoutOptions.Fill,
+            VerticalOptions = LayoutOptions.Fill,
             Aspect = Aspect.AspectFit
         )
 
@@ -154,6 +179,8 @@ type HoopChartView() =
                             Stroke = SolidColorBrush sector.Color, 
                             StrokeThickness = thickness, 
                             StrokeLineCap = PenLineCap.Round
+                            // workaround for https://github.com/dotnet/maui/issues/9089
+                            Aspect = enum 4
                         )
                 path :> Shape)
             normalizedSectors
@@ -164,38 +191,59 @@ type HoopChartView() =
         this.GetHoopShapes(segments, sideLength / 2.0) |> Seq.iter hoop.Children.Add
 
     // Layout
-    override this.LayoutChildren(xCoord, yCoord, width, height) = 
+    member this.ArrangeChildren(layoutBounds: Rect) = 
         match state with
-        | Uninitialized -> ()
+        | Uninitialized -> layoutBounds
         | Empty -> 
-            let bounds = Rectangle.FromLTRB(xCoord, yCoord, xCoord + width, yCoord + height)
-            emptyStateWidget.Layout bounds
+#if XAMARIN
+            AbsoluteLayout.SetLayoutBounds(emptyStateWidget, layoutBounds)
+#else
+            this.SetLayoutBounds(emptyStateWidget, layoutBounds)
+#endif
+            layoutBounds
         | NonEmpty(segments) -> 
-            let smallerSide = min width height
-            let xOffset = (max 0.0 (width - smallerSide)) / 2.0
-            let yOffset = (max 0.0 (height - smallerSide)) / 2.0
-            let bounds = Rectangle.FromLTRB(xCoord + xOffset, yCoord + yOffset, xCoord + xOffset + smallerSide, yCoord + yOffset + smallerSide)
-
-            balanceFrame.Layout bounds
-
+            let smallerSide = min layoutBounds.Width layoutBounds.Height
+            let xOffset = (max 0.0 (layoutBounds.Width - smallerSide)) / 2.0
+            let yOffset = (max 0.0 (layoutBounds.Height - smallerSide)) / 2.0
+            let bounds = 
+                Rect(layoutBounds.X + xOffset, layoutBounds.Y + yOffset, smallerSide, smallerSide)
             if abs(hoop.Height - smallerSide) > 0.1 then
                 this.RepopulateHoop(segments, smallerSide)
-            
-            hoop.Layout bounds
+#if XAMARIN
+            AbsoluteLayout.SetLayoutBounds(balanceFrame, bounds)
+            AbsoluteLayout.SetLayoutBounds(hoop, bounds)
+#else
+            this.SetLayoutBounds(balanceFrame, bounds)
+            this.SetLayoutBounds(hoop, bounds)
+#endif
+            bounds
 
-    override this.OnMeasure(widthConstraint, heightConstraint) =
-        let smallerRequestedSize = min widthConstraint heightConstraint |> min this.MinimumChartSize
+    member this.Measure(widthConstraint, heightConstraint) =
+        let smallerRequestedSize = min widthConstraint heightConstraint |> max this.MinimumChartSize
         let minSize = 
             match state with
             | Uninitialized -> 0.0
             | Empty -> this.MinimumLogoSize
             | NonEmpty _ -> 
-                let size = balanceLabel.Measure(smallerRequestedSize, smallerRequestedSize).Request
-                let factor = 1.1 // to add som visual space between label and chart
+                let size = balanceLabel.Measure(infinity, infinity).Request
+                let factor = 1.1 // to add some visual space between label and chart
                 (sqrt(size.Width*size.Width + size.Height*size.Height) + this.HoopStrokeThickness) * factor
         let sizeToRequest = max smallerRequestedSize minSize
         SizeRequest(Size(sizeToRequest, sizeToRequest), Size(minSize, minSize))
-    
+
+#if XAMARIN
+    override this.LayoutChildren(xCoord, yCoord, width, height) = 
+        this.ArrangeChildren(Rect(xCoord, yCoord, width, height))
+        |> ignore
+        base.LayoutChildren(xCoord, yCoord, width, height)
+
+    override this.OnMeasure(widthConstraint, heightConstraint) =
+        this.Measure(widthConstraint, heightConstraint)
+#else
+    override this.CreateLayoutManager() =
+        new HoopChartLayoutManager(this)
+#endif
+
     // Updates
     member private this.SetState(newState: HoopChartState) =
         if newState <> state then
@@ -232,3 +280,15 @@ type HoopChartView() =
             this.UpdateChart()
         elif propertyName = HoopChartView.DefaultImageSourceProperty.PropertyName then
             defaultImage.Source <- this.DefaultImageSource
+#if !XAMARIN
+and HoopChartLayoutManager(hoopChart: HoopChartView) =
+    inherit AbsoluteLayoutManager(hoopChart)
+    
+    override this.Measure(widthConstraint, heightConstraint) = 
+        let requestedSize = hoopChart.Measure(widthConstraint, heightConstraint).Request
+        base.Measure(requestedSize.Width, requestedSize.Height) |> ignore
+        requestedSize
+
+    override this.ArrangeChildren(layoutBounds) = 
+        base.ArrangeChildren(hoopChart.ArrangeChildren(layoutBounds))
+#endif

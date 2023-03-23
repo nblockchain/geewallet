@@ -8,22 +8,26 @@
                  Padding="0,0,0,0"
                  VerticalOptions="FillAndExpand">
 
-        <StackLayout Orientation="Horizontal"
-                     Padding="15, 10"
-                     Spacing="30"
-                     VerticalOptions="FillAndExpand"
-                     HorizontalOptions="FillAndExpand">         
+        <Grid Padding="15, 10"
+              VerticalOptions="FillAndExpand"
+              HorizontalOptions="FillAndExpand"
+              RowDefinitions="Auto"
+              ColumnDefinitions="*">
 
             <controls:HoopChartView x:Name="normalChartView"
-                                     HorizontalOptions="FillAndExpand"
-                                     VerticalOptions="FillAndExpand"/>
+                                     HorizontalOptions="Center"
+                                     VerticalOptions="FillAndExpand"
+                                     Grid.Row="0"
+                                     Grid.Column="0"/>
 
             <controls:HoopChartView x:Name="readonlyChartView"
                                      IsVisible="False"
-                                     HorizontalOptions="FillAndExpand"
-                                     VerticalOptions="FillAndExpand"/>
+                                     HorizontalOptions="Center"
+                                     VerticalOptions="FillAndExpand"
+                                     Grid.Row="0"
+                                     Grid.Column="0"/>
 
-        </StackLayout>
+        </Grid>
 
         <ScrollView HorizontalOptions="FillAndExpand">
             <StackLayout x:Name="contentLayout" />
