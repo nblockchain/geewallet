@@ -85,8 +85,11 @@
                    VerticalOptions="Center"
                    Grid.Column="0"
             />
+            <!-- Set initial label text to single space (" ") to fight bug in Maui/Gtk 
+                 when label would jump to the left top corner of the window when 
+                 first assigned different text value -->
             <Label x:Name="equivalentAmountInAlternativeCurrency"
-                   Text=""
+                   Text=" "
                    FontAttributes="Italic" FontSize="Small"
                    HorizontalOptions="Start"
                    HorizontalTextAlignment="Start"
