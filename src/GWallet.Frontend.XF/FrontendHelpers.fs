@@ -24,6 +24,7 @@ open Xamarin.Forms
 open Xamarin.Essentials
 open ZXing
 open ZXing.Mobile
+open ZXing.Net.Mobile.Forms
 #endif
 open Fsdk
 open GWallet.Backend
@@ -329,7 +330,11 @@ module FrontendHelpers =
     let SwitchToNewPage (currentPage: Page) (createNewPage: unit -> Page) (navBar: bool): unit =
         MainThread.BeginInvokeOnMainThread(fun _ ->
             let newPage = createNewPage ()
+#if !XAMARIN && GTK
+            NavigationPage.SetHasNavigationBar(newPage, navBar)
+#else
             NavigationPage.SetHasNavigationBar(newPage, false)
+#endif            
             let navPage = NavigationPage newPage
             NavigationPage.SetHasNavigationBar(navPage, navBar)
 
@@ -481,6 +486,32 @@ module FrontendHelpers =
 #else
         BarcodeReaderOptions(TryHarder = true, Formats = BarcodeFormat.QrCode)
 #endif
+                                     
+    let GetBarcodeScannerPage (onBarcodeDetected: string -> unit) =
+#if XAMARIN
+        let scanPage = ZXingScannerPage BarCodeScanningOptions
+        scanPage.add_OnScanResult(fun result ->
+            scanPage.IsScanning <- false
+            onBarcodeDetected result.Text
+        )
+        scanPage
+#else
+        let scanView = ZXing.Net.Maui.Controls.CameraBarcodeReaderView(Options = BarCodeScanningOptions)
+        scanView.BarcodesDetected.Add(fun result ->
+            let barCodeText = result.Results.[0].Value // assume our barcode is first result?
+            onBarcodeDetected barCodeText
+        )
+        ContentPage(Content = scanView)
+#endif
+    
+    /// Safer alternative to Navigation.PopModalAsync(): when ModalStack is empty, do nothing.
+    /// This is used in barcode scanner calbacks because sometimes those would be called more than one time.
+    let TryPopModalAsync (page: Page) : Task<Page> =
+        if page.Navigation.ModalStack.Count > 0 then
+            page.Navigation.PopModalAsync()
+        else
+            Task.FromResult page
+
     let GetImageSource name =
         let thisAssembly = typeof<BalanceState>.Assembly
         let thisAssemblyName = thisAssembly.GetName().Name
