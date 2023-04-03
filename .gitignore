@@ -101,3 +101,4 @@ fabric.properties
 src/GWallet.Frontend.Maui/WelcomePage.xaml
 src/GWallet.Frontend.Maui/WelcomePage2.xaml
 src/GWallet.Frontend.Maui/LoadingPage.xaml
+src/GWallet.Frontend.Maui/BalancesPage.xaml
