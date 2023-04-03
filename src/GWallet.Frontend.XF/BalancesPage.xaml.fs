@@ -1,16 +1,36 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if XAMARIN
+namespace GWallet.Frontend.XF
+#else
+namespace GWallet.Frontend.Maui
+// We have unused variables because they are in the #XAMARIN sections.
+// this should be removed once we fully integrate this code.
+#nowarn "1182"
+#endif
 
 open System
 open System.Linq
 open System.Threading
 open System.Threading.Tasks
 
+#if !XAMARIN
+open Microsoft.Maui
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.ApplicationModel
+open Microsoft.Maui.Networking
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
+#endif
+
 open Fsdk
 
+#if XAMARIN
 open GWallet.Frontend.XF.Controls
+#else
+open GWallet.Frontend.Maui.Controls
+#endif
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -40,10 +60,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     let normalAccountsBalanceSets = normalBalanceStates.Select(fun balState -> balState.BalanceSet)
     let readOnlyAccountsBalanceSets = readOnlyBalanceStates.Select(fun balState -> balState.BalanceSet)
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let mainLayout = base.FindByName<Grid>("mainLayout")
     let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
     let totalReadOnlyFiatAmountLabel = mainLayout.FindByName<Label> "totalReadOnlyFiatAmountLabel"
-    let contentLayout = base.FindByName<StackLayout> "contentLayout"
+    let contentLayout = base.FindByName<Grid> "contentLayout"
     let normalChartView = base.FindByName<CircleChartView> "normalChartView"
     let readonlyChartView = base.FindByName<CircleChartView> "readonlyChartView"
 
@@ -134,7 +154,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                             tail
                                             totalFiatAmountLabel
 
-    let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
+    let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: Grid) 
                                (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
         match elements with
         | [] -> resultsSoFar
@@ -217,7 +237,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let activeCurrencyClassId,inactiveCurrencyClassId =
             FrontendHelpers.GetActiveAndInactiveCurrencyClassIds readOnly
 
-        let contentLayoutChildrenList = (contentLayout.Children |> List.ofSeq)
+        let contentLayoutChildrenList =
+#if XAMARIN
+            (contentLayout.Children |> List.ofSeq)
+#else
+            contentLayout.Children |> Seq.choose (function :? View as view -> Some view | _ -> None) |> List.ofSeq
+#endif
 
         let activeCryptoBalances = FindCryptoBalances activeCurrencyClassId 
                                                       contentLayout 
@@ -239,18 +264,29 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             for activeCryptoBalance in activeCryptoBalances do
                 activeCryptoBalance.IsVisible <- true
         else
-            for balanceState in balances do
+            for _ in balances do
+                contentLayout.RowDefinitions.Add(RowDefinition())
+            
+            balances |> Seq.iteri (fun i balanceState ->
                 let balanceSet = balanceState.BalanceSet
                 let tapGestureRecognizer = TapGestureRecognizer()
+#if XAMARIN                
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
                     let receivePage () =
                         ReceivePage(balanceSet.Account, balanceState.UsdRate, self, balanceSet.Widgets)
                             :> Page
                     FrontendHelpers.SwitchToNewPage self receivePage true
                 ) |> ignore
+#endif                
                 let frame = balanceSet.Widgets.Frame
                 frame.GestureRecognizers.Add tapGestureRecognizer
                 contentLayout.Children.Add frame
+#if XAMARIN
+                Grid.SetRow(frame, i)
+#else
+                contentLayout.SetRow(frame, i)
+#endif
+            )
 
         contentLayout.BatchCommit()
 
@@ -362,7 +398,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 //Avoid cases when user changes timezone in device settings
                 TimeSpan.Zero
                 
-        Device.StartTimer(timerInterval + timerStartDelay, fun _ ->
+        FrontendHelpers.StartTimer(timerInterval + timerStartDelay, fun _ ->
             if not cancellationToken.IsCancellationRequested then
                 async {
                     try
@@ -410,6 +446,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             mainLayout.FindByName<CircleChartView> otherChartViewName
 
         let tapGestureRecognizer = TapGestureRecognizer()
+#if XAMARIN
         tapGestureRecognizer.Tapped.Add(fun _ ->
 
             let shouldNotOpenNewPage =
@@ -459,6 +496,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         FrontendHelpers.SwitchToNewPage self page true
 
         )
+#endif       
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
         tapGestureRecognizer
 
@@ -471,7 +509,11 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         RedrawCircleView false normalBalanceStates
 
         if startWithReadOnlyAccounts then
+#if XAMARIN            
             tapper.SendTapped null
+#else
+            () // No tapper.SendTapped in MAUI
+#endif
 
     member private __.AssignColorLabels (readOnly: bool) =
         let labels,color =
@@ -502,13 +544,18 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
 
         let tapGestureRecognizer = TapGestureRecognizer()
-        tapGestureRecognizer.Tapped.Subscribe(fun _ ->
+        tapGestureRecognizer.Tapped.Add(fun _ ->
             Uri "http://www.geewallet.com"
-                |> Xamarin.Essentials.Launcher.OpenAsync
+                |> Launcher.OpenAsync
                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-        ) |> ignore
+        )
+#if !XAMARIN && GTK
+        let footerLabelFrame = mainLayout.FindByName<Frame> "footerLabelFrame"
+        footerLabelFrame.GestureRecognizers.Add tapGestureRecognizer
+#else        
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
         footerLabel.GestureRecognizers.Add tapGestureRecognizer
+#endif        
 
         let allNormalAccountFiatBalances =
             normalBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
