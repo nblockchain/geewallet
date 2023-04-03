@@ -143,6 +143,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="PairingFromPage.xaml" />
+    <EmbeddedResource Include="PairingToPage.xaml" />
+    <EmbeddedResource Include="SendPage.xaml" />
+    <EmbeddedResource Include="ReceivePage.xaml" />
     <EmbeddedResource Include="BalancesPage.xaml" />
     <EmbeddedResource Include="LoadingPage.xaml" />
     <EmbeddedResource Include="WelcomePage.xaml" />
@@ -150,6 +154,18 @@
     <Compile Include="..\GWallet.Frontend.XF\Controls\CircleChartView.fs" />
     <Compile Include="..\GWallet.Frontend.XF\FrontendHelpers.fs" />
     <Compile Include="..\GWallet.Frontend.XF\GlobalState.fs" />
+    <Compile Include="..\GWallet.Frontend.XF\PairingFromPage.xaml.fs">
+      <DependentUpon>PairingFromPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\PairingToPage.xaml.fs">
+      <DependentUpon>PairingToPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\SendPage.xaml.fs">
+      <DependentUpon>SendPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\ReceivePage.xaml.fs">
+      <DependentUpon>ReceivePage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="..\GWallet.Frontend.XF\BalancesPage.xaml.fs">
       <DependentUpon>BalancesPage.xaml</DependentUpon>
     </Compile>

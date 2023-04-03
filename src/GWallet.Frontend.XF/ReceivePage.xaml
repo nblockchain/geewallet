@@ -5,7 +5,7 @@
              xmlns:zx="clr-namespace:ZXing.Net.Mobile.Forms;assembly=ZXing.Net.Mobile.Forms"
              xmlns:zxcm="clr-namespace:ZXing.Common;assembly=zxing">
     <Grid x:Name="mainLayout"
-          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
           Padding="10,10,10,10"
           VerticalOptions="Center"
     >
