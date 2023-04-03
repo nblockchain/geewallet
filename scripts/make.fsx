@@ -260,7 +260,17 @@ let BuildSolutionOrProject
 // TODO: we have to change this function to be the other way around (i.e. copy from Maui to XF) once we
 //       have a finished version of Maui and we consider XF as legacy.
 let CopyXamlFiles() = 
-    let files = [| "WelcomePage.xaml"; "WelcomePage2.xaml"; "LoadingPage.xaml"; "BalancesPage.xaml" |]
+    let files = 
+        [| 
+            "WelcomePage.xaml"
+            "WelcomePage2.xaml"
+            "LoadingPage.xaml"
+            "BalancesPage.xaml"
+            "PairingFromPage.xaml"
+            "PairingToPage.xaml" 
+            "ReceivePage.xaml"
+            "SendPage.xaml"
+        |]
     for file in files do
         let sourcePath = Path.Combine("src", "GWallet.Frontend.XF", file)
         let destPath = Path.Combine("src", "GWallet.Frontend.Maui", file)
@@ -271,7 +281,9 @@ let CopyXamlFiles() =
             destPath,
             fileText
                 .Replace("http://xamarin.com/schemas/2014/forms","http://schemas.microsoft.com/dotnet/2021/maui")
+                .Replace("clr-namespace:ZXing.Net.Mobile.Forms;assembly=ZXing.Net.Mobile.Forms","clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls")
                 .Replace("GWallet.Frontend.XF", "GWallet.Frontend.Maui")
+                .Replace("ZXingBarcodeImageView", "BarcodeGeneratorView")
         )
 
         

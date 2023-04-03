@@ -35,6 +35,8 @@ open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 
+type FiatAmountFrameTapHandler = unit -> unit
+
 // this type allows us to represent the idea that if we have, for example, 3 LTC and an unknown number of ETC (might
 // be because all ETC servers are unresponsive), then it means we have AT LEAST 3LTC; as opposed to when we know for
 // sure all balances of all currencies because all servers are responsive
@@ -272,14 +274,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             balances |> Seq.iteri (fun balanceIndex balanceState ->
                 let balanceSet = balanceState.BalanceSet
                 let tapGestureRecognizer = TapGestureRecognizer()
-#if XAMARIN                
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
                     let receivePage () =
                         ReceivePage(balanceSet.Account, readOnly, balanceState.UsdRate, self, balanceSet.Widgets)
                             :> Page
                     FrontendHelpers.SwitchToNewPage self receivePage true
                 ) |> ignore
-#endif                
                 let frame = balanceSet.Widgets.Frame
                 frame.GestureRecognizers.Add tapGestureRecognizer
                 contentLayout.Children.Add frame
@@ -423,7 +423,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             cancelSource.Cancel()
             cancelSource.Dispose()
 
-    member private self.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
+    member private self.ConfigureFiatAmountFrame (readOnly: bool): FiatAmountFrameTapHandler =
         let totalCurrentFiatAmountFrameName,totalOtherFiatAmountFrameName =
             if readOnly then
                 "totalReadOnlyFiatAmountFrame","totalFiatAmountFrame"
@@ -447,9 +447,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             mainLayout.FindByName<CircleChartView> otherChartViewName
 
         let tapGestureRecognizer = TapGestureRecognizer()
-#if XAMARIN
-        tapGestureRecognizer.Tapped.Add(fun _ ->
 
+        let tapHandler () =
             let shouldNotOpenNewPage =
                 if switchingToReadOnly then
                     readOnlyAccountsBalanceSets.Any()
@@ -495,26 +494,22 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                             PairingFromPage(self, "Copy wallet info to clipboard", walletInfoJson, None)
                                 :> Page
                         FrontendHelpers.SwitchToNewPage self page true
-
-        )
-#endif       
+        
+        tapGestureRecognizer.Tapped.Add(fun _ -> tapHandler())
+        
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
-        tapGestureRecognizer
+        tapHandler
 
     member self.PopulateGridInitially () =
 
-        let tapper = self.ConfigureFiatAmountFrame false
+        let tapHandler = self.ConfigureFiatAmountFrame false
         self.ConfigureFiatAmountFrame true |> ignore
 
         self.PopulateBalances false normalBalanceStates
         RedrawCircleView false normalBalanceStates
 
         if startWithReadOnlyAccounts then
-#if XAMARIN            
-            tapper.SendTapped null
-#else
-            () // No tapper.SendTapped in MAUI
-#endif
+            tapHandler()
 
     member private __.AssignColorLabels (readOnly: bool) =
         let labels,color =
