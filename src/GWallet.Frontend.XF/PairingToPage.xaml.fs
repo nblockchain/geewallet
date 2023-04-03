@@ -1,12 +1,25 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if XAMARIN
+namespace GWallet.Frontend.XF
+#else
+namespace GWallet.Frontend.Maui
+#endif
 
 open System
 open System.Linq
 
+#if !XAMARIN
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.ApplicationModel
+open Microsoft.Maui.Devices
+
+open ZXing.Net.Maui.Controls
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
 open ZXing.Net.Mobile.Forms
+#endif
 open Fsdk
 
 open GWallet.Backend
@@ -18,7 +31,7 @@ type PairingToPage(balancesPage: Page,
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<PairingToPage>)
 
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let mainLayout = base.FindByName<Grid>("mainLayout")
     let scanQrCodeButton = mainLayout.FindByName<Button>("scanQrCode")
     let coldAddressesEntry = mainLayout.FindByName<Entry>("coldStorageAddresses")
     let pairButton = mainLayout.FindByName<Button>("pairButton")
@@ -31,8 +44,15 @@ type PairingToPage(balancesPage: Page,
         with
         | :? InvalidJson ->
             None
+    
+    let canScanBarcode =
+#if XAMARIN
+        Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS
+#else
+        DeviceInfo.Platform = DevicePlatform.Android || DeviceInfo.Platform = DevicePlatform.iOS
+#endif
     do
-        if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
+        if canScanBarcode then
             scanQrCodeButton.IsVisible <- true
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
@@ -40,18 +60,16 @@ type PairingToPage(balancesPage: Page,
                           Seq.empty,Map.empty,(fun (_,_) -> Page()))
 
     member self.OnScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
-        let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
-        scanPage.add_OnScanResult(fun result ->
-            scanPage.IsScanning <- false
+        let scanPage = 
+            FrontendHelpers.GetBarcodeScannerPage 
+                (fun barcodeString ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
+                        // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
+                        //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
+                        coldAddressesEntry.Text <- barcodeString
+                        let task = FrontendHelpers.TryPopModalAsync self
+                        task |> FrontendHelpers.DoubleCheckCompletionNonGeneric) )
 
-            MainThread.BeginInvokeOnMainThread(fun _ ->
-                // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
-                //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
-                let task = self.Navigation.PopModalAsync()
-                coldAddressesEntry.Text <- result.Text
-                task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-            )
-        )
         MainThread.BeginInvokeOnMainThread(fun _ ->
             // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
             //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)

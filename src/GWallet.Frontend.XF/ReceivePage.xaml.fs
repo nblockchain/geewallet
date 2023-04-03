@@ -1,13 +1,28 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if XAMARIN
+namespace GWallet.Frontend.XF
+#else
+namespace GWallet.Frontend.Maui
+#endif
 
 open System
 
+#if !XAMARIN
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.ApplicationModel
+open Microsoft.Maui.ApplicationModel.DataTransfer
+open Microsoft.Maui.Networking
+
+open ZXing.Net.Maui
+open ZXing.Net.Maui.Controls
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
 open ZXing
 open ZXing.Net.Mobile.Forms
 open ZXing.Common
+#endif
 
 open GWallet.Backend
 
@@ -21,7 +36,7 @@ type ReceivePage(account: IAccount,
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let mainLayout = base.FindByName<Grid>("mainLayout")
     let paymentButton = mainLayout.FindByName<Button> "paymentButton"
     let transactionHistoryButton =
         mainLayout.FindByName<Button> "viewTransactionHistoryButton"
@@ -60,10 +75,22 @@ type ReceivePage(account: IAccount,
         balanceLabel.FontSize <- FrontendHelpers.BigFontSize
         fiatBalanceLabel.FontSize <- FrontendHelpers.MediumFontSize
 
-        let qrCode = mainLayout.FindByName<ZXingBarcodeImageView> "qrCode"
+        let qrCode =
+#if XAMARIN          
+            mainLayout.FindByName<ZXingBarcodeImageView> "qrCode"
+#else
+            mainLayout.FindByName<BarcodeGeneratorView> "qrCode"
+#endif
         if isNull qrCode then
             failwith "Couldn't find QR code"
+#if XAMARIN 
         qrCode.BarcodeValue <- account.PublicAddress
+        qrCode.BarcodeFormat <- ZXing.BarcodeFormat.QR_CODE
+        qrCode.BarcodeOptions <- ZXing.Common.EncodingOptions(Width = 200, Height = 200)
+#else
+        qrCode.Value <- account.PublicAddress
+        qrCode.Format <- BarcodeFormat.QrCode
+#endif
         qrCode.IsVisible <- true
 
         let currentConnectivityInstance = Connectivity.NetworkAccess
@@ -81,6 +108,7 @@ type ReceivePage(account: IAccount,
 
         // FIXME: remove this workaround below when https://github.com/xamarin/Xamarin.Forms/issues/8843 gets fixed
         // TODO: file the UWP bug too
+#if XAMARIN
         if Device.RuntimePlatform <> Device.macOS && Device.RuntimePlatform <> Device.UWP then () else
 
         let backButton = Button(Text = "< Go back")
@@ -91,10 +119,11 @@ type ReceivePage(account: IAccount,
         ) |> ignore
         mainLayout.Children.Add(backButton)
         //</workaround> (NOTE: this also exists in PairingFromPage.xaml.fs)
+#endif
 
     member __.OnViewTransactionHistoryClicked(_sender: Object, _args: EventArgs) =
         BlockExplorer.GetTransactionHistory account
-            |> Xamarin.Essentials.Launcher.OpenAsync
+            |> Launcher.OpenAsync
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
     member self.OnSendPaymentClicked(_sender: Object, _args: EventArgs) =
