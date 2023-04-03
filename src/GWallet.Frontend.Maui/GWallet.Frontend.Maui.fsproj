@@ -65,11 +65,94 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\..\img\btc_grey_60x60.png">
+      <Link>img\btc_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\btc_red_60x60.png">
+      <Link>img\btc_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\btc_red_120x120.png">
+      <Link>img\btc_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\btc_grey_120x120.png">
+      <Link>img\btc_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\dai_grey_60x60.png">
+      <Link>img\dai_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\dai_grey_120x120.png">
+      <Link>img\dai_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\dai_red_60x60.png">
+      <Link>img\dai_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\dai_red_120x120.png">
+      <Link>img\dai_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\sai_grey_60x60.png">
+      <Link>img\sai_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\sai_grey_120x120.png">
+      <Link>img\sai_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\sai_red_60x60.png">
+      <Link>img\sai_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\sai_red_120x120.png">
+      <Link>img\sai_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\etc_grey_60x60.png">
+      <Link>img\etc_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\etc_grey_120x120.png">
+      <Link>img\etc_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\etc_red_60x60.png">
+      <Link>img\etc_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\etc_red_120x120.png">
+      <Link>img\etc_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\eth_grey_60x60.png">
+      <Link>img\eth_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\eth_grey_120x120.png">
+      <Link>img\eth_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\eth_red_60x60.png">
+      <Link>img\eth_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\eth_red_120x120.png">
+      <Link>img\eth_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\ltc_grey_60x60.png">
+      <Link>img\ltc_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\ltc_grey_120x120.png">
+      <Link>img\ltc_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\ltc_red_60x60.png">
+      <Link>img\ltc_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\ltc_red_120x120.png">
+      <Link>img\ltc_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\logo_512x512.png">
+      <Link>img\logo_512x512.png</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="BalancesPage.xaml" />
     <EmbeddedResource Include="LoadingPage.xaml" />
     <EmbeddedResource Include="WelcomePage.xaml" />
     <EmbeddedResource Include="WelcomePage2.xaml" />
+    <Compile Include="..\GWallet.Frontend.XF\Controls\CircleChartView.fs" />
     <Compile Include="..\GWallet.Frontend.XF\FrontendHelpers.fs" />
     <Compile Include="..\GWallet.Frontend.XF\GlobalState.fs" />
+    <Compile Include="..\GWallet.Frontend.XF\BalancesPage.xaml.fs">
+      <DependentUpon>BalancesPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="..\GWallet.Frontend.XF\LoadingPage.xaml.fs">
       <DependentUpon>LoadingPage.xaml</DependentUpon>
     </Compile>
