@@ -117,7 +117,7 @@ module ServerManager =
                         failwith <| SPrintF1 "Currency %A not UTXO?" currency
                 let utxoFunc electrumServer =
                     async {
-                        let! bal = UtxoCoin.ElectrumClient.GetBalance scriptHash electrumServer
+                        let! bal = UtxoCoin.ElectrumClient.GetBalances (List.singleton scriptHash) electrumServer
                         return bal.Confirmed |> decimal
                     }
                 UtxoCoin.Server.GetServerFuncs utxoFunc servers |> Some

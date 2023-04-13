@@ -176,14 +176,14 @@ type ElectrumIntegrationTests() =
         let currency = Currency.BTC
         let argument = GetScriptHash currency
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList currency
-                                       (ElectrumClient.GetBalance argument) BalanceAssertion
+                                       (ElectrumClient.GetBalances (List.singleton argument)) BalanceAssertion
 
     [<Test>]
     member __.``can connect (just check balance) to some electrum LTC servers``() =
         let currency = Currency.LTC
         let argument = GetScriptHash currency
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList currency
-                                       (ElectrumClient.GetBalance argument) BalanceAssertion
+                                       (ElectrumClient.GetBalances (List.singleton argument)) BalanceAssertion
 
     [<Test>]
     member __.``can get list UTXOs of an address from some electrum BTC servers``() =
