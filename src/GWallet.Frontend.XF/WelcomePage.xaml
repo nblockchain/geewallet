@@ -3,17 +3,20 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
              x:Class="GWallet.Frontend.XF.WelcomePage">
-    <StackLayout x:Name="mainLayout"
+    <Grid x:Name="mainLayout"
+                 RowDefinitions="*,*,Auto,Auto,Auto,Auto,Auto"
                  VerticalOptions="Center"
                  Padding="20,20,20,20">
         <Label Text="Welcome to geewallet" x:Name="welcomeLabel"
                VerticalOptions="Center" HorizontalOptions="Center"
                FontSize="Large"
-               Margin="20,20,20,20"/>
+               Margin="20,20,20,20"
+               Grid.Row="0"/>
 
         <Grid
             x:Name="infoGrid"
             Padding="0,60,0,60"
+            Grid.Row="1"
             >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
@@ -40,12 +43,15 @@
 
         <Entry x:Name="passphraseEntry" IsPassword="true"
                Placeholder="Input your new secret recovery phrase"
-               TextChanged="OnPassphraseTextChanged" />
+               TextChanged="OnPassphraseTextChanged"
+               Grid.Row="2"/>
         <Entry x:Name="passphraseConfirmationEntry" IsPassword="true"
                Placeholder="Repeat your secret recovery phrase"
-               TextChanged="OnPassphraseTextChanged" />
+               TextChanged="OnPassphraseTextChanged"
+               Grid.Row="3"/>
 
-        <StackLayout Orientation="Horizontal">
+        <StackLayout Orientation="Horizontal"
+                     Grid.Row="4">
             <Label Text="Date of Birth (d/m/y):"
                    FontSize="Small"
                    HorizontalOptions="Start"
@@ -60,11 +66,13 @@
         <Entry x:Name="emailEntry" IsPassword="false"
                Placeholder="E-mail address"
                Keyboard="Email"
-               TextChanged="OnEmailTextChanged" />
+               TextChanged="OnEmailTextChanged"
+               Grid.Row="5"/>
 
         <Button x:Name="nextButton"
                 Text="Next" IsEnabled="false"
                 HorizontalOptions="Center"
-                Clicked="OnNextButtonClicked" />
-    </StackLayout>
+                Clicked="OnNextButtonClicked"
+                Grid.Row="6"/>
+    </Grid>
 </ContentPage>
