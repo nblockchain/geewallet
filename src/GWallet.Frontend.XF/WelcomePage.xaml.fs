@@ -15,7 +15,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
     let _ = base.LoadFromXaml(typeof<WelcomePage>)
 
-    let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let mainLayout = base.FindByName<Grid> "mainLayout"
     let infoGrid = mainLayout.FindByName<Grid> "infoGrid"
     let passphraseEntry = mainLayout.FindByName<Entry> "passphraseEntry"
     let passphraseConfirmationEntry = mainLayout.FindByName<Entry> "passphraseConfirmationEntry"
