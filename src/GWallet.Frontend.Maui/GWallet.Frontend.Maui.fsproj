@@ -194,6 +194,16 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
+  
+  <ItemGroup Condition="$(TargetPlatformIdentifier) != 'gtk'">
+    <PackageReference Include="ZXing.Net.Maui" Version="0.2.0-preview.2" />
+    <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.2.0-preview.2" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
+    <ProjectReference Include="$(MauiSubmodulePath)src\ZXing.Net.Maui\ZXing.Net.MAUI\ZXing.Net.MAUI.csproj" />
+    <ProjectReference Include="$(MauiSubmodulePath)src\ZXing.Net.Maui\ZXing.Net.MAUI.Controls\ZXing.Net.MAUI.Controls.csproj" />
+  </ItemGroup>
 
   <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
     <Compile Include="$(GtkProjectFolder)GtkApp.fs" />
