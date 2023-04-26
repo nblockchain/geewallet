@@ -13,6 +13,9 @@ open Microsoft.Maui.Graphics
 open Microsoft.Maui.Controls
 open Microsoft.Maui.ApplicationModel
 open Microsoft.Maui.Layouts
+
+open ZXing.Net.Maui
+
 type Color = Microsoft.Maui.Graphics.Colors
 // added because of deprecated expansion options for StackLayout in using LayoutOptions.FillAndExpand
 #nowarn "44"
@@ -443,9 +446,10 @@ module FrontendHelpers =
                     Widgets = balanceWidgets
                 }
         } |> List.ofSeq
+
+    let BarCodeScanningOptions = 
 #if XAMARIN
-    let BarCodeScanningOptions = MobileBarcodeScanningOptions(
-                                     TryHarder = Nullable<bool> true,
+        MobileBarcodeScanningOptions(TryHarder = Nullable<bool> true,
                                      DisableAutofocus = false,
                                      // TODO: stop using Sys.Coll.Gen when this PR is accepted: https://github.com/Redth/ZXing.Net.Mobile/pull/800
                                      PossibleFormats = System.Collections.Generic.List<BarcodeFormat>(
@@ -453,6 +457,8 @@ module FrontendHelpers =
                                      ),
                                      UseNativeScanning = true
                                  )
+#else
+        BarcodeReaderOptions(TryHarder = true, Formats = BarcodeFormat.QrCode)
 #endif
     let GetImageSource name =
         let thisAssembly = typeof<BalanceState>.Assembly
