@@ -229,6 +229,8 @@ module Server =
                     raise <| ServerRefusedException(exMsg, rpcResponseEx)
                 | g when g = int RpcErrorCode.CannotFulfillRequest ->
                     raise <| ServerRefusedException(exMsg, rpcResponseEx)
+                | h when h = int RpcErrorCode.ResourceNotFound ->
+                    raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                 | _ ->
                     raise
                     <| Exception (SPrintF3 "RpcResponseException with RpcError Code <%i> and Message '%s' (%s)"
