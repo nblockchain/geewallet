@@ -422,6 +422,20 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
     not (archivedAccountsInNeedOfAction.Any())
 
 
+let DateSanityCheck() =
+    let currentDate = DateTime.Now
+    match Caching.Instance.GetLastCachedData().GetLeastOldDate() with
+    | None -> ()
+    | Some date ->
+        if date > currentDate then
+            Console.Error.WriteLine(
+                sprintf "WARNING: detected current system date is %s, which suggests that either it's wrong or the cache data was generated in a moment with wrong future date(s) such as %s"
+                    (currentDate |> Formatting.ShowSaneDate)
+                    (date |> Formatting.ShowSaneDate)
+            )
+            Console.Error.Write "NOTE: it is recommended to fix this situation (by setting the current system date, or deleting the cache data folder), or the prices/rates might not update properly"
+            UserInteraction.PressAnyKeyToContinue()
+
 let rec ProgramMainLoop() =
     let activeAccounts = Account.GetAllActiveAccounts()
     let hotAccounts =
@@ -451,6 +465,8 @@ let NormalStartWithNoParameters () =
 
     let exitCode =
         try
+            DateSanityCheck()
+
             ProgramMainLoop ()
             0
         with
