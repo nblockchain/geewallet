@@ -72,7 +72,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     let transactionLayout = mainLayout.FindByName<StackLayout> "transactionLayout"
     let transactionLabel = mainLayout.FindByName<Label> "transactionLabel"
     let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
+#if !XAMARIN
+    let defaultTransactionEntryTextColor = transactionEntry.TextColor
+#endif
     let amountToSendEntry = mainLayout.FindByName<Entry> "amountToSend"
+#if !XAMARIN
+    let defaultAmountToSendTextColor = amountToSendEntry.TextColor
+#endif
     let destinationAddressEntry = mainLayout.FindByName<Entry> "destinationAddressEntry"
     let allBalanceButton = mainLayout.FindByName<Button> "allBalance"
     let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
@@ -458,6 +464,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     MainThread.BeginInvokeOnMainThread(fun _ ->
 #if XAMARIN
                         transactionEntry.TextColor <- Color.Default
+#else
+                        transactionEntry.TextColor <- defaultTransactionEntryTextColor
 #endif
                         destinationAddressEntry.Text <- unsignedTransaction.Proposal.DestinationAddress
                         amountToSendEntry.Text <- unsignedTransaction.Proposal.Amount.ValueToSend.ToString()
@@ -485,6 +493,8 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     MainThread.BeginInvokeOnMainThread(fun _ ->
 #if XAMARIN
                         transactionEntry.TextColor <- Color.Default
+#else
+                        transactionEntry.TextColor <- defaultTransactionEntryTextColor
 #endif
                         sendOrSignButton.IsEnabled <- true
                     )
@@ -538,6 +548,10 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 #if XAMARIN
                         MainThread.BeginInvokeOnMainThread(fun _ ->
                             amountToSend.TextColor <- Color.Default
+                        )
+#else
+                        MainThread.BeginInvokeOnMainThread(fun _ ->
+                            amountToSend.TextColor <- defaultAmountToSendTextColor
                         )
 #endif
                         match usdRate with
