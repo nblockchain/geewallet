@@ -35,8 +35,7 @@ module MarshallingData =
         >> InjectCurrentDir
 
     let private ReadEmbeddedResource resourceName =
-        let assembly = Assembly.GetExecutingAssembly()
-        Config.ExtractEmbeddedResourceFileContentsFromAssembly resourceName assembly
+        Fsdk.Misc.ExtractEmbeddedResourceFileContents resourceName
         |> Sanitize
 
     let UnsignedSaiTransactionExampleInJson =

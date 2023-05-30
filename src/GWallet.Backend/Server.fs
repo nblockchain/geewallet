@@ -191,7 +191,7 @@ module ServerRegistry =
         } |> Map.ofSeq
 
     let private ServersRankingBaseline =
-        Deserialize (Config.ExtractEmbeddedResourceFileContents ServersEmbeddedResourceFileName)
+        Deserialize (Fsdk.Misc.ExtractEmbeddedResourceFileContents ServersEmbeddedResourceFileName)
 
     let MergeWithBaseline (ranking: ServerRanking): ServerRanking =
         Merge ranking ServersRankingBaseline
