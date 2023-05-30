@@ -56,9 +56,6 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
-    <PackageReference Include="Xamarin.Essentials" Version="1.0.0">
-      <GeneratePathProperty></GeneratePathProperty>
-    </PackageReference>
     <PackageReference Include="NBitcoin" Version="6.0.17">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
