@@ -10,7 +10,7 @@ module ServerManager =
 
     let UpdateServersFile () =
         Infrastructure.LogInfo "INPUT:"
-        let baseLineServers = Config.ExtractEmbeddedResourceFileContents ServerRegistry.ServersEmbeddedResourceFileName
+        let baseLineServers = Fsdk.Misc.ExtractEmbeddedResourceFileContents ServerRegistry.ServersEmbeddedResourceFileName
                               |> ServerRegistry.Deserialize
 
         let fromElectrumServerToGenericServerDetails (es: UtxoCoin.ElectrumServer) =
