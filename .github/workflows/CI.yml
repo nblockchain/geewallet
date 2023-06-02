@@ -530,9 +530,7 @@ jobs:
         submodules: false
     - name: Install dependencies of commitlint
       run: |
-        # only needed if using container:
-        #apt update && apt install --yes sudo
-        # (otherwise we can just use sudo like below)
+        which sudo 2>/dev/null || (apt update && apt install --yes sudo)
         sudo apt update
 
         sudo apt install --yes git npm
