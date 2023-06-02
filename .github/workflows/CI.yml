@@ -502,11 +502,8 @@ jobs:
 
   conventions:
     runs-on: ubuntu-22.04
-
-# disabled container run for now, to fix a typescript issue
-#    container:
-#      image: "ubuntu:22.04"
-
+    container:
+      image: "ubuntu:22.04"
     needs:
     - linux22-github
     - linux22-github--newmono
@@ -533,7 +530,9 @@ jobs:
         which sudo 2>/dev/null || (apt update && apt install --yes sudo)
         sudo apt update
 
-        sudo apt install --yes git npm
+        sudo apt install --yes git npm curl
+        sudo npm install --global n
+        sudo n lts
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
