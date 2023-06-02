@@ -502,8 +502,11 @@ jobs:
 
   conventions:
     runs-on: ubuntu-22.04
-    container:
-      image: "ubuntu:22.04"
+
+# disabled container run for now, to fix a typescript issue
+#    container:
+#      image: "ubuntu:22.04"
+
     needs:
     - linux22-github
     - linux22-github--newmono
@@ -527,8 +530,10 @@ jobs:
         submodules: false
     - name: Install dependencies of commitlint
       run: |
-        apt update
-        apt install --yes sudo
+        # only needed if using container:
+        #apt update && apt install --yes sudo
+        # (otherwise we can just use sudo like below)
+        sudo apt update
 
         sudo apt install --yes git npm
     # workaround for https://github.com/actions/runner/issues/2033
