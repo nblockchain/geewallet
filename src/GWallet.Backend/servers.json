@@ -3953,7 +3953,7 @@
       },
       {
         "ServerInfo": {
-          "NetworkPath": "www.ethercluster.comx/etc",
+          "NetworkPath": "ethercluster.com/etc",
           "ConnectionType": {
             "Encrypted": true,
             "Protocol": {

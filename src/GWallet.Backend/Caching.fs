@@ -15,6 +15,21 @@ type CachedNetworkData =
         Balances: Map<Currency,Map<PublicAddress,CachedValue<decimal>>>;
         OutgoingTransactions: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>;
     }
+    member self.GetLeastOldDate() =
+        let allDates =
+            seq {
+                for KeyValue(_currency, (_price, date)) in self.UsdPrice do
+                    yield date
+                for KeyValue(_currency, addressesToBalancesMap) in self.Balances do
+                    for KeyValue(_addr, (_price, date)) in addressesToBalancesMap do
+                        yield date
+                for KeyValue(_currency, addressesToTxsMap) in self.OutgoingTransactions do
+                    for KeyValue(_addr, txHashToAmountsMap) in addressesToTxsMap do
+                        for KeyValue(_txHash, (_amount, date)) in txHashToAmountsMap do
+                            yield date
+            }
+        Seq.sort allDates |> Seq.rev |> Seq.tryHead
+
     static member Empty =
         {
             UsdPrice = Map.empty
