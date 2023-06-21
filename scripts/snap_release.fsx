@@ -70,9 +70,15 @@ else
         Console.WriteLine "Automatic login about to begin..."
         File.WriteAllText(snapcraftLoginFileName, snapcraftLogin)
 
-// if this fails, use `snapcraft export-login` to generate a new token
-Process.SafeExecute ({ Command = "snapcraft"; Arguments = "login --with snapcraft.login" }, Echo.All)
-|> ignore
+try
+    // if this fails, use `snapcraft export-login` to generate a new token
+    Process.SafeExecute ({ Command = "snapcraft"; Arguments = "login --with snapcraft.login" }, Echo.All)
+    |> ignore
+with
+| ex ->
+    Console.Error.WriteLine "There was a problem trying to login with snapcraft, maybe the credentials expired?"
+    Console.Error.WriteLine "If that is the case, install it in the same way as in install_snapcraft.sh and perform 'snapcraft export-login snapcraft.login', then extract the contents of 'snapcraft.login' file"
+    reraise()
 
 Console.WriteLine "Login successfull. Upload starting..."
 
