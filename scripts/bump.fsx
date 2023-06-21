@@ -70,6 +70,12 @@ let replaceScript =
 
 let Replace file fromStr toStr =
     let baseReplaceCommand =
+#if !LEGACY_FRAMEWORK
+        {
+            Command = "dotnet"
+            Arguments = sprintf "fsi %s" replaceScript.FullName
+        }
+#else
         match Misc.GuessPlatform() with
         | Misc.Platform.Windows ->
             {
@@ -77,12 +83,6 @@ let Replace file fromStr toStr =
                 Arguments = replaceScript.FullName
             }
         | _ ->
-#if !LEGACY_FRAMEWORK
-            {
-                Command = "dotnet"
-                Arguments = sprintf "fsi %s" replaceScript.FullName
-            }
-#else
             {
                 Command = replaceScript.FullName
                 Arguments = String.Empty
