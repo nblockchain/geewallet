@@ -3853,6 +3853,78 @@
     "ETC": [
       {
         "ServerInfo": {
+          "NetworkPath": "etc.etcdesktop.com",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "etc.mytokenpocket.vip",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "besu-at.etc-network.info",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "besu-de.etc-network.info",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "geth-at.etc-network.info",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
+          "NetworkPath": "geth-de.etc-network.info",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "www.ethercluster.com/rivet",
           "ConnectionType": {
             "Encrypted": true,

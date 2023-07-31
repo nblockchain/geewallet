@@ -321,7 +321,7 @@ module Server =
         | ServerSelectionMode.Fast -> 3u
         | ServerSelectionMode.Analysis -> 2u
 
-    let etcEcosystemIsMomentarilyCentralized = true
+    let etcEcosystemIsMomentarilyCentralized = false
 
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
                                                          (mode: ServerSelectionMode)
