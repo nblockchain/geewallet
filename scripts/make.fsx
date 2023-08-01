@@ -433,8 +433,21 @@ match maybeTarget with
             }
 #endif
 
-    Process.Execute(runnerCommand, Echo.All).UnwrapDefault()
+    let procResult = Process.Execute(runnerCommand, Echo.All)
+#if !LEGACY_FRAMEWORK
+    procResult.UnwrapDefault()
     |> ignore<string>
+#else
+    // in legacy mode, warnings (output to StdErr) happen even if exitCode=0
+    match procResult.Result with
+    | ProcessResultState.Error(_exitCode, _output) ->
+        Console.WriteLine()
+        Console.Out.Flush()
+
+        failwith "Unit tests failed ^"
+    | _ ->
+        ()
+#endif
 
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
