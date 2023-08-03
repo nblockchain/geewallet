@@ -291,10 +291,13 @@ module Server =
             match maybeHttpReqEx with
             | Some httpReqEx ->
 
+(*              NOTE: we disabled UWP tweaks for now, see other comment in Config.fs
+
                 // FIXME: report this UWP bug (see commit message for full stacktrace)
                 if Xamarin.Essentials.DeviceInfo.Platform.Equals Xamarin.Essentials.DevicePlatform.UWP &&
                    httpReqEx.InnerException <> null && httpReqEx.InnerException.GetType() = typeof<Exception> then
                     raise <| ServerCannotBeResolvedException(httpReqEx.InnerException.Message, ex)
+*)
 
                 // this could be a mono 6.0.x bug (see https://gitlab.gnome.org/World/geewallet/issues/121)
                 if httpReqEx.Message.Contains "SSL" then

@@ -65,10 +65,13 @@ module Config =
 
     let internal GetConfigDirForThisProgram() =
         let configPath =
+(* NOTE: we used to support UWP via the Xamarin.Essentials code below, but MAUI is a higher priority than resurrecting UWP now:
             if (not isWindows) || Xamarin.Essentials.DeviceInfo.Platform <> Xamarin.Essentials.DevicePlatform.UWP then
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
             else //UWP
                 Xamarin.Essentials.FileSystem.AppDataDirectory
+*)
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
 
         // TODO: rename to "geewallet", following a similar approach as DAI->SAI rename
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
