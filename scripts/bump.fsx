@@ -75,6 +75,12 @@ let replaceScript =
 
 let Replace file fromStr toStr =
     let baseReplaceCommand =
+#if !LEGACY_FRAMEWORK
+        {
+            Command = "dotnet"
+            Arguments = sprintf "fsi %s" replaceScript.FullName
+        }
+#else
         match Misc.GuessPlatform() with
         | Misc.Platform.Windows ->
             {
@@ -82,12 +88,6 @@ let Replace file fromStr toStr =
                 Arguments = replaceScript.FullName
             }
         | _ ->
-#if !LEGACY_FRAMEWORK
-            {
-                Command = "dotnet"
-                Arguments = sprintf "fsi %s" replaceScript.FullName
-            }
-#else
             {
                 Command = replaceScript.FullName
                 Arguments = String.Empty
@@ -188,16 +188,37 @@ let GitTag (newFullVersion: Version) =
         }
     Process.Execute(gitCreateTag, Echo.Off).UnwrapDefault() |> ignore<string>
 
-let GitDiff () =
 
-    let gitDiff =
+let GitDiff() =
+
+    let gitDiffCmd =
         {
             Command = "git"
             Arguments = "diff"
         }
-    let gitDiffProc = Process.Execute(gitDiff, Echo.Off)
-    if gitDiffProc.UnwrapDefault().Length > 0 then
+
+    let gitDiff =
+        Process
+            .Execute(gitDiffCmd, Echo.Off)
+            .UnwrapDefault()
+
+    let gitDiffStagedCmd =
+        {
+            Command = "git"
+            Arguments = "diff --staged"
+        }
+
+    let gitDiffStaged =
+        Process
+            .Execute(gitDiffStagedCmd, Echo.Off)
+            .UnwrapDefault()
+
+    if gitDiff.Length > 0 then
         Console.Error.WriteLine "git status is not clean"
+        Environment.Exit 1
+
+    if gitDiffStaged.Length > 0 then
+        Console.Error.WriteLine "git status is not clean (staged files)"
         Environment.Exit 1
 
 let RunUpdateServers () =

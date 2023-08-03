@@ -1,8 +1,9 @@
 The MIT License
 
-Copyright (c) 2017-2022 Andres G. Aragoneses
+Copyright (c) 2017-2023 Andres G. Aragoneses
+Copyright (c) 2020-2023 Node Effect Ltd (www.nodeffect.com)
 Copyright (c) 2018-2019 Diginex Ltd (www.diginex.com)
-Copyright (c) 2019-2021 project contributors
+Copyright (c) 2019-2023 project contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

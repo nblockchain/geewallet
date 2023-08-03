@@ -127,6 +127,9 @@ module ServerRegistry =
             // there was a mistake when adding this server to geewallet's JSON: it was added in the ETC currency instead of ETH
             (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethrpc.mewapi.io")
 
+            // there was a typo when adding this server to geewallet's JSON, see commit 69d90fd2fc22a1f3dd9ef8793f0cd42e3b540df1
+            || (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethercluster.comx/")
+
         let currency,servers = cs
         Seq.filter (fun server -> not (isBlackListed currency server)) servers
 
@@ -191,7 +194,7 @@ module ServerRegistry =
         } |> Map.ofSeq
 
     let private ServersRankingBaseline =
-        Deserialize (Config.ExtractEmbeddedResourceFileContents ServersEmbeddedResourceFileName)
+        Deserialize (Fsdk.Misc.ExtractEmbeddedResourceFileContents ServersEmbeddedResourceFileName)
 
     let MergeWithBaseline (ranking: ServerRanking): ServerRanking =
         Merge ranking ServersRankingBaseline
