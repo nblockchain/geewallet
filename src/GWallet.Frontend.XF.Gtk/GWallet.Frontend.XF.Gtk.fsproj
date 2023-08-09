@@ -244,9 +244,8 @@
       <Project>{85236682-6463-4209-B66C-E0643EF12B46}</Project>
       <Name>GWallet.Frontend.XF</Name>
     </ProjectReference>
-    <ProjectReference Include="..\GWallet.Backend.NetStandard\GWallet.Backend.NetStandard.fsproj">
-      <Project>{D1D192E0-F226-40AD-8D81-687F7E6F7DAB}</Project>
-      <Name>GWallet.Backend.NetStandard</Name>
+    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
+      <Name>GWallet.Backend</Name>
     </ProjectReference>
     <None Include="webkit-sharp.dll.config" />
   </ItemGroup>
