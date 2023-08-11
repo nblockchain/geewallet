@@ -29,7 +29,7 @@ type PairingFromPage(previousPage: Page,
         clipBoardButton.Text <- clipBoardButtonCaption
 
         let qrCode = mainLayout.FindByName<ZXingBarcodeImageView> "qrCode"
-        if (qrCode = null) then
+        if isNull qrCode then
             failwith "Couldn't find QR code"
         qrCode.BarcodeValue <- qrCodeContents
         qrCode.IsVisible <- true

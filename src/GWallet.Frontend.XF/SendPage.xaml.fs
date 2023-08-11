@@ -139,7 +139,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun result ->
-            if null = result || String.IsNullOrEmpty result.Text then
+            if isNull result || String.IsNullOrEmpty result.Text then
                 failwith "result of scanning was null(?)"
 
             scanPage.IsScanning <- false
@@ -165,7 +165,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         currencySelectorPicker.Items.FirstOrDefault(
                             fun item -> item.ToString() = account.Currency.ToString()
                         )
-                    if (cryptoCurrencyInPicker = null) then
+                    if isNull cryptoCurrencyInPicker then
                         failwith <| SPrintF1 "Could not find currency %A in picker?" account.Currency
                     currencySelectorPicker.SelectedItem <- cryptoCurrencyInPicker
                     let aPreviousAmountWasSet = not (String.IsNullOrWhiteSpace amountLabel.Text)
@@ -380,7 +380,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         | :? ReadOnlyAccount ->
             false
         | _ ->
-            if passwordEntry = null then
+            if isNull passwordEntry then
                 // not ready yet?
                 true
             else
@@ -461,7 +461,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     member private __.UpdateEquivalentFiatLabel (): Async<bool> =
         let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
-        if amountToSend = null || String.IsNullOrWhiteSpace amountToSend.Text then
+        if isNull amountToSend || String.IsNullOrWhiteSpace amountToSend.Text then
             async { return false }
         else
             let equivalentAmount = mainLayout.FindByName<Label> "equivalentAmountInAlternativeCurrency"
@@ -529,7 +529,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
     member this.OnEntryTextChanged(_sender: Object, _args: EventArgs) =
         let mainLayout = base.FindByName<StackLayout>("mainLayout")
-        if (mainLayout = null) then
+        if isNull mainLayout then
             //page not yet ready
             ()
         else

@@ -240,7 +240,7 @@ module FrontendHelpers =
             Infrastructure.LogError "MANUAL FORCED SHUTDOWN NOW"
             Device.PlatformServices.QuitApplication()
 
-        if null = ex then
+        if isNull ex then
             ()
         else
             let shouldCrash =
