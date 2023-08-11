@@ -300,13 +300,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 
                 Frontend.Console
             | Misc.Platform.Linux ->
-                let pkgConfigForGtkProc = Process.Execute({ Command = "pkg-config"; Arguments = "gtk-sharp-2.0" }, Echo.All)
-                let isGtkPresent =
-                    match pkgConfigForGtkProc.Result with
-                    | Error _ -> false
-                    | _ -> true
-
-                if isGtkPresent then
+                if FsxHelper.AreGtkLibsPresent Echo.All then
                     let solution = LINUX_SOLUTION_FILE
 #if LEGACY_FRAMEWORK
                     ExplicitRestore solution
@@ -615,10 +609,11 @@ match maybeTarget with
 #endif
 
     let sanityCheckScript = Path.Combine(FsxHelper.ScriptsDir.FullName, "sanitycheck.fsx")
+    let fsxRunnerBin,fsxRunnerArg = FsxHelper.FsxRunnerInfo()
     Process.Execute(
         {
-            Command = FsxHelper.FsxRunnerBin
-            Arguments = sprintf "%s %s" FsxHelper.FsxRunnerArg sanityCheckScript
+            Command = fsxRunnerBin
+            Arguments = sprintf "%s %s" fsxRunnerArg sanityCheckScript
         },
         Echo.All
     ).UnwrapDefault() |> ignore<string>

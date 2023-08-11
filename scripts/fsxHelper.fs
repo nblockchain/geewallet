@@ -4,6 +4,7 @@ open System
 open System.IO
 
 open Fsdk
+open Fsdk.Process
 
 module FsxHelper =
 
@@ -19,7 +20,16 @@ module FsxHelper =
             |> ignore
         dir
 
-    let FsxRunnerBin,FsxRunnerArg =
+    let AreGtkLibsPresent echoMode =
+        if Misc.GuessPlatform() <> Misc.Platform.Linux then
+            failwith "Gtk is only supported in Linux"
+
+        let pkgConfigForGtkProc = Process.Execute({ Command = "pkg-config"; Arguments = "gtk-sharp-2.0" }, echoMode)
+        match pkgConfigForGtkProc.Result with
+        | Error _ -> false
+        | _ -> true
+
+    let FsxRunnerInfo() =
         match Misc.GuessPlatform() with
         | Misc.Platform.Windows ->
 #if !LEGACY_FRAMEWORK
@@ -34,6 +44,10 @@ module FsxHelper =
                 let msg = "FsxRunnerBin env var not found, it should have been sourced from build.config file"
                 let msgFull =
                     msg + Environment.NewLine +
-                    "(maybe you meant to run a Makefile target rather than this script directly; or there is a .sh wrapper script for your .fsx script)"
+                    (sprintf "(maybe you 1. %s, or 2. %s, or 3. %s)"
+                        "called this from configure.fsx (which is not supported, just use this func from make.fsx or sanitycheck.fsx)"
+                        "you meant to run a Makefile target rather than this script directly?"
+                        "there is a .sh wrapper script for your .fsx script"
+                    )
                 failwith msgFull
             fsxRunnerBinEnvVar, fsxRunnerArgEnvVar

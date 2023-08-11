@@ -15,10 +15,12 @@ open System.Configuration
 open Fsdk
 open Fsdk.Process
 
+#load "fsxHelper.fs"
+open GWallet.Scripting
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 
-let initialConfigFile, buildTool =
+let initialConfigFile, buildTool, areGtkLibsAbsentOrDoesNotApply =
     match Misc.GuessPlatform() with
     | Misc.Platform.Windows ->
         let buildTool=
@@ -27,13 +29,13 @@ let initialConfigFile, buildTool =
             | None ->
                 Process.VsWhere "MSBuild\\**\\Bin\\MSBuild.exe"
 
-        Map.empty, buildTool
+        Map.empty, buildTool, true
     | platform (* Unix *) ->
 
         Process.ConfigCommandCheck ["make"] true true |> ignore
 
         match Process.ConfigCommandCheck ["dotnet"] false true with
-        | Some _ -> Map.empty, "dotnet"
+        | Some _ -> Map.empty, "dotnet", true
         | None ->
 
             Process.ConfigCommandCheck ["mono"] true true |> ignore
@@ -45,7 +47,7 @@ let initialConfigFile, buildTool =
 
             if platform = Misc.Platform.Mac then
                 match Process.ConfigCommandCheck [ "msbuild"; "xbuild" ] true true with
-                | Some theBuildTool -> Map.empty, theBuildTool
+                | Some theBuildTool -> Map.empty, theBuildTool, true
                 | _ -> failwith "unreachable"
             else
                 let buildTool =
@@ -90,7 +92,21 @@ let initialConfigFile, buildTool =
                                                         (stableVersionOfMono.ToString()))
                     Environment.Exit 1
                 Console.WriteLine "found"
-                Map.empty.Add("MonoPkgConfigVersion", monoVersion), buildTool
+
+                let areGtkLibsAbsentOrDoesNotApply =
+                    if buildTool <> "msbuild" then
+                        // because xbuild cannot build .NETStandard libs (and XF needs to be one)
+                        true
+                    else
+                        Console.Write "checking for GTK (libs)... "
+                        let gtkLibsPresent = FsxHelper.AreGtkLibsPresent Echo.Off
+                        if gtkLibsPresent then
+                            Console.WriteLine "found"
+                        else
+                            Console.WriteLine "not found"
+                        not gtkLibsPresent
+
+                Map.empty.Add("MonoPkgConfigVersion", monoVersion), buildTool, areGtkLibsAbsentOrDoesNotApply
 
 #if LEGACY_FRAMEWORK
 let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-8"?>
@@ -148,6 +164,27 @@ let version = Misc.GetCurrentVersion(rootDir)
 
 let repoInfo = Git.GetRepoInfo()
 
+let frontend =
+    match buildTool, Misc.GuessPlatform() with
+
+    // NOTE: 'dotnet build' cannot build Xamarin.Forms, and make.fsx doesn't support yet building
+    // with both dotnet & msbuild yet
+    | "dotnet", _ -> "Console"
+
+    // because xbuild cannot build .NETStandard projects (and Frontend.XF proj needs to be)
+    | _, Misc.Platform.Linux ->
+        if areGtkLibsAbsentOrDoesNotApply then
+            "Console"
+        else
+            "Xamarin.Forms"
+
+    // NOTE: even though Windows has msbuild too, its buildTool value contains full path so it won't
+    // match with the case below (and this is on purpose, since we don't build WinUI/UWP frontend yet)
+    | "msbuild", _ ->
+        "Xamarin.Forms"
+
+    | _ -> "Console"
+
 Console.WriteLine()
 Console.WriteLine(sprintf
                       "\tConfiguration summary for geewallet %s %s"
@@ -162,6 +199,9 @@ Console.WriteLine(sprintf
 Console.WriteLine(sprintf
                       "\t* .NET build tool: %s"
                       (if buildTool = "dotnet" then "dotnet build" else buildTool))
+Console.WriteLine(sprintf
+                      "\t* Frontend: %s"
+                      frontend)
 Console.WriteLine()
 
 Console.WriteLine "Configuration succeeded, you can now run `make`"
