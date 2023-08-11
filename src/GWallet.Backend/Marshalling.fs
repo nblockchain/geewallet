@@ -25,7 +25,7 @@ type MarshalledException =
     }
     static member private ExtractBasicDetailsFromException (ex: Exception) =
         let stackTrace =
-            if ex.StackTrace = null then
+            if isNull ex.StackTrace then
                 String.Empty
             else
                 ex.StackTrace
@@ -167,7 +167,7 @@ module Marshalling =
             false
 
     let DeserializeCustom<'T>(json: string, settings: JsonSerializerSettings): 'T =
-        if (json = null) then
+        if isNull json then
             raise (ArgumentNullException("json"))
         if (String.IsNullOrWhiteSpace(json)) then
             raise (ArgumentException("empty or whitespace json", "json"))

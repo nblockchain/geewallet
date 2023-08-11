@@ -195,7 +195,7 @@ module Server =
         let maybeRpcResponseEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex
         match maybeRpcResponseEx with
         | Some rpcResponseEx ->
-            if rpcResponseEx.RpcError <> null then
+            if not (isNull rpcResponseEx.RpcError) then
                 match rpcResponseEx.RpcError.Code with
                 | a when a = int RpcErrorCode.JackOfAllTradesErrorCode ->
                     if not (err32kPossibleMessages.Any (fun msg -> rpcResponseEx.RpcError.Message.Contains msg)) then
@@ -476,7 +476,7 @@ module Server =
             let! latestBlock =
                 web3.Eth.Blocks.GetBlockNumber.SendRequestAsync (null, cancelToken)
                     |> Async.AwaitTask
-            if (latestBlock = null) then
+            if isNull latestBlock then
                 failwith "latestBlock somehow is null"
 
             let blockToCheck = BigInteger.Subtract(latestBlock.Value,
@@ -560,7 +560,7 @@ module Server =
 
     let private GetConfirmedTokenBalanceInternal (web3: Web3) (publicAddress: string) (currency: Currency)
                                                      : Async<decimal> =
-        if (web3 = null) then
+        if isNull web3 then
             invalidArg "web3" "web3 argument should not be null"
 
         async {
@@ -569,7 +569,7 @@ module Server =
             let contractAddress = TokenManager.GetTokenContractAddress currency
 
             let contractHandler = web3.Eth.GetContractHandler contractAddress
-            if (contractHandler = null) then
+            if isNull contractHandler then
                 failwith "contractHandler somehow is null"
 
             let! cancelToken = Async.CancellationToken
