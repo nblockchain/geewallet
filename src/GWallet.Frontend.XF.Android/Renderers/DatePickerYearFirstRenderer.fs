@@ -2,9 +2,11 @@ namespace GWallet.Frontend.XF.Android
 
 open Android.Widget
 
+open Xamarin.Essentials
 open Xamarin.Forms
 open Xamarin.Forms.Platform.Android
 
+open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 // Custom renderer for Xamarin.Forms.DatePicker
@@ -20,33 +22,50 @@ type DatePickerYearFirstRenderer (context) =
         // Android.Widget.DatePicker implementation
         // We navigate through multiple layers of child elements until we arrive
         // at the text element which displays the year and emit a click on it
-        let maybeLayoutA = dialog.DatePicker.GetChildAt 0
-        match maybeLayoutA with
-        | :? LinearLayout as layoutA ->
-            let maybeLayoutB = layoutA.GetChildAt 0
-            match maybeLayoutB with
-            | :? LinearLayout as layoutB ->
-                let maybeLayoutC = layoutB.GetChildAt 0
-                match maybeLayoutC with
-                | :? LinearLayout as layoutC ->
-                    let yearText = layoutC.GetChildAt 0
-                    yearText.PerformClick () |> ignore
-                    dialog
+        let warningMsg =
+            let maybeLayoutA = dialog.DatePicker.GetChildAt 0
+            match maybeLayoutA with
+            | :? LinearLayout as layoutA ->
+                let maybeLayoutB = layoutA.GetChildAt 0
+                match maybeLayoutB with
+                | :? LinearLayout as layoutB ->
+                    let maybeLayoutC = layoutB.GetChildAt 0
+                    match maybeLayoutC with
+                    | :? LinearLayout as layoutC ->
+                        let yearText = layoutC.GetChildAt 0
+                        yearText.PerformClick () |> ignore
+                        None
+                    | null ->
+                        Some "Unexpected DatePicker layout when trying to find layoutC (got null)"
+                    | _ ->
+                        Some <| SPrintF1 "Unexpected DatePicker layout when trying to find layoutC (got %s)"
+                            (maybeLayoutC.GetType().FullName)
                 | null ->
-                    failwith "Unexpected DatePicker layout when trying to find layoutC (got null)"
+                    Some "Unexpected DatePicker layout when trying to find layoutB (got null)"
                 | _ ->
-                    failwith <| SPrintF1 "Unexpected DatePicker layout when trying to find layoutC (got %s)"
-                        (maybeLayoutC.GetType().FullName)
+                    Some <| SPrintF1 "Unexpected DatePicker layout when trying to find layoutB (got %s)"
+                        (maybeLayoutB.GetType().FullName)
             | null ->
-                failwith "Unexpected DatePicker layout when trying to find layoutB (got null)"
+                Some <| "Unexpected DatePicker layout when trying to find layoutA (got null)"
             | _ ->
-                failwith <| SPrintF1 "Unexpected DatePicker layout when trying to find layoutB (got %s)"
-                    (maybeLayoutB.GetType().FullName)
-        | null ->
-            failwith "Unexpected DatePicker layout when trying to find layoutA (got null)"
-        | _ ->
-            failwith <| SPrintF1 "Unexpected DatePicker layout when trying to find layoutA (got %s)"
-                (maybeLayoutA.GetType().FullName)
+                Some <| SPrintF1 "Unexpected DatePicker layout when trying to find layoutA (got %s)"
+                    (maybeLayoutA.GetType().FullName)
+
+        match warningMsg with
+        | Some msg ->
+            let devInfo =
+                SPrintF6 " [DevInfo: (Type=%s, Idiom=%s, Platform=%s, Version=%s, Manufacturer=%s, Model=%s)]"
+                    (DeviceInfo.DeviceType.ToString())
+                    (DeviceInfo.Idiom.ToString())
+                    (DeviceInfo.Platform.ToString())
+                    DeviceInfo.VersionString
+                    DeviceInfo.Manufacturer
+                    DeviceInfo.Model
+
+            Infrastructure.ReportWarningMessage (msg + devInfo) |> ignore<bool>
+        | _ -> ()
+
+        dialog
 
 
 [<assembly:ExportRenderer(typeof<DatePicker>, typeof<DatePickerYearFirstRenderer>)>]

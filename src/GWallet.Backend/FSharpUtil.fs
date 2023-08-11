@@ -45,6 +45,8 @@ module FSharpUtil =
         let SPrintF5 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) =
             String.Format(ToStringFormat fmt, a, b, c, d, e)
 
+        let SPrintF6 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) (f: Object) =
+            String.Format(ToStringFormat fmt, a, b, c, d, e, f)
 
     module UwpHacks =
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
@@ -57,6 +59,8 @@ module FSharpUtil =
         let SPrintF4 fmt a b c d = sprintf fmt a b c d
 
         let SPrintF5 fmt a b c d e = sprintf fmt a b c d e
+
+        let SPrintF6 fmt a b c d e f = sprintf fmt a b c d e f
 #else
         let SPrintF1 (fmt: string) (a: Object) =
             ReflectionlessPrint.SPrintF1 fmt a
@@ -72,6 +76,9 @@ module FSharpUtil =
 
         let SPrintF5 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) =
             ReflectionlessPrint.SPrintF5 fmt a b c d e
+
+        let SPrintF6 (fmt: string) (a: Object) (b: Object) (c: Object) (d: Object) (e: Object) (f: Object) =
+            ReflectionlessPrint.SPrintF6 fmt a b c d e f
 #endif
 
 
