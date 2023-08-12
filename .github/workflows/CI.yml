@@ -41,7 +41,7 @@ jobs:
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  macOS--mono:
+  macOS--mono-only:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v1
@@ -64,7 +64,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  windows--dotnet6:
+  windows--dotnet6-and-legacyFramework:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
@@ -98,7 +98,7 @@ jobs:
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  windows--legacyFramework:
+  windows--legacyFramework-only:
     runs-on: windows-2019
     steps:
     - uses: actions/checkout@v1
@@ -121,7 +121,7 @@ jobs:
     - name: integration tests
       run: .\make update-servers
 
-  linux22-github:
+  linux22-github--dotnet-and-mono:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
@@ -146,7 +146,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux22-github--newmono:
+  linux22-github--dotnet-and-newmono:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
@@ -173,7 +173,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux22-vanilla--stockmono:
+  linux22-vanilla--stockmono-only:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -209,7 +209,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux22-vanilla--stockdotnet6:
+  linux22-vanilla--stockdotnet6-only:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -337,7 +337,7 @@ jobs:
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux22-vanilla--newmono:
+  linux22-vanilla--newmono-only:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -376,7 +376,7 @@ jobs:
       run: make update-servers
 
 
-  linux20-github:
+  linux20-github--dotnet-and-mono:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
@@ -401,7 +401,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux20-github--newmono:
+  linux20-github--dotnet-and-newmono:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v1
@@ -426,7 +426,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux20-vanilla--stockmono:
+  linux20-vanilla--stockmono-only:
     runs-on: ubuntu-20.04
     container:
       image: "ubuntu:20.04"
@@ -462,7 +462,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux20-vanilla--newmono:
+  linux20-vanilla--newmono-only:
     runs-on: ubuntu-20.04
     container:
       image: "ubuntu:20.04"
@@ -505,21 +505,21 @@ jobs:
     container:
       image: "ubuntu:22.04"
     needs:
-    - linux22-github
-    - linux22-github--newmono
-    - linux22-vanilla--stockmono
-    - linux22-vanilla--newmono
-    - linux22-vanilla--stockdotnet6
+    - linux22-github--dotnet-and-mono
+    - linux22-github--dotnet-and-newmono
+    - linux22-vanilla--stockmono-only
+    - linux22-vanilla--newmono-only
+    - linux22-vanilla--stockdotnet6-only
     - linux22-vanilla--stockdotnet6-and-stockmono
     - linux22-vanilla--stockdotnet6-and-newmono
-    - linux20-github
-    - linux20-github--newmono
-    - linux20-vanilla--stockmono
-    - linux20-vanilla--newmono
-    - windows--dotnet6
-    - windows--legacyFramework
+    - linux20-github--dotnet-and-mono
+    - linux20-github--dotnet-and-newmono
+    - linux20-vanilla--stockmono-only
+    - linux20-vanilla--newmono-only
+    - windows--dotnet6-and-legacyFramework
+    - windows--legacyFramework-only
     - macOS--dotnet6-and-mono
-    - macOS--mono
+    - macOS--mono-only
 
     steps:
     - uses: actions/checkout@v1
