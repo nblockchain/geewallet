@@ -4,7 +4,7 @@ open System
 open System.IO
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk"
+#r "nuget: Fsdk, Version=0.6.0--date20230812-0646.git-2268d50"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -27,7 +27,17 @@ let initialConfigFile, buildTool, areGtkLibsAbsentOrDoesNotApply =
             match Process.ConfigCommandCheck ["dotnet"] false true with
             | Some _ -> "dotnet"
             | None ->
-                Process.VsWhere "MSBuild\\**\\Bin\\MSBuild.exe"
+                Console.Write "checking for msbuild... "
+                match Process.VsWhere "MSBuild\\**\\Bin\\MSBuild.exe" with
+                | None ->
+                    Console.WriteLine "not found"
+                    Console.Out.Flush()
+                    Console.Error.WriteLine "Error, please install 'dotnet' aka .NET (6.0 or newer), and/or .NETFramework 4.x ('msbuild')"
+                    Environment.Exit 1
+                    failwith "Unreachable"
+                | Some msbuildPath ->
+                    Console.WriteLine "found"
+                    msbuildPath
 
         Map.empty, buildTool, true
     | platform (* Unix *) ->

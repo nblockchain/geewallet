@@ -14,7 +14,7 @@ open System.Xml.Linq
 open System.Xml.XPath
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk"
+#r "nuget: Fsdk, Version=0.6.0--date20230812-0646.git-2268d50"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -160,18 +160,17 @@ let BuildSolution
     let buildTool,buildArg = buildToolAndBuildArg
 
     let configOption =
-#if !LEGACY_FRAMEWORK
-        sprintf "--configuration %s" (binaryConfig.ToString())
-#else
-        sprintf "/p:Configuration=%s" (binaryConfig.ToString())
-#endif
+        if buildTool.StartsWith "dotnet" then
+            sprintf "--configuration %s" (binaryConfig.ToString())
+        else
+            sprintf "/p:Configuration=%s" (binaryConfig.ToString())
 
     let defineConstantsFromBuildConfig =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> constants.Split([|";"|], StringSplitOptions.RemoveEmptyEntries) |> Seq.ofArray
         | None -> Seq.empty
     let defineConstantsSoFar =
-        if buildTool <> "dotnet" then
+        if not (buildTool.StartsWith "dotnet") then
             Seq.append ["LEGACY_FRAMEWORK"] defineConstantsFromBuildConfig
         else
             defineConstantsFromBuildConfig
