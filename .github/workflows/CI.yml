@@ -64,6 +64,29 @@ jobs:
     - name: integration tests
       run: make update-servers
 
+  macOS--dotnet6-only:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: HACK to emulate mono uninstall
+      run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
   windows--dotnet6-and-legacyFramework:
     runs-on: windows-latest
     steps:
@@ -120,6 +143,42 @@ jobs:
       run: git clean -fdx && .\configure.bat && .\make.bat release
     - name: integration tests
       run: .\make update-servers
+
+  windows--dotnet6-only:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '6.0.113'
+    - name: HACK to emulate legacy .NETFramework uninstall
+      run: del $(& "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\\**\\Bin\\MSBuild.exe)
+    - name: configure
+      run: .\configure.bat
+    - name: build in DEBUG mode
+      run: .\make.bat
+    - name: sanity check
+      run: .\make.bat sanitycheck
+    - name: unit tests
+      run: .\make.bat check
+    - name: re-build in STRICT mode
+      run: git clean -fdx && .\configure.bat && .\make.bat strict
+    - name: re-build in RELEASE mode
+      run: git clean -fdx && .\configure.bat && .\make.bat release
+    - name: integration tests
+      run: .\make update-servers
+    - name: compile .fsx scripts
+      shell: bash
+      run: |
+        dotnet new tool-manifest
+
+        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+        dotnet tool install fsxc --version 0.5.9.1
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux22-github--dotnet-and-mono:
     runs-on: ubuntu-22.04
@@ -518,8 +577,10 @@ jobs:
     - linux20-vanilla--newmono-only
     - windows--dotnet6-and-legacyFramework
     - windows--legacyFramework-only
+    - windows--dotnet6-only
     - macOS--dotnet6-and-mono
     - macOS--mono-only
+    - macOS--dotnet6-only
 
     steps:
     - uses: actions/checkout@v1
