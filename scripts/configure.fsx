@@ -121,7 +121,7 @@ let initialConfigFile, buildTool, areGtkLibsAbsentOrDoesNotApply =
 #if LEGACY_FRAMEWORK
 let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), NuGet.Restore.targets))\NuGet.Restore.targets"
+  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), CommonBuildProps-legacy.proj))\..\NuGet.Restore.targets"
           Condition=" '$(NuGetRestoreImported)' != 'true' " />
 </Project>
 """
