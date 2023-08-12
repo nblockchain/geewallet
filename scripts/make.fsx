@@ -152,7 +152,7 @@ let PrintNugetVersion () =
 
 let BuildSolution
     (buildToolAndBuildArg: string*string)
-    (solutionFileName: string)
+    (relativePathToSoltution: string)
     (binaryConfig: BinaryConfig)
     (maybeConstant: Option<string>)
     (extraOptions: string)
@@ -207,7 +207,7 @@ let BuildSolution
             configOption
     let buildArgs = sprintf "%s %s %s %s"
                             buildArg
-                            solutionFileName
+                            relativePathToSoltution
                             configOptions
                             extraOptions
     let buildProcess = Process.Execute ({ Command = buildTool; Arguments = buildArgs }, Echo.All)
@@ -252,10 +252,12 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
             otherBuildTool, String.Empty, mainSolution
 #endif
 
+    let relativePathToSolution = sprintf "src%c%s" Path.DirectorySeparatorChar solutionFileName
+
     Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
     BuildSolution
         (buildTool, buildArg)
-        solutionFileName
+        relativePathToSolution
         binaryConfig
         maybeConstant
         String.Empty
