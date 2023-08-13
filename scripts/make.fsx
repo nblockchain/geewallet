@@ -33,14 +33,26 @@ open GWallet.Scripting
 let UNIX_NAME = "geewallet"
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
-let DEFAULT_SOLUTION_FILE =
+
+type SolutionFile =
+    | Default
+    | Linux
+    | Mac
+
+let GetSolution (solType: SolutionFile) =
+    let solFileName =
+        match solType with
+        | Default ->
 #if !LEGACY_FRAMEWORK
-    "gwallet.core.sln"
+            "gwallet.core.sln"
 #else
-    "gwallet.core-legacy.sln"
+            "gwallet.core-legacy.sln"
 #endif
-let LINUX_SOLUTION_FILE = "gwallet.linux-legacy.sln"
-let MAC_SOLUTION_FILE = "gwallet.mac-legacy.sln"
+        | Linux -> "gwallet.linux-legacy.sln"
+        | Mac -> "gwallet.mac-legacy.sln"
+
+    Path.Combine("src", solFileName)
+
 let BACKEND = "GWallet.Backend"
 
 type Frontend =
@@ -249,7 +261,7 @@ let BuildSolution
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
-    let solutionFileName = DEFAULT_SOLUTION_FILE
+    let solutionFileName = GetSolution SolutionFile.Default
     let buildTool,buildArg =
         match maybeBuildTool with
         | None ->
@@ -300,7 +312,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 
                 //this is because building in release requires code signing keys
                 if binaryConfig = BinaryConfig.Debug then
-                    let solution = MAC_SOLUTION_FILE
+                    let solution = GetSolution SolutionFile.Mac
 #if LEGACY_FRAMEWORK
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
                     // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
@@ -311,7 +323,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 Frontend.Console
             | Misc.Platform.Linux ->
                 if FsxHelper.AreGtkLibsPresent Echo.All then
-                    let solution = LINUX_SOLUTION_FILE
+                    let solution = GetSolution SolutionFile.Linux
 #if LEGACY_FRAMEWORK
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
                     // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
