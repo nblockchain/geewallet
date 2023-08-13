@@ -46,7 +46,7 @@
 	<Target Name="RestoreSolutions" Inputs="@(RestoreSolution)" Outputs="%(RestoreSolution.Identity)-BATCH">
 		<PropertyGroup>
 			<!-- The base restore directory can be overriden via the Before.*.targets file, but we default to the solution path, like NuGet does -->
-			<RestoreDir Condition=" '$(RestoreDir)' == '' And '$(SolutionPath)' != '' ">$([System.IO.Path]::GetDirectoryName('$(SolutionPath)'))</RestoreDir>
+			<RestoreDir Condition=" '$(RestoreDir)' == '' And '$(SolutionPath)' != '' ">$([System.IO.Path]::GetDirectoryName('$(SolutionPath)'))\..</RestoreDir>
 		</PropertyGroup>
 
 		<PropertyGroup>
