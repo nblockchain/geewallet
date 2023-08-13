@@ -46,13 +46,13 @@
 	<Target Name="RestoreSolutions" Inputs="@(RestoreSolution)" Outputs="%(RestoreSolution.Identity)-BATCH">
 		<PropertyGroup>
 			<!-- The base restore directory can be overriden via the Before.*.targets file, but we default to the solution path, like NuGet does -->
-			<RestoreDir Condition=" '$(RestoreDir)' == '' And '$(SolutionPath)' != '' ">$([System.IO.Path]::GetDirectoryName('$(SolutionPath)'))\..</RestoreDir>
+			<RestoreDir Condition=" '$(RestoreDir)' == '' And '$(SolutionPath)' != '' ">$([System.IO.Path]::GetDirectoryName('$(SolutionPath)'))</RestoreDir>
 		</PropertyGroup>
 
 		<PropertyGroup>
 			<_NuGet>$(NuGet)</_NuGet>
 			<_RestoreDir>$(RestoreDir)</_RestoreDir>
-			<_RestoreDir Condition="'$(_RestoreDir)' == ''">%(RestoreSolution.RootDir)%(RestoreSolution.Directory)</_RestoreDir>
+			<_RestoreDir Condition="'$(_RestoreDir)' == ''">%(RestoreSolution.RootDir)%(RestoreSolution.Directory)\..</_RestoreDir>
 			<!-- Normalizes paths to all be relative to the RestoreDir, to shorten the Exec Command length -->
 			<_NuGet Condition=" '$(RestoreDir)' != ''">$(_NuGet.Replace('$(RestoreDir)', ''))</_NuGet>
 		</PropertyGroup>
@@ -81,12 +81,12 @@
 
 		<Exec Command='$(Mono) "$(_NuGet)" $(_RestoreCommand) "$(_RestoreSolution)" -DisableParallelProcessing $(_RestoreArgs)'
 			  ContinueOnError="$(ContinueOnRestoreError)" 
-			  Condition="'$(_RestoreOutput)' == ''"
-			  WorkingDirectory="$(_RestoreDir)" />
+			  Condition="'$(_RestoreDir)' == ''"
+			/>
 
-		<Exec Command='$(Mono) "$(_NuGet)" $(_RestoreCommand) "$(_RestoreSolution)" -DisableParallelProcessing -OutputDirectory "$(_RestoreOutput)" $(_RestoreArgs)'
+		<Exec Command='$(Mono) "$(_NuGet)" $(_RestoreCommand) "$(_RestoreSolution)" -DisableParallelProcessing -OutputDirectory "$(_RestoreDir)" $(_RestoreArgs)'
 			  ContinueOnError="$(ContinueOnRestoreError)" 
-			  Condition="'$(_RestoreOutput)' != ''"
+			  Condition="'$(_RestoreDir)' != ''"
 			  WorkingDirectory="$(_RestoreDir)" />
 	</Target>
 
