@@ -33,7 +33,12 @@ open GWallet.Scripting
 let UNIX_NAME = "geewallet"
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
-let DEFAULT_SOLUTION_FILE = "gwallet.core.sln"
+let DEFAULT_SOLUTION_FILE =
+#if !LEGACY_FRAMEWORK
+    "gwallet.core.sln"
+#else
+    "gwallet.core-legacy.sln"
+#endif
 let LINUX_SOLUTION_FILE = "gwallet.linux-legacy.sln"
 let MAC_SOLUTION_FILE = "gwallet.mac-legacy.sln"
 let BACKEND = "GWallet.Backend"
@@ -126,6 +131,21 @@ exec mono "$FRONTEND_PATH" "$@"
 """
 
 #if LEGACY_FRAMEWORK
+let NugetRestore projectOrSolutionRelativePath =
+    let nugetArgs =
+        sprintf
+            "restore %s -SolutionDirectory ."
+            projectOrSolutionRelativePath
+    let proc =
+        Network.RunNugetCommand
+            FsxHelper.NugetExe
+            nugetArgs
+            Echo.All
+            false
+    match proc.Result with
+    | Error _ -> failwith "NuGet Restore failed ^"
+    | _ -> ()
+
 let PrintNugetVersion () =
     if not (FsxHelper.NugetExe.Exists) then
         false
@@ -157,6 +177,10 @@ let BuildSolution
     (maybeConstant: Option<string>)
     (extraOptions: string)
     =
+#if LEGACY_FRAMEWORK
+    NugetRestore solutionFileName
+#endif
+
     let buildTool,buildArg = buildToolAndBuildArg
 
     let configOption =
@@ -223,8 +247,8 @@ let BuildSolution
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
-    let mainSolution = DEFAULT_SOLUTION_FILE
-    let buildTool,buildArg,solutionFileName =
+    let solutionFileName = DEFAULT_SOLUTION_FILE
+    let buildTool,buildArg =
         match maybeBuildTool with
         | None ->
             failwith "A BuildTool should have been chosen by the configure script, please report this bug"
@@ -232,7 +256,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 #if LEGACY_FRAMEWORK
             failwith "'dotnet' shouldn't be the build tool when using legacy framework, please report this bug"
 #endif
-            "dotnet", "build", mainSolution
+            "dotnet", "build"
         | Some otherBuildTool ->
 #if LEGACY_FRAMEWORK
             let nugetConfig =
@@ -247,9 +271,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 |> FileInfo
 
             File.Copy(legacyNugetConfig.FullName, nugetConfig.FullName, true)
-            otherBuildTool, String.Empty, "gwallet.core-legacy.sln"
+            otherBuildTool, String.Empty
 #else
-            otherBuildTool, String.Empty, mainSolution
+            otherBuildTool, String.Empty
 #endif
 
     Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
@@ -265,22 +289,6 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
         // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
         if buildTool = "msbuild" then
 
-#if LEGACY_FRAMEWORK
-            // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
-            // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: report this bug
-            let ExplicitRestore projectOrSolutionRelativePath =
-                let nugetWorkaroundArgs =
-                    sprintf
-                        "restore %s -SolutionDirectory ."
-                        projectOrSolutionRelativePath
-                Network.RunNugetCommand
-                    FsxHelper.NugetExe
-                    nugetWorkaroundArgs
-                    Echo.All
-                    true
-                |> ignore
-#endif
-
             let MSBuildRestoreAndBuild solutionFile =
                 BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "/t:Restore"
                 // TODO: report as a bug the fact that /t:Restore;Build doesn't work while /t:Restore and later /t:Build does
@@ -293,7 +301,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 if binaryConfig = BinaryConfig.Debug then
                     let solution = MAC_SOLUTION_FILE
 #if LEGACY_FRAMEWORK
-                    ExplicitRestore solution
+                    // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
+                    // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
+                    NugetRestore solution
 #endif
                     MSBuildRestoreAndBuild solution
 
@@ -302,7 +312,9 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 if FsxHelper.AreGtkLibsPresent Echo.All then
                     let solution = LINUX_SOLUTION_FILE
 #if LEGACY_FRAMEWORK
-                    ExplicitRestore solution
+                    // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
+                    // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
+                    NugetRestore solution
 #endif
                     MSBuildRestoreAndBuild solution
 
@@ -367,6 +379,10 @@ let GetPathToBackend () =
     Path.Combine (FsxHelper.RootDir.FullName, "src", BACKEND)
 
 let MakeAll (maybeConstant: Option<string>) =
+#if LEGACY_FRAMEWORK
+    if not FsxHelper.NugetExe.Exists then
+        Network.DownloadNugetExe FsxHelper.NugetExe
+#endif
     let buildConfig = BinaryConfig.Debug
     let frontend,_ = JustBuild buildConfig maybeConstant
     frontend,buildConfig

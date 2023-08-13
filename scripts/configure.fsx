@@ -51,7 +51,7 @@ let initialConfigFile, buildTool, areGtkLibsAbsentOrDoesNotApply =
             Process.ConfigCommandCheck ["mono"] true true |> ignore
             Process.ConfigCommandCheck ["fsharpc"] true true |> ignore
 
-            // needed by NuGet.Restore.targets & the "update-servers" Makefile target
+            // needed by the "update-servers" Makefile target?
             Process.ConfigCommandCheck ["curl"] true true
                 |> ignore
 
@@ -117,17 +117,6 @@ let initialConfigFile, buildTool, areGtkLibsAbsentOrDoesNotApply =
                         not gtkLibsPresent
 
                 Map.empty.Add("MonoPkgConfigVersion", monoVersion), buildTool, areGtkLibsAbsentOrDoesNotApply
-
-#if LEGACY_FRAMEWORK
-let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), NuGet.Restore.targets))\NuGet.Restore.targets"
-          Condition=" '$(NuGetRestoreImported)' != 'true' " />
-</Project>
-"""
-File.WriteAllText(Path.Combine(rootDir.FullName, "before.gwallet.core-legacy.sln.targets"),
-                  targetsFileToExecuteNugetBeforeBuild)
-#endif
 
 let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxOnlyArguments(), false, None))
 
