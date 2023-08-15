@@ -42,9 +42,6 @@ let buildTool, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply =
 
         Process.ConfigCommandCheck ["make"] true true |> ignore
 
-        // needed by the "update-servers" Makefile target?
-        Process.ConfigCommandCheck ["curl"] true true |> ignore
-
         match Process.ConfigCommandCheck ["mono"] false true with
         | None ->
             dotnetCmd, None, true
