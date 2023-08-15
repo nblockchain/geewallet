@@ -259,11 +259,18 @@ let BuildSolution
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
+    let maybeLegacyBuildTool = Map.tryFind "LegacyBuildTool" buildConfigContents
+    let buildToolToUse =
+        if maybeBuildTool.IsNone then
+            maybeLegacyBuildTool
+        else
+            maybeBuildTool
+
     let solutionFileName = GetSolution SolutionFile.Default
     let buildTool,buildArg =
-        match maybeBuildTool with
+        match buildToolToUse with
         | None ->
-            failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+            failwith "A BuildTool or LegacyBuildTool should have been chosen by the configure script, please report this bug"
         | Some "dotnet" ->
 #if LEGACY_FRAMEWORK
             failwith "'dotnet' shouldn't be the build tool when using legacy framework, please report this bug"
