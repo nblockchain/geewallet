@@ -42,14 +42,13 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.XF", "src\
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.iOS", "src\GWallet.Frontend.XF.iOS\GWallet.Frontend.XF.iOS.fsproj", "{5DD656CE-3319-46BB-B47F-BBED8CC722FD}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "InfraLib", "InfraLib", "{6EE07541-91A1-42C2-A21F-2809BBDC2F50}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Fsdk", "Fsdk", "{6EE07541-91A1-42C2-A21F-2809BBDC2F50}"
 	ProjectSection(SolutionItems) = preProject
-		scripts\fsx\InfraLib\Misc.fs = scripts\fsx\InfraLib\Misc.fs
-		scripts\fsx\InfraLib\Unix.fs = scripts\fsx\InfraLib\Unix.fs
-		scripts\fsx\InfraLib\Taiga.fs = scripts\fsx\InfraLib\Taiga.fs
-		scripts\fsx\InfraLib\Process.fs = scripts\fsx\InfraLib\Process.fs
-		scripts\fsx\InfraLib\Network.fs = scripts\fsx\InfraLib\Network.fs
-		scripts\fsx\InfraLib\Git.fs = scripts\fsx\InfraLib\Git.fs
+		scripts\fsx\Fsdk\Misc.fs = scripts\fsx\Fsdk\Misc.fs
+		scripts\fsx\Fsdk\Unix.fs = scripts\fsx\Fsdk\Unix.fs
+		scripts\fsx\Fsdk\Process.fs = scripts\fsx\Fsdk\Process.fs
+		scripts\fsx\Fsdk\Network.fs = scripts\fsx\Fsdk\Network.fs
+		scripts\fsx\Fsdk\Git.fs = scripts\fsx\Fsdk\Git.fs
 	EndProjectSection
 EndProject
 Global
