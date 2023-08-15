@@ -14,7 +14,7 @@ open System.Xml.Linq
 open System.Xml.XPath
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk, Version=0.6.0--date20230812-0646.git-2268d50"
+#r "nuget: Fsdk, Version=0.6.0--date20230818-1152.git-83d671b"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -52,6 +52,18 @@ let GetSolution (solType: SolutionFile) =
         | Mac -> "gwallet.mac-legacy.sln"
 
     Path.Combine("src", solFileName)
+
+type ProjectFile =
+    | XFFrontend
+    | GtkFrontend
+
+let GetProject (projFile: ProjectFile) =
+    let projFileName =
+        match projFile with
+        | GtkFrontend -> Path.Combine("GWallet.Frontend.XF.Gtk", "GWallet.Frontend.XF.Gtk.fsproj")
+        | XFFrontend -> Path.Combine("GWallet.Frontend.XF", "GWallet.Frontend.XF.fsproj")
+
+    Path.Combine("src", projFileName)
 
 let BACKEND = "GWallet.Backend"
 
@@ -142,7 +154,6 @@ FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
 exec mono "$FRONTEND_PATH" "$@"
 """
 
-#if LEGACY_FRAMEWORK
 let NugetRestore projectOrSolutionRelativePath =
     let nugetArgs =
         sprintf
@@ -180,17 +191,16 @@ let PrintNugetVersion () =
             Console.WriteLine()
             Console.Out.Flush()
             failwith "nuget process' output contained errors ^"
-#endif
 
-let BuildSolution
+let BuildSolutionOrProject
     (buildToolAndBuildArg: string*string)
-    (solutionFileName: string)
+    (fileName: string)
     (binaryConfig: BinaryConfig)
     (maybeConstant: Option<string>)
     (extraOptions: string)
     =
 #if LEGACY_FRAMEWORK
-    NugetRestore solutionFileName
+    NugetRestore fileName
 #endif
 
     let buildTool,buildArg = buildToolAndBuildArg
@@ -245,7 +255,7 @@ let BuildSolution
             configOption
     let buildArgs = sprintf "%s %s %s %s"
                             buildArg
-                            solutionFileName
+                            fileName
                             configOptions
                             extraOptions
     let buildProcess = Process.Execute ({ Command = buildTool; Arguments = buildArgs }, Echo.All)
@@ -261,11 +271,18 @@ let BuildSolution
 
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
+    let maybeLegacyBuildTool = Map.tryFind "LegacyBuildTool" buildConfigContents
+    let buildToolToUse =
+        if maybeBuildTool.IsNone then
+            maybeLegacyBuildTool
+        else
+            maybeBuildTool
+
     let solutionFileName = GetSolution SolutionFile.Default
     let buildTool,buildArg =
-        match maybeBuildTool with
+        match buildToolToUse with
         | None ->
-            failwith "A BuildTool should have been chosen by the configure script, please report this bug"
+            failwith "A BuildTool or LegacyBuildTool should have been chosen by the configure script, please report this bug"
         | Some "dotnet" ->
 #if LEGACY_FRAMEWORK
             failwith "'dotnet' shouldn't be the build tool when using legacy framework, please report this bug"
@@ -291,7 +308,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 #endif
 
     Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
-    BuildSolution
+    BuildSolutionOrProject
         (buildTool, buildArg)
         solutionFileName
         binaryConfig
@@ -304,8 +321,8 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
         if buildTool = "msbuild" then
 
             let MSBuildRestoreAndBuild solutionFile =
-                BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "-target:Restore"
-                BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "-target:Build"
+                BuildSolutionOrProject ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "-target:Restore"
+                BuildSolutionOrProject ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "-target:Build"
 
             match Misc.GuessPlatform () with
             | Misc.Platform.Mac ->
@@ -336,7 +353,32 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                     Frontend.Console
 
             | _ -> Frontend.Console
+        elif buildTool.StartsWith "dotnet" then
+            match maybeLegacyBuildTool with
+            | Some legacyBuildTool when legacyBuildTool = "xbuild" ->
+                if FsxHelper.AreGtkLibsPresent Echo.All then
+                    BuildSolutionOrProject
+                        (buildTool, buildArg)
+                        (GetProject ProjectFile.XFFrontend)
+                        binaryConfig
+                        maybeConstant
+                        String.Empty
 
+                    let twoPhaseFlag = "/property:TwoPhaseBuildDueToXBuildUsage=true"
+
+                    let gtkFrontendProject = GetProject ProjectFile.GtkFrontend
+                    NugetRestore gtkFrontendProject
+                    BuildSolutionOrProject
+                        (legacyBuildTool, twoPhaseFlag)
+                        gtkFrontendProject
+                        binaryConfig
+                        maybeConstant
+                        "/target:Build"
+
+                    Frontend.Gtk
+                else
+                    Frontend.Console
+            | _ -> Frontend.Console
         else
             Frontend.Console
 
