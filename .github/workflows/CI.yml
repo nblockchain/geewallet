@@ -87,6 +87,31 @@ jobs:
     - name: integration tests
       run: make update-servers
 
+  macOS--no-dotnet:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: false
+    - name: HACK to emulate dotnet uninstall
+      run: sudo rm -f `which dotnet`
+    - name: HACK to emulate mono uninstall
+      run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
+    - name: configure
+      run: ./configure.sh
+    - name: build in DEBUG mode
+      run: make
+    - name: sanity check
+      run: make sanitycheck
+    - name: unit tests
+      run: make check
+    - name: build in STRICT mode
+      run: git clean -fdx && ./configure.sh && make strict
+    - name: build in RELEASE mode
+      run: git clean -fdx && ./configure.sh && make release
+    - name: integration tests
+      run: make update-servers
+
   windows--dotnet6-and-legacyFramework:
     runs-on: windows-latest
     steps:
