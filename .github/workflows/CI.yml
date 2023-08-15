@@ -248,7 +248,11 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+      run: |
+        # needed by fsx submodule
+        sudo apt install --yes curl
+
+        sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -284,7 +288,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -326,7 +330,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -370,7 +374,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6 mono-xbuild
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6 mono-xbuild
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -412,7 +416,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -507,7 +511,11 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo apt install --yes git make curl fsharp nunit-console
+      run: |
+        # needed by fsx submodule
+        sudo apt install --yes curl
+
+        sudo apt install --yes git make fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -543,7 +551,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo apt install --yes git make curl fsharp nunit-console
+      run: sudo apt install --yes git make fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
