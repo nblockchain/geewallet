@@ -91,6 +91,8 @@ let initialConfigFile, buildTool =
                         .Trim()
 
                 let currentMonoVersion = Version(monoVersion)
+
+                // NOTE: see what 1 means here: https://learn.microsoft.com/en-us/dotnet/api/system.version.compareto?view=netframework-4.7
                 if 1 = stableVersionOfMono.CompareTo currentMonoVersion then
                     Console.WriteLine "not found"
                     Console.Error.WriteLine (sprintf "configure: error, package requirements not met:")
@@ -100,6 +102,10 @@ let initialConfigFile, buildTool =
                                                         (stableVersionOfMono.ToString()))
                     Environment.Exit 1
                 Console.WriteLine "found"
+
+                // NOTE: this config entry is actually not being used at the moment by make.fsx,
+                // but kept, like this, in case we need to use it in the future
+                // (it can be retrieved with `let monoVersion = Map.tryFind "MonoPkgConfigVersion" buildConfigContents`)
                 Map.empty.Add("MonoPkgConfigVersion", monoVersion), buildTool
 
 #if LEGACY_FRAMEWORK
