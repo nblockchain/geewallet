@@ -613,7 +613,7 @@ jobs:
     needs:
     - conventions
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
     - name: Install snap tools
@@ -622,6 +622,9 @@ jobs:
         ./scripts/install_snapcraft.sh
 
     # hack to disable dotnet detection (can't use apt purge because github VM seems to have it installed in different way)
+    # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install dotnet pkg,
+    #       but that doesn't work because we get the following error when trying to install snapcraft via `snap install --classic`:
+    # > error: cannot communicate with server: Post "http://localhost/v2/snaps/snapcraft": dial unix /run/snapd.socket: connect: no such file or directory
     - name: HACK to emulate dotnet uninstall
       run: sudo rm `which dotnet`
 
