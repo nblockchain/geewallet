@@ -640,15 +640,14 @@ jobs:
     - name: Install snap tools
       run: |
         sudo apt update
-        sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
         ./scripts/install_snapcraft.sh
 
-    # hack to disable dotnet detection (can't use apt purge because github VM seems to have it installed in different way)
-    # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install dotnet pkg,
+    # hack to disable msbuild detection
+    # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
     #       but that doesn't work because we get the following error when trying to install snapcraft via `snap install --classic`:
     # > error: cannot communicate with server: Post "http://localhost/v2/snaps/snapcraft": dial unix /run/snapd.socket: connect: no such file or directory
-    - name: HACK to emulate dotnet uninstall
-      run: sudo rm `which dotnet`
+    - name: HACK to emulate msbuild uninstall
+      run: sudo rm `which msbuild`
 
     - name: Generate snap package
       run: |
