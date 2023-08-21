@@ -374,8 +374,9 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6 mono-xbuild
-
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6 mono-xbuild fsharp
+    - name: install GTK libs (dependency of GTK frontend)
+      run: sudo apt install -y libgtk2.0-cil-dev
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
