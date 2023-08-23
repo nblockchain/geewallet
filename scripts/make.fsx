@@ -157,7 +157,8 @@ let BuildSolution
         if buildTool.StartsWith "dotnet" then
             sprintf "--configuration %s" (binaryConfig.ToString())
         else
-            sprintf "/p:Configuration=%s" (binaryConfig.ToString())
+            // TODO: use -property instead of /property when we don't need xbuild anymore
+            sprintf "/property:Configuration=%s" (binaryConfig.ToString())
 
     let defineConstantsFromBuildConfig =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
@@ -189,13 +190,14 @@ let BuildSolution
             let semiColonEscaped = "%3B"
             match buildTool,Misc.GuessPlatform() with
             | "xbuild", _ ->
+                // TODO: use -property instead of /property when we don't need xbuild anymore
                 // xbuild: legacy of the legacy!
                 // see https://github.com/dotnet/sdk/issues/9562
-                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColonEscaped, defineConstants))
+                sprintf "%s /property:DefineConstants=\"%s\"" configOption (String.Join(semiColonEscaped, defineConstants))
             | builtTool, Misc.Platform.Windows when buildTool.ToLower().Contains "msbuild" ->
-                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
+                sprintf "%s -property:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
             | _ ->
-                sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
+                sprintf "%s -property:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
     let buildArgs = sprintf "%s %s %s %s"
