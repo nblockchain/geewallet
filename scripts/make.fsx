@@ -272,23 +272,16 @@ let BuildSolutionOrProject
 let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
     let maybeLegacyBuildTool = Map.tryFind "LegacyBuildTool" buildConfigContents
-    let buildToolToUse =
-        if maybeBuildTool.IsNone then
-            maybeLegacyBuildTool
-        else
-            maybeBuildTool
 
     let solutionFileName = GetSolution SolutionFile.Default
-    let buildTool,buildArg =
-        match buildToolToUse with
-        | None ->
-            failwith "A BuildTool or LegacyBuildTool should have been chosen by the configure script, please report this bug"
-        | Some "dotnet" ->
+    let getBuildToolAndArgs(buildTool: string) =
+        match buildTool with
+        | "dotnet" ->
 #if LEGACY_FRAMEWORK
             failwith "'dotnet' shouldn't be the build tool when using legacy framework, please report this bug"
 #endif
             "dotnet", "build"
-        | Some otherBuildTool ->
+        | otherBuildTool ->
 #if LEGACY_FRAMEWORK
             let nugetConfig =
                 Path.Combine(
@@ -308,44 +301,46 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 #endif
 
     Console.WriteLine (sprintf "Building in %s mode..." (binaryConfig.ToString()))
-    BuildSolutionOrProject
-        (buildTool, buildArg)
-        solutionFileName
-        binaryConfig
-        maybeConstant
-        String.Empty
+    
+    match maybeBuildTool, maybeLegacyBuildTool with
+    | Some buildTool, _ 
+    | None, Some buildTool ->
+        BuildSolutionOrProject
+            (getBuildToolAndArgs buildTool)
+            solutionFileName
+            binaryConfig
+            maybeConstant
+            String.Empty
+    | None, None ->
+        failwith "A BuildTool or LegacyBuildTool should have been chosen by the configure script, please report this bug"
 
     let frontend =
-
         // older mono versions (which only have xbuild, not msbuild) can't compile .NET Standard assemblies
-        if buildTool = "msbuild" then
+        match maybeBuildTool, maybeLegacyBuildTool with
+        | _, Some legacyBuildTool when legacyBuildTool = "msbuild" ->
 
             let MSBuildRestoreAndBuild solutionFile =
-                BuildSolutionOrProject ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "-target:Restore"
-                BuildSolutionOrProject ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "-target:Build"
+                BuildSolutionOrProject (getBuildToolAndArgs legacyBuildTool) solutionFile binaryConfig maybeConstant "-target:Restore"
+                // TODO: report as a bug the fact that /t:Restore;Build doesn't work while /t:Restore and later /t:Build does
+                BuildSolutionOrProject (getBuildToolAndArgs legacyBuildTool) solutionFile binaryConfig maybeConstant "-target:Build"
 
             match Misc.GuessPlatform () with
             | Misc.Platform.Mac ->
-
                 //this is because building in release requires code signing keys
                 if binaryConfig = BinaryConfig.Debug then
                     let solution = GetSolution SolutionFile.Mac
-#if LEGACY_FRAMEWORK
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
                     // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
                     NugetRestore solution
-#endif
                     MSBuildRestoreAndBuild solution
 
                 Frontend.Console
             | Misc.Platform.Linux ->
                 if FsxHelper.AreGtkLibsPresent Echo.All then
                     let solution = GetSolution SolutionFile.Linux
-#if LEGACY_FRAMEWORK
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
                     // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
                     NugetRestore solution
-#endif
                     MSBuildRestoreAndBuild solution
 
                     Frontend.Gtk
@@ -353,34 +348,30 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                     Frontend.Console
 
             | _ -> Frontend.Console
-        elif buildTool.StartsWith "dotnet" then
-            match maybeLegacyBuildTool with
-            | Some legacyBuildTool when legacyBuildTool = "xbuild" ->
-                if FsxHelper.AreGtkLibsPresent Echo.All then
-                    BuildSolutionOrProject
-                        (buildTool, buildArg)
-                        (GetProject ProjectFile.XFFrontend)
-                        binaryConfig
-                        maybeConstant
-                        String.Empty
+        | Some buildTool, Some legacyBuildTool when buildTool = "dotnet" && legacyBuildTool = "xbuild" ->
+            if FsxHelper.AreGtkLibsPresent Echo.All then
+                BuildSolutionOrProject
+                    (getBuildToolAndArgs buildTool)
+                    (GetProject ProjectFile.XFFrontend)
+                    binaryConfig
+                    maybeConstant
+                    String.Empty
 
-                    let twoPhaseFlag = "/property:TwoPhaseBuildDueToXBuildUsage=true"
+                let twoPhaseFlag = "/property:TwoPhaseBuildDueToXBuildUsage=true"
 
-                    let gtkFrontendProject = GetProject ProjectFile.GtkFrontend
-                    NugetRestore gtkFrontendProject
-                    BuildSolutionOrProject
-                        (legacyBuildTool, twoPhaseFlag)
-                        gtkFrontendProject
-                        binaryConfig
-                        maybeConstant
-                        "/target:Build"
+                let gtkFrontendProject = GetProject ProjectFile.GtkFrontend
+                NugetRestore gtkFrontendProject
+                BuildSolutionOrProject
+                    (legacyBuildTool, twoPhaseFlag)
+                    gtkFrontendProject
+                    binaryConfig
+                    maybeConstant
+                    "/target:Build"
 
-                    Frontend.Gtk
-                else
-                    Frontend.Console
-            | _ -> Frontend.Console
-        else
-            Frontend.Console
+                Frontend.Gtk
+            else
+                Frontend.Console
+        | _ -> Frontend.Console
 
     let scriptName = sprintf "%s-%s" UNIX_NAME (frontend.ToString().ToLower())
     let launcherScriptFile =
