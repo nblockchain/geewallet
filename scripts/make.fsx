@@ -14,7 +14,7 @@ open System.Xml.Linq
 open System.Xml.XPath
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk"
+#r "nuget: Fsdk, Version=0.6.0--date20230812-0646.git-2268d50"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -160,18 +160,18 @@ let BuildSolution
     let buildTool,buildArg = buildToolAndBuildArg
 
     let configOption =
-#if !LEGACY_FRAMEWORK
-        sprintf "--configuration %s" (binaryConfig.ToString())
-#else
-        sprintf "/p:Configuration=%s" (binaryConfig.ToString())
-#endif
+        if buildTool.StartsWith "dotnet" then
+            sprintf "--configuration %s" (binaryConfig.ToString())
+        else
+            // TODO: use -property instead of /property when we don't need xbuild anymore
+            sprintf "/property:Configuration=%s" (binaryConfig.ToString())
 
     let defineConstantsFromBuildConfig =
         match buildConfigContents |> Map.tryFind "DefineConstants" with
         | Some constants -> constants.Split([|";"|], StringSplitOptions.RemoveEmptyEntries) |> Seq.ofArray
         | None -> Seq.empty
     let defineConstantsSoFar =
-        if buildTool <> "dotnet" then
+        if not (buildTool.StartsWith "dotnet") then
             Seq.append ["LEGACY_FRAMEWORK"] defineConstantsFromBuildConfig
         else
             defineConstantsFromBuildConfig
@@ -197,13 +197,14 @@ let BuildSolution
             let semiColonEscaped = "%3B"
             match buildTool,Misc.GuessPlatform() with
             | "xbuild", _ ->
+                // TODO: use -property instead of /property when we don't need xbuild anymore
                 // xbuild: legacy of the legacy!
                 // see https://github.com/dotnet/sdk/issues/9562
-                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColonEscaped, defineConstants))
+                sprintf "%s /property:DefineConstants=\"%s\"" configOption (String.Join(semiColonEscaped, defineConstants))
             | builtTool, Misc.Platform.Windows when buildTool.ToLower().Contains "msbuild" ->
-                sprintf "%s /p:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
+                sprintf "%s -property:DefineConstants=\"%s\"" configOption (String.Join(semiColon, defineConstants))
             | _ ->
-                sprintf "%s /p:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
+                sprintf "%s -property:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
     let buildArgs = sprintf "%s %s %s %s"

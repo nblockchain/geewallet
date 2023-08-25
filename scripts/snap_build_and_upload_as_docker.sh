@@ -26,7 +26,7 @@ docker exec snappy make install
 
 # Install snapcraft and dependencies
 docker exec snappy snap version
-docker exec snappy snap install core20
+docker exec snappy snap install core22
 docker exec snappy snap install --classic --stable snapcraft
 docker exec snappy snapcraft --version
 

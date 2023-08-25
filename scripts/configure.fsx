@@ -4,7 +4,7 @@ open System
 open System.IO
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk"
+#r "nuget: Fsdk, Version=0.6.0--date20230812-0646.git-2268d50"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -27,7 +27,17 @@ let initialConfigFile, buildTool, areGtkLibsAbsentOrDoesNotApply =
             match Process.ConfigCommandCheck ["dotnet"] false true with
             | Some _ -> "dotnet"
             | None ->
-                Process.VsWhere "MSBuild\\**\\Bin\\MSBuild.exe"
+                Console.Write "checking for msbuild... "
+                match Process.VsWhere "MSBuild\\**\\Bin\\MSBuild.exe" with
+                | None ->
+                    Console.WriteLine "not found"
+                    Console.Out.Flush()
+                    Console.Error.WriteLine "Error, please install 'dotnet' aka .NET (6.0 or newer), and/or .NETFramework 4.x ('msbuild')"
+                    Environment.Exit 1
+                    failwith "Unreachable"
+                | Some msbuildPath ->
+                    Console.WriteLine "found"
+                    msbuildPath
 
         Map.empty, buildTool, true
     | platform (* Unix *) ->
@@ -83,6 +93,8 @@ let initialConfigFile, buildTool, areGtkLibsAbsentOrDoesNotApply =
                         .Trim()
 
                 let currentMonoVersion = Version(monoVersion)
+
+                // NOTE: see what 1 means here: https://learn.microsoft.com/en-us/dotnet/api/system.version.compareto?view=netframework-4.7
                 if 1 = stableVersionOfMono.CompareTo currentMonoVersion then
                     Console.WriteLine "not found"
                     Console.Error.WriteLine (sprintf "configure: error, package requirements not met:")
@@ -106,6 +118,9 @@ let initialConfigFile, buildTool, areGtkLibsAbsentOrDoesNotApply =
                             Console.WriteLine "not found"
                         not gtkLibsPresent
 
+                // NOTE: this config entry is actually not being used at the moment by make.fsx,
+                // but kept, like this, in case we need to use it in the future
+                // (it can be retrieved with `let monoVersion = Map.tryFind "MonoPkgConfigVersion" buildConfigContents`)
                 Map.empty.Add("MonoPkgConfigVersion", monoVersion), buildTool, areGtkLibsAbsentOrDoesNotApply
 
 #if LEGACY_FRAMEWORK

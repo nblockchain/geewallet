@@ -352,7 +352,7 @@ let rec PerformOperation (numActiveAccounts: uint32) (numHotAccounts: uint32) =
     | Operations.CreateAccounts ->
         let bootstrapTask = Caching.Instance.BootstrapServerStatsFromTrustedSource() |> Async.StartAsTask
         let passphrase,dob,email = UserInteraction.AskBrainSeed true
-        if null <> bootstrapTask.Exception then
+        if not (isNull bootstrapTask.Exception) then
             raise bootstrapTask.Exception
         let masterPrivateKeyTask =
             Account.GenerateMasterPrivateKey passphrase dob email
