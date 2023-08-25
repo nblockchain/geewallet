@@ -51,7 +51,6 @@ parts:
       - libgtk2.0-dev
     stage-packages:
       - libxkbcommon0  # XKB_CONFIG_ROOT
-      - ttf-ubuntu-font-family
       - dmz-cursor-theme
       - light-themes
       - adwaita-icon-theme
