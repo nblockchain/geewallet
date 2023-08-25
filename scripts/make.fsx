@@ -284,9 +284,8 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
 #endif
 
             let MSBuildRestoreAndBuild solutionFile =
-                BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "/t:Restore"
-                // TODO: report as a bug the fact that /t:Restore;Build doesn't work while /t:Restore and later /t:Build does
-                BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "/t:Build"
+                BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "-target:Restore"
+                BuildSolution ("msbuild",buildArg) solutionFile binaryConfig maybeConstant "-target:Build"
 
             match Misc.GuessPlatform () with
             | Misc.Platform.Mac ->
