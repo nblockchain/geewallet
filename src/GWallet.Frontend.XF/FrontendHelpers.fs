@@ -114,7 +114,7 @@ module FrontendHelpers =
                 Some amount
             | Fresh(amount) ->
                 match maybeFrame, currency, amount with
-                | Some frame, Currency.SAI, 0m | Some frame, Currency.DAI, 0m ->
+                | Some frame, Currency.SAI, 0m ->
                     MainThread.BeginInvokeOnMainThread(fun _ ->
                         frame.IsVisible <- false
                     )
