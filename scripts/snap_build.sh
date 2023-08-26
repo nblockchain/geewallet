@@ -12,4 +12,6 @@ rm -rf ./staging
 make
 make install
 
-snapcraft --destructive-mode
+sudo snap install lxd
+sudo lxd init --auto
+sudo snapcraft --use-lxd
