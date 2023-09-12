@@ -397,9 +397,42 @@ module Account =
     let internal CheckValidPassword (account: NormalAccount) (password: string) =
         GetPrivateKey account password |> ignore
 
+    let private ValidateMinerFee currency (rawTransaction: string) =
+        async {
+            let network = GetNetwork currency
+
+            let txToValidate = Transaction.Parse (rawTransaction, network)
+
+            let totalOutputsAmount = txToValidate.TotalOut
+
+            let getInputAmount (input: TxIn) =
+                async {
+                    let job = ElectrumClient.GetBlockchainTransaction (input.PrevOut.Hash.ToString())
+                    let! inputOriginTxString = Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+                    let inputOriginTx = Transaction.Parse (inputOriginTxString, network)
+                    return inputOriginTx.Outputs.[input.PrevOut.N].Value
+                }
+
+            let! amounts =
+                txToValidate.Inputs
+                |> Seq.map getInputAmount
+                |> Async.Parallel
+
+            let totalInputsAmount = Seq.sum amounts
+
+            let minerFee = totalInputsAmount - totalOutputsAmount
+            if minerFee > totalOutputsAmount then
+                return raise MinerFeeHigherThanOutputs
+
+            return ()
+        }
+
     let private BroadcastRawTransaction currency (rawTx: string): Async<string> =
-        let job = ElectrumClient.BroadcastTransaction rawTx
-        Server.Query currency QuerySettings.Broadcast job None
+        async {
+            do! ValidateMinerFee currency rawTx
+            let job = ElectrumClient.BroadcastTransaction rawTx
+            return! Server.Query currency QuerySettings.Broadcast job None
+        }
 
     let internal BroadcastTransaction currency (transaction: SignedTransaction<_>) =
         // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
