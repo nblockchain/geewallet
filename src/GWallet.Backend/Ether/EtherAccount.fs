@@ -218,7 +218,24 @@ module internal Account =
             return failwith <| SPrintF1 "Assertion failed: currency %A should be Ether or Ether token" account.Currency
     }
 
+    let private ValidateMinerFee (trans: string) =
+        let intDecoder = IntTypeDecoder()
+
+        let tx = TransactionFactory.CreateTransaction trans
+
+        let amountInWei = intDecoder.DecodeBigInteger tx.Value
+
+        // TODO: handle validating miner fee in token transfer (where amount is zero)
+        if amountInWei <> BigInteger.Zero then
+            let gasLimitInWei = intDecoder.DecodeBigInteger tx.GasLimit
+            let gasPriceInWei = intDecoder.DecodeBigInteger tx.GasPrice
+            let minerFeeInWei = gasLimitInWei * gasPriceInWei
+
+            if minerFeeInWei > amountInWei then
+                raise MinerFeeHigherThanOutputs
+
     let private BroadcastRawTransaction (currency: Currency) trans =
+        ValidateMinerFee trans
         Ether.Server.BroadcastTransaction currency ("0x" + trans)
 
     let BroadcastTransaction (trans: SignedTransaction<_>) =
