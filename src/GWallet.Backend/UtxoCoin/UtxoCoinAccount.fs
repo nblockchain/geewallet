@@ -427,9 +427,10 @@ module Account =
             return ()
         }
 
-    let private BroadcastRawTransaction currency (rawTx: string): Async<string> =
+    let private BroadcastRawTransaction currency (rawTx: string) (ignoreHigherMinerFeeThanAmount: bool): Async<string> =
         async {
-            do! ValidateMinerFee currency rawTx
+            if not ignoreHigherMinerFeeThanAmount then
+                do! ValidateMinerFee currency rawTx
             let job = ElectrumClient.BroadcastTransaction rawTx
             return! Server.Query currency QuerySettings.Broadcast job None
         }
@@ -444,13 +445,14 @@ module Account =
                              (destination: string)
                              (amount: TransferAmount)
                              (password: string)
+                             (ignoreHigherMinerFeeThanAmount: bool)
                     =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
 
         let finalTransaction = SignTransaction account txMetadata destination amount password
-        BroadcastRawTransaction baseAccount.Currency finalTransaction
+        BroadcastRawTransaction baseAccount.Currency finalTransaction ignoreHigherMinerFeeThanAmount
 
     // TODO: maybe move this func to Backend.Account module, or simply inline it (simple enough)
     let public ExportUnsignedTransactionToJson trans =
@@ -473,6 +475,7 @@ module Account =
                                     (balance: decimal)
                                     (destination: IAccount)
                                     (txMetadata: TransactionMetadata)
+                                    (ignoreHigherMinerFeeThanAmount: bool)
                                         =
         let currency = (account:>IAccount).Currency
         let network = GetNetwork currency
@@ -480,7 +483,7 @@ module Account =
         let privateKey = Key.Parse(account.GetUnencryptedPrivateKey(), network)
         let signedTrans = SignTransactionWithPrivateKey
                               account txMetadata destination.PublicAddress amount privateKey
-        BroadcastRawTransaction currency (signedTrans.ToHex())
+        BroadcastRawTransaction currency (signedTrans.ToHex()) ignoreHigherMinerFeeThanAmount
 
     let internal Create currency (password: string) (seed: array<byte>): Async<FileRepresentation> =
         async {
