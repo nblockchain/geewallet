@@ -118,18 +118,25 @@ let buildTool: string =
                 | Some xbuildCmd -> xbuildCmd
 
     | Misc.Platform.Windows ->
-        let programFiles = Environment.GetFolderPath Environment.SpecialFolder.ProgramFilesX86
-        let msbuildPathPrefix = Path.Combine(programFiles, "Microsoft Visual Studio", "2019")
-        let GetMsBuildPath vsEdition =
+        let GetMsBuildPath vsEdition (old: bool) =
+            let programFiles, vsVersion =
+                if not old then
+                    Environment.GetEnvironmentVariable "ProgramW6432", "2022"
+                else
+                    Environment.GetFolderPath Environment.SpecialFolder.ProgramFilesX86, "2019"
+            let msbuildPathPrefix = Path.Combine(programFiles, "Microsoft Visual Studio", vsVersion)
             Path.Combine(msbuildPathPrefix, vsEdition, "MSBuild", "Current", "Bin", "MSBuild.exe")
 
         // FIXME: we should use vscheck.exe
         match
             ConfigCommandCheck
                 [
-                    GetMsBuildPath "Community"
-                    GetMsBuildPath "Enterprise"
-                    GetMsBuildPath "BuildTools"
+                    GetMsBuildPath "Community" false
+                    GetMsBuildPath "Enterprise" false
+                    GetMsBuildPath "BuildTools" false
+                    GetMsBuildPath "Community" true
+                    GetMsBuildPath "Enterprise" true
+                    GetMsBuildPath "BuildTools" true
                 ]
                 true
             with
