@@ -236,7 +236,7 @@
     </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
-      <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+      <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\lib\net461\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.TcpClient">
       <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.TcpClient.dll</HintPath>
@@ -262,38 +262,59 @@
     <Reference Include="JsonRpcSharp.WebSocketClient">
       <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
     </Reference>
+    <Reference Include="ADRaffy.ENSNormalize">
+      <HintPath>..\..\packages\ADRaffy.ENSNormalize.0.1.5\lib\net461\ADRaffy.ENSNormalize.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.BlockchainProcessing">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.BlockchainProcessing.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.JsonRpc.Client">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.JsonRpc.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.JsonRpc.RpcClient">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.JsonRpc.RpcClient.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Merkle.Patricia">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Merkle.Patricia.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Model">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Model.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Signer.EIP712">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Signer.EIP712.dll</HintPath>
+    </Reference>
     <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Accounts">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.StandardTokenEIP20">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\packages\HtmlAgilityPack.1.11.24\lib\Net45\HtmlAgilityPack.dll</HintPath>
@@ -315,4 +336,5 @@
   </Target>
   -->
   <Import Project="..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
+  <Import Project="..\..\packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets" Condition="Exists('..\..\packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets')" />
 </Project>

@@ -8,6 +8,7 @@ open System.Numerics
 open System.Threading.Tasks
 
 open Nethereum.ABI.Decoders
+open Nethereum.Model
 open Nethereum.Signer
 open Nethereum.KeyStore
 open Nethereum.Util
@@ -20,7 +21,7 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 module internal Account =
 
     let private addressUtil = AddressUtil()
-    let private signer = TransactionSigner()
+    let private signer = LegacyTransactionSigner()
 
     let private KeyStoreService = KeyStoreService()
 
@@ -236,7 +237,7 @@ module internal Account =
     let private ValidateMinerFee (trans: string) =
         let intDecoder = IntTypeDecoder()
 
-        let tx = TransactionFactory.CreateTransaction trans
+        let tx = TransactionFactory.CreateTransaction trans :?> SignedLegacyTransaction
 
         let amountInWei = intDecoder.DecodeBigInteger tx.Value
 
@@ -365,8 +366,7 @@ module internal Account =
             else
                 failwith <| SPrintF1 "Assertion failed: Ether currency %A not supported?" account.Currency
 
-        let chain = GetNetwork account.Currency
-        if not (signer.VerifyTransaction(trans, chain)) then
+        if not (TransactionVerificationAndRecovery.VerifyTransaction trans) then
             failwith "Transaction could not be verified?"
         trans
 
@@ -461,7 +461,7 @@ module internal Account =
             signedTransaction.TransactionInfo.Proposal :> ITransactionDetails
 
         | _ ->
-            let getTransactionChainId (tx: TransactionBase) =
+            let getTransactionChainId (tx: SignedLegacyTransactionBase) =
                 // the chain id can be deconstructed like so -
                 //   https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
                 // into one of the following -
@@ -472,22 +472,22 @@ module internal Account =
                 let chainId = (v - BigInteger 35) / BigInteger 2
                 chainId
 
-            let getTransactionCurrency (tx: TransactionBase) =
+            let getTransactionCurrency (tx: SignedLegacyTransactionBase) =
                 match int (getTransactionChainId tx) with
                 | chainId when chainId = int Config.EthNet -> ETH
                 | chainId when chainId = int Config.EtcNet -> ETC
                 | other -> failwith <| SPrintF1 "Could not infer currency from transaction where chainId = %i." other
 
-            let tx = TransactionFactory.CreateTransaction signedTransaction.RawTransaction
+            let tx = TransactionFactory.CreateTransaction signedTransaction.RawTransaction :?> SignedLegacyTransaction
 
             // HACK: I prefix 12 elements to the address due to AddressTypeDecoder expecting some sort of header...
             let address = AddressTypeDecoder().Decode (Array.append (Array.zeroCreate 12) tx.ReceiveAddress)
 
-            let destAddress = addressUtil.ConvertToChecksumAddress address
+            let destAddress = address.ConvertToEthereumChecksumAddress() 
 
             let txDetails =
                 {
-                    OriginAddress = signer.GetSenderAddress signedTransaction.RawTransaction
+                    OriginAddress = TransactionVerificationAndRecovery.GetSenderAddress signedTransaction.RawTransaction
                     Amount = UnitConversion.Convert.FromWei (IntTypeDecoder().DecodeBigInteger tx.Value)
                     Currency = getTransactionCurrency tx
                     DestinationAddress = destAddress
