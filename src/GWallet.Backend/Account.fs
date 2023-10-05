@@ -198,15 +198,15 @@ module Account =
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultTolerantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
     // broadcast it even if you sent it
-    let BroadcastTransaction (trans: SignedTransaction<_>): Async<Uri> =
+    let BroadcastTransaction (trans: SignedTransaction<_>) (ignoreHigherMinerFeeThanAmount: bool): Async<Uri> =
         async {
             let currency = trans.TransactionInfo.Proposal.Amount.Currency
 
             let! txId =
                 if currency.IsEtherBased() then
-                    Ether.Account.BroadcastTransaction trans
+                    Ether.Account.BroadcastTransaction trans ignoreHigherMinerFeeThanAmount
                 elif currency.IsUtxo() then
-                    UtxoCoin.Account.BroadcastTransaction currency trans
+                    UtxoCoin.Account.BroadcastTransaction currency trans ignoreHigherMinerFeeThanAmount
                 else
                     failwith <| SPrintF1 "Unknown currency %A" currency
 
@@ -313,14 +313,15 @@ module Account =
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
                            (destination: IAccount)
-                           (txMetadata: IBlockchainFeeInfo) =
+                           (txMetadata: IBlockchainFeeInfo)
+                           (ignoreHigherMinerFeeThanAmount: bool) =
         match txMetadata with
         | :? Ether.TransactionMetadata as etherTxMetadata ->
-            Ether.Account.SweepArchivedFunds account balance destination etherTxMetadata
+            Ether.Account.SweepArchivedFunds account balance destination etherTxMetadata ignoreHigherMinerFeeThanAmount
         | :? UtxoCoin.TransactionMetadata as utxoTxMetadata ->
             match account with
             | :? UtxoCoin.ArchivedUtxoAccount as utxoAccount ->
-                UtxoCoin.Account.SweepArchivedFunds utxoAccount balance destination utxoTxMetadata
+                UtxoCoin.Account.SweepArchivedFunds utxoAccount balance destination utxoTxMetadata ignoreHigherMinerFeeThanAmount
             | _ ->
                 failwith "If tx metadata is UTXO type, archived account should be too"
         | _ -> failwith "tx metadata type unknown"
@@ -330,6 +331,7 @@ module Account =
                     (destination: string)
                     (amount: TransferAmount)
                     (password: string)
+                    (ignoreHigherMinerFeeThanAmount: bool)
                         : Async<Uri> =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
@@ -348,14 +350,14 @@ module Account =
                                              currency
                     match account with
                     | :? UtxoCoin.NormalUtxoAccount as utxoAccount ->
-                        UtxoCoin.Account.SendPayment utxoAccount btcTxMetadata destination amount password
+                        UtxoCoin.Account.SendPayment utxoAccount btcTxMetadata destination amount password ignoreHigherMinerFeeThanAmount
                     | _ ->
                         failwith "Account not Utxo-type but tx metadata is? report this bug (sendpayment)"
 
                 | :? Ether.TransactionMetadata as etherTxMetadata ->
                     if not (currency.IsEtherBased()) then
                         failwith "Account not ether-type but tx metadata is? report this bug (sendpayment)"
-                    Ether.Account.SendPayment account etherTxMetadata destination amount password
+                    Ether.Account.SendPayment account etherTxMetadata destination amount password ignoreHigherMinerFeeThanAmount
                 | _ ->
                     failwith "Unknown tx metadata type"
 
