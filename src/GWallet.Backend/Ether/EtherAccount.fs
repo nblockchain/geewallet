@@ -182,8 +182,16 @@ module internal Account =
                                                        0.01m
 
         let feeValue = maybeBetterFee.CalculateAbsoluteValue()
-        if (amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&
-            feeValue > (amount.BalanceAtTheMomentOfSending - amount.ValueToSend)) then
+
+        let isSweepAndBalanceIsLessThanFee =
+            amount.ValueToSend = amount.BalanceAtTheMomentOfSending &&
+            amount.BalanceAtTheMomentOfSending < feeValue
+
+        let isNotSweepAndBalanceIsNotSufficient =
+            amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&
+            feeValue > amount.BalanceAtTheMomentOfSending - amount.ValueToSend
+
+        if isSweepAndBalanceIsLessThanFee || isNotSweepAndBalanceIsNotSufficient then
             raise <| InsufficientBalanceForFee (Some feeValue)
 
         return { Ether.Fee = maybeBetterFee; Ether.TransactionCount = txCount }
