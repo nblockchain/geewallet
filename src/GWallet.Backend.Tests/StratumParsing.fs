@@ -42,3 +42,12 @@ type StratumParsing() =
             |> ignore<BlockchainScriptHashGetBalanceResult>
         )
         Assert.That(ex.ErrorCode, Is.EqualTo(-32603))
+    
+    [<Test>]
+    member __.``can deserialize error result with string error``() =
+        Assert.Throws<ElectrumServerReturningErrorInJsonResponseException> (
+            fun () ->
+                StratumClient.Deserialize<BlockchainTransactionGetResult> """{"error":"bad tx_hash","id":0,"jsonrpc":"2.0"}"""
+                |> ignore
+            )
+        |> ignore
