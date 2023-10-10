@@ -3,7 +3,7 @@
 SET VS_ROOT=%ProgramFiles%\Microsoft Visual Studio\2022
 SET VS_ROOT_OLD=%ProgramFiles(x86)%\Microsoft Visual Studio\2019
 
-SET ENTERPRISE="%VS_ROOT%\Community\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsi.exe"
+SET ENTERPRISE="%VS_ROOT%\Enterprise\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsi.exe"
 SET ENTERPRISE_OLD="%VS_ROOT_OLD%\Enterprise\Common7\IDE\CommonExtensions\Microsoft\FSharp\Tools\fsi.exe"
 SET ENTERPRISE_OLD_OLD="%VS_ROOT_OLD%\Enterprise\Common7\IDE\CommonExtensions\Microsoft\FSharp\fsi.exe"
 
