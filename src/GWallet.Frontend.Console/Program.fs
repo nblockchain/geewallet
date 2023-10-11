@@ -6,14 +6,31 @@ open System.Text.RegularExpressions
 open GWallet.Backend
 open GWallet.Frontend.Console
 
+let SendWithMinerFeeValidation (sendPaymentFunc: bool -> unit) =
+    try
+        sendPaymentFunc false
+
+        UserInteraction.PressAnyKeyToContinue ()
+    with
+    | :? MinerFeeHigherThanOutputs ->
+        let userWantsToContinue =
+            UserInteraction.AskYesNo "Miner fee is higher than amount transferred, are you ABSOLUTELY sure you want to broadcast?"
+        if userWantsToContinue then
+            sendPaymentFunc true
+
+        UserInteraction.PressAnyKeyToContinue ()
+
 let rec TrySendAmount (account: NormalAccount) transactionMetadata destination amount =
     let password = UserInteraction.AskPassword false
-    try
+
+    let sendPayment ignoreHigherMinerFeeThanAmount =
         let txIdUri =
-            Account.SendPayment account transactionMetadata destination amount password
+            Account.SendPayment account transactionMetadata destination amount password ignoreHigherMinerFeeThanAmount
                 |> Async.RunSynchronously
         Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
-        UserInteraction.PressAnyKeyToContinue ()
+
+    try
+        SendWithMinerFeeValidation sendPayment
     with
     | :? DestinationEqualToOrigin ->
         Presentation.Error "Transaction's origin cannot be the same as the destination."
@@ -69,11 +86,13 @@ let BroadcastPayment() =
 
         if UserInteraction.AskYesNo "Do you accept?" then
             try
-                let txIdUri =
-                    Account.BroadcastTransaction signedTransaction
-                        |> Async.RunSynchronously
-                Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
-                UserInteraction.PressAnyKeyToContinue ()
+                let broadcastTx ignoreHigherMinerFeeThanAmount =
+                    let txIdUri =
+                        Account.BroadcastTransaction signedTransaction ignoreHigherMinerFeeThanAmount
+                            |> Async.RunSynchronously
+                    Console.WriteLine(sprintf "Transaction successful:%s%s" Environment.NewLine (txIdUri.ToString()))
+
+                SendWithMinerFeeValidation broadcastTx
             with
             | :? DestinationEqualToOrigin ->
                 Presentation.Error "Transaction's origin cannot be the same as the destination."
@@ -412,11 +431,13 @@ let rec CheckArchivedAccountsAreEmpty(): bool =
         match maybeFee with
         | None -> ()
         | Some(feeInfo) ->
-            let txId =
-                Account.SweepArchivedFunds archivedAccount balance account feeInfo
-                    |> Async.RunSynchronously
-            Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
-            UserInteraction.PressAnyKeyToContinue ()
+            let sweepFunds ignoreHigherMinerFeeThanAmount =
+                let txId =
+                    Account.SweepArchivedFunds archivedAccount balance account feeInfo ignoreHigherMinerFeeThanAmount
+                        |> Async.RunSynchronously
+                Console.WriteLine(sprintf "Transaction successful, its ID is:%s%s" Environment.NewLine txId)
+
+            SendWithMinerFeeValidation sweepFunds
 
     not (archivedAccountsInNeedOfAction.Any())
 
