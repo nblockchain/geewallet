@@ -76,16 +76,16 @@ type Serialization() =
 
     [<Test>]
     member __.``signed SAI transaction export``() =
-        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedSaiTransactionExample
+        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedDaiTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json|> MarshallingData.Sanitize,
-                    Is.EqualTo MarshallingData.SignedSaiTransactionExampleInJson)
+                    Is.EqualTo MarshallingData.SignedDaiTransactionExampleInJson)
 
     [<Test>]
     member __.``can serialize exceptions``() =
-        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedSaiTransactionExample
+        let json = Account.ExportUnsignedTransactionToJson MarshallingData.SignedDaiTransactionExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
         Assert.That(json|> MarshallingData.Sanitize,
-                    Is.EqualTo MarshallingData.SignedSaiTransactionExampleInJson)
+                    Is.EqualTo MarshallingData.SignedDaiTransactionExampleInJson)

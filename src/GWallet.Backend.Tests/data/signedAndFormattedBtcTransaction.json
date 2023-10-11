@@ -1,66 +1,13 @@
 {
   "Version": "{version}",
-  "TypeName": "GWallet.Backend.SignedTransaction`1[[GWallet.Backend.UtxoCoin.TransactionMetadata, GWallet.Backend, Version={version}, Culture=neutral, PublicKeyToken=null]]",
+  "TypeName": "GWallet.Backend.SignedTransaction",
   "Value": {
-    "TransactionInfo": {
-      "Proposal": {
-        "OriginAddress": "16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR",
-        "Amount": {
-          "ValueToSend": 10.01,
-          "BalanceAtTheMomentOfSending": 12.02,
-          "Currency": {
-            "Case": "BTC"
-          }
-        },
-        "DestinationAddress": "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5"
-      },
-      "Metadata": {
-        "Fee": {
-          "EstimatedFeeInSatoshis": 10,
-          "EstimationTime": "2018-06-14T16:50:09.133411Z",
-          "Currency": {
-            "Case": "BTC"
-          }
-        },
-        "Inputs": [
-          {
-            "TransactionHash": "4d129e98d87fab00a99ebc88688752b588ec7d38c2ba5dc86d3563a6bc4c691f",
-            "OutputIndex": 1,
-            "ValueInSatoshis": 1000,
-            "DestinationInHex": "a9145131075257d8b8de8298e7c52891eb4b87823b9387"
-          }
-        ]
-      },
-      "Cache": {
-        "UsdPrice": {
-          "BTC": 9156.19,
-          "ETC": 19.8644,
-          "ETH": 691.52,
-          "LTC": 173.592,
-          "SAI": 1.00376
-        },
-        "Addresses": {
-          "0xba766d6d13E2Cc921Bf6e896319D32502af9e37E": [
-            "ETH",
-            "SAI",
-            "ETC"
-          ],
-          "3Buz1evVsQeHtDfQAmwfAKQsUzAt3f4TuR": [
-            "BTC"
-          ],
-          "MJ88KYLTpXVigiwJGevzyxfGogmKx7WiWm": [
-            "LTC"
-          ]
-        },
-        "Balances": {
-          "BTC": 0.0,
-          "ETC": 8.0,
-          "ETH": 7.08,
-          "LTC": 0.0,
-          "SAI": 1.0
-        }
-      }
+    "FeeCurrency": {
+      "Case": "BTC"
     },
-    "RawTransaction": "0200000000010111b6e0460bb810b05744f8d38262f95fbab02b168b070598a6f31fad438fced4000000001716001427c106013c0042da165c082b3870c31fb3ab4683feffffff0200ca9a3b0000000017a914d8b6fcc85a383261df05423ddf068a8987bf0287873067a3fa0100000017a914d5df0b9ca6c0e1ba60a9ff29359d2600d9c6659d870247304402203b85cb05b43cc68df72e2e54c6cb508aa324a5de0c53f1bbfe997cbd7509774d022041e1b1823bdaddcd6581d7cde6e6a4c4dbef483e42e59e04dbacbaf537c3e3e8012103fbbdb3b3fc3abbbd983b20a557445fb041d6f21cc5977d2121971cb1ce5298978c000000"
+    "Currency": {
+      "Case": "BTC"
+    },
+    "RawTransaction": "01000000000102cd9e4c06746721fe5d0ecdeabe29a0f05cc22bd7013ff76132efe476d9346bdc0000000017160014618869483590d6c1afe51160f244982e055d213ffdffffffef2763e4690975dc9415d36c06361ddee8393e6d9d86edd748ca21f10788fbc30100000017160014618869483590d6c1afe51160f244982e055d213ffdffffff01ba89000000000000220020574712746ca1942b8f0e3d52e4c1fd9406c3e1b602b328a2a77a57c233fed4640247304402206e9359074007c597a8243d4e5bbfb18ccfd83c0206fcbd1fafc02eb4946852f90220566e0d719b48d11f193d5d6d80eccbaaf44ee1771bf9ea7fd3810d41c5cb429f012102b7326aff8f2e56a341c31fbf50d0ce1a641859d837daffd7bf03f1f80a8c5eaa0247304402202fdbb2ea123c1150b26835ecd54cd59a22bca6a47f32167b35f355fbfcc12d22022011b8314e51b229d6d5a5ee216c9e038b5e05d1b5123485b935a1f823f2bf2279012102b7326aff8f2e56a341c31fbf50d0ce1a641859d837daffd7bf03f1f80a8c5eaa00000000"
   }
 }

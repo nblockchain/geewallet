@@ -1,49 +1,13 @@
 {
   "Version": "{version}",
-  "TypeName": "GWallet.Backend.SignedTransaction`1[[GWallet.Backend.Ether.TransactionMetadata, GWallet.Backend, Version={version}, Culture=neutral, PublicKeyToken=null]]",
+  "TypeName": "GWallet.Backend.SignedTransaction",
   "Value": {
-    "TransactionInfo": {
-      "Proposal": {
-        "OriginAddress": "0xf3j4m0rjx94sushh03j",
-        "Amount": {
-          "ValueToSend": 10.01,
-          "BalanceAtTheMomentOfSending": 12.02,
-          "Currency": {
-            "Case": "ETC"
-          }
-        },
-        "DestinationAddress": "0xf3j4m0rjxdddud9403j"
-      },
-      "Metadata": {
-        "Fee": {
-          "GasLimit": 21000,
-          "GasPriceInWei": 6969,
-          "Currency": {
-            "Case": "ETC"
-          },
-          "EstimationTime": "2018-06-14T16:50:09.133411Z"
-        },
-        "TransactionCount": 69
-      },
-      "Cache": {
-        "UsdPrice": {
-          "ETC": 169.99999999,
-          "ETH": 161.796
-        },
-        "Addresses": {
-          "0xFOOBARBAZ": [
-            "ETC"
-          ],
-          "1fooBarBaz": [
-            "BTC"
-          ]
-        },
-        "Balances": {
-          "BTC": 0.0,
-          "ETC": 123456789.12345678
-        }
-      }
+    "FeeCurrency": {
+      "Case": "ETH"
     },
-    "RawTransaction": "doijfsoifjdosisdjfomirmjosmi"
+    "Currency": {
+      "Case": "ETH"
+    },
+    "RawTransaction": "f86b0185019d334a3482520894d2fdfa29d5ccbb8168ba248d59ded7a25396f84e87022a8ad81f98768026a06bb7c1f8f2b40ed2bc3a3b572cdde7fddb42a8d43c561c60580183b0ed8c2d9fa035183359feab8789642135a253371f80781f4a870f0cae8a7368c5d7e102a688"
   }
 }

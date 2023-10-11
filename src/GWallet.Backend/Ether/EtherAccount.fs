@@ -255,9 +255,9 @@ module internal Account =
             ValidateMinerFee trans
         Ether.Server.BroadcastTransaction currency ("0x" + trans)
 
-    let BroadcastTransaction (trans: SignedTransaction<_>) =
+    let BroadcastTransaction (trans: SignedTransaction) =
         BroadcastRawTransaction
-            trans.TransactionInfo.Proposal.Amount.Currency
+            trans.Currency
             trans.RawTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
@@ -401,15 +401,19 @@ module internal Account =
                     (amount: TransferAmount)
                     (password: string)
                     (ignoreHigherMinerFeeThanAmount: bool) =
-        let baseAccount = account :> IAccount
-        if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
-            raise DestinationEqualToOrigin
+        async {
+            let baseAccount = account :> IAccount
+            if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
+                raise DestinationEqualToOrigin
 
-        let currency = baseAccount.Currency
+            let currency = baseAccount.Currency
 
-        let trans = SignTransaction account txMetadata destination amount password
+            let trans = SignTransaction account txMetadata destination amount password
 
-        BroadcastRawTransaction currency trans ignoreHigherMinerFeeThanAmount
+            let! txId = BroadcastRawTransaction currency trans ignoreHigherMinerFeeThanAmount
+
+            return txId, trans
+        }
 
     let private CreateInternal (password: string) (seed: array<byte>): FileRepresentation =
         let privateKey = EthECKey(seed, true)
@@ -449,42 +453,43 @@ module internal Account =
             }
         ExportUnsignedTransactionToJson unsignedTransaction
 
+    let GetTransactionFeeMetadata (signedTransaction: SignedTransaction): IBlockchainFeeInfo =
+        let intDecoder = IntTypeDecoder()
+        let parsedTx = TransactionFactory.CreateTransaction signedTransaction.RawTransaction :?> SignedLegacyTransaction
+        let gasLimitInWei = intDecoder.DecodeBigInteger parsedTx.GasLimit |> int64
+        let gasPriceInWei = intDecoder.DecodeBigInteger parsedTx.GasPrice |> int64
+        let nonce = intDecoder.DecodeBigInteger parsedTx.Nonce |> int64
 
-    let GetSignedTransactionDetails (signedTransaction: SignedTransaction<'T>): ITransactionDetails =
+        {
+            TransactionMetadata.Fee =
+                MinerFee(gasLimitInWei, gasPriceInWei, DateTime.Now, signedTransaction.FeeCurrency)
+            TransactionCount = nonce
+        } :> IBlockchainFeeInfo
 
-        match signedTransaction.TransactionInfo.Proposal.Amount.Currency with
-        | SAI | DAI ->
-            // FIXME: derive the transaction details from the raw transaction so that we can remove the proposal from
-            //        the SignedTransaction type (as it's redundant); and when we remove it, we can also rename
-            //        IBlockchainFeeInfo's Currency to "FeeCurrency", or change "Metadata" members whose type is
-            //        IBlockchainFeeInfo to have "fee" in the name too, otherwise is to easy to use ETH instead of DAI
-            signedTransaction.TransactionInfo.Proposal :> ITransactionDetails
+    let GetSignedTransactionDetails (signedTransaction: SignedTransaction): ITransactionDetails =
+        let getTransactionChainId (tx: SignedLegacyTransactionBase) =
+            // the chain id can be deconstructed like so -
+            //   https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
+            // into one of the following -
+            //   https://chainid.network/
+            // NOTE: according to the SO discussion, the following alrogithm is adequate -
+            // https://stackoverflow.com/questions/68023440/how-do-i-use-nethereum-to-extract-chain-id-from-a-raw-transaction
+            let v = IntTypeDecoder().DecodeBigInteger tx.Signature.V
+            let chainId = (v - BigInteger 35) / BigInteger 2
+            chainId
 
-        | _ ->
-            let getTransactionChainId (tx: SignedLegacyTransactionBase) =
-                // the chain id can be deconstructed like so -
-                //   https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
-                // into one of the following -
-                //   https://chainid.network/
-                // NOTE: according to the SO discussion, the following alrogithm is adequate -
-                // https://stackoverflow.com/questions/68023440/how-do-i-use-nethereum-to-extract-chain-id-from-a-raw-transaction
-                let v = IntTypeDecoder().DecodeBigInteger tx.Signature.V
-                let chainId = (v - BigInteger 35) / BigInteger 2
-                chainId
+        let getTransactionCurrency (tx: SignedLegacyTransactionBase) =
+            match int (getTransactionChainId tx) with
+            | chainId when chainId = int Config.EthNet -> ETH
+            | chainId when chainId = int Config.EtcNet -> ETC
+            | other -> failwith <| SPrintF1 "Could not infer currency from transaction where chainId = %i." other
 
-            let getTransactionCurrency (tx: SignedLegacyTransactionBase) =
-                match int (getTransactionChainId tx) with
-                | chainId when chainId = int Config.EthNet -> ETH
-                | chainId when chainId = int Config.EtcNet -> ETC
-                | other -> failwith <| SPrintF1 "Could not infer currency from transaction where chainId = %i." other
+        let tx = TransactionFactory.CreateTransaction signedTransaction.RawTransaction :?> SignedLegacyTransaction
 
-            let tx = TransactionFactory.CreateTransaction signedTransaction.RawTransaction :?> SignedLegacyTransaction
+        let destAddress = tx.ReceiveAddress.ConvertToEthereumChecksumAddress()
 
-            // HACK: I prefix 12 elements to the address due to AddressTypeDecoder expecting some sort of header...
-            let address = AddressTypeDecoder().Decode (Array.append (Array.zeroCreate 12) tx.ReceiveAddress)
-
-            let destAddress = address.ConvertToEthereumChecksumAddress() 
-
+        match TokenManager.TryGetCurrencyByContractAddress destAddress with
+        | None ->
             let txDetails =
                 {
                     OriginAddress = TransactionVerificationAndRecovery.GetSenderAddress signedTransaction.RawTransaction
@@ -493,3 +498,26 @@ module internal Account =
                     DestinationAddress = destAddress
                 }
             txDetails :> ITransactionDetails
+        | Some tokenCurrency ->
+            let tokenServiceWrapper =
+                TokenManager.OfflineTokenServiceWrapper tokenCurrency
+
+            let destinationAddress, amountInWei =
+                tokenServiceWrapper.DecodeInputDataForTransferTransaction tx.Data
+
+            let txDetails =
+                {
+                    OriginAddress = TransactionVerificationAndRecovery.GetSenderAddress signedTransaction.RawTransaction
+                    Amount = UnitConversion.Convert.FromWei amountInWei
+                    Currency = tokenCurrency
+                    DestinationAddress = destinationAddress
+                }
+            txDetails :> ITransactionDetails
+    let GetSignedTransactionProposal (signedTx: SignedTransaction): UnsignedTransactionProposal =
+        let txDetail = GetSignedTransactionDetails signedTx
+        {
+            UnsignedTransactionProposal.Amount =
+                TransferAmount(txDetail.Amount, txDetail.Amount, txDetail.Currency)
+            OriginAddress = txDetail.OriginAddress
+            DestinationAddress = txDetail.DestinationAddress
+        }

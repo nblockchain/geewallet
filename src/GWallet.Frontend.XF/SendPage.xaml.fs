@@ -25,7 +25,7 @@ type TransactionProposal<'T when 'T :> IBlockchainFeeInfo> =
     // cold wallet about to scan proposal from hot wallet:
     | ColdStorageMode of Option<UnsignedTransaction<'T>>
     // hot wallet about to broadcast transaction of ReadOnly account:
-    | ColdStorageRemoteControl of Option<SignedTransaction<'T>>
+    | ColdStorageRemoteControl of Option<SignedTransaction>
 
 type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Page) as self =
     inherit ContentPage()
@@ -439,15 +439,16 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         passwordEntry.Focus() |> ignore
                     )
             | Some (Signed signedTransaction) ->
-                if account.Currency <> signedTransaction.TransactionInfo.Proposal.Amount.Currency then
+                let proposal = Account.GetTransactionProposal signedTransaction
+                if account.Currency <> proposal.Amount.Currency then
                     MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err =
                             SPrintF2 "Transaction's currency (%A) doesn't match with this currency's account (%A)"
-                                    signedTransaction.TransactionInfo.Proposal.Amount.Currency account.Currency
+                                    proposal.Amount.Currency account.Currency
                         self.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     )
-                elif account.PublicAddress <> signedTransaction.TransactionInfo.Proposal.OriginAddress then
+                elif account.PublicAddress <> proposal.OriginAddress then
                     MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err = "Transaction's sender address doesn't match with this currency's account"
@@ -612,7 +613,12 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         match maybeRawTransaction with
         | None -> ()
         | Some rawTransaction ->
-            let signedTransaction = { TransactionInfo = unsignedTransaction; RawTransaction = rawTransaction }
+            let signedTransaction =
+                {
+                    Currency = unsignedTransaction.Proposal.Amount.Currency
+                    FeeCurrency = unsignedTransaction.Metadata.Currency
+                    RawTransaction = rawTransaction
+                }
             let compressedTransaction = Account.SerializeSignedTransaction signedTransaction true
             let pairSignedTransactionPage () =
                 PairingFromPage(self, "Copy signed transaction to the clipboard", compressedTransaction, None)
