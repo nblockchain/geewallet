@@ -194,13 +194,32 @@ module Account =
             | _ ->
                 ()
         }
+        
+    let GetTransactionProposal (signedTransaction: SignedTransaction) =
+        if signedTransaction.Currency.IsUtxo() then
+            UtxoCoin.Account.GetSignedTransactionProposal signedTransaction
+        elif signedTransaction.Currency.IsEtherBased() then
+            Ether.Account.GetSignedTransactionProposal signedTransaction
+        else
+            failwith "Unknown currency type for parsing proposal from raw transaction"
 
+    let GetTransactionMetadata (signedTransaction: SignedTransaction) =
+        if signedTransaction.Currency.IsUtxo() then
+            UtxoCoin.Account.GetTransactionFeeMetadata signedTransaction
+        elif signedTransaction.Currency.IsEtherBased() then
+            async {
+                return Ether.Account.GetTransactionFeeMetadata signedTransaction
+            }
+        else
+            failwith "Unknown currency type for parsing metadata from raw transaction"
+
+        
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultTolerantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
     // broadcast it even if you sent it
-    let BroadcastTransaction (trans: SignedTransaction<_>) (ignoreHigherMinerFeeThanAmount: bool): Async<Uri> =
+    let BroadcastTransaction (trans: SignedTransaction) (ignoreHigherMinerFeeThanAmount: bool): Async<Uri> =
         async {
-            let currency = trans.TransactionInfo.Proposal.Amount.Currency
+            let currency = trans.Currency
 
             let! txId =
                 if currency.IsEtherBased() then
@@ -210,9 +229,11 @@ module Account =
                 else
                     failwith <| SPrintF1 "Unknown currency %A" currency
 
-            do! CheckIfOutOfGas trans.TransactionInfo.Metadata txId
+            let! txMetadata = GetTransactionMetadata trans
+            
+            do! CheckIfOutOfGas txMetadata txId
 
-            SaveOutgoingTransactionInCache trans.TransactionInfo.Proposal trans.TransactionInfo.Metadata txId
+            SaveOutgoingTransactionInCache (GetTransactionProposal trans) txMetadata txId
 
             let uri = BlockExplorer.GetTransaction currency txId
             return uri
@@ -369,7 +390,7 @@ module Account =
         async {
             do! ValidateAddress currency destination
 
-            let! txId =
+            let! txId, txRawTransaction =
                 match txMetadata with
                 | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
                     if not (currency.IsUtxo()) then
@@ -388,6 +409,15 @@ module Account =
                 | _ ->
                     failwith "Unknown tx metadata type"
 
+            let signedTransaction =
+                {
+                    SignedTransaction.FeeCurrency = txMetadata.Currency
+                    Currency = currency
+                    RawTransaction = txRawTransaction 
+                }
+            
+            let! txMetadata = GetTransactionMetadata signedTransaction
+            
             do! CheckIfOutOfGas txMetadata txId
 
             let transactionProposal =
@@ -412,40 +442,17 @@ module Account =
                                  unsignedTrans.Metadata
                                  password
 
-        { TransactionInfo = unsignedTrans; RawTransaction = rawTransaction }
+        {
+            FeeCurrency = unsignedTrans.Metadata.Currency
+            Currency = unsignedTrans.Proposal.Amount.Currency
+            RawTransaction = rawTransaction
+        }
 
-    let public ExportSignedTransaction (trans: SignedTransaction<_>) =
+    let public ExportSignedTransaction (trans: SignedTransaction) =
         Marshalling.Serialize trans
 
-    let SaveSignedTransaction (trans: SignedTransaction<_>) (filePath: string) =
-
-        let json =
-            match trans.TransactionInfo.Metadata.GetType() with
-            | t when t = typeof<Ether.TransactionMetadata> ->
-                let unsignedEthTx = {
-                    Metadata = box trans.TransactionInfo.Metadata :?> Ether.TransactionMetadata;
-                    Proposal = trans.TransactionInfo.Proposal;
-                    Cache = trans.TransactionInfo.Cache;
-                }
-                let signedEthTx = {
-                    TransactionInfo = unsignedEthTx;
-                    RawTransaction = trans.RawTransaction;
-                }
-                ExportSignedTransaction signedEthTx
-            | t when t = typeof<UtxoCoin.TransactionMetadata> ->
-                let unsignedBtcTx = {
-                    Metadata = box trans.TransactionInfo.Metadata :?> UtxoCoin.TransactionMetadata;
-                    Proposal = trans.TransactionInfo.Proposal;
-                    Cache = trans.TransactionInfo.Cache;
-                }
-                let signedBtcTx = {
-                    TransactionInfo = unsignedBtcTx;
-                    RawTransaction = trans.RawTransaction;
-                }
-                ExportSignedTransaction signedBtcTx
-            | _ -> failwith "Unknown miner fee type"
-
-        File.WriteAllText(filePath, json)
+    let SaveSignedTransaction (trans: SignedTransaction) (filePath: string) =
+        File.WriteAllText(filePath, ExportSignedTransaction trans)
 
     let CreateReadOnlyAccounts (watchWalletInfo: WatchWalletInfo): Async<unit> = async {
         for etherCurrency in Currency.GetAll().Where(fun currency -> currency.IsEtherBased()) do
@@ -631,23 +638,17 @@ module Account =
             let deserializedBtcTransaction: UnsignedTransaction<Ether.TransactionMetadata> =
                     Marshalling.Deserialize json
             deserializedBtcTransaction.ToAbstract()
-        | _ when transType.GetGenericTypeDefinition() = typedefof<SignedTransaction<_>> ->
+        | _ when transType.GetGenericTypeDefinition() = typedefof<SignedTransaction> ->
             raise TransactionAlreadySigned
         | unexpectedType ->
             raise <| Exception(SPrintF1 "Unknown unsignedTransaction subtype: %s" unexpectedType.FullName)
 
-    let public ImportSignedTransactionFromJson (json: string): SignedTransaction<IBlockchainFeeInfo> =
+    let public ImportSignedTransactionFromJson (json: string): SignedTransaction =
         let transType = Marshalling.ExtractType json
 
         match transType with
-        | _ when transType = typeof<SignedTransaction<UtxoCoin.TransactionMetadata>> ->
-            let deserializedBtcTransaction: SignedTransaction<UtxoCoin.TransactionMetadata> =
-                    Marshalling.Deserialize json
-            deserializedBtcTransaction.ToAbstract()
-        | _ when transType = typeof<SignedTransaction<Ether.TransactionMetadata>> ->
-            let deserializedBtcTransaction: SignedTransaction<Ether.TransactionMetadata> =
-                    Marshalling.Deserialize json
-            deserializedBtcTransaction.ToAbstract()
+        | _ when transType = typeof<SignedTransaction> ->
+            Marshalling.Deserialize json    
         | _ when transType.GetGenericTypeDefinition() = typedefof<UnsignedTransaction<_>> ->
             raise TransactionNotSignedYet
         | unexpectedType ->
@@ -663,16 +664,14 @@ module Account =
 
         ImportUnsignedTransactionFromJson unsignedTransInJson
 
-    let GetSignedTransactionDetails<'T when 'T :> IBlockchainFeeInfo> (signedTransaction: SignedTransaction<'T>)
+    let GetSignedTransactionDetails (signedTransaction: SignedTransaction)
                                                                           : ITransactionDetails =
-        let currency = signedTransaction.TransactionInfo.Proposal.Amount.Currency
+        let currency = signedTransaction.Currency
         if currency.IsUtxo () then
             UtxoCoin.Account.GetSignedTransactionDetails
-                signedTransaction.RawTransaction
-                currency
+                signedTransaction
         elif currency.IsEtherBased () then
             Ether.Account.GetSignedTransactionDetails
                 signedTransaction
         else
             failwith <| (SPrintF1 "Unknown currency: %A" currency)
-

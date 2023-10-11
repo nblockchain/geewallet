@@ -1,0 +1,13 @@
+﻿{
+  "Version": "{version}",
+  "TypeName": "GWallet.Backend.SignedTransaction",
+  "Value": {
+    "FeeCurrency": {
+      "Case": "ETH"
+    },
+    "Currency": {
+      "Case": "DAI"
+    },
+    "RawTransaction": "f8a90185016c653675828792946b175474e89094c44da98b954eedeac495271d0f80b844a9059cbb000000000000000000000000d2fdfa29d5ccbb8168ba248d59ded7a25396f84e0000000000000000000000000000000000000000000000000de0b6b3a764000026a0d5c49133f38f3b60aa41747a4b7cc300a6dac87803b82ba23af9a97fd5994c3ea03122864fd6b294a3da2f3827e70fa861838a168f6533e03587358a6bdc594235"
+  }
+}
