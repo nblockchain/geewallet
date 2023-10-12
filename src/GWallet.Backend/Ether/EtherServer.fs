@@ -340,11 +340,9 @@ module Server =
         | ServerSelectionMode.Fast -> 3u
         | ServerSelectionMode.Analysis -> 2u
 
-    let etcEcosystemIsMomentarilyCentralized = false
-
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
                                                          (mode: ServerSelectionMode)
-                                                         currency
+                                                         _currency
                                                          maybeConsistencyConfig =
 
         let consistencyConfig =
@@ -352,10 +350,7 @@ module Server =
             | None -> SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired
             | Some specificConsistencyConfig -> specificConsistencyConfig
 
-        let retries =
-            match currency with
-            | Currency.ETC when etcEcosystemIsMomentarilyCentralized -> Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS * 2u
-            | _ -> Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS
+        let retries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS
 
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
@@ -377,11 +372,7 @@ module Server =
         }
 
     let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode) (currency: Currency) =
-        let numberOfConsistentResponsesRequired =
-            if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
-                1u
-            else
-                2u
+        let numberOfConsistentResponsesRequired = 2u
         FaultTolerantParallelClientInnerSettings numberOfConsistentResponsesRequired
                                                  mode
                                                  currency
@@ -390,9 +381,7 @@ module Server =
                                                                    (currency: Currency)
                                                                    (cacheOrInitialBalanceMatchFunc: decimal->bool) =
         let consistencyConfig =
-            if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
-                None
-            elif mode = ServerSelectionMode.Fast then
+            if mode = ServerSelectionMode.Fast then
                 Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
             else
                 None
@@ -407,7 +396,7 @@ module Server =
 
     let Web3ServerToRetrievalFunc (server: ServerDetails)
                                   (web3ClientFunc: SomeWeb3->Async<'R>)
-                                  currency
+                                  _currency
                                       : Async<'R> =
 
         let HandlePossibleEtherFailures (job: Async<'R>): Async<'R> =
@@ -422,12 +411,7 @@ module Server =
                     return raise <| FSharpUtil.ReRaise ex
             }
 
-        let connectionTimeout =
-            match currency with
-            | Currency.ETC when etcEcosystemIsMomentarilyCentralized ->
-                Config.DEFAULT_NETWORK_TIMEOUT + Config.DEFAULT_NETWORK_TIMEOUT
-            | _ ->
-                Config.DEFAULT_NETWORK_TIMEOUT
+        let connectionTimeout = Config.DEFAULT_NETWORK_TIMEOUT
 
         async {
             let web3Server = Web3Server (connectionTimeout, server)
@@ -678,11 +662,7 @@ module Server =
                             return hexBigInteger
                         }
                 GetRandomizedFuncs currency web3Func
-            let minResponsesRequired =
-                if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
-                    1u
-                else
-                    2u
+            let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings
                             ServerSelectionMode.Fast
