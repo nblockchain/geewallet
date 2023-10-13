@@ -133,7 +133,5 @@ echo " done"
 $SUDO docker exec $CONTNAME snap install core || clean_up
 echo "container $CONTNAME started ..."
 
-$SUDO docker exec $CONTNAME scripts/install_mono_from_microsoft_deb_packages.sh
-
 print_info
 rm_builddir

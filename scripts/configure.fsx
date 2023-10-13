@@ -19,120 +19,141 @@ open Fsdk.Process
 open GWallet.Scripting
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+let stableVersionOfMono = Version("6.6")
 
-let initialConfigFile, buildTool, areGtkLibsAbsentOrDoesNotApply =
+let buildTool, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply =
+
+    let dotnetCmd = Process.ConfigCommandCheck ["dotnet"] false true
+
     match Misc.GuessPlatform() with
     | Misc.Platform.Windows ->
-        let buildTool=
-            match Process.ConfigCommandCheck ["dotnet"] false true with
-            | Some _ -> "dotnet"
+        let msbuildCmd =
+            Console.Write "checking for msbuild... "
+            match Process.VsWhere "MSBuild\\**\\Bin\\MSBuild.exe" with
             | None ->
-                Console.Write "checking for msbuild... "
-                match Process.VsWhere "MSBuild\\**\\Bin\\MSBuild.exe" with
-                | None ->
-                    Console.WriteLine "not found"
-                    Console.Out.Flush()
-                    Console.Error.WriteLine "Error, please install 'dotnet' aka .NET (6.0 or newer), and/or .NETFramework 4.x ('msbuild')"
-                    Environment.Exit 1
-                    failwith "Unreachable"
-                | Some msbuildPath ->
-                    Console.WriteLine "found"
-                    msbuildPath
+                Console.WriteLine "not found"
+                None
+            | Some msbuildPath ->
+                Console.WriteLine "found"
+                Some msbuildPath
 
-        Map.empty, buildTool, true
+        dotnetCmd, msbuildCmd, true
     | platform (* Unix *) ->
 
         Process.ConfigCommandCheck ["make"] true true |> ignore
 
-        match Process.ConfigCommandCheck ["dotnet"] false true with
-        | Some _ -> Map.empty, "dotnet", true
+        match Process.ConfigCommandCheck ["mono"] false true with
         | None ->
+            dotnetCmd, None, true
+        | Some _ ->
 
-            Process.ConfigCommandCheck ["mono"] true true |> ignore
-            Process.ConfigCommandCheck ["fsharpc"] true true |> ignore
+            match Process.ConfigCommandCheck ["fsharpc"] false true with
+            | None ->
+                dotnetCmd, None, true
+            | Some _ ->
 
-            // needed by NuGet.Restore.targets & the "update-servers" Makefile target
-            Process.ConfigCommandCheck ["curl"] true true
-                |> ignore
+                if platform = Misc.Platform.Mac then
+                    let msBuildOrXBuild = Process.ConfigCommandCheck [ "msbuild"; "xbuild" ] false true
+                    dotnetCmd, msBuildOrXBuild, true
+                else
 
-            if platform = Misc.Platform.Mac then
-                match Process.ConfigCommandCheck [ "msbuild"; "xbuild" ] true true with
-                | Some theBuildTool -> Map.empty, theBuildTool, true
-                | _ -> failwith "unreachable"
-            else
-                let buildTool =
-                    // yes, msbuild tests for the existence of this file path below (a folder named xbuild, not msbuild),
-                    // because $MSBuildExtensionsPath32 evaluates to /usr/lib/mono/xbuild (for historical reasons)
-                    if File.Exists "/usr/lib/mono/xbuild/Microsoft/VisualStudio/v16.0/FSharp/Microsoft.FSharp.Targets" then
-                        match Process.ConfigCommandCheck [ "msbuild"; "xbuild" ] true true with
-                        | Some theBuildTool -> theBuildTool
-                        | _ -> failwith "unreachable"
-                    else
-                        // if the above file doesn't exist, even though F# is installed (because we already checked for 'fsharpc'),
-                        // the version installed is too old, and doesn't work with msbuild, so it's better to use xbuild
-                        match Process.ConfigCommandCheck [ "xbuild" ] false true with
-                        | None ->
-                            Console.Error.WriteLine "An alternative to installing mono-xbuild is upgrading your F# installtion to v5.0"
-                            Environment.Exit 1
-                            failwith "unreachable"
-                        | Some xbuildCmd -> xbuildCmd
+                    let pkgConfig = "pkg-config"
 
-                let pkgConfig = "pkg-config"
-                Process.ConfigCommandCheck [pkgConfig] true true |> ignore
+                    match Process.ConfigCommandCheck [ pkgConfig ] false true with
+                    | None -> dotnetCmd, None, true
+                    | Some _ ->
 
-                let pkgName = "mono"
-                let stableVersionOfMono = Version("6.6")
-                Console.Write (sprintf "checking for %s v%s... " pkgName (stableVersionOfMono.ToString()))
+                        // yes, msbuild tests for the existence of this file path below (a folder named xbuild, not msbuild),
+                        // because $MSBuildExtensionsPath32 evaluates to /usr/lib/mono/xbuild (for historical reasons)
+                        let fsharpTargetsFileExists =
+                            File.Exists
+                                "/usr/lib/mono/xbuild/Microsoft/VisualStudio/v16.0/FSharp/Microsoft.FSharp.Targets"
 
-                let pkgConfigCmd = { Command = pkgConfig
-                                     Arguments = sprintf "--modversion %s" pkgName }
-                let processResult = Process.Execute(pkgConfigCmd, Echo.Off)
-                let monoVersion =
-                    processResult
-                        .Unwrap("Mono was found but not detected by pkg-config?")
-                        .Trim()
+                        if not fsharpTargetsFileExists then
+                            Console.Error.WriteLine
+                                "WARNING: old F# version found, only xbuild can work with it (not msbuild, even if installed)"
 
-                let currentMonoVersion = Version(monoVersion)
+                            Console.Error.WriteLine
+                                "NOTE: an alternative to installing 'mono-xbuild' pkg is upgrading your F# installtion to v5.0"
 
-                // NOTE: see what 1 means here: https://learn.microsoft.com/en-us/dotnet/api/system.version.compareto?view=netframework-4.7
-                if 1 = stableVersionOfMono.CompareTo currentMonoVersion then
-                    Console.WriteLine "not found"
-                    Console.Error.WriteLine (sprintf "configure: error, package requirements not met:")
-                    Console.Error.WriteLine (sprintf "Please upgrade %s version from %s to (at least) %s"
-                                                        pkgName
-                                                        (currentMonoVersion.ToString())
-                                                        (stableVersionOfMono.ToString()))
-                    Environment.Exit 1
-                Console.WriteLine "found"
+                        let maybeXbuild = Process.ConfigCommandCheck [ "xbuild" ] false true
 
-                let areGtkLibsAbsentOrDoesNotApply =
-                    if buildTool <> "msbuild" then
-                        // because xbuild cannot build .NETStandard libs (and XF needs to be one)
-                        true
-                    else
-                        Console.Write "checking for GTK (libs)... "
-                        let gtkLibsPresent = FsxHelper.AreGtkLibsPresent Echo.Off
-                        if gtkLibsPresent then
-                            Console.WriteLine "found"
-                        else
+                        let maybeMsbuild =
+                            let msbuildCheck = Process.ConfigCommandCheck [ "msbuild" ] false true
+
+                            if fsharpTargetsFileExists then
+                                msbuildCheck
+                            else
+                                None
+
+                        let pkgName = "mono"
+                        Console.Write(sprintf "checking for %s v%s... " pkgName (stableVersionOfMono.ToString()))
+
+                        let pkgConfigCmd =
+                            { Command = pkgConfig
+                              Arguments = sprintf "--modversion %s" pkgName }
+
+                        let processResult = Process.Execute(pkgConfigCmd, Echo.Off)
+
+                        let monoVersion =
+                            processResult
+                                .Unwrap("Mono was found but not detected by pkg-config?")
+                                .Trim()
+
+                        let currentMonoVersion = Version(monoVersion)
+
+                        // NOTE: see what 1 means here: https://learn.microsoft.com/en-us/dotnet/api/system.version.compareto?view=netframework-4.7
+                        if 1 = stableVersionOfMono.CompareTo currentMonoVersion then
                             Console.WriteLine "not found"
-                        not gtkLibsPresent
+                            dotnetCmd, None, true
+                        else
+                            Console.WriteLine "found"
 
-                // NOTE: this config entry is actually not being used at the moment by make.fsx,
-                // but kept, like this, in case we need to use it in the future
-                // (it can be retrieved with `let monoVersion = Map.tryFind "MonoPkgConfigVersion" buildConfigContents`)
-                Map.empty.Add("MonoPkgConfigVersion", monoVersion), buildTool, areGtkLibsAbsentOrDoesNotApply
+                            let areGtkLibsAbsentOrDoesNotApply =
+                                match dotnetCmd, maybeMsbuild, maybeXbuild with
+                                | None, None, None ->
+                                    // well, configure.fsx will not finish in this case anyway
+                                    true
+                                | Some _ , None, None ->
+                                    // xbuild or msbuild is needed to compile XF.Gtk project
+                                    true
+                                | None, None, _ ->
+                                    // xbuild alone cannot build .NETStandard2.0 libs (Backend and XF are)
+                                    true
+                                | _, _, _ ->
+                                    Console.Write "checking for GTK (libs)..."
+                                    let gtkLibsPresent = FsxHelper.AreGtkLibsPresent Echo.Off
 
-#if LEGACY_FRAMEWORK
-let targetsFileToExecuteNugetBeforeBuild = """<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildThisFileDirectory), NuGet.Restore.targets))\NuGet.Restore.targets"
-          Condition=" '$(NuGetRestoreImported)' != 'true' " />
-</Project>
-"""
-File.WriteAllText(Path.Combine(rootDir.FullName, "before.gwallet.core-legacy.sln.targets"),
-                  targetsFileToExecuteNugetBeforeBuild)
-#endif
+                                    if gtkLibsPresent then
+                                        Console.WriteLine "found"
+                                    else
+                                        Console.WriteLine "not found"
+
+                                    not gtkLibsPresent
+
+                            let legacyBuildTool =
+                                if maybeMsbuild.IsSome then
+                                    maybeMsbuild
+                                else
+                                    maybeXbuild
+
+                            dotnetCmd, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply
+
+if buildTool.IsNone && legacyBuildTool.IsNone then
+    Console.Out.Flush()
+    Console.Error.WriteLine "configure: error, package requirements not met:"
+
+    match Misc.GuessPlatform() with
+    | Misc.Platform.Windows ->
+        Console.Error.WriteLine "Please install 'dotnet' aka .NET (6.0 or newer), and/or .NETFramework 4.x ('msbuild')"
+    | _ ->
+        Console.Error.WriteLine (
+            sprintf
+                "Please install dotnet v6 (or newer), and/or Mono (msbuild or xbuild needed) v%s (or newer)"
+                (stableVersionOfMono.ToString())
+        )
+
+    Environment.Exit 1
 
 let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxOnlyArguments(), false, None))
 
@@ -166,13 +187,27 @@ let fsxRunner =
             fsxRunnerBinText
             buildConfigFile.Name
 
+let configFileToBeWritten =
+    let initialConfigFile = Map.empty.Add("Prefix", prefix.FullName)
+
+    let configFileStageTwo =
+        match legacyBuildTool with
+        | Some theTool -> initialConfigFile.Add("LegacyBuildTool", theTool)
+        | None -> initialConfigFile
+
+    let finalConfigFile =
+        match buildTool with
+        | Some theTool -> configFileStageTwo.Add("BuildTool", theTool)
+        | None -> configFileStageTwo
+
+    finalConfigFile
+
 let lines =
     let toConfigFileLine (keyValuePair: System.Collections.Generic.KeyValuePair<string,string>) =
         sprintf "%s=%s" keyValuePair.Key keyValuePair.Value
 
-    initialConfigFile.Add("Prefix", prefix.FullName)
-                     .Add("BuildTool", buildTool)
-    |> Seq.map toConfigFileLine
+    configFileToBeWritten |> Seq.map toConfigFileLine
+
 File.AppendAllLines(buildConfigFile.FullName, lines |> Array.ofSeq)
 
 let version = Misc.GetCurrentVersion(rootDir)
@@ -180,25 +215,11 @@ let version = Misc.GetCurrentVersion(rootDir)
 let repoInfo = Git.GetRepoInfo()
 
 let frontend =
-    match buildTool, Misc.GuessPlatform() with
-
-    // NOTE: 'dotnet build' cannot build Xamarin.Forms, and make.fsx doesn't support yet building
-    // with both dotnet & msbuild yet
-    | "dotnet", _ -> "Console"
-
-    // because xbuild cannot build .NETStandard projects (and Frontend.XF proj needs to be)
-    | _, Misc.Platform.Linux ->
-        if areGtkLibsAbsentOrDoesNotApply then
-            "Console"
-        else
-            "Xamarin.Forms"
-
-    // NOTE: even though Windows has msbuild too, its buildTool value contains full path so it won't
-    // match with the case below (and this is on purpose, since we don't build WinUI/UWP frontend yet)
-    | "msbuild", _ ->
+    if areGtkLibsAbsentOrDoesNotApply then
+        "Console"
+    else
         "Xamarin.Forms"
 
-    | _ -> "Console"
 
 Console.WriteLine()
 Console.WriteLine(sprintf
@@ -211,9 +232,15 @@ Console.WriteLine(sprintf
 Console.WriteLine(sprintf
                       "\t* F# script runner: %s"
                       fsxRunner)
-Console.WriteLine(sprintf
-                      "\t* .NET build tool: %s"
-                      (if buildTool = "dotnet" then "dotnet build" else buildTool))
+
+match buildTool with
+| Some _ -> Console.WriteLine "\t* Build tool: dotnet build"
+| None -> ()
+
+match legacyBuildTool with
+| Some cmd -> Console.WriteLine(sprintf "\t* Legacy build tool: %s" cmd)
+| None -> ()
+
 Console.WriteLine(sprintf
                       "\t* Frontend: %s"
                       frontend)

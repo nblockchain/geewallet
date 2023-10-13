@@ -218,7 +218,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo apt install -y libgtk2.0-cil-dev
+      run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
@@ -248,7 +248,11 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+      run: |
+        # needed by fsx submodule
+        sudo apt install --yes curl
+
+        sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -284,7 +288,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -326,7 +330,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -370,8 +374,9 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet6 mono-xbuild
-
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6 mono-xbuild fsharp
+    - name: install GTK libs (dependency of GTK frontend)
+      run: sudo apt install --yes libgtk2.0-cil-dev
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
@@ -412,7 +417,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -423,7 +428,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo apt install -y libgtk2.0-cil-dev
+      run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
@@ -477,7 +482,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo apt install -y libgtk2.0-cil-dev
+      run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
@@ -507,7 +512,11 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo apt install --yes git make curl fsharp nunit-console
+      run: |
+        # needed by fsx submodule
+        sudo apt install --yes curl
+
+        sudo apt install --yes git make fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -543,7 +552,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo apt install --yes git make curl fsharp nunit-console
+      run: sudo apt install --yes git make fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -554,7 +563,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo apt install -y libgtk2.0-cil-dev
+      run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
@@ -631,15 +640,14 @@ jobs:
     - name: Install snap tools
       run: |
         sudo apt update
-        sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
         ./scripts/install_snapcraft.sh
 
-    # hack to disable dotnet detection (can't use apt purge because github VM seems to have it installed in different way)
-    # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install dotnet pkg,
+    # hack to disable msbuild detection
+    # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
     #       but that doesn't work because we get the following error when trying to install snapcraft via `snap install --classic`:
     # > error: cannot communicate with server: Post "http://localhost/v2/snaps/snapcraft": dial unix /run/snapd.socket: connect: no such file or directory
-    - name: HACK to emulate dotnet uninstall
-      run: sudo rm `which dotnet`
+    - name: HACK to emulate msbuild uninstall
+      run: sudo rm `which msbuild`
 
     - name: Generate snap package
       run: |

@@ -1,0 +1,11 @@
+# NOTE: newer commits are above, older ones below
+
+# GitHubCI: cosmetic, use `--yes` instead of `-y`
+3e02b8291c7ae377222f67bb18a0f6222a74c46f
+
+# scripts/make.fsx: cosmetic, use longer flag name
+94aadcc339724f6528cba39e22581dc6fe16717b
+
+# scripts/make.fsx: cosmetic, use longer flag name
+ae83bae269359e9431ec670764d20e5bb452b15e
+

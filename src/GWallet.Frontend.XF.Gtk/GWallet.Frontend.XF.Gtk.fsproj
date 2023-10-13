@@ -224,6 +224,12 @@
     <Reference Include="Fsdk">
       <HintPath>..\..\packages\Fsdk.0.6.0--date20230530-1155.git-3bb8d08\lib\netstandard2.0\Fsdk.dll</HintPath>
     </Reference>
+    <Reference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'=='true'" Include="GWallet.Backend">
+      <HintPath>..\GWallet.Backend\bin\$(Configuration)\netstandard2.0\GWallet.Backend.dll</HintPath>
+    </Reference>
+    <Reference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'=='true'" Include="GWallet.Frontend.XF">
+      <HintPath>..\GWallet.Frontend.XF\bin\$(Configuration)\netstandard2.0\GWallet.Frontend.XF.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
@@ -240,11 +246,11 @@
       <Link>logo.png</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
+    <ProjectReference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'!='true'" Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
       <Project>{85236682-6463-4209-B66C-E0643EF12B46}</Project>
       <Name>GWallet.Frontend.XF</Name>
     </ProjectReference>
-    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
+    <ProjectReference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'!='true'" Include="..\GWallet.Backend\GWallet.Backend.fsproj">
       <Name>GWallet.Backend</Name>
     </ProjectReference>
     <None Include="webkit-sharp.dll.config" />
@@ -253,5 +259,5 @@
 
   <Target Name="AfterBuild">
   </Target>
-  <Import Project="..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets')" />
+  <Import Project="..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets" Condition="'$(TwoPhaseBuildDueToXBuildUsage)'!='true' AND Exists('..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets')" />
 </Project>

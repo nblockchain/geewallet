@@ -1,27 +1,17 @@
 
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend", "src\GWallet.Backend\GWallet.Backend.fsproj", "{949A9225-A1BE-4EDA-A1DA-04AC131CFE9B}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend", "GWallet.Backend\GWallet.Backend.fsproj", "{949A9225-A1BE-4EDA-A1DA-04AC131CFE9B}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF", "src\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj", "{2C7A1A49-CAD1-4961-866A-D32868AE7D18}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF", "GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj", "{2C7A1A49-CAD1-4961-866A-D32868AE7D18}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{3703CCD5-CB28-45FE-8FD5-BBE5DFF62706}"
-	ProjectSection(SolutionItems) = preProject
-		scripts\configure.fsx = scripts\configure.fsx
-		scripts\fsicheck.sh = scripts\fsicheck.sh
-		scripts\Infra.fs = scripts\Infra.fs
-		scripts\make.fsx = scripts\make.fsx
-		scripts\make.sh = scripts\make.sh
-		scripts\replace.fsx = scripts\replace.fsx
-	EndProjectSection
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.iOS", "GWallet.Frontend.XF.iOS\GWallet.Frontend.XF.iOS.fsproj", "{5DD656CE-3319-46BB-B47F-BBED8CC722FD}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.iOS", "src\GWallet.Frontend.XF.iOS\GWallet.Frontend.XF.iOS.fsproj", "{5DD656CE-3319-46BB-B47F-BBED8CC722FD}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.Android", "GWallet.Frontend.XF.Android\GWallet.Frontend.XF.Android.fsproj", "{24B7E0C6-9113-4430-8614-6E3AED7FE0C0}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.Android", "src\GWallet.Frontend.XF.Android\GWallet.Frontend.XF.Android.fsproj", "{24B7E0C6-9113-4430-8614-6E3AED7FE0C0}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Legacy", "GWallet.Backend\GWallet.Backend-legacy.fsproj", "{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Legacy", "src\GWallet.Backend\GWallet.Backend-legacy.fsproj", "{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}"
-EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests", "src\GWallet.Backend.Tests\GWallet.Backend.Tests-legacy.fsproj", "{F9448076-88BE-4045-8704-A652D133E036}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests", "GWallet.Backend.Tests\GWallet.Backend.Tests-legacy.fsproj", "{F9448076-88BE-4045-8704-A652D133E036}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
