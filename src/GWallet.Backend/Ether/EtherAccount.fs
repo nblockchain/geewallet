@@ -189,8 +189,16 @@ module internal Account =
                                                        initialEthMinerFee
 
         let feeValue = maybeBetterFee.CalculateAbsoluteValue()
-        if (amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&
-            feeValue > (amount.BalanceAtTheMomentOfSending - amount.ValueToSend)) then
+
+        let isSweepAndBalanceIsLessThanFee =
+            amount.ValueToSend = amount.BalanceAtTheMomentOfSending &&
+            amount.BalanceAtTheMomentOfSending < feeValue
+
+        let isNotSweepAndBalanceIsNotSufficient =
+            amount.ValueToSend <> amount.BalanceAtTheMomentOfSending &&
+            feeValue > amount.BalanceAtTheMomentOfSending - amount.ValueToSend
+
+        if isSweepAndBalanceIsLessThanFee || isNotSweepAndBalanceIsNotSufficient then
             raise <| InsufficientBalanceForFee (Some feeValue)
 
         return { Ether.Fee = maybeBetterFee; Ether.TransactionCount = txCount }
@@ -225,7 +233,25 @@ module internal Account =
             return failwith <| SPrintF1 "Assertion failed: currency %A should be Ether or Ether token" account.Currency
     }
 
-    let private BroadcastRawTransaction (currency: Currency) trans =
+    let private ValidateMinerFee (trans: string) =
+        let intDecoder = IntTypeDecoder()
+
+        let tx = TransactionFactory.CreateTransaction trans
+
+        let amountInWei = intDecoder.DecodeBigInteger tx.Value
+
+        // TODO: handle validating miner fee in token transfer (where amount is zero)
+        if amountInWei <> BigInteger.Zero then
+            let gasLimitInWei = intDecoder.DecodeBigInteger tx.GasLimit
+            let gasPriceInWei = intDecoder.DecodeBigInteger tx.GasPrice
+            let minerFeeInWei = gasLimitInWei * gasPriceInWei
+
+            if minerFeeInWei > amountInWei then
+                raise MinerFeeHigherThanOutputs
+
+    let private BroadcastRawTransaction (currency: Currency) trans (ignoreHigherMinerFeeThanAmount: bool) =
+        if not ignoreHigherMinerFeeThanAmount then
+            ValidateMinerFee trans
         Ether.Server.BroadcastTransaction currency ("0x" + trans)
 
     let BroadcastTransaction (trans: SignedTransaction<_>) =
@@ -360,19 +386,21 @@ module internal Account =
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)
                            (destination: IAccount)
-                           (txMetadata: TransactionMetadata) =
+                           (txMetadata: TransactionMetadata)
+                           (ignoreHigherMinerFeeThanAmount: bool) =
         let accountFrom = (account:>IAccount)
         let amount = TransferAmount(balance, balance, accountFrom.Currency)
         let ecPrivKey = EthECKey(account.GetUnencryptedPrivateKey())
         let signedTrans = SignTransactionWithPrivateKey
                               account txMetadata destination.PublicAddress amount ecPrivKey
-        BroadcastRawTransaction accountFrom.Currency signedTrans
+        BroadcastRawTransaction accountFrom.Currency signedTrans ignoreHigherMinerFeeThanAmount
 
     let SendPayment (account: NormalAccount)
                     (txMetadata: TransactionMetadata)
                     (destination: string)
                     (amount: TransferAmount)
-                    (password: string) =
+                    (password: string)
+                    (ignoreHigherMinerFeeThanAmount: bool) =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
@@ -381,7 +409,7 @@ module internal Account =
 
         let trans = SignTransaction account txMetadata destination amount password
 
-        BroadcastRawTransaction currency trans
+        BroadcastRawTransaction currency trans ignoreHigherMinerFeeThanAmount
 
     let private CreateInternal (password: string) (seed: array<byte>): FileRepresentation =
         let privateKey = EthECKey(seed, true)

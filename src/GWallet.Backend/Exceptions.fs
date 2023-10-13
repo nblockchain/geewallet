@@ -28,3 +28,4 @@ exception InvalidJson
 exception TransactionAlreadySigned
 exception TransactionNotSignedYet
 
+exception MinerFeeHigherThanOutputs

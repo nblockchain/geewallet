@@ -199,7 +199,7 @@ module UserInteraction =
                 | :? ReadOnlyAccount -> "(READ-ONLY)"
                 | _ -> String.Empty
 
-            let accountInfo = sprintf "Account %d: %s%sCurrency=[%A] Address=[%s]"
+            let accountInfo = sprintf "Account %d: %s%sCurrency=[ %A ] Address=[ %s ]"
                                     accountNumber maybeReadOnly Environment.NewLine
                                     account.Currency
                                     account.PublicAddress
@@ -209,13 +209,13 @@ module UserInteraction =
             | NotFresh(NotAvailable) ->
                 yield "Unknown balance (Network unreachable... off-line?)"
             | NotFresh(Cached(balance,time)) ->
-                let status = sprintf "Last known balance=[%s] (as of %s) %s"
+                let status = sprintf "Last known balance=[ %s ] (as of %s) %s"
                                     (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                                     (time |> Formatting.ShowSaneDate)
                                     (BalanceInUsdString balance maybeUsdValue)
                 yield status
             | Fresh(balance) ->
-                let status = sprintf "Balance=[%s] %s"
+                let status = sprintf "Balance=[ %s ] %s"
                                     (balance |> Formatting.DecimalAmountRounding CurrencyType.Crypto)
                                     (BalanceInUsdString balance maybeUsdValue)
                 yield status
