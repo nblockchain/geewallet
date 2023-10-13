@@ -47,6 +47,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     let lockObject = Object()
     let mutable transaction = NotAvailableBecauseOfHotMode
 
+    // TODO: this means MinerFeeHigherThanOutputs exception could be thrown (so, crash), handle it
+    let ignoreMinerFeeHigherThanOutputs = false
+
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     let destinationScanQrCodeButton = mainLayout.FindByName<Button> "destinationScanQrCodeButton"
     let transactionScanQrCodeButton = mainLayout.FindByName<Button> "transactionScanQrCodeButton"
@@ -259,6 +262,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                     transactionInfo.Destination
                                     transactionInfo.Amount
                                     password
+                                    ignoreMinerFeeHigherThanOutputs
                                         |> Async.RunSynchronously |> Some
             with
             | :? DestinationEqualToOrigin ->
@@ -726,7 +730,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         }
         async {
             try
-                let! _ = Account.BroadcastTransaction signedTransaction
+                let! _ = Account.BroadcastTransaction signedTransaction ignoreMinerFeeHigherThanOutputs
                 MainThread.BeginInvokeOnMainThread(fun _ ->
                     Async.StartImmediate afterSuccessfullBroadcastJob
                 )
