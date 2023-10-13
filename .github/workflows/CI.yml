@@ -218,7 +218,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo apt install -y libgtk2.0-cil-dev
+      run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
@@ -376,7 +376,7 @@ jobs:
     - name: install all dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6 mono-xbuild fsharp
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo apt install -y libgtk2.0-cil-dev
+      run: sudo apt install --yes libgtk2.0-cil-dev
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
@@ -428,7 +428,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo apt install -y libgtk2.0-cil-dev
+      run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
@@ -482,7 +482,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo apt install -y libgtk2.0-cil-dev
+      run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
@@ -563,7 +563,7 @@ jobs:
     - name: check mono version
       run: mono --version
     - name: install GTK libs (dependency of GTK frontend)
-      run: sudo apt install -y libgtk2.0-cil-dev
+      run: sudo apt install --yes libgtk2.0-cil-dev
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode (retry 3 times because of flakey XamForms restore)
