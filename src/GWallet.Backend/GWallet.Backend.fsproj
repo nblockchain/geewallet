@@ -6,9 +6,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Version>0.4.383.0</Version>
-    <AssemblyVersion>0.4.383.0</AssemblyVersion>
-    <FileVersion>0.4.383.0</FileVersion>
+    <Version>0.5.400.0</Version>
+    <AssemblyVersion>0.5.400.0</AssemblyVersion>
+    <FileVersion>0.5.400.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
