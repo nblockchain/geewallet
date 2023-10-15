@@ -105,14 +105,14 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = WelcomePage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime())
 
-    member this.OnNextButtonClicked(_sender: Object, _args: EventArgs) =
+    member self.OnNextButtonClicked(_sender: Object, _args: EventArgs) =
         let submit () =
             match VerifyPassphraseIsGoodAndSecureEnough() with
             | Some warning ->
                 async {
                     do!
                         (fun () ->
-                            this.DisplayAlert("Alert", warning, "OK")
+                            self.DisplayAlert("Alert", warning, "OK")
                         )
                         |> MainThread.InvokeOnMainThreadAsync
                         |> Async.AwaitTask
@@ -132,12 +132,12 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                     let welcomePage () =
                         WelcomePage2 (state, masterPrivKeyTask)
                             :> Page
-                    do! FrontendHelpers.SwitchToNewPageDiscardingCurrentOneAsync this welcomePage
+                    do! FrontendHelpers.SwitchToNewPageDiscardingCurrentOneAsync self welcomePage
                 }
 
         if dobDatePicker.Date.Date = middleDateEighteenYearsAgo.Date then
             let displayTask =
-                this.DisplayAlert("Alert", "The field for Date of Birth has not been set, are you sure?", "Yes, the date is correct", "Cancel")
+                self.DisplayAlert("Alert", "The field for Date of Birth has not been set, are you sure?", "Yes, the date is correct", "Cancel")
             async {
                 let! mainThreadSynchContext =
                     Async.AwaitTask <| MainThread.GetMainThreadSynchronizationContextAsync()
@@ -152,11 +152,11 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         else
             submit () |> FrontendHelpers.DoubleCheckCompletionAsync false
 
-    member private this.DisplayInfo() =
-        this.DisplayAlert("Info", "Please note that geewallet is a brain-wallet, which means that this personal information is not registered in any server or any location outside your device, not even saved in your device. It will just be combined and hashed to generate a unique secret which is called a 'private key' which will allow you to recover your funds if you install the application again (in this or other device) later. \r\n\r\n(If it is your first time using this wallet and just want to test it quickly without any funds or low amounts, you can just input any data that is long enough to be considered valid.)", "OK")
+    member private self.DisplayInfo() =
+        self.DisplayAlert("Info", "Please note that geewallet is a brain-wallet, which means that this personal information is not registered in any server or any location outside your device, not even saved in your device. It will just be combined and hashed to generate a unique secret which is called a 'private key' which will allow you to recover your funds if you install the application again (in this or other device) later. \r\n\r\n(If it is your first time using this wallet and just want to test it quickly without any funds or low amounts, you can just input any data that is long enough to be considered valid.)", "OK")
 
-    member this.OnMoreInfoButtonClicked(_sender: Object, _args: EventArgs) =
-        this.DisplayInfo
+    member self.OnMoreInfoButtonClicked(_sender: Object, _args: EventArgs) =
+        self.DisplayInfo
         |> MainThread.InvokeOnMainThreadAsync
         |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
@@ -165,12 +165,12 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         if isNull passphraseEntry.Text || passphraseEntry.Text.Trim().Length = 0 then
             passphraseEntry.Focus() |> ignore
 
-    member this.OnDobDateChanged (_sender: Object, _args: DateChangedEventArgs) =
+    member __.OnDobDateChanged (_sender: Object, _args: DateChangedEventArgs) =
         MaybeEnableNextButton ()
 
-    member this.OnEmailTextChanged(_sender: Object, _args: EventArgs) =
+    member __.OnEmailTextChanged(_sender: Object, _args: EventArgs) =
         MaybeEnableNextButton ()
 
-    member this.OnPassphraseTextChanged(_sender: Object, _args: EventArgs) =
+    member __.OnPassphraseTextChanged(_sender: Object, _args: EventArgs) =
         MaybeEnableNextButton ()
 

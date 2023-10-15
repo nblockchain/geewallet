@@ -5,8 +5,8 @@ open Xamarin.Forms
 type App() =
     inherit Application(MainPage = Initialization.LandingPage())
 
-    override this.OnSleep(): unit =
+    override __.OnSleep(): unit =
         Initialization.GlobalState.FireGoneToSleep()
 
-    override this.OnResume(): unit =
+    override __.OnResume(): unit =
         Initialization.GlobalState.FireResumed()

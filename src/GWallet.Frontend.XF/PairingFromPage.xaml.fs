@@ -11,19 +11,19 @@ open ZXing.Net.Mobile.Forms
 type PairingFromPage(previousPage: Page,
                      clipBoardButtonCaption: string,
                      qrCodeContents: string,
-                     nextButtonCaptionAndSendPage: Option<string*FrontendHelpers.IAugmentablePayPage>) as this =
+                     nextButtonCaptionAndSendPage: Option<string*FrontendHelpers.IAugmentablePayPage>) as self =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<PairingFromPage>)
 
     let mainLayout = base.FindByName<StackLayout>("mainLayout")
     do
-        this.Init()
+        self.Init()
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = PairingFromPage(DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
                             String.Empty,String.Empty,None)
 
-    member this.Init() =
+    member __.Init() =
 
         let clipBoardButton = mainLayout.FindByName<Button> "copyToClipboardButton"
         clipBoardButton.Text <- clipBoardButtonCaption
@@ -54,14 +54,14 @@ type PairingFromPage(previousPage: Page,
         mainLayout.Children.Add(backButton)
         //</workaround> (NOTE: this also exists in ReceivePage.xaml.fs)
 
-    member this.OnCopyToClipboardClicked(_sender: Object, _args: EventArgs) =
+    member __.OnCopyToClipboardClicked(_sender: Object, _args: EventArgs) =
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
         FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
 
         Clipboard.SetTextAsync qrCodeContents
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
-    member this.OnNextStepClicked(_sender: Object, _args: EventArgs) =
+    member __.OnNextStepClicked(_sender: Object, _args: EventArgs) =
         match nextButtonCaptionAndSendPage with
         | None ->
             failwith "if next step clicked, last param in ctor should have been Some"

@@ -7,17 +7,17 @@ type GlobalState() =
     let resumed = Event<unit>()
     let goneToSleep = Event<unit>()
 
-    member internal this.FireResumed() =
+    member internal __.FireResumed() =
         resumed.Trigger()
-    member internal this.FireGoneToSleep() =
+    member internal __.FireGoneToSleep() =
         goneToSleep.Trigger()
 
     interface FrontendHelpers.IGlobalAppState with
         [<CLIEvent>]
-        member this.Resumed
+        member __.Resumed
             with get() = resumed.Publish
         [<CLIEvent>]
-        member this.GoneToSleep
+        member __.GoneToSleep
             with get() = goneToSleep.Publish
 
 

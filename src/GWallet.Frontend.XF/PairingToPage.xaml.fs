@@ -39,7 +39,7 @@ type PairingToPage(balancesPage: Page,
     new() = PairingToPage(DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
                           Seq.empty,Map.empty,(fun (_,_) -> Page()))
 
-    member this.OnScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
+    member self.OnScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun result ->
             scanPage.IsScanning <- false
@@ -47,7 +47,7 @@ type PairingToPage(balancesPage: Page,
             MainThread.BeginInvokeOnMainThread(fun _ ->
                 // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
                 //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
-                let task = this.Navigation.PopModalAsync()
+                let task = self.Navigation.PopModalAsync()
                 coldAddressesEntry.Text <- result.Text
                 task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
@@ -55,27 +55,27 @@ type PairingToPage(balancesPage: Page,
         MainThread.BeginInvokeOnMainThread(fun _ ->
             // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
             //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
-            this.Navigation.PushModalAsync scanPage
+            self.Navigation.PushModalAsync scanPage
                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
         )
 
-    member this.OnEntryTextChanged(_sender: Object, _args: EventArgs) =
+    member __.OnEntryTextChanged(_sender: Object, _args: EventArgs) =
         MainThread.BeginInvokeOnMainThread(fun _ ->
             pairButton.IsEnabled <- not (String.IsNullOrEmpty coldAddressesEntry.Text)
         )
 
-    member this.OnCancelButtonClicked(_sender: Object, _args: EventArgs) =
+    member __.OnCancelButtonClicked(_sender: Object, _args: EventArgs) =
         MainThread.BeginInvokeOnMainThread(fun _ ->
             balancesPage.Navigation.PopAsync() |> FrontendHelpers.DoubleCheckCompletion
         )
 
-    member this.OnPairButtonClicked(_sender: Object, _args: EventArgs): unit =
+    member self.OnPairButtonClicked(_sender: Object, _args: EventArgs): unit =
         let watchWalletInfoJson = coldAddressesEntry.Text
         match Deserialize watchWalletInfoJson with
         | None ->
             let msg = "Invalid pairing info format (should be JSON). Did you pair a QR-code from another geewallet instance?"
             MainThread.BeginInvokeOnMainThread(fun _ ->
-                this.DisplayAlert("Alert", msg, "OK")
+                self.DisplayAlert("Alert", msg, "OK")
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
         | Some watchWalletInfo ->
@@ -134,9 +134,9 @@ type PairingToPage(balancesPage: Page,
                     // FIXME: BalancePage should probably be IDisposable and remove timers when disposing
                     balancesPage.Navigation.RemovePage balancesPage
 
-                    this.Navigation.InsertPageBefore(navNewBalancesPage, this)
+                    self.Navigation.InsertPageBefore(navNewBalancesPage, self)
 
-                    this.Navigation.PopAsync()
+                    self.Navigation.PopAsync()
                     |> FrontendHelpers.DoubleCheckCompletion
                 )
             } |> FrontendHelpers.DoubleCheckCompletionAsync false

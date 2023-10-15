@@ -33,7 +33,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                   readOnlyBalanceStates: seq<BalanceState>,
                   currencyImages: Map<Currency*bool,Image>,
                   startWithReadOnlyAccounts: bool)
-                      as this =
+                      as self =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<BalancesPage>)
@@ -180,7 +180,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         chartView.SegmentsSource <- chartSourceList
 
     let GetBaseRefreshInterval() =
-        if this.NoImminentIncomingPayment then
+        if self.NoImminentIncomingPayment then
             standardTimeToRefreshBalances
         else
             standardTimeToRefreshBalancesWhenThereIsImminentIncomingPaymentOrNotEnoughInfoToKnow
@@ -195,25 +195,25 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
     let lockObject = Object()
 
     do
-        this.Init()
+        self.Init()
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = BalancesPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),Seq.empty,Seq.empty,
                          Map.empty,false)
 
-    member private this.LastRefreshBalancesStamp
+    member private __.LastRefreshBalancesStamp
         with get() = lock lockObject (fun _ -> lastRefreshBalancesStamp)
         and set value = lock lockObject (fun _ -> lastRefreshBalancesStamp <- value)
         
-    member private this.NoImminentIncomingPayment
+    member private __.NoImminentIncomingPayment
         with get() = lock lockObject (fun _ -> noImminentIncomingPayment)
          and set value = lock lockObject (fun _ -> noImminentIncomingPayment <- value)
 
-    member private this.BalanceRefreshCancelSources
+    member private __.BalanceRefreshCancelSources
         with get() = lock lockObject (fun _ -> balanceRefreshCancelSources |> List.ofSeq :> seq<_>)
          and set value = lock lockObject (fun _ -> balanceRefreshCancelSources <- value)
 
-    member this.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
+    member self.PopulateBalances (readOnly: bool) (balances: seq<BalanceState>) =
         let activeCurrencyClassId,inactiveCurrencyClassId =
             FrontendHelpers.GetActiveAndInactiveCurrencyClassIds readOnly
 
@@ -244,9 +244,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let tapGestureRecognizer = TapGestureRecognizer()
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
                     let receivePage () =
-                        ReceivePage(balanceSet.Account, balanceState.UsdRate, this, balanceSet.Widgets)
+                        ReceivePage(balanceSet.Account, balanceState.UsdRate, self, balanceSet.Widgets)
                             :> Page
-                    FrontendHelpers.SwitchToNewPage this receivePage true
+                    FrontendHelpers.SwitchToNewPage self receivePage true
                 ) |> ignore
                 let frame = balanceSet.Widgets.Frame
                 frame.GestureRecognizers.Add tapGestureRecognizer
@@ -254,16 +254,16 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
         contentLayout.BatchCommit()
 
-    member this.UpdateGlobalFiatBalanceSum (fiatBalancesList: List<MaybeCached<decimal>>) totalFiatAmountLabel =
+    member __.UpdateGlobalFiatBalanceSum (fiatBalancesList: List<MaybeCached<decimal>>) totalFiatAmountLabel =
         if fiatBalancesList.Any() then
             UpdateGlobalFiatBalance None fiatBalancesList totalFiatAmountLabel
 
-    member private this.UpdateGlobalBalance (balancesJob: Async<array<BalanceState>>)
+    member private self.UpdateGlobalBalance (balancesJob: Async<array<BalanceState>>)
                                             fiatLabel
                                             (readOnly: bool)
                                                 : Async<Option<bool>> =
         async {
-            let _,cancelSource = this.LastRefreshBalancesStamp
+            let _,cancelSource = self.LastRefreshBalancesStamp
             if cancelSource.IsCancellationRequested then
 
                 // as in: we can't(NONE) know the answer to this because we're going to sleep
@@ -275,7 +275,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                                      balanceState.FiatAmount)
                                    |> List.ofSeq
                 MainThread.BeginInvokeOnMainThread(fun _ ->
-                    this.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
+                    self.UpdateGlobalFiatBalanceSum fiatBalances fiatLabel
                     RedrawCircleView readOnly resolvedBalances
                 )
                 return resolvedBalances.Any(fun balanceState ->
@@ -290,7 +290,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 ) |> Some
         }
 
-    member private this.RefreshBalances (onlyReadOnlyAccounts: bool) =
+    member private self.RefreshBalances (onlyReadOnlyAccounts: bool) =
         // we don't mind to be non-fast because it's refreshing in the background anyway
         let refreshMode = ServerSelectionMode.Analysis
 
@@ -300,7 +300,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                 None
 
         let readOnlyAccountsBalanceUpdate =
-            this.UpdateGlobalBalance readOnlyBalancesJob totalReadOnlyFiatAmountLabel true
+            self.UpdateGlobalBalance readOnlyBalancesJob totalReadOnlyFiatAmountLabel true
 
         let allCancelSources,allBalanceUpdates =
             if (not onlyReadOnlyAccounts) then
@@ -311,7 +311,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                                         None
 
                 let normalAccountsBalanceUpdate =
-                    this.UpdateGlobalBalance normalBalancesJob totalFiatAmountLabel false
+                    self.UpdateGlobalBalance normalBalancesJob totalFiatAmountLabel false
 
                 let allCancelSources = Seq.append readOnlyCancelSources normalCancelSources
 
@@ -319,8 +319,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 allCancelSources,allJobs
             else
                 readOnlyCancelSources,Async.Parallel([readOnlyAccountsBalanceUpdate])
-                
-        this.BalanceRefreshCancelSources <- allCancelSources
+
+        self.BalanceRefreshCancelSources <- allCancelSources
 
         async {
             try
@@ -328,23 +328,23 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 if balanceUpdates.Any(fun maybeImminentIncomingPayment ->
                     Option.exists id maybeImminentIncomingPayment
                 ) then
-                    this.NoImminentIncomingPayment <- false
+                    self.NoImminentIncomingPayment <- false
                 elif (not onlyReadOnlyAccounts) &&
                       balanceUpdates.All(fun maybeImminentIncomingPayment ->
                     Option.exists not maybeImminentIncomingPayment
                 ) then
-                    this.NoImminentIncomingPayment <- true
+                    self.NoImminentIncomingPayment <- true
             with
             | ex when (FSharpUtil.FindException<TaskCanceledException> ex).IsSome ->
                 ()
         }
 
-    member private this.StartTimer(): unit =
-        let prevRefreshTime,_ = this.LastRefreshBalancesStamp
+    member private self.StartTimer(): unit =
+        let prevRefreshTime,_ = self.LastRefreshBalancesStamp
         let cancelSource = new CancellationTokenSource()
         let cancellationToken = cancelSource.Token
         // FIXME: should we dispose the previous cancellationSource before re-assigning a new one below?
-        this.LastRefreshBalancesStamp <- prevRefreshTime,cancelSource
+        self.LastRefreshBalancesStamp <- prevRefreshTime,cancelSource
 
         let refreshesDiff = DateTime.UtcNow - prevRefreshTime
         let shiftedRefreshDiff =
@@ -367,10 +367,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 async {
                     try
                         cancellationToken.ThrowIfCancellationRequested()
-                        do! this.RefreshBalances false
+                        do! self.RefreshBalances false
                         cancellationToken.ThrowIfCancellationRequested()
-                        this.LastRefreshBalancesStamp <- DateTime.UtcNow,cancelSource
-                        this.StartTimer()
+                        self.LastRefreshBalancesStamp <- DateTime.UtcNow,cancelSource
+                        self.StartTimer()
                     with
                     | :? OperationCanceledException as oce ->
                         raise <| TaskCanceledException("Refresh aborted", oce)
@@ -380,13 +380,13 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             false // do not run timer again (the this.StartTimer call above will re-set it up)
         )
 
-    member private this.StopTimer() =
-        let _,cancelSource = this.LastRefreshBalancesStamp
+    member private self.StopTimer() =
+        let _,cancelSource = self.LastRefreshBalancesStamp
         if not cancelSource.IsCancellationRequested then
             cancelSource.Cancel()
             cancelSource.Dispose()
 
-    member private this.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
+    member private self.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
         let totalCurrentFiatAmountFrameName,totalOtherFiatAmountFrameName =
             if readOnly then
                 "totalReadOnlyFiatAmountFrame","totalFiatAmountFrame"
@@ -430,8 +430,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                         readOnlyBalanceStates
                     else
                         normalBalanceStates
-                this.AssignColorLabels switchingToReadOnly
-                this.PopulateBalances switchingToReadOnly balancesStatesToPopulate
+                self.AssignColorLabels switchingToReadOnly
+                self.PopulateBalances switchingToReadOnly balancesStatesToPopulate
                 RedrawCircleView switchingToReadOnly balancesStatesToPopulate
             else
                 // FIXME: save currentConnectivityInstance to cache at app startup, and if it has ever been connected to
@@ -444,9 +444,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     )
                     let normalAccountsBalanceSets = normalAccountsBalanceSets
                     let page () =
-                        PairingToPage(this, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
+                        PairingToPage(self, normalAccountsBalanceSets, currencyImages, newBalancesPageFunc)
                             :> Page
-                    FrontendHelpers.SwitchToNewPage this page false
+                    FrontendHelpers.SwitchToNewPage self page false
                 else
                     match Account.GetNormalAccountsPairingInfoForWatchWallet() with
                     | None ->
@@ -454,26 +454,26 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                     | Some walletInfo ->
                         let walletInfoJson = Marshalling.Serialize walletInfo
                         let page () =
-                            PairingFromPage(this, "Copy wallet info to clipboard", walletInfoJson, None)
+                            PairingFromPage(self, "Copy wallet info to clipboard", walletInfoJson, None)
                                 :> Page
-                        FrontendHelpers.SwitchToNewPage this page true
+                        FrontendHelpers.SwitchToNewPage self page true
 
         )
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
         tapGestureRecognizer
 
-    member this.PopulateGridInitially () =
+    member self.PopulateGridInitially () =
 
-        let tapper = this.ConfigureFiatAmountFrame false
-        this.ConfigureFiatAmountFrame true |> ignore
+        let tapper = self.ConfigureFiatAmountFrame false
+        self.ConfigureFiatAmountFrame true |> ignore
 
-        this.PopulateBalances false normalBalanceStates
+        self.PopulateBalances false normalBalanceStates
         RedrawCircleView false normalBalanceStates
 
         if startWithReadOnlyAccounts then
             tapper.SendTapped null
 
-    member private this.AssignColorLabels (readOnly: bool) =
+    member private __.AssignColorLabels (readOnly: bool) =
         let labels,color =
             if readOnly then
                 let color = Color.DarkBlue
@@ -488,16 +488,16 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             balanceSet.Widgets.CryptoLabel.TextColor <- color
             balanceSet.Widgets.FiatLabel.TextColor <- color
 
-    member private this.CancelBalanceRefreshJobs() =
-        this.BalanceRefreshCancelSources
+    member private self.CancelBalanceRefreshJobs() =
+        self.BalanceRefreshCancelSources
             |> Seq.map (fun cancelSource ->
                             cancelSource.Cancel()
                             //TODO: dispose? now with CustomCancelSource it's not actually needed
                        )
             |> ignore
-        this.BalanceRefreshCancelSources <- Seq.empty
+        self.BalanceRefreshCancelSources <- Seq.empty
 
-    member private this.Init () =
+    member private self.Init () =
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
 
@@ -516,22 +516,22 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             readOnlyBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq
 
         MainThread.BeginInvokeOnMainThread(fun _ ->
-            this.AssignColorLabels true
+            self.AssignColorLabels true
             if startWithReadOnlyAccounts then
-                this.AssignColorLabels false
+                self.AssignColorLabels false
 
-            this.PopulateGridInitially ()
+            self.PopulateGridInitially ()
 
-            this.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances totalFiatAmountLabel
-            this.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances totalReadOnlyFiatAmountLabel
+            self.UpdateGlobalFiatBalanceSum allNormalAccountFiatBalances totalFiatAmountLabel
+            self.UpdateGlobalFiatBalanceSum allReadOnlyAccountFiatBalances totalReadOnlyFiatAmountLabel
         )
 
-        this.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync false
-        this.StartTimer()
+        self.RefreshBalances true |> FrontendHelpers.DoubleCheckCompletionAsync false
+        self.StartTimer()
 
-        state.Resumed.Add (fun _ -> this.StartTimer())
+        state.Resumed.Add (fun _ -> self.StartTimer())
 
         state.GoneToSleep.Add (fun _ -> 
-            this.StopTimer()
-            this.CancelBalanceRefreshJobs()
+            self.StopTimer()
+            self.CancelBalanceRefreshJobs()
         )

@@ -14,7 +14,7 @@ open GWallet.Backend
 /// true  if just the logo should be shown first, and title text and loading text after some seconds,
 /// false if title text and loading text should be shown immediatly.
 /// </param>
-type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as this =
+type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as self =
     inherit ContentPage()
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
@@ -87,12 +87,12 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         let dotsAnimationLength = TimeSpan.FromMilliseconds 500.
         Device.StartTimer(dotsAnimationLength, Func<bool> UpdateDotsLabel)
     do
-        this.Init()
+        self.Init()
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = LoadingPage(DummyPageConstructorHelper.GlobalFuncToRaiseExceptionIfUsedAtRuntime(),false)
 
-    member this.Transition(): unit =
+    member self.Transition(): unit =
         let currencyImages = PreLoadCurrencyImages()
 
         let normalAccountsBalances = FrontendHelpers.CreateWidgetsForAccounts normalAccounts currencyImages false
@@ -119,19 +119,19 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                 BalancesPage(state, allResolvedNormalAccountBalances, allResolvedReadOnlyBalances,
                              currencyImages, false)
                     :> Page
-            FrontendHelpers.SwitchToNewPageDiscardingCurrentOne this balancesPage
+            FrontendHelpers.SwitchToNewPageDiscardingCurrentOne self balancesPage
         }
             |> FrontendHelpers.DoubleCheckCompletionAsync false
 
         ()
 
-    member this.Init (): unit =
+    member self.Init (): unit =
         if showLogoFirst then
             MainThread.BeginInvokeOnMainThread(fun _ ->
                 mainLayout.Children.Add logoImg
             )
 
-            this.Transition()
+            self.Transition()
 
             Device.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
                 ShowLoadingText()
@@ -141,5 +141,5 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         else
             ShowLoadingText()
 
-            this.Transition()
+            self.Transition()
 

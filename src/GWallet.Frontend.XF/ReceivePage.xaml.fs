@@ -17,7 +17,7 @@ type ReceivePage(account: IAccount,
                  usdRate: MaybeCached<decimal>,
 
                  balancesPage: Page,
-                 balanceWidgetsFromBalancePage: BalanceWidgets) as this =
+                 balanceWidgetsFromBalancePage: BalanceWidgets) as self =
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
@@ -30,7 +30,7 @@ type ReceivePage(account: IAccount,
     let paymentCaptionInColdStorage = "Signoff Payment Offline"
 
     do
-        this.Init()
+        self.Init()
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = ReceivePage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
@@ -38,7 +38,7 @@ type ReceivePage(account: IAccount,
                         DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
                         { CryptoLabel = null; FiatLabel = null ; Frame = null })
 
-    member this.Init() =
+    member __.Init() =
         let balanceLabel = mainLayout.FindByName<Label>("balanceLabel")
         let fiatBalanceLabel = mainLayout.FindByName<Label>("fiatBalanceLabel")
 
@@ -97,12 +97,12 @@ type ReceivePage(account: IAccount,
             |> Xamarin.Essentials.Launcher.OpenAsync
             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
 
-    member this.OnSendPaymentClicked(_sender: Object, _args: EventArgs) =
+    member self.OnSendPaymentClicked(_sender: Object, _args: EventArgs) =
         let newReceivePageFunc = (fun _ ->
             ReceivePage(account, usdRate, balancesPage, balanceWidgetsFromBalancePage) :> Page
         )
         let sendPage () =
-            let newPage = SendPage(account, this, newReceivePageFunc)
+            let newPage = SendPage(account, self, newReceivePageFunc)
 
             if paymentButton.Text = paymentCaptionInColdStorage then
                 (newPage :> FrontendHelpers.IAugmentablePayPage).AddTransactionScanner()
@@ -113,9 +113,9 @@ type ReceivePage(account: IAccount,
 
             newPage :> Page
 
-        FrontendHelpers.SwitchToNewPage this sendPage false
+        FrontendHelpers.SwitchToNewPage self sendPage false
 
-    member this.OnCopyToClipboardClicked(_sender: Object, _args: EventArgs) =
+    member __.OnCopyToClipboardClicked(_sender: Object, _args: EventArgs) =
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
         FrontendHelpers.ChangeTextAndChangeBack copyToClipboardButton "Copied"
 
