@@ -148,12 +148,14 @@ Process.Execute({ Command = "snapcraft"; Arguments = "login --with snapcraft.log
 
 Console.WriteLine "Login successfull. Upload starting..."
 
-// the 'stable' and 'candidate' channels require 'stable' grade in the yaml
 let snapPush =
+    // the 'stable' and 'candidate' channels require 'stable' grade in the yaml
+    let channel = "stable"
+
     Process.Execute(
         {
             Command = "snapcraft"
-            Arguments = sprintf "upload %s --release=beta" snapFile.FullName
+            Arguments = sprintf "upload %s --release=%s" snapFile.FullName channel
         }, Echo.All
     )
 

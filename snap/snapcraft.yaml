@@ -9,7 +9,9 @@ description: |
 license: MIT
 icon: logo.png
 
-grade: devel # must be 'stable' to release into candidate/stable channels
+# grade must be 'stable' (without the quotes) to release into candidate/stable channels
+grade: stable
+
 confinement: strict
 
 layout:
