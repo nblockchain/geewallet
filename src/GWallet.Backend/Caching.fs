@@ -606,7 +606,7 @@ module Caching =
                         return None
                 }
 
-            let targetBranch = "frontend"
+            let targetBranch = "master"
             let orgName1 = "nblockchain"
             let orgName2 = "World"
             let projName = "geewallet"
