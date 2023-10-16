@@ -93,18 +93,18 @@ type HoopChartView() =
         with get () = self.GetValue defaultImageSourceProperty :?> ImageSource
         and set (value: ImageSource) = self.SetValue(defaultImageSourceProperty, value)
 
-    member this.BalanceLabel = balanceLabel
-    member this.BalanceFrame = balanceFrame
+    member self.BalanceLabel = balanceLabel
+    member self.BalanceFrame = balanceFrame
 
     // Layout properties
-    member this.MinimumChartSize = 200.0
-    member this.MinimumLogoSize = 50.0
-    member this.HoopStrokeThickness = 7.5
+    member self.MinimumChartSize = 200.0
+    member self.MinimumLogoSize = 50.0
+    member self.HoopStrokeThickness = 7.5
     
     // Chart shapes
-    member private this.GetHoopShapes(segments: seq<SegmentInfo>, radius: float) : seq<Shape> =
+    member private self.GetHoopShapes(segments: seq<SegmentInfo>, radius: float) : seq<Shape> =
         let deg2rad angle = System.Math.PI * (angle / 180.0)
-        let thickness = this.HoopStrokeThickness
+        let thickness = self.HoopStrokeThickness
         let minorRadius = thickness/2.0
         let circleRadius = radius - minorRadius
         let angleToPoint angle =
@@ -159,12 +159,12 @@ type HoopChartView() =
             normalizedSectors
             anglePairs
     
-    member private this.RepopulateHoop(segments, sideLength) =
+    member private self.RepopulateHoop(segments, sideLength) =
         hoop.Children.Clear()
-        this.GetHoopShapes(segments, sideLength / 2.0) |> Seq.iter hoop.Children.Add
+        self.GetHoopShapes(segments, sideLength / 2.0) |> Seq.iter hoop.Children.Add
 
     // Layout
-    override this.LayoutChildren(xCoord, yCoord, width, height) = 
+    override self.LayoutChildren(xCoord, yCoord, width, height) = 
         match state with
         | Uninitialized -> ()
         | Empty -> 
@@ -179,56 +179,56 @@ type HoopChartView() =
             balanceFrame.Layout bounds
 
             if abs(hoop.Height - smallerSide) > 0.1 then
-                this.RepopulateHoop(segments, smallerSide)
+                self.RepopulateHoop(segments, smallerSide)
             
             hoop.Layout bounds
 
-    override this.OnMeasure(widthConstraint, heightConstraint) =
-        let smallerRequestedSize = min widthConstraint heightConstraint |> min this.MinimumChartSize
+    override self.OnMeasure(widthConstraint, heightConstraint) =
+        let smallerRequestedSize = min widthConstraint heightConstraint |> min self.MinimumChartSize
         let minSize = 
             match state with
             | Uninitialized -> 0.0
-            | Empty -> this.MinimumLogoSize
+            | Empty -> self.MinimumLogoSize
             | NonEmpty _ -> 
                 let size = balanceLabel.Measure(smallerRequestedSize, smallerRequestedSize).Request
                 let factor = 1.1 // to add som visual space between label and chart
-                (sqrt(size.Width*size.Width + size.Height*size.Height) + this.HoopStrokeThickness) * factor
+                (sqrt(size.Width*size.Width + size.Height*size.Height) + self.HoopStrokeThickness) * factor
         let sizeToRequest = max smallerRequestedSize minSize
         SizeRequest(Size(sizeToRequest, sizeToRequest), Size(minSize, minSize))
     
     // Updates
-    member private this.SetState(newState: HoopChartState) =
+    member private self.SetState(newState: HoopChartState) =
         if newState <> state then
             state <- newState
             match state with
             | Uninitialized -> failwith "Invalid state"
             | Empty ->
-                this.Children.Clear()
+                self.Children.Clear()
                 emptyStateWidget.Children.Clear()
                 emptyStateWidget.Children.Add balanceFrame
                 emptyStateWidget.Children.Add defaultImage
-                this.Children.Add emptyStateWidget
+                self.Children.Add emptyStateWidget
             | NonEmpty(segments) ->
-                this.Children.Clear()
-                if this.Width > 0.0 && this.Height > 0.0 then
-                    this.RepopulateHoop(segments, min this.Width this.Height)
-                this.Children.Add hoop
-                this.Children.Add balanceFrame
+                self.Children.Clear()
+                if self.Width > 0.0 && self.Height > 0.0 then
+                    self.RepopulateHoop(segments, min self.Width self.Height)
+                self.Children.Add hoop
+                self.Children.Add balanceFrame
 
-    member private this.UpdateChart() =
+    member private self.UpdateChart() =
         let nonZeroSegments =
-            match this.SegmentsSource with
+            match self.SegmentsSource with
             | null -> Seq.empty
             | segments -> segments |> Seq.filter (fun segment -> segment.Amount > 0.0m)
 
         if nonZeroSegments |> Seq.isEmpty |> not then
-            this.SetState(NonEmpty(nonZeroSegments))
+            self.SetState(NonEmpty(nonZeroSegments))
         else
-            this.SetState(Empty)
+            self.SetState(Empty)
 
-    override this.OnPropertyChanged(propertyName: string) =
+    override self.OnPropertyChanged(propertyName: string) =
         base.OnPropertyChanged propertyName
         if propertyName = HoopChartView.SegmentsSourceProperty.PropertyName then
-            this.UpdateChart()
+            self.UpdateChart()
         elif propertyName = HoopChartView.DefaultImageSourceProperty.PropertyName then
-            defaultImage.Source <- this.DefaultImageSource
+            defaultImage.Source <- self.DefaultImageSource
