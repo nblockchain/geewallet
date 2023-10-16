@@ -32,7 +32,7 @@ Comparing our product to other wallets in terms of features, we would want to hi
 | status.im      | No             | **Yes**    | No           | No         | **Yes**              |
 | Edge           | **Yes**        | **Yes**?   | No           | No         | No                   |
 | WarpWallet     | No             | **Yes**    | No           | **Yes**    | No                   |
-| ![](https://raw.githubusercontent.com/knocte/geewallet/frontend/img/markdown/geewallet.svg?sanitize=true) | **YES** | **YES** | **YES** | **YES** | **YES** |
+| ![](https://raw.githubusercontent.com/nblockchain/geewallet/master/img/markdown/geewallet.svg?sanitize=true) | **YES** | **YES** | **YES** | **YES** | **YES** |
 
 *=With truly crossplatform we mean Mobile (both Android & iPhone) & Desktop (main OSs: Linux, macOS & Windows)
 
@@ -62,7 +62,7 @@ In the development side of things, we advocate for simplicity:
 
 This list is the (intended) order of preference for new features:
 
-- Xamarin.Forms frontends (in progress, see the 'frontend' branch)...
+- Migration from Xamarin.Forms to MAUI (in progress, see the PR#199 or its successor).
 - Switch from SegWit to native-SegWit (Bech32).
 - Support for payment-channels & state-channels (in BTC/LTC via lightning, and in ETH/ETC/DAI via Connext)
 - Automatic reminders for Seed/password checks to make sure user has not forgotten them (see https://twitter.com/takinbo/status/1201529679519330305 ).
