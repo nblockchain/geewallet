@@ -251,6 +251,7 @@
       <Name>GWallet.Frontend.XF</Name>
     </ProjectReference>
     <ProjectReference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'!='true'" Include="..\GWallet.Backend\GWallet.Backend.fsproj">
+      <Project>{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}</Project>
       <Name>GWallet.Backend</Name>
     </ProjectReference>
     <None Include="webkit-sharp.dll.config" />
