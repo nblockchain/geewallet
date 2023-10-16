@@ -63,32 +63,33 @@ In the development side of things, we advocate for simplicity:
 This list is the (intended) order of preference for new features:
 
 - Migration from Xamarin.Forms to MAUI (in progress, see the PR#199 or its successor).
-- Switch from SegWit to native-SegWit (Bech32).
-- Support for payment-channels & state-channels (in BTC/LTC via lightning, and in ETH/ETC/DAI via Connext)
+- Switch from SegWit to native-SegWit (Bech32): PR#211.
+- Support for payment-channels & state-channels (in BTC/LTC via lightning, see 'lightning' branch; and in ETH/ETC/DAI via Connext?).
 - Automatic reminders for Seed/password checks to make sure user has not forgotten them (see https://twitter.com/takinbo/status/1201529679519330305 ).
-- Decentralized currency exchange? (e.g. eth2dai.com)
 - NFC support.
-- Tizen frontend (no QR scanning due to missing camera in most Tizen watches, but could use NFC).
+- WearOS/WatchOS frontend for Samsung&Google&Apple phones: no QR scanning due to missing camera in most Tizen watches, but could use NFC.
 - Passwordless login infrastructure (e.g. https://www.reddit.com/r/ethereum/comments/7hn3fq/using_your_blockchain_identity_for_passwordless/ ).
 - flatpak packaging.
 - In mobile, allow usage when camera permissions have not been granted, by letting the user redirect him to his camera app and take a picture (see https://youtu.be/k1Ssz1dvcpk?t=63).
-- Use of 'bits' instead of BTC as default unit (see https://www.reddit.com/r/Bitcoin/comments/sdhtz0/this_woman_has_resparked_the_sats_vs_bits_debate/ ).
+- Use of 'bits' instead of BTC as default unit (see https://www.reddit.com/r/Bitcoin/comments/sdhtz0/this_woman_has_resparked_the_sats_vs_bits_debate/ and https://twitter.com/ericyakes/status/1708876421081465078 ).
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ or in case we end up using sats, this "1 over 2" idea is interesting: 
 https://twitter.com/Parman_Public/status/1603698639947599873 )
-- MimbleWimble(Grin) support.
+- MimbleWimble(LTC) support (WIP, see https://github.com/nblockchain/NLitecoin/pull/2 ).
 - Threshold signatures (or asynchronous ones? see https://twitter.com/real_or_random/status/1523964246945636352 ).
 - Use deniable encryption to allow for a duress password/passphrase/pin.
-- ETH gas station (to pay for token transactions with token value instead of ETH).
-- Fee selection for custom priority (so that our RBF support becomes actually useful).
 - Multi-sig support?
+- Fee selection for custom priority (so that our RBF support becomes actually useful).
+- ETH gas station (to pay for token transactions with token value instead of ETH).
 - Crosschain atomic swaps (via [comit network](https://github.com/comit-network/comit-rs)? more info [here](https://blog.coblox.tech/2018/06/23/connect-all-the-blockchains.html) and [here](https://blog.coblox.tech/2018/12/12/erc20-lightning-and-COMIT.html)).
 - Decentralized naming resolution? (BNS/ENS/OpenCAP/...), ideally adding this feature in the browser-extension frontend (in the same way MetaMask enables ENS). As an example, this wallet seems to build on BNS: 
 https://twitter.com/markymark/status/1625458698243166210 , https://wallet.hiro.so/ , https://github.com/hirosystems/stacks-wallet-web
 - identicon (e.g. https://jdenticon.com/) support to identify recipients/channels/invoices
-- Tumblebit support?
+- TapRoot support?
 - Consider [Vitalik's 1wei wallet-funding idea](https://twitter.com/VitalikButerin/status/1103997378967810048) in case the community adopts it.
 - UI testing with Selenium+UnoPlatform (see https://www.prnewswire.com/news-releases/uno-platform-announces-version-2-0-of-cross-platform-development-platform-300921202.html).
+- Blazor frontend (for browser extension?), which could enable Playwright/Selenium testing.
 - Support for Stratum protocol over SSL.
+- Decentralized currency exchange (e.g. thorchain?).
 
 
 ## Anti-roadmap
