@@ -18,6 +18,7 @@ type CloudFlareError =
     | OriginSslHandshakeError = 525
 
 type AbnormalSocketError =
+    | CannotAssignRequestedAddress = 99
     | ResourceTemporarilyUnavailable = 11
     | NameOrServiceNotKnown = -131073
     | NoDataFoundForRequestedName = 11004
@@ -170,6 +171,9 @@ module Networking =
             // (the version when Xamarin will work the .NETCore BCL)
             elif socketException.ErrorCode = int SocketError.InvalidArgument then
                 BuggyExceptionFromOldMonoVersion(newExceptionMsg, ex) :> Exception |> Some
+
+            elif socketException.ErrorCode = int AbnormalSocketError.CannotAssignRequestedAddress then
+                ServerUnreachableException(newExceptionMsg, ex) :> Exception |> Some
 
             else
                 UnhandledSocketException(socketException.ErrorCode, ex) :> Exception |> Some
