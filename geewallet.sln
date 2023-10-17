@@ -281,9 +281,6 @@ Global
 		{5DD656CE-3319-46BB-B47F-BBED8CC722FD}.Release|x86.ActiveCfg = Release|iPhoneSimulator
 		{5DD656CE-3319-46BB-B47F-BBED8CC722FD}.Release|x86.Build.0 = Release|iPhoneSimulator
 	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{6EE07541-91A1-42C2-A21F-2809BBDC2F50} = {CE79AB9D-0FB9-4606-B7C6-A78C0858CC54}
-	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
