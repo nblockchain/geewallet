@@ -422,9 +422,9 @@ let SanityCheckNugetPackages () =
     //let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
     //NOTE: we hardcode the solutions rather than the line above, because e.g. Linux OS can't build/restore iOS proj
     let solutionFileNames = [
-        Path.Combine(FsxHelper.RootDir.FullName, "gwallet.linux.sln")
-        Path.Combine(FsxHelper.RootDir.FullName, "gwallet.mac.sln")
-        Path.Combine(FsxHelper.RootDir.FullName, "gwallet.core.sln")
+        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.linux-legacy.sln")
+        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.mac-legacy.sln")
+        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.core-legacy.sln")
     ]
 
     let solutionFiles = solutionFileNames |> List.map FileInfo

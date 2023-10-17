@@ -10,6 +10,7 @@ module FsxHelper =
 
     let ScriptsDir = __SOURCE_DIRECTORY__ |> DirectoryInfo
     let RootDir = Path.Combine(ScriptsDir.FullName, "..") |> DirectoryInfo
+    let SourceDir = Path.Combine(RootDir.FullName, "src") |> DirectoryInfo
     let NugetDir = Path.Combine (RootDir.FullName, ".nuget") |> DirectoryInfo
     let NugetExe = Path.Combine (NugetDir.FullName, "nuget.exe") |> FileInfo
     let NugetSolutionPackagesDir = Path.Combine(RootDir.FullName, "packages") |> DirectoryInfo
