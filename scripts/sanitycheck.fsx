@@ -421,26 +421,37 @@ let SanityCheckNugetPackages () =
 
     //let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
     //NOTE: we hardcode the solutions rather than the line above, because e.g. Linux OS can't build/restore iOS proj
-    let solutions =
-        FsxHelper.RootDir.EnumerateFiles().Where (
-            fun file ->
+    let solutionFileNames = [
+        Path.Combine(FsxHelper.RootDir.FullName, "gwallet.linux.sln")
+        Path.Combine(FsxHelper.RootDir.FullName, "gwallet.mac.sln")
+        Path.Combine(FsxHelper.RootDir.FullName, "gwallet.core.sln")
+    ]
 
-                match Misc.GuessPlatform() with
+    let solutionFiles = solutionFileNames |> List.map FileInfo
 
-                // xbuild cannot build .NETStandard projects so we cannot build the non-Core parts:
-                | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "BuildTool" ->
-                    file.Name = "gwallet.linux.sln"
+    let checkFilesExist (fileNames: List<FileInfo>) =
+        fileNames
+        |> List.map (fun fileName -> fileName.Exists)
+        |> List.fold (&&) true
 
-                | Misc.Platform.Mac ->
-                    file.Name = "gwallet.mac.sln"
+    let allFilesExist = checkFilesExist solutionFiles
 
-                | _ (* stockmono linux and windows *) ->
+    if not allFilesExist then
+        failwith "Solution files were not found to do sanity check."
 
-                    // TODO: have a windows solution file
-                    file.Name = "gwallet.core.sln"
-        )
-    for sol in solutions do
-        sanityCheckNugetPackagesFromSolution sol
+    match Misc.GuessPlatform() with
+        // xbuild cannot build .NETStandard projects so we cannot build the non-Core parts:
+        | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "BuildTool" ->
+            sanityCheckNugetPackagesFromSolution solutionFiles.[0]
+
+        | Misc.Platform.Mac ->
+            sanityCheckNugetPackagesFromSolution solutionFiles.[1]
+
+        | _ (* stockmono linux and windows *) ->
+
+            // TODO: have a windows solution file
+            sanityCheckNugetPackagesFromSolution solutionFiles.[2]
+  
 
 FindOffendingPrintfUsage()
 SanityCheckNugetPackages()
