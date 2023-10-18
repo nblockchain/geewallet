@@ -425,6 +425,7 @@ let SanityCheckNugetPackages () =
         Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.linux-legacy.sln")
         Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.mac-legacy.sln")
         Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.core-legacy.sln")
+        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.core.sln")
     ]
 
     let solutionFiles = solutionFileNames |> List.map FileInfo
@@ -441,10 +442,15 @@ let SanityCheckNugetPackages () =
 
     match Misc.GuessPlatform() with
         // xbuild cannot build .NETStandard projects so we cannot build the non-Core parts:
-        | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "BuildTool" ->
+        | Misc.Platform.Linux when "dotnet" = Environment.GetEnvironmentVariable "BuildTool" ->
+            sanityCheckNugetPackagesFromSolution solutionFiles.[3]
+        | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
             sanityCheckNugetPackagesFromSolution solutionFiles.[0]
-
-        | Misc.Platform.Mac ->
+        // .NET-only macOS only builds gwallet.core.sln
+        | Misc.Platform.Mac when "dotnet" = Environment.GetEnvironmentVariable "BuildTool"
+            && Environment.GetEnvironmentVariable "LegacyBuildTool" = "" ->
+            sanityCheckNugetPackagesFromSolution solutionFiles.[3]
+        | Misc.Platform.Mac when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
             sanityCheckNugetPackagesFromSolution solutionFiles.[1]
 
         | _ (* stockmono linux and windows *) ->
