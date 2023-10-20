@@ -421,26 +421,20 @@ let SanityCheckNugetPackages () =
 
     //let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
     //NOTE: we hardcode the solutions rather than the line above, because e.g. Linux OS can't build/restore iOS proj
-    let solutions =
-        FsxHelper.RootDir.EnumerateFiles().Where (
-            fun file ->
+    let sol =
+        match Misc.GuessPlatform() with
+#if LEGACY_FRAMEWORK
+        | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
+            FsxHelper.GetSolution SolutionFile.Linux
+#endif
+        | Misc.Platform.Mac when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
+            FsxHelper.GetSolution SolutionFile.Mac
+        | _ ->
+            // TODO: have a windows solution file
+            FsxHelper.GetSolution SolutionFile.Default
 
-                match Misc.GuessPlatform() with
-
-                // xbuild cannot build .NETStandard projects so we cannot build the non-Core parts:
-                | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "BuildTool" ->
-                    file.Name = "gwallet.linux.sln"
-
-                | Misc.Platform.Mac ->
-                    file.Name = "gwallet.mac.sln"
-
-                | _ (* stockmono linux and windows *) ->
-
-                    // TODO: have a windows solution file
-                    file.Name = "gwallet.core.sln"
-        )
-    for sol in solutions do
-        sanityCheckNugetPackagesFromSolution sol
+    sanityCheckNugetPackagesFromSolution sol
+  
 
 FindOffendingPrintfUsage()
 SanityCheckNugetPackages()
