@@ -421,42 +421,19 @@ let SanityCheckNugetPackages () =
 
     //let solutions = Directory.GetCurrentDirectory() |> DirectoryInfo |> findSolutions
     //NOTE: we hardcode the solutions rather than the line above, because e.g. Linux OS can't build/restore iOS proj
-    let solutionFileNames = [
-        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.linux-legacy.sln")
-        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.mac-legacy.sln")
-        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.core-legacy.sln")
-        Path.Combine(FsxHelper.SourceDir.FullName, "gwallet.core.sln")
-    ]
-
-    let solutionFiles = solutionFileNames |> List.map FileInfo
-
-    let checkFilesExist (fileNames: List<FileInfo>) =
-        fileNames
-        |> List.map (fun fileName -> fileName.Exists)
-        |> List.fold (&&) true
-
-    let allFilesExist = checkFilesExist solutionFiles
-
-    if not allFilesExist then
-        failwith "Solution files were not found to do sanity check."
-
-    match Misc.GuessPlatform() with
-        // xbuild cannot build .NETStandard projects so we cannot build the non-Core parts:
-        | Misc.Platform.Linux when "dotnet" = Environment.GetEnvironmentVariable "BuildTool" ->
-            sanityCheckNugetPackagesFromSolution solutionFiles.[3]
+    let sol =
+        match Misc.GuessPlatform() with
+#if LEGACY_FRAMEWORK
         | Misc.Platform.Linux when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
-            sanityCheckNugetPackagesFromSolution solutionFiles.[0]
-        // .NET-only macOS only builds gwallet.core.sln
-        | Misc.Platform.Mac when "dotnet" = Environment.GetEnvironmentVariable "BuildTool"
-            && Environment.GetEnvironmentVariable "LegacyBuildTool" = "" ->
-            sanityCheckNugetPackagesFromSolution solutionFiles.[3]
+            FsxHelper.GetSolution SolutionFile.Linux
+#endif
         | Misc.Platform.Mac when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
-            sanityCheckNugetPackagesFromSolution solutionFiles.[1]
-
-        | _ (* stockmono linux and windows *) ->
-
+            FsxHelper.GetSolution SolutionFile.Mac
+        | _ ->
             // TODO: have a windows solution file
-            sanityCheckNugetPackagesFromSolution solutionFiles.[2]
+            FsxHelper.GetSolution SolutionFile.Default
+
+    sanityCheckNugetPackagesFromSolution sol
   
 
 FindOffendingPrintfUsage()

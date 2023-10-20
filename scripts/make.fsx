@@ -5,14 +5,6 @@ open System.IO
 open System.Linq
 open System.Diagnostics
 
-open System.Text
-open System.Text.RegularExpressions
-#r "System.Core.dll"
-open System.Xml
-#r "System.Xml.Linq.dll"
-open System.Xml.Linq
-open System.Xml.XPath
-
 #if !LEGACY_FRAMEWORK
 #r "nuget: Fsdk, Version=0.6.0--date20230818-1152.git-83d671b"
 #else
@@ -34,25 +26,6 @@ let UNIX_NAME = "geewallet"
 let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 
-type SolutionFile =
-    | Default
-    | Linux
-    | Mac
-
-let GetSolution (solType: SolutionFile) =
-    let solFileName =
-        match solType with
-        | Default ->
-#if !LEGACY_FRAMEWORK
-            "gwallet.core.sln"
-#else
-            "gwallet.core-legacy.sln"
-#endif
-        | Linux -> "gwallet.linux-legacy.sln"
-        | Mac -> "gwallet.mac-legacy.sln"
-
-    Path.Combine("src", solFileName)
-
 type ProjectFile =
     | XFFrontend
     | GtkFrontend
@@ -63,7 +36,12 @@ let GetProject (projFile: ProjectFile) =
         | GtkFrontend -> Path.Combine("GWallet.Frontend.XF.Gtk", "GWallet.Frontend.XF.Gtk.fsproj")
         | XFFrontend -> Path.Combine("GWallet.Frontend.XF", "GWallet.Frontend.XF.fsproj")
 
-    Path.Combine("src", projFileName)
+    let prjFile =
+        Path.Combine("src", projFileName)
+        |> FileInfo
+    if not prjFile.Exists then
+        raise <| FileNotFoundException("Project file not found", prjFile.FullName)
+    prjFile
 
 let BACKEND = "GWallet.Backend"
 
@@ -154,11 +132,11 @@ FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
 exec mono "$FRONTEND_PATH" "$@"
 """
 
-let NugetRestore projectOrSolutionRelativePath =
+let NugetRestore (projectOrSolution: FileInfo) =
     let nugetArgs =
         sprintf
             "restore %s -DisableParallelProcessing -SolutionDirectory ."
-            projectOrSolutionRelativePath
+            projectOrSolution.FullName
     let proc =
         Network.RunNugetCommand
             FsxHelper.NugetExe
@@ -194,13 +172,13 @@ let PrintNugetVersion () =
 
 let BuildSolutionOrProject
     (buildToolAndBuildArg: string*string)
-    (fileName: string)
+    (file: FileInfo)
     (binaryConfig: BinaryConfig)
     (maybeConstant: Option<string>)
     (extraOptions: string)
     =
 #if LEGACY_FRAMEWORK
-    NugetRestore fileName
+    NugetRestore file
 #endif
 
     let buildTool,buildArg = buildToolAndBuildArg
@@ -255,7 +233,7 @@ let BuildSolutionOrProject
             configOption
     let buildArgs = sprintf "%s %s %s %s"
                             buildArg
-                            fileName
+                            file.FullName
                             configOptions
                             extraOptions
     let buildProcess = Process.Execute ({ Command = buildTool; Arguments = buildArgs }, Echo.All)
@@ -273,7 +251,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
     let maybeLegacyBuildTool = Map.tryFind "LegacyBuildTool" buildConfigContents
 
-    let solutionFileName = GetSolution SolutionFile.Default
+    let solutionFile = FsxHelper.GetSolution SolutionFile.Default
     let getBuildToolAndArgs(buildTool: string) =
         match buildTool with
         | "dotnet" ->
@@ -307,7 +285,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
     | None, Some buildTool ->
         BuildSolutionOrProject
             (getBuildToolAndArgs buildTool)
-            solutionFileName
+            solutionFile
             binaryConfig
             maybeConstant
             String.Empty
@@ -328,7 +306,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
             | Misc.Platform.Mac ->
                 //this is because building in release requires code signing keys
                 if binaryConfig = BinaryConfig.Debug then
-                    let solution = GetSolution SolutionFile.Mac
+                    let solution = FsxHelper.GetSolution SolutionFile.Mac
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
                     // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
                     NugetRestore solution
@@ -337,7 +315,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                 Frontend.Console
             | Misc.Platform.Linux ->
                 if FsxHelper.AreGtkLibsPresent Echo.All then
-                    let solution = GetSolution SolutionFile.Linux
+                    let solution = FsxHelper.GetSolution SolutionFile.Linux
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
                     // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
                     NugetRestore solution

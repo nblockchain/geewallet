@@ -6,7 +6,31 @@ open System.IO
 open Fsdk
 open Fsdk.Process
 
+type SolutionFile =
+    | Default
+    | Linux
+    | Mac
+
 module FsxHelper =
+
+    let GetSolution (solType: SolutionFile) =
+        let solFileName =
+            match solType with
+            | Default ->
+    #if !LEGACY_FRAMEWORK
+                "gwallet.core.sln"
+    #else
+                "gwallet.core-legacy.sln"
+    #endif
+            | Linux -> "gwallet.linux-legacy.sln"
+            | Mac -> "gwallet.mac-legacy.sln"
+
+        let slnFile =
+            Path.Combine("src", solFileName)
+            |> FileInfo
+        if not slnFile.Exists then
+            raise <| FileNotFoundException("Solution file not found", slnFile.FullName)
+        slnFile
 
     let ScriptsDir = __SOURCE_DIRECTORY__ |> DirectoryInfo
     let RootDir = Path.Combine(ScriptsDir.FullName, "..") |> DirectoryInfo
