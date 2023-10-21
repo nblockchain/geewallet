@@ -1,5 +1,3 @@
 #!/usr/bin/env bash
-set -eo pipefail
-
-git fetch origin && \
-git merge --no-ff origin/stable
+>&2 echo "You are in stable branch, merging should happen in master branch"
+exit 1
