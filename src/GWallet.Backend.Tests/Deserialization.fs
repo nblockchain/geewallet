@@ -5,6 +5,7 @@ open System
 open NUnit.Framework
 
 open GWallet.Backend
+open GWallet.Backend.UtxoCoin
 
 [<TestFixture>]
 type Deserialization() =

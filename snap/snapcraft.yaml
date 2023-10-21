@@ -9,6 +9,7 @@ description: |
 license: MIT
 icon: logo.png
 
+# grade must be 'stable' (without the quotes) to release into candidate/stable channels
 grade: stable
 confinement: strict
 
