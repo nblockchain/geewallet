@@ -2,4 +2,4 @@
 set -eo pipefail
 
 git fetch origin && \
-git merge --no-ff origin/master
+git merge --no-ff origin/stable
