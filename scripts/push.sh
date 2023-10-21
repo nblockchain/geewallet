@@ -6,8 +6,8 @@ if [ "$#" -gt "1" ]; then
     exit 1
 fi
 
-git push origin frontend
-git push gnome frontend
+git push origin master
+git push gnome master
 if [ "$#" -gt "0" ]; then
     git push origin $1
     git push gnome $1
