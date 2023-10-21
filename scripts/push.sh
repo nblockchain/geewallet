@@ -6,7 +6,7 @@ if [ "$#" -gt "1" ]; then
     exit 1
 fi
 
-git push origin master
+git push origin stable
 if [ "$#" -gt "0" ]; then
     git push origin $1
 fi
