@@ -10,20 +10,20 @@ open Fsdk
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-type ResourceUnavailabilityException (message: string, innerOrLastException: Exception) =
+type ResourcesUnavailabilityException (message: string, innerOrLastException: Exception) =
     inherit Exception (message, innerOrLastException)
 
 type private TaskUnavailabilityException (message: string, innerException: Exception) =
-    inherit ResourceUnavailabilityException (message, innerException)
+    inherit ResourcesUnavailabilityException (message, innerException)
 
-type private ServerUnavailabilityException (message: string, lastException: Exception) =
-    inherit ResourceUnavailabilityException (message, lastException)
+type private ServersUnavailabilityException (message: string, lastException: Exception) =
+    inherit ResourcesUnavailabilityException (message, lastException)
 
 type private NoneAvailableException (message:string, lastException: Exception) =
-    inherit ServerUnavailabilityException (message, lastException)
+    inherit ServersUnavailabilityException (message, lastException)
 
 type private NotEnoughAvailableException (message:string, lastException: Exception) =
-    inherit ServerUnavailabilityException (message, lastException)
+    inherit ServersUnavailabilityException (message, lastException)
 
 type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
                                    maxNumberOfConsistentResultsObtained: int,

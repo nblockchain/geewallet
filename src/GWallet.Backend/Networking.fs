@@ -103,6 +103,12 @@ type ServerUnreachableException =
     new (info: SerializationInfo, context: StreamingContext) =
         { inherit CommunicationUnsuccessfulException (info, context) }
 
+type ServerFaultException =
+    inherit CommunicationUnsuccessfulException
+
+    new (message: string, innerException: Exception) =
+        { inherit CommunicationUnsuccessfulException (message, innerException) }
+
 type ServerMisconfiguredException =
     inherit CommunicationUnsuccessfulException
 
