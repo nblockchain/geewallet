@@ -8,7 +8,7 @@ DEBIAN_FRONTEND=noninteractive sudo apt install -y fsharp build-essential pkg-co
 # just in case this is a retry-run, we want to clean artifacts from previous try
 rm -rf ./staging
 
-./configure.sh --prefix=./staging
+./configure.sh --prefix=./staging "$@"
 make
 make install
 

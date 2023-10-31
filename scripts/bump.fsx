@@ -4,7 +4,7 @@ open System
 open System.IO
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk, Version=0.6.0--date20230812-0646.git-2268d50"
+#r "nuget: Fsdk, Version=0.6.0--date20231031-0834.git-2737eea"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -21,15 +21,18 @@ let IsStable miniVersion =
     (int miniVersion % 2) = 0
 
 let args = Misc.FsxOnlyArguments()
+
+let isAuto = List.contains "--auto" args
+
 let suppliedVersion =
     if args.Length > 0 then
-        if args.Length > 1 then
-            Console.Error.WriteLine "Only one argument supported, not more"
+        if args.Length > 2 then
+            Console.Error.WriteLine "Only two argument supported, not more"
             Environment.Exit 1
             failwith "Unreachable"
         else
             let full = Version(args.Head)
-            if not (IsStable full.Build) then
+            if (not isAuto) && not (IsStable full.Build) then
                 Console.Error.WriteLine "Mini-version (previous-to-last number, e.g. 2 in 0.1.2.3) should be an even (stable) number"
                 Environment.Exit 2
                 failwith "Unreachable"
@@ -263,13 +266,18 @@ if not replaceScript.Exists then
 GitDiff()
 
 Console.WriteLine "Bumping..."
-RunUpdateServers()
+if not isAuto then
+    RunUpdateServers()
 let fullUnstableVersion,newFullStableVersion = Bump true
-GitCommit fullUnstableVersion newFullStableVersion
-GitTag newFullStableVersion
+if not isAuto then
+    GitCommit fullUnstableVersion newFullStableVersion
+    GitTag newFullStableVersion
 
 Console.WriteLine (sprintf "Version bumped to %s."
                            (newFullStableVersion.ToString()))
+
+if isAuto then
+    Environment.Exit 0
 
 if isReleaseManual then
     Console.WriteLine "Release binaries now and press any key when you finish."

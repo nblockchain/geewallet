@@ -63,7 +63,7 @@ In the development side of things, we advocate for simplicity:
 This list is the (intended) order of preference for new features:
 
 - Migration from Xamarin.Forms to MAUI (in progress, see the PR#199 or its successor).
-- Switch from SegWit to native-SegWit (Bech32): PR#211.
+- Make native-SegWit (Bech32) be default for bitcoin (right now this is the case for the beta version of our snap package).
 - Support for payment-channels & state-channels (in BTC/LTC via lightning, see 'lightning' branch; and in ETH/ETC/DAI via Connext?).
 - Explore better stablecoin approach than L1-DAI because DAI is not 100% decentralized (e.g. LUSD better?) and because L1 is too high fees (e.g. sDAI better? see https://twitter.com/koeppelmann/status/1736766570825654630 ).
 - Automatic reminders for Seed/password checks to make sure user has not forgotten them (see https://twitter.com/takinbo/status/1201529679519330305 ).
