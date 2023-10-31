@@ -67,7 +67,7 @@ This list is the (intended) order of preference for new features:
 - Support for payment-channels & state-channels (in BTC/LTC via lightning, see 'lightning' branch; and in ETH/ETC/DAI via Connext?).
 - Automatic reminders for Seed/password checks to make sure user has not forgotten them (see https://twitter.com/takinbo/status/1201529679519330305 ).
 - NFC support.
-- WearOS/WatchOS frontend for Samsung&Google&Apple phones: no QR scanning due to missing camera in most Tizen watches, but could use NFC.
+- WearOS/WatchOS frontend for Samsung&Google&Apple watches: no QR scanning due to missing camera in most Tizen watches, but could use NFC.
 - Passwordless login infrastructure (e.g. https://www.reddit.com/r/ethereum/comments/7hn3fq/using_your_blockchain_identity_for_passwordless/ ).
 - flatpak packaging.
 - In mobile, allow usage when camera permissions have not been granted, by letting the user redirect him to his camera app and take a picture (see https://youtu.be/k1Ssz1dvcpk?t=63).
