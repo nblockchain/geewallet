@@ -155,7 +155,7 @@ module Account =
                 let! balances = GetBalances account mode cancelSourceOption
                 return Some balances
             with
-            | ex when (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome ->
+            | ex when (FSharpUtil.FindException<ResourcesUnavailabilityException> ex).IsSome ->
                 return None
         }
 

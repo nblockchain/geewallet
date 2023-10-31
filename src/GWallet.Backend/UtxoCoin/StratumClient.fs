@@ -149,9 +149,9 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             if ex.ErrorCode = (RpcErrorCode.UnknownMethod |> int |> Some) then
                 return raise <| ServerMisconfiguredException(ex.Message, ex)
             if ex.ErrorCode = (RpcErrorCode.ServerBusy |> int |> Some) then
-                return raise <| ServerUnavailabilityException(ex.Message, ex)
+                return raise <| ServerFaultException(ex.Message, ex)
             if ex.ErrorCode = (RpcErrorCode.ExcessiveResourceUsage |> int |> Some) then
-                return raise <| ServerUnavailabilityException(ex.Message, ex)
+                return raise <| ServerFaultException(ex.Message, ex)
 
             return raise(ElectrumServerReturningErrorException(ex.Message, ex.ErrorCode, jsonRequest, rawResponse))
     }

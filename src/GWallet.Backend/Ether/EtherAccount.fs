@@ -73,7 +73,7 @@ module internal Account =
                 let! balance = GetBalance account mode balType cancelSourceOption
                 return Some balance
             with
-            | ex when (FSharpUtil.FindException<ResourceUnavailabilityException> ex).IsSome ->
+            | ex when (FSharpUtil.FindException<ResourcesUnavailabilityException> ex).IsSome ->
                 return None
         }
 
