@@ -128,8 +128,20 @@ module Infrastructure =
             raise ex
         false
 #else
-        let ev = SentryEvent(ex, Level = errorLevel)
-        ReportInner ev
+        try
+            let ev = SentryEvent(ex, Level = errorLevel)
+            ReportInner ev
+        with
+        | ex ->
+            if errorLevel = ErrorLevel.Error then
+                reraise()
+
+                //unreachable
+                false
+
+            else
+                // e.g. if in cold-storage mode, trying to report a warning would cause a crash, but let's ignore it:
+                false
 #endif
 
     let ReportWarning (ex: Exception): bool =
