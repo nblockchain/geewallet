@@ -114,42 +114,38 @@ let FindOffendingPrintfUsage () =
         Environment.Exit 1
 
 
-let SanityCheckNugetPackages () =
-    let conventionDirectory =
+let SanityCheckNugetPackages (solution: FileInfo) =
+    let conventionsDir =
         Path.Combine(FsxHelper.RootDir.FullName, "..", "conventions")
+        |> DirectoryInfo
 
-    let cloningResult =
-        Process.Execute(
-            { Command = "git"
-              Arguments =
-                sprintf
-                    "clone -b SanityCheckStepSquashed https://github.com/Mersho/conventions.git %s"
-                    conventionDirectory },
-            Echo.Off
-        )
-
-    match cloningResult.Result with
-    | Error _ ->
-        Console.WriteLine()
-        Console.Error.WriteLine "Clone failed."
-        Environment.Exit 1
-
-    | WarningsOrAmbiguous _ -> ()
-
-    | _ -> ()
+    if not conventionsDir.Exists then
+        let cloningResult =
+            Process.Execute(
+                { Command = "git"
+                  Arguments =
+                    sprintf
+                        "clone -b SanityCheckStepSquashed https://github.com/Mersho/conventions.git %s"
+                        conventionsDir.FullName },
+                Echo.Off
+            )
+        match cloningResult.Result with
+        | Error _ ->
+            Console.WriteLine()
+            Console.Error.WriteLine "Clone failed."
+            Environment.Exit 1
+        | _ -> ()
 
     let sanityCheckArgs =
         let sanityCheckExecuteCommand =
             sprintf
                 "fsi %s"
-                (Path.Combine(FsxHelper.RootDir.FullName, conventionDirectory, "scripts", "sanityCheckNuget.fsx"))
+                (Path.Combine(FsxHelper.RootDir.FullName, conventionsDir.FullName, "scripts", "sanityCheckNuget.fsx"))
 
         sprintf
             "%s %s"
             sanityCheckExecuteCommand
-            (FsxHelper.GetSolution SolutionFile.Default)
-                .FullName
-
+            solution.FullName
 
     Process
         .Execute(
@@ -162,6 +158,17 @@ let SanityCheckNugetPackages () =
 
 
 FindOffendingPrintfUsage()
+
 #if !LEGACY_FRAMEWORK
-SanityCheckNugetPackages()
+
+let sol =
+    match Misc.GuessPlatform() with
+    // TODO: add `Platform.Linux -> SolutionFile.Linux` case when we migrate to MALI/MAUI
+    | Misc.Platform.Mac when "msbuild" = Environment.GetEnvironmentVariable "LegacyBuildTool" ->
+        FsxHelper.GetSolution SolutionFile.Mac
+    | _ ->
+        // TODO: have a windows solution file
+        FsxHelper.GetSolution SolutionFile.Default
+SanityCheckNugetPackages sol
+
 #endif
