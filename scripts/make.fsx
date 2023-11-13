@@ -23,8 +23,9 @@ open Fsdk.Process
 open GWallet.Scripting
 
 let UNIX_NAME = "geewallet"
-let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
-let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
+let SHORT_NAME = "GWallet"
+let CONSOLE_FRONTEND = sprintf "%s.Frontend.Console" SHORT_NAME
+let GTK_FRONTEND = sprintf "%s.Frontend.XF.Gtk" SHORT_NAME
 
 type ProjectFile =
     | ConsoleFrontend
@@ -34,18 +35,18 @@ type ProjectFile =
 let GetProject (projFile: ProjectFile) =
     let projFileName =
         match projFile with
-        | ConsoleFrontend -> Path.Combine("GWallet.Frontend.Console", "GWallet.Frontend.Console.fsproj")
-        | GtkFrontend -> Path.Combine("GWallet.Frontend.XF.Gtk", "GWallet.Frontend.XF.Gtk.fsproj")
-        | XFFrontend -> Path.Combine("GWallet.Frontend.XF", "GWallet.Frontend.XF.fsproj")
+        | ConsoleFrontend -> sprintf "%s.Frontend.Console" SHORT_NAME
+        | GtkFrontend -> sprintf "%s.Frontend.XF.Gtk" SHORT_NAME
+        | XFFrontend -> sprintf "%s.Frontend.XF" SHORT_NAME
 
     let prjFile =
-        Path.Combine("src", projFileName)
+        Path.Combine("src", projFileName, sprintf "%s.fsproj" projFileName)
         |> FileInfo
     if not prjFile.Exists then
         raise <| FileNotFoundException("Project file not found", prjFile.FullName)
     prjFile
 
-let BACKEND = "GWallet.Backend"
+let BACKEND = sprintf "%s.Backend" SHORT_NAME
 
 type Frontend =
     | Console
@@ -512,7 +513,7 @@ match maybeTarget with
     Console.WriteLine "Running tests..."
     Console.WriteLine ()
 
-    let testProjectName = "GWallet.Backend.Tests"
+    let testProjectName = sprintf "%s.Backend.Tests" SHORT_NAME
 #if !LEGACY_FRAMEWORK
     let testTarget =
         Path.Combine (
