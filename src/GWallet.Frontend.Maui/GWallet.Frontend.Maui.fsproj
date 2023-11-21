@@ -39,6 +39,10 @@
     <CheckEolWorkloads>false</CheckEolWorkloads>
   </PropertyGroup>
 
+  <!-- workaround for https://github.com/xamarin/xamarin-android/issues/6101 -->
+  <PropertyGroup>
+    <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
+  </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="WelcomePage.xaml" />
     <Compile Include="..\GWallet.Frontend.XF\FrontendHelpers.fs" />
