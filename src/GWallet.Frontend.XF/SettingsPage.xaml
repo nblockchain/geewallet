@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage
+    xmlns="http://xamarin.com/schemas/2014/forms"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    x:Class="GWallet.Frontend.XF.SettingsPage">
+
+    <AbsoluteLayout>
+        <StackLayout x:Name="mainLayout"
+                     AbsoluteLayout.LayoutFlags="XProportional,SizeProportional"
+                     AbsoluteLayout.LayoutBounds="0.5,50,0.7,1"
+                     VerticalOptions="FillAndExpand">
+
+            <Label x:Name="titleLabel" Text="" Margin="0,0,0,10" HorizontalTextAlignment="Center" TextTransform="Uppercase"/>
+
+            <!-- Check you still remember your payment password-->
+            <StackLayout Spacing="10"
+                         IsVisible="false">
+                <Entry x:Name="passwordEntry"
+                       IsPassword="true"
+                       Focused="ClearResult"
+                       Text=""
+                       Placeholder="Type your password"/>
+
+                <Button Text="Check my password"
+                        Clicked="OnCheckPasswordButtonClicked"
+                        HorizontalOptions="FillAndExpand">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding Text.Length, Source={x:Reference passwordEntry}}"
+                                     Value="0">
+                            <Setter Property="IsEnabled" Value="False"/>
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <StackLayout.Triggers>
+                    <DataTrigger TargetType="StackLayout"
+                                 Binding="{Binding Text, Source={x:Reference titleLabel}}"
+                                 Value="Check you still remember your payment password">
+                        <Setter Property="IsVisible" Value="True"/>
+                    </DataTrigger>
+                </StackLayout.Triggers>
+            </StackLayout>
+
+            <!--Check you still remember your secret recovery phrase-->
+            <StackLayout IsVisible="false">
+                <Entry x:Name="phraseEntry"
+                       Focused="ClearResult"
+                       IsPassword="true"
+                       Text=""
+                       Placeholder="Type your recovery phrase"/>
+
+                <Grid>
+                    <DatePicker x:Name="dateOfBirthPicker"
+                                Focused="ClearResult"
+                                HorizontalOptions="FillAndExpand"
+                                TextColor="Transparent"
+                                DateSelected="OnDatePickerDateSelected"/>
+                    <Entry x:Name="dateOfBirthLabel"
+                           Placeholder="Choose your date of birth"
+                           BackgroundColor="Transparent"
+                           VerticalOptions="Center"
+                           InputTransparent="True"
+                           IsEnabled="False"/>
+                </Grid>
+
+                <Entry x:Name="emailEntry"
+                       Focused="ClearResult"
+                       Text=""
+                       Placeholder="Type your email"/>
+
+                <Button Text="Check my secret recovery phrase"
+                        Clicked="OnCheckPasswordButtonClicked"
+                        HorizontalOptions="FillAndExpand">
+                    <Button.Triggers>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding Text.Length, Source={x:Reference emailEntry}}"
+                                     Value="0">
+                            <Setter Property="IsEnabled" Value="False"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding Text, Source={x:Reference dateOfBirthLabel}}"
+                                     Value="Choose your date of birth">
+                            <Setter Property="IsEnabled" Value="False"/>
+                        </DataTrigger>
+                        <DataTrigger TargetType="Button"
+                                     Binding="{Binding Text.Length, Source={x:Reference phraseEntry}}"
+                                     Value="0">
+                            <Setter Property="IsEnabled" Value="False"/>
+                        </DataTrigger>
+                    </Button.Triggers>
+                </Button>
+                <StackLayout.Triggers>
+                    <DataTrigger TargetType="StackLayout"
+                                 Binding="{Binding Text, Source={x:Reference titleLabel}}"
+                                 Value="Check you still remember your secret recovery phrase">
+                        <Setter Property="IsVisible" Value="True"/>
+                    </DataTrigger>
+                </StackLayout.Triggers>
+            </StackLayout>
+
+            <!-- Wipe your current wallet, in order to start from scratch-->
+            <StackLayout Spacing="10"
+                         IsVisible="false">
+
+                <Label Text="If you want to remove accounts, the recommended way is to archive them, not wipe the whole wallet."
+                       HorizontalTextAlignment="Center"/>
+
+                <Button Text="I want to do it anyway"
+                        Clicked="OnWipeWalletButtonClicked"
+                        HorizontalOptions="FillAndExpand">
+                </Button>
+                <StackLayout.Triggers>
+                    <DataTrigger TargetType="StackLayout"
+                                 Binding="{Binding Text, Source={x:Reference titleLabel}}"
+                                 Value="Wipe your current wallet, in order to start from scratch">
+                        <Setter Property="IsVisible" Value="True"/>
+                    </DataTrigger>
+                </StackLayout.Triggers>
+            </StackLayout>
+
+            <!-- Loading & Results -->
+            <Grid Margin="0,30,0,0">
+                <ActivityIndicator IsVisible="False" x:Name="loadingIndicator" IsRunning="True"/>
+                <Label x:Name="resultMessage" IsVisible="False" HorizontalTextAlignment="Center" Text="Try again"/>
+            </Grid>
+
+        </StackLayout>
+    </AbsoluteLayout>
+</ContentPage>
