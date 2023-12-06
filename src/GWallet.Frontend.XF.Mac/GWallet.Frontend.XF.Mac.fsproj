@@ -49,6 +49,66 @@
     <XamMacArch></XamMacArch>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ADRaffy.ENSNormalize, Version=0.1.5.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\ADRaffy.ENSNormalize.0.1.5\lib\netstandard2.0\ADRaffy.ENSNormalize.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions, Version=6.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\lib\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum, Version=3.99.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.ABI, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Accounts, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.BlockchainProcessing, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.BlockchainProcessing.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Contracts, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Hex, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.JsonRpc.Client, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.JsonRpc.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.JsonRpc.RpcClient, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.JsonRpc.RpcClient.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.KeyStore, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Merkle.Patricia, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Merkle.Patricia.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Model, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Model.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RLP, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.RPC, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Signer, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Signer.EIP712, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Signer.EIP712.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.StandardTokenEIP20, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Util, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
+    </Reference>
+    <Reference Include="Nethereum.Web3, Version=4.16.0.0, Culture=neutral, PublicKeyToken=8768a594786aba4e, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\Nethereum.3.99.0--date20231003-1147.git-b9a16cf\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Xamarin.Mac" />
@@ -117,9 +177,6 @@
     <Reference Include="FSharp.Core">
       <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\netstandard2.0\FSharp.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.Extensions.Logging.Abstractions">
-      <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
-    </Reference>
     <Reference Include="JsonRpcSharp.Client">
       <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.Client.dll</HintPath>
     </Reference>
@@ -134,39 +191,6 @@
     </Reference>
     <Reference Include="JsonRpcSharp.WebSocketClient">
       <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Accounts">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.StandardTokenEIP20">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
-    </Reference>
-    <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\packages\HtmlAgilityPack.1.11.24\lib\netstandard2.0\HtmlAgilityPack.dll</HintPath>
@@ -222,4 +246,11 @@
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Mac\Xamarin.Mac.FSharp.targets" />
   <Import Project="..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />
   <Import Project="..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets')" />
+  <Import Project="..\..\packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets" Condition="Exists('..\..\packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105.The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\..\packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets'))" />
+  </Target>
 </Project>

@@ -8,6 +8,7 @@ open System.Linq
 
 open Nethereum.Util
 open Nethereum.Hex.HexTypes
+open Nethereum.JsonRpc.Client
 open Nethereum.Web3
 open Nethereum.RPC.Eth.DTOs
 open Nethereum.StandardTokenEIP20.ContractDefinition
@@ -20,8 +21,8 @@ type BalanceType =
     | Unconfirmed
     | Confirmed
 
-type SomeWeb3 (connectionTimeOut, url: string) =
-    inherit Web3 (connectionTimeOut, url)
+type SomeWeb3 (url: string) =
+    inherit Web3 (url)
 
     member val Url = url with get
 
@@ -67,7 +68,7 @@ module Web3ServerSeedList =
 
 module Server =
 
-    let private Web3Server (connectionTimeOut, serverDetails: ServerDetails) =
+    let private Web3Server (serverDetails: ServerDetails) =
         match serverDetails.ServerInfo.ConnectionType with
         | { Protocol = Tcp _ ; Encrypted = _ } ->
             failwith <| SPrintF1 "Ether server of TCP connection type?: %s" serverDetails.ServerInfo.NetworkPath
@@ -78,7 +79,7 @@ module Server =
                 else
                     "http"
             let uri = SPrintF2 "%s://%s" protocol serverDetails.ServerInfo.NetworkPath
-            SomeWeb3 (connectionTimeOut, uri)
+            SomeWeb3 uri
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
         ex.Message.StartsWith(SPrintF1 "%i " errorCode) || ex.Message.Contains(SPrintF1 " %i " errorCode)
@@ -200,7 +201,7 @@ module Server =
         ]
 
     let MaybeRethrowRpcResponseException (ex: Exception): unit =
-        let maybeRpcResponseEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex
+        let maybeRpcResponseEx = FSharpUtil.FindException<RpcResponseException> ex
         match maybeRpcResponseEx with
         | Some rpcResponseEx ->
             if not (isNull rpcResponseEx.RpcError) then
@@ -243,7 +244,7 @@ module Server =
 
     let MaybeRethrowRpcClientTimeoutException (ex: Exception): unit =
         let maybeRpcTimeoutException =
-            FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientTimeoutException> ex
+            FSharpUtil.FindException<RpcClientTimeoutException> ex
         match maybeRpcTimeoutException with
         | Some rpcTimeoutEx ->
             raise <| ServerTimedOutException(exMsg, rpcTimeoutEx)
@@ -260,7 +261,7 @@ module Server =
 
     // this could be a Xamarin.Android bug (see https://gitlab.com/nblockchain/geewallet/issues/119)
     let MaybeRethrowObjectDisposedException (ex: Exception): unit =
-        let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
+        let maybeRpcUnknownEx = FSharpUtil.FindException<RpcClientUnknownException> ex
         match maybeRpcUnknownEx with
         | Some _ ->
             let maybeObjectDisposedEx = FSharpUtil.FindException<ObjectDisposedException> ex
@@ -274,12 +275,12 @@ module Server =
             ()
 
     let MaybeRethrowInnerRpcException (ex: Exception): unit =
-        let maybeRpcUnknownEx = FSharpUtil.FindException<JsonRpcSharp.Client.RpcClientUnknownException> ex
+        let maybeRpcUnknownEx = FSharpUtil.FindException<RpcClientUnknownException> ex
         match maybeRpcUnknownEx with
         | Some rpcUnknownEx ->
 
             let maybeDeSerializationEx =
-                FSharpUtil.FindException<JsonRpcSharp.Client.DeserializationException> rpcUnknownEx
+                FSharpUtil.FindException<DeserializationException> rpcUnknownEx
             match maybeDeSerializationEx with
             | None ->
                 ()
@@ -340,11 +341,9 @@ module Server =
         | ServerSelectionMode.Fast -> 3u
         | ServerSelectionMode.Analysis -> 2u
 
-    let etcEcosystemIsMomentarilyCentralized = false
-
     let private FaultTolerantParallelClientInnerSettings (numberOfConsistentResponsesRequired: uint32)
                                                          (mode: ServerSelectionMode)
-                                                         currency
+                                                         _currency
                                                          maybeConsistencyConfig =
 
         let consistencyConfig =
@@ -352,10 +351,7 @@ module Server =
             | None -> SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesRequired
             | Some specificConsistencyConfig -> specificConsistencyConfig
 
-        let retries =
-            match currency with
-            | Currency.ETC when etcEcosystemIsMomentarilyCentralized -> Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS * 2u
-            | _ -> Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS
+        let retries = Config.NUMBER_OF_RETRIES_TO_SAME_SERVERS
 
         {
             NumberOfParallelJobsAllowed = NumberOfParallelJobsForMode mode
@@ -377,11 +373,7 @@ module Server =
         }
 
     let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode) (currency: Currency) =
-        let numberOfConsistentResponsesRequired =
-            if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
-                1u
-            else
-                2u
+        let numberOfConsistentResponsesRequired = 2u
         FaultTolerantParallelClientInnerSettings numberOfConsistentResponsesRequired
                                                  mode
                                                  currency
@@ -390,9 +382,7 @@ module Server =
                                                                    (currency: Currency)
                                                                    (cacheOrInitialBalanceMatchFunc: decimal->bool) =
         let consistencyConfig =
-            if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
-                None
-            elif mode = ServerSelectionMode.Fast then
+            if mode = ServerSelectionMode.Fast then
                 Some (OneServerConsistentWithCertainValueOrTwoServers cacheOrInitialBalanceMatchFunc)
             else
                 None
@@ -407,7 +397,7 @@ module Server =
 
     let Web3ServerToRetrievalFunc (server: ServerDetails)
                                   (web3ClientFunc: SomeWeb3->Async<'R>)
-                                  currency
+                                  _currency
                                       : Async<'R> =
 
         let HandlePossibleEtherFailures (job: Async<'R>): Async<'R> =
@@ -422,15 +412,10 @@ module Server =
                     return raise <| FSharpUtil.ReRaise ex
             }
 
-        let connectionTimeout =
-            match currency with
-            | Currency.ETC when etcEcosystemIsMomentarilyCentralized ->
-                Config.DEFAULT_NETWORK_TIMEOUT + Config.DEFAULT_NETWORK_TIMEOUT
-            | _ ->
-                Config.DEFAULT_NETWORK_TIMEOUT
+        ClientBase.ConnectionTimeout <- Config.DEFAULT_NETWORK_TIMEOUT
 
         async {
-            let web3Server = Web3Server (connectionTimeout, server)
+            let web3Server = Web3Server (server)
             try
                 return! HandlePossibleEtherFailures (web3ClientFunc web3Server)
 
@@ -678,11 +663,7 @@ module Server =
                             return hexBigInteger
                         }
                 GetRandomizedFuncs currency web3Func
-            let minResponsesRequired =
-                if etcEcosystemIsMomentarilyCentralized && currency = Currency.ETC then
-                    1u
-                else
-                    2u
+            let minResponsesRequired = 2u
             return! faultTolerantEtherClient.Query
                         (FaultTolerantParallelClientDefaultSettings
                             ServerSelectionMode.Fast
@@ -712,7 +693,7 @@ module Server =
                             web3Funcs
             with
             | ex ->
-                match FSharpUtil.FindException<JsonRpcSharp.Client.RpcResponseException> ex with
+                match FSharpUtil.FindException<RpcResponseException> ex with
                 | None ->
                     return raise (FSharpUtil.ReRaise ex)
                 | Some rpcResponseException ->

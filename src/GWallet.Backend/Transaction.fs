@@ -46,17 +46,13 @@ type UnsignedTransaction<'T when 'T:> IBlockchainFeeInfo> =
             Proposal = self.Proposal;
         }
 
-type SignedTransaction<'T when 'T:> IBlockchainFeeInfo> =
+type SignedTransaction =
     {
-        TransactionInfo: UnsignedTransaction<'T>;
-        RawTransaction: string;
+        FeeCurrency: Currency
+        Currency: Currency
+        RawTransaction: string
     }
-    member self.ToAbstract(): SignedTransaction<IBlockchainFeeInfo> =
-        {
-            TransactionInfo = self.TransactionInfo.ToAbstract();
-            RawTransaction = self.RawTransaction;
-        }
 
 type ImportedTransaction<'T when 'T:> IBlockchainFeeInfo> =
 | Unsigned of UnsignedTransaction<'T>
-| Signed of SignedTransaction<'T>
+| Signed of SignedTransaction

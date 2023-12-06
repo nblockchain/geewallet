@@ -80,9 +80,14 @@ let BroadcastPayment() =
 
     | Some signedTransaction ->
         let transactionDetails = Account.GetSignedTransactionDetails signedTransaction
+        let transactionMetadata =
+            signedTransaction
+            |> Account.GetTransactionMetadata
+            |> Async.RunSynchronously
+
         Presentation.ShowTransactionData
             transactionDetails
-            signedTransaction.TransactionInfo.Metadata
+            transactionMetadata
 
         if UserInteraction.AskYesNo "Do you accept?" then
             try

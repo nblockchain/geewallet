@@ -467,7 +467,7 @@ module Account =
             return! Server.Query currency QuerySettings.Broadcast job None
         }
 
-    let internal BroadcastTransaction currency (transaction: SignedTransaction<_>) =
+    let internal BroadcastTransaction currency (transaction: SignedTransaction) =
         // FIXME: stop embedding TransactionInfo element in SignedTransaction<BTC>
         // and show the info from the RawTx, using NBitcoin to extract it
         BroadcastRawTransaction currency transaction.RawTransaction
@@ -477,14 +477,17 @@ module Account =
                              (destination: string)
                              (amount: TransferAmount)
                              (password: string)
-                             (ignoreHigherMinerFeeThanAmount: bool)
-                    =
-        let baseAccount = account :> IAccount
-        if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
-            raise DestinationEqualToOrigin
+                             (ignoreHigherMinerFeeThanAmount: bool) =
+        async {
+            let baseAccount = account :> IAccount
+            if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
+                raise DestinationEqualToOrigin
 
-        let finalTransaction = SignTransaction account txMetadata destination amount password
-        BroadcastRawTransaction baseAccount.Currency finalTransaction ignoreHigherMinerFeeThanAmount
+            let finalTransaction = SignTransaction account txMetadata destination amount password
+            let! txId = BroadcastRawTransaction baseAccount.Currency finalTransaction ignoreHigherMinerFeeThanAmount
+            
+            return txId, finalTransaction
+        }
 
     // TODO: maybe move this func to Backend.Account module, or simply inline it (simple enough)
     let public ExportUnsignedTransactionToJson trans =
@@ -633,12 +636,58 @@ module Account =
         // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
         | :? FormatException ->
             raise (AddressWithInvalidChecksum None)
+        
+    let GetTransactionFeeMetadata (signedTx: SignedTransaction): Async<IBlockchainFeeInfo> =
+        async {
+            let network = GetNetwork signedTx.Currency
+            let txToValidate = Transaction.Parse (signedTx.RawTransaction, network)
 
-    let GetSignedTransactionDetails<'T when 'T :> IBlockchainFeeInfo>(rawTransaction: string)
-                                                                     (currency: Currency)
-                                                                         : ITransactionDetails =
-        let network = GetNetwork currency
-        match Transaction.TryParse(rawTransaction, network) with
+            let totalOutputsAmount = txToValidate.TotalOut
+
+            let getInputDetails (input: TxIn) =
+                async {
+                    let job = ElectrumClient.GetBlockchainTransaction (input.PrevOut.Hash.ToString())
+                    let! inputOriginTxString = Server.Query signedTx.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+                    let inputOriginTx = Transaction.Parse (inputOriginTxString, network)
+                    return
+                        input.PrevOut.N,
+                        inputOriginTx.Outputs.[input.PrevOut.N],
+                        inputOriginTx.GetHash().ToString()
+                }
+
+            let! inputs =
+                txToValidate.Inputs
+                |> Seq.map getInputDetails
+                |> Async.Parallel
+
+            let totalInputsAmount =
+                inputs
+                |> Seq.sumBy (fun (_outputIndex, txOut, _transactionHash) -> txOut.Value)
+
+            let minerFee = totalInputsAmount - totalOutputsAmount
+            
+            return
+                {
+                    TransactionMetadata.Fee =
+                        MinerFee(minerFee.Satoshi, DateTime.Now, signedTx.FeeCurrency)
+                    // We don't need inputs since the metadata object gets casted to IBlockchainFeeInfo
+                    Inputs =
+                        inputs
+                        |> Seq.map(fun (outputIndex, txOut, transactionHash) ->
+                            {
+                                TransactionHash = transactionHash
+                                OutputIndex = int outputIndex
+                                ValueInSatoshis = txOut.Value.Satoshi
+                                DestinationInHex = txOut.ScriptPubKey.ToHex()
+                            }
+                        )
+                        |> Seq.toList
+                } :> IBlockchainFeeInfo
+        }
+    
+    let GetSignedTransactionDetails (signedTx: SignedTransaction) : ITransactionDetails =
+        let network = GetNetwork signedTx.Currency
+        match Transaction.TryParse(signedTx.RawTransaction, network) with
         | false, _ ->
             failwith "malformed transaction"
         | true, transaction ->
@@ -667,10 +716,10 @@ module Account =
 
             let account =
                 let accountOpt =
-                    Config.GetAccountFiles [currency] AccountKind.ReadOnly
+                    Config.GetAccountFiles [signedTx.Currency] AccountKind.ReadOnly
                     |> Seq.map
                         (fun accountFile ->
-                            GetAccountFromFile accountFile currency AccountKind.ReadOnly
+                            GetAccountFromFile accountFile signedTx.Currency AccountKind.ReadOnly
                             :?> ReadOnlyUtxoAccount
                         )
                     |> Seq.filter matchOriginToAccount
@@ -703,6 +752,14 @@ module Account =
                 OriginAddress = originAddress.ToString()
                 DestinationAddress = destinationAddress.ToString()
                 Amount = value.ToDecimal MoneyUnit.BTC
-                Currency = currency
+                Currency = signedTx.Currency
             } :> ITransactionDetails
 
+    let GetSignedTransactionProposal (signedTx: SignedTransaction): UnsignedTransactionProposal =
+        let txDetail = GetSignedTransactionDetails signedTx
+        {
+            UnsignedTransactionProposal.Amount =
+                TransferAmount(txDetail.Amount, txDetail.Amount + 1m, txDetail.Currency)
+            OriginAddress = txDetail.OriginAddress
+            DestinationAddress = txDetail.DestinationAddress
+        }
