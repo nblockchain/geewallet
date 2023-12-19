@@ -65,6 +65,7 @@ This list is the (intended) order of preference for new features:
 - Migration from Xamarin.Forms to MAUI (in progress, see the PR#199 or its successor).
 - Switch from SegWit to native-SegWit (Bech32): PR#211.
 - Support for payment-channels & state-channels (in BTC/LTC via lightning, see 'lightning' branch; and in ETH/ETC/DAI via Connext?).
+- Explore better stablecoin approach than L1-DAI because DAI is not 100% decentralized (e.g. LUSD better?) and because L1 is too high fees (e.g. sDAI better? see https://twitter.com/koeppelmann/status/1736766570825654630 ).
 - Automatic reminders for Seed/password checks to make sure user has not forgotten them (see https://twitter.com/takinbo/status/1201529679519330305 ).
 - NFC support.
 - WearOS/WatchOS frontend for Samsung&Google&Apple watches: no QR scanning due to missing camera in most Tizen watches, but could use NFC.
