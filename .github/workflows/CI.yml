@@ -18,6 +18,8 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: '6.0.113'
+    - name: install maui workload
+      run: dotnet workload install maui
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -96,7 +98,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: '6.0.x'
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -182,10 +184,33 @@ jobs:
 
   linux-github--dotnet-and-mono:
     runs-on: ubuntu-22.04
+    env:
+      GtkSharpVersion: 3.24.24.95
+      DotnetVersion: 6.0.400
     steps:
     - uses: actions/checkout@v1
       with:
-        submodules: false
+        submodules: true
+    - name: Setup .NET SDK ${{ env.DotnetVersion }}
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{ env.DotnetVersion }}
+    - name: Install gtk workload
+      run: |
+        wget -O gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg https://globalcdn.nuget.org/packages/gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.$GtkSharpVersion.nupkg
+        DOTNET_DIR=/home/runner/.dotnet
+        WORKLOAD_MANIFEST_DIR=$DOTNET_DIR/sdk-manifests/${{ env.DotnetVersion }}/gtksharp.net.sdk.gtk
+        mkdir -p $WORKLOAD_MANIFEST_DIR/
+        unzip -j gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg "data/*" -d $WORKLOAD_MANIFEST_DIR/
+        rm gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg
+        # otherwise we get System.UnauthorizedAccessException: Access to the path '/home/runner/.dotnet/sdk-manifests/6.0.300/gtksharp.net.sdk.gtk/WorkloadManifest.json' is denied.
+        chmod 764 $WORKLOAD_MANIFEST_DIR/*
+        dotnet workload search
+        dotnet workload install gtk --skip-manifest-update
+    - name: Add Maui Nuget source
+      run: |
+        cd dependencies/maui
+        dotnet nuget add source --name nuget https://api.nuget.org/v3/index.json
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
@@ -194,6 +219,9 @@ jobs:
       run: ./configure.sh
     - name: build in DEBUG mode
       run: make
+    - name: build Maui frontend
+      run: |
+        dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net6.0-gtk
     - name: sanity check
       run: make sanitycheck
     - name: unit tests

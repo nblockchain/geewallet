@@ -1,15 +1,32 @@
-﻿namespace GWallet.Frontend.XF
-
+﻿#if !XAMARIN
+namespace GWallet.Frontend.Maui
+#else
+namespace GWallet.Frontend.XF
+#endif
 open System
 open System.Linq
 open System.Threading.Tasks
 
+#if !XAMARIN
+open Microsoft.Maui
+open Microsoft.Maui.Graphics
+open Microsoft.Maui.Controls
+open Microsoft.Maui.ApplicationModel
+open Microsoft.Maui.Layouts
+
+open ZXing.Net.Maui
+
+type Color = Microsoft.Maui.Graphics.Colors
+// added because of deprecated expansion options for StackLayout in using LayoutOptions.FillAndExpand
+#nowarn "44"
+#else
 open Xamarin.Forms
 open Xamarin.Essentials
 open ZXing
 open ZXing.Mobile
+open ZXing.Net.Mobile.Forms
+#endif
 open Fsdk
-
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -42,7 +59,7 @@ module FrontendHelpers =
 
     type IAugmentablePayPage =
         abstract member AddTransactionScanner: unit -> unit
-
+#if XAMARIN
     let IsDesktop() =
         match Device.RuntimePlatform with
         | Device.Android | Device.iOS ->
@@ -52,7 +69,7 @@ module FrontendHelpers =
         | _ ->
             // TODO: report a sentry warning
             false
-
+#endif
     let internal BigFontSize = 22.
 
     let internal MediumFontSize = 20.
@@ -198,8 +215,14 @@ module FrontendHelpers =
         let fullJob =
             let UpdateProgressBar (progressBar: StackLayout) =
                 MainThread.BeginInvokeOnMainThread(fun _ ->
+                    let progressBarChildren =
+#if XAMARIN
+                        progressBar.Children
+#else
+                        progressBar |> Seq.choose(function | :? View as view -> Some view | _ -> None )
+#endif
                     let firstTransparentFrameFound =
-                        progressBar.Children.First(fun x -> x.BackgroundColor = Color.Transparent)
+                        progressBarChildren.First(fun x -> x.BackgroundColor = Color.Transparent)
                     firstTransparentFrameFound.BackgroundColor <- GetCryptoColor balanceSet.Account.Currency
                 )
             async {
@@ -232,13 +255,16 @@ module FrontendHelpers =
         let allCancelSources =
             Seq.map fst sourcesAndJobs
         allCancelSources,parallelJobs
-
     let private MaybeCrash (canBeCanceled: bool) (ex: Exception) =
         let LastResortBail() =
             // this is just in case the raise(throw) doesn't really tear down the program:
             Infrastructure.LogError ("FATAL PROBLEM: " + ex.ToString())
             Infrastructure.LogError "MANUAL FORCED SHUTDOWN NOW"
+#if XAMARIN
             Device.PlatformServices.QuitApplication()
+#else
+            Application.Current.Quit()
+#endif
 
         if isNull ex then
             ()
@@ -283,7 +309,11 @@ module FrontendHelpers =
     let SwitchToNewPage (currentPage: Page) (createNewPage: unit -> Page) (navBar: bool): unit =
         MainThread.BeginInvokeOnMainThread(fun _ ->
             let newPage = createNewPage ()
+#if !XAMARIN && GTK
+            NavigationPage.SetHasNavigationBar(newPage, navBar)
+#else
             NavigationPage.SetHasNavigationBar(newPage, false)
+#endif            
             let navPage = NavigationPage newPage
             NavigationPage.SetHasNavigationBar(navPage, navBar)
 
@@ -312,7 +342,6 @@ module FrontendHelpers =
                 |> Async.AwaitTask
             return ()
         }
-
     let ChangeTextAndChangeBack (button: Button) (newText: string) =
         let initialText = button.Text
         button.IsEnabled <- false
@@ -339,22 +368,49 @@ module FrontendHelpers =
         else
             normalCryptoBalanceClassId,readonlyCryptoBalanceClassId
 
-    let CreateCurrencyBalanceFrame currency (cryptoLabel: Label) (fiatLabel: Label) currencyLogoImg classId =
+    let CreateCurrencyBalanceFrame currency (cryptoLabel: Label) (fiatLabel: Label) (currencyLogoImg: View) classId =
         let colorBoxWidth = 10.
 
-        let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
-                                      Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
+        let outerLayout =
+#if XAMARIN
+            // because of layout changes in the currency list colorBoxWidth for XF needs to be larger 
+            // for color box to be visible
+            let colorBoxWidth = colorBoxWidth * 2.0
+            let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
+                                          Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
 
-        stackLayout.Children.Add currencyLogoImg
-        stackLayout.Children.Add cryptoLabel
-        stackLayout.Children.Add fiatLabel
+            stackLayout.Children.Add currencyLogoImg
+            stackLayout.Children.Add cryptoLabel
+            stackLayout.Children.Add fiatLabel
 
-        let colorBox = BoxView(Color = GetCryptoColor currency)
+            let colorBox = BoxView(Color = GetCryptoColor currency)
 
-        let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
-        absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
-        absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
+            let absoluteLayout = AbsoluteLayout(Margin = Thickness(0., 1., 3., 1.))
+           
+            absoluteLayout.Children.Add(stackLayout, Rectangle(0., 0., 1., 1.), AbsoluteLayoutFlags.All)
+            absoluteLayout.Children.Add(colorBox, Rectangle(1., 0., colorBoxWidth, 1.), AbsoluteLayoutFlags.PositionProportional ||| AbsoluteLayoutFlags.HeightProportional)
 
+            absoluteLayout
+#else
+            let innerLayout = Grid(Padding = Thickness(20., 20., 10., 20.))
+            innerLayout.ColumnDefinitions.Add(ColumnDefinition(GridLength(currencyLogoImg.WidthRequest + 10.0)))
+            innerLayout.ColumnDefinitions.Add(ColumnDefinition(GridLength.Auto))
+            innerLayout.ColumnDefinitions.Add(ColumnDefinition())
+            
+            innerLayout.Add(currencyLogoImg, 0)
+            innerLayout.Add(cryptoLabel, 1)
+            innerLayout.Add(fiatLabel, 2)
+
+            let outerLayout = Grid(Margin = Thickness(0., 1., 3., 1.))
+            outerLayout.ColumnDefinitions.Add(ColumnDefinition())
+            outerLayout.ColumnDefinitions.Add(ColumnDefinition(colorBoxWidth))
+
+            let colorBox = BoxView(Color = GetCryptoColor currency)
+            outerLayout.Add(innerLayout, 0)
+            outerLayout.Add(colorBox, 1)
+            outerLayout
+#endif
+#if XAMARIN
         //TODO: remove this workaround once https://github.com/xamarin/Xamarin.Forms/pull/5207 is merged
         if Device.RuntimePlatform = Device.macOS then
             let bindImageSize bindableProperty =
@@ -363,16 +419,18 @@ module FrontendHelpers =
 
             bindImageSize VisualElement.WidthRequestProperty
             bindImageSize VisualElement.HeightRequestProperty
-
+#endif
         let frame = Frame(HasShadow = false,
                           ClassId = classId,
-                          Content = absoluteLayout,
+                          Content = outerLayout,
                           Padding = Thickness(0.),
                           BorderColor = Color.SeaShell)
         frame
 
     let private CreateWidgetsForAccount (currency: Currency) currencyLogoImg classId: BalanceWidgets =
         let accountBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.Start
+        // TODO: [FS0044] This construct is deprecated. The StackLayout expansion options are deprecated; please use a Grid instead.
+        // Should remove #nowarn 44 after fixing this.
         let fiatBalanceLabel = CreateLabelWidgetForAccount LayoutOptions.EndAndExpand
 
         {
@@ -394,8 +452,9 @@ module FrontendHelpers =
                 }
         } |> List.ofSeq
 
-    let BarCodeScanningOptions = MobileBarcodeScanningOptions(
-                                     TryHarder = Nullable<bool> true,
+    let BarCodeScanningOptions = 
+#if XAMARIN
+        MobileBarcodeScanningOptions(TryHarder = Nullable<bool> true,
                                      DisableAutofocus = false,
                                      // TODO: stop using Sys.Coll.Gen when this PR is accepted: https://github.com/Redth/ZXing.Net.Mobile/pull/800
                                      PossibleFormats = System.Collections.Generic.List<BarcodeFormat>(
@@ -403,6 +462,34 @@ module FrontendHelpers =
                                      ),
                                      UseNativeScanning = true
                                  )
+#else
+        BarcodeReaderOptions(TryHarder = true, Formats = BarcodeFormat.QrCode)
+#endif
+                                     
+    let GetBarcodeScannerPage (onBarcodeDetected: string -> unit) =
+#if XAMARIN
+        let scanPage = ZXingScannerPage BarCodeScanningOptions
+        scanPage.add_OnScanResult(fun result ->
+            scanPage.IsScanning <- false
+            onBarcodeDetected result.Text
+        )
+        scanPage
+#else
+        let scanView = ZXing.Net.Maui.Controls.CameraBarcodeReaderView(Options = BarCodeScanningOptions)
+        scanView.BarcodesDetected.Add(fun result ->
+            let barCodeText = result.Results.[0].Value // assume our barcode is first result?
+            onBarcodeDetected barCodeText
+        )
+        ContentPage(Content = scanView)
+#endif
+    
+    /// Safer alternative to Navigation.PopModalAsync(): when ModalStack is empty, do nothing.
+    /// This is used in barcode scanner calbacks because sometimes those would be called more than one time.
+    let TryPopModalAsync (page: Page) : Task<Page> =
+        if page.Navigation.ModalStack.Count > 0 then
+            page.Navigation.PopModalAsync()
+        else
+            Task.FromResult page
 
     let GetImageSource name =
         let thisAssembly = typeof<BalanceState>.Assembly
@@ -419,3 +506,12 @@ module FrontendHelpers =
         let sizedColoredName = SPrintF2 "%s_%s" name color
         GetSizedImageSource sizedColoredName size
 
+    let StartTimer(interval: TimeSpan, action: unit -> bool) =
+#if XAMARIN
+        Device.StartTimer(interval, Func<bool> action)
+#else
+        let timer = Application.Current.Dispatcher.CreateTimer(Interval = interval, IsRepeating = true)
+        timer.Tick.Add(fun _ ->
+            if not <| action() then timer.Stop() )
+        timer.Start()
+#endif        

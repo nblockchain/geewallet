@@ -1,11 +1,21 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if !XAMARIN
+namespace GWallet.Frontend.Maui
+#else
+namespace GWallet.Frontend.XF
+#endif
 
 open System
 open System.Threading.Tasks
 
+#if !XAMARIN
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.ApplicationModel
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
+#endif
 
 open GWallet.Backend
 
@@ -14,7 +24,7 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
 
     let _ = base.LoadFromXaml(typeof<WelcomePage2>)
 
-    let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let mainLayout = base.FindByName<Grid> "mainLayout"
 
     let password = mainLayout.FindByName<Entry> "passwordEntry"
     let passwordConfirmation = mainLayout.FindByName<Entry> "passwordEntryConfirmation"
@@ -58,7 +68,7 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
                 let loadingPage () =
                     LoadingPage (state, false)
                         :> Page
-                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne self loadingPage
+                FrontendHelpers.SwitchToNewPageDiscardingCurrentOne self loadingPage              
             } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member __.OnPasswordTextChanged(_sender: Object, _args: EventArgs) =

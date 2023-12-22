@@ -3,23 +3,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
              x:Class="GWallet.Frontend.XF.WelcomePage2">
-    <StackLayout x:Name="mainLayout"
+    <Grid x:Name="mainLayout"
                  VerticalOptions="Center"
-                 Padding="20,20,20,20">
+                 Padding="20,20,20,20"
+                 RowDefinitions="*,Auto,Auto,Auto">
         <Label Text="Now create a payment-password:" x:Name="nowLabel"
                VerticalOptions="Center" HorizontalOptions="Center"
-               Margin="20,20,20,20"/>
+               Margin="20,20,20,20"
+               Grid.Row="0"/>
 
         <Entry x:Name="passwordEntry" IsPassword="true"
                Placeholder="Input your new payment password"
-               TextChanged="OnPasswordTextChanged" />
+               TextChanged="OnPasswordTextChanged"
+               Grid.Row="1"/>
         <Entry x:Name="passwordEntryConfirmation" IsPassword="true"
                Placeholder="Repeat your payment password"
-               TextChanged="OnPasswordTextChanged" />
+               TextChanged="OnPasswordTextChanged"
+               Grid.Row="2"/>
 
         <Button x:Name="finishButton"
                 Text="Finish" IsEnabled="false"
                 HorizontalOptions="Center"
-                Clicked="OnFinishButtonClicked" />
-    </StackLayout>
+                Clicked="OnFinishButtonClicked"
+                Grid.Row="3"/>
+    </Grid>
 </ContentPage>

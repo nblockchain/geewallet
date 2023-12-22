@@ -4,40 +4,39 @@
              x:Class="GWallet.Frontend.XF.ReceivePage"
              xmlns:zx="clr-namespace:ZXing.Net.Mobile.Forms;assembly=ZXing.Net.Mobile.Forms"
              xmlns:zxcm="clr-namespace:ZXing.Common;assembly=zxing">
-    <StackLayout x:Name="mainLayout"
-                 Padding="10,10,10,10"
-                 VerticalOptions="Center">
+    <Grid x:Name="mainLayout"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+          Padding="10,10,10,10"
+          VerticalOptions="Center">
         <Label x:Name="balanceLabel"
                Text="..."
-               HorizontalOptions="Center" />
+               HorizontalOptions="Center"
+               Grid.Row="0"/>
         <Label x:Name="fiatBalanceLabel"
                Text="..."
-               HorizontalOptions="Center" />
+               HorizontalOptions="Center"
+               Grid.Row="1"/>
         <Button x:Name="paymentButton"
                 Text="..."
                 IsEnabled="false"
                 HorizontalOptions="Center"
-                Clicked="OnSendPaymentClicked"/>
+                Clicked="OnSendPaymentClicked"
+                Grid.Row="2"/>
         <Button x:Name="copyToClipboardButton"
                 Text="Copy address to clipboard"
                 IsEnabled="true"
                 HorizontalOptions="Center"
-                Clicked="OnCopyToClipboardClicked"/>
+                Clicked="OnCopyToClipboardClicked"
+                Grid.Row="3"/>
         <zx:ZXingBarcodeImageView
             x:Name="qrCode"
-            BarcodeFormat="QR_CODE"
             HorizontalOptions="Center"
             VerticalOptions="Center"
             IsVisible="false"
             WidthRequest="200"
             HeightRequest="200"
-            >
-            <zx:ZXingBarcodeImageView.BarcodeOptions>
-                <zxcm:EncodingOptions
-                    Width="200"
-                    Height="200"
-                    />
-            </zx:ZXingBarcodeImageView.BarcodeOptions>
+            Grid.Row="4"
+        >
         </zx:ZXingBarcodeImageView>
         <Button
             x:Name="viewTransactionHistoryButton"
@@ -45,6 +44,7 @@
             IsEnabled="true"
             HorizontalOptions="Center"
             Clicked="OnViewTransactionHistoryClicked"
-            />
-    </StackLayout>
+            Grid.Row="5"
+        />
+    </Grid>
 </ContentPage>

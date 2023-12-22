@@ -1,11 +1,22 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if !XAMARIN
+namespace GWallet.Frontend.Maui
+#else
+namespace GWallet.Frontend.XF
+#endif
 
 open System
 open System.Linq
-
+#if !XAMARIN
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.Networking
+open Microsoft.Maui.ApplicationModel
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
+#endif
+
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
@@ -15,7 +26,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
 
     let _ = base.LoadFromXaml(typeof<WelcomePage>)
 
-    let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let mainLayout = base.FindByName<Grid> "mainLayout"
     let infoGrid = mainLayout.FindByName<Grid> "infoGrid"
     let passphraseEntry = mainLayout.FindByName<Entry> "passphraseEntry"
     let passphraseConfirmationEntry = mainLayout.FindByName<Entry> "passphraseConfirmationEntry"
@@ -122,6 +133,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
                     let! mainThreadSynchContext =
                         Async.AwaitTask <| MainThread.GetMainThreadSynchronizationContextAsync()
                     do! Async.SwitchToContext mainThreadSynchContext
+
                     let dateTime = dobDatePicker.Date
                     ToggleInputWidgetsEnabledOrDisabled false
                     do! Async.SwitchToThreadPool()
