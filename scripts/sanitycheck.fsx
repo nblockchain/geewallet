@@ -88,8 +88,11 @@ type private ComparableFileInfo =
 
 let FindOffendingPrintfUsage () =
     let findScript = Path.Combine (FsxHelper.RootDir.FullName, "scripts", "find.fsx")
-    let excludeFolders =
+    let excludedElements =
         String.Format (
+            // because it contains word 'failwithf':
+            "fsharplint.json{0}" +
+
             "scripts{0}" +
             "src{1}GWallet.Frontend.Console{0}" +
             "src{1}GWallet.Backend.Tests{0}" +
@@ -105,7 +108,7 @@ let FindOffendingPrintfUsage () =
             Arguments = sprintf "%s %s --exclude=%s %s"
                                 fsxRunnerArg
                                 findScript
-                                excludeFolders
+                                excludedElements
                                 "printf failwithf"
         }
     let findProcOutput = Process.Execute(proc, Echo.All).UnwrapDefault()
@@ -436,6 +439,37 @@ let SanityCheckNugetPackages () =
     sanityCheckNugetPackagesFromSolution sol
   
 
+#if !LEGACY_FRAMEWORK
+let RunFSharpLint() =
+    let fsharpLintVersion = "0.23.1--date20231228-0934.git-e8d2697"
+    let dotnetBin = "dotnet"
+    let cmd1 =
+        {
+            Command = dotnetBin
+            Arguments = "new tool-manifest"
+        }
+    let _proc = Process.Execute(cmd1, Echo.All).UnwrapDefault()
+    let cmd2 =
+        {
+            Command = dotnetBin
+            Arguments =
+                sprintf "tool install dotnet-fsharplint --version %s"
+                    fsharpLintVersion
+        }
+    let _installProc = Process.Execute(cmd2, Echo.All).UnwrapDefault()
+    let cmd3 =
+        {
+            Command = dotnetBin
+            Arguments =
+                sprintf "dotnet-fsharplint lint src%sgwallet.core.sln"
+                    (Path.DirectorySeparatorChar.ToString())
+        }
+    Process.Execute(cmd3, Echo.All).UnwrapDefault() |> ignore<string>
+
+#endif
+
 FindOffendingPrintfUsage()
 SanityCheckNugetPackages()
-
+#if !LEGACY_FRAMEWORK
+RunFSharpLint()
+#endif
