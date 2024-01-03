@@ -641,13 +641,13 @@ module Account =
 
         match transType with
         | _ when transType = typeof<SignedTransaction<UtxoCoin.TransactionMetadata>> ->
-            let deserializedBtcTransaction: SignedTransaction<UtxoCoin.TransactionMetadata> =
+            let deserializedTransaction: SignedTransaction<UtxoCoin.TransactionMetadata> =
                     Marshalling.Deserialize json
-            deserializedBtcTransaction.ToAbstract()
+            deserializedTransaction.ToAbstract()
         | _ when transType = typeof<SignedTransaction<Ether.TransactionMetadata>> ->
-            let deserializedBtcTransaction: SignedTransaction<Ether.TransactionMetadata> =
+            let deserializedTransaction: SignedTransaction<Ether.TransactionMetadata> =
                     Marshalling.Deserialize json
-            deserializedBtcTransaction.ToAbstract()
+            deserializedTransaction.ToAbstract()
         | _ when transType.GetGenericTypeDefinition() = typedefof<UnsignedTransaction<_>> ->
             raise TransactionNotSignedYet
         | unexpectedType ->
