@@ -49,6 +49,7 @@ let filesToBumpMiniVersion: seq<string> =
 
 let filesToBumpFullVersion: seq<string> =
     Seq.append filesToBumpMiniVersion [
+        "src/GWallet.Backend/GWallet.Backend.fsproj"
         "src/GWallet.Backend/Properties/CommonAssemblyInfo.fs"
         "snap/snapcraft.yaml"
     ]
