@@ -10,6 +10,10 @@ open GWallet.Backend.UtxoCoin
 [<TestFixture>]
 type Deserialization() =
 
+    [<SetUp>]
+    member __.``Versioning works``() =
+        MarshallingData.AssertAssemblyVersion()
+
     [<Test>]
     member __.``deserialize cache does not fail``() =
 

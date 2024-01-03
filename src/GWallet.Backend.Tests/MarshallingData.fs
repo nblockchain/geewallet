@@ -325,3 +325,11 @@ module MarshallingData =
 
     let UnsignedEtherTransactionExampleInJson =
         ReadEmbeddedResource "unsignedAndFormattedEtherTransaction.json"
+
+    let AssertAssemblyVersion() =
+        Assert.That(
+            VersionHelper.CURRENT_VERSION,
+            Is.Not.EqualTo "1.0.0.0",
+            "Proper version was somehow not properly assigned as assembly version"
+        )
+

@@ -11,12 +11,7 @@ type Serialization() =
 
     [<SetUp>]
     member __.``Versioning works``() =
-        Assert.That(
-            VersionHelper.CURRENT_VERSION,
-            Is.Not.EqualTo "1.0.0.0",
-            "Proper version was somehow not properly assigned as assembly version"
-        )
-
+        MarshallingData.AssertAssemblyVersion()
 
     [<Test>]
     member __.``basic caching export does not fail``() =
