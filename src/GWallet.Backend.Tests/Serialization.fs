@@ -8,6 +8,11 @@ open GWallet.Backend
 
 [<TestFixture>]
 type Serialization() =
+
+    [<SetUp>]
+    member __.``Versioning works``() =
+        Assert.Fail "This is a test to see if CI is red"
+
     [<Test>]
     member __.``basic caching export does not fail``() =
         let json = Marshalling.Serialize MarshallingData.EmptyCachingDataExample
