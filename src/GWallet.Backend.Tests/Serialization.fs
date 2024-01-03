@@ -11,7 +11,12 @@ type Serialization() =
 
     [<SetUp>]
     member __.``Versioning works``() =
-        Assert.Fail "This is a test to see if CI is red"
+        Assert.That(
+            VersionHelper.CURRENT_VERSION,
+            Is.Not.EqualTo "1.0.0.0",
+            "Proper version was somehow not properly assigned as assembly version"
+        )
+
 
     [<Test>]
     member __.``basic caching export does not fail``() =
