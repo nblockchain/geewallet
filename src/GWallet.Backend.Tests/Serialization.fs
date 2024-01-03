@@ -29,12 +29,12 @@ type Serialization() =
     [<Test>]
     member __.``complex caching export works``() =
 
-        let json = Marshalling.Serialize MarshallingData.SofisticatedCachingDataExample
+        let json = Marshalling.Serialize MarshallingData.SophisticatedCachingDataExample
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
         Assert.That(json,
-                    Is.EqualTo (MarshallingData.SofisticatedCachingDataExampleInJson))
+                    Is.EqualTo (MarshallingData.SophisticatedCachingDataExampleInJson))
 
     [<Test>]
     member __.``unsigned BTC transaction export``() =
