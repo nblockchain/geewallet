@@ -149,11 +149,17 @@ module Marshalling =
         let wrapper = JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json
         if Object.ReferenceEquals(wrapper, null) then
             failwith <| SPrintF1 "Failed to extract type from JSON (null check): %s" json
-        try
-            Type.GetType wrapper.TypeName
-        with
-        | :? NullReferenceException as _nre ->
-            failwith <| SPrintF1 "Failed to extract type from JSON (NRE): %s" json
+        if String.IsNullOrEmpty wrapper.TypeName then
+            failwith <| SPrintF1 "Failed to extract type from JSON (null/empty check): %s" json
+        let res =
+            try
+                Type.GetType wrapper.TypeName
+            with
+            | :? NullReferenceException as _nre ->
+                failwith <| SPrintF2 "Failed to extract type '%s' from JSON (NRE): %s" wrapper.TypeName json
+        if isNull res then
+            failwith <| SPrintF2 "Failed to extract type '%s' from JSON (result was null): %s" wrapper.TypeName json
+        res
 
     // FIXME: should we rather use JContainer.Parse? it seems JObject.Parse wouldn't detect error in this: {A:{"B": 1}}
     //        (for more info see replies of https://stackoverflow.com/questions/6903477/need-a-string-json-validator )
@@ -206,8 +212,11 @@ module Marshalling =
         | theType when typeof<Exception>.IsAssignableFrom theType ->
             let marshalledException: MarshalledException = DeserializeCustom(json, DefaultSettings)
             BinaryMarshalling.DeserializeFromString marshalledException.FullBinaryForm :?> 'T
-        | _ ->
-            DeserializeCustom(json, DefaultSettings)
+        | anotherType ->
+            let res = DeserializeCustom(json, DefaultSettings)
+            if Object.ReferenceEquals(res, null) then
+                failwith <| SPrintF2 "Deserialization to type '%s' failed (returned null): %s" anotherType.FullName json
+            res
 
     let private SerializeInternal<'T>(value: 'T) (settings: JsonSerializerSettings) (formatting: Formatting): string =
         JsonConvert.SerializeObject(MarshallingWrapper<'T>.New value,
