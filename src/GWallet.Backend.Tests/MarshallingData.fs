@@ -14,7 +14,7 @@ open GWallet.Backend.Ether
 module MarshallingData =
 
     let private executingAssembly = Assembly.GetExecutingAssembly()
-    let private version = executingAssembly.GetName().Version.ToString()
+    let private version = VersionHelper.CURRENT_VERSION
     let private binPath = executingAssembly.Location |> FileInfo
     let private prjPath = Path.Combine(binPath.Directory.FullName, "..") |> DirectoryInfo
 
@@ -175,9 +175,9 @@ module MarshallingData =
                                      .Add("0xFOOBARBAZ", [Currency.ETC.ToString()])
     let private fiatValues = Map.empty.Add(Currency.ETH.ToString(), 161.796m)
                                       .Add(Currency.ETC.ToString(), 169.99999999m)
-    let SofisticatedCachingDataExample = { UsdPrice = fiatValues; Addresses = addresses; Balances = balances; }
+    let SophisticatedCachingDataExample = { UsdPrice = fiatValues; Addresses = addresses; Balances = balances; }
 
-    let SofisticatedCachingDataExampleInJson =
+    let SophisticatedCachingDataExampleInJson =
         sprintf """{
   "Version": "%s",
   "TypeName": "%s",
@@ -312,7 +312,7 @@ module MarshallingData =
     let someEtherTransactionInfo =
         {
             Proposal = someUnsignedEtherTransactionProposal;
-            Cache = SofisticatedCachingDataExample;
+            Cache = SophisticatedCachingDataExample
             Metadata = someEtherTxMetadata;
         }
     let SignedEtherTransactionExample =
@@ -325,3 +325,11 @@ module MarshallingData =
 
     let UnsignedEtherTransactionExampleInJson =
         ReadEmbeddedResource "unsignedAndFormattedEtherTransaction.json"
+
+    let AssertAssemblyVersion() =
+        Assert.That(
+            VersionHelper.CURRENT_VERSION,
+            Is.Not.EqualTo "1.0.0.0",
+            "Proper version was somehow not properly assigned as assembly version"
+        )
+

@@ -10,11 +10,15 @@ open GWallet.Backend.UtxoCoin
 [<TestFixture>]
 type Deserialization() =
 
+    [<SetUp>]
+    member __.``Versioning works``() =
+        MarshallingData.AssertAssemblyVersion()
+
     [<Test>]
     member __.``deserialize cache does not fail``() =
 
         let deserializedCache: DietCache = Marshalling.Deserialize
-                                               MarshallingData.SofisticatedCachingDataExampleInJson
+                                               MarshallingData.SophisticatedCachingDataExampleInJson
 
         Assert.That(deserializedCache, Is.Not.Null)
 

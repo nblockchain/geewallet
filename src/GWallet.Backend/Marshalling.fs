@@ -94,7 +94,7 @@ type MarshallingWrapper<'T> =
         {
             Value = value
             Version = VersionHelper.CURRENT_VERSION
-            TypeName = typeof<'T>.FullName
+            TypeName = typeof<'T>.ToString()
         }
 
 type private PascalCase2LowercasePlusUnderscoreContractResolver() =
@@ -145,15 +145,46 @@ module Marshalling =
 
     let private currentVersion = VersionHelper.CURRENT_VERSION
 
-    let ExtractType(json: string): Type =
+    let ExtractWrapper(json: string): MarshallingWrapper<obj> =
+        if String.IsNullOrEmpty json then
+            raise <| ArgumentNullException "json"
         let wrapper = JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json
         if Object.ReferenceEquals(wrapper, null) then
             failwith <| SPrintF1 "Failed to extract type from JSON (null check): %s" json
-        try
-            Type.GetType wrapper.TypeName
-        with
-        | :? NullReferenceException as _nre ->
-            failwith <| SPrintF1 "Failed to extract type from JSON (NRE): %s" json
+        if String.IsNullOrEmpty wrapper.TypeName then
+            failwith <| SPrintF1 "Failed to extract type from JSON (inner null check 1): %s" json
+        if String.IsNullOrEmpty wrapper.Version then
+            failwith <| SPrintF1 "Failed to extract type from JSON (inner null check 2): %s" json
+        wrapper
+
+    let ExtractType(json: string): Type =
+        let wrapper = ExtractWrapper json
+
+        let res =
+            try
+                // we prefer an ex with innerException than an NRE caused by the
+                // consumer of this function
+                let throwOnError = true
+
+                Type.GetType(wrapper.TypeName, throwOnError)
+            with
+            | :? NullReferenceException as _nre ->
+                failwith
+                <| SPrintF1 "Failed to extract type from JSON (NRE): %s" json
+            | ex ->
+                let errMsg =
+                    SPrintF2 "Problem when trying to find type '%s' (version '%s')"
+                        wrapper.TypeName
+                        wrapper.Version
+                raise <| Exception(errMsg, ex)
+        if isNull res then
+            failwith
+            <| SPrintF2
+                    "Could not find type '%s' (version '%s')"
+                    wrapper.TypeName
+                    wrapper.Version
+        res
+
 
     // FIXME: should we rather use JContainer.Parse? it seems JObject.Parse wouldn't detect error in this: {A:{"B": 1}}
     //        (for more info see replies of https://stackoverflow.com/questions/6903477/need-a-string-json-validator )
