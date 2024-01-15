@@ -14,8 +14,7 @@ module BlockExplorer =
               | Currency.BTC ->
                   "https://mempool.space/address/"
               | Currency.LTC ->
-                  // because the more popular https://live.blockcypher.com/ltc/ doesn't seem to have segwit support
-                  "https://chainz.cryptoid.info/ltc/address.dws?"
+                  "https://litecoinspace.org/address/"
               | Currency.ETH ->
                   // most popular one...
                   "https://etherscan.io/address/"
@@ -32,7 +31,7 @@ module BlockExplorer =
               | Currency.BTC ->
                   "https://mempool.space/tx/"
               | Currency.LTC ->
-                  "https://chainz.cryptoid.info/ltc/tx.dws?"
+                  "https://litecoinspace.org/tx/"
               | Currency.ETH ->
                   "https://etherscan.io/tx/"
               | Currency.ETC ->

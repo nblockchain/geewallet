@@ -1,6 +1,6 @@
 {
   "Version": "{version}",
-  "TypeName": "GWallet.Backend.SignedTransaction`1[[GWallet.Backend.Ether.TransactionMetadata, GWallet.Backend, Version={version}, Culture=neutral, PublicKeyToken=null]]",
+  "TypeName": "GWallet.Backend.SignedTransaction`1[GWallet.Backend.Ether.TransactionMetadata]",
   "Value": {
     "TransactionInfo": {
       "Proposal": {

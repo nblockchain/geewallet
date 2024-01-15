@@ -32,6 +32,7 @@ type RpcErrorCode =
     | DailyRequestCountExceededSoRequestRateLimited = -32005
     | CannotFulfillRequest = -32046
     | ResourceNotFound = -32001
+    | InternalError = -32603
 
 type ServerCannotBeResolvedException =
     inherit CommunicationUnsuccessfulException

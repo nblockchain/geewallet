@@ -23,6 +23,7 @@
     <Compile Include="Serialization.fs" />
     <Compile Include="Deserialization.fs" />
     <Compile Include="ExceptionMarshalling.fs" />
+    <Compile Include="MetaMarshalling.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

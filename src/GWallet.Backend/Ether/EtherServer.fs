@@ -231,6 +231,8 @@ module Server =
                     raise <| ServerRefusedException(exMsg, rpcResponseEx)
                 | h when h = int RpcErrorCode.ResourceNotFound ->
                     raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
+                | i when i = int RpcErrorCode.InternalError ->
+                    raise <| ServerFaultException(exMsg, rpcResponseEx)
                 | _ ->
                     raise
                     <| Exception (SPrintF3 "RpcResponseException with RpcError Code <%i> and Message '%s' (%s)"
