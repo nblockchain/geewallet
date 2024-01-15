@@ -13,8 +13,11 @@ type MetaMarshalling() =
         Assert.That(json, Is.Not.Null)
         Assert.That(json, Is.Not.Empty)
 
-        let wrapperTypeString = Marshalling.ExtractStringType json
-        Assert.That(wrapperTypeString, Is.Not.Null)
-        Assert.That(wrapperTypeString, Is.Not.Empty)
+        let wrapper = Marshalling.ExtractWrapper json
+        Assert.That(wrapper, Is.Not.Null)
+        Assert.That(wrapper.TypeName, Is.Not.Null)
+        Assert.That(wrapper.TypeName, Is.Not.Empty)
+        Assert.That(wrapper.Version, Is.Not.Null)
+        Assert.That(wrapper.Version, Is.Not.Empty)
 
-        Assert.That(wrapperTypeString, Does.Not.Contain "Version=")
+        Assert.That(wrapper.TypeName, Does.Not.Contain "Version=")
