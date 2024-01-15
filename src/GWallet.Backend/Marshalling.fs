@@ -94,7 +94,7 @@ type MarshallingWrapper<'T> =
         {
             Value = value
             Version = VersionHelper.CURRENT_VERSION
-            TypeName = typeof<'T>.FullName
+            TypeName = typeof<'T>.ToString()
         }
 
 type private PascalCase2LowercasePlusUnderscoreContractResolver() =
@@ -145,12 +145,18 @@ module Marshalling =
 
     let private currentVersion = VersionHelper.CURRENT_VERSION
 
-    let ExtractType(json: string): Type =
+    let ExtractStringType(json: string): string =
+        if String.IsNullOrEmpty json then
+            raise <| ArgumentNullException "json"
         let wrapper = JsonConvert.DeserializeObject<MarshallingWrapper<obj>> json
         if Object.ReferenceEquals(wrapper, null) then
             failwith <| SPrintF1 "Failed to extract type from JSON (null check): %s" json
+        wrapper.TypeName
+
+    let ExtractType(json: string): Type =
+        let typeName = ExtractStringType json
         try
-            Type.GetType wrapper.TypeName
+            Type.GetType typeName
         with
         | :? NullReferenceException as _nre ->
             failwith <| SPrintF1 "Failed to extract type from JSON (NRE): %s" json
