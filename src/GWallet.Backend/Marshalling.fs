@@ -153,7 +153,8 @@ module Marshalling =
         if Object.ReferenceEquals(wrapper, null) then
             failwith <| SPrintF1 "Failed to extract type from JSON (null check): %s" json
         try
-            Type.GetType wrapper.TypeName
+            let throwOnError = true
+            Type.GetType(wrapper.TypeName, throwOnError)
         with
         | :? NullReferenceException as _nre ->
             failwith <| SPrintF1 "Failed to extract type from JSON (NRE): %s" json

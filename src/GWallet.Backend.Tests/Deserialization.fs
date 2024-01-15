@@ -252,3 +252,79 @@ type Deserialization() =
         let serialized = Marshalling.Serialize c
         let deserialized = Marshalling.Deserialize<Currency> serialized
         Assert.That(c, Is.EqualTo deserialized)
+
+    [<Test>]
+    member __.``regression test for tx deserialization causing NRE``() =
+        let tx = Account.ImportSignedTransactionFromJson """
+{
+"Version": "1.0.0.0",
+"TypeName": "GWallet.Backend.SignedTransaction`1[[GWallet.Backend.UtxoCoin.TransactionMetadata, GWallet.Backend, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
+"Value": {
+  "TransactionInfo": {
+    "Proposal": {
+      "OriginAddress": "39PtdjNZn8sTGSFrefYUWxp7WdEyMLobkQ",
+      "Amount": {
+        "ValueToSend": 0.001482,
+        "BalanceAtTheMomentOfSending": 0.001482,
+        "Currency": {
+          "Case": "BTC"
+        }
+      },
+      "DestinationAddress": "396KPeb6BfuS56ujT3Nkx84UNZnhTca3UF"
+    },
+    "Metadata": {
+      "Fee": {
+        "EstimatedFeeInSatoshis": 6580,
+        "EstimationTime": "2024-01-10T11:05:28.388167Z",
+        "Currency": {
+          "Case": "BTC"
+        }
+      },
+      "Inputs": [
+        {
+          "TransactionHash": "4a2cfb30223d9492ff1d9743c54d3b2cc2e11e3cb6223a4028431310881ce54b",
+          "OutputIndex": 20,
+          "ValueInSatoshis": 148300,
+          "DestinationInHex": "a9145483dd3179b74d410d474669ad5ed63a55eab3a387"
+        }
+      ]
+    },
+    "Cache": {
+      "UsdPrice": {
+        "BTC": 46135.23241523087559475,
+        "DAI": 0.9992683401285646,
+        "ETC": 31.4258033069879258,
+        "ETH": 2222.8233284001424569,
+        "LTC": 71.1507332754632235,
+        "SAI": 12.89886128104151004314
+      },
+      "Addresses": {
+        "0x88FA0d11A986a37dbF5fFd248028FDBE1a5f7C77": [
+          "SAI",
+          "DAI",
+          "ETC",
+          "ETH"
+        ],
+        "39PtejNZn8rTGSFrefYUWxp7WdEyMLobkQ": [
+          "BTC"
+        ],
+        "MFc2xcnXjFdt4wXkkYXpLc4WqKqRG3M3KN": [
+          "LTC"
+        ]
+      },
+      "Balances": {
+        "BTC": 0.002484,
+        "DAI": 0.0,
+        "ETC": 0.0,
+        "ETH": 0.0,
+        "LTC": 0.0,
+        "SAI": 0.0
+      }
+    }
+  },
+  "RawTransaction": "010000000001014be51c8810134328413a22b63c1ee1c22c3b4dc543971dff92943d2030fb2c4a13000000171600144b7419452b5dbd8e82000f78c1fad7217ee0ed10fdffffff01602a02000000000017a9145131075257d8b8de8298e7c52891eb4b87823b93870247304402204dca1e33a13802e42a56a0e82b7afb4edb0276abb25d0dc227d62b9845c8a4b10220324f158ebcd2be7d3347bf8eb31be4036cc38e562fa48d1f080000d6be4723890121021a731c5f29c71d097936221e4a95f501451a1ae15d8988e3d80aef3a3cdec52600000000"
+}
+}
+"""
+        Assert.That(tx, Is.Not.Null)
+        Assert.That(tx.TransactionInfo.Proposal.Amount.ValueToSend, Is.EqualTo 0.001482m)
