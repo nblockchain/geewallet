@@ -3,6 +3,7 @@
 Our priority list is [the Kanban view of our issue/task list](https://gitlab.com/nblockchain/geewallet/boards).
 
 Some other items that haven't been prioritized include (likely only intelligible if you're already a contributor):
+- Improve the dictionary-word detection when choosing a secret recovery phrase, maybe with NetSpell (https://github.com/loresoft/NetSpell , https://www.nuget.org/packages/NetSpell , https://loresoft.com/The-NetSpell-project ).
 - Study the need for ConfigureAwait(false) in the backend (or similar & easier approaches such as https://blogs.msdn.microsoft.com/benwilli/2017/02/09/an-alternative-to-configureawaitfalse-everywhere/ or https://github.com/Fody/ConfigureAwait ).
 - Develop a `Maybe<'T>` type that wraps `ValueOption<'T>` type (https://docs.microsoft.com/en-us/dotnet/fsharp/language-reference/value-options) (faster to type this way) but doesn't expose the `Value` property (for safety).
 - Speed improvements:
