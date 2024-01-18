@@ -251,6 +251,9 @@ module UserInteraction =
             //       so that, in case balance retrieval is faster than FiatValEstimation, and the balance is zero, then
             //       we don't need to query the fiat value at all (micro-optimization?)
             let! balance,usdValue = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdValueJob
+            
+            Console.Write account.Currency
+            Console.Write ' '
 
             return (account,balance,usdValue)
         }
@@ -264,6 +267,7 @@ module UserInteraction =
     let private GetAccountBalances (accounts: seq<IAccount>)
                                        : Async<array<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>> =
         let accountAndBalancesToBeQueried = accounts |> Seq.map GetAccountBalanceInner
+        Console.Write "Retrieving balances... "
         Async.Parallel accountAndBalancesToBeQueried
 
     let DisplayAccountStatuses(whichAccount: WhichAccount): Async<seq<string>> =

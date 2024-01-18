@@ -467,10 +467,11 @@ let rec ProgramMainLoop() =
         )
 
     Console.WriteLine ()
-    Console.WriteLine "*** STATUS ***"
+    Console.WriteLine("*** STATUS ***" + Environment.NewLine)
     let lines =
         UserInteraction.DisplayAccountStatuses(WhichAccount.All activeAccounts)
             |> Async.RunSynchronously
+    Console.WriteLine Environment.NewLine
     Console.WriteLine (String.concat Environment.NewLine lines)
     Console.WriteLine ()
 
