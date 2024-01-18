@@ -12,6 +12,7 @@ open ZXing.Common
 open GWallet.Backend
 
 type ReceivePage(account: IAccount,
+                 readOnly: bool,
 
                  // FIXME: should receive an Async<MaybeCached<decimal>> so that we get a fresh rate, just in case
                  usdRate: MaybeCached<decimal>,
@@ -29,11 +30,15 @@ type ReceivePage(account: IAccount,
     let paymentCaption = "Send Payment"
     let paymentCaptionInColdStorage = "Signoff Payment Offline"
 
+    let currencyImg =
+        mainLayout.FindByName<Image> "currencyImage"
+
     do
         self.Init()
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = ReceivePage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
+                        false,
                         Fresh 0m,
                         DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),
                         { CryptoLabel = null; FiatLabel = null ; Frame = null })
@@ -79,6 +84,13 @@ type ReceivePage(account: IAccount,
             paymentButton.IsEnabled <- true
             transactionHistoryButton.IsEnabled <- false
 
+        currencyImg.Source <-
+            FrontendHelpers.CreateCurrencyImageSource
+                account.Currency
+                readOnly
+                CurrencyImageSize.Big
+        currencyImg.IsVisible <- true
+
         // FIXME: remove this workaround below when https://github.com/xamarin/Xamarin.Forms/issues/8843 gets fixed
         // TODO: file the UWP bug too
         if Device.RuntimePlatform <> Device.macOS && Device.RuntimePlatform <> Device.UWP then () else
@@ -99,7 +111,7 @@ type ReceivePage(account: IAccount,
 
     member self.OnSendPaymentClicked(_sender: Object, _args: EventArgs) =
         let newReceivePageFunc = (fun _ ->
-            ReceivePage(account, usdRate, balancesPage, balanceWidgetsFromBalancePage) :> Page
+            ReceivePage(account, readOnly, usdRate, balancesPage, balanceWidgetsFromBalancePage) :> Page
         )
         let sendPage () =
             let newPage = SendPage(account, self, newReceivePageFunc)

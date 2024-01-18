@@ -10,6 +10,10 @@
         <Label x:Name="balanceLabel"
                Text="..."
                HorizontalOptions="Center" />
+        <Image
+            x:Name="currencyImage"
+            IsVisible="false"
+            />
         <Label x:Name="fiatBalanceLabel"
                Text="..."
                HorizontalOptions="Center" />

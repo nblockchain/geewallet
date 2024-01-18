@@ -32,6 +32,10 @@ type BalanceState = {
     UsdRate: MaybeCached<decimal>
 }
 
+type internal CurrencyImageSize =
+| Small = 60
+| Big = 120
+
 module FrontendHelpers =
 
     type IGlobalAppState =
@@ -411,11 +415,25 @@ module FrontendHelpers =
                                                         thisAssemblyName name
         ImageSource.FromResource(fullyQualifiedResourceNameForLogo, thisAssembly)
 
-    let GetSizedImageSource name size =
+    let internal GetSizedImageSource name (size: int) =
         let sizedName = SPrintF3 "%s_%ix%i" name size size
         GetImageSource sizedName
 
-    let GetSizedColoredImageSource name color size =
+    let internal GetSizedColoredImageSource name color (size: CurrencyImageSize) =
         let sizedColoredName = SPrintF2 "%s_%s" name color
-        GetSizedImageSource sizedColoredName size
+        GetSizedImageSource sizedColoredName (int size)
+
+    let internal CreateCurrencyImageSource (currency: Currency) (readOnly: bool) (size: CurrencyImageSize) =
+        let colour =
+            if readOnly then
+                "grey"
+            else
+                "red"
+        let currencyLowerCase = currency.ToString().ToLower()
+        GetSizedColoredImageSource currencyLowerCase colour size
+
+    let internal CreateCurrencyImage (currency: Currency) (readOnly: bool) (size: CurrencyImageSize) =
+        let imageSource = CreateCurrencyImageSource currency readOnly size
+        let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
+        currencyLogoImg
 

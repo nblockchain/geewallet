@@ -32,16 +32,6 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     let readOnlyAccounts = allAccounts.OfType<ReadOnlyAccount>() |> List.ofSeq
                            |> List.map (fun account -> account :> IAccount)
 
-    let CreateImage (currency: Currency) (readOnly: bool) =
-        let colour =
-            if readOnly then
-                "grey"
-            else
-                "red"
-        let currencyLowerCase = currency.ToString().ToLower()
-        let imageSource = FrontendHelpers.GetSizedColoredImageSource currencyLowerCase colour 60
-        let currencyLogoImg = Image(Source = imageSource, IsVisible = true)
-        currencyLogoImg
     let GetAllCurrencyCases(): seq<Currency*bool> =
         seq {
             for currency in Currency.GetAll() do
@@ -51,7 +41,12 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     let GetAllImages(): seq<(Currency*bool)*Image> =
         seq {
             for currency,readOnly in GetAllCurrencyCases() do
-                yield (currency,readOnly),(CreateImage currency readOnly)
+                let currencyLogo =
+                    FrontendHelpers.CreateCurrencyImage
+                        currency
+                        readOnly
+                        CurrencyImageSize.Small
+                yield (currency, readOnly), currencyLogo
         }
     let PreLoadCurrencyImages(): Map<Currency*bool,Image> =
         GetAllImages() |> Map.ofSeq
