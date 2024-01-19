@@ -7,6 +7,14 @@ open System.Threading.Tasks
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
+// this exception, if it happens, it would cause a crash because we don't handle it yet
+type InconsistentResultFromDifferentServersOfSameCurrency(currency: Currency,
+                                                          innerException: ResultInconsistencyException) =
+    inherit Exception (SPrintF2 "Inconsistent results retrieving info for currency %A: %s"
+                           (currency.ToString())
+                           innerException.Message,
+                       innerException)
+
 module Account =
 
     let private GetShowableBalanceInternal (account: IAccount)
@@ -35,16 +43,20 @@ module Account =
                 return Fresh 1m
             else
 
-            let! maybeBalance = GetShowableBalanceInternal account mode cancelSourceOption
-            match maybeBalance with
-            | None ->
-                return NotFresh(Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency)
-            | Some balance ->
-                let compoundBalance,_ =
-                    Caching.Instance.RetrieveAndUpdateLastCompoundBalance account.PublicAddress
-                                                                          account.Currency
-                                                                          balance
-                return Fresh compoundBalance
+                try
+                    let! maybeBalance = GetShowableBalanceInternal account mode cancelSourceOption
+                    match maybeBalance with
+                    | None ->
+                        return NotFresh(Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency)
+                    | Some balance ->
+                        let compoundBalance,_ =
+                            Caching.Instance.RetrieveAndUpdateLastCompoundBalance account.PublicAddress
+                                                                                  account.Currency
+                                                                                  balance
+                        return Fresh compoundBalance
+                with
+                | :? ResultInconsistencyException as innerEx ->
+                    return raise <| InconsistentResultFromDifferentServersOfSameCurrency(account.Currency, innerEx)
         }
 
     let internal GetAccountFromFile accountFile (currency: Currency) kind: IAccount =
