@@ -67,6 +67,7 @@ This list is the (intended) order of preference for new features:
 - Support for payment-channels & state-channels (in BTC/LTC via lightning, see 'lightning' branch; and in ETH/ETC/DAI via Connext?).
 - Explore better stablecoin approach than L1-DAI because DAI is not 100% decentralized (e.g. LUSD better?) and because L1 is too high fees (e.g. sDAI better? see https://twitter.com/koeppelmann/status/1736766570825654630 ).
 - Automatic reminders for Seed/password checks to make sure user has not forgotten them (see https://twitter.com/takinbo/status/1201529679519330305 ).
+- I18N/L10N (maybe via https://github.com/adams85/po ).
 - NFC support.
 - WearOS/WatchOS frontend for Samsung&Google&Apple watches: no QR scanning due to missing camera in most Tizen watches, but could use NFC.
 - Passwordless login infrastructure (e.g. https://www.reddit.com/r/ethereum/comments/7hn3fq/using_your_blockchain_identity_for_passwordless/ ).
