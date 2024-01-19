@@ -251,9 +251,9 @@ module UserInteraction =
             //       so that, in case balance retrieval is faster than FiatValEstimation, and the balance is zero, then
             //       we don't need to query the fiat value at all (micro-optimization?)
             let! balance,usdValue = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdValueJob
-            
-            Console.Write ' '
-            Console.Write account.Currency
+
+            let progressIteration = sprintf " %A" account.Currency
+            Console.Write progressIteration
 
             return (account,balance,usdValue)
         }
