@@ -4,7 +4,7 @@ open System
 open System.IO
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk, Version=0.6.0--date20230812-0646.git-2268d50"
+#r "nuget: Fsdk, Version=0.6.0--date20231031-0834.git-2737eea"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -187,6 +187,18 @@ let fsxRunner =
             fsxRunnerBinText
             buildConfigFile.Name
 
+let AddToDefinedConstants (constant: string) (configMap: Map<string, string>) =
+    let configKey = "DefineConstants"
+    
+    match configMap.TryFind configKey with
+    | None ->
+        configMap
+        |> Map.add configKey constant
+    | Some previousConstants ->
+        configMap
+        |> Map.add configKey (sprintf "%s;%s" previousConstants constant)
+    
+
 let configFileToBeWritten =
     let initialConfigFile = Map.empty.Add("Prefix", prefix.FullName)
 
@@ -195,10 +207,20 @@ let configFileToBeWritten =
         | Some theTool -> initialConfigFile.Add("LegacyBuildTool", theTool)
         | None -> initialConfigFile
 
-    let finalConfigFile =
+    let configFileStageThree =
         match buildTool with
         | Some theTool -> configFileStageTwo.Add("BuildTool", theTool)
         | None -> configFileStageTwo
+
+    let finalConfigFile =
+        let nativeSegwitEnabled =
+            Misc.FsxOnlyArguments()
+            |> List.contains "--native-segwit"
+        if nativeSegwitEnabled then
+            configFileStageThree
+            |> AddToDefinedConstants "NATIVE_SEGWIT"
+        else
+            configFileStageThree
 
     finalConfigFile
 

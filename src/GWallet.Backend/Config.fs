@@ -34,6 +34,13 @@ module Config =
     //       balances, so you might find discrepancies (e.g. the donut-chart-view)
     let internal NoNetworkBalanceForDebuggingPurposes = false
 
+    let internal UseNativeSegwit =
+#if NATIVE_SEGWIT
+        true
+#else
+        false
+#endif
+
     let IsWindowsPlatform() =
         RuntimeInformation.IsOSPlatform OSPlatform.Windows
 

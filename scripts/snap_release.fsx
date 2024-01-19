@@ -15,7 +15,7 @@ open System.Xml.Linq
 open System.Xml.XPath
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk, Version=0.6.0--date20230812-0646.git-2268d50"
+#r "nuget: Fsdk, Version=0.6.0--date20231031-0834.git-2737eea"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -149,8 +149,15 @@ Process.Execute({ Command = "snapcraft"; Arguments = "login --with snapcraft.log
 Console.WriteLine "Login successfull. Upload starting..."
 
 let snapPush =
-    // the 'stable' and 'candidate' channels require 'stable' grade in the yaml
-    let channel = "stable"
+    let channel =
+        match Misc.FsxOnlyArguments() with
+        | [ channel ] ->
+            channel
+        | [] ->
+            // the 'stable' and 'candidate' channels require 'stable' grade in the yaml
+            "stable"
+        | _ ->
+            failwith "Invalid arguments"
 
     Process.Execute(
         {

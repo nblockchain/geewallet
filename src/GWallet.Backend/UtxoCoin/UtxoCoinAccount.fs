@@ -72,12 +72,23 @@ module Account =
         // TODO: measure how long does it take to get the script hash and if it's too long, cache it at app startup?
         BitcoinAddress.Create(publicAddress, GetNetwork currency) |> GetElectrumScriptHashFromAddress
 
-    let internal GetPublicAddressFromPublicKey currency (publicKey: PubKey) =
+    let internal GetSegwitP2shPublicAddressFromPublicKey currency (publicKey: PubKey) =
+        publicKey
+            .GetScriptPubKey(ScriptPubKeyType.SegwitP2SH)
+            .GetDestinationAddress(GetNetwork currency)
+            .ToString()
+
+    let internal GetNativeSegwitPublicAddressFromPublicKey currency (publicKey: PubKey) =
         publicKey
             .GetScriptPubKey(ScriptPubKeyType.Segwit)
-            .Hash
-            .GetAddress(GetNetwork currency)
+            .GetDestinationAddress(GetNetwork currency)
             .ToString()
+    
+    let internal GetPublicAddressFromPublicKey =
+        if Config.UseNativeSegwit then
+            GetNativeSegwitPublicAddressFromPublicKey 
+        else
+            GetSegwitP2shPublicAddressFromPublicKey
 
     let internal GetPublicAddressFromNormalAccountFile (currency: Currency) (accountFile: FileRepresentation): string =
         let pubKey = PubKey(accountFile.Name)
@@ -139,11 +150,17 @@ module Account =
                             (mode: ServerSelectionMode)
                             (cancelSourceOption: Option<CustomCancelSource>)
                                 : Async<BlockchainScriptHashGetBalanceInnerResult> =
-        let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
+        let scriptHashesHex =
+            [
+                GetNativeSegwitPublicAddressFromPublicKey account.Currency account.PublicKey
+                    |> GetElectrumScriptHashFromPublicAddress account.Currency
+                GetSegwitP2shPublicAddressFromPublicKey account.Currency account.PublicKey
+                    |> GetElectrumScriptHashFromPublicAddress account.Currency
+            ]
 
         let querySettings =
             QuerySettings.Balance(mode,(BalanceMatchWithCacheOrInitialBalance account.PublicAddress account.Currency))
-        let balanceJob = ElectrumClient.GetBalance scriptHashHex
+        let balanceJob = ElectrumClient.GetBalances scriptHashesHex
         Server.Query account.Currency querySettings balanceJob cancelSourceOption
 
     let private GetBalancesFromServer (account: IUtxoAccount)
@@ -176,9 +193,21 @@ module Account =
         let txHash = uint256 inputOutpointInfo.TransactionHash
         let scriptPubKeyInBytes = NBitcoin.DataEncoders.Encoders.Hex.DecodeData inputOutpointInfo.DestinationInHex
         let scriptPubKey = Script(scriptPubKeyInBytes)
+        // We convert the scriptPubKey to address temporarily to compare it with
+        // our own addresses, we could compare scriptPubKeys directly but we would
+        // need functions that return scriptPubKey of our addresses instead of a
+        // string.
+        let sourceAddress = scriptPubKey.GetDestinationAddress(GetNetwork account.Currency).ToString()
         let coin =
             Coin(txHash, uint32 inputOutpointInfo.OutputIndex, Money(inputOutpointInfo.ValueInSatoshis), scriptPubKey)
-        coin.ToScriptCoin account.PublicKey.WitHash.ScriptPubKey :> ICoin
+        if sourceAddress = GetSegwitP2shPublicAddressFromPublicKey account.Currency account.PublicKey then
+            coin.ToScriptCoin(account.PublicKey.WitHash.ScriptPubKey) :> ICoin
+        elif sourceAddress = GetNativeSegwitPublicAddressFromPublicKey account.Currency account.PublicKey then
+            coin :> ICoin
+        else
+            //We filter utxos based on scriptPubKey when retrieving from electrum
+            //so this is unreachable.
+            failwith "Unreachable: unrecognized scriptPubKey"
 
     let private CreateTransactionAndCoinsToBeSigned (account: IUtxoAccount)
                                                     (transactionInputs: List<TransactionInputOutpointInfo>)
@@ -294,9 +323,28 @@ module Account =
                 else
                     newAcc,tail
 
-        let job = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
-                  |> ElectrumClient.GetUnspentTransactionOutputs
-        let! utxos = Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+        let currency = account.Currency
+
+        let getUtxos (publicAddress: string) =
+            async {
+                let job = GetElectrumScriptHashFromPublicAddress currency publicAddress
+                        |> ElectrumClient.GetUnspentTransactionOutputs
+
+                return! Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
+            }
+
+        let! utxos =
+            async {
+                let! nativeSegwitUtxos =
+                    GetNativeSegwitPublicAddressFromPublicKey currency account.PublicKey
+                    |> getUtxos
+
+                let! legacySegwitUtxos =
+                    GetSegwitP2shPublicAddressFromPublicKey currency account.PublicKey
+                    |> getUtxos
+
+                return Seq.concat [ nativeSegwitUtxos; legacySegwitUtxos ]
+            }
 
         if not (utxos.Any()) then
             failwith "No UTXOs found!"
