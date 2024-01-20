@@ -111,7 +111,7 @@ let Bump(toStable: bool): Version*Version =
     let fullVersion = Misc.GetCurrentVersion(rootDir)
     let androidVersion = fullVersion.Build // 0.1.2.3 -> 2
 
-    if toStable && IsStable androidVersion then
+    if (not isAuto) && toStable && IsStable androidVersion then
         failwith "bump script expects you to be in unstable version currently, but we found a stable"
     if (not toStable) && (not (IsStable androidVersion)) then
         failwith "sanity check failed, post-bump should happen in a stable version"
