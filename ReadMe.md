@@ -4,6 +4,12 @@ Welcome!
 
 geewallet is a minimalistic and pragmatist crossplatform lightweight opensource brainwallet for people that want to hold the most important cryptocurrencies in the same application with ease and peace of mind.
 
+| Repo      | URL                                      |
+| --------- | ---------------------------------------- |
+| canonical | https://github.com/nblockchain/geewallet |
+| mirror #1 | https://gitlab.gnome.org/World/geewallet |
+| mirror #2 | https://gitlab.com/nblockchain/geewallet |
+
 [![Licence](https://img.shields.io/github/license/nblockchain/geewallet.svg)](https://github.com/nblockchain/geewallet/blob/master/LICENCE.txt)
 
 | Branch            | Description                                                            | Build & Test status                                                                         |
