@@ -3839,6 +3839,18 @@
     "ETC": [
       {
         "ServerInfo": {
+          "NetworkPath": "rpc.etcinscribe.com",
+          "ConnectionType": {
+            "Encrypted": true,
+            "Protocol": {
+              "Case": "Http"
+            }
+          }
+        },
+        "CommunicationHistory": null
+      },
+      {
+        "ServerInfo": {
           "NetworkPath": "geth-de.etc-network.info",
           "ConnectionType": {
             "Encrypted": true,
