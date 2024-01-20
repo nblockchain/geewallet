@@ -11,7 +11,7 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 type InconsistentResultFromDifferentServersOfSameCurrency(currency: Currency,
                                                           innerException: ResultInconsistencyException) =
     inherit Exception (SPrintF2 "Inconsistent results retrieving info for currency %A: %s"
-                           (currency.ToString())
+                           currency
                            innerException.Message,
                        innerException)
 
