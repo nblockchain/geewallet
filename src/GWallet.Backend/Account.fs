@@ -7,6 +7,14 @@ open System.Threading.Tasks
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
+// this exception, if it happens, it would cause a crash because we don't handle it yet
+type InconsistentResultFromDifferentServersOfSameCurrency(currency: Currency,
+                                                          innerException: ResultInconsistencyException) =
+    inherit Exception (SPrintF2 "Inconsistent results retrieving info for currency %A: %s"
+                           currency
+                           innerException.Message,
+                       innerException)
+
 module Account =
 
     let private GetShowableBalanceAndImminentPaymentInternal (account: IAccount)
@@ -35,18 +43,22 @@ module Account =
                 return Fresh 1m,Some false
             else
 
-            let! maybeBalanceAndImminentIncomingPayment =
-                GetShowableBalanceAndImminentPaymentInternal account mode cancelSourceOption
-            match maybeBalanceAndImminentIncomingPayment with
-            | None ->
-                let cachedBalance = Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
-                return (NotFresh cachedBalance, None)
-            | Some (balance,imminentIncomingPayment) ->
-                let compoundBalance,_ =
-                    Caching.Instance.RetrieveAndUpdateLastCompoundBalance account.PublicAddress
-                                                                          account.Currency
-                                                                          balance
-                return (Fresh compoundBalance, imminentIncomingPayment)
+                try
+                    let! maybeBalanceAndImminentIncomingPayment =
+                        GetShowableBalanceAndImminentPaymentInternal account mode cancelSourceOption
+                    match maybeBalanceAndImminentIncomingPayment with
+                    | None ->
+                        let cachedBalance = Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
+                        return (NotFresh cachedBalance, None)
+                    | Some (balance,imminentIncomingPayment) ->
+                        let compoundBalance,_ =
+                            Caching.Instance.RetrieveAndUpdateLastCompoundBalance account.PublicAddress
+                                                                                  account.Currency
+                                                                                  balance
+                        return (Fresh compoundBalance, imminentIncomingPayment)
+                with
+                | :? ResultInconsistencyException as innerEx ->
+                    return raise <| InconsistentResultFromDifferentServersOfSameCurrency(account.Currency, innerEx)
         }
 
     let mutable wiped = false

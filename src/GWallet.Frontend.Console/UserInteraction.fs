@@ -253,6 +253,9 @@ module UserInteraction =
             //       we don't need to query the fiat value at all (micro-optimization?)
             let! (balance,_),usdValue = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdValueJob
 
+            let progressIteration = sprintf " %A" account.Currency
+            Console.Write progressIteration
+
             return (account,balance,usdValue)
         }
 
@@ -265,6 +268,7 @@ module UserInteraction =
     let private GetAccountBalances (accounts: seq<IAccount>)
                                        : Async<array<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>> =
         let accountAndBalancesToBeQueried = accounts |> Seq.map GetAccountBalanceInner
+        Console.Write "Retrieving balances..."
         Async.Parallel accountAndBalancesToBeQueried
 
     let DisplayAccountStatuses(whichAccount: WhichAccount): Async<seq<string>> =
@@ -343,6 +347,9 @@ module UserInteraction =
                 async {
                     let! accountsWithBalances = GetAccountBalances accounts
                     let statuses, currencyTotals = displayAllAndSumBalance accountsWithBalances 0 Map.empty
+
+                    // All balances are fetched and their currency names printed, put a dot at the end of "Retrieving balances... " line.
+                    Console.Write '.'
 
                     let maybeTotalInUsd, totals = displayTotalAndSumFiatBalance currencyTotals
                     return
