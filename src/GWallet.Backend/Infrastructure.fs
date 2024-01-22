@@ -6,8 +6,7 @@ open System.Text
 open System.Diagnostics
 open System.Runtime.Serialization
 
-open SharpRaven
-open SharpRaven.Data
+open Sentry
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -23,7 +22,7 @@ module Infrastructure =
     let md5 = System.Security.Cryptography.MD5.Create()
 
     let private sentryUrl = "https://4d1c6170ee37412fab20f8c63a2ade24:fc5e2c50990e48929d190fc283513f87@sentry.io/187797"
-    let private ravenClient = RavenClient(sentryUrl, Release = VersionHelper.CURRENT_VERSION)
+    let private sentryClient = new SentryClient(SentryOptions(Dsn = sentryUrl, Release = VersionHelper.CURRENT_VERSION))
     let private captureLock = obj()
 
     let private GetTelemetryDir (meta: bool) =
@@ -60,16 +59,9 @@ module Infrastructure =
     let private ReportInner (sentryEvent: SentryEvent) =
         try
             lock captureLock (fun _ ->
-                let mutable exceptionWhenReporting: Option<Exception> = None
-                ravenClient.ErrorOnCapture <-
-                    fun ex -> exceptionWhenReporting <- Some ex
-                ravenClient.Capture sentryEvent
-                |> ignore<string>
-                match exceptionWhenReporting with
-                | Some ex ->
-                    // strangely enough this cannot be raised (doesn't have any effect) in the delegate assigned to ErrorOnCapture
-                    raise ex
-                | _ -> true
+                sentryClient.CaptureEvent sentryEvent
+                |> ignore<SentryId>
+                true
             )
         with
         | ex ->
@@ -99,23 +91,23 @@ module Infrastructure =
 
     let internal ReportMessage (message: string)
 #if DEBUG
-                               (_         : ErrorLevel)
+                               (_         : SentryLevel)
 #else
-                               (errorLevel: ErrorLevel)
+                               (errorLevel: SentryLevel)
 #endif
                                : bool =
 #if DEBUG
         failwith message
 #else
-        let sentryEvent =  SentryEvent(SentryMessage message, Level = errorLevel)
+        let sentryEvent = SentryEvent(Message = SentryMessage(Message = message), Level = errorLevel)
         ReportInner sentryEvent
 #endif
 
     let internal ReportError (errorMessage: string): bool =
-        ReportMessage errorMessage ErrorLevel.Error
+        ReportMessage errorMessage SentryLevel.Error
 
     let private Report (ex: Exception)
-                       (errorLevel: ErrorLevel)
+                       (errorLevel: SentryLevel)
                        : bool =
 
         // TODO: log this in a file (log4net?), as well as printing to the console, before sending to sentry
@@ -124,7 +116,7 @@ module Infrastructure =
         Flush ()
 
 #if DEBUG
-        if errorLevel = ErrorLevel.Error then
+        if errorLevel = SentryLevel.Error then
             raise ex
         false
 #else
@@ -133,7 +125,7 @@ module Infrastructure =
             ReportInner ev
         with
         | ex ->
-            if errorLevel = ErrorLevel.Error then
+            if errorLevel = SentryLevel.Error then
                 reraise()
 
                 //unreachable
@@ -145,10 +137,10 @@ module Infrastructure =
 #endif
 
     let ReportWarning (ex: Exception): bool =
-        Report ex ErrorLevel.Warning
+        Report ex SentryLevel.Warning
 
     let ReportWarningMessage (warning: string): bool =
-        ReportMessage warning ErrorLevel.Warning
+        ReportMessage warning SentryLevel.Warning
 
     let LogOrReportCrash (ex: Exception) =
 #if !DEBUG
@@ -157,7 +149,7 @@ module Infrastructure =
 #else
         let _reported =
 #endif
-            Report ex ErrorLevel.Fatal
+            Report ex SentryLevel.Fatal
 
 #if DEBUG
             |> ignore<bool>
@@ -178,7 +170,7 @@ module Infrastructure =
         for loggedEx in ((GetTelemetryDir false).EnumerateFiles()) do
             let serializedException = File.ReadAllText loggedEx.FullName
             let deserializedException = Marshalling.Deserialize<Exception> serializedException
-            let reported = Report deserializedException ErrorLevel.Fatal
+            let reported = Report deserializedException SentryLevel.Fatal
             if reported then
                 loggedEx.Delete ()
 

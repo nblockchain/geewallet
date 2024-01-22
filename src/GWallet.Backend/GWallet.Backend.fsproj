@@ -72,14 +72,12 @@
     <PackageReference Include="Nethereum" Version="0.95.0--date20210125-0551.git-05a29e9">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
-    <PackageReference Include="SharpRaven" Version="2.4.0">
-      <GeneratePathProperty></GeneratePathProperty>
-    </PackageReference>
     <PackageReference Include="FSharp.Data" Version="3.0.0">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.24">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
+    <PackageReference Include="Sentry" Version="3.41.3" />
   </ItemGroup>
 </Project>
