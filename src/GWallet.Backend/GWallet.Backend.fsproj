@@ -71,9 +71,6 @@
     <PackageReference Include="Nethereum" Version="0.99.0--date20240303-0535.git-f0bc8be">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
-    <PackageReference Include="SharpRaven" Version="2.4.0">
-      <GeneratePathProperty></GeneratePathProperty>
-    </PackageReference>
     <PackageReference Include="FSharp.Data" Version="3.0.0">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
@@ -83,8 +80,6 @@
     <PackageReference Include="FSharpx.Collections" Version="3.1.0">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
-    <PackageReference Include="JsonRpcSharp" Version="0.99.0--date20240303-0338.git-d673848">
-      <GeneratePathProperty></GeneratePathProperty>
-    </PackageReference>
+    <PackageReference Include="Sentry" Version="3.41.3" />
   </ItemGroup>
 </Project>
