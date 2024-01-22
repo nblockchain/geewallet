@@ -341,6 +341,12 @@
     <Reference Include="System.Text.Json">
       <HintPath>..\..\packages\System.Text.Json.5.0.2\lib\net461\System.Text.Json.dll</HintPath>
     </Reference>
+    <Reference Include="System.Reflection.Metadata">
+      <HintPath>..\..\packages\System.Reflection.Metadata.5.0.0\lib\net461\System.Reflection.Metadata.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Text.Encodings.Web">
+      <HintPath>..\..\packages\System.Text.Encodings.Web.5.0.1\lib\net461\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
     <Reference Include="System.Buffers">
       <Private>True</Private>
       <HintPath>..\..\packages\System.Buffers.4.5.1\lib\netstandard2.0\System.Buffers.dll</HintPath>
