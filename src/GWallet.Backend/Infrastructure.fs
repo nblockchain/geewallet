@@ -99,7 +99,7 @@ module Infrastructure =
 #if DEBUG
         failwith message
 #else
-        let sentryEvent = SentryEvent(Message = SentryMessage(Message = message), Level = errorLevel)
+        let sentryEvent = SentryEvent(Message = SentryMessage(Message = message), Level = Nullable errorLevel)
         ReportInner sentryEvent
 #endif
 
@@ -121,7 +121,7 @@ module Infrastructure =
         false
 #else
         try
-            let ev = SentryEvent(ex, Level = errorLevel)
+            let ev = SentryEvent(ex, Level = Nullable errorLevel)
             ReportInner ev
         with
         | ex ->
