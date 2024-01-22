@@ -335,8 +335,8 @@
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\..\packages\Newtonsoft.Json.13.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
-    <Reference Include="SharpRaven">
-      <HintPath>..\..\packages\SharpRaven.2.4.0\lib\netstandard2.0\SharpRaven.dll</HintPath>
+    <Reference Include="Sentry">
+      <HintPath>..\..\packages\Sentry.3.41.3\lib\net461\Sentry.dll</HintPath>
     </Reference>
     <Reference Include="System.Buffers">
       <Private>True</Private>
