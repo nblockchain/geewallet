@@ -338,6 +338,9 @@
     <Reference Include="Sentry">
       <HintPath>..\..\packages\Sentry.3.41.3\lib\net461\Sentry.dll</HintPath>
     </Reference>
+    <Reference Include="System.Text.Json">
+      <HintPath>..\..\packages\System.Text.Json.5.0.2\lib\net461\System.Text.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System.Buffers">
       <Private>True</Private>
       <HintPath>..\..\packages\System.Buffers.4.5.1\lib\netstandard2.0\System.Buffers.dll</HintPath>
