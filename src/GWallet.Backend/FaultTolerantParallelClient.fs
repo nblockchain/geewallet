@@ -10,22 +10,40 @@ open Fsdk
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-type ResourcesUnavailabilityException (message: string, innerOrLastException: Exception) =
-    inherit Exception (message, innerOrLastException)
+type ResourcesUnavailabilityException =
+    inherit Exception
+
+    new(message: string, innerException: Exception) = { inherit Exception(message, innerException) }
+    new(message: string) = { inherit Exception(message) }
 
 type private TaskUnavailabilityException (message: string, innerException: Exception) =
     inherit ResourcesUnavailabilityException (message, innerException)
 
-type private ServersUnavailabilityException (message: string, lastException: Exception) =
-    inherit ResourcesUnavailabilityException (message, lastException)
+type ServersUnavailabilityException =
+    inherit ResourcesUnavailabilityException
+
+    new(message: string, innerException: Exception) = { inherit ResourcesUnavailabilityException(message, innerException) }
+    new(message: string) = { inherit ResourcesUnavailabilityException(message) }
 
 type private NoneAvailableException (message:string, lastException: Exception) =
     inherit ServersUnavailabilityException (message, lastException)
 
-type private NotEnoughAvailableException (message:string, lastException: Exception) =
-    inherit ServersUnavailabilityException (message, lastException)
+type NotEnoughAvailableException =
+    inherit ServersUnavailabilityException
 
-type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: int,
+    new (message: string, innerException: Exception) =
+        { inherit ServersUnavailabilityException (message, innerException) }
+    new (totalNumberOfSuccesfulResultsObtained: uint32,
+         numberOfServersUnavailable: uint32,
+         numberOfConsistentResultsRequired: uint32) =
+        { inherit ServersUnavailabilityException ("Results obtained were not enough to be considered consistent" +
+                                                      SPrintF3 " (received: %i, unavailable: %i, required: %i)"
+                                                          totalNumberOfSuccesfulResultsObtained
+                                                          numberOfServersUnavailable
+                                                          numberOfConsistentResultsRequired)
+        }
+
+type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: uint32,
                                    maxNumberOfConsistentResultsObtained: int,
                                    numberOfConsistentResultsRequired: uint32) =
   inherit Exception ("Results obtained were not enough to be considered consistent" +
@@ -591,7 +609,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                           retriesForInconsistency
                                           cancellationSource
             else
-                let totalNumberOfSuccesfulResultsObtained = executedServers.SuccessfulResults.Length
+                let totalNumberOfSuccesfulResultsObtained = uint32 executedServers.SuccessfulResults.Length
+                let totalNumberOfUnavailableServers = uint32 failedFuncs.Length
 
                 // HACK: we do this as a quick fix wrt new OneServerConsistentWithCertainValueOrTwoServers setting, but we should
                 // (TODO) rather throw a specific overload of ResultInconsistencyException about this mode being used
@@ -609,9 +628,18 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                         return failwith "resultsSoFar.Length != 0 but MeasureConsistency returns None, please report this bug"
                     | (_,maxNumberOfConsistentResultsObtained)::_ ->
                         if (retriesForInconsistency = settings.NumberOfRetriesForInconsistency) then
-                            return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
-                                                                       maxNumberOfConsistentResultsObtained,
-                                                                       numberOfConsistentResponsesRequired))
+                            if totalNumberOfSuccesfulResultsObtained >= numberOfConsistentResponsesRequired then
+                                return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
+                                                                           maxNumberOfConsistentResultsObtained,
+                                                                           numberOfConsistentResponsesRequired))
+                            else
+                                return
+                                    raise
+                                    <| NotEnoughAvailableException(
+                                        totalNumberOfSuccesfulResultsObtained,
+                                        totalNumberOfUnavailableServers,
+                                        numberOfConsistentResponsesRequired
+                                    )
                         else
                             return! QueryInternalImplementation
                                                   settings
