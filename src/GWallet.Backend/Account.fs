@@ -8,9 +8,9 @@ open System.Threading.Tasks
 open GWallet.Backend.FSharpUtil.UwpHacks
 
 // this exception, if it happens, it would cause a crash because we don't handle it yet
-type InconsistentResultFromDifferentServersOfSameCurrency(currency: Currency,
-                                                          innerException: ResultInconsistencyException) =
-    inherit Exception (SPrintF2 "Inconsistent results retrieving info for currency %A: %s"
+type UnhandledCurrencyServerException(currency: Currency,
+                                      innerException: Exception) =
+    inherit Exception (SPrintF2 "Issue when retrieving %A currency balance: %s"
                            currency
                            innerException.Message,
                        innerException)
@@ -55,8 +55,8 @@ module Account =
                                                                                   balance
                         return Fresh compoundBalance
                 with
-                | :? ResultInconsistencyException as innerEx ->
-                    return raise <| InconsistentResultFromDifferentServersOfSameCurrency(account.Currency, innerEx)
+                | ex ->
+                    return raise <| UnhandledCurrencyServerException(account.Currency, ex)
         }
 
     let internal GetAccountFromFile accountFile (currency: Currency) kind: IAccount =
