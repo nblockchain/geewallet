@@ -336,7 +336,7 @@
       <HintPath>..\..\packages\Newtonsoft.Json.13.0.2\lib\netstandard2.0\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Sentry">
-      <HintPath>..\..\packages\Sentry.3.41.3\lib\net461\Sentry.dll</HintPath>
+      <HintPath>..\..\packages\Sentry.4.0.0-beta.8\lib\netstandard2.0\Sentry.dll</HintPath>
     </Reference>
     <Reference Include="System.Text.Json">
       <HintPath>..\..\packages\System.Text.Json.5.0.2\lib\net461\System.Text.Json.dll</HintPath>
