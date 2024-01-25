@@ -8,8 +8,8 @@ geewallet is a minimalistic and pragmatist crossplatform lightweight opensource 
 
 | Branch            | Description                                                            | Build & Test status                                                                         |
 | ----------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| stable (v0.4.x)   | Console frontend (Linux snap pkg name: gwallet)                        | [![GitHubCI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/CI/badge.svg?branch=stable)](https://github.com/nblockchain/geewallet/commits/stable) |
-| master (v0.5.x)   | Xamarin.Forms frontend: Android, iOS, Linux/GTK (pkg name: geewallet)  | [![GitHubCI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/CI/badge.svg?branch=master)](https://github.com/nblockchain/geewallet/commits/master) |
+| stable (v0.6.x)   | Console frontend (Linux snap pkg name: gwallet)                        | [![GitHubCI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/CI/badge.svg?branch=stable)](https://github.com/nblockchain/geewallet/commits/stable) |
+| master (v0.7.x)   | Xamarin.Forms frontend: Android, iOS, Linux/GTK (pkg name: geewallet)  | [![GitHubCI pipeline status badge](https://github.com/nblockchain/geewallet/workflows/CI/badge.svg?branch=master)](https://github.com/nblockchain/geewallet/commits/master) |
 
 [![Balances mobile-page screenshot](https://raw.githubusercontent.com/nblockchain/geewallet/master/img/screenshots/maciosandroid-balances.png)](https://raw.githubusercontent.com/nblockchain/geewallet/master/img/screenshots/maciosandroid-balances.png)
 
