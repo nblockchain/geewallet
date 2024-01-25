@@ -110,10 +110,22 @@ let gitTag =
 
         ciTag
 
-if not (snapFile.FullName.Contains gitTag) then
-    failwithf "Git tag (%s) doesn't match version in snap package file name (%s)"
-        gitTag
-        snapFile.FullName
+let channel =
+    match Misc.FsxOnlyArguments() with
+    | [ channel ] ->
+        channel
+    | [] ->
+
+        if not (snapFile.FullName.Contains gitTag) then
+            failwithf "Git tag (%s) doesn't match version in snap package file name (%s)"
+                gitTag
+                snapFile.FullName
+
+        // the 'stable' and 'candidate' channels require 'stable' grade in the yaml
+        "stable"
+
+    | _ ->
+        failwith "Invalid arguments"
 
 let snapcraftLoginFileName = Path.Combine(FsxHelper.RootDir.FullName, "snapcraft.login")
 if File.Exists snapcraftLoginFileName then
@@ -149,16 +161,6 @@ Process.Execute({ Command = "snapcraft"; Arguments = "login --with snapcraft.log
 Console.WriteLine "Login successfull. Upload starting..."
 
 let snapPush =
-    let channel =
-        match Misc.FsxOnlyArguments() with
-        | [ channel ] ->
-            channel
-        | [] ->
-            // the 'stable' and 'candidate' channels require 'stable' grade in the yaml
-            "stable"
-        | _ ->
-            failwith "Invalid arguments"
-
     Process.Execute(
         {
             Command = "snapcraft"
