@@ -80,6 +80,6 @@
     <PackageReference Include="FSharpx.Collections" Version="3.1.0">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
-    <PackageReference Include="Sentry" Version="3.41.3" />
+      <PackageReference Include="Sentry" Version="4.0.0-beta.8" />
   </ItemGroup>
 </Project>
