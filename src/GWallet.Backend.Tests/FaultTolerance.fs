@@ -547,6 +547,39 @@ type FaultTolerance() =
         Assert.That(inconsistencyEx.Message, IsString.WhichContains "received: 4, consistent: 2, required: 3")
 
     [<Test>]
+    member __.``should not throw inconsistency exception if received results is less than required``() =
+        let numberOfConsistentResponsesToBeConsideredSafe = 2u
+        let consistencyConfig =
+            SpecificNumberOfConsistentResponsesRequired numberOfConsistentResponsesToBeConsideredSafe |> Some
+        let settings = defaultSettingsForNoConsistencyNoParallelismAndNoRetries consistencyConfig
+
+        let someResult = 1
+
+        let aJob1 =
+            async { return someResult }
+        let aJob2 =
+            async { return raise SomeSpecificException }
+        let aJob3 =
+            async { return raise SomeSpecificException }
+
+        let func1,func2,func3 = serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob1" aJob1,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob2" aJob2,
+                                serverWithNoHistoryInfoBecauseIrrelevantToThisTest "aJob3" aJob3
+
+        let client = FaultTolerantParallelClient<ServerDetails, SomeSpecificException>
+                         dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test
+
+        let notEngoughAvailableEx =
+            Assert.Throws<NotEnoughAvailableException>(fun _ ->
+                client.Query
+                    settings
+                    [ func1; func2; func3 ]
+                        |> Async.RunSynchronously
+                        |> ignore<int>
+            )
+        Assert.That(notEngoughAvailableEx.Message, IsString.WhichContains "received: 1, unavailable: 2, required: 2")
+
+    [<Test>]
     member __.``using an average func instead of consistency``() =
         let job1 =
             async { return 1 }
