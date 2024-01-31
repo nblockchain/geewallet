@@ -2,12 +2,7 @@
   "Version": "{version}",
   "TypeName": "GWallet.Backend.MarshalledException",
   "Value": {
-    "HumanReadableSummary": {
-      "ExceptionType": "GWallet.Backend.Tests.CustomFSharpException",
-      "Message": "Exception of type 'GWallet.Backend.Tests.CustomFSharpException' was thrown.",
-      "StackTrace": "",
-      "InnerException": null
-    },
-    "FullBinaryForm": "{binaryMarshalledException}"
+    "DateTimeUtc": "<this value is not compared in tests>",
+    "FullDescription": "GWallet.Backend.Tests.CustomFSharpException: CustomFSharpException"
   }
 }

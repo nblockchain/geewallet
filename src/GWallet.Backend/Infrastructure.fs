@@ -111,6 +111,13 @@ module Infrastructure =
         ReportInner sentryEvent
 #endif
 
+    let internal ReportRawException (marshalledEx: MarshalledException): bool =
+        let exReport =
+            SPrintF2 "Recovered exception details from off-line crash at %s UTC: %s"
+                (marshalledEx.DateTimeUtc.ToString())
+                marshalledEx.FullDescription
+        ReportMessage exReport ErrorLevel.Fatal
+
     let internal ReportError (errorMessage: string): bool =
         ReportMessage errorMessage ErrorLevel.Error
 
@@ -177,10 +184,33 @@ module Infrastructure =
     let private ReportAllPastExceptions() =
         for loggedEx in ((GetTelemetryDir false).EnumerateFiles()) do
             let serializedException = File.ReadAllText loggedEx.FullName
-            let deserializedException = Marshalling.Deserialize<Exception> serializedException
-            let reported = Report deserializedException ErrorLevel.Fatal
-            if reported then
-                loggedEx.Delete ()
+
+            let exType = Marshalling.ExtractType serializedException
+
+            let maybeEx =
+
+                // old format, we could try to map and report but meh, it's too
+                // much work, let's just delete and next time it happens it will
+                // be serialized properly this time around
+                if typeof<Exception>.IsAssignableFrom exType then
+                    ReportWarningMessage "Serialized exception discarded due to old format being used"
+                    |> ignore<bool>
+                    None
+                elif typeof<MarshalledException> = exType then
+                    Marshalling.Deserialize<MarshalledException> serializedException
+                    |> Some
+                else
+                    failwith
+                    <| SPrintF2 "Instance with unexpected type (%s) found in telemetry dir: %s"
+                        exType.FullName serializedException
+
+            match maybeEx with
+            | None ->
+                loggedEx.Delete()
+            | Some deserializedException ->
+                let reported = ReportRawException deserializedException
+                if reported then
+                    loggedEx.Delete()
 
     let public SetupExceptionHook () =
 #if !DEBUG
