@@ -39,18 +39,13 @@
   <ItemGroup>
     <EmbeddedResource Include="data\basicException.json" />
     <EmbeddedResource Include="data\customFSharpException.json" />
-    <EmbeddedResource Include="data\customFSharpException_legacy.json" />
     <EmbeddedResource Include="data\realException.json" />
-    <EmbeddedResource Include="data\realException_unixLegacy.json" />
-    <EmbeddedResource Include="data\realException_windowsLegacy.json" />
     <EmbeddedResource Include="data\signedAndFormattedEtherTransaction.json" />
     <EmbeddedResource Include="data\customException.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedSaiTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedBtcTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedEtherTransaction.json" />
     <EmbeddedResource Include="data\fullException.json" />
-    <EmbeddedResource Include="data\fullException_unixLegacy.json" />
-    <EmbeddedResource Include="data\fullException_windowsLegacy.json" />
     <EmbeddedResource Include="data\signedAndFormattedBtcTransaction.json" />
     <EmbeddedResource Include="data\signedAndFormattedSaiTransaction.json" />
     <EmbeddedResource Include="data\innerException.json" />
