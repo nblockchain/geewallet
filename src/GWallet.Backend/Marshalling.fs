@@ -13,48 +13,17 @@ open Newtonsoft.Json.Serialization
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
-type ExceptionDetails =
-    {
-        ExceptionType: string
-        Message: string
-        StackTrace: string
-        InnerException: Option<ExceptionDetails>
-    }
-
 type MarshalledException =
     {
-        HumanReadableSummary: ExceptionDetails
-        FullBinaryForm: string
+        DateTimeUtc: DateTime
+
+        // from ex.ToString(), which includes ex's type name, ex.Message, ex.InnerExceptions, etc
+        FullDescription: string
     }
-    static member private ExtractBasicDetailsFromException (ex: Exception) =
-        let stackTrace =
-            if isNull ex.StackTrace then
-                String.Empty
-            else
-                ex.StackTrace
-        let stub =
-            {
-                ExceptionType = ex.GetType().FullName
-                Message = ex.Message
-                StackTrace = stackTrace
-                InnerException = None
-            }
-
-        match ex.InnerException with
-        | null -> stub
-        | someNonNullInnerException ->
-            let innerExceptionDetails =
-                MarshalledException.ExtractBasicDetailsFromException someNonNullInnerException
-
-            {
-                stub with
-                    InnerException = Some innerExceptionDetails
-            }
-
     static member Create (ex: Exception) =
         {
-            HumanReadableSummary = MarshalledException.ExtractBasicDetailsFromException ex
-            FullBinaryForm = BinaryMarshalling.SerializeToString ex
+            DateTimeUtc = DateTime.UtcNow
+            FullDescription = ex.ToString()
         }
 
 type DeserializationException =
@@ -238,8 +207,7 @@ module Marshalling =
     let Deserialize<'T>(json: string): 'T =
         match typeof<'T> with
         | theType when typeof<Exception>.IsAssignableFrom theType ->
-            let marshalledException: MarshalledException = DeserializeCustom(json, DefaultSettings)
-            BinaryMarshalling.DeserializeFromString marshalledException.FullBinaryForm :?> 'T
+            failwith "Binary (de)serialization of exceptions is not supported anymore"
         | _ ->
             DeserializeCustom(json, DefaultSettings)
 
@@ -261,18 +229,6 @@ module Marshalling =
         | :? Exception as ex ->
             let exToSerialize = MarshalledException.Create ex
             let serializedEx = SerializeCustom(exToSerialize, DefaultSettings, DefaultFormatting)
-
-            try
-                let _deserializedEx: 'T = Deserialize serializedEx
-                ()
-            with
-            | ex ->
-                raise
-                <| MarshallingCompatibilityException (
-                    SPrintF1
-                        "Exception type '%s' could not be serialized. Maybe it lacks the required '(info: SerializationInfo, context: StreamingContext)' constructor?"
-                        typeof<'T>.FullName, ex)
-
             serializedEx
         | _ ->
             SerializeCustom(value, DefaultSettings, DefaultFormatting)

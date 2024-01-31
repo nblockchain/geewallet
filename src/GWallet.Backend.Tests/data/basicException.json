@@ -2,12 +2,7 @@
   "Version": "{version}",
   "TypeName": "GWallet.Backend.MarshalledException",
   "Value": {
-    "HumanReadableSummary": {
-      "ExceptionType": "System.Exception",
-      "Message": "msg",
-      "StackTrace": "",
-      "InnerException": null
-    },
-    "FullBinaryForm": "{binaryMarshalledException}"
+    "DateTimeUtc": "<this value is not compared in tests>",
+    "FullDescription": "System.Exception: msg"
   }
 }
