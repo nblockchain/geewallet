@@ -5,7 +5,7 @@
     "HumanReadableSummary": {
       "ExceptionType": "GWallet.Backend.Tests.CustomException",
       "Message": "msg",
-      "StackTrace": "  at GWallet.Backend.Tests.ExceptionMarshalling.SerializeFullException() in /home/runner/work/geewallet/geewallet/src/GWallet.Backend.Tests/ExceptionMarshalling.fs:line 64",
+      "StackTrace": "  at GWallet.Backend.Tests.ExceptionMarshalling.SerializeFullException() in {prjDirAbsolutePath}/ExceptionMarshalling.fs:line 64",
       "InnerException": {
         "Case": "Some",
         "Fields": [
