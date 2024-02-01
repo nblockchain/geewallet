@@ -52,17 +52,6 @@ let orgOrUsername, repoName =
         orgOrUsername, repoName
 
 let webClient = new WebClient()
-let mirror = sprintf "https://github.com/%s/%s" orgOrUsername repoName
-try
-    webClient.DownloadString mirror
-    |> ignore
-with
-| _ ->
-    Console.Error.WriteLine(
-        sprintf "Some problem while retrieving '%s', did you set up a mirror properly from GitLab to GitHub?"
-            mirror
-    )
-
 let snapFiles = FsxHelper.RootDir.EnumerateFiles().Where(fun file -> file.Name.EndsWith ".snap")
 if not (snapFiles.Any()) then
     Console.Error.WriteLine "No snap package found."
@@ -83,6 +72,18 @@ let gitProvider =
         GitLab
     else
         failwith onlyCiMsg
+
+if gitProvider = GitLab then
+    let mirror = sprintf "https://github.com/%s/%s" orgOrUsername repoName
+    try
+        webClient.DownloadString mirror
+        |> ignore
+    with
+    | _ ->
+        Console.Error.WriteLine(
+            sprintf "Some problem while retrieving '%s', did you set up a mirror properly from GitLab to GitHub?"
+                mirror
+        )
 
 Console.WriteLine "Checking if this is a tag commit..."
 

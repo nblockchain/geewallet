@@ -5,7 +5,7 @@
     "HumanReadableSummary": {
       "ExceptionType": "System.Exception",
       "Message": "msg",
-      "StackTrace": "  at GWallet.Backend.Tests.ExceptionMarshalling.SerializeRealException() in /home/runner/work/geewallet/geewallet/src/GWallet.Backend.Tests/ExceptionMarshalling.fs:line 41",
+      "StackTrace": "  at GWallet.Backend.Tests.ExceptionMarshalling.SerializeRealException() in {prjDirAbsolutePath}/ExceptionMarshalling.fs:line 41",
       "InnerException": null
     },
     "FullBinaryForm": "{binaryMarshalledException}"
