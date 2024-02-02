@@ -49,6 +49,11 @@ module Account =
                     | None ->
                         return NotFresh(Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency)
                     | Some balance ->
+
+                        if account.Currency = Currency.SAI && balance > 0m then
+                            Infrastructure.ReportWarningMessage ("Some user is still using SAI (informative telemetry to avoid phasing out this currency too early)")
+                            |> ignore<bool>
+
                         let compoundBalance,_ =
                             Caching.Instance.RetrieveAndUpdateLastCompoundBalance account.PublicAddress
                                                                                   account.Currency
