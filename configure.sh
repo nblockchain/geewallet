@@ -7,7 +7,7 @@ RUNNER_ARG=invalid
 REPL_CHECK_MSG="checking for a working F# REPL..."
 
 if which dotnet >/dev/null 2>&1; then
-    echo "$REPL_CHECK_MSG" $'found'
+    echo -n "$REPL_CHECK_MSG"
     RUNNER_BIN=dotnet
     RUNNER_ARG=fsi
 else
@@ -35,7 +35,7 @@ else
             echo "$0" $'failed, please install "dotnet" first'
             exit 1
         else
-            echo "$FSX_CHECK_MSG" $'found'
+            echo -n "$FSX_CHECK_MSG"
             RUNNER_BIN=fsx
             RUNNER_ARG=
         fi
@@ -53,11 +53,11 @@ else
                 cd scripts/fsx && ./configure.sh --prefix=$BIN_DIR && make install && cd ../..
                 RUNNER_BIN="$BIN_DIR/bin/fsx"
             else
-                echo "$FSX_CHECK_MSG" $'found'
+                echo -n "$FSX_CHECK_MSG"
                 RUNNER_BIN=fsx
             fi
         else
-            echo "$REPL_CHECK_MSG" $'found'
+            echo -n "$REPL_CHECK_MSG"
             RUNNER_BIN=fsharpi
             RUNNER_ARG="--define:LEGACY_FRAMEWORK"
         fi
@@ -73,4 +73,4 @@ if [ ! -z "${RUNNER_ARG}" ]; then
     echo -e "FsxRunnerArg=$RUNNER_ARG" >> scripts/build.config
 fi
 source scripts/build.config
-$RUNNER_BIN $RUNNER_ARG ./scripts/configure.fsx "$@"
+DOTNET_NOLOGO=true $RUNNER_BIN $RUNNER_ARG ./scripts/configure.fsx "$@"
