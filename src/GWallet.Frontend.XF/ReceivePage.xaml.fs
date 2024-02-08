@@ -33,6 +33,27 @@ type ReceivePage(account: IAccount,
     let currencyImg =
         mainLayout.FindByName<Image> "currencyImage"
 
+    let balanceLabel = mainLayout.FindByName<Label> "balanceLabel"
+    let fiatBalanceLabel = mainLayout.FindByName<Label> "fiatBalanceLabel"
+
+    let tapCryptoLabel accountBalance =
+        let cryptoSubUnit =
+            if balanceLabel.Text.StartsWith "BTC" then
+                FrontendHelpers.Bits
+            elif balanceLabel.Text.EndsWith "bits" then
+                FrontendHelpers.Sats
+            else
+                FrontendHelpers.CryptoSubUnit.No
+        FrontendHelpers.UpdateBalance
+            (NotFresh accountBalance)
+            account.Currency
+            usdRate
+            None
+            balanceLabel
+            fiatBalanceLabel
+            cryptoSubUnit
+        |> ignore
+
     do
         self.Init()
 
@@ -44,12 +65,17 @@ type ReceivePage(account: IAccount,
                         { CryptoLabel = null; FiatLabel = null ; Frame = null })
 
     member __.Init() =
-        let balanceLabel = mainLayout.FindByName<Label>("balanceLabel")
-        let fiatBalanceLabel = mainLayout.FindByName<Label>("fiatBalanceLabel")
 
         let accountBalance =
             Caching.Instance.RetrieveLastCompoundBalance account.PublicAddress account.Currency
-        FrontendHelpers.UpdateBalance (NotFresh accountBalance) account.Currency usdRate None balanceLabel fiatBalanceLabel
+        FrontendHelpers.UpdateBalance
+            (NotFresh accountBalance)
+            account.Currency
+            usdRate
+            None
+            balanceLabel
+            fiatBalanceLabel
+            FrontendHelpers.CryptoSubUnit.No
             |> ignore
 
         // this below is for the case when a new ReceivePage() instance is suddenly created after sending a transaction
@@ -60,10 +86,18 @@ type ReceivePage(account: IAccount,
                                       (Some balanceWidgetsFromBalancePage.Frame)
                                       balanceWidgetsFromBalancePage.CryptoLabel
                                       balanceWidgetsFromBalancePage.FiatLabel
+                                      FrontendHelpers.CryptoSubUnit.No
             |> ignore
 
         balanceLabel.FontSize <- FrontendHelpers.BigFontSize
         fiatBalanceLabel.FontSize <- FrontendHelpers.MediumFontSize
+
+        if account.Currency = Currency.BTC then
+            let cryptoTapGestureRecognizer = TapGestureRecognizer()
+            cryptoTapGestureRecognizer.Tapped.Subscribe(
+                fun _ -> tapCryptoLabel accountBalance
+            ) |> ignore
+            balanceLabel.GestureRecognizers.Add cryptoTapGestureRecognizer
 
         let qrCode = mainLayout.FindByName<ZXingBarcodeImageView> "qrCode"
         if isNull qrCode then

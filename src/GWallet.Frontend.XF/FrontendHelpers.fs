@@ -38,6 +38,15 @@ type internal CurrencyImageSize =
 
 module FrontendHelpers =
 
+    type CryptoSubUnit =
+    | No
+    | Specific of multiplier:int * caption:string
+
+    let Sats =
+        CryptoSubUnit.Specific(100_000_000, "sats")
+    let Bits =
+        CryptoSubUnit.Specific(1_000_000, "bits")
+
     type IGlobalAppState =
         [<CLIEvent>]
         abstract member Resumed: IEvent<unit> with get
@@ -109,6 +118,7 @@ module FrontendHelpers =
 
     let UpdateBalance (balance: MaybeCached<decimal>) currency usdRate
                       (maybeFrame: Option<Frame>) (balanceLabel: Label) (fiatBalanceLabel: Label)
+                      (cryptoSubUnit: CryptoSubUnit)
                           : MaybeCached<decimal> =
         let maybeBalanceAmount =
             match balance with
@@ -129,8 +139,18 @@ module FrontendHelpers =
             | None ->
                 SPrintF1 "%A (?)" currency, NotFresh(NotAvailable), SPrintF1 "(?) %s" defaultFiatCurrency
             | Some balanceAmount ->
-                let cryptoAmount = Formatting.DecimalAmountRounding CurrencyType.Crypto balanceAmount
-                let cryptoAmountStr = SPrintF2 "%A %s" currency cryptoAmount
+                let adjustedBalance =
+                    match cryptoSubUnit with
+                    | No -> balanceAmount
+                    | Specific (multiplier, _caption) ->
+                        balanceAmount * decimal multiplier
+                let cryptoAmount = Formatting.DecimalAmountRounding CurrencyType.Crypto adjustedBalance
+                let cryptoAmountStr =
+                    match cryptoSubUnit with
+                    | No ->
+                        SPrintF2 "%A %s" currency cryptoAmount
+                    | Specific (_multiplier, caption) ->
+                        SPrintF2 "%s %A" cryptoAmount caption
                 let fiatAmount,fiatAmountStr = BalanceInUsdString balanceAmount usdRate
                 cryptoAmountStr,fiatAmount,fiatAmountStr
         MainThread.BeginInvokeOnMainThread(fun _ ->
@@ -159,6 +179,7 @@ module FrontendHelpers =
                               (Some balanceSet.Widgets.Frame)
                               balanceSet.Widgets.CryptoLabel
                               balanceSet.Widgets.FiatLabel
+                              CryptoSubUnit.No
             return {
                 BalanceSet = balanceSet
                 FiatAmount = fiatAmount
@@ -187,6 +208,7 @@ module FrontendHelpers =
                                       (Some balanceSet.Widgets.Frame)
                                       balanceSet.Widgets.CryptoLabel
                                       balanceSet.Widgets.FiatLabel
+                                      CryptoSubUnit.No
                     return {
                         BalanceSet = balanceSet
                         FiatAmount = fiatAmount
