@@ -4,6 +4,22 @@ open GWallet.Backend
 
 open NBitcoin
 
+type SubUnit =
+    {
+        Multiplier: int
+        Caption: string
+    }
+    static member Bits =
+        {
+            Multiplier = 1000000
+            Caption = "bits"
+        }
+    static member Sats =
+        {
+            Multiplier = 100000000
+            Caption = "sats"
+        }
+
 type TransactionInputOutpointInfo =
     {
         TransactionHash: string;

@@ -36,14 +36,14 @@ type ReceivePage(account: IAccount,
     let balanceLabel = mainLayout.FindByName<Label> "balanceLabel"
     let fiatBalanceLabel = mainLayout.FindByName<Label> "fiatBalanceLabel"
 
-    let tapCryptoLabel accountBalance =
+    let TapCryptoAmountLabel accountBalance =
         let cryptoSubUnit =
-            if balanceLabel.Text.StartsWith "BTC" then
-                FrontendHelpers.Bits
-            elif balanceLabel.Text.EndsWith "bits" then
-                FrontendHelpers.Sats
+            if balanceLabel.Text.Contains UtxoCoin.SubUnit.Bits.Caption then
+                Some UtxoCoin.SubUnit.Sats
+            elif balanceLabel.Text.Contains UtxoCoin.SubUnit.Sats.Caption then
+                None
             else
-                FrontendHelpers.CryptoSubUnit.No
+                Some UtxoCoin.SubUnit.Bits
         FrontendHelpers.UpdateBalance
             (NotFresh accountBalance)
             account.Currency
@@ -75,7 +75,7 @@ type ReceivePage(account: IAccount,
             None
             balanceLabel
             fiatBalanceLabel
-            FrontendHelpers.CryptoSubUnit.No
+            None
             |> ignore
 
         // this below is for the case when a new ReceivePage() instance is suddenly created after sending a transaction
@@ -86,7 +86,7 @@ type ReceivePage(account: IAccount,
                                       (Some balanceWidgetsFromBalancePage.Frame)
                                       balanceWidgetsFromBalancePage.CryptoLabel
                                       balanceWidgetsFromBalancePage.FiatLabel
-                                      FrontendHelpers.CryptoSubUnit.No
+                                      None
             |> ignore
 
         balanceLabel.FontSize <- FrontendHelpers.BigFontSize
@@ -95,7 +95,7 @@ type ReceivePage(account: IAccount,
         if account.Currency = Currency.BTC then
             let cryptoTapGestureRecognizer = TapGestureRecognizer()
             cryptoTapGestureRecognizer.Tapped.Subscribe(
-                fun _ -> tapCryptoLabel accountBalance
+                fun _ -> TapCryptoAmountLabel accountBalance
             ) |> ignore
             balanceLabel.GestureRecognizers.Add cryptoTapGestureRecognizer
 
