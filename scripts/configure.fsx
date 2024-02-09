@@ -40,6 +40,9 @@ let buildTool, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply =
         dotnetCmd, msbuildCmd, true
     | platform (* Unix *) ->
 
+        // because it comes from configure.sh's "Checking for a working F# REPL..."
+        Console.WriteLine " found"
+
         Process.ConfigCommandCheck ["make"] true true |> ignore
 
         match Process.ConfigCommandCheck ["mono"] false true with
