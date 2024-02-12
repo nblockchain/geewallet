@@ -487,7 +487,7 @@ module internal Account =
 
             let txDetails =
                 {
-                    OriginAddress = signer.GetSenderAddress signedTransaction.RawTransaction
+                    OriginMainAddress = signer.GetSenderAddress signedTransaction.RawTransaction
                     Amount = UnitConversion.Convert.FromWei (IntTypeDecoder().DecodeBigInteger tx.Value)
                     Currency = getTransactionCurrency tx
                     DestinationAddress = destAddress

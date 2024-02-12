@@ -1,32 +1,42 @@
 ﻿namespace GWallet.Backend
 
+open Newtonsoft.Json
+
 type ITransactionDetails =
-    abstract member OriginAddress: string
+    abstract member OriginMainAddress: string
     abstract member Amount: decimal
     abstract member Currency: Currency
     abstract member DestinationAddress: string
 
 type internal SignedTransactionDetails =
     {
-        OriginAddress: string
+#if !NATIVE_SEGWIT
+        [<JsonProperty(PropertyName = "OriginAddress")>]
+#endif
+        OriginMainAddress: string
+
         Amount: decimal
         Currency: Currency
         DestinationAddress: string
     }
     interface ITransactionDetails with
-        member self.OriginAddress = self.OriginAddress
+        member self.OriginMainAddress = self.OriginMainAddress
         member self.Amount = self.Amount
         member self.Currency = self.Currency
         member self.DestinationAddress = self.DestinationAddress
 
 type UnsignedTransactionProposal =
     {
-        OriginAddress: string;
+#if !NATIVE_SEGWIT
+        [<JsonProperty(PropertyName = "OriginAddress")>]
+#endif
+        OriginMainAddress: string
+
         Amount: TransferAmount;
         DestinationAddress: string;
     }
     interface ITransactionDetails with
-        member self.OriginAddress = self.OriginAddress
+        member self.OriginMainAddress = self.OriginMainAddress
         member self.Amount = self.Amount.ValueToSend
         member self.Currency = self.Amount.Currency
         member self.DestinationAddress = self.DestinationAddress

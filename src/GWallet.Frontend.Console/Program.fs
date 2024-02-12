@@ -109,7 +109,7 @@ let SignOffPayment() =
             let unsTx = Account.LoadUnsignedTransactionFromFile fileToReadFrom.FullName
             let accountsWithSameAddress =
                 Account.GetAllActiveAccounts().Where(
-                    fun acc -> acc.PublicAddress = unsTx.Proposal.OriginAddress
+                    fun acc -> acc.PublicAddress = unsTx.Proposal.OriginMainAddress
                 )
             Some (unsTx, accountsWithSameAddress)
         with
@@ -178,6 +178,16 @@ let SignOffPayment() =
             | _ ->
                 failwith "Account type not supported. Please report this issue."
 
+let TryConsumeJson func =
+    try
+        func()
+    with
+    | :? VersionMismatchDuringDeserializationException ->
+        Console.WriteLine()
+        Console.Error.WriteLine "There was an error (caused by a version mismatch) when trying to consume JSON;
+it is recommended to upgrade (both the hotwallet and the offline coldwallet)"
+        UserInteraction.PressAnyKeyToContinue()
+
 let SendPaymentOfSpecificAmount (account: IAccount)
                                 (amount: TransferAmount)
                                 (transactionMetadata: IBlockchainFeeInfo)
@@ -188,7 +198,7 @@ let SendPaymentOfSpecificAmount (account: IAccount)
         Console.Write("Introduce a file name to save the unsigned transaction: ")
         let filePath = Console.ReadLine()
         let proposal = {
-            OriginAddress = account.PublicAddress;
+            OriginMainAddress = account.PublicAddress;
             Amount = amount;
             DestinationAddress = destination;
         }
@@ -393,9 +403,9 @@ let rec PerformOperation (numActiveAccounts: uint32) (numHotAccounts: uint32) =
             |> Async.RunSynchronously
         | None -> ()
     | Operations.SignOffPayment ->
-        SignOffPayment()
+        TryConsumeJson SignOffPayment
     | Operations.BroadcastPayment ->
-        BroadcastPayment()
+        TryConsumeJson BroadcastPayment
     | Operations.ArchiveAccount ->
         ArchiveAccount()
     | Operations.PairToWatchWallet ->

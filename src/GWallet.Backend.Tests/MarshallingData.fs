@@ -127,7 +127,7 @@ module MarshallingData =
 
     let private someUnsignedEtherTransactionProposal =
         {
-            OriginAddress = "0xf3j4m0rjx94sushh03j";
+            OriginMainAddress = "0xf3j4m0rjx94sushh03j";
             Amount = TransferAmount(10.01m, 12.02m, Currency.ETC);
             DestinationAddress = "0xf3j4m0rjxdddud9403j";
         }
@@ -180,7 +180,7 @@ module MarshallingData =
 
     let private someUnsignedBtcTransactionProposal =
         {
-            OriginAddress = "16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR";
+            OriginMainAddress = "16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR";
             Amount = TransferAmount(10.01m, 12.02m, Currency.BTC);
             DestinationAddress = "13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5";
         }
@@ -264,7 +264,7 @@ module MarshallingData =
         }
     let private someUnsignedSaiTransactionProposal =
         {
-            OriginAddress = "0xba766d6d13E2Cc921Bf6e896319D32502af9e37E";
+            OriginMainAddress = "0xba766d6d13E2Cc921Bf6e896319D32502af9e37E";
             Amount = TransferAmount(1m, 7.08m, Currency.SAI)
             DestinationAddress = "0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b";
         }

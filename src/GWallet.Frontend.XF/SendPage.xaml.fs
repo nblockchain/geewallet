@@ -418,7 +418,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                     unsignedTransaction.Proposal.Amount.Currency account.Currency
                         self.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     )
-                elif account.PublicAddress <> unsignedTransaction.Proposal.OriginAddress then
+                elif account.PublicAddress <> unsignedTransaction.Proposal.OriginMainAddress then
                     MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err = "Transaction proposal's sender address doesn't match with this currency's account"
@@ -447,7 +447,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                                     signedTransaction.TransactionInfo.Proposal.Amount.Currency account.Currency
                         self.DisplayAlert("Alert", err, "OK") |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                     )
-                elif account.PublicAddress <> signedTransaction.TransactionInfo.Proposal.OriginAddress then
+                elif account.PublicAddress <> signedTransaction.TransactionInfo.Proposal.OriginMainAddress then
                     MainThread.BeginInvokeOnMainThread(fun _ ->
                         transactionEntry.TextColor <- Color.Red
                         let err = "Transaction's sender address doesn't match with this currency's account"
@@ -638,7 +638,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
             | :? ReadOnlyAccount as _readOnlyAccount ->
                 let proposal = {
-                    OriginAddress = account.PublicAddress;
+                    OriginMainAddress = account.PublicAddress
                     Amount = txInfo.Amount;
                     DestinationAddress = txInfo.Destination;
                 }

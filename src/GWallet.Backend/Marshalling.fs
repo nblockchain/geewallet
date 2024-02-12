@@ -182,14 +182,12 @@ module Marshalling =
                 JsonConvert.DeserializeObject<MarshallingWrapper<'T>>(json, settings)
             with
             | ex ->
-                let versionJsonTag = "\"Version\":\""
+                let versionJsonTag = "\"Version\":"
                 if (json.Contains(versionJsonTag)) then
-                    let jsonSinceVersion = json.Substring(json.IndexOf(versionJsonTag) + versionJsonTag.Length)
-                    let endVersionIndex = jsonSinceVersion.IndexOf("\"")
-                    let version = jsonSinceVersion.Substring(0, endVersionIndex)
-                    if (version <> currentVersion) then
+                    let wrapper = ExtractWrapper json
+                    if wrapper.Version <> currentVersion then
                         let msg = SPrintF2 "Incompatible marshalling version found (%s vs. current %s) while trying to deserialize JSON"
-                                          version currentVersion
+                                           wrapper.Version currentVersion
                         raise <| VersionMismatchDuringDeserializationException(msg, ex)
 
                 let targetTypeName = typeof<'T>.FullName

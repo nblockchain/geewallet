@@ -223,7 +223,7 @@ module Account =
             else
                 transactionProposal.Amount.ValueToSend + fee.FeeValue
         Caching.Instance.StoreOutgoingTransaction
-            transactionProposal.OriginAddress
+            transactionProposal.OriginMainAddress
             transactionProposal.Amount.Currency
             fee.Currency
             txId
@@ -445,7 +445,7 @@ module Account =
 
             let transactionProposal =
                 {
-                    OriginAddress = baseAccount.PublicAddress
+                    OriginMainAddress = baseAccount.PublicAddress
                     Amount = amount
                     DestinationAddress = destination
                 }

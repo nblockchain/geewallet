@@ -759,7 +759,7 @@ module Account =
                     failwith "expected a single destination address"
 
             {
-                OriginAddress = (account :> IAccount).PublicAddress
+                OriginMainAddress = (account :> IAccount).PublicAddress
                 DestinationAddress = destinationAddress.ToString()
                 Amount = value.ToDecimal MoneyUnit.BTC
                 Currency = currency
