@@ -72,27 +72,28 @@ module Account =
         // TODO: measure how long does it take to get the script hash and if it's too long, cache it at app startup?
         BitcoinAddress.Create(publicAddress, GetNetwork currency) |> GetElectrumScriptHashFromAddress
 
-    let internal GetSegwitP2shPublicAddressFromPublicKey currency (publicKey: PubKey) =
+    let internal GetNestedSegwitPublicAddressFromPublicKey currency (publicKey: PubKey): BitcoinAddress =
         publicKey
             .GetScriptPubKey(ScriptPubKeyType.SegwitP2SH)
             .GetDestinationAddress(GetNetwork currency)
-            .ToString()
 
-    let internal GetNativeSegwitPublicAddressFromPublicKey currency (publicKey: PubKey) =
+    let internal GetNativeSegwitPublicAddressFromPublicKey currency (publicKey: PubKey): BitcoinAddress =
         publicKey
             .GetScriptPubKey(ScriptPubKeyType.Segwit)
             .GetDestinationAddress(GetNetwork currency)
-            .ToString()
     
-    let internal GetPublicAddressFromPublicKey =
+    let private GetUtxoPublicAddressFromPublicKey =
         if Config.UseNativeSegwit then
             GetNativeSegwitPublicAddressFromPublicKey 
         else
-            GetSegwitP2shPublicAddressFromPublicKey
+            GetNestedSegwitPublicAddressFromPublicKey
+
+    let internal GetPublicAddressFromPublicKey currency pubKey =
+        (GetUtxoPublicAddressFromPublicKey currency pubKey).ToString()
 
     let internal GetPublicAddressFromNormalAccountFile (currency: Currency) (accountFile: FileRepresentation): string =
         let pubKey = PubKey(accountFile.Name)
-        GetPublicAddressFromPublicKey currency pubKey
+        (GetUtxoPublicAddressFromPublicKey currency pubKey).ToString()
 
     let internal GetPublicKeyFromNormalAccountFile (accountFile: FileRepresentation): PubKey =
         PubKey accountFile.Name
@@ -102,7 +103,7 @@ module Account =
 
     let internal GetPublicAddressFromUnencryptedPrivateKey (currency: Currency) (privateKey: string) =
         let privateKey = Key.Parse(privateKey, GetNetwork currency)
-        GetPublicAddressFromPublicKey currency privateKey.PubKey
+        (GetUtxoPublicAddressFromPublicKey currency privateKey.PubKey).ToString()
 
     let internal GetAccountFromFile (accountFile: FileRepresentation) (currency: Currency) kind: IAccount =
         if not (currency.IsUtxo()) then
@@ -152,9 +153,9 @@ module Account =
                                 : Async<BlockchainScriptHashGetBalanceInnerResult> =
         let scriptHashesHex =
             [
-                GetNativeSegwitPublicAddressFromPublicKey account.Currency account.PublicKey
+                (GetNativeSegwitPublicAddressFromPublicKey account.Currency account.PublicKey).ToString()
                     |> GetElectrumScriptHashFromPublicAddress account.Currency
-                GetSegwitP2shPublicAddressFromPublicKey account.Currency account.PublicKey
+                (GetNestedSegwitPublicAddressFromPublicKey account.Currency account.PublicKey).ToString()
                     |> GetElectrumScriptHashFromPublicAddress account.Currency
             ]
 
@@ -200,9 +201,9 @@ module Account =
         let sourceAddress = scriptPubKey.GetDestinationAddress(GetNetwork account.Currency).ToString()
         let coin =
             Coin(txHash, uint32 inputOutpointInfo.OutputIndex, Money(inputOutpointInfo.ValueInSatoshis), scriptPubKey)
-        if sourceAddress = GetSegwitP2shPublicAddressFromPublicKey account.Currency account.PublicKey then
+        if sourceAddress = (GetNestedSegwitPublicAddressFromPublicKey account.Currency account.PublicKey).ToString() then
             coin.ToScriptCoin(account.PublicKey.WitHash.ScriptPubKey) :> ICoin
-        elif sourceAddress = GetNativeSegwitPublicAddressFromPublicKey account.Currency account.PublicKey then
+        elif sourceAddress = (GetNativeSegwitPublicAddressFromPublicKey account.Currency account.PublicKey).ToString() then
             coin :> ICoin
         else
             //We filter utxos based on scriptPubKey when retrieving from electrum
@@ -325,9 +326,9 @@ module Account =
 
         let currency = account.Currency
 
-        let getUtxos (publicAddress: string) =
+        let getUtxos (publicAddress: BitcoinAddress) =
             async {
-                let job = GetElectrumScriptHashFromPublicAddress currency publicAddress
+                let job = GetElectrumScriptHashFromPublicAddress currency (publicAddress.ToString())
                         |> ElectrumClient.GetUnspentTransactionOutputs
 
                 return! Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
@@ -340,7 +341,7 @@ module Account =
                     |> getUtxos
 
                 let! legacySegwitUtxos =
-                    GetSegwitP2shPublicAddressFromPublicKey currency account.PublicKey
+                    GetNestedSegwitPublicAddressFromPublicKey currency account.PublicKey
                     |> getUtxos
 
                 return Seq.concat [ nativeSegwitUtxos; legacySegwitUtxos ]
@@ -707,11 +708,23 @@ module Account =
                         failwith "transaction has multiple different inputs"
                 origin
 
-            let matchOriginToAccount(account: ReadOnlyUtxoAccount): bool =
-                let accountAddress = (account :> IAccount).PublicAddress
-                let bitcoinAddress = BitcoinAddress.Create(accountAddress, network)
-                let destination = bitcoinAddress.ScriptPubKey.GetDestination()
-                (destination :> IDestination) = origin
+            let anyAccountAddressesMatch (originOrDestination: IDestination) (account: IUtxoAccount) (throwIfNot: bool): bool =
+                let nativeSegWitAddress =
+                    GetNativeSegwitPublicAddressFromPublicKey account.Currency account.PublicKey
+                    :> IDestination
+                let nestedSegWitAddress =
+                    GetNestedSegwitPublicAddressFromPublicKey account.Currency account.PublicKey
+                    :> IDestination
+                let network = GetNetwork account.Currency
+                let originOrDestinationAddress = originOrDestination.ScriptPubKey.GetDestinationAddress network :> IDestination
+                let anyMatch =
+                    nativeSegWitAddress = originOrDestinationAddress || nestedSegWitAddress = originOrDestinationAddress
+                if not anyMatch then
+                    if throwIfNot then
+                        failwith
+                        <| SPrintF3 "ReadOnly account's addresses (%s and %s) don't match with the source adress of the signed transaction (%s)"
+                            (nativeSegWitAddress.ToString()) (nestedSegWitAddress.ToString()) (originOrDestinationAddress.ToString())
+                anyMatch
 
             let account =
                 let accountOpt =
@@ -721,22 +734,20 @@ module Account =
                             GetAccountFromFile accountFile currency AccountKind.ReadOnly
                             :?> ReadOnlyUtxoAccount
                         )
-                    |> Seq.filter matchOriginToAccount
                     |> Seq.tryExactlyOne
                 match accountOpt with
-                | Some account -> account
-                | None -> failwith "unknown origin account"
-            let originAddress =
-                let accountAddress = (account :> IAccount).PublicAddress
-                let bitcoinAddress = BitcoinAddress.Create(accountAddress, network)
-                bitcoinAddress
+                | None -> failwith "Cannot broadcast transactions from a wallet instance that doesn't have read-only accounts"
+                | Some account ->
+                    let utxoAccount = account :> IUtxoAccount
+                    anyAccountAddressesMatch origin utxoAccount true |> ignore<bool>
+                    account
 
             let destinationAddress, value =
                 let filterChangeTxOuts(txOut: TxOut): Option<BitcoinAddress * Money> =
                     let scriptPubKey = txOut.ScriptPubKey
                     let destinationAddress = scriptPubKey.GetDestinationAddress network
                     let destination = destinationAddress.ScriptPubKey.GetDestination()
-                    if (destination :> IDestination) = origin then
+                    if anyAccountAddressesMatch destination account false then
                         None
                     else
                         Some (destinationAddress, txOut.Value)
@@ -748,7 +759,7 @@ module Account =
                     failwith "expected a single destination address"
 
             {
-                OriginAddress = originAddress.ToString()
+                OriginAddress = (account :> IAccount).PublicAddress
                 DestinationAddress = destinationAddress.ToString()
                 Amount = value.ToDecimal MoneyUnit.BTC
                 Currency = currency
