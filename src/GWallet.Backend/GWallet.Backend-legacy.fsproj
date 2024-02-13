@@ -150,7 +150,7 @@
       <HintPath>..\..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
     </Reference>
     <Reference Include="Sentry">
-      <HintPath>..\..\packages\Sentry.4.0.0-beta.8\lib\netstandard2.0\Sentry.dll</HintPath>
+      <HintPath>..\..\packages\Sentry.4.0.3\lib\netstandard2.0\Sentry.dll</HintPath>
     </Reference>
     <Reference Include="System.Reflection.Metadata">
       <HintPath>..\..\packages\System.Reflection.Metadata.5.0.0\lib\net461\System.Reflection.Metadata.dll</HintPath>

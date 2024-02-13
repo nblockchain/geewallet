@@ -77,7 +77,7 @@
       <HintPath>..\..\packages\System.Runtime.InteropServices.RuntimeInformation.4.3.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
     </Reference>
     <Reference Include="Sentry">
-      <HintPath>..\..\packages\Sentry.4.0.0-beta.8\lib\netstandard2.0\Sentry.dll</HintPath>
+      <HintPath>..\..\packages\Sentry.4.0.3\lib\netstandard2.0\Sentry.dll</HintPath>
     </Reference>
     <Reference Include="System.Text.Json">
       <HintPath>..\..\packages\System.Text.Json.5.0.2\lib\net461\System.Text.Json.dll</HintPath>
