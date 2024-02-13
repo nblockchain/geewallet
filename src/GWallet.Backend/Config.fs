@@ -147,11 +147,17 @@ module Config =
                             if not (File.Exists newPath) then
                                 File.Copy(ethAccountFilePath, newPath)
 
+    let GetAccountFilesWithCurrency (currency: Currency) (accountKind: AccountKind): seq<FileRepresentation> =
+        seq {
+            for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
+                yield FileRepresentation.FromFile (FileInfo filePath)
+        }
+
     let GetAccountFiles (currencies: seq<Currency>) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {
             for currency in currencies do
-                for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
-                    yield FileRepresentation.FromFile (FileInfo(filePath))
+                for accountFile in GetAccountFilesWithCurrency currency accountKind do
+                    yield accountFile
         }
 
     let private GetFile (currency: Currency) (account: BaseAccount): FileInfo =
@@ -187,3 +193,10 @@ module Config =
 
     let RemoveReadOnlyAccount (account: ReadOnlyAccount): unit =
         RemoveAccount account
+
+    [<Literal>]
+    let private NoInitMsg = "This function never really existed, but it's here to warn you that yes, configuration needs to be initialized (e.g. for migrations) but it's done in Account.GetAllActiveAccounts() so that it's done by all frontends seamlessly (not explicitly)"
+
+    [<Obsolete "This function never really existed, but it's here to warn you that yes, configuration needs to be initialized (e.g. for migrations) but it's done in Account.GetAllActiveAccounts() so that it's done by all frontends seamlessly (not explicitly)">]
+    let Init() =
+        failwith NoInitMsg

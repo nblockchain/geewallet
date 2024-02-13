@@ -97,14 +97,22 @@ module Account =
         failwith "OK, all accounts and cache is clear, you can disable this code block again"
 #endif
 
-        seq {
-            for currency in allCurrencies do
-                let activeKinds = [AccountKind.ReadOnly; AccountKind.Normal]
-                for kind in activeKinds do
-                    for accountFile in Config.GetAccountFiles [currency] kind do
-                        yield GetAccountFromFile accountFile currency kind
-        }
+        let getAccountsOfKind (kinds: seq<AccountKind>) =
+            seq {
+                for currency in allCurrencies do
+                    for kind in kinds do
+                        for accountFile in Config.GetAccountFilesWithCurrency currency kind do
+                            yield GetAccountFromFile accountFile currency kind
+            }
 
+        let allAccounts = getAccountsOfKind [AccountKind.Normal; AccountKind.ReadOnly]
+#if NATIVE_SEGWIT
+        let readonlyUtxoAccounts =
+            allAccounts.Where(fun acc -> acc.Currency.IsUtxo()).OfType<ReadOnlyAccount>()
+        UtxoCoin.Account.MigrateReadOnlyAccountsToNativeSegWit readonlyUtxoAccounts
+#endif
+
+        allAccounts
 
     let GetNormalAccountsPairingInfoForWatchWallet(): Option<WatchWalletInfo> =
         let allCurrencies = Currency.GetAll()
@@ -512,30 +520,17 @@ module Account =
         let json = SerializeSignedTransaction trans false
         File.WriteAllText(filePath, json)
 
-    let CreateReadOnlyAccounts (watchWalletInfo: WatchWalletInfo): Async<unit> = async {
-        for etherCurrency in Currency.GetAll().Where(fun currency -> currency.IsEtherBased()) do
-            do! ValidateAddress etherCurrency watchWalletInfo.EtherPublicAddress
-            let conceptAccountForReadOnlyAccount = {
-                Currency = etherCurrency
-                FileRepresentation = { Name = watchWalletInfo.EtherPublicAddress; Content = fun _ -> String.Empty }
-                ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
+    let CreateReadOnlyAccounts (watchWalletInfo: WatchWalletInfo): Async<unit> =
+        let ethJob = Ether.Account.CreateReadOnlyAccounts watchWalletInfo.EtherPublicAddress
+        let utxoJob =
+            async {
+                UtxoCoin.Account.CreateReadOnlyAccounts watchWalletInfo.UtxoCoinPublicKey
             }
-            Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
-            |> ignore<FileRepresentation>
-
-        for utxoCurrency in Currency.GetAll().Where(fun currency -> currency.IsUtxo()) do
-            let address =
-                UtxoCoin.Account.GetPublicAddressFromPublicKey utxoCurrency
-                                                               (NBitcoin.PubKey(watchWalletInfo.UtxoCoinPublicKey))
-            do! ValidateAddress utxoCurrency address
-            let conceptAccountForReadOnlyAccount = {
-                Currency = utxoCurrency
-                FileRepresentation = { Name = address; Content = fun _ -> watchWalletInfo.UtxoCoinPublicKey }
-                ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
-            }
-            Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
-            |> ignore<FileRepresentation>
-    }
+        async {
+            do!
+                Async.Parallel [ethJob; utxoJob]
+                |> Async.Ignore
+        }
 
     let Remove (account: ReadOnlyAccount) =
         Config.RemoveReadOnlyAccount account

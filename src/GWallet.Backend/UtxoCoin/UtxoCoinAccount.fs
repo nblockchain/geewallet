@@ -621,11 +621,13 @@ module Account =
         else
             addressOrUrl,None
 
+    let BITCOIN_ADDRESS_BECH32_PREFIX = "bc1"
+    let LITECOIN_ADDRESS_BECH32_PREFIX = "ltc1"
+
     let internal ValidateAddress (currency: Currency) (address: string) =
         if String.IsNullOrEmpty address then
             raise <| ArgumentNullException "address"
 
-        let BITCOIN_ADDRESS_BECH32_PREFIX = "bc1"
         let LITECOIN_ADDRESS_BECH32_PREFIX = "ltc1"
 
         let utxoCoinValidAddressPrefixes =
@@ -682,6 +684,53 @@ module Account =
         // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
         | :? FormatException ->
             raise (AddressWithInvalidChecksum None)
+
+    let internal CreateReadOnlyAccounts (utxoPublicKey: string) =
+        for utxoCurrency in Currency.GetAll().Where(fun currency -> currency.IsUtxo()) do
+            let address =
+                GetPublicAddressFromPublicKey
+                    utxoCurrency
+                    (NBitcoin.PubKey utxoPublicKey)
+            ValidateAddress utxoCurrency address
+            let conceptAccountForReadOnlyAccount = {
+                Currency = utxoCurrency
+                FileRepresentation = { Name = address; Content = fun _ -> utxoPublicKey }
+                ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
+            }
+            Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
+            |> ignore<FileRepresentation>
+
+#if NATIVE_SEGWIT
+    let internal MigrateReadOnlyAccountsToNativeSegWit (readOnlyUtxoAccounts: seq<ReadOnlyAccount>): unit =
+        let utxoAccountsToMigrate =
+            seq {
+                for utxoAccount in readOnlyUtxoAccounts do
+                    let accountFile = utxoAccount.AccountFile
+                    let prefix =
+                        match (utxoAccount :> IAccount).Currency with
+                        | Currency.BTC ->
+                            BITCOIN_ADDRESS_BECH32_PREFIX
+                        | Currency.LTC ->
+                            LITECOIN_ADDRESS_BECH32_PREFIX
+                        | otherCurrency -> failwith <| SPrintF1 "Missed UTXO currency %A when implementing NativeSegwit migration?" otherCurrency
+                    if not (accountFile.Name.StartsWith prefix) then
+                        yield utxoAccount
+            }
+
+        let utxoPublicKeys =
+            seq {
+                for utxoReadOnlyAccount in utxoAccountsToMigrate do
+                    let accountFile = utxoReadOnlyAccount.AccountFile
+                    let utxoPublicKey = accountFile.Content()
+                    yield utxoPublicKey
+            } |> Set.ofSeq
+
+        for utxoPublicKey in utxoPublicKeys do
+            CreateReadOnlyAccounts utxoPublicKey
+
+        for utxoReadOnlyAccount in utxoAccountsToMigrate do
+            Config.RemoveReadOnlyAccount utxoReadOnlyAccount
+#endif
 
     let GetSignedTransactionDetails<'T when 'T :> IBlockchainFeeInfo>(rawTransaction: string)
                                                                      (currency: Currency)
