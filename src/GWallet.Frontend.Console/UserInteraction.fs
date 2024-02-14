@@ -235,7 +235,7 @@ module UserInteraction =
         | _ ->
             DisplayAccountStatusInner accountNumber account maybeBalance maybeUsdValue
 
-    let private GetAccountBalanceInner (account: IAccount): Async<IAccount*MaybeCached<decimal>*MaybeCached<decimal>> =
+    let private GetAccountBalanceInner (account: IAccount) (showProgress: bool): Async<IAccount*MaybeCached<decimal>*MaybeCached<decimal>> =
         async {
                 // The console frontend cannot really take much advantage of the Fast|Analysis distinction here (as
                 // opposed to the other frontends) because it doesn't have automatic balance refresh (it's this
@@ -252,21 +252,22 @@ module UserInteraction =
             //       we don't need to query the fiat value at all (micro-optimization?)
             let! balance,usdValue = FSharpUtil.AsyncExtensions.MixedParallel2 balanceJob usdValueJob
 
-            let progressIteration = sprintf " %A" account.Currency
-            Console.Write progressIteration
+            if showProgress then
+                let progressIteration = sprintf " %A" account.Currency
+                Console.Write progressIteration
 
             return (account,balance,usdValue)
         }
 
     let private GetAccountBalance (account: IAccount): Async<MaybeCached<decimal>*MaybeCached<decimal>> =
         async {
-            let! (_, balance, maybeUsdValue) = GetAccountBalanceInner account
+            let! (_, balance, maybeUsdValue) = GetAccountBalanceInner account false
             return (balance, maybeUsdValue)
         }
 
     let private GetAccountBalances (accounts: seq<IAccount>)
                                        : Async<array<IAccount*MaybeCached<decimal>*MaybeCached<decimal>>> =
-        let accountAndBalancesToBeQueried = accounts |> Seq.map GetAccountBalanceInner
+        let accountAndBalancesToBeQueried = accounts |> Seq.map (fun acc -> GetAccountBalanceInner acc true)
         Console.Write "Retrieving balances..."
         Async.Parallel accountAndBalancesToBeQueried
 
