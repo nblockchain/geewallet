@@ -785,9 +785,12 @@ module Account =
                                                                           : ITransactionDetails =
         let currency = signedTransaction.TransactionInfo.Proposal.Amount.Currency
         if currency.IsUtxo () then
+            let readOnlyUtxoAccounts =
+                GetAllActiveAccounts().OfType<UtxoCoin.ReadOnlyUtxoAccount>()
             UtxoCoin.Account.GetSignedTransactionDetails
                 signedTransaction.RawTransaction
                 currency
+                readOnlyUtxoAccounts
         elif currency.IsEtherBased () then
             Ether.Account.GetSignedTransactionDetails
                 signedTransaction

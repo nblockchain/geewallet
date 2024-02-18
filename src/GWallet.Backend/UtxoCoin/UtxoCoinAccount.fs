@@ -734,6 +734,7 @@ module Account =
 
     let GetSignedTransactionDetails<'T when 'T :> IBlockchainFeeInfo>(rawTransaction: string)
                                                                      (currency: Currency)
+                                                                     (readonlyUtxoAccounts: seq<ReadOnlyUtxoAccount>)
                                                                          : ITransactionDetails =
         let network = GetNetwork currency
         match Transaction.TryParse(rawTransaction, network) with
@@ -757,60 +758,58 @@ module Account =
                         failwith "transaction has multiple different inputs"
                 origin
 
-            let anyAccountAddressesMatch (originOrDestination: IDestination) (account: IUtxoAccount) (throwIfNot: bool): bool =
+            let anyAccountAddressesMatch (originOrDestination: IDestination) (account: IUtxoAccount) (network: Network): bool =
                 let nativeSegWitAddress =
                     GetNativeSegwitPublicAddressFromPublicKey account.Currency account.PublicKey
                     :> IDestination
                 let nestedSegWitAddress =
                     GetNestedSegwitPublicAddressFromPublicKey account.Currency account.PublicKey
                     :> IDestination
-                let network = GetNetwork account.Currency
                 let originOrDestinationAddress = originOrDestination.ScriptPubKey.GetDestinationAddress network :> IDestination
                 let anyMatch =
                     nativeSegWitAddress = originOrDestinationAddress || nestedSegWitAddress = originOrDestinationAddress
-                if not anyMatch then
-                    if throwIfNot then
-                        failwith
-                        <| SPrintF3 "ReadOnly account's addresses (%s and %s) don't match with the source adress of the signed transaction (%s)"
-                            (nativeSegWitAddress.ToString()) (nestedSegWitAddress.ToString()) (originOrDestinationAddress.ToString())
                 anyMatch
 
-            let account =
-                let accountOpt =
-                    Config.GetAccountFiles [currency] AccountKind.ReadOnly
-                    |> Seq.map
-                        (fun accountFile ->
-                            GetAccountFromFile accountFile currency AccountKind.ReadOnly
-                            :?> ReadOnlyUtxoAccount
-                        )
-                    |> Seq.tryExactlyOne
-                match accountOpt with
-                | None -> failwith "Cannot broadcast transactions from a wallet instance that doesn't have read-only accounts"
-                | Some account ->
-                    let utxoAccount = account :> IUtxoAccount
-                    anyAccountAddressesMatch origin utxoAccount true |> ignore<bool>
-                    account
+            if Seq.isEmpty readonlyUtxoAccounts then
+                failwith "Cannot broadcast transactions from a wallet instance that doesn't have read-only accounts"
 
-            let destinationAddress, value =
-                let filterChangeTxOuts(txOut: TxOut): Option<BitcoinAddress * Money> =
-                    let scriptPubKey = txOut.ScriptPubKey
-                    let destinationAddress = scriptPubKey.GetDestinationAddress network
-                    let destination = destinationAddress.ScriptPubKey.GetDestination()
-                    if anyAccountAddressesMatch destination account false then
-                        None
-                    else
-                        Some (destinationAddress, txOut.Value)
+            // don't be tempted to move this line inside anyAccountAddressesMatch() func!
+            // because network has to come from currency, not from account
+            let network = GetNetwork currency
 
-                let filteredTxOuts = Seq.choose filterChangeTxOuts transaction.Outputs
-                match Seq.tryExactlyOne filteredTxOuts with
-                | Some destinationAddress -> destinationAddress
-                | None ->
-                    failwith "expected a single destination address"
+            let accountsThatMatch =
+                seq {
+                    for readOnlyAccount in readonlyUtxoAccounts do
+                        if anyAccountAddressesMatch origin readOnlyAccount network then
+                            yield readOnlyAccount
+                }
 
-            {
-                OriginMainAddress = (account :> IAccount).PublicAddress
-                DestinationAddress = destinationAddress.ToString()
-                Amount = value.ToDecimal MoneyUnit.BTC
-                Currency = currency
-            } :> ITransactionDetails
+            match Seq.length accountsThatMatch with
+            | 0 ->
+                failwith "No readonly account found matching the signed transaction"
+            | 1 ->
+                let account = Seq.exactlyOne accountsThatMatch
+                let destinationAddress, value =
+                    let filterChangeTxOuts(txOut: TxOut): Option<BitcoinAddress * Money> =
+                        let scriptPubKey = txOut.ScriptPubKey
+                        let destinationAddress = scriptPubKey.GetDestinationAddress network
+                        let destination = destinationAddress.ScriptPubKey.GetDestination()
+                        if anyAccountAddressesMatch destination account network then
+                            None
+                        else
+                            Some (destinationAddress, txOut.Value)
 
+                    let filteredTxOuts = Seq.choose filterChangeTxOuts transaction.Outputs
+                    match Seq.tryExactlyOne filteredTxOuts with
+                    | Some destinationAddress -> destinationAddress
+                    | None ->
+                        failwith "expected a single destination address"
+
+                {
+                    OriginMainAddress = (account :> IAccount).PublicAddress
+                    DestinationAddress = destinationAddress.ToString()
+                    Amount = value.ToDecimal MoneyUnit.BTC
+                    Currency = currency
+                } :> ITransactionDetails
+            | _ ->
+                failwith "Too many readonly accounts referring to transaction"
