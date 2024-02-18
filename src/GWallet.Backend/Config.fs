@@ -127,26 +127,6 @@ module Config =
         | Some dir -> dir
         | None -> failwith "Unreachable, after invoking with createIfNotAlreadyExisting=true, it should return Some"
 
-    // In case a new token was added it will not have a config for an existing user
-    // we copy the eth configs to the new tokens config directory
-    let PropagateEthAccountInfoToMissingTokensAccounts() =
-        for accountKind in (AccountKind.All()) do
-            let ethConfigDir = GetConfigDir Currency.ETH accountKind
-            for token in Currency.GetAll() do
-                if token.IsEthToken() then
-                    let maybeTokenConfigDir = GetConfigDirInternal token accountKind false
-                    match maybeTokenConfigDir with
-                    | Some _ ->
-                        // already removed token account before
-                        ()
-                    | None ->
-                        // now create it if it wasn't there before
-                        let tokenConfigDir = GetConfigDir token accountKind
-                        for ethAccountFilePath in Directory.GetFiles ethConfigDir.FullName do
-                            let newPath = ethAccountFilePath.Replace(ethConfigDir.FullName, tokenConfigDir.FullName)
-                            if not (File.Exists newPath) then
-                                File.Copy(ethAccountFilePath, newPath)
-
     let GetAccountFilesWithCurrency (currency: Currency) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {
             for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
@@ -194,9 +174,26 @@ module Config =
     let RemoveReadOnlyAccount (account: ReadOnlyAccount): unit =
         RemoveAccount account
 
-    [<Literal>]
-    let private NoInitMsg = "This function never really existed, but it's here to warn you that yes, configuration needs to be initialized (e.g. for migrations) but it's done in Account.GetAllActiveAccounts() so that it's done by all frontends seamlessly (not explicitly)"
+    /// NOTE: the real initialization happens in Account.fs , see isInitialized
+    let internal Init() =
+        // In case a new token was added it will not have a config for an existing user
+        // we copy the eth configs to the new tokens config directory
+        let propagateEthAccountInfoToMissingTokensAccounts() =
+            for accountKind in (AccountKind.All()) do
+                let ethConfigDir = GetConfigDir Currency.ETH accountKind
+                for token in Currency.GetAll() do
+                    if token.IsEthToken() then
+                        let maybeTokenConfigDir = GetConfigDirInternal token accountKind false
+                        match maybeTokenConfigDir with
+                        | Some _ ->
+                            // already removed token account before
+                            ()
+                        | None ->
+                            // now create it if it wasn't there before
+                            let tokenConfigDir = GetConfigDir token accountKind
+                            for ethAccountFilePath in Directory.GetFiles ethConfigDir.FullName do
+                                let newPath = ethAccountFilePath.Replace(ethConfigDir.FullName, tokenConfigDir.FullName)
+                                if not (File.Exists newPath) then
+                                    File.Copy(ethAccountFilePath, newPath)
 
-    [<Obsolete "This function never really existed, but it's here to warn you that yes, configuration needs to be initialized (e.g. for migrations) but it's done in Account.GetAllActiveAccounts() so that it's done by all frontends seamlessly (not explicitly)">]
-    let Init() =
-        failwith NoInitMsg
+        propagateEthAccountInfoToMissingTokensAccounts()

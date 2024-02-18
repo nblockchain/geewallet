@@ -17,6 +17,21 @@ type UnhandledCurrencyServerException(currency: Currency,
 
 module Account =
 
+    let private isInitialized (accounts: seq<IAccount>) = lazy(
+        Config.Init()
+
+#if !NATIVE_SEGWIT
+        let _readonlyUtxoAccounts =
+#else
+        let readonlyUtxoAccounts =
+#endif
+            accounts.Where(fun acc -> acc.Currency.IsUtxo()).OfType<ReadOnlyAccount>()
+#if NATIVE_SEGWIT
+        UtxoCoin.Account.MigrateReadOnlyAccountsToNativeSegWit readonlyUtxoAccounts
+#endif
+        ()
+    )
+
     let private GetShowableBalanceAndImminentPaymentInternal (account: IAccount)
                                                              (mode: ServerSelectionMode)
                                                              (cancelSourceOption: Option<CustomCancelSource>)
@@ -86,8 +101,6 @@ module Account =
             failwith <| SPrintF1 "Currency (%A) not supported for this API" currency
 
     let GetAllActiveAccounts(): seq<IAccount> =
-        Config.PropagateEthAccountInfoToMissingTokensAccounts()
-
         let allCurrencies = Currency.GetAll()
 
 // uncomment this block below, manually, if when testing you need to go back to test the WelcomePage.xaml
@@ -106,11 +119,9 @@ module Account =
             }
 
         let allAccounts = getAccountsOfKind [AccountKind.Normal; AccountKind.ReadOnly]
-#if NATIVE_SEGWIT
-        let readonlyUtxoAccounts =
-            allAccounts.Where(fun acc -> acc.Currency.IsUtxo()).OfType<ReadOnlyAccount>()
-        UtxoCoin.Account.MigrateReadOnlyAccountsToNativeSegWit readonlyUtxoAccounts
-#endif
+
+        let _checkInit: unit =
+            (isInitialized allAccounts).Value
 
         allAccounts
 
