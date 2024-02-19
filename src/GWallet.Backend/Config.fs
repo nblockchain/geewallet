@@ -81,7 +81,7 @@ module Config =
             configDir.Create()
         configDir
 
-    let private GetConfigDir (currency: Currency) (accountKind: AccountKind) =
+    let private GetConfigDirInternal (currency: Currency) (accountKind: AccountKind) (createIfNotAlreadyExisting: bool): Option<DirectoryInfo> =
         let accountConfigDir = GetConfigDirForAccounts().FullName
 
         let baseConfigDir =
@@ -95,8 +95,18 @@ module Config =
 
         let configDir = Path.Combine(baseConfigDir, currency.ToString()) |> DirectoryInfo
         if not configDir.Exists then
-            configDir.Create()
-        configDir
+            if createIfNotAlreadyExisting then
+                configDir.Create()
+                Some configDir
+            else
+                None
+        else
+            Some configDir
+
+    let private GetConfigDir (currency: Currency) (accountKind: AccountKind) =
+        match GetConfigDirInternal currency accountKind true with
+        | Some dir -> dir
+        | None -> failwith "Unreachable, after invoking with createIfNotAlreadyExisting=true, it should return Some"
 
     // In case a new token was added it will not have a config for an existing user
     // we copy the eth configs to the new tokens config directory
@@ -105,11 +115,18 @@ module Config =
             let ethConfigDir = GetConfigDir Currency.ETH accountKind
             for token in Currency.GetAll() do
                 if token.IsEthToken() then
-                    let tokenConfigDir = GetConfigDir token accountKind
-                    for ethAccountFilePath in Directory.GetFiles ethConfigDir.FullName do
-                        let newPath = ethAccountFilePath.Replace(ethConfigDir.FullName, tokenConfigDir.FullName)
-                        if not (File.Exists newPath) then
-                            File.Copy(ethAccountFilePath, newPath)
+                    let maybeTokenConfigDir = GetConfigDirInternal token accountKind false
+                    match maybeTokenConfigDir with
+                    | Some _ ->
+                        // already removed token account before
+                        ()
+                    | None ->
+                        // now create it if it wasn't there before
+                        let tokenConfigDir = GetConfigDir token accountKind
+                        for ethAccountFilePath in Directory.GetFiles ethConfigDir.FullName do
+                            let newPath = ethAccountFilePath.Replace(ethConfigDir.FullName, tokenConfigDir.FullName)
+                            if not (File.Exists newPath) then
+                                File.Copy(ethAccountFilePath, newPath)
 
     let GetAccountFiles (currencies: seq<Currency>) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {
