@@ -557,10 +557,22 @@ jobs:
         draft: false
         prerelease: false
 
+    - name: Upload snap package As Release Asset
+      id: upload_snap_asset
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.prepare.outputs.upload_url }}
+        asset_path: ${{ steps.find_snap_file.outputs.file_path }}
+        asset_name: ${{ steps.find_snap_file.outputs.file_name }}
+        asset_content_type: application/octet-stream
+
   snap_pkg_beta:
 
     needs:
-    - conventions
+    - snap_pkg
 
     runs-on: ubuntu-22.04
     steps:
@@ -614,3 +626,15 @@ jobs:
       run: |
         sudo apt update
         ./scripts/snap_release.sh beta
+
+    - name: Upload snap beta package As Release Asset
+      id: upload_snap_beta_asset
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.snap_pkg.outputs.upload_url }}
+        asset_path: ${{ steps.find_snap_beta_file.outputs.file_path }}
+        asset_name: ${{ steps.find_snap_beta_file.outputs.file_name }}
+        asset_content_type: application/octet-stream
