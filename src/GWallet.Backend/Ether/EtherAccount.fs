@@ -6,6 +6,7 @@
 open System
 open System.Numerics
 open System.Threading.Tasks
+open System.Linq
 
 open Nethereum.ABI.Decoders
 open Nethereum.Signer
@@ -153,6 +154,19 @@ module internal Account =
             let validCheckSumAddress = addressUtil.ConvertToChecksumAddress(address)
             raise (AddressWithInvalidChecksum(Some validCheckSumAddress))
     }
+
+    let internal CreateReadOnlyAccounts (etherPublicAddress: string) =
+        async {
+            for etherCurrency in Currency.GetAll().Where(fun currency -> currency.IsEtherBased()) do
+                do! ValidateAddress etherCurrency etherPublicAddress
+                let conceptAccountForReadOnlyAccount = {
+                    Currency = etherCurrency
+                    FileRepresentation = { Name = etherPublicAddress; Content = fun _ -> String.Empty }
+                    ExtractPublicAddressFromConfigFileFunc = (fun file -> file.Name)
+                }
+                Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
+                |> ignore<FileRepresentation>
+        }
 
     let private GetTransactionCount (currency: Currency) (publicAddress: string): Async<int64> = async {
         let! result = Ether.Server.GetTransactionCount currency publicAddress
@@ -487,7 +501,7 @@ module internal Account =
 
             let txDetails =
                 {
-                    OriginAddress = signer.GetSenderAddress signedTransaction.RawTransaction
+                    OriginMainAddress = signer.GetSenderAddress signedTransaction.RawTransaction
                     Amount = UnitConversion.Convert.FromWei (IntTypeDecoder().DecodeBigInteger tx.Value)
                     Currency = getTransactionCurrency tx
                     DestinationAddress = destAddress

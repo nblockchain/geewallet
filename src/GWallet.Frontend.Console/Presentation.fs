@@ -61,7 +61,7 @@ module Presentation =
             | NotFresh(NotAvailable) -> None
 
         Console.WriteLine("Transaction data:")
-        Console.WriteLine("Sender: " + trans.OriginAddress)
+        Console.WriteLine("Sender: " + trans.OriginMainAddress)
         Console.WriteLine("Recipient: " + trans.DestinationAddress)
         let fiatAmount =
             match maybeEstimatedAmountInUsd with

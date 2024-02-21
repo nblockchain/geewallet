@@ -127,31 +127,17 @@ module Config =
         | Some dir -> dir
         | None -> failwith "Unreachable, after invoking with createIfNotAlreadyExisting=true, it should return Some"
 
-    // In case a new token was added it will not have a config for an existing user
-    // we copy the eth configs to the new tokens config directory
-    let PropagateEthAccountInfoToMissingTokensAccounts() =
-        for accountKind in (AccountKind.All()) do
-            let ethConfigDir = GetConfigDir Currency.ETH accountKind
-            for token in Currency.GetAll() do
-                if token.IsEthToken() then
-                    let maybeTokenConfigDir = GetConfigDirInternal token accountKind false
-                    match maybeTokenConfigDir with
-                    | Some _ ->
-                        // already removed token account before
-                        ()
-                    | None ->
-                        // now create it if it wasn't there before
-                        let tokenConfigDir = GetConfigDir token accountKind
-                        for ethAccountFilePath in Directory.GetFiles ethConfigDir.FullName do
-                            let newPath = ethAccountFilePath.Replace(ethConfigDir.FullName, tokenConfigDir.FullName)
-                            if not (File.Exists newPath) then
-                                File.Copy(ethAccountFilePath, newPath)
+    let GetAccountFilesWithCurrency (currency: Currency) (accountKind: AccountKind): seq<FileRepresentation> =
+        seq {
+            for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
+                yield FileRepresentation.FromFile (FileInfo filePath)
+        }
 
     let GetAccountFiles (currencies: seq<Currency>) (accountKind: AccountKind): seq<FileRepresentation> =
         seq {
             for currency in currencies do
-                for filePath in Directory.GetFiles (GetConfigDir currency accountKind).FullName do
-                    yield FileRepresentation.FromFile (FileInfo(filePath))
+                for accountFile in GetAccountFilesWithCurrency currency accountKind do
+                    yield accountFile
         }
 
     let private GetFile (currency: Currency) (account: BaseAccount): FileInfo =
@@ -187,3 +173,27 @@ module Config =
 
     let RemoveReadOnlyAccount (account: ReadOnlyAccount): unit =
         RemoveAccount account
+
+    /// NOTE: the real initialization happens in Account.fs , see isInitialized
+    let internal Init() =
+        // In case a new token was added it will not have a config for an existing user
+        // we copy the eth configs to the new tokens config directory
+        let propagateEthAccountInfoToMissingTokensAccounts() =
+            for accountKind in (AccountKind.All()) do
+                let ethConfigDir = GetConfigDir Currency.ETH accountKind
+                for token in Currency.GetAll() do
+                    if token.IsEthToken() then
+                        let maybeTokenConfigDir = GetConfigDirInternal token accountKind false
+                        match maybeTokenConfigDir with
+                        | Some _ ->
+                            // already removed token account before
+                            ()
+                        | None ->
+                            // now create it if it wasn't there before
+                            let tokenConfigDir = GetConfigDir token accountKind
+                            for ethAccountFilePath in Directory.GetFiles ethConfigDir.FullName do
+                                let newPath = ethAccountFilePath.Replace(ethConfigDir.FullName, tokenConfigDir.FullName)
+                                if not (File.Exists newPath) then
+                                    File.Copy(ethAccountFilePath, newPath)
+
+        propagateEthAccountInfoToMissingTokensAccounts()

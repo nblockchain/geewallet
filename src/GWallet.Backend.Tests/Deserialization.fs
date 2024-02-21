@@ -55,7 +55,7 @@ type Deserialization() =
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.Currency, Is.EqualTo Currency.BTC)
         Assert.That(deserializedUnsignedTrans.Proposal.DestinationAddress,
                     Is.EqualTo("13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5"))
-        Assert.That(deserializedUnsignedTrans.Proposal.OriginAddress,
+        Assert.That(deserializedUnsignedTrans.Proposal.OriginMainAddress,
                     Is.EqualTo("16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR"))
 
         let btcTxMetadata = deserializedUnsignedTrans.Metadata :?> UtxoCoin.TransactionMetadata
@@ -84,7 +84,7 @@ type Deserialization() =
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.Currency, Is.EqualTo Currency.ETC)
         Assert.That(deserializedUnsignedTrans.Proposal.DestinationAddress,
                     Is.EqualTo("0xf3j4m0rjxdddud9403j"))
-        Assert.That(deserializedUnsignedTrans.Proposal.OriginAddress,
+        Assert.That(deserializedUnsignedTrans.Proposal.OriginMainAddress,
                     Is.EqualTo("0xf3j4m0rjx94sushh03j"))
 
         let etherTxMetadata = deserializedUnsignedTrans.Metadata :?> Ether.TransactionMetadata
@@ -122,7 +122,7 @@ type Deserialization() =
                     Is.EqualTo(Currency.BTC))
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.DestinationAddress,
                     Is.EqualTo("13jxHQDxGto46QhjFiMb78dZdys9ZD8vW5"))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginAddress,
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginMainAddress,
                     Is.EqualTo("16pKBjGGZkUXo1afyBNf5ttFvV9hauS1kR"))
 
         let btcTxMetadata = deserializedSignedTrans.TransactionInfo.Metadata :?> UtxoCoin.TransactionMetadata
@@ -161,7 +161,7 @@ type Deserialization() =
                     Is.EqualTo(Currency.ETC))
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.DestinationAddress,
                     Is.EqualTo("0xf3j4m0rjxdddud9403j"))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginAddress,
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginMainAddress,
                     Is.EqualTo("0xf3j4m0rjx94sushh03j"))
 
         let etherTxMetadata = deserializedSignedTrans.TransactionInfo.Metadata :?> Ether.TransactionMetadata
@@ -195,7 +195,7 @@ type Deserialization() =
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.Currency, Is.EqualTo Currency.SAI)
         Assert.That(deserializedUnsignedTrans.Proposal.DestinationAddress,
                     Is.EqualTo("0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b"))
-        Assert.That(deserializedUnsignedTrans.Proposal.OriginAddress,
+        Assert.That(deserializedUnsignedTrans.Proposal.OriginMainAddress,
                     Is.EqualTo("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E"))
 
         let saiTxMetadata = deserializedUnsignedTrans.Metadata :?> Ether.TransactionMetadata
@@ -233,7 +233,7 @@ type Deserialization() =
                     Is.EqualTo Currency.SAI)
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.DestinationAddress,
                     Is.EqualTo("0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b"))
-        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginAddress,
+        Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginMainAddress,
                     Is.EqualTo("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E"))
 
         let etherTxMetadata = deserializedSignedTrans.TransactionInfo.Metadata :?> Ether.TransactionMetadata
