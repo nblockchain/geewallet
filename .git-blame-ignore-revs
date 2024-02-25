@@ -1,5 +1,8 @@
 # NOTE: newer commits are above, older ones below
 
+# Frontend.Console: stop using moduleless funcs
+ccdb07a040167b8e405d837c08e4b482ab8f3b25
+
 # Frontend.XF: cosmetic, replace this with self
 55fd9692099943d09504376354e7f085cfa75cfc
 
