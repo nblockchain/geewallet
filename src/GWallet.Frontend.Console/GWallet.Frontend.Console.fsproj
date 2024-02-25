@@ -1,8 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
+  <Choose>
+    <When Condition="'$(BuildFrontendConsoleAsLibrary)'=='true' Or '$(MSBuildRuntimeType)'=='Mono'">
+      <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
   <ItemGroup>
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
       <Link>Properties\CommonAssemblyInfo.fs</Link>
