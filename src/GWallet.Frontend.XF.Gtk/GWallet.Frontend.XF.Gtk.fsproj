@@ -230,6 +230,9 @@
     <Reference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'=='true'" Include="GWallet.Frontend.XF">
       <HintPath>..\GWallet.Frontend.XF\bin\$(Configuration)\netstandard2.0\GWallet.Frontend.XF.dll</HintPath>
     </Reference>
+    <Reference Include="FSharpx.Collections">
+      <HintPath>..\..\packages\FSharpx.Collections.3.1.0\lib\netstandard2.0\FSharpx.Collections.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

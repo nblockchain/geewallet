@@ -255,6 +255,9 @@
     <Reference Include="Fsdk">
       <HintPath>..\..\packages\Fsdk.0.6.0--date20230530-1155.git-3bb8d08\lib\netstandard2.0\Fsdk.dll</HintPath>
     </Reference>
+    <Reference Include="FSharpx.Collections">
+      <HintPath>..\..\packages\FSharpx.Collections.3.1.0\lib\netstandard2.0\FSharpx.Collections.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="BouncyCastle.Crypto">

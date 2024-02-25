@@ -80,5 +80,8 @@
     <PackageReference Include="HtmlAgilityPack" Version="1.11.24">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
+    <PackageReference Include="FSharpx.Collections" Version="3.1.0">
+      <GeneratePathProperty></GeneratePathProperty>
+    </PackageReference>
   </ItemGroup>
 </Project>

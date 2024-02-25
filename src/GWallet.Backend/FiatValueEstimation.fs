@@ -5,6 +5,7 @@ open System.Net
 
 open FSharp.Data
 open Fsdk
+open FSharpx.Collections
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -31,9 +32,45 @@ module FiatValueEstimation =
     }
     """>
 
+    type CoindDeskProvider = JsonProvider<"""
+    {
+        "time": {
+            "updated": "Feb 25, 2024 12:27:26 UTC",
+            "updatedISO": "2024-02-25T12:27:26+00:00",
+            "updateduk": "Feb 25, 2024 at 12:27 GMT"
+        },
+        "disclaimer":"This data was produced from the CoinDesk Bitcoin Price Index (USD). Non-USD currency data converted using hourly conversion rate from openexchangerates.org",
+        "chartName":"Bitcoin",
+        "bpi": {
+            "USD": {
+                "code": "USD",
+                "symbol": "&#36;",
+                "rate": "51,636.062",
+                "description": "United States Dollar",
+                "rate_float": 51636.0621
+            },
+            "GBP": {
+                "code": "GBP",
+                "symbol": "&pound;",
+                "rate": "40,725.672",
+                "description": "British Pound Sterling",
+                "rate_float": 40725.672
+            },
+            "EUR": {
+                "code":"EUR",
+                "symbol": "&euro;",
+                "rate":"47,654.25",
+                "description": "Euro",
+                "rate_float": 47654.2504
+            }
+        }
+    }
+    """>
+
     type PriceProvider =
         | CoinCap
         | CoinGecko
+        | CoinDesk
 
     let private QueryOnlineInternal currency (provider: PriceProvider): Async<Option<string*string>> = async {
         use webClient = new WebClient()
@@ -48,6 +85,7 @@ module FiatValueEstimation =
             | Currency.ETC,_ -> "ethereum-classic"
             | Currency.DAI,PriceProvider.CoinCap -> "multi-collateral-dai"
             | Currency.DAI,_ -> "dai"
+
         try
             let baseUrl =
                 match provider with
@@ -55,6 +93,10 @@ module FiatValueEstimation =
                     SPrintF1 "https://api.coincap.io/v2/assets/%s" tickerName
                 | PriceProvider.CoinGecko ->
                     SPrintF1 "https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd" tickerName
+                | PriceProvider.CoinDesk ->
+                    if currency <> Currency.BTC then
+                        failwith "CoinDesk API only provides bitcoin price"
+                    "https://api.coindesk.com/v1/bpi/currentprice.json"
             let uri = Uri baseUrl
             let task = webClient.DownloadStringTaskAsync uri
             let! res = Async.AwaitTask task
@@ -80,6 +122,20 @@ module FiatValueEstimation =
                 return raise (Exception(SPrintF2 "Could not parse CoinCap's JSON (for %A): %s" currency json, ex))
     }
 
+    let private QueryCoinDesk(): Async<Option<decimal>> =
+        async {
+            let! maybeJson = QueryOnlineInternal Currency.BTC PriceProvider.CoinDesk
+            match maybeJson with
+            | None -> return None
+            | Some (_, json) ->
+                try
+                    let tickerObj = CoindDeskProvider.Parse json
+                    return Some tickerObj.Bpi.Usd.RateFloat
+                with
+                | ex ->
+                    return raise <| Exception (SPrintF1 "Could not parse CoinDesk's JSON: %s" json, ex)
+        }
+
     let private QueryCoinGecko currency = async {
         let! maybeJson = QueryOnlineInternal currency PriceProvider.CoinGecko
         match maybeJson with
@@ -97,39 +153,68 @@ module FiatValueEstimation =
             return Some usdPrice
     }
 
+    let MaybeReportAbnormalDifference (result1: decimal) (result2: decimal) currency =
+        let higher = Math.Max(result1, result2)
+        let lower = Math.Min(result1, result2)
+
+        // example: 100USD vs: 66.666USD (or lower)
+        let abnormalDifferenceRate = 1.5m
+        if (higher / lower) > abnormalDifferenceRate then
+            let err =
+                SPrintF4 "Alert: difference of USD exchange rate (for %A) between the providers is abnormally high: %M vs %M (H/L > %M)"
+                    currency
+                    result1
+                    result2
+                    abnormalDifferenceRate
+#if DEBUG
+            failwith err
+#else
+            Infrastructure.ReportError err
+            |> ignore<bool>
+#endif
+
+    let private Average (results: seq<Option<decimal>>) currency =
+        let rec averageInternal (nextResults: seq<Option<decimal>>) (resultSoFar: Option<decimal>) (resultCountSoFar: uint32) =
+            match Seq.tryHeadTail nextResults with
+            | None ->
+                match resultSoFar with
+                | None ->
+                    None
+                | Some res ->
+                    (res / (decimal (int resultCountSoFar))) |> Some
+            | Some(head, tail) ->
+                match head with
+                | None ->
+                    averageInternal tail resultSoFar resultCountSoFar
+                | Some res ->
+                    match resultSoFar with
+                    | None ->
+                        if resultCountSoFar <> 0u then
+                            failwith <| SPrintF1 "Got resultSoFar==None but resultCountSoFar>0u: %i" (int resultCountSoFar)
+                        averageInternal tail (Some res) 1u
+                    | Some prevRes ->
+                        let averageSoFar = prevRes / (decimal (int resultCountSoFar))
+
+                        MaybeReportAbnormalDifference averageSoFar res currency
+
+                        averageInternal tail (Some (prevRes + res)) (resultCountSoFar + 1u)
+        averageInternal results None 0u
+
     let private RetrieveOnline currency = async {
         let coinGeckoJob = QueryCoinGecko currency
         let coinCapJob = QueryCoinCap currency
-        let bothJobs = FSharpUtil.AsyncExtensions.MixedParallel2 coinGeckoJob coinCapJob
-        let! maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap = bothJobs
-        let result =
-            match maybeUsdPriceFromCoinGecko, maybeUsdPriceFromCoinCap with
-            | None, None -> None
-            | Some usdPriceFromCoinGecko, None ->
-                Some usdPriceFromCoinGecko
-            | None, Some usdPriceFromCoinCap ->
-                Some usdPriceFromCoinCap
-            | Some usdPriceFromCoinGecko, Some usdPriceFromCoinCap ->
-                let higher = Math.Max(usdPriceFromCoinGecko, usdPriceFromCoinCap)
-                let lower = Math.Min(usdPriceFromCoinGecko, usdPriceFromCoinCap)
 
-                // example: 100USD vs: 66.666USD (or lower)
-                let abnormalDifferenceRate = 1.5m
-                if (higher / lower) > abnormalDifferenceRate then
-                    let err =
-                        SPrintF4 "Alert: difference of USD exchange rate (for %A) between the providers is abnormally high: %M vs %M (H/L > %M)"
-                            currency
-                            usdPriceFromCoinGecko
-                            usdPriceFromCoinCap
-                            abnormalDifferenceRate
-#if DEBUG
-                    failwith err
-#else
-                    Infrastructure.ReportError err
-                    |> ignore<bool>
-#endif
-                let average = (usdPriceFromCoinGecko + usdPriceFromCoinCap) / 2m
-                Some average
+        let multiCurrencyJobs = [ coinGeckoJob; coinCapJob ]
+        let allJobs =
+            match currency with
+            | Currency.BTC ->
+                let coinDeskJob = QueryCoinDesk()
+                coinDeskJob :: multiCurrencyJobs
+            | _ ->
+                multiCurrencyJobs
+
+        let! allResults = Async.Parallel allJobs
+        let result = Average allResults currency
 
         let realResult =
             match result with

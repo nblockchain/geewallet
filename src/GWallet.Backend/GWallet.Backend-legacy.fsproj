@@ -307,6 +307,9 @@
     <Reference Include="Xamarin.Essentials">
       <HintPath>..\..\packages\DotNetEssentials.1.6.1--date20220823-0234.git-14ad2d3\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
     </Reference>
+    <Reference Include="FSharpx.Collections">
+      <HintPath>..\..\packages\FSharpx.Collections.3.1.0\lib\netstandard2.0\FSharpx.Collections.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
