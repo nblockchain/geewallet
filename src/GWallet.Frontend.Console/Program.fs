@@ -520,6 +520,9 @@ let UpdateServersStats () =
 
 [<EntryPoint>]
 let main argv =
+    if GWallet.Backend.Config.IsLinuxPlatform() && Environment.UserName = "root" then
+        failwith "Running as root user is not supported"
+
     match argv.Length with
     | 0 ->
         NormalStartWithNoParameters()

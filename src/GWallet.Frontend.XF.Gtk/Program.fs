@@ -18,6 +18,9 @@ module Main =
         if GWallet.Backend.Config.IsMacPlatform() then
             failwith "The GTK frontend is only officially supported for the Linux OS"
 
+        if GWallet.Backend.Config.IsLinuxPlatform() && Environment.UserName = "root" then
+            failwith "Running as root user is not supported"
+
         ZXing.Net.Mobile.Forms.GTK.Platform.Init()
         let app = GWallet.Frontend.XF.App()
         use window = new FormsWindow()
