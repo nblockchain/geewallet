@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Linq
 
 #if !LEGACY_FRAMEWORK
 #r "nuget: Fsdk, Version=0.6.0--date20231031-0834.git-2737eea"
@@ -17,6 +18,10 @@ open Fsdk.Process
 
 #load "fsxHelper.fs"
 open GWallet.Scripting
+
+let argsToThisFsxScript = Misc.FsxOnlyArguments()
+if argsToThisFsxScript.Any(fun arg -> arg = "--from-configure") then
+    Console.WriteLine " found"
 
 let rootDir = DirectoryInfo(Path.Combine(__SOURCE_DIRECTORY__, ".."))
 let stableVersionOfMono = Version("6.6")
@@ -39,10 +44,6 @@ let buildTool, legacyBuildTool, areGtkLibsAbsentOrDoesNotApply =
 
         dotnetCmd, msbuildCmd, true
     | platform (* Unix *) ->
-
-        // because it comes from configure.sh's "Checking for a working F# REPL..."
-        Console.WriteLine " found"
-
         Process.ConfigCommandCheck ["make"] true true |> ignore
 
         match Process.ConfigCommandCheck ["mono"] false true with
@@ -158,7 +159,7 @@ if buildTool.IsNone && legacyBuildTool.IsNone then
 
     Environment.Exit 1
 
-let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(Misc.FsxOnlyArguments(), false, None))
+let prefix = DirectoryInfo(Misc.GatherOrGetDefaultPrefix(argsToThisFsxScript, false, None))
 
 if not (prefix.Exists) then
     let warning = sprintf "WARNING: prefix doesn't exist: %s" prefix.FullName
@@ -217,7 +218,7 @@ let configFileToBeWritten =
 
     let finalConfigFile =
         let nativeSegwitEnabled =
-            Misc.FsxOnlyArguments()
+            argsToThisFsxScript
             |> List.contains "--native-segwit"
         if nativeSegwitEnabled then
             configFileStageThree

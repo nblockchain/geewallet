@@ -73,4 +73,4 @@ if [ ! -z "${RUNNER_ARG}" ]; then
     echo -e "FsxRunnerArg=$RUNNER_ARG" >> scripts/build.config
 fi
 source scripts/build.config
-DOTNET_NOLOGO=true $RUNNER_BIN $RUNNER_ARG ./scripts/configure.fsx "$@"
+DOTNET_NOLOGO=true $RUNNER_BIN $RUNNER_ARG ./scripts/configure.fsx --from-configure "$@"
