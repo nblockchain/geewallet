@@ -530,12 +530,12 @@ module Caching =
                     | None ->
                         failwith "Merge&Save didn't happen before launching the FaultTolerantPClient?"
                     | Some (currency,server) ->
-                            match server.CommunicationHistory with
-                            | None -> currency,server.ServerInfo,None
-                            | Some (prevHistoryInfo,lastComm) ->
-                                    match prevHistoryInfo.Status with
-                                    | Success -> currency,server.ServerInfo,Some lastComm
-                                    | Fault faultInfo -> currency,server.ServerInfo,faultInfo.LastSuccessfulCommunication
+                        match server.CommunicationHistory with
+                        | None -> currency,server.ServerInfo,None
+                        | Some (prevHistoryInfo, lastComm) ->
+                            match prevHistoryInfo.Status with
+                            | Success -> currency,server.ServerInfo,Some lastComm
+                            | Fault faultInfo -> currency,server.ServerInfo, faultInfo.LastSuccessfulCommunication
 
                 let now = DateTime.Now
                 let newHistoryInfo: CachedValue<HistoryInfo> =

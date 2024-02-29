@@ -46,8 +46,8 @@ type NotEnoughAvailableException =
 type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: uint32,
                                    maxNumberOfConsistentResultsObtained: int,
                                    numberOfConsistentResultsRequired: uint32) =
-  inherit Exception ("Results obtained were not enough to be considered consistent" +
-                      SPrintF3 " (received: %i, consistent: %i, required: %i)"
+    inherit Exception ("Results obtained were not enough to be considered consistent" +
+                           SPrintF3 " (received: %i, consistent: %i, required: %i)"
                                   totalNumberOfSuccesfulResultsObtained
                                   maxNumberOfConsistentResultsObtained
                                   numberOfConsistentResultsRequired)
@@ -243,7 +243,7 @@ type internal Runner<'Resource when 'Resource: equality> =
         if parallelJobs < uint32 jobs.Length then
             List.splitAt (int parallelJobs) jobs
         else
-            jobs,List.empty
+            jobs, List.Empty
 
 
 exception AlreadyCanceled
@@ -469,7 +469,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
             | Selective subSettings ->
                 subSettings.ReportUncanceledJobs
 
-        let cancelState = ClientCancelState (Alive List.empty)
+        let cancelState = ClientCancelState (Alive List.Empty)
 
         let maybeJobs = cancelState.SafeDo(fun state ->
             match state.Value with
