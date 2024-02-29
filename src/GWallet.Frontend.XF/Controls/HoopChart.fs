@@ -190,8 +190,8 @@ type HoopChartView() =
             | Uninitialized -> 0.0
             | Empty -> self.MinimumLogoSize
             | NonEmpty _ -> 
-                let size = balanceLabel.Measure(smallerRequestedSize, smallerRequestedSize).Request
-                let factor = 1.1 // to add som visual space between label and chart
+                let size = balanceLabel.Measure(infinity, smallerRequestedSize).Request
+                let factor = 1.1 // to add some visual space between label and chart
                 (sqrt(size.Width*size.Width + size.Height*size.Height) + self.HoopStrokeThickness) * factor
         let sizeToRequest = max smallerRequestedSize minSize
         SizeRequest(Size(sizeToRequest, sizeToRequest), Size(minSize, minSize))
