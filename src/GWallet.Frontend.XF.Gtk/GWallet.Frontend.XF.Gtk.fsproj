@@ -228,6 +228,9 @@
     <Reference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'=='true'" Include="GWallet.Frontend.XF">
       <HintPath>..\GWallet.Frontend.XF\bin\$(Configuration)\netstandard2.0\GWallet.Frontend.XF.dll</HintPath>
     </Reference>
+    <Reference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'=='true'" Include="GWallet.Frontend.Console">
+      <HintPath>..\GWallet.Frontend.Console\bin\$(Configuration)\netstandard2.0\GWallet.Frontend.Console.dll</HintPath>
+    </Reference>
     <Reference Include="FSharpx.Collections">
       <HintPath>..\..\packages\FSharpx.Collections.3.1.0\lib\netstandard2.0\FSharpx.Collections.dll</HintPath>
     </Reference>
@@ -254,6 +257,10 @@
     <ProjectReference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'!='true'" Include="..\GWallet.Backend\GWallet.Backend.fsproj">
       <Project>{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}</Project>
       <Name>GWallet.Backend</Name>
+    </ProjectReference>
+    <ProjectReference Condition="'$(TwoPhaseBuildDueToXBuildUsage)'!='true'" Include="..\GWallet.Frontend.Console\GWallet.Frontend.Console.fsproj">
+      <Project>{aed49e93-60c4-460e-9120-064a2e67dc28}</Project>
+      <Name>GWallet.Frontend.Console</Name>
     </ProjectReference>
     <None Include="webkit-sharp.dll.config" />
   </ItemGroup>

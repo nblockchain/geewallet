@@ -522,8 +522,7 @@ module Program =
         ServerManager.UpdateServersStats()
         0
 
-    [<EntryPoint>]
-    let main argv =
+    let Main (argv: array<string>) =
         match argv.Length with
         | 0 ->
             NormalStartWithNoParameters()
