@@ -51,7 +51,7 @@
     <MSBuildTreatWarningsAsErrors>false</MSBuildTreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="..\GWallet.Frontend.Console\App.config">
+    <Content Include="..\GWallet.Frontend.ConsoleApp\App.config">
       <Link>App.config</Link>
     </Content>
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
