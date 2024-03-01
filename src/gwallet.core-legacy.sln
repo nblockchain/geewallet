@@ -9,6 +9,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.Console", 
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests", "GWallet.Backend.Tests\GWallet.Backend.Tests-legacy.fsproj", "{F9448076-88BE-4045-8704-A652D133E036}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.ConsoleApp", "GWallet.Frontend.ConsoleApp\GWallet.Frontend.ConsoleApp-legacy.fsproj", "{9BE94691-5C21-4456-BCD1-83681DC7785E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{F9448076-88BE-4045-8704-A652D133E036}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F9448076-88BE-4045-8704-A652D133E036}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BE94691-5C21-4456-BCD1-83681DC7785E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BE94691-5C21-4456-BCD1-83681DC7785E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BE94691-5C21-4456-BCD1-83681DC7785E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BE94691-5C21-4456-BCD1-83681DC7785E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
