@@ -23,7 +23,7 @@ open Fsdk.Process
 open GWallet.Scripting
 
 let UNIX_NAME = "geewallet"
-let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
+let CONSOLE_FRONTEND = "GWallet.Frontend.ConsoleApp"
 let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
 
 type ProjectFile =
