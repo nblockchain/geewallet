@@ -68,7 +68,7 @@
     <PackageReference Include="NBitcoin.Altcoins" Version="3.0.8">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
-    <PackageReference Include="Nethereum" Version="0.95.0--date20210125-0551.git-05a29e9">
+    <PackageReference Include="Nethereum" Version="0.99.0--date20240303-0535.git-f0bc8be">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="SharpRaven" Version="2.4.0">
@@ -78,6 +78,9 @@
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.24">
+      <GeneratePathProperty></GeneratePathProperty>
+    </PackageReference>
+    <PackageReference Include="JsonRpcSharp" Version="0.99.0--date20240303-0338.git-d673848">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
   </ItemGroup>
