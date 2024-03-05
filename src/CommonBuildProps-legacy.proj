@@ -5,4 +5,15 @@
   <PropertyGroup Condition=" '$(FSharpTargetsPath)' == '' ">
     <FSharpTargetsPath>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\FSharp\Microsoft.FSharp.Targets</FSharpTargetsPath>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <OtherFlags>
+      /warnon:1182
+      /warnon:3218
+      /warnon:0193
+    </OtherFlags>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' != 'Debug' ">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
 </Project>
