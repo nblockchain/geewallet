@@ -529,7 +529,7 @@ match maybeTarget with
 
     let runnerCommand =
 #if !LEGACY_FRAMEWORK
-        { Command = "dotnet"; Arguments = "--configuration Debug test " + testTarget.FullName }
+        { Command = "dotnet"; Arguments = "test " + testTarget.FullName + " --configuration Debug" }
 #else
         match Misc.GuessPlatform() with
         | Misc.Platform.Linux ->
