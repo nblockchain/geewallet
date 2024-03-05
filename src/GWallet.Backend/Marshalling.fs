@@ -130,6 +130,7 @@ module Marshalling =
         wrapper
 
     let ExtractType(json: string): Type =
+        let str = ""
         let wrapper = ExtractWrapper json
 
         let res =
