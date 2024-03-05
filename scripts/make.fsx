@@ -403,7 +403,11 @@ match maybeTarget with
 
     let runnerCommand =
 #if !LEGACY_FRAMEWORK
-        { Command = "dotnet"; Arguments = "test " + testTarget.FullName }
+        {
+            Command = "dotnet"
+            Arguments =
+                sprintf "test %s --configuration Debug" testTarget.FullName
+        }
 #else
         match Misc.GuessPlatform() with
         | Misc.Platform.Linux ->
