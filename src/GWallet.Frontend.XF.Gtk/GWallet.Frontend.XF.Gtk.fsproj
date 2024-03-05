@@ -146,52 +146,52 @@
       <HintPath>..\..\packages\System.Net.WebSockets.Client.4.3.2\lib\net46\System.Net.WebSockets.Client.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.Client">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.Client.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.99.0--date20240303-0338.git-d673848\lib\netstandard2.0\JsonRpcSharp.Client.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.IpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.IpcClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.99.0--date20240303-0338.git-d673848\lib\netstandard2.0\JsonRpcSharp.IpcClient.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.HttpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.HttpClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.99.0--date20240303-0338.git-d673848\lib\netstandard2.0\JsonRpcSharp.HttpClient.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.TcpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.TcpClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.99.0--date20240303-0338.git-d673848\lib\netstandard2.0\JsonRpcSharp.TcpClient.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.WebSocketClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
+      <HintPath>..\..\packages\JsonRpcSharp.0.99.0--date20240303-0338.git-d673848\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.ABI">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.ABI.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Accounts">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.Accounts.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Contracts">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.Contracts.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Hex">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.Hex.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.KeyStore">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.KeyStore.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RLP">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.RLP.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.RPC">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.RPC.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Signer">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.Signer.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.StandardTokenEIP20">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.StandardTokenEIP20.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Util">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.Util.dll</HintPath>
     </Reference>
     <Reference Include="Nethereum.Web3">
-      <HintPath>..\..\packages\Nethereum.0.95.0--date20210125-0551.git-05a29e9\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
+      <HintPath>..\..\packages\Nethereum.0.99.0--date20240303-0535.git-f0bc8be\lib\netstandard2.0\Nethereum.Web3.dll</HintPath>
     </Reference>
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\packages\HtmlAgilityPack.1.11.24\lib\Net45\HtmlAgilityPack.dll</HintPath>
