@@ -14,11 +14,6 @@
     <TargetFSharpCoreVersion>4.7.0.0</TargetFSharpCoreVersion>
     <Name>GWallet.Frontend.Console</Name>
     <TargetFrameworkProfile />
-    <OtherFlags>
-        /warnon:1182
-        /warnon:3218
-        /warnon:0193
-    </OtherFlags>
     <BaseIntermediateOutputPath>obj\legacy\</BaseIntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -41,7 +36,6 @@
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <DocumentationFile>bin\Release\GWallet.Frontend.Console.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
