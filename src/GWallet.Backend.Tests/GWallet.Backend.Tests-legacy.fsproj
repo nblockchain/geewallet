@@ -13,11 +13,6 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>GWallet.Backend.Tests</Name>
     <TargetFrameworkProfile />
-    <OtherFlags>
-        /warnon:1182
-        /warnon:3218
-        /warnon:0193
-    </OtherFlags>
     <BaseIntermediateOutputPath>obj\legacy\</BaseIntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -47,9 +42,6 @@
   <Target Name="BeforeBuild">
     <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
   </Target>
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);LEGACY_FRAMEWORK</DefineConstants>
-  </PropertyGroup>
   <ItemGroup>
     <Content Include="..\GWallet.Frontend.Console\App.config">
       <Link>App.config</Link>
