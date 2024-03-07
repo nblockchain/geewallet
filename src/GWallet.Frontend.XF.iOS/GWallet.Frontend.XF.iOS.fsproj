@@ -190,7 +190,7 @@
       <HintPath>..\..\packages\SharpRaven.2.4.0\lib\netstandard2.0\SharpRaven.dll</HintPath>
     </Reference>
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
-      <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
     <Reference Include="System.Memory">
       <HintPath>..\..\packages\System.Memory.4.5.5\lib\netstandard2.0\System.Memory.dll</HintPath>
@@ -231,7 +231,7 @@
       <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\netstandard2.0\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
-      <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+      <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.8.0.0\lib\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="JsonRpcSharp.Client">
       <HintPath>..\..\packages\JsonRpcSharp.0.99.0--date20240303-0338.git-d673848\lib\netstandard2.0\JsonRpcSharp.Client.dll</HintPath>
@@ -298,6 +298,9 @@
     </Reference>
     <Reference Include="FSharpx.Collections">
       <HintPath>..\..\packages\FSharpx.Collections.3.1.0\lib\netstandard2.0\FSharpx.Collections.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
+      <HintPath>..\..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.8.0.0\lib\netstandard2.1\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
     </Reference>
   </ItemGroup>
   <Import Project="..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets" Condition="Exists('..\..\packages\NETStandard.Library.2.0.3\build\netstandard2.0\NETStandard.Library.targets')" />

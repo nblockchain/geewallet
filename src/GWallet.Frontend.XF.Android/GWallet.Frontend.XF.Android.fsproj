@@ -61,7 +61,7 @@
     <Reference Include="Java.Interop" />
     <Reference Include="System.Numerics.Vectors" />
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
-      <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
+      <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.6.0.0\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Essentials">
       <HintPath>..\..\packages\DotNetEssentials.1.6.1--date20220823-0234.git-14ad2d3\lib\monoandroid10.0\Xamarin.Essentials.dll</HintPath>
@@ -258,6 +258,9 @@
     <Reference Include="FSharpx.Collections">
       <HintPath>..\..\packages\FSharpx.Collections.3.1.0\lib\netstandard2.0\FSharpx.Collections.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Extensions.DependencyInjection.Abstractions">
+      <HintPath>..\..\packages\Microsoft.Extensions.DependencyInjection.Abstractions.8.0.0\lib\netstandard2.1\Microsoft.Extensions.DependencyInjection.Abstractions.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="BouncyCastle.Crypto">
@@ -294,7 +297,7 @@
       <HintPath>..\..\packages\JsonRpcSharp.0.99.0--date20240303-0338.git-d673848\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
-      <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.1.0.2\lib\netstandard1.1\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
+      <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.8.0.0\lib\netstandard2.0\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
       <HintPath>..\..\packages\NBitcoin.6.0.17\lib\netstandard2.1\NBitcoin.dll</HintPath>
