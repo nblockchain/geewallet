@@ -42,6 +42,9 @@
   <Target Name="BeforeBuild">
     <Message Condition="'$(FSharpTargetsPath)' == ''" Importance="High" Text="F# SDK path was not found!" />
   </Target>
+  <PropertyGroup>
+    <MSBuildTreatWarningsAsErrors>false</MSBuildTreatWarningsAsErrors>
+  </PropertyGroup>
   <ItemGroup>
     <Content Include="..\GWallet.Frontend.Console\App.config">
       <Link>App.config</Link>
