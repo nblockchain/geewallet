@@ -490,10 +490,34 @@ jobs:
       if: github.event_name == 'pull_request'
       run: ./conventions/commitlint.sh --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
 
-  snap_pkg:
-
+  nuget_pkg:
     needs:
     - conventions
+
+    runs-on: ubuntu-22.04
+    container:
+      image: "ubuntu:22.04"
+
+    env:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: install sudo
+      run: apt update && apt install --yes sudo
+    - name: install all dependencies
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
+    # workaround for https://github.com/actions/runner/issues/2033
+    - name: ownership workaround
+      run: git config --global --add safe.directory '*'
+    - name: configure
+      run: ./configure.sh
+    - name: pack&push
+      run: make push
+
+  snap_pkg:
+    needs:
+    - nuget_pkg
 
     runs-on: ubuntu-22.04
     steps:
@@ -538,7 +562,7 @@ jobs:
   snap_pkg_beta:
 
     needs:
-    - conventions
+    - nuget_pkg
 
     runs-on: ubuntu-22.04
     steps:
