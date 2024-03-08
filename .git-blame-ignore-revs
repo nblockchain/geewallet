@@ -1,5 +1,8 @@
 # NOTE: newer commits are above, older ones below
 
+# Frontend.Console: stop using moduleless funcs
+896392aaf699c0907ed3ab1816c92bc2ddf27a39
+
 # Backend: cosmetic, fix indentation and case
 b50805005cb1233ae766840b1da528ddc7077d24
 

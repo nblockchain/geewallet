@@ -23,38 +23,40 @@ open Fsdk.Process
 open GWallet.Scripting
 
 let UNIX_NAME = "geewallet"
-let CONSOLE_FRONTEND = "GWallet.Frontend.Console"
-let GTK_FRONTEND = "GWallet.Frontend.XF.Gtk"
+let PASCALCASE_NAME = "GWallet"
 
-type ProjectFile =
-    | XFFrontend
-    | GtkFrontend
+let XF_FRONTEND_LIB = sprintf "%s.Frontend.XF" PASCALCASE_NAME
+let GTK_FRONTEND_APP = sprintf "%s.Frontend.XF.Gtk" PASCALCASE_NAME
+let CONSOLE_FRONTEND_APP = sprintf "%s.Frontend.ConsoleApp" PASCALCASE_NAME
+let BACKEND_LIB = sprintf "%s.Backend" PASCALCASE_NAME
 
-let GetProject (projFile: ProjectFile) =
-    let projFileName =
-        match projFile with
-        | GtkFrontend -> Path.Combine("GWallet.Frontend.XF.Gtk", "GWallet.Frontend.XF.Gtk.fsproj")
-        | XFFrontend -> Path.Combine("GWallet.Frontend.XF", "GWallet.Frontend.XF.fsproj")
+type FrontendProject =
+    | XF
+    | Gtk
+    member self.GetProjectFile(): FileInfo =
+        let projName =
+            match self with
+            | Gtk -> GTK_FRONTEND_APP
+            | XF -> XF_FRONTEND_LIB
 
-    let prjFile =
-        Path.Combine("src", projFileName)
-        |> FileInfo
-    if not prjFile.Exists then
-        raise <| FileNotFoundException("Project file not found", prjFile.FullName)
-    prjFile
+        let prjFile =
+            let projFileName = sprintf "%s.fsproj" projName
+            Path.Combine("src", projName, projFileName)
+            |> FileInfo
+        if not prjFile.Exists then
+            raise <| FileNotFoundException("Project file not found", prjFile.FullName)
+        prjFile
 
-let BACKEND = "GWallet.Backend"
-
-type Frontend =
+type FrontendApp =
     | Console
     | Gtk
     member self.GetProjectName() =
         match self with
-        | Console -> CONSOLE_FRONTEND
-        | Gtk -> GTK_FRONTEND
+        | Console -> CONSOLE_FRONTEND_APP
+        | Gtk -> GTK_FRONTEND_APP
     member self.GetExecutableName() =
         match self with
-        | Console -> CONSOLE_FRONTEND
+        | Console -> CONSOLE_FRONTEND_APP
         | Gtk -> UNIX_NAME
     override self.ToString() =
         sprintf "%A" self
@@ -247,7 +249,7 @@ let BuildSolutionOrProject
         Environment.Exit 1
     | _ -> ()
 
-let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
+let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
     let maybeLegacyBuildTool = Map.tryFind "LegacyBuildTool" buildConfigContents
 
@@ -312,7 +314,7 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                     NugetRestore solution
                     MSBuildRestoreAndBuild solution
 
-                Frontend.Console
+                FrontendApp.Console
             | Misc.Platform.Linux ->
                 if FsxHelper.AreGtkLibsPresent Echo.All then
                     let solution = FsxHelper.GetSolution SolutionFile.Linux
@@ -321,23 +323,23 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                     NugetRestore solution
                     MSBuildRestoreAndBuild solution
 
-                    Frontend.Gtk
+                    FrontendApp.Gtk
                 else
-                    Frontend.Console
+                    FrontendApp.Console
 
-            | _ -> Frontend.Console
+            | _ -> FrontendApp.Console
         | Some buildTool, Some legacyBuildTool when buildTool = "dotnet" && legacyBuildTool = "xbuild" ->
             if FsxHelper.AreGtkLibsPresent Echo.All then
                 BuildSolutionOrProject
                     (getBuildToolAndArgs buildTool)
-                    (GetProject ProjectFile.XFFrontend)
+                    (FrontendProject.XF.GetProjectFile())
                     binaryConfig
                     maybeConstant
                     String.Empty
 
                 let twoPhaseFlag = "/property:TwoPhaseBuildDueToXBuildUsage=true"
 
-                let gtkFrontendProject = GetProject ProjectFile.GtkFrontend
+                let gtkFrontendProject = FrontendProject.Gtk.GetProjectFile()
                 NugetRestore gtkFrontendProject
                 BuildSolutionOrProject
                     (legacyBuildTool, twoPhaseFlag)
@@ -346,10 +348,10 @@ let JustBuild binaryConfig maybeConstant: Frontend*FileInfo =
                     maybeConstant
                     "/target:Build"
 
-                Frontend.Gtk
+                FrontendApp.Gtk
             else
-                Frontend.Console
-        | _ -> Frontend.Console
+                FrontendApp.Console
+        | _ -> FrontendApp.Console
 
     let scriptName = sprintf "%s-%s" UNIX_NAME (frontend.ToString().ToLower())
     let launcherScriptFile =
@@ -367,7 +369,7 @@ let MakeCheckCommand (commandName: string) =
         Console.Error.WriteLine (sprintf "%s not found, please install it first" commandName)
         Environment.Exit 1
 
-let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): DirectoryInfo*FileInfo =
+let GetPathToFrontend (frontend: FrontendApp) (binaryConfig: BinaryConfig): DirectoryInfo*FileInfo =
     let frontendProjName = frontend.GetProjectName()
     let dir =
         Path.Combine(
@@ -400,7 +402,7 @@ let GetPathToFrontend (frontend: Frontend) (binaryConfig: BinaryConfig): Directo
     dir,mainExecFile
 
 let GetPathToBackend () =
-    Path.Combine (FsxHelper.RootDir.FullName, "src", BACKEND)
+    Path.Combine (FsxHelper.RootDir.FullName, "src", BACKEND_LIB)
 
 let MakeAll (maybeConstant: Option<string>) =
 #if LEGACY_FRAMEWORK
@@ -411,7 +413,7 @@ let MakeAll (maybeConstant: Option<string>) =
     let frontend,_ = JustBuild buildConfig maybeConstant
     frontend,buildConfig
 
-let RunFrontend (frontend: Frontend) (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
+let RunFrontend (frontend: FrontendApp) (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
 
     let frontendDir,frontendExecutable = GetPathToFrontend frontend buildConfig
     let pathToFrontend = frontendExecutable.FullName
@@ -501,7 +503,7 @@ match maybeTarget with
     Console.WriteLine "Running tests..."
     Console.WriteLine ()
 
-    let testProjectName = "GWallet.Backend.Tests"
+    let testProjectName = sprintf "%s.Backend.Tests" PASCALCASE_NAME
 #if !LEGACY_FRAMEWORK
     let testTarget =
         Path.Combine (
@@ -622,11 +624,11 @@ match maybeTarget with
 | Some "update-servers" ->
     let _,buildConfig = MakeAll None
     Directory.SetCurrentDirectory (GetPathToBackend())
-    let proc1 = RunFrontend Frontend.Console buildConfig (Some "--update-servers-file")
+    let proc1 = RunFrontend FrontendApp.Console buildConfig (Some "--update-servers-file")
     if proc1.ExitCode <> 0 then
         Environment.Exit proc1.ExitCode
     else
-        let proc2 = RunFrontend Frontend.Console buildConfig (Some "--update-servers-stats")
+        let proc2 = RunFrontend FrontendApp.Console buildConfig (Some "--update-servers-stats")
         Environment.Exit proc2.ExitCode
 
 | Some "strict" ->

@@ -43,5 +43,7 @@ module Main =
         | 1 when argv.[0] = "--version" ->
             Console.WriteLine (SPrintF1 "geewallet v%s" VersionHelper.CURRENT_VERSION)
             0
+        | 1 when argv.[0] = "--console" ->
+            GWallet.Frontend.Console.Program.Main Array.empty
         | _ ->
             failwith "Arguments not recognized"

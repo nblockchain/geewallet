@@ -1,18 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
       <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.fs" />
-    <Compile Include="Presentation.fs" />
-    <Compile Include="UserInteraction.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj" />
-    <PackageReference Update="FSharp.Core" Version="4.7.0" />
+    <ProjectReference Include="..\GWallet.Frontend.Console\GWallet.Frontend.Console.fsproj" />
   </ItemGroup>
 </Project>

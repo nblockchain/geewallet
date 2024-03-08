@@ -5,15 +5,20 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>8413eef5-69f5-499f-ae01-754e9541ef90</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>GWallet.Frontend.Console</RootNamespace>
-    <AssemblyName>GWallet.Frontend.Console</AssemblyName>
+    <ProjectGuid>9be94691-5c21-4456-bcd1-83681dc7785e</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GWallet.Frontend.ConsoleApp</RootNamespace>
+    <AssemblyName>GWallet.Frontend.ConsoleApp</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFSharpCoreVersion>4.7.0.0</TargetFSharpCoreVersion>
-    <Name>GWallet.Frontend.Console</Name>
+    <Name>GWallet.Frontend.ConsoleApp</Name>
     <TargetFrameworkProfile />
+    <OtherFlags>
+        /warnon:1182
+        /warnon:3218
+        /warnon:0193
+    </OtherFlags>
     <BaseIntermediateOutputPath>obj\legacy\</BaseIntermediateOutputPath>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -25,7 +30,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <DocumentationFile>bin\Debug\GWallet.Frontend.Console.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\GWallet.Frontend.ConsoleApp.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
@@ -36,7 +41,8 @@
     <DefineConstants>TRACE</DefineConstants>
     <WarningLevel>3</WarningLevel>
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <DocumentationFile>bin\Release\GWallet.Frontend.Console.XML</DocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DocumentationFile>bin\Release\GWallet.Frontend.ConsoleApp.XML</DocumentationFile>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
@@ -52,14 +58,16 @@
   </Target>
 
   <ItemGroup>
+    <None Include="App.config" />
     <Compile Include="Properties\AssemblyInfo.fs" />
     <Compile Include="..\GWallet.Backend\Properties\CommonAssemblyInfo.fs">
       <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
-    <Compile Include="Presentation.fs" />
-    <Compile Include="UserInteraction.fs" />
     <Compile Include="Program.fs" />
     <Content Include="packages.config" />
+    <Content Include="geewallet.bat">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />
@@ -89,5 +97,8 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Net.Http" />
+    <ProjectReference Include="..\GWallet.Frontend.Console\GWallet.Frontend.Console-legacy.fsproj">
+      <Name>GWallet.Frontend.Console-legacy</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>
