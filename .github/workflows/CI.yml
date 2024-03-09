@@ -514,7 +514,7 @@ jobs:
       run: ./configure.sh --native-segwit
     - name: Bump version to beta (because segwit)
       run: |
-        git submodule foreach git fetch --all && git submodule sync --recursive && git submodule update --init --recursive
+        ./scripts/populate_gitsubmodules.sh
         dotnet fsi ./scripts/beta_bump.fsx
     - name: pack&push
       run: make push
@@ -585,7 +585,7 @@ jobs:
     
     - name: Bump snap version
       run: |
-        git submodule foreach git fetch --all && git submodule sync --recursive && git submodule update --init --recursive
+        ./scripts/populate_gitsubmodules.sh
         dotnet fsi ./scripts/beta_bump.fsx
 
     - name: Generate snap package

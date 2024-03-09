@@ -260,7 +260,7 @@ let RunUpdateServers () =
 
 
 if not replaceScript.Exists then
-    Console.Error.WriteLine "Script replace.fsx not found, 'fsx' submodule not populated? Please run `git submodule foreach git fetch --all && git submodule sync --recursive && git submodule update --init --recursive`"
+    Console.Error.WriteLine "Script replace.fsx not found, 'fsx' submodule not populated? Please run `populate_gitsubmodules.sh`"
     Environment.Exit 1
 
 GitDiff()
