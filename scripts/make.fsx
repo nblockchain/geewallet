@@ -30,7 +30,7 @@ let GTK_FRONTEND_APP = sprintf "%s.Frontend.XF.Gtk" PASCALCASE_NAME
 let CONSOLE_FRONTEND_APP = sprintf "%s.Frontend.ConsoleApp" PASCALCASE_NAME
 let BACKEND_LIB = sprintf "%s.Backend" PASCALCASE_NAME
 
-let version = (Misc.GetCurrentVersion FsxHelper.RootDir).ToString()
+let currentVersion = Misc.GetCurrentVersion FsxHelper.RootDir
 
 type FrontendProject =
     | XF
@@ -477,7 +477,7 @@ match maybeTarget with
     let binDir = "bin"
     Directory.CreateDirectory(binDir) |> ignore
 
-    let zipNameWithoutExtension = sprintf "%s-v%s" script.Name version
+    let zipNameWithoutExtension = sprintf "%s-v%s" script.Name (currentVersion.ToString())
     let zipName = sprintf "%s.zip" zipNameWithoutExtension
     let pathToZip = Path.Combine(binDir, zipName)
     if (File.Exists (pathToZip)) then
@@ -685,41 +685,55 @@ match maybeTarget with
     let isTag =
         githubRef.StartsWith tagPrefix
 
-    let nugetVersion =
-        if isTag then
-            githubRef.Substring tagPrefix.Length
-        else
-            Network.GetNugetPrereleaseVersionFromBaseVersion version
     let backendDir = GetPathToBackend()
     let backendProj = Path.Combine(backendDir.FullName, BACKEND_LIB + ".fsproj")
 
-    let binaryConfig =
-        if isTag then
-            BinaryConfig.Release
-        else
-            BinaryConfig.Debug
-    let buildFlags = GetBuildFlags "dotnet" binaryConfig None
-    let allBuildFlags = sprintf "%s -property:Version=%s" buildFlags nugetVersion
-    Process.Execute(
-        {
-            Command = "dotnet"
-            Arguments = sprintf "pack %s %s" allBuildFlags backendProj
-        },
-        Echo.All
-    ).UnwrapDefault() |> ignore<string>
+    let createNugetPackageFile versionToPack =
+        let binaryConfig =
+            if isTag then
+                BinaryConfig.Release
+            else
+                BinaryConfig.Debug
+        let buildFlags = GetBuildFlags "dotnet" binaryConfig None
+        let allBuildFlags = sprintf "%s -property:Version=%s" buildFlags versionToPack
+        let maybeWarnAsError =
+            if currentVersion.Minor % 2 = 0 then
+                "-warnaserror"
+            else
+                String.Empty
+        Process.Execute(
+            {
+                Command = "dotnet"
+                Arguments = sprintf "pack %s %s %s" maybeWarnAsError allBuildFlags backendProj
+            },
+            Echo.All
+        ).UnwrapDefault() |> ignore<string>
 
-    let maybeNupkg =
         Directory.GetFiles(backendDir.FullName, "*.nupkg", SearchOption.AllDirectories)
         |> Seq.tryExactlyOne
+
+    // try first to create a non-prerelease package (as we want to fail fast instead of just fail at git tag push)
+    let maybeNupkg = createNugetPackageFile (currentVersion.ToString())
+    let nupkg =
+        match maybeNupkg with
+        | None -> failwith "File *.nupkg not found, did `dotnet pack` work properly?"
+        | Some nupkg ->
+            if isTag then
+                nupkg
+            else
+                File.Delete nupkg
+                let nugetVersion = Network.GetNugetPrereleaseVersionFromBaseVersion (currentVersion.ToString())
+                match createNugetPackageFile nugetVersion with
+                | None ->
+                    failwith "File *.nupkg not found (prerelease), did `dotnet pack` work properly?"
+                | Some nupkg ->
+                    nupkg
 
     let nugetApiKey = Environment.GetEnvironmentVariable "NUGET_API_KEY"
     if String.IsNullOrEmpty nugetApiKey then
         Console.WriteLine "NUGET_API_KEY not found, skipping push"
         Environment.Exit 0
-
-    match maybeNupkg with
-    | None -> failwith "File *.nupkg not found, did `dotnet pack` work properly?"
-    | Some nupkg ->
+    else
         let push() =
             Process.Execute(
                 {
