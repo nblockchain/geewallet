@@ -174,19 +174,7 @@ let PrintNugetVersion () =
             Console.Out.Flush()
             failwith "nuget process' output contained errors ^"
 
-let BuildSolutionOrProject
-    (buildToolAndBuildArg: string*string)
-    (file: FileInfo)
-    (binaryConfig: BinaryConfig)
-    (maybeConstant: Option<string>)
-    (extraOptions: string)
-    =
-#if LEGACY_FRAMEWORK
-    NugetRestore file
-#endif
-
-    let buildTool,buildArg = buildToolAndBuildArg
-
+let GetBuildFlags (buildTool: string) (binaryConfig) (maybeConstant: Option<string>) =
     let configOption =
         if buildTool.StartsWith "dotnet" then
             sprintf "--configuration %s" (binaryConfig.ToString())
@@ -235,6 +223,24 @@ let BuildSolutionOrProject
                 sprintf "%s -property:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
+
+    configOptions
+
+let BuildSolutionOrProject
+    (buildToolAndBuildArg: string*string)
+    (file: FileInfo)
+    (binaryConfig: BinaryConfig)
+    (maybeConstant: Option<string>)
+    (extraOptions: string)
+    =
+#if LEGACY_FRAMEWORK
+    NugetRestore file
+#endif
+
+    let buildTool,buildArg = buildToolAndBuildArg
+
+    let configOptions = GetBuildFlags buildTool binaryConfig maybeConstant
+
     let buildArgs = sprintf "%s %s %s %s"
                             buildArg
                             file.FullName
@@ -687,10 +693,17 @@ match maybeTarget with
     let backendDir = GetPathToBackend()
     let backendProj = Path.Combine(backendDir.FullName, BACKEND_LIB + ".fsproj")
 
+    let binaryConfig =
+        if isTag then
+            BinaryConfig.Release
+        else
+            BinaryConfig.Debug
+    let buildFlags = GetBuildFlags "dotnet" binaryConfig None
+    let allBuildFlags = sprintf "%s -property:Version=%s" buildFlags nugetVersion
     Process.Execute(
         {
             Command = "dotnet"
-            Arguments = sprintf "pack -property:Version=%s %s" nugetVersion backendProj
+            Arguments = sprintf "pack %s %s" allBuildFlags backendProj
         },
         Echo.All
     ).UnwrapDefault() |> ignore<string>
