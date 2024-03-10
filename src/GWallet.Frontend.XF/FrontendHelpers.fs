@@ -357,7 +357,12 @@ module FrontendHelpers =
             normalCryptoBalanceClassId,readonlyCryptoBalanceClassId
 
     let CreateCurrencyBalanceFrame currency (cryptoLabel: Label) (fiatLabel: Label) currencyLogoImg classId =
-        let colorBoxWidth = 10.
+        let colorBoxWidth =
+            if Device.RuntimePlatform = Device.GTK then
+                // Because on GTK for some reason it's narrower than it should be, so we increase width for it to show up
+                20.
+            else
+                10.
 
         let stackLayout = StackLayout(Orientation = StackOrientation.Horizontal,
                                       Padding = Thickness(20., 20., colorBoxWidth + 10., 20.))
