@@ -509,7 +509,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
-      <Project>{2C7A1A49-CAD1-4961-866A-D32868AE7D18}</Project>
+      <Project>{85236682-6463-4209-B66C-E0643EF12B46}</Project>
       <Name>GWallet.Frontend.XF</Name>
     </ProjectReference>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
