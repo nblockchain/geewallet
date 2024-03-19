@@ -505,7 +505,7 @@
       <Link>Properties\CommonAssemblyInfo.fs</Link>
     </Compile>
     <None Include="Assets\AboutAssets.txt" />
-    <Content Include="packages.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Frontend.XF\GWallet.Frontend.XF.fsproj">
