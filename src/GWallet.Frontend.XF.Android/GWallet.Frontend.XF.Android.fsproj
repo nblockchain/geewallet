@@ -11,7 +11,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>GWallet.Frontend.XF.Android</RootNamespace>
     <AssemblyName>GWallet.Frontend.XF.Android</AssemblyName>
-    <TargetFrameworkVersion>v11.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v13.0</TargetFrameworkVersion>
     <AndroidApplication>True</AndroidApplication>
     <AndroidResgenFile>Resources\Resource.designer.cs</AndroidResgenFile>
     <AndroidResgenClass>Resource</AndroidResgenClass>
