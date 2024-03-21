@@ -7,11 +7,9 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <OtherFlags>
-      /warnon:1182
-      /warnon:3218
-      /warnon:0193
-    </OtherFlags>
+    <OtherFlags>$(OtherFlags) /warnon:0193</OtherFlags>
+    <OtherFlags>$(OtherFlags) /warnon:1182</OtherFlags>
+    <OtherFlags>$(OtherFlags) /warnon:3218</OtherFlags>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' != 'Debug' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
