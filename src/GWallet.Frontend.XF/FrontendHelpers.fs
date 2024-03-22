@@ -57,6 +57,9 @@ module FrontendHelpers =
             // TODO: report a sentry warning
             false
 
+    let PlatformIsCapableOfBarCodeScanning =
+        Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS
+
     let internal BigFontSize = 22.
 
     let internal MediumFontSize = 20.

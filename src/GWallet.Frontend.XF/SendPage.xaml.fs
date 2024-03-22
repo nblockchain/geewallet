@@ -82,7 +82,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         currencySelectorPicker.Items.Add accountCurrency
         currencySelectorPicker.SelectedItem <- accountCurrency
 
-        if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
+        if FrontendHelpers.PlatformIsCapableOfBarCodeScanning then
             destinationScanQrCodeButton.IsVisible <- true
 
         sendOrSignButton.Text <- sendCaption
@@ -840,7 +840,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 transactionEntry.Text <- String.Empty
                 transactionEntry.IsVisible <- true
                 transactionScanQrCodeButton.IsEnabled <- true
-                if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
+                if FrontendHelpers.PlatformIsCapableOfBarCodeScanning then
                     transactionScanQrCodeButton.IsVisible <- true
                 destinationScanQrCodeButton.IsVisible <- false
                 allBalanceButton.IsVisible <- false

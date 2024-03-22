@@ -32,7 +32,7 @@ type PairingToPage(balancesPage: Page,
         | :? InvalidJson ->
             None
     do
-        if Device.RuntimePlatform = Device.Android || Device.RuntimePlatform = Device.iOS then
+        if FrontendHelpers.PlatformIsCapableOfBarCodeScanning then
             scanQrCodeButton.IsVisible <- true
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
