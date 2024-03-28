@@ -33,6 +33,8 @@ type PairingFromPage(previousPage: Page,
             failwith "Couldn't find QR code"
         qrCode.BarcodeValue <- qrCodeContents
         qrCode.IsVisible <- true
+        qrCode.BarcodeFormat <- ZXing.BarcodeFormat.QR_CODE
+        qrCode.BarcodeOptions <- ZXing.Common.EncodingOptions(Width = 400, Height = 400)
 
         let nextStepButton = mainLayout.FindByName<Button> "nextStepButton"
         match nextButtonCaptionAndSendPage with
