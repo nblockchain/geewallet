@@ -22,7 +22,7 @@ type ReceivePage(account: IAccount,
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let mainLayout = base.FindByName<Grid>("mainLayout")
     let paymentButton = mainLayout.FindByName<Button> "paymentButton"
     let transactionHistoryButton =
         mainLayout.FindByName<Button> "viewTransactionHistoryButton"

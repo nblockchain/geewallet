@@ -14,7 +14,7 @@ type WelcomePage2(state: FrontendHelpers.IGlobalAppState, masterPrivateKeyGenera
 
     let _ = base.LoadFromXaml(typeof<WelcomePage2>)
 
-    let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let mainLayout = base.FindByName<Grid> "mainLayout"
 
     let password = mainLayout.FindByName<Entry> "passwordEntry"
     let passwordConfirmation = mainLayout.FindByName<Entry> "passwordEntryConfirmation"
