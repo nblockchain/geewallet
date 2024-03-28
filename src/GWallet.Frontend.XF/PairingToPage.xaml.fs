@@ -18,7 +18,7 @@ type PairingToPage(balancesPage: Page,
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<PairingToPage>)
 
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let mainLayout = base.FindByName<Grid>("mainLayout")
     let scanQrCodeButton = mainLayout.FindByName<Button>("scanQrCode")
     let coldAddressesEntry = mainLayout.FindByName<Entry>("coldStorageAddresses")
     let pairButton = mainLayout.FindByName<Button>("pairButton")
