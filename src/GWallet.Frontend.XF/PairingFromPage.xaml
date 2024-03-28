@@ -32,17 +32,12 @@
                      VerticalOptions="CenterAndExpand"
                      >
             <zx:ZXingBarcodeImageView x:Name="qrCode"
-                                      BarcodeFormat="QR_CODE"
                                       HorizontalOptions="Start"
                                       VerticalOptions="Start"
                                       IsVisible="false"
                                       WidthRequest="400"
                                       HeightRequest="400"
                                       >
-                <zx:ZXingBarcodeImageView.BarcodeOptions>
-                    <zxcm:EncodingOptions Width="400"
-                                          Height="400" />
-                </zx:ZXingBarcodeImageView.BarcodeOptions>
             </zx:ZXingBarcodeImageView>
         </StackLayout>
         <StackLayout Padding="0,0,0,0"
