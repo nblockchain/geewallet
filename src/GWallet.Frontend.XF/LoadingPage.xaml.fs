@@ -19,7 +19,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
 
     let _ = base.LoadFromXaml(typeof<LoadingPage>)
 
-    let mainLayout = base.FindByName<StackLayout> "mainLayout"
+    let mainLayout = base.FindByName<Grid> "mainLayout"
     let titleLabel = mainLayout.FindByName<Label> "titleLabel"
     let progressBarLayout = base.FindByName<StackLayout> "progressBarLayout"
     let loadingLabel = mainLayout.FindByName<Label> "loadingLabel"
