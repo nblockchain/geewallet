@@ -104,6 +104,8 @@ type ReceivePage(account: IAccount,
             failwith "Couldn't find QR code"
         qrCode.BarcodeValue <- account.PublicAddress
         qrCode.IsVisible <- true
+        qrCode.BarcodeFormat <- ZXing.BarcodeFormat.QR_CODE
+        qrCode.BarcodeOptions <- ZXing.Common.EncodingOptions(Width = 200, Height = 200)
 
         let currentConnectivityInstance = Connectivity.NetworkAccess
         if currentConnectivityInstance = NetworkAccess.Internet then
