@@ -40,10 +40,10 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
 
     let normalAccountsBalanceSets = normalBalanceStates.Select(fun balState -> balState.BalanceSet)
     let readOnlyAccountsBalanceSets = readOnlyBalanceStates.Select(fun balState -> balState.BalanceSet)
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let mainLayout = base.FindByName<Grid> "mainLayout"
     let totalFiatAmountLabel = mainLayout.FindByName<Label> "totalFiatAmountLabel"
     let totalReadOnlyFiatAmountLabel = mainLayout.FindByName<Label> "totalReadOnlyFiatAmountLabel"
-    let contentLayout = base.FindByName<StackLayout> "contentLayout"
+    let contentLayout = base.FindByName<Grid> "contentLayout"
     let normalChartView = base.FindByName<CircleChartView> "normalChartView"
     let readonlyChartView = base.FindByName<CircleChartView> "readonlyChartView"
 
@@ -134,7 +134,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                                             tail
                                             totalFiatAmountLabel
 
-    let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: StackLayout) 
+    let rec FindCryptoBalances (cryptoBalanceClassId: string) (layout: Grid) 
                                (elements: List<View>) (resultsSoFar: List<Frame>): List<Frame> =
         match elements with
         | [] -> resultsSoFar
@@ -239,7 +239,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             for activeCryptoBalance in activeCryptoBalances do
                 activeCryptoBalance.IsVisible <- true
         else
-            for balanceState in balances do
+            for _ in balances do
+                contentLayout.RowDefinitions.Add(
+                    RowDefinition(Height = GridLength.Auto)
+                )
+            
+            balances |> Seq.iteri (fun balanceIndex balanceState ->
                 let balanceSet = balanceState.BalanceSet
                 let tapGestureRecognizer = TapGestureRecognizer()
                 tapGestureRecognizer.Tapped.Subscribe(fun _ ->
@@ -251,6 +256,9 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let frame = balanceSet.Widgets.Frame
                 frame.GestureRecognizers.Add tapGestureRecognizer
                 contentLayout.Children.Add frame
+
+                Grid.SetRow(frame, balanceIndex)
+            )
 
         contentLayout.BatchCommit()
 
@@ -498,6 +506,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         self.BalanceRefreshCancelSources <- Seq.empty
 
     member private self.Init () =
+        if Device.RuntimePlatform = Device.GTK then
+            // workaround layout issues in Xamarin.Forms/GTK
+            mainLayout.RowDefinitions.[1] <- RowDefinition(
+                Height = GridLength 550.0
+            )
+        
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
 

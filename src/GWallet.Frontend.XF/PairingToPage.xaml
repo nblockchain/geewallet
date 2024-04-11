@@ -2,12 +2,14 @@
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GWallet.Frontend.XF.PairingToPage">
-    <StackLayout x:Name="mainLayout"
+    <Grid x:Name="mainLayout"
+                 RowDefinitions="*,*,*,*"
                  Padding="10,10,10,10"
                  VerticalOptions="Center"
                  HorizontalOptions="FillAndExpand">
         <StackLayout Orientation="Horizontal"
                      HorizontalOptions="FillAndExpand"
+                     Grid.Row="0"
                      >
             <Label Text="Cold storage addresses:"
                    HorizontalOptions="Start"
@@ -34,17 +36,22 @@
                TextChanged="OnEntryTextChanged"
                IsSpellCheckEnabled="false"
                IsTextPredictionEnabled="false"
+               Grid.Row="1"
                 />
 
         <Button x:Name="pairButton"
                 Text="Pair"
                 IsEnabled="false"
                 HorizontalOptions="Center"
-                Clicked="OnPairButtonClicked"/>
+                Clicked="OnPairButtonClicked"
+                Grid.Row="2"
+        />
         <Button x:Name="cancelButton"
                 Text="Cancel"
                 IsEnabled="true"
                 HorizontalOptions="Center"
-                Clicked="OnCancelButtonClicked"/>
-    </StackLayout>
+                Clicked="OnCancelButtonClicked"
+                Grid.Row="3"
+        />
+    </Grid>
 </ContentPage>

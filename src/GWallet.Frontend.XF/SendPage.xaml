@@ -2,14 +2,19 @@
 <ContentPage xmlns="http://xamarin.com/schemas/2014/forms"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="GWallet.Frontend.XF.SendPage">
-    <StackLayout x:Name="mainLayout"
-                 Padding="10,10,10,10"
-                 VerticalOptions="Center"
-                 HorizontalOptions="FillAndExpand">
+    <Grid x:Name="mainLayout"
+          Padding="10,10,10,10"
+          VerticalOptions="Center"
+          HorizontalOptions="FillAndExpand"
+          RowSpacing="0"
+          RowDefinitions="Auto,Auto,*,Auto,*,Auto,*,Auto,Auto"
+    >
         <StackLayout x:Name="transactionLayout"
                      Orientation="Horizontal"
                      HorizontalOptions="FillAndExpand"
-                     IsVisible="false">
+                     IsVisible="false"
+                     Grid.Row="0"
+        >
             <Label x:Name="transactionLabel"
                    Text="Transaction proposal:"
                    HorizontalOptions="Start"
@@ -35,10 +40,12 @@
         <Entry x:Name="transactionEntry"
                TextChanged="OnTransactionEntryTextChanged"
                IsVisible="false"
+               Grid.Row="1"
                />
 
         <StackLayout Orientation="Horizontal"
                      HorizontalOptions="FillAndExpand"
+                     Grid.Row="2"
                      >
             <Label Text="Destination address:"
                    HorizontalOptions="Start"
@@ -65,24 +72,35 @@
                TextChanged="OnEntryTextChanged"
                IsSpellCheckEnabled="false"
                IsTextPredictionEnabled="false"
+               Grid.Row="3"
                 />
 
-        <StackLayout Orientation="Horizontal"
-                     HorizontalOptions="FillAndExpand"
-                     Padding="0,10,0,0">
+        <Grid ColumnDefinitions="Auto,*,Auto"
+                    HorizontalOptions="FillAndExpand"
+                    Padding="0,10,0,0"
+                    Grid.Row="4"
+        >
             <Label Text="Amount:"
                    HorizontalOptions="Start"
-                   VerticalOptions="End" />
+                   VerticalOptions="Center"
+                   Grid.Column="0"
+            />
             <Label x:Name="equivalentAmountInAlternativeCurrency"
                    Text=""
                    FontAttributes="Italic" FontSize="Small"
-                   HorizontalOptions="Center"
-                   VerticalOptions="End" />
+                   HorizontalOptions="Start"
+                   HorizontalTextAlignment="Start"
+                   LineBreakMode="TailTruncation"
+                   VerticalOptions="Center"
+                   Grid.Column="1"
+            />
             <Button x:Name="allBalance"
                     Text="All balance"
                     HorizontalOptions="EndAndExpand"
-                    VerticalOptions="End"
-                    Clicked="OnAllBalanceButtonClicked">
+                    VerticalOptions="Center"
+                    Clicked="OnAllBalanceButtonClicked"
+                    Grid.Column="2"
+            >
                 <Button.HeightRequest>
                     <OnPlatform x:TypeArguments="x:Double">
                         <On Platform="iOS">15</On>
@@ -91,11 +109,14 @@
                     </OnPlatform>
                 </Button.HeightRequest>
             </Button>
-        </StackLayout>
+        </Grid>
 
-        <Grid HorizontalOptions="FillAndExpand">
+        <Grid x:Name="amountToSendLayout"
+              HorizontalOptions="FillAndExpand"
+              Grid.Row="5"
+        >
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
                 <!-- This is a workaround to upstream bug https://github.com/xamarin/Xamarin.Forms/issues/14977 -->
                 <ColumnDefinition Width="6*"/>
             </Grid.ColumnDefinitions>
@@ -113,23 +134,36 @@
                    TextChanged="OnEntryTextChanged" />
 
         </Grid>
-
-        <Label Text="Password:"
-               x:Name="passwordLabel"
-               />
-        <Entry x:Name="passwordEntry"
-               IsPassword="true"
-               TextChanged="OnEntryTextChanged" />
+        <Grid
+            RowDefinitions="*,Auto"
+            Grid.Row="6"
+        >
+            <Label
+                x:Name="passwordLabel"
+                Text="Password:"
+                Grid.Row="0"
+            />
+            <Entry
+                x:Name="passwordEntry"
+                IsPassword="true"
+                TextChanged="OnEntryTextChanged"
+                Grid.Row="1"
+            />
+        </Grid>
 
         <Button x:Name="sendOrSignButton"
                 Text="..."
                 IsEnabled="false"
                 HorizontalOptions="Center"
-                Clicked="OnSendOrSignButtonClicked"/>
+                Clicked="OnSendOrSignButtonClicked"
+                Grid.Row="7"
+        />
         <Button x:Name="cancelButton"
                 Text="Cancel"
                 IsEnabled="true"
                 HorizontalOptions="Center"
-                Clicked="OnCancelButtonClicked"/>
-    </StackLayout>
+                Clicked="OnCancelButtonClicked"
+                Grid.Row="8"
+        />
+    </Grid>
 </ContentPage>

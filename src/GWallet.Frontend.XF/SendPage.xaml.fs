@@ -50,7 +50,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     // TODO: this means MinerFeeHigherThanOutputs exception could be thrown (so, crash), handle it
     let ignoreMinerFeeHigherThanOutputs = false
 
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let mainLayout = base.FindByName<Grid> "mainLayout"
     let destinationScanQrCodeButton = mainLayout.FindByName<Button> "destinationScanQrCodeButton"
     let transactionScanQrCodeButton = mainLayout.FindByName<Button> "transactionScanQrCodeButton"
     let currencySelectorPicker = mainLayout.FindByName<Picker>("currencySelector")
@@ -102,6 +102,16 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 (self :> FrontendHelpers.IAugmentablePayPage).AddTransactionScanner()
             self.AdjustWidgetsStateAccordingToConnectivity()
 
+        if Device.RuntimePlatform = Device.GTK then
+
+            // workaround bug on Xamarin.Forms/GTK about currency selection
+            // combo disappearing when resizing application main window
+            let amountToSendLayout = mainLayout.FindByName<Grid> "amountToSendLayout"
+            amountToSendLayout.ColumnDefinitions.[0] <- ColumnDefinition()
+
+            // workaround so that controls are not lumped together on GTK
+            mainLayout.RowSpacing <- 5.0
+
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = SendPage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
                      DummyPageConstructorHelper.PageFuncToRaiseExceptionIfUsedAtRuntime(),(fun _ -> Page()))
@@ -116,7 +126,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             )
 
     member self.OnTransactionScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
-        let mainLayout = base.FindByName<StackLayout> "mainLayout"
+        let mainLayout = base.FindByName<Grid> "mainLayout"
         let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
 
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
@@ -138,7 +148,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         )
 
     member self.OnScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
-        let mainLayout = base.FindByName<StackLayout>("mainLayout")
+        let mainLayout = base.FindByName<Grid> "mainLayout"
 
         let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
         scanPage.add_OnScanResult(fun result ->
@@ -391,7 +401,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 String.IsNullOrEmpty passwordEntry.Text
 
     member self.OnTransactionEntryTextChanged (_sender: Object, _args: EventArgs): unit =
-        let mainLayout = base.FindByName<StackLayout> "mainLayout"
+        let mainLayout = base.FindByName<Grid> "mainLayout"
         let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
         let transactionEntryText = transactionEntry.Text
         if not (String.IsNullOrWhiteSpace transactionEntryText) then
@@ -532,7 +542,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 }
 
     member self.OnEntryTextChanged(_sender: Object, _args: EventArgs) =
-        let mainLayout = base.FindByName<StackLayout>("mainLayout")
+        let mainLayout = base.FindByName<Grid> "mainLayout"
         if isNull mainLayout then
             //page not yet ready
             ()

@@ -3,7 +3,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:local="clr-namespace:GWallet.Frontend.XF"
              x:Class="GWallet.Frontend.XF.LoadingPage">
-    <StackLayout x:Name="mainLayout"
+    <Grid x:Name="mainLayout"
+                 RowDefinitions="*,Auto,*"
                  Padding="20,150,20,50"
                  VerticalOptions="Start">
 
@@ -12,7 +13,9 @@
                HorizontalOptions="Center"
                IsVisible="false"
                Margin="40,40,40,40"
-               FontAttributes="Bold" FontSize="Large" />
+               FontAttributes="Bold" FontSize="Large"
+               Grid.Row="0"
+        />
 
         <StackLayout
             IsVisible="false"
@@ -20,6 +23,7 @@
             Orientation="Horizontal"
             Spacing="0,0,0,0"
             HeightRequest="10"
+            Grid.Row="1"
             >
             <Frame BackgroundColor="Transparent"
                    BorderColor="Gray"
@@ -46,6 +50,8 @@
                VerticalOptions="End"
                HorizontalOptions="Center"
                IsVisible="false"
-               Margin="40,40,40,40" />
-    </StackLayout>
+               Margin="40,40,40,40"
+               Grid.Row="2"
+        />
+    </Grid>
 </ContentPage>

@@ -22,7 +22,7 @@ type ReceivePage(account: IAccount,
     inherit ContentPage()
     let _ = base.LoadFromXaml(typeof<ReceivePage>)
 
-    let mainLayout = base.FindByName<StackLayout>("mainLayout")
+    let mainLayout = base.FindByName<Grid> "mainLayout"
     let paymentButton = mainLayout.FindByName<Button> "paymentButton"
     let transactionHistoryButton =
         mainLayout.FindByName<Button> "viewTransactionHistoryButton"
@@ -104,6 +104,8 @@ type ReceivePage(account: IAccount,
             failwith "Couldn't find QR code"
         qrCode.BarcodeValue <- account.PublicAddress
         qrCode.IsVisible <- true
+        qrCode.BarcodeFormat <- ZXing.BarcodeFormat.QR_CODE
+        qrCode.BarcodeOptions <- ZXing.Common.EncodingOptions(Width = 200, Height = 200)
 
         let currentConnectivityInstance = Connectivity.NetworkAccess
         if currentConnectivityInstance = NetworkAccess.Internet then
