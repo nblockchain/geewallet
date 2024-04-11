@@ -103,10 +103,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             self.AdjustWidgetsStateAccordingToConnectivity()
 
         if Device.RuntimePlatform = Device.GTK then
-            // Fix bug on Xamarin.Forms/GTK when currency selection button
-            // disappears when resizing application main window.
-            let amountToSendLayout = mainLayout.FindByName<Grid> "amountToSendLayout"
-            amountToSendLayout.ColumnDefinitions.[0] <- ColumnDefinition()
             // Set row spacing so that controls are not lumped together on GTK
             mainLayout.RowSpacing <- 5.0
 
