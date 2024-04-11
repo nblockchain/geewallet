@@ -4,6 +4,7 @@ open System
 open System.Linq
 
 open NUnit.Framework
+open ElectrumSharp
 
 open GWallet.Backend
 open GWallet.Backend.UtxoCoin
@@ -50,7 +51,7 @@ type ElectrumIntegrationTests() =
 
     let CheckServerIsReachable (electrumServer: ServerDetails)
                                (currency: Currency)
-                               (query: Async<StratumClient>->Async<'T>)
+                               (query: Async<ElectrumClient>->Async<'T>)
                                (assertion: 'T->unit)
                                (maybeFilter: Option<ServerDetails -> bool>)
                                : Async<Option<ServerDetails>> = async {
@@ -61,7 +62,7 @@ type ElectrumIntegrationTests() =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                let stratumClient = ElectrumClient.StratumServer server
+                let stratumClient = Electrum.CreateClientFor server
                 let result = query stratumClient
                                   |> Async.RunSynchronously
 
@@ -92,7 +93,7 @@ type ElectrumIntegrationTests() =
 
         }
 
-    let BalanceAssertion (balance: BlockchainScriptHashGetBalanceInnerResult) =
+    let BalanceAssertion (balance: BlockchainScriptHashGetBalanceResult) =
         // if these ancient addresses get withdrawals it would be interesting in the crypto space...
         // so let's make the test check a balance like this which is unlikely to change
         Assert.That(balance.Confirmed, Is.Not.LessThan 998292)
@@ -115,7 +116,7 @@ type ElectrumIntegrationTests() =
 
     let TestElectrumServersConnections (electrumServers: seq<_>)
                                        currency
-                                       (query: Async<StratumClient>->Async<'T>)
+                                       (query: Async<ElectrumClient>->Async<'T>)
                                        (assertion: 'T->unit)
                                        (atLeast: uint32)
                                            =
@@ -157,7 +158,7 @@ type ElectrumIntegrationTests() =
             (fun server -> rebelBtcServerHostnames.Any(fun rebel -> server.ServerInfo.NetworkPath = rebel))
             ElectrumServerSeedList.DefaultBtcList
 
-    let UtxosAssertion (utxos: array<BlockchainScriptHashListUnspentInnerResult>) =
+    let UtxosAssertion (utxos: array<BlockchainScriptHashListUnspentResult>) =
         // if these ancient addresses get withdrawals it would be interesting in the crypto space...
         // so let's make the test check a balance like this which is unlikely to change
         Assert.That(utxos.Length, Is.GreaterThan 1)
@@ -176,21 +177,21 @@ type ElectrumIntegrationTests() =
         let currency = Currency.BTC
         let argument = GetScriptHash currency
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultBtcList currency
-                                       (ElectrumClient.GetBalance argument) BalanceAssertion
+                                       (Electrum.GetBalance argument) BalanceAssertion
 
     [<Test>]
     member __.``can connect (just check balance) to some electrum LTC servers``() =
         let currency = Currency.LTC
         let argument = GetScriptHash currency
         CheckElectrumServersConnection ElectrumServerSeedList.DefaultLtcList currency
-                                       (ElectrumClient.GetBalance argument) BalanceAssertion
+                                       (Electrum.GetBalance argument) BalanceAssertion
 
     [<Test>]
     member __.``can get list UTXOs of an address from some electrum BTC servers``() =
         let currency = Currency.BTC
         let argument = GetScriptHash currency
         CheckElectrumServersConnection btcNonRebelServers currency
-                                       (ElectrumClient.GetUnspentTransactionOutputs argument) UtxosAssertion
+                                       (Electrum.GetUnspentTransactionOutputs argument) UtxosAssertion
 
     [<Test>]
     // to make sure the workaround for https://github.com/nblockchain/JsonRpcSharp/issues/9 works
@@ -201,7 +202,7 @@ type ElectrumIntegrationTests() =
         let argument = "2f309ef555110ab4e9c920faa2d43e64f195aa027e80ec28e1d243bd8929a2fc"
 
         CheckElectrumServersConnection btcNonRebelServers currency
-                                       (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
+                                       (Electrum.GetBlockchainTransaction argument) TxAssertion
 
     [<Test>]
     // to make sure the workaround for https://github.com/nblockchain/JsonRpcSharp/issues/9 works
@@ -212,5 +213,5 @@ type ElectrumIntegrationTests() =
         let argument = "2f309ef555110ab4e9c920faa2d43e64f195aa027e80ec28e1d243bd8929a2fc"
 
         CheckElectrumServersConnection btcRebelServers currency
-                                       (ElectrumClient.GetBlockchainTransaction argument) TxAssertion
+                                       (Electrum.GetBlockchainTransaction argument) TxAssertion
 

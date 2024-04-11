@@ -10,7 +10,6 @@
     </Compile>
     <Compile Include="FSharpUtil.fs" />
     <Compile Include="Shuffling.fs" />
-    <Compile Include="StratumParsing.fs" />
     <Compile Include="WarpWallet.fs" />
     <Compile Include="FaultTolerance.fs" />
     <Compile Include="ParallelizationAndOptimization.fs" />

@@ -94,3 +94,13 @@ type UnhandledWebException =
         }
     new (info: SerializationInfo, context: StreamingContext) =
         { inherit Exception (info, context) }
+
+type ProtocolGlitchException =
+    inherit CommunicationUnsuccessfulException
+
+    new (message) = { inherit CommunicationUnsuccessfulException (message) }
+    new (message: string, innerException: Exception) = {
+        inherit CommunicationUnsuccessfulException (message, innerException)
+    }
+    new (info: SerializationInfo, context: StreamingContext) =
+        { inherit CommunicationUnsuccessfulException (info, context) }

@@ -10,6 +10,7 @@ open System.Linq
 open NBitcoin
 open NBitcoin.Payment
 open Fsdk
+open ElectrumSharp
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
@@ -112,7 +113,7 @@ module Account =
         | _ ->
             failwith <| SPrintF1 "Kind (%A) not supported for this API" kind
 
-    let private BalanceToShow (balances: BlockchainScriptHashGetBalanceInnerResult) =
+    let private BalanceToShow (balances: BlockchainScriptHashGetBalanceResult) =
         let unconfirmedPlusConfirmed = balances.Unconfirmed + balances.Confirmed
         let amountToShowInSatoshis,imminentIncomingPayment =
             if unconfirmedPlusConfirmed <= balances.Confirmed then
@@ -124,7 +125,7 @@ module Account =
 
     let private BalanceMatchWithCacheOrInitialBalance address
                                                       currency
-                                                      (someRetrievedBalance: BlockchainScriptHashGetBalanceInnerResult)
+                                                      (someRetrievedBalance: BlockchainScriptHashGetBalanceResult)
                                                           : bool =
         let balanceFromServers,_ = BalanceToShow someRetrievedBalance
         if Caching.Instance.FirstRun then
@@ -138,18 +139,18 @@ module Account =
     let private GetBalances (account: IUtxoAccount)
                             (mode: ServerSelectionMode)
                             (cancelSourceOption: Option<CustomCancelSource>)
-                                : Async<BlockchainScriptHashGetBalanceInnerResult> =
+                                : Async<BlockchainScriptHashGetBalanceResult> =
         let scriptHashHex = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
 
         let querySettings =
             QuerySettings.Balance(mode,(BalanceMatchWithCacheOrInitialBalance account.PublicAddress account.Currency))
-        let balanceJob = ElectrumClient.GetBalance scriptHashHex
+        let balanceJob = Electrum.GetBalance scriptHashHex
         Server.Query account.Currency querySettings balanceJob cancelSourceOption
 
     let private GetBalancesFromServer (account: IUtxoAccount)
                                       (mode: ServerSelectionMode)
                                       (cancelSourceOption: Option<CustomCancelSource>)
-                                         : Async<Option<BlockchainScriptHashGetBalanceInnerResult>> =
+                                         : Async<Option<BlockchainScriptHashGetBalanceResult>> =
         async {
             try
                 let! balances = GetBalances account mode cancelSourceOption
@@ -220,7 +221,7 @@ module Account =
     let private ConvertToInputOutpointInfo currency (utxo: UnspentTransactionOutputInfo)
                                                : Async<TransactionInputOutpointInfo> =
         async {
-            let job = ElectrumClient.GetBlockchainTransaction utxo.TransactionId
+            let job = Electrum.GetBlockchainTransaction utxo.TransactionId
             let! transRaw =
                 Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
             let transaction = Transaction.Parse(transRaw, GetNetwork currency)
@@ -295,7 +296,7 @@ module Account =
                     newAcc,tail
 
         let job = GetElectrumScriptHashFromPublicAddress account.Currency account.PublicAddress
-                  |> ElectrumClient.GetUnspentTransactionOutputs
+                  |> Electrum.GetUnspentTransactionOutputs
         let! utxos = Server.Query account.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
 
         if not (utxos.Any()) then
@@ -323,7 +324,7 @@ module Account =
             avg
 
         //querying for 1 will always return -1 surprisingly...
-        let estimateFeeJob = ElectrumClient.EstimateFee 2
+        let estimateFeeJob = Electrum.EstimateFee 2
         let! btcPerKiloByteForFastTrans =
             Server.Query account.Currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob None
 
@@ -439,7 +440,7 @@ module Account =
 
             let getInputAmount (input: TxIn) =
                 async {
-                    let job = ElectrumClient.GetBlockchainTransaction (input.PrevOut.Hash.ToString())
+                    let job = Electrum.GetBlockchainTransaction (input.PrevOut.Hash.ToString())
                     let! inputOriginTxString = Server.Query currency (QuerySettings.Default ServerSelectionMode.Fast) job None
                     let inputOriginTx = Transaction.Parse (inputOriginTxString, network)
                     return inputOriginTx.Outputs.[input.PrevOut.N].Value
@@ -463,7 +464,7 @@ module Account =
         async {
             if not ignoreHigherMinerFeeThanAmount then
                 do! ValidateMinerFee currency rawTx
-            let job = ElectrumClient.BroadcastTransaction rawTx
+            let job = Electrum.BroadcastTransaction rawTx
             return! Server.Query currency QuerySettings.Broadcast job None
         }
 
@@ -646,7 +647,7 @@ module Account =
 
             let getInputDetails (input: TxIn) =
                 async {
-                    let job = ElectrumClient.GetBlockchainTransaction (input.PrevOut.Hash.ToString())
+                    let job = Electrum.GetBlockchainTransaction (input.PrevOut.Hash.ToString())
                     let! inputOriginTxString = Server.Query signedTx.Currency (QuerySettings.Default ServerSelectionMode.Fast) job None
                     let inputOriginTx = Transaction.Parse (inputOriginTxString, network)
                     return

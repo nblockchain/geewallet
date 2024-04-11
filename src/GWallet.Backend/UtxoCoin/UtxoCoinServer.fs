@@ -5,6 +5,8 @@
 
 open System
 
+open ElectrumSharp
+
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
@@ -60,15 +62,15 @@ module Server =
 
     // FIXME: seems there's some code duplication between this function and EtherServer.fs's GetServerFuncs function
     //        and room for simplification to not pass a new ad-hoc delegate?
-    let internal GetServerFuncs<'R> (electrumClientFunc: Async<StratumClient>->Async<'R>)
+    let internal GetServerFuncs<'R> (electrumClientFunc: Async<ElectrumClient>->Async<'R>)
                                     (electrumServers: seq<ServerDetails>)
                                         : seq<Server<ServerDetails,'R>> =
 
         let ElectrumServerToRetrievalFunc (server: ServerDetails)
-                                          (electrumClientFunc: Async<StratumClient>->Async<'R>)
+                                          (electrumClientFunc: Async<ElectrumClient>->Async<'R>)
                                               : Async<'R> = async {
             try
-                let stratumClient = ElectrumClient.StratumServer server
+                let stratumClient = Electrum.CreateClientFor server
                 return! electrumClientFunc stratumClient
 
             // NOTE: try to make this 'with' block be in sync with the one in EtherServer:GetWeb3Funcs()
@@ -80,7 +82,7 @@ module Server =
                 return raise <| Exception(SPrintF1 "Some problem when connecting to %s" server.ServerInfo.NetworkPath,
                                           ex)
         }
-        let ElectrumServerToGenericServer (electrumClientFunc: Async<StratumClient>->Async<'R>)
+        let ElectrumServerToGenericServer (electrumClientFunc: Async<ElectrumClient>->Async<'R>)
                                           (electrumServer: ServerDetails)
                                               : Server<ServerDetails,'R> =
             {
@@ -94,7 +96,7 @@ module Server =
         serverFuncs
 
     let private GetRandomizedFuncs<'R> (currency: Currency)
-                                       (electrumClientFunc: Async<StratumClient>->Async<'R>)
+                                       (electrumClientFunc: Async<ElectrumClient>->Async<'R>)
                                               : List<Server<ServerDetails,'R>> =
 
         let electrumServers = ElectrumServerSeedList.Randomize currency
@@ -103,7 +105,7 @@ module Server =
 
     let Query<'R when 'R: equality> currency
                                     (settings: QuerySettings<'R>)
-                                    (job: Async<StratumClient>->Async<'R>)
+                                    (job: Async<ElectrumClient>->Async<'R>)
                                     (cancelSourceOption: Option<CustomCancelSource>)
                                         : Async<'R> =
         let query =
@@ -122,6 +124,12 @@ module Server =
                     ServerSelectionMode.Fast
                     (Some (AverageBetweenResponses (minResponsesRequired, averageFee)))
             | Broadcast -> FaultTolerantParallelClientSettingsForBroadcast()
-        query
-            querySettings
-            (GetRandomizedFuncs currency job)
+        async {
+            try
+                return! query
+                    querySettings
+                    (GetRandomizedFuncs currency job)
+            with
+            | ex ->
+                return raise <| CommunicationUnsuccessfulException(ex.Message, ex)
+        }

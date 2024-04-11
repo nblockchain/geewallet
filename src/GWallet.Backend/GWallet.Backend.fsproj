@@ -23,7 +23,6 @@
     <Compile Include="AccountTypes.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Networking.fs" />
-    <Compile Include="JsonRpcTcpClient.fs" />
     <Compile Include="IBlockchainFeeInfo.fs" />
     <Compile Include="TransferAmount.fs" />
     <Compile Include="Infrastructure.fs" />
@@ -34,7 +33,6 @@
     <Compile Include="FaultTolerantParallelClient.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="UtxoCoin\ElectrumServer.fs" />
-    <Compile Include="UtxoCoin\StratumClient.fs" />
     <Compile Include="UtxoCoin\ElectrumClient.fs" />
     <Compile Include="UtxoCoin\UtxoCoinServer.fs" />
     <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
@@ -58,7 +56,10 @@
     <Folder Include="Ether\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="4.7.0" />
+    <PackageReference Update="FSharp.Core" Version="6.0.1" />
+    <PackageReference Include="ElectrumSharp" Version="0.0.0.2--date20240409-1036.git-b076495">
+      <GeneratePathProperty></GeneratePathProperty>
+    </PackageReference>
     <PackageReference Include="Fsdk" Version="0.6.0--date20230530-1155.git-3bb8d08" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2">
       <GeneratePathProperty></GeneratePathProperty>
@@ -70,9 +71,6 @@
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="Nethereum" Version="3.99.0--date20231003-1147.git-b9a16cf">
-      <GeneratePathProperty></GeneratePathProperty>
-    </PackageReference>
-    <PackageReference Include="JsonRpcSharp" Version="0.98.0--date20230731-1252.git-6788e32">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="SharpRaven" Version="2.4.0">

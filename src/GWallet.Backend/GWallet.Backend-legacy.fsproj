@@ -60,7 +60,6 @@
     <Compile Include="AccountTypes.fs" />
     <Compile Include="Config.fs" />
     <Compile Include="Networking.fs" />
-    <Compile Include="JsonRpcTcpClient.fs" />
     <Compile Include="IBlockchainFeeInfo.fs" />
     <Compile Include="TransferAmount.fs" />
     <Compile Include="Infrastructure.fs" />
@@ -71,7 +70,6 @@
     <Compile Include="FaultTolerantParallelClient.fs" />
     <Compile Include="FiatValueEstimation.fs" />
     <Compile Include="UtxoCoin\ElectrumServer.fs" />
-    <Compile Include="UtxoCoin\StratumClient.fs" />
     <Compile Include="UtxoCoin\ElectrumClient.fs" />
     <Compile Include="UtxoCoin\UtxoCoinServer.fs" />
     <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
@@ -94,6 +92,9 @@
   <ItemGroup>
     <Reference Include="Fsdk">
       <HintPath>..\..\packages\Fsdk.0.6.0--date20230530-1155.git-3bb8d08\lib\netstandard2.0\Fsdk.dll</HintPath>
+    </Reference>
+    <Reference Include="ElectrumSharp">
+      <HintPath>..\..\packages\ElectrumSharp.0.0.0.2--date20240409-1036.git-b076495\lib\netstandard2.0\ElectrumSharp.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\net45\FSharp.Data.dll</HintPath>
@@ -237,9 +238,6 @@
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.Extensions.Logging.Abstractions">
       <HintPath>..\..\packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\lib\net461\Microsoft.Extensions.Logging.Abstractions.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.TcpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.TcpClient.dll</HintPath>
     </Reference>
     <Reference Include="System.IO.Pipes">
       <HintPath>..\..\packages\System.IO.Pipes.4.3.0\lib\net46\System.IO.Pipes.dll</HintPath>
