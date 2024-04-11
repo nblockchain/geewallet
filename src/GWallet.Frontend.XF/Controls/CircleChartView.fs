@@ -144,14 +144,15 @@ type CircleChartView () =
        ()         
 
     member private self.CreateAndSetImageSource (imageSource : ImageSource) =
-        let image =
-            Image (
-                HorizontalOptions = LayoutOptions.FillAndExpand,
-                VerticalOptions = LayoutOptions.FillAndExpand,
-                Aspect = Aspect.AspectFit,
-                Source = imageSource
-            )
-        self.Content <- image
+        if not (self.Content :? Image) then
+            let image =
+                Image (
+                    HorizontalOptions = LayoutOptions.FillAndExpand,
+                    VerticalOptions = LayoutOptions.FillAndExpand,
+                    Aspect = Aspect.AspectFit,
+                    Source = imageSource
+                )
+            self.Content <- image
 
     member self.Draw () =
         let width = 
