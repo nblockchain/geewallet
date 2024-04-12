@@ -12,8 +12,8 @@ open System.Diagnostics
 open System.Configuration
 #load "fsx/Fsdk/Misc.fs"
 #load "fsx/Fsdk/Process.fs"
-#load "fsx/Fsdk/Network.fs"
 #load "fsx/Fsdk/Git.fs"
+#load "fsx/Fsdk/Network.fs"
 #load "fsx/Fsdk/Unix.fs"
 #endif
 open Fsdk
