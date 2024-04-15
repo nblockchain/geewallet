@@ -338,20 +338,11 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>..\..\packages\HtmlAgilityPack.1.11.24\lib\netstandard2.0\HtmlAgilityPack.dll</HintPath>
     </Reference>
-    <Reference Include="JsonRpcSharp.Client">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.Client.dll</HintPath>
+    <Reference Include="System.Text.Json">
+      <HintPath>..\..\packages\System.Text.Json.7.0.3\lib\netstandard2.0\System.Text.Json.dll</HintPath>
     </Reference>
-    <Reference Include="JsonRpcSharp.IpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.IpcClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.HttpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.HttpClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.TcpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.TcpClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.WebSocketClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
+    <Reference Include="StreamJsonRpc">
+      <HintPath>..\..\packages\StreamJsonRpc.2.17.11\lib\netstandard2.0\StreamJsonRpc.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
       <HintPath>..\..\packages\NBitcoin.6.0.17\lib\netstandard2.1\NBitcoin.dll</HintPath>

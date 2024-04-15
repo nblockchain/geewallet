@@ -248,18 +248,6 @@
     <Reference Include="System.Net.WebSockets.Client">
       <HintPath>..\..\packages\System.Net.WebSockets.Client.4.3.2\lib\net46\System.Net.WebSockets.Client.dll</HintPath>
     </Reference>
-    <Reference Include="JsonRpcSharp.Client">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.Client.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.IpcClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.IpcClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.HttpClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.HttpClient.dll</HintPath>
-    </Reference>
-    <Reference Include="JsonRpcSharp.WebSocketClient">
-      <HintPath>..\..\packages\JsonRpcSharp.0.98.0--date20230731-1252.git-6788e32\lib\netstandard2.0\JsonRpcSharp.WebSocketClient.dll</HintPath>
-    </Reference>
     <Reference Include="ADRaffy.ENSNormalize">
       <HintPath>..\..\packages\ADRaffy.ENSNormalize.0.1.5\lib\net461\ADRaffy.ENSNormalize.dll</HintPath>
     </Reference>
