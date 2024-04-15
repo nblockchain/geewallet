@@ -19,7 +19,7 @@ module Electrum =
                         port 
                         Config.DEFAULT_NETWORK_CONNECT_TIMEOUT 
                         "geewallet"
-                // TODO: set logger
+                client.Logger <- Infrastructure.LogDebug
                 return client
             }
 

@@ -121,12 +121,11 @@ module ServerManager =
                             let! bal = UtxoCoin.Electrum.GetBalance scriptHash electrumServer
                             return bal.Confirmed |> decimal
                         with
-                        | :? ElectrumSharp.IncompatibleProtocolException as ex ->
-                            return raise <| CommunicationUnsuccessfulException(ex.Message, ex)
-                        | ex when (Fsdk.FSharpUtil.FindException<Net.Sockets.SocketException> ex).IsSome 
-                                    || (Fsdk.FSharpUtil.FindException<StreamJsonRpc.RemoteRpcException> ex).IsSome
-                                    || (Fsdk.FSharpUtil.FindException<System.TimeoutException> ex).IsSome->
-                            return raise <| CommunicationUnsuccessfulException(ex.Message, ex)
+                        | ex ->
+                            match Fsdk.FSharpUtil.FindException<ElectrumSharp.CommunticationFailedException> ex with
+                            | Some commFailedExn -> 
+                                return raise <| CommunicationUnsuccessfulException(commFailedExn.Message, commFailedExn)
+                            | None -> return raise ex
                     }
                 UtxoCoin.Server.GetServerFuncs utxoFunc servers |> Some
 

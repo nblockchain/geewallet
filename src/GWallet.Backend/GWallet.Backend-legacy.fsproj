@@ -94,7 +94,7 @@
       <HintPath>..\..\packages\Fsdk.0.6.0--date20230530-1155.git-3bb8d08\lib\netstandard2.0\Fsdk.dll</HintPath>
     </Reference>
     <Reference Include="ElectrumSharp">
-      <HintPath>..\..\packages\ElectrumSharp.0.0.0.2--date20240409-1036.git-b076495\lib\netstandard2.0\ElectrumSharp.dll</HintPath>
+      <HintPath>..\..\packages\ElectrumSharp.0.0.0.2--date20240416-0821.git-3367808\lib\netstandard2.0\ElectrumSharp.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Data">
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\net45\FSharp.Data.dll</HintPath>
