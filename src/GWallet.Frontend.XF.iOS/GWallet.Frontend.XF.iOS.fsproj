@@ -275,7 +275,7 @@
       <HintPath>..\..\packages\FSharp.Data.3.0.0\lib\netstandard2.0\FSharp.Data.dll</HintPath>
     </Reference>
     <Reference Include="System.IO.Pipelines">
-      <HintPath>..\..\packages\System.IO.Pipelines.4.5.3\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
+      <HintPath>..\..\packages\System.IO.Pipelines.7.0.0\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
     </Reference>
     <Reference Include="ZXingNetMobile">
       <HintPath>..\..\packages\ZXing.Net.Xamarin.3.0.0--date20220902-0549.git-462686e\lib\xamarinios10\ZXingNetMobile.dll</HintPath>
