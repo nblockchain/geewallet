@@ -341,8 +341,14 @@
     <Reference Include="System.Text.Json">
       <HintPath>..\..\packages\System.Text.Json.7.0.3\lib\netstandard2.0\System.Text.Json.dll</HintPath>
     </Reference>
+    <Reference Include="System.Text.Encodings.Web">
+      <HintPath>..\..\packages\System.Text.Encodings.Web.7.0.0\lib\netstandard2.0\System.Text.Encodings.Web.dll</HintPath>
+    </Reference>
     <Reference Include="StreamJsonRpc">
       <HintPath>..\..\packages\StreamJsonRpc.2.17.11\lib\netstandard2.0\StreamJsonRpc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Diagnostics.DiagnosticSource">
+      <HintPath>..\..\packages\System.Diagnostics.DiagnosticSource.7.0.2\lib\netstandard2.0\System.Diagnostics.DiagnosticSource.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
       <HintPath>..\..\packages\NBitcoin.6.0.17\lib\netstandard2.1\NBitcoin.dll</HintPath>
