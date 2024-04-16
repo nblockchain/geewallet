@@ -111,6 +111,9 @@
     <Reference Include="ElectrumSharp">
       <HintPath>..\..\packages\ElectrumSharp.0.0.0.2--date20240416-0821.git-3367808\lib\netstandard2.0\ElectrumSharp.dll</HintPath>
     </Reference>
+    <Reference Include="StreamJsonRpc">
+      <HintPath>..\..\packages\StreamJsonRpc.2.17.11\lib\netstandard2.0\StreamJsonRpc.dll</HintPath>
+    </Reference>
     <Reference Include="System.Buffers">
       <HintPath>..\..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
     </Reference>
