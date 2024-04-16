@@ -123,6 +123,12 @@
     <Reference Include="System.Runtime.CompilerServices.Unsafe">
       <HintPath>..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.3\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
+    <Reference Include="System.Reflection.Emit">
+      <HintPath>..\..\packages\System.Reflection.Emit.4.7.0\lib\netstandard2.0\System.Reflection.Emit.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reflection.Emit.Lightweight">
+      <HintPath>..\..\packages\System.Reflection.Emit.Lightweight.4.7.0\lib\netstandard2.0\System.Reflection.Emit.Lightweight.dll</HintPath>
+    </Reference>
     <Reference Include="ElectrumSharp">
       <HintPath>..\..\packages\ElectrumSharp.0.0.0.2--date20240416-0821.git-3367808\lib\netstandard2.0\ElectrumSharp.dll</HintPath>
     </Reference>
@@ -347,8 +353,35 @@
     <Reference Include="StreamJsonRpc">
       <HintPath>..\..\packages\StreamJsonRpc.2.17.11\lib\netstandard2.0\StreamJsonRpc.dll</HintPath>
     </Reference>
+    <Reference Include="MessagePack">
+      <HintPath>..\..\packages\MessagePack.2.5.108\lib\netstandard2.0\MessagePack.dll</HintPath>
+    </Reference>
+    <Reference Include="MessagePack.Annotations">
+      <HintPath>..\..\packages\MessagePack.Annotations.2.5.108\lib\netstandard2.0\MessagePack.Annotations.dll</HintPath>
+    </Reference>
+    <Reference Include="Nerdbank.Streams">
+      <HintPath>..\..\packages\Nerdbank.Streams.2.10.69\lib\netstandard2.0\Nerdbank.Streams.dll</HintPath>
+    </Reference>
     <Reference Include="System.Diagnostics.DiagnosticSource">
       <HintPath>..\..\packages\System.Diagnostics.DiagnosticSource.7.0.2\lib\netstandard2.0\System.Diagnostics.DiagnosticSource.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Threading.Tasks.Dataflow">
+      <HintPath>..\..\packages\System.Threading.Tasks.Dataflow.7.0.0\lib\netstandard2.0\System.Threading.Tasks.Dataflow.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces">
+      <HintPath>..\..\packages\Microsoft.Bcl.AsyncInterfaces.7.0.0\lib\netstandard2.0\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.NET.StringTools">
+      <HintPath>..\..\packages\Microsoft.NET.StringTools.17.4.0\lib\netstandard2.0\Microsoft.NET.StringTools.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.Threading">
+      <HintPath>..\..\packages\Microsoft.VisualStudio.Threading.17.7.35\lib\netstandard2.0\Microsoft.VisualStudio.Threading.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.Threading.Analyzers">
+      <HintPath>..\..\packages\Microsoft.VisualStudio.Threading.Analyzers.17.7.35\lib\netstandard2.0\Microsoft.VisualStudio.Threading.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.Validation">
+      <HintPath>..\..\packages\Microsoft.VisualStudio.Validation.17.6.11\lib\netstandard2.0\Microsoft.VisualStudio.Validation.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
       <HintPath>..\..\packages\NBitcoin.6.0.17\lib\netstandard2.1\NBitcoin.dll</HintPath>
@@ -370,7 +403,10 @@
       <HintPath>..\..\packages\System.Configuration.ConfigurationManager.4.4.0\lib\netstandard2.0\System.Configuration.ConfigurationManager.dll</HintPath>
     </Reference>
     <Reference Include="System.IO.Pipelines">
-      <HintPath>..\..\packages\System.IO.Pipelines.4.5.3\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
+      <HintPath>..\..\packages\System.IO.Pipelines.7.0.0\lib\netstandard2.0\System.IO.Pipelines.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Collections.Immutable">
+      <HintPath>..\..\packages\System.Collections.Immutable.7.0.0\lib\netstandard2.0\System.Collections.Immutable.dll</HintPath>
     </Reference>
     <Reference Include="System.Memory">
       <Private>True</Private>
