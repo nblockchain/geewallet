@@ -32,6 +32,16 @@ jobs:
       run: ./configure.sh
     - name: build in DEBUG mode
       run: make
+    - name: Build Maui Android frontend
+      run: |
+        # first run will give some errors related to Resource, so run build command twice
+        dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net6.0-android || \
+        dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net6.0-android
+    - name: Build Android APK
+      run: |
+        # first run will give some errors related to Resource, so run build command twice
+        dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net6.0-android --configuration Release || \
+        dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net6.0-android --configuration Release
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
