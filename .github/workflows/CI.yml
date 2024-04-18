@@ -61,6 +61,21 @@ jobs:
         # first run will give some errors related to Resource, so run build command twice
         dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net6.0-android --configuration Release || \
         dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net6.0-android --configuration Release
+    # Upload artifact fails with "permission denied" error without this
+    - name: Fix permissions
+      run: sudo chmod -R 755 src/GWallet.Frontend.Maui/bin/Release/net6.0-android/publish
+    - name: Find the APK file's path and name
+      id: find_apk_file
+      run: |
+        FILEPATH=$(ls src/GWallet.Frontend.Maui/bin/Release/net6.0-android/publish/*.apk)
+        FILENAME=$(basename $FILEPATH)
+        echo "file_path=$FILEPATH" >> $GITHUB_OUTPUT
+        echo "file_name=$FILENAME" >> $GITHUB_OUTPUT
+    - name: Upload APK as CI artifact
+      uses: actions/upload-artifact@v3
+      with:
+        path: ${{ steps.find_apk_file.outputs.file_path }}
+        name: ${{ steps.find_apk_file.outputs.file_name }}
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
