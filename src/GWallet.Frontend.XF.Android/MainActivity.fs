@@ -14,7 +14,7 @@ open Xamarin.Forms.Platform.Android
 type Resources = GWallet.Frontend.XF.Android.Resource
 
 [<Activity (LaunchMode = LaunchMode.SingleTask, 
-            Label = "geewallet", 
+            Label = GWallet.Backend.Config.AppName,
             Icon = "@drawable/icon", 
             Theme = "@style/MyTheme", 
             MainLauncher = true, 

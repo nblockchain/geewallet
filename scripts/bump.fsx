@@ -239,7 +239,7 @@ let RunUpdateServers () =
     match proc.Result with
     | Error _ ->
         Console.WriteLine()
-        failwith "Update Servers geewallet operation failed ^"
+        failwith "Update Servers operation failed ^"
     | _ -> ()
 
     let gitAddJson =

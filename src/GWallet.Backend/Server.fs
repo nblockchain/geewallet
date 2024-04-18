@@ -124,10 +124,10 @@ module ServerRegistry =
             // they create exception when being queried for advanced ones (e.g. latest block)
             server.ServerInfo.NetworkPath.Contains "blockscout" ||
 
-            // there was a mistake when adding this server to geewallet's JSON: it was added in the ETC currency instead of ETH
+            // there was a mistake when adding this server to our servers.json file: it was added in the ETC currency instead of ETH
             (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethrpc.mewapi.io")
 
-            // there was a typo when adding this server to geewallet's JSON, see commit 69d90fd2fc22a1f3dd9ef8793f0cd42e3b540df1
+            // there was a typo when adding this server to our servers.json file, see commit 69d90fd2fc22a1f3dd9ef8793f0cd42e3b540df1
             || (currency = Currency.ETC && server.ServerInfo.NetworkPath.Contains "ethercluster.comx/")
 
         let currency,servers = cs

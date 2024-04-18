@@ -10,6 +10,7 @@ open ZXing.Net.Mobile.Forms
 open Fsdk
 
 open GWallet.Backend
+open GWallet.Backend.FSharpUtil.UwpHacks
 
 type PairingToPage(balancesPage: Page,
                    normalAccountsBalanceSets: seq<BalanceSet>,
@@ -73,7 +74,9 @@ type PairingToPage(balancesPage: Page,
         let watchWalletInfoJson = coldAddressesEntry.Text
         match Deserialize watchWalletInfoJson with
         | None ->
-            let msg = "Invalid pairing info format (should be JSON). Did you pair a QR-code from another geewallet instance?"
+            let msg =
+                SPrintF1 "Invalid pairing info format (should be JSON). Did you pair a QR-code from another %s instance?"
+                    Config.AppName
             MainThread.BeginInvokeOnMainThread(fun _ ->
                 self.DisplayAlert("Alert", msg, "OK")
                     |> FrontendHelpers.DoubleCheckCompletionNonGeneric

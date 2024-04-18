@@ -22,11 +22,16 @@ module Main =
         let app = GWallet.Frontend.XF.App()
         use window = new FormsWindow()
         window.LoadApplication(app)
-        window.SetApplicationTitle "geewallet"
+        window.SetApplicationTitle Config.AppName
         let snapEnvVar = Environment.GetEnvironmentVariable "SNAP"
         let logoFileName = "logo.png"
         if not (String.IsNullOrEmpty snapEnvVar) then
-            window.SetApplicationIcon (SPrintF2 "%s/lib/geewallet/%s" (snapEnvVar.TrimEnd('/')) logoFileName)
+            window.SetApplicationIcon (
+                SPrintF3 "%s/lib/%s/%s"
+                    (snapEnvVar.TrimEnd('/'))
+                    Config.AppName
+                    logoFileName
+            )
         else
             window.SetApplicationIcon logoFileName
         window.SetDefaultSize (500, 1000)
@@ -41,7 +46,11 @@ module Main =
         | 0 ->
             NormalStartWithNoParameters()
         | 1 when argv.[0] = "--version" ->
-            Console.WriteLine (SPrintF1 "geewallet v%s" VersionHelper.CURRENT_VERSION)
+            Console.WriteLine (
+                SPrintF2 "%s v%s"
+                    Config.AppName
+                    VersionHelper.CURRENT_VERSION
+            )
             0
         | 1 when argv.[0] = "--console" ->
             GWallet.Frontend.Console.Program.Main Array.empty

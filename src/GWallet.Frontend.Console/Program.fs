@@ -527,7 +527,9 @@ module Program =
         | 0 ->
             NormalStartWithNoParameters()
         | 1 when argv.[0] = "--version" ->
-            Console.WriteLine (sprintf "geewallet v%s" VersionHelper.CURRENT_VERSION)
+            Console.WriteLine (
+                sprintf "%s v%s" Config.AppName VersionHelper.CURRENT_VERSION
+            )
             0
         | 1 when argv.[0] = "--update-servers-file" ->
             UpdateServersFile()
