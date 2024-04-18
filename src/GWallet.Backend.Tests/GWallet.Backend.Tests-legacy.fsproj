@@ -9,7 +9,7 @@
     <RootNamespace>GWallet.Backend.Tests</RootNamespace>
     <AssemblyName>GWallet.Backend.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
-    <TargetFSharpCoreVersion>4.7.0.0</TargetFSharpCoreVersion>
+    <TargetFSharpCoreVersion>6.0.0.0</TargetFSharpCoreVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Name>GWallet.Backend.Tests</Name>
     <TargetFrameworkProfile />
@@ -133,7 +133,7 @@
       <HintPath>..\..\packages\System.Text.Json.7.0.3\lib\netstandard2.0\System.Text.Json.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Core">
-      <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\net45\FSharp.Core.dll</HintPath>
+      <HintPath>..\..\packages\FSharp.Core.6.0.1\lib\netstandard2.0\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin.Altcoins">
       <HintPath>..\..\packages\NBitcoin.Altcoins.3.0.8\lib\net452\NBitcoin.Altcoins.dll</HintPath>

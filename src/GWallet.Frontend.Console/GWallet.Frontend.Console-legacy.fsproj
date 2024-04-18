@@ -11,7 +11,7 @@
     <AssemblyName>GWallet.Frontend.Console</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-    <TargetFSharpCoreVersion>4.7.0.0</TargetFSharpCoreVersion>
+    <TargetFSharpCoreVersion>6.0.0.0</TargetFSharpCoreVersion>
     <Name>GWallet.Frontend.Console</Name>
     <TargetFrameworkProfile />
     <OtherFlags>
@@ -91,7 +91,7 @@
       <HintPath>..\..\packages\Fsdk.0.6.0--date20230530-1155.git-3bb8d08\lib\netstandard2.0\Fsdk.dll</HintPath>
     </Reference>
     <Reference Include="FSharp.Core">
-      <HintPath>..\..\packages\FSharp.Core.4.7.0\lib\net45\FSharp.Core.dll</HintPath>
+      <HintPath>..\..\packages\FSharp.Core.6.0.1\lib\netstandard2.0\FSharp.Core.dll</HintPath>
     </Reference>
     <Reference Include="SharpRaven">
       <HintPath>..\..\packages\SharpRaven.2.4.0\lib\net471\SharpRaven.dll</HintPath>
