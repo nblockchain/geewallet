@@ -16,6 +16,8 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
     let _ = base.LoadFromXaml(typeof<WelcomePage>)
 
     let mainLayout = base.FindByName<Grid> "mainLayout"
+    let welcomeLabel = mainLayout.FindByName<Label> "welcomeLabel"
+
     let infoGrid = mainLayout.FindByName<Grid> "infoGrid"
     let passphraseEntry = mainLayout.FindByName<Entry> "passphraseEntry"
     let passphraseConfirmationEntry = mainLayout.FindByName<Entry> "passphraseConfirmationEntry"
@@ -96,6 +98,7 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
         )
 
     do
+        welcomeLabel.Text <- SPrintF1 "Welcome to %s" Config.AppName
         dobDatePicker.MaximumDate <- DateTime.UtcNow.Date
         dobDatePicker.Date <- middleDateEighteenYearsAgo
 
@@ -153,7 +156,12 @@ type WelcomePage(state: FrontendHelpers.IGlobalAppState) =
             submit () |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member private self.DisplayInfo() =
-        self.DisplayAlert("Info", "Please note that geewallet is a brain-wallet, which means that this personal information is not registered in any server or any location outside your device, not even saved in your device. It will just be combined and hashed to generate a unique secret which is called a 'private key' which will allow you to recover your funds if you install the application again (in this or other device) later. \r\n\r\n(If it is your first time using this wallet and just want to test it quickly without any funds or low amounts, you can just input any data that is long enough to be considered valid.)", "OK")
+        self.DisplayAlert(
+            "Info",
+            SPrintF1 "Please note that %s is a brain-wallet, which means that this personal information is not registered in any server or any location outside your device, not even saved in your device. It will just be combined and hashed to generate a unique secret which is called a 'private key' which will allow you to recover your funds if you install the application again (in this or other device) later. \r\n\r\n(If it is your first time using this wallet and just want to test it quickly without any funds or low amounts, you can just input any data that is long enough to be considered valid.)"
+                Config.AppName,
+            "OK"
+        )
 
     member self.OnMoreInfoButtonClicked(_sender: Object, _args: EventArgs) =
         self.DisplayInfo

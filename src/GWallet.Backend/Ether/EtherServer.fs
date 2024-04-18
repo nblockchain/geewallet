@@ -288,7 +288,7 @@ module Server =
             | Some deserEx ->
                 raise <| ServerMisconfiguredException(deserEx.Message, ex)
 
-            // this SSL exception could be a mono 6.0.x bug (see https://gitlab.com/knocte/geewallet/issues/121)
+            // this SSL exception could be a mono 6.0.x bug (see https://gitlab.com/nblockchain/geewallet/issues/121)
             let maybeHttpReqEx = FSharpUtil.FindException<Http.HttpRequestException> ex
             match maybeHttpReqEx with
             | Some httpReqEx ->
@@ -301,7 +301,7 @@ module Server =
                     raise <| ServerCannotBeResolvedException(httpReqEx.InnerException.Message, ex)
 *)
 
-                // this could be a mono 6.0.x bug (see https://gitlab.gnome.org/World/geewallet/issues/121)
+                // this could be a mono 6.0.x bug (see https://gitlab.com/nblockchain/geewallet/issues/121)
                 if httpReqEx.Message.Contains "SSL" then
                     let maybeIOEx = FSharpUtil.FindException<IOException> ex
                     match maybeIOEx with

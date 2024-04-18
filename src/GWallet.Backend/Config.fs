@@ -13,6 +13,9 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 // TODO: make internal when tests don't depend on this anymore
 module Config =
 
+    [<Literal>]
+    let AppName = "geewallet"
+
     // we might want to test with TestNet at some point, so this below is the key:
     // (but we would need to get a seed list of testnet electrum servers, and testnet(/ropsten/rinkeby?), first...)
     let BitcoinNet = NBitcoin.Network.Main

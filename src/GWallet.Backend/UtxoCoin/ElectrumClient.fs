@@ -12,7 +12,7 @@ module ElectrumClient =
         let stratumClient = new StratumClient(jsonRpcClient)
 
         // this is the last version of Electrum released at the time of writing this module
-        let CLIENT_NAME_SENT_TO_STRATUM_SERVER_WHEN_HELLO = "geewallet"
+        let CLIENT_NAME_SENT_TO_STRATUM_SERVER_WHEN_HELLO = Config.AppName
 
         // last version of the protocol [1] as of electrum's source code [2] at the time of
         // writing this... actually this changes relatively rarely (one of the last changes

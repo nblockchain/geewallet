@@ -7,7 +7,7 @@
                  RowDefinitions="*,*,Auto,Auto,Auto,Auto,Auto"
                  VerticalOptions="Center"
                  Padding="20,20,20,20">
-        <Label Text="Welcome to geewallet" x:Name="welcomeLabel"
+        <Label Text="Welcome" x:Name="welcomeLabel"
                VerticalOptions="Center" HorizontalOptions="Center"
                FontSize="Large"
                Margin="20,20,20,20"

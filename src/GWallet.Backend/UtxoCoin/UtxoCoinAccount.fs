@@ -308,7 +308,7 @@ module Account =
                     // Avoid querying for zero-value UTXOs, which would make many unnecessary parallel
                     // connections to Electrum servers. (there's no need to use/consolidate zero-value UTXOs)
 
-                    // This can be triggered on e.g. RegTest (by mining to Geewallet directly)
+                    // This can be triggered on e.g. RegTest (by mining to geewallet directly)
                     // because the block subsidy falls quickly. (it will be 0 after 7000 blocks)
 
                     // Zero-value OP_RETURN outputs are valid and standard:
@@ -381,7 +381,7 @@ module Account =
                 Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC) |> FeeRate
             with
             | ex ->
-                // we need more info in case this bug shows again: https://gitlab.com/knocte/geewallet/issues/43
+                // we need more info in case this bug shows again: https://gitlab.com/nblockchain/geewallet/issues/43
                 raise <| Exception(SPrintF1 "Could not create fee rate from %s btc per KB"
                                            (btcPerKiloByteForFastTrans.ToString()), ex)
 
