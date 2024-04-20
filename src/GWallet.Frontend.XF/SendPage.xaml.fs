@@ -754,7 +754,6 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         } |> FrontendHelpers.DoubleCheckCompletionAsync false
 
     member self.OnSendOrSignButtonClicked(_sender: Object, _args: EventArgs): unit =
-        let mainLayout = base.FindByName<StackLayout>("mainLayout")
         let amountToSend = mainLayout.FindByName<Entry>("amountToSend")
         let destinationAddress = destinationAddressEntry.Text
 
