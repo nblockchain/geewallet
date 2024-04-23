@@ -330,7 +330,7 @@ module FrontendHelpers =
     let SwitchToNewPage (currentPage: Page) (createNewPage: unit -> Page) (navBar: bool): unit =
         MainThread.BeginInvokeOnMainThread(fun _ ->
             let newPage = createNewPage ()
-#if !XAMARIN && GTK
+#if !XAMARIN
             NavigationPage.SetHasNavigationBar(newPage, navBar)
 #else
             NavigationPage.SetHasNavigationBar(newPage, false)
