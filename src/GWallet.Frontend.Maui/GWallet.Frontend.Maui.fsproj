@@ -44,6 +44,13 @@
   <PropertyGroup>
     <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
+
+  <!-- workaround for https://github.com/dotnet/maui/discussions/15540 (VS4Mac build, not happening in CI) -->
+  <PropertyGroup>
+    <MtouchLink>SdkOnly</MtouchLink>
+    <MtouchExtraArgs>$(MtouchExtraArgs) --weak-framework=NewsstandKit</MtouchExtraArgs>
+  </PropertyGroup>
+
   <PropertyGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
     <UseMaui>false</UseMaui>
     <MauiSubmodulePath>$(MSBuildProjectDirectory)\..\..\dependencies\maui\</MauiSubmodulePath>
