@@ -58,9 +58,9 @@ type PairingToPage(balancesPage: Page,
             FrontendHelpers.GetBarcodeScannerPage 
                 (fun barcodeString ->
                     MainThread.BeginInvokeOnMainThread(fun _ ->
+                        coldAddressesEntry.Text <- barcodeString
                         // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
                         //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
-                        coldAddressesEntry.Text <- barcodeString
                         let task = FrontendHelpers.TryPopModalAsync self
                         task |> FrontendHelpers.DoubleCheckCompletionNonGeneric) )
 

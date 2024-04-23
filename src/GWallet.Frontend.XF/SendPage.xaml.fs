@@ -151,14 +151,14 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
         let mainLayout = base.FindByName<Grid> "mainLayout"
         let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
         let scanPage = 
-                    FrontendHelpers.GetBarcodeScannerPage 
-                        (fun barcodeString ->
-                            MainThread.BeginInvokeOnMainThread(fun _ ->
-                                // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
-                                //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
-                                let task = FrontendHelpers.TryPopModalAsync self
-                                transactionEntry.Text <- barcodeString
-                                task |> FrontendHelpers.DoubleCheckCompletionNonGeneric) )
+            FrontendHelpers.GetBarcodeScannerPage 
+                (fun barcodeString ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
+                        // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
+                        //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
+                        let task = FrontendHelpers.TryPopModalAsync self
+                        transactionEntry.Text <- barcodeString
+                        task |> FrontendHelpers.DoubleCheckCompletionNonGeneric) )
 
         MainThread.BeginInvokeOnMainThread(fun _ ->
             // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
