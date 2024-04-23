@@ -1,11 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <!-- NOTE: when making changes to the lines below, maybe remove CheckEolWorkloads tag too -->
     <TargetFrameworks>net6.0-android;net6.0-ios;net6.0-maccatalyst</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('linux'))">net6.0-gtk</TargetFrameworks>
     <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
     <!-- <TargetFrameworks>$(TargetFrameworks);net6.0-tizen</TargetFrameworks> -->
+
+
     <OutputType>Exe</OutputType>
     <RootNamespace>GWallet.Frontend.Maui</RootNamespace>
     <UseMaui>true</UseMaui>
@@ -14,10 +17,10 @@
     <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
 
     <!-- Display name -->
-    <ApplicationTitle>GWallet.Frontend.Maui</ApplicationTitle>
+    <ApplicationTitle>geewallet</ApplicationTitle>
 
     <!-- App Identifier -->
-    <ApplicationId>com.companyname.mauigw</ApplicationId>
+    <ApplicationId>com.geewallet</ApplicationId>
     <ApplicationIdGuid>2F160DBF-529A-4906-A490-C58F706241BF</ApplicationIdGuid>
 
     <!-- Versions -->
@@ -271,6 +274,6 @@
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj" />
   </ItemGroup>
   
-  <Import Condition="$(TargetPlatformIdentifier) == 'gtk'" Project="$(MauiSubmodulePath)src\Maui.InTree.props"/>
+  <Import Condition="$(TargetPlatformIdentifier) == 'gtk'" Project="$(MauiSubmodulePath)src\Maui.InTree.props" />
 
 </Project>
