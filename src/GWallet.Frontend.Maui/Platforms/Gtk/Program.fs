@@ -9,7 +9,17 @@ open Microsoft.Maui.Hosting
 
 module Program = 
     [<EntryPoint>]
-    let main _args = 
-        let app = GtkApp()
-        app.Run()
-        0
+    let main args = 
+        match args with
+        | [||] ->
+            let app = GtkApp()
+            app.Run()
+            0
+        | [| "--version" |] ->
+            printfn
+                "%s v%s"
+                GWallet.Backend.Config.AppName
+                GWallet.Backend.VersionHelper.CURRENT_VERSION
+            0
+        | _ ->
+            failwith "Arguments not recognized"

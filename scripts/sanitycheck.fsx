@@ -92,6 +92,7 @@ let FindOffendingPrintfUsage () =
         String.Format (
             "scripts{0}" +
             "src{1}GWallet.Frontend.Console{0}" +
+            "src{1}GWallet.Frontend.Maui{0}" +
             "src{1}GWallet.Backend.Tests{0}" +
             "src{1}GWallet.Backend{1}FSharpUtil.fs{0}" +
             "dependencies",
