@@ -645,3 +645,45 @@ jobs:
       run: |
         sudo apt update
         ./scripts/snap_release.sh beta
+
+  snap_alpha:
+
+    needs:
+    - conventions
+
+    runs-on: ubuntu-22.04
+    env:
+      GtkSharpVersion: 3.24.24.95
+      DotnetVersion: 6.0.400
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install snap tools
+      run: |
+        sudo apt update || true
+        ./scripts/install_snapcraft.sh
+        
+    - name: Setup .NET SDK ${{ env.DotnetVersion }}
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{ env.DotnetVersion }}
+    
+    - name: Bump snap version
+      run: |
+        git submodule foreach git fetch --all && git submodule sync --recursive && git submodule update --init --recursive
+        dotnet fsi ./scripts/snap_bump.fsx
+
+    - name: Generate snap package
+      run: ./scripts/snap_build_maui.sh
+
+    - name: Install snap
+      # dangerous because it's a local snap (not one from the SnapStore)
+      run: sudo snap install --dangerous *.snap
+
+    - name: Test snap
+      run: geewallet --version
+
+    - uses: actions/upload-artifact@v3
+      name: Upload snap package as artifact
+      with:
+        name: snap_alpha
+        path: ./*.snap
