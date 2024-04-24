@@ -1,0 +1,52 @@
+name: gee-maui-preview
+base: core22 # the base snap is the execution environment for this snap
+version: '0.7.445.0' # just for humans, typically '1.2+git' or '1.3.2'
+summary: minimalistic cryptocurrency brainwallet # 79 char long summary
+description: |
+  Non-custodial, minimalistic and pragmatist opensource crossplatform
+  lightweight brainwallet for people that want to hold the most important
+  cryptocurrencies in the same application with ease & peace of mind.
+license: MIT
+icon: logo.png
+
+# grade must be 'stable' (without the quotes) to release into candidate/stable channels
+grade: stable
+confinement: strict
+
+layout:
+  /usr/lib/cli:
+    symlink: $SNAP/usr/lib/cli
+
+slots:
+  dbus:
+    interface: dbus
+    bus: session
+    name: Microsoft.Maui.MauiGtkApplication.geewallet
+
+apps:
+  geewallet:
+    extensions: [gnome]
+    command: bin/geewallet-maui-gtk.sh
+    slots: [ dbus ]
+    plugs:
+      - network
+
+parts:
+  geewallet:
+    plugin: dump
+    source: ./staging
+    organize:
+      geewallet-maui-gtk.sh: bin/geewallet-maui-gtk.sh
+    stage-snaps:
+      - dotnet-runtime-60
+    override-build: |
+      set -ex
+      
+      snapcraftctl build
+      
+      mkdir -p $CRAFT_PART_INSTALL/share/themes
+      mkdir -p $CRAFT_PART_INSTALL/share/icons
+      mkdir -p $CRAFT_PART_INSTALL/share/sounds
+
+environment:
+  XDG_DATA_DIRS: $SNAP/share:$XDG_DATA_DIRS

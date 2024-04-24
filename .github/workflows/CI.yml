@@ -610,9 +610,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install snap tools
-      run: |
-        sudo apt update
-        ./scripts/install_snapcraft.sh
+      run: ./scripts/install_snapcraft.sh
 
     # hack to disable msbuild detection
     # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
@@ -655,9 +653,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install snap tools
-      run: |
-        sudo apt update
-        ./scripts/install_snapcraft.sh
+      run: ./scripts/install_snapcraft.sh
 
     # hack to disable msbuild detection
     # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
@@ -695,3 +691,43 @@ jobs:
       run: |
         sudo apt update
         ./scripts/snap_release.sh beta
+
+  snap_alpha:
+  
+    needs:
+    - conventions
+
+    runs-on: ubuntu-22.04
+    env:
+      GtkSharpVersion: 3.24.24.95
+      DotnetVersion: 6.0.400
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install snap tools
+      run: ./scripts/install_snapcraft.sh maui
+        
+    - name: Setup .NET SDK ${{ env.DotnetVersion }}
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{ env.DotnetVersion }}
+    
+    - name: Bump snap version
+      run: |
+        git submodule foreach git fetch --all && git submodule sync --recursive && git submodule update --init --recursive
+        dotnet fsi ./scripts/snap_bump.fsx
+
+    - name: Generate snap package
+      run: ./scripts/snap_build_maui.sh || (cat /home/runner/.local/state/snapcraft/log/*.log && exit 1)
+
+    - name: Install snap
+      # dangerous because it's a local snap (not one from the SnapStore)
+      run: sudo snap install --dangerous *.snap
+
+    - name: Test snap
+      run: gee-maui-preview.geewallet --version
+
+    - uses: actions/upload-artifact@v3
+      name: Upload snap package as artifact
+      with:
+        name: snap_alpha
+        path: ./*.snap
