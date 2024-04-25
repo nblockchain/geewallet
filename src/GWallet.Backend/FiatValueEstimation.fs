@@ -1,10 +1,8 @@
 ﻿namespace GWallet.Backend
 
 open System
-open System.Net
 
 open FSharp.Data
-open Fsdk
 open FSharpx.Collections
 
 open GWallet.Backend.FSharpUtil.UwpHacks
@@ -1004,8 +1002,7 @@ module FiatValueEstimation =
         | CoinGecko
         | CoinDesk
 
-    let private QueryOnlineInternal currency (provider: PriceProvider): Async<Option<string*string>> = async {
-        use webClient = new WebClient()
+    let private QueryOnlineInternal currency (provider: PriceProvider): Async<Option<string*string>> =
         let tickerName =
             match currency,provider with
             | Currency.BTC,_ -> "bitcoin"
@@ -1018,7 +1015,7 @@ module FiatValueEstimation =
             | Currency.DAI,PriceProvider.CoinCap -> "multi-collateral-dai"
             | Currency.DAI,_ -> "dai"
 
-        try
+        async {
             let baseUrl =
                 match provider with
                 | PriceProvider.BitPay ->
@@ -1032,16 +1029,14 @@ module FiatValueEstimation =
                         failwith "CoinDesk API only provides bitcoin price"
                     "https://api.coindesk.com/v1/bpi/currentprice.json"
             let uri = Uri baseUrl
-            let task = webClient.DownloadStringTaskAsync uri
-            let! res = Async.AwaitTask task
-            return Some (tickerName,res)
-        with
-        | ex ->
-            if (FSharpUtil.FindException<WebException> ex).IsSome then
-                return None
-            else
-                return raise <| FSharpUtil.ReRaise ex
-    }
+
+            let! maybeResult = Networking.QueryRestApi uri
+            let tupleResult =
+                match maybeResult with
+                | None -> None
+                | Some result -> Some (tickerName, result)
+            return tupleResult
+        }
 
     let private QueryBitPay currency =
         async {

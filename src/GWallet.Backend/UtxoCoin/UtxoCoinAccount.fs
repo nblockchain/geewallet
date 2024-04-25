@@ -288,7 +288,7 @@ module Account =
                     return! EstimateFees newTxBuilder feeRate account newInputs tail
         }
 
-    let internal EstimateTransferFee
+    let private EstimateFeeForTransaction
         (account: IUtxoAccount)
         (amount: TransferAmount)
         (destination: string)
@@ -367,23 +367,7 @@ module Account =
 
         let initiallyUsedInputs = inputs |> List.ofArray
 
-        let averageFee (feesFromDifferentServers: List<decimal>): decimal =
-            let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
-            avg
-
-        //querying for 1 will always return -1 surprisingly...
-        let estimateFeeJob = ElectrumClient.EstimateFee 2
-        let! btcPerKiloByteForFastTrans =
-            Server.Query account.Currency (QuerySettings.FeeEstimation averageFee) estimateFeeJob None
-
-        let feeRate =
-            try
-                Money(btcPerKiloByteForFastTrans, MoneyUnit.BTC) |> FeeRate
-            with
-            | ex ->
-                // we need more info in case this bug shows again: https://gitlab.com/nblockchain/geewallet/issues/43
-                raise <| Exception(SPrintF1 "Could not create fee rate from %s btc per KB"
-                                           (btcPerKiloByteForFastTrans.ToString()), ex)
+        let! feeRate = FeeRateEstimation.EstimateFeeRate currency
 
         let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
                                                                      initiallyUsedInputs
@@ -409,7 +393,7 @@ module Account =
         (destination: string)
         : Async<TransactionMetadata> =
             async {
-                let! initialFee = EstimateTransferFee account amount destination
+                let! initialFee = EstimateFeeForTransaction account amount destination
                 if account.Currency <> Currency.LTC then
                     return initialFee
                 else
