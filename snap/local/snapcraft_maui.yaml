@@ -23,10 +23,6 @@ apps:
     extensions: [gnome]
     plugs:
       - network
-      - desktop
-      - desktop-legacy
-      - wayland
-      - unity7
 
 parts:
   geewallet:
