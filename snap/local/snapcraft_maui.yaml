@@ -20,9 +20,13 @@ layout:
 apps:
   geewallet:
     command: bin/desktop-launch $SNAP/bin/geewallet-gtk
-    extensions: [gnome]
     plugs:
       - network
+      - desktop
+      - desktop-legacy
+      - gsettings
+      - wayland
+      - x11
 
 parts:
   geewallet:
@@ -32,3 +36,34 @@ parts:
       - dotnet-sdk-6.0
     stage-snaps:
       - dotnet-runtime-60
+    override-build: |
+      set -ex
+      snapcraftctl build
+      mkdir -p $SNAPCRAFT_PART_INSTALL/share/themes
+      mkdir -p $SNAPCRAFT_PART_INSTALL/share/icons
+      mkdir -p $SNAPCRAFT_PART_INSTALL/share/sounds
+    stage:
+      - share/icons
+      - share/themes
+      - share/sounds
+      
+plugs:
+  gnome-3-42-2204:
+    interface: content
+    target: $SNAP/gnome-platform
+    default-provider: gnome-3-42-2204:gnome-3-42-2204
+  gtk-3-themes:
+    interface: content
+    target: $SNAP/share/themes
+    default-provider: gtk-common-themes:gtk-3-themes
+  icon-themes:
+    interface: content
+    target: $SNAP/share/icons
+    default-provider: gtk-common-themes:icon-themes
+  sound-themes:
+    interface: content
+    target: $SNAP/share/sounds
+    default-provider: gtk-common-themes:sounds-themes
+
+environment:
+  XDG_DATA_DIRS: $SNAP/share:$XDG_DATA_DIRS
