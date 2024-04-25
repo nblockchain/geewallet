@@ -20,6 +20,7 @@ layout:
 apps:
   geewallet:
     command: bin/desktop-launch $SNAP/bin/geewallet-gtk
+    extensions: [gnome]
     plugs:
       - network
       - desktop
@@ -35,45 +36,3 @@ parts:
       - dotnet-sdk-6.0
     stage-snaps:
       - dotnet-runtime-60
-
-  gtk3:
-    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
-    source-subdir: gtk
-    plugin: make
-    make-parameters: ["FLAVOR=gtk3"]
-    build-packages:
-      - libgtk3.0-dev
-    stage-packages:
-      - libxkbcommon0  # XKB_CONFIG_ROOT
-      - dmz-cursor-theme
-      - light-themes
-      - adwaita-icon-theme
-      - gnome-themes-standard
-      - shared-mime-info
-      - libgtk3.0-0
-      - libgdk-pixbuf3.0-0
-      - libglib3.0-bin
-      - libgtk3.0-bin
-      - unity-gtk2-module
-      - libappindicator1
-      - locales-all
-      - ibus-gtk
-      - libibus-1.0-5
-
-plugs:
-  gtk-3-engines:
-    interface: content
-    target: $SNAP/lib/gtk-3.0
-    default-provider: gtk2-common-themes
-  gtk-3-themes:
-    interface: content
-    target: $SNAP/data-dir/themes
-    default-provider: gtk-common-themes
-  icon-themes:
-    interface: content
-    target: $SNAP/data-dir/icons
-    default-provider: gtk-common-themes
-  sound-themes:
-    interface: content
-    target: $SNAP/data-dir/sounds
-    default-provider: gtk-common-themes
