@@ -310,7 +310,7 @@
     <Reference Include="System.Drawing" />
 
     <Reference Include="System.Memory">
-      <HintPath>..\..\packages\System.Memory.4.5.4\lib\net461\System.Memory.dll</HintPath>
+      <HintPath>..\..\packages\System.Memory.4.5.5\lib\netstandard2.0\System.Memory.dll</HintPath>
     </Reference>
     <Reference Include="Xamarin.Essentials">
       <HintPath>..\..\packages\DotNetEssentials.1.6.1--date20220823-0234.git-14ad2d3\lib\netstandard2.0\Xamarin.Essentials.dll</HintPath>
