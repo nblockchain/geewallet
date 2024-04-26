@@ -9,7 +9,7 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   macOS--dotnet6-and-mono:
-    runs-on: macOS-latest
+    runs-on: macOS-12
     steps:
     - uses: actions/checkout@v1
       with:
@@ -42,7 +42,7 @@ jobs:
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   macOS--mono-only:
-    runs-on: macOS-latest
+    runs-on: macOS-12
     steps:
     - uses: actions/checkout@v1
       with:
@@ -65,7 +65,7 @@ jobs:
       run: make update-servers
 
   macOS--dotnet6-only:
-    runs-on: macOS-latest
+    runs-on: macOS-12
     steps:
     - uses: actions/checkout@v1
       with:
