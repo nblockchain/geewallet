@@ -21,4 +21,4 @@ cd ../..
 rm ./snap/snapcraft.yaml
 mv ./snap/local/snapcraft_maui.yaml ./snap/snapcraft.yaml
 
-sudo snapcraft --destructive-mode
+snapcraft --destructive-mode
