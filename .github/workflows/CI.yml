@@ -670,7 +670,7 @@ jobs:
         dotnet fsi ./scripts/snap_bump.fsx
 
     - name: Generate snap package
-      run: sudo env "GtkSharpVersion=$GtkSharpVersion" "DotnetVersion=$DotnetVersion" ./scripts/snap_build_maui.sh || cat /home/runner/.local/state/snapcraft/log/*.log
+      run: ./scripts/snap_build_maui.sh || cat /home/runner/.local/state/snapcraft/log/*.log
 
     - name: Install snap
       # dangerous because it's a local snap (not one from the SnapStore)
