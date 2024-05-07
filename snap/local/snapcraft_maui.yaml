@@ -32,8 +32,6 @@ parts:
   geewallet:
     plugin: dotnet
     source: ./src/GWallet.Frontend.Maui/
-    build-packages:
-      - dotnet-sdk-6.0
     stage-snaps:
       - dotnet-runtime-60
     override-build: |
