@@ -32,6 +32,8 @@ parts:
   geewallet:
     plugin: dump
     source: ./staging
+    organize:
+      geewallet-maui-gtk.sh: bin/geewallet-maui-gtk.sh
     stage-snaps:
       - dotnet-runtime-60
     override-build: |

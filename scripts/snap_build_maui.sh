@@ -23,7 +23,7 @@ cd ../..
 make
 dotnet build --configuration=Release --framework=net6.0-gtk ./src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj
 dotnet publish --configuration=Release --framework=net6.0-gtk --output=./staging ./src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj
-cp scripts/geewallet-maui-gtk.sh ./staging/
+cp ./scripts/geewallet-maui-gtk.sh ./staging/
 
 rm ./snap/snapcraft.yaml
 mv ./snap/local/snapcraft_maui.yaml ./snap/snapcraft.yaml
