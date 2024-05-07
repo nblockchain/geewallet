@@ -648,9 +648,6 @@ jobs:
 
   snap_alpha:
 
-    needs:
-    - conventions
-
     runs-on: ubuntu-22.04
     env:
       GtkSharpVersion: 3.24.24.95
