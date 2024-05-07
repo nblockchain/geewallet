@@ -30,18 +30,15 @@ apps:
 
 parts:
   geewallet:
-    plugin: dotnet
-    source: ./src/GWallet.Frontend.Maui/
+    plugin: dump
+    source: ./staging
     stage-snaps:
       - dotnet-runtime-60
     override-build: |
       set -ex
-      # copy dependencies dir to be in place expected by MAUI project (2 levels up from build dir)
-      cp -r $CRAFT_STAGE/../dependencies $CRAFT_PART_BUILD/../../
-      # copy sources for Backend and Frontend.XF projects
-      cp -r $CRAFT_STAGE/../src/GWallet.Backend $CRAFT_PART_BUILD/../
-      cp -r $CRAFT_STAGE/../src/GWallet.Frontend.XF $CRAFT_PART_BUILD/../
+      
       snapcraftctl build
+      
       mkdir -p $CRAFT_PART_INSTALL/share/themes
       mkdir -p $CRAFT_PART_INSTALL/share/icons
       mkdir -p $CRAFT_PART_INSTALL/share/sounds

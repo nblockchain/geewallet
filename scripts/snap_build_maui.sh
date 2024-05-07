@@ -18,6 +18,12 @@ cd dependencies/maui
 dotnet nuget add source --name nuget https://api.nuget.org/v3/index.json
 cd ../..
 
+# Build GWallet MAUI Gtk project
+./configure.sh
+make
+dotnet build --configuration=Release --framework=net6.0-gtk ./src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj
+dotnet publish --configuration=Release --framework=net6.0-gtk --output=./staging ./src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj
+
 rm ./snap/snapcraft.yaml
 mv ./snap/local/snapcraft_maui.yaml ./snap/snapcraft.yaml
 
