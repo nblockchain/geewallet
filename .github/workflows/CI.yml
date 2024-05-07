@@ -1,6 +1,14 @@
 name: CI
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+  # to execute once a day (more info see https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule )
+  schedule:
+    - cron: "0 0 * * *"
+
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
