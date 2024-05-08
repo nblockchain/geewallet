@@ -19,14 +19,10 @@ layout:
 
 apps:
   geewallet:
+    extensions: [gnome]
     command: bin/geewallet-maui-gtk.sh
     plugs:
       - network
-      - desktop
-      - desktop-legacy
-      - gsettings
-      - wayland
-      - x11
 
 parts:
   geewallet:
@@ -44,24 +40,6 @@ parts:
       mkdir -p $CRAFT_PART_INSTALL/share/themes
       mkdir -p $CRAFT_PART_INSTALL/share/icons
       mkdir -p $CRAFT_PART_INSTALL/share/sounds
-      
-plugs:
-  gnome-3-42-2204:
-    interface: content
-    target: $SNAP/gnome-platform
-    default-provider: gnome-3-42-2204:gnome-3-42-2204
-  gtk-3-themes:
-    interface: content
-    target: $SNAP/share/themes
-    default-provider: gtk-common-themes:gtk-3-themes
-  icon-themes:
-    interface: content
-    target: $SNAP/share/icons
-    default-provider: gtk-common-themes:icon-themes
-  sound-themes:
-    interface: content
-    target: $SNAP/share/sounds
-    default-provider: gtk-common-themes:sounds-themes
 
 environment:
   XDG_DATA_DIRS: $SNAP/share:$XDG_DATA_DIRS
