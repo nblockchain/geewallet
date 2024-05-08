@@ -28,9 +28,4 @@ cp ./scripts/geewallet-maui-gtk.sh ./staging/
 rm ./snap/snapcraft.yaml
 mv ./snap/local/snapcraft_maui.yaml ./snap/snapcraft.yaml
 
-# Install snap packages needed to build geewallet package in
-# separate command under sudo. This way snapcraft command can be
-# run as regular user and not cause troubles with dotnet workflows.
-sudo snap install --channel=latest/stable core22
-
-snapcraft --destructive-mode
+sudo snapcraft --destructive-mode
