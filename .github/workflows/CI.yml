@@ -677,7 +677,7 @@ jobs:
       run: sudo snap install --dangerous *.snap
 
     - name: Test snap
-      run: geewallet --version
+      run: gee-maui-preview.geewallet --version
 
     - uses: actions/upload-artifact@v3
       name: Upload snap package as artifact
