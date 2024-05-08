@@ -44,10 +44,6 @@ parts:
       mkdir -p $CRAFT_PART_INSTALL/share/themes
       mkdir -p $CRAFT_PART_INSTALL/share/icons
       mkdir -p $CRAFT_PART_INSTALL/share/sounds
-    stage:
-      - share/icons
-      - share/themes
-      - share/sounds
       
 plugs:
   gnome-3-42-2204:
