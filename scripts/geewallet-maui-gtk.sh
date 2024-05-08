@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-$SNAP/dotnet $SNAP/GWallet.Frontend.Maui.dll
+$SNAP/dotnet $SNAP/GWallet.Frontend.Maui.dll "$@"
