@@ -19,7 +19,7 @@ layout:
 
 apps:
   geewallet:
-    command: geewallet-maui-gtk.sh
+    command: bin/geewallet-maui-gtk.sh
     plugs:
       - network
       - desktop
