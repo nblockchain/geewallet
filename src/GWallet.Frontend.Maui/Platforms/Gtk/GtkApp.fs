@@ -7,6 +7,6 @@ open Microsoft.Maui.Graphics
 open Microsoft.Maui.Hosting 
 
 type GtkApp() = 
-    inherit MauiGtkApplication(Name = GWallet.Backend.Config.AppName)
+    inherit MauiGtkApplication()
 
     override _.CreateMauiApp() = MauiProgram.CreateMauiApp()
