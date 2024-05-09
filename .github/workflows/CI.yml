@@ -657,7 +657,7 @@ jobs:
     - name: Install snap tools
       run: |
         sudo apt update || true
-        ./scripts/install_snapcraft.sh
+        ./scripts/install_snapcraft.sh maui
         
     - name: Setup .NET SDK ${{ env.DotnetVersion }}
       uses: actions/setup-dotnet@v1.7.2
