@@ -87,14 +87,22 @@ if gitProvider = GitLab then
 
 Console.WriteLine "Checking if this is a tag commit..."
 
+let isEdge =
+    match Misc.FsxOnlyArguments() with
+    | "edge" :: _ -> true
+    | _ -> false
+
 let gitTag =
     match gitProvider with
     | GitHub ->
         let tagsPrefix = "refs/tags/"
         if not (githubRef.StartsWith tagsPrefix) then
-            Console.WriteLine (sprintf "No tag being set (GITHUB_REF=%s), skipping release." githubRef)
-            Environment.Exit 0
-        githubRef.Substring tagsPrefix.Length
+            if not isEdge then
+                Console.WriteLine (sprintf "No tag being set (GITHUB_REF=%s), skipping release." githubRef)
+                Environment.Exit 0
+            None
+        else
+            Some(githubRef.Substring tagsPrefix.Length)
 
     | GitLab ->
         let commitHash = Git.GetLastCommit()
@@ -103,23 +111,23 @@ let gitTag =
             failwith "CI_COMMIT_REF_NAME should be available when GitLab: https://docs.gitlab.com/ee/ci/variables/predefined_variables.html"
 
         let ciTag = Environment.GetEnvironmentVariable "CI_COMMIT_TAG"
-        if String.IsNullOrEmpty ciTag then
+        if String.IsNullOrEmpty ciTag && not isEdge then
             Console.WriteLine (sprintf "No tag being set (CI_COMMIT_TAG=%s), skipping release." ciTag)
             Environment.Exit 0
 
         failwith "GitLab not supported at the moment for Snap release process"
 
-        ciTag
+        Some ciTag
 
 let channel =
-    match Misc.FsxOnlyArguments() with
-    | [ channel ] ->
+    match Misc.FsxOnlyArguments(), gitTag with
+    | [ channel ], _ ->
         channel
-    | [] ->
+    | [], Some tag ->
 
-        if not (snapFile.FullName.Contains gitTag) then
+        if not (snapFile.FullName.Contains tag) then
             failwithf "Git tag (%s) doesn't match version in snap package file name (%s)"
-                gitTag
+                tag
                 snapFile.FullName
 
         // the 'stable' and 'candidate' channels require 'stable' grade in the yaml
@@ -150,16 +158,19 @@ else
             // this must be a fork, do nothing
             Console.WriteLine "snapcraft.login file not found in likely GitLab fork repo, skipping log-in"
 
-Console.WriteLine (sprintf "About to start upload of release %s" gitTag)
+Console.WriteLine (sprintf "About to start upload of release %s" (gitTag |> Option.defaultValue channel))
 
 let loginMsgAdvice =
     "There was a problem trying to login with snapcraft, maybe the credentials expired?\r\n" +
     "If that is the case, install it in the same way as in install_snapcraft.sh and perform 'snapcraft export-login snapcraft.login', then extract the contents of 'snapcraft.login' file"
 
-Process.Execute({ Command = "snapcraft"; Arguments = "login --with snapcraft.login" }, Echo.All)
-       .Unwrap(loginMsgAdvice) |> ignore<string>
+if not isEdge then
+    Process.Execute({ Command = "snapcraft"; Arguments = "login --with snapcraft.login" }, Echo.All)
+           .Unwrap(loginMsgAdvice) |> ignore<string>
 
-Console.WriteLine "Login successfull. Upload starting..."
+    Console.WriteLine "Login successfull. Upload starting..."
+else
+    Console.WriteLine "Upload starting..."
 
 let snapPush =
     Process.Execute(
