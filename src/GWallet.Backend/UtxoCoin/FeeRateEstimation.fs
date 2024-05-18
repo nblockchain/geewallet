@@ -23,6 +23,19 @@ module FeeRateEstimation =
 
     let MempoolSpaceRestApiUri = Uri "https://mempool.space/api/v1/fees/recommended"
 
+    type BlockchainInfoProvider = JsonProvider<"""
+        {
+          "limits": {
+            "min": 4,
+            "max": 16
+          },
+          "regular": 9,
+          "priority": 11
+        }
+    """>
+
+    let BlockchainInfoRestApiUri = Uri "https://api.blockchain.info/mempool/fees"
+
     let private ToBrandedType(feeRatePerKB: decimal) (moneyUnit: MoneyUnit): FeeRate =
         try
             Money(feeRatePerKB, moneyUnit) |> FeeRate
@@ -41,6 +54,19 @@ module FeeRateEstimation =
                 let recommendedFees = MempoolSpaceProvider.Parse json
                 let highPrioFeeSatsPerB = decimal recommendedFees.FastestFee
                 Infrastructure.LogDebug (SPrintF1 "mempool.space API gave us a fee rate of %M sat per B" highPrioFeeSatsPerB)
+                let satPerKB = highPrioFeeSatsPerB * (decimal 1000)
+                return Some <| ToBrandedType satPerKB MoneyUnit.Satoshi
+        }
+
+    let private QueryFeeRateToBlockchainInfo (): Async<Option<FeeRate>> =
+        async {
+            let! maybeJson = Networking.QueryRestApi BlockchainInfoRestApiUri
+            match maybeJson with
+            | None -> return None
+            | Some json ->
+                let recommendedFees = BlockchainInfoProvider.Parse json
+                let highPrioFeeSatsPerB = decimal recommendedFees.Priority
+                Infrastructure.LogDebug (SPrintF1 "blockchain.info API gave us a fee rate of %M sat per B" highPrioFeeSatsPerB)
                 let satPerKB = highPrioFeeSatsPerB * (decimal 1000)
                 return Some <| ToBrandedType satPerKB MoneyUnit.Satoshi
         }
@@ -76,19 +102,43 @@ module FeeRateEstimation =
                 let! electrumResult = electrumJob
                 return electrumResult
             | Currency.BTC ->
-                let! bothJobs = Async.Parallel [electrumJob; QueryFeeRateToMempoolSpace()]
+                let! bothJobs = Async.Parallel [electrumJob; QueryFeeRateToMempoolSpace(); QueryFeeRateToBlockchainInfo()]
                 let electrumResult = bothJobs.ElementAt 0
                 let mempoolSpaceResult = bothJobs.ElementAt 1
-                match electrumResult, mempoolSpaceResult with
-                | None, None -> return None
-                | Some feeRate, None ->
+                let blockchainInfoResult = bothJobs.ElementAt 2
+                match electrumResult, mempoolSpaceResult, blockchainInfoResult with
+                | None, None, None -> return None
+                | Some feeRate, None, None ->
                     Infrastructure.LogDebug "Only electrum servers available for feeRate estimation"
                     return Some feeRate
-                | None, Some feeRate ->
+                | None, Some feeRate, None ->
                     Infrastructure.LogDebug "Only mempool.space API available for feeRate estimation"
                     return Some feeRate
-                | Some electrumFeeRate, Some mempoolSpaceFeeRate ->
-                    let average = AverageFee [decimal electrumFeeRate.FeePerK.Satoshi; decimal mempoolSpaceFeeRate.FeePerK.Satoshi]
+                | None, None, Some feeRate ->
+                    Infrastructure.LogDebug "Only blockchain.info API available for feeRate estimation"
+                    return Some feeRate
+                | None, Some restApiFeeRate1, Some restApiFeeRate2 ->
+                    Infrastructure.LogDebug "Only REST APIs available for feeRate estimation"
+                    let average = AverageFee [decimal restApiFeeRate1.FeePerK.Satoshi; decimal restApiFeeRate2.FeePerK.Satoshi]
+                    let averageFeeRate = ToBrandedType average MoneyUnit.Satoshi
+                    Infrastructure.LogDebug (SPrintF1 "Average fee rate of %M sat per B" averageFeeRate.SatoshiPerByte)
+                    return Some averageFeeRate
+                | Some electrumFeeRate, Some restApiFeeRate, None ->
+                    let average = AverageFee [decimal electrumFeeRate.FeePerK.Satoshi; decimal restApiFeeRate.FeePerK.Satoshi]
+                    let averageFeeRate = ToBrandedType average MoneyUnit.Satoshi
+                    Infrastructure.LogDebug (SPrintF1 "Average fee rate of %M sat per B" averageFeeRate.SatoshiPerByte)
+                    return Some averageFeeRate
+                | Some electrumFeeRate, None, Some restApiFeeRate ->
+                    let average = AverageFee [decimal electrumFeeRate.FeePerK.Satoshi; decimal restApiFeeRate.FeePerK.Satoshi]
+                    let averageFeeRate = ToBrandedType average MoneyUnit.Satoshi
+                    Infrastructure.LogDebug (SPrintF1 "Average fee rate of %M sat per B" averageFeeRate.SatoshiPerByte)
+                    return Some averageFeeRate
+                | Some electrumFeeRate, Some restApiFeeRate1, Some restApiFeeRate2 ->
+                    let average =
+                        TrustMinimizedEstimation.AverageBetween3DiscardingOutlier
+                            (decimal electrumFeeRate.FeePerK.Satoshi)
+                            (decimal restApiFeeRate1.FeePerK.Satoshi)
+                            (decimal restApiFeeRate2.FeePerK.Satoshi)
                     let averageFeeRate = ToBrandedType average MoneyUnit.Satoshi
                     Infrastructure.LogDebug (SPrintF1 "Average fee rate of %M sat per B" averageFeeRate.SatoshiPerByte)
                     return Some averageFeeRate
