@@ -1100,11 +1100,15 @@ module FiatValueEstimation =
                 let intermediate = sorted.Item 1
                 let lower = Math.Min(first, last)
 
+                if (higher - intermediate) = (intermediate - lower) then
+                    Some higher, Some lower
+
                 // choose the two that are closest
-                if (higher - intermediate) < (intermediate - lower) then
-                    Some higher, Some intermediate
                 else
-                    Some lower, Some intermediate
+                    if (higher - intermediate) < (intermediate - lower) then
+                        Some higher, Some intermediate
+                    else
+                        Some lower, Some intermediate
 
         let result =
             match someUsdPrice, otherUsdPrice with
