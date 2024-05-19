@@ -11,6 +11,10 @@ open NBitcoin
 
 module FeeRateEstimation =
 
+    type Priority =
+    | Highest
+    | Low
+
     type MempoolSpaceProvider = JsonProvider<"""
         {
           "fastestFee": 41,
@@ -45,27 +49,40 @@ module FeeRateEstimation =
             raise <| Exception(SPrintF2 "Could not create fee rate from %s %A"
                                         (feeRatePerKB.ToString()) moneyUnit, ex)
 
-    let private QueryFeeRateToMempoolSpace (): Async<Option<FeeRate>> =
+    let private QueryFeeRateToMempoolSpace (priority: Priority): Async<Option<FeeRate>> =
         async {
             let! maybeJson = Networking.QueryRestApi MempoolSpaceRestApiUri
             match maybeJson with
             | None -> return None
             | Some json ->
                 let recommendedFees = MempoolSpaceProvider.Parse json
-                let highPrioFeeSatsPerB = decimal recommendedFees.FastestFee
+                let highPrioFeeSatsPerB =
+                    // FIXME: at the moment of writing this, .FastestFee is even higher than what electrum servers recommend (15 vs 12)
+                    // (and .MinimumFee and .EconomyFee (3,6) seem too low, given that mempool.space website (not API) was giving 10,11,12)
+                    match priority with
+                    | Highest -> recommendedFees.FastestFee
+                    | Low -> recommendedFees.EconomyFee
+                    |> decimal
                 Infrastructure.LogDebug (SPrintF1 "mempool.space API gave us a fee rate of %M sat per B" highPrioFeeSatsPerB)
                 let satPerKB = highPrioFeeSatsPerB * (decimal 1000)
                 return Some <| ToBrandedType satPerKB MoneyUnit.Satoshi
         }
 
-    let private QueryFeeRateToBlockchainInfo (): Async<Option<FeeRate>> =
+    let private QueryFeeRateToBlockchainInfo (priority: Priority): Async<Option<FeeRate>> =
         async {
             let! maybeJson = Networking.QueryRestApi BlockchainInfoRestApiUri
             match maybeJson with
             | None -> return None
             | Some json ->
                 let recommendedFees = BlockchainInfoProvider.Parse json
-                let highPrioFeeSatsPerB = decimal recommendedFees.Priority
+                let highPrioFeeSatsPerB =
+                    // FIXME: at the moment of writing this, both priority & regular give same number wtaf -> 9
+                    // (and .Limits.Min was 4, which seemed too low given that mempool.space website (not API) was giving 10,11,12;
+                    //  and .Limits.Max was too high, higher than what electrum servers were suggesting: 12)
+                    match priority with
+                    | Highest -> recommendedFees.Priority
+                    | Low -> recommendedFees.Regular
+                    |> decimal
                 Infrastructure.LogDebug (SPrintF1 "blockchain.info API gave us a fee rate of %M sat per B" highPrioFeeSatsPerB)
                 let satPerKB = highPrioFeeSatsPerB * (decimal 1000)
                 return Some <| ToBrandedType satPerKB MoneyUnit.Satoshi
@@ -75,21 +92,31 @@ module FeeRateEstimation =
         let avg = feesFromDifferentServers.Sum() / decimal feesFromDifferentServers.Length
         avg
 
-    let private QueryFeeRateToElectrumServers (currency: Currency): Async<FeeRate> =
+    let private QueryFeeRateToElectrumServers (currency: Currency) (priority: Priority): Async<FeeRate> =
         async {
             //querying for 1 will always return -1 surprisingly...
-            let numBlocksToWait = 2
+            let numBlocksToWait =
+                match currency, priority with
+                | Currency.BTC, Low ->
+                    6
+                | Currency.LTC, _
+                | _, Highest ->
+                    //querying for 1 will always return -1 surprisingly...
+                    2
+                | otherCurrency, otherPrio ->
+                    failwith <| SPrintF2 "UTXO-based currency %A not implemented ElectrumServer feeRate %A query" otherCurrency otherPrio
+
             let estimateFeeJob = ElectrumClient.EstimateFee numBlocksToWait
             let! btcPerKiloByteForFastTrans =
                 Server.Query currency (QuerySettings.FeeEstimation AverageFee) estimateFeeJob None
             return ToBrandedType (decimal btcPerKiloByteForFastTrans) MoneyUnit.BTC
         }
 
-    let QueryFeeRateInternal currency =
+    let QueryFeeRateInternal currency (priority: Priority) =
         let electrumJob =
             async {
                 try
-                    let! result = QueryFeeRateToElectrumServers currency
+                    let! result = QueryFeeRateToElectrumServers currency priority
                     return Some result
                 with
                 | :? NoneAvailableException ->
@@ -102,7 +129,7 @@ module FeeRateEstimation =
                 let! electrumResult = electrumJob
                 return electrumResult
             | Currency.BTC ->
-                let! bothJobs = Async.Parallel [electrumJob; QueryFeeRateToMempoolSpace(); QueryFeeRateToBlockchainInfo()]
+                let! bothJobs = Async.Parallel [electrumJob; QueryFeeRateToMempoolSpace priority; QueryFeeRateToBlockchainInfo priority]
                 let electrumResult = bothJobs.ElementAt 0
                 let mempoolSpaceResult = bothJobs.ElementAt 1
                 let blockchainInfoResult = bothJobs.ElementAt 2
@@ -146,9 +173,9 @@ module FeeRateEstimation =
                 return failwith <| SPrintF1 "UTXO currency not supported yet?: %A" currency
         }
 
-    let internal EstimateFeeRate currency: Async<FeeRate> =
+    let internal EstimateFeeRate currency (priority: Priority): Async<FeeRate> =
         async {
-            let! maybeFeeRate = QueryFeeRateInternal currency
+            let! maybeFeeRate = QueryFeeRateInternal currency priority
             match maybeFeeRate with
             | None -> return failwith "Sending when offline not supported, try sign-off?"
             | Some feeRate -> return feeRate

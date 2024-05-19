@@ -54,6 +54,8 @@ type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
 
 module Account =
 
+    let BitcoinFeeRateDefaultPriority = FeeRateEstimation.Priority.Highest
+
     let internal GetNetwork (currency: Currency) =
         if not (currency.IsUtxo()) then
             failwith <| SPrintF1 "Assertion failed: currency %A should be UTXO-type" currency
@@ -367,7 +369,7 @@ module Account =
 
         let initiallyUsedInputs = inputs |> List.ofArray
 
-        let! feeRate = FeeRateEstimation.EstimateFeeRate currency
+        let! feeRate = FeeRateEstimation.EstimateFeeRate currency BitcoinFeeRateDefaultPriority
 
         let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
                                                                      initiallyUsedInputs
