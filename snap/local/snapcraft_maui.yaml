@@ -38,7 +38,7 @@ parts:
     organize:
       geewallet-maui-gtk.sh: bin/geewallet-maui-gtk.sh
     stage-packages:
-      - dotnet-runtime-6.0
+      - dotnet-runtime-7.0
     override-build: |
       set -ex
       
