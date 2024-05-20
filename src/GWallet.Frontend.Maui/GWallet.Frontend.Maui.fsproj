@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <!-- NOTE: when making changes to the lines below, maybe remove CheckEolWorkloads tag too -->
-    <TargetFrameworks>net6.0-android;net6.0-ios;net6.0-maccatalyst</TargetFrameworks>
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net6.0-windows10.0.19041.0</TargetFrameworks>
+    <TargetFrameworks>net8.0-android;net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks> 
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('linux'))">net6.0-gtk</TargetFrameworks>
     <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
     <!-- <TargetFrameworks>$(TargetFrameworks);net6.0-tizen</TargetFrameworks> -->
@@ -38,11 +38,6 @@
 
     <!-- .NET 6 workloads are out of support, but are still used in this project -->
     <CheckEolWorkloads>false</CheckEolWorkloads>
-  </PropertyGroup>
-
-  <!-- workaround for https://github.com/xamarin/xamarin-android/issues/6101 -->
-  <PropertyGroup>
-    <GenerateRuntimeConfigurationFiles>false</GenerateRuntimeConfigurationFiles>
   </PropertyGroup>
 
   <!-- workaround for https://github.com/dotnet/maui/discussions/15540 (VS4Mac build, not happening in CI) -->
@@ -219,6 +214,7 @@
 
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="6.0.3" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.21" />
   </ItemGroup>
   
   <ItemGroup Condition="$(TargetPlatformIdentifier) != 'gtk'">
@@ -244,8 +240,6 @@
     <AndroidManifest Include="$(AndroidProjectFolder)AndroidManifest.xml" />
     <Compile Include="$(AndroidProjectFolder)MainActivity.fs" />
     <Compile Include="$(AndroidProjectFolder)MainApplication.fs" />
-
-    <PackageReference Include="FSharp.Android.Resource" Version="1.0.4" />
   </ItemGroup>
 
   <ItemGroup Condition="$(TargetPlatformIdentifier) == 'ios'">

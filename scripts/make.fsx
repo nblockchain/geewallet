@@ -315,8 +315,8 @@ let DotNetBuild
 // https://github.com/fabulous-dev/FSharp.Mobile.Templates/tree/55a1f3a0fd5cc397e48677ef4ff9241b360b0e84 
 let BuildMauiProject binaryConfig =
     let mauiProjectFilePath = FrontendProject.Maui.GetProjectFile().FullName
-    DotNetBuild mauiProjectFilePath binaryConfig "--framework net6.0-android" true
-    DotNetBuild mauiProjectFilePath binaryConfig "--framework net6.0-android" false
+    DotNetBuild mauiProjectFilePath binaryConfig "--framework net8.0-android" true
+    DotNetBuild mauiProjectFilePath binaryConfig "--framework net8.0-android" false
 
 let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
