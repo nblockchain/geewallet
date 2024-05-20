@@ -19,32 +19,34 @@ env:
 # (msbuild bug?)
 
 jobs:
-  macOS--dotnet6-and-mono:
+  macOS--dotnet8-and-mono:
     runs-on: macOS-13
+    env:
+      # make it work with newer .NET
+      DOTNET_ROLL_FORWARD: 'Major'
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
+    - name: Setup .NET SDK 8.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.425'
+        dotnet-version: '8.0.300'
+    - name: Replace global.json in root dir
+      run: |
+        # Use global.json from src/GWallet.Frontend.Maui as it specifies .NET8
+        cp ./src/GWallet.Frontend.Maui/global.json ./        
     - name: Install specific Xamarin.iOS and Xamarin.Android versions
       run: |
         wget https://download.visualstudio.microsoft.com/download/pr/81c41aaa-a3d7-4875-8416-d04b472379b7/21d9f6c5ad3a6bc2479b2ec4b0685b6c/xamarin.ios-16.0.0.72.pkg
         sudo installer -pkg xamarin.ios-16.0.0.72.pkg -target /
         wget https://aka.ms/xamarin-android-commercial-d17-3-macos --output-document=xamarin.android-13.0.0.0.pkg
         sudo installer -pkg xamarin.android-13.0.0.0.pkg -target /
-    - name: Install Android 31 SDK
-      run: |
-        brew install --cask android-commandlinetools
-        echo y | sdkmanager 'build-tools;31.0.0' --sdk_root=/Users/runner/Library/Android/sdk
-        echo y | sdkmanager "platform-tools" "platforms;android-31" --sdk_root=/Users/runner/Library/Android/sdk
     - name: Check versions
       run: |
         mono --version
         /Library/Frameworks/Xamarin.iOS.framework/Versions/Current/bin/mtouch --version
-        ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/
+        ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/ 
     - name: install maui workload
       run: dotnet workload install maui
     - name: configure
@@ -52,22 +54,16 @@ jobs:
     - name: build in DEBUG mode
       run: make
     - name: Build Maui Android frontend
-      run: |
-        # first run will give some errors related to Resource, so run build command twice
-        dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net6.0-android || \
-        dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net6.0-android
+      run: dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net8.0-android
     - name: Build Android APK
-      run: |
-        # first run will give some errors related to Resource, so run build command twice
-        dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net6.0-android --configuration Release || \
-        dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net6.0-android --configuration Release
+      run: dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net8.0-android --configuration Release
     # Upload artifact fails with "permission denied" error without this
     - name: Fix permissions
-      run: sudo chmod -R 755 src/GWallet.Frontend.Maui/bin/Release/net6.0-android/publish
+      run: sudo chmod -R 755 src/GWallet.Frontend.Maui/bin/Release/net8.0-android/publish
     - name: Find the APK file's path and name
       id: find_apk_file
       run: |
-        FILEPATH=$(ls src/GWallet.Frontend.Maui/bin/Release/net6.0-android/publish/*.apk)
+        FILEPATH=$(ls src/GWallet.Frontend.Maui/bin/Release/net8.0-android/publish/*.apk)
         FILENAME=$(basename $FILEPATH)
         echo "file_path=$FILEPATH" >> $GITHUB_OUTPUT
         echo "file_name=$FILENAME" >> $GITHUB_OUTPUT
@@ -266,6 +262,10 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: ${{ env.DotnetVersion }}
+    - name: Replace global.json in src/GWallet.Frontend.Maui
+      run: |
+        # Use global.json from root as it specifies .NET6
+        cp ./global.json ./src/GWallet.Frontend.Maui/
     - name: Install gtk workload
       run: |
         wget -O gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg https://globalcdn.nuget.org/packages/gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.$GtkSharpVersion.nupkg
@@ -571,7 +571,7 @@ jobs:
     - windows--dotnet6-and-legacyFramework
     - windows--legacyFramework-only
     - windows--dotnet6-only
-    - macOS--dotnet6-and-mono
+    - macOS--dotnet8-and-mono
     - macOS--mono-only
     - macOS--dotnet6-only
 
@@ -715,6 +715,11 @@ jobs:
       run: |
         git submodule foreach git fetch --all && git submodule sync --recursive && git submodule update --init --recursive
         dotnet fsi ./scripts/snap_bump.fsx
+    
+    - name: Replace global.json in src/GWallet.Frontend.Maui
+      run: |
+        # Use global.json from root as it specifies .NET6
+        cp ./global.json ./src/GWallet.Frontend.Maui/
 
     - name: Generate snap package
       run: ./scripts/snap_build_maui.sh || (cat /home/runner/.local/state/snapcraft/log/*.log && exit 1)
