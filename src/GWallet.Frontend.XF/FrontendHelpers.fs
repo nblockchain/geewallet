@@ -330,14 +330,20 @@ module FrontendHelpers =
     let SwitchToNewPage (currentPage: Page) (createNewPage: unit -> Page) (navBar: bool): unit =
         MainThread.BeginInvokeOnMainThread(fun _ ->
             let newPage = createNewPage ()
-#if !XAMARIN
-            NavigationPage.SetHasNavigationBar(newPage, navBar)
-#else
+            
             NavigationPage.SetHasNavigationBar(newPage, false)
-#endif            
+            
             let navPage = NavigationPage newPage
+#if XAMARIN
             NavigationPage.SetHasNavigationBar(navPage, navBar)
-
+#else
+            // we put these statements inside NavigatedTo handler to
+            // show navigation toolbar only after new page is loaded
+            navPage.NavigatedTo.Add(fun _ -> 
+                NavigationPage.SetHasNavigationBar(newPage, navBar)
+                NavigationPage.SetHasNavigationBar(navPage, navBar)
+            )
+#endif
             currentPage.Navigation.PushAsync navPage
                 |> DoubleCheckCompletionNonGeneric
         )
