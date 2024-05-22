@@ -1,11 +1,23 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if XAMARIN
+namespace GWallet.Frontend.XF
+#else
+namespace GWallet.Frontend.Maui
+#endif
 
 open System
 open System.Linq
 
+#if !XAMARIN
+open Microsoft.Maui
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.ApplicationModel
+open Microsoft.Maui.Devices
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
+#endif
 open Fsdk
 
 open GWallet.Backend
@@ -31,7 +43,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
                          |> List.map (fun account -> account :> IAccount)
     let readOnlyAccounts = allAccounts.OfType<ReadOnlyAccount>() |> List.ofSeq
                            |> List.map (fun account -> account :> IAccount)
-
+    
     let GetAllCurrencyCases(): seq<Currency*bool> =
         seq {
             for currency in Currency.GetAll() do
@@ -50,8 +62,8 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         }
     let PreLoadCurrencyImages(): Map<Currency*bool,Image> =
         GetAllImages() |> Map.ofSeq
-
-    let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" 512
+    let logoImageSizeInPixels= 512
+    let logoImageSource = FrontendHelpers.GetSizedImageSource "logo" logoImageSizeInPixels
     let logoImg = Image(Source = logoImageSource, IsVisible = true)
 
     let mutable keepAnimationTimerActive = true
@@ -80,7 +92,7 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
         )
 
         let dotsAnimationLength = TimeSpan.FromMilliseconds 500.
-        Device.StartTimer(dotsAnimationLength, Func<bool> UpdateDotsLabel)
+        FrontendHelpers.StartTimer(dotsAnimationLength, UpdateDotsLabel)
     do
         self.Init()
 
@@ -123,12 +135,16 @@ type LoadingPage(state: FrontendHelpers.IGlobalAppState, showLogoFirst: bool) as
     member self.Init (): unit =
         if showLogoFirst then
             MainThread.BeginInvokeOnMainThread(fun _ ->
+#if !XAMARIN && GTK
+                logoImg.WidthRequest <- float(logoImageSizeInPixels) / 2.0
+                logoImg.HeightRequest <- float(logoImageSizeInPixels) / 2.0
+#endif
                 mainLayout.Children.Add logoImg
             )
 
             self.Transition()
 
-            Device.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
+            FrontendHelpers.StartTimer(TimeSpan.FromSeconds 5.0, fun _ ->
                 ShowLoadingText()
 
                 false // do not run timer again

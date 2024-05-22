@@ -16,20 +16,45 @@ on:
 # (msbuild bug?)
 
 jobs:
-  macOS--dotnet6-and-mono:
+  macOS--dotnet8-and-mono:
     runs-on: macOS-12
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
+    - name: Setup .NET SDK 8.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: '8.0.300'
+    - name: Replace global.json in root dir
+      run: |
+        # Use global.json from src/GWallet.Frontend.Maui as it specifies .NET8
+        cp ./src/GWallet.Frontend.Maui/global.json ./        
+    - name: install maui workload
+      run: dotnet workload install maui
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
       run: make
+    - name: Build Maui Android frontend
+      run: dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net8.0-android
+    - name: Build Android APK
+      run: dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net8.0-android --configuration Release
+    # Upload artifact fails with "permission denied" error without this
+    - name: Fix permissions
+      run: sudo chmod -R 755 src/GWallet.Frontend.Maui/bin/Release/net8.0-android/publish
+    - name: Find the APK file's path and name
+      id: find_apk_file
+      run: |
+        FILEPATH=$(ls src/GWallet.Frontend.Maui/bin/Release/net8.0-android/publish/*.apk)
+        FILENAME=$(basename $FILEPATH)
+        echo "file_path=$FILEPATH" >> $GITHUB_OUTPUT
+        echo "file_name=$FILENAME" >> $GITHUB_OUTPUT
+    - name: Upload APK as CI artifact
+      uses: actions/upload-artifact@v3
+      with:
+        path: ${{ steps.find_apk_file.outputs.file_path }}
+        name: ${{ steps.find_apk_file.outputs.file_name }}
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
@@ -104,7 +129,7 @@ jobs:
     - name: Setup .NET SDK 6.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: '6.0.x'
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -190,10 +215,37 @@ jobs:
 
   linux-github--dotnet-and-mono:
     runs-on: ubuntu-22.04
+    env:
+      GtkSharpVersion: 3.24.24.95
+      DotnetVersion: 6.0.400
     steps:
     - uses: actions/checkout@v1
       with:
-        submodules: false
+        submodules: true
+    - name: Setup .NET SDK ${{ env.DotnetVersion }}
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{ env.DotnetVersion }}
+    - name: Replace global.json in src/GWallet.Frontend.Maui
+      run: |
+        # Use global.json from root as it specifies .NET6
+        cp ./global.json ./src/GWallet.Frontend.Maui/
+    - name: Install gtk workload
+      run: |
+        wget -O gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg https://globalcdn.nuget.org/packages/gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.$GtkSharpVersion.nupkg
+        DOTNET_DIR=/home/runner/.dotnet
+        WORKLOAD_MANIFEST_DIR=$DOTNET_DIR/sdk-manifests/${{ env.DotnetVersion }}/gtksharp.net.sdk.gtk
+        mkdir -p $WORKLOAD_MANIFEST_DIR/
+        unzip -j gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg "data/*" -d $WORKLOAD_MANIFEST_DIR/
+        rm gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg
+        # otherwise we get System.UnauthorizedAccessException: Access to the path '/home/runner/.dotnet/sdk-manifests/6.0.300/gtksharp.net.sdk.gtk/WorkloadManifest.json' is denied.
+        chmod 764 $WORKLOAD_MANIFEST_DIR/*
+        dotnet workload search
+        dotnet workload install gtk --skip-manifest-update
+    - name: Add Maui Nuget source
+      run: |
+        cd dependencies/maui
+        dotnet nuget add source --name nuget https://api.nuget.org/v3/index.json
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
@@ -202,6 +254,9 @@ jobs:
       run: ./configure.sh
     - name: build in DEBUG mode
       run: make
+    - name: build Maui frontend
+      run: |
+        dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net6.0-gtk
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
@@ -468,7 +523,7 @@ jobs:
     - windows--dotnet6-and-legacyFramework
     - windows--legacyFramework-only
     - windows--dotnet6-only
-    - macOS--dotnet6-and-mono
+    - macOS--dotnet8-and-mono
     - macOS--mono-only
     - macOS--dotnet6-only
 
@@ -507,9 +562,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install snap tools
-      run: |
-        sudo apt update
-        ./scripts/install_snapcraft.sh
+      run: ./scripts/install_snapcraft.sh
 
     # hack to disable msbuild detection
     # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
@@ -552,9 +605,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install snap tools
-      run: |
-        sudo apt update
-        ./scripts/install_snapcraft.sh
+      run: ./scripts/install_snapcraft.sh
 
     # hack to disable msbuild detection
     # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
@@ -592,3 +643,55 @@ jobs:
       run: |
         sudo apt update
         ./scripts/snap_release.sh beta
+
+  snap_alpha:
+  
+    needs:
+    - conventions
+
+    runs-on: ubuntu-22.04
+    env:
+      GtkSharpVersion: 3.24.24.95
+      DotnetVersion: 6.0.400
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install snap tools
+      run: ./scripts/install_snapcraft.sh maui
+        
+    - name: Setup .NET SDK ${{ env.DotnetVersion }}
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{ env.DotnetVersion }}
+    
+    - name: Bump snap version
+      run: |
+        git submodule foreach git fetch --all && git submodule sync --recursive && git submodule update --init --recursive
+        dotnet fsi ./scripts/snap_bump.fsx
+    
+    - name: Replace global.json in src/GWallet.Frontend.Maui
+      run: |
+        # Use global.json from root as it specifies .NET6
+        cp ./global.json ./src/GWallet.Frontend.Maui/
+
+    - name: Generate snap package
+      run: ./scripts/snap_build_maui.sh || (cat /home/runner/.local/state/snapcraft/log/*.log && exit 1)
+
+    - name: Install snap
+      # dangerous because it's a local snap (not one from the SnapStore)
+      run: sudo snap install --dangerous *.snap
+
+    - name: Test snap
+      run: gee-maui-preview.geewallet --version
+
+    - uses: actions/upload-artifact@v3
+      name: Upload snap package as artifact
+      with:
+        name: snap_alpha
+        path: ./*.snap
+    
+    - name: Upload snap package to Snap Store
+      env:
+        SNAPCRAFT_STORE_CREDENTIALS: ${{secrets.SNAPCRAFT_LOGIN}}
+      run: |
+        sudo apt update
+        ./scripts/snap_release.sh edge

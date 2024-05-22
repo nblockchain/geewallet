@@ -1,11 +1,22 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if !XAMARIN
+namespace GWallet.Frontend.Maui
+#else
+namespace GWallet.Frontend.XF
+#endif
 
 open System
 open System.Linq
-
+#if !XAMARIN
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.Networking
+open Microsoft.Maui.ApplicationModel
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
+#endif
+
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks

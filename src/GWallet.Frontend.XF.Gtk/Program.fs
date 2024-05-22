@@ -7,6 +7,7 @@ open Xamarin.Forms.Platform.GTK
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
+open GWallet.Frontend.XF
 
 module Main =
 
@@ -34,7 +35,7 @@ module Main =
             )
         else
             window.SetApplicationIcon logoFileName
-        window.SetDefaultSize (500, 1000)
+        window.SetDefaultSize FrontendHelpers.DefaultDesktopWindowSize
         window.Show()
         Gtk.Application.Run()
         0

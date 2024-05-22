@@ -27,17 +27,20 @@ let PASCALCASE_NAME = "GWallet"
 
 let XF_FRONTEND_LIB = sprintf "%s.Frontend.XF" PASCALCASE_NAME
 let GTK_FRONTEND_APP = sprintf "%s.Frontend.XF.Gtk" PASCALCASE_NAME
+let MAUI_FRONTEND_APP = sprintf "%s.Frontend.Maui" PASCALCASE_NAME
 let CONSOLE_FRONTEND_APP = sprintf "%s.Frontend.ConsoleApp" PASCALCASE_NAME
 let BACKEND_LIB = sprintf "%s.Backend" PASCALCASE_NAME
 
 type FrontendProject =
     | XF
     | Gtk
+    | Maui
     member self.GetProjectFile(): FileInfo =
         let projName =
             match self with
             | Gtk -> GTK_FRONTEND_APP
             | XF -> XF_FRONTEND_LIB
+            | Maui -> MAUI_FRONTEND_APP
 
         let prjFile =
             let projFileName = sprintf "%s.fsproj" projName
@@ -201,6 +204,11 @@ let BuildSolutionOrProject
             Seq.append ["LEGACY_FRAMEWORK"] defineConstantsFromBuildConfig
         else
             defineConstantsFromBuildConfig
+    let defineConstantsSoFar =
+        if not(file.FullName.EndsWith "maui.sln") then
+            Seq.append ["XAMARIN"] defineConstantsSoFar
+        else
+            defineConstantsSoFar
     let allDefineConstants =
         match maybeConstant with
         | Some constant -> Seq.append [constant] defineConstantsSoFar
@@ -248,6 +256,67 @@ let BuildSolutionOrProject
 #endif
         Environment.Exit 1
     | _ -> ()
+
+// TODO: we have to change this function to be the other way around (i.e. copy from Maui to XF) once we
+//       have a finished version of Maui and we consider XF as legacy.
+let CopyXamlFiles() = 
+    let files = 
+        [| 
+            "WelcomePage.xaml"
+            "WelcomePage2.xaml"
+            "LoadingPage.xaml"
+            "BalancesPage.xaml"
+            "PairingFromPage.xaml"
+            "PairingToPage.xaml" 
+            "ReceivePage.xaml"
+            "SendPage.xaml"
+        |]
+    for file in files do
+        let sourcePath = Path.Combine("src", "GWallet.Frontend.XF", file)
+        let destPath = Path.Combine("src", "GWallet.Frontend.Maui", file)
+            
+        File.Copy(sourcePath, destPath, true)
+        let fileText = File.ReadAllText(destPath)
+        File.WriteAllText(
+            destPath,
+            fileText
+                .Replace("http://xamarin.com/schemas/2014/forms","http://schemas.microsoft.com/dotnet/2021/maui")
+                .Replace("clr-namespace:ZXing.Net.Mobile.Forms;assembly=ZXing.Net.Mobile.Forms","clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls")
+                .Replace("GWallet.Frontend.XF", "GWallet.Frontend.Maui")
+                .Replace("ZXingBarcodeImageView", "BarcodeGeneratorView")
+        )
+
+        
+
+let DotNetBuild
+    (solutionProjectFileName: string)
+    (binaryConfig: BinaryConfig)
+    (args: string)
+    (ignoreError: bool)
+    =
+    let configOption = sprintf "-c %s" (binaryConfig.ToString())
+    let buildArgs = (sprintf "build %s %s %s" configOption solutionProjectFileName args)
+    let buildProcess = Process.Execute ({ Command = "dotnet"; Arguments = buildArgs }, Echo.All)
+    match buildProcess.Result with
+    | Error _ ->
+        if not ignoreError then
+            Console.WriteLine()
+            Console.Error.WriteLine "dotnet build failed"
+#if LEGACY_FRAMEWORK
+            PrintNugetVersion() |> ignore
+#endif
+            Environment.Exit 1
+        else
+            ()
+    | _ -> ()
+
+// We have to build Maui project for android twice because the first time we get
+// an error about Resource file not found. The second time it works. 
+// https://github.com/fabulous-dev/FSharp.Mobile.Templates/tree/55a1f3a0fd5cc397e48677ef4ff9241b360b0e84 
+let BuildMauiProject binaryConfig =
+    let mauiProjectFilePath = FrontendProject.Maui.GetProjectFile().FullName
+    DotNetBuild mauiProjectFilePath binaryConfig "--framework net8.0-android" true
+    DotNetBuild mauiProjectFilePath binaryConfig "--framework net8.0-android" false
 
 let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
@@ -312,6 +381,7 @@ let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
                     // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
                     NugetRestore solution
+                    CopyXamlFiles()
                     MSBuildRestoreAndBuild solution
 
                 FrontendApp.Console
@@ -411,6 +481,7 @@ let MakeAll (maybeConstant: Option<string>) =
 #endif
     let buildConfig = BinaryConfig.Debug
     let frontend,_ = JustBuild buildConfig maybeConstant
+    CopyXamlFiles()
     frontend,buildConfig
 
 let RunFrontend (frontend: FrontendApp) (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
