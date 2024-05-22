@@ -17,17 +17,10 @@ layout:
   /usr/lib/cli:
     symlink: $SNAP/usr/lib/cli
 
-slots:
-  dbus:
-    interface: dbus
-    bus: session
-    name: Microsoft.Maui.MauiGtkApplication.geewallet
-
 apps:
   geewallet:
     extensions: [gnome]
     command: bin/geewallet-maui-gtk.sh
-    slots: [ dbus ]
     plugs:
       - network
 
