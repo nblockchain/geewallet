@@ -190,8 +190,11 @@ type ReceivePage(account: IAccount,
                 failwith "Initialization of ReceivePage() didn't happen?"
 
             newPage :> Page
-
+#if XAMARIN
         FrontendHelpers.SwitchToNewPage self sendPage false
+#else
+        FrontendHelpers.SwitchToNewPage self sendPage true
+#endif
 
     member __.OnCopyToClipboardClicked(_sender: Object, _args: EventArgs) =
         let copyToClipboardButton = base.FindByName<Button>("copyToClipboardButton")
