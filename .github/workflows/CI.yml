@@ -29,18 +29,12 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: '8.0.300'
-    - name: Replace global.json in root dir
-      run: |
-        # Use global.json from src/GWallet.Frontend.Maui as it specifies .NET8
-        cp ./src/GWallet.Frontend.Maui/global.json ./        
     - name: install maui workload
       run: dotnet workload install maui
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
       run: make
-    - name: Build Maui Android frontend
-      run: dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net8.0-android
     - name: Build Android APK
       run: dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net8.0-android --configuration Release
     # Upload artifact fails with "permission denied" error without this
@@ -233,10 +227,6 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: ${{ env.DotnetVersion }}
-    - name: Replace global.json in src/GWallet.Frontend.Maui
-      run: |
-        # Use global.json from root as it specifies .NET6
-        cp ./global.json ./src/GWallet.Frontend.Maui/
     - name: Install gtk workload
       run: |
         wget -O gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg https://globalcdn.nuget.org/packages/gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.$GtkSharpVersion.nupkg
@@ -261,9 +251,6 @@ jobs:
       run: ./configure.sh
     - name: build in DEBUG mode
       run: make
-    - name: build Maui frontend
-      run: |
-        dotnet build src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework=net6.0-gtk
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
@@ -685,11 +672,6 @@ jobs:
       run: |
         git submodule foreach git fetch --all && git submodule sync --recursive && git submodule update --init --recursive
         dotnet fsi ./scripts/snap_bump.fsx
-    
-    - name: Replace global.json in src/GWallet.Frontend.Maui
-      run: |
-        # Use global.json from root as it specifies .NET6
-        cp ./global.json ./src/GWallet.Frontend.Maui/
 
     - name: Generate snap package
       run: ./scripts/snap_build_maui.sh || (cat /home/runner/.local/state/snapcraft/log/*.log && exit 1)

@@ -53,14 +53,17 @@ type FrontendProject =
 type FrontendApp =
     | Console
     | Gtk
+    | Maui
     member self.GetProjectName() =
         match self with
         | Console -> CONSOLE_FRONTEND_APP
         | Gtk -> GTK_FRONTEND_APP
+        | Maui -> MAUI_FRONTEND_APP
     member self.GetExecutableName() =
         match self with
         | Console -> CONSOLE_FRONTEND_APP
         | Gtk -> UNIX_NAME
+        | Maui -> MAUI_FRONTEND_APP
     override self.ToString() =
         sprintf "%A" self
 
@@ -310,17 +313,16 @@ let DotNetBuild
             ()
     | _ -> ()
 
-// We have to build Maui project for android twice because the first time we get
-// an error about Resource file not found. The second time it works. 
-// https://github.com/fabulous-dev/FSharp.Mobile.Templates/tree/55a1f3a0fd5cc397e48677ef4ff9241b360b0e84 
-let BuildMauiProject binaryConfig =
+let BuildMauiProject (binaryConfig: BinaryConfig) (frameworkIdentifier: string) =
     let mauiProjectFilePath = FrontendProject.Maui.GetProjectFile().FullName
-    DotNetBuild mauiProjectFilePath binaryConfig "--framework net8.0-android" true
-    DotNetBuild mauiProjectFilePath binaryConfig "--framework net8.0-android" false
+    DotNetBuild mauiProjectFilePath binaryConfig (sprintf "--framework %s" frameworkIdentifier) false
 
 let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
+    CopyXamlFiles()
+
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
     let maybeLegacyBuildTool = Map.tryFind "LegacyBuildTool" buildConfigContents
+    let maybeConfigFrontend = Map.tryFind "Frontend" buildConfigContents
 
     let solutionFile = FsxHelper.GetSolution SolutionFile.Default
     let getBuildToolAndArgs(buildTool: string) =
@@ -381,7 +383,6 @@ let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
                     // somehow, msbuild doesn't restore the frontend dependencies (e.g. Xamarin.Forms) when targetting
                     // the {LINUX|MAC}_SOLUTION_FILE below, so we need this workaround. TODO: just finish migrating to MAUI(dotnet restore)
                     NugetRestore solution
-                    CopyXamlFiles()
                     MSBuildRestoreAndBuild solution
 
                 FrontendApp.Console
@@ -398,6 +399,13 @@ let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
                     FrontendApp.Console
 
             | _ -> FrontendApp.Console
+        | Some "dotnet", _ when maybeConfigFrontend |> Option.exists (fun value -> value.StartsWith "Maui") ->
+            if maybeConfigFrontend = Some "Maui/Gtk" then
+                BuildMauiProject binaryConfig "net6.0-gtk"
+            else
+                BuildMauiProject binaryConfig "net8.0-android"
+
+            FrontendApp.Maui
         | Some buildTool, Some legacyBuildTool when buildTool = "dotnet" && legacyBuildTool = "xbuild" ->
             if FsxHelper.AreGtkLibsPresent Echo.All then
                 BuildSolutionOrProject
@@ -481,7 +489,6 @@ let MakeAll (maybeConstant: Option<string>) =
 #endif
     let buildConfig = BinaryConfig.Debug
     let frontend,_ = JustBuild buildConfig maybeConstant
-    CopyXamlFiles()
     frontend,buildConfig
 
 let RunFrontend (frontend: FrontendApp) (buildConfig: BinaryConfig) (maybeArgs: Option<string>) =
