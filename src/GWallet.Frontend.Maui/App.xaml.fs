@@ -17,5 +17,6 @@ type App() as this =
             let gtkWindow = MauiGtkApplication.Current.MainWindow
             gtkWindow.Resize FrontendHelpers.DefaultDesktopWindowSize
         )
+        window.Title <- GWallet.Backend.Config.AppName
         window
 #endif
