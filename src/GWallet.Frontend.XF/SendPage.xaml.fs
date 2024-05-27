@@ -319,8 +319,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let navNewReceivePage = NavigationPage(newReceivePage)
                 do! Async.AwaitTask displayTask
                 do! Async.SwitchToContext mainThreadSynchContext
+#if XAMARIN
                 NavigationPage.SetHasNavigationBar(newReceivePage, false)
                 NavigationPage.SetHasNavigationBar(navNewReceivePage, false)
+#else
+                NavigationPage.SetHasNavigationBar(newReceivePage, true)
+                NavigationPage.SetHasNavigationBar(navNewReceivePage, true)
+#endif
                 receivePage.Navigation.RemovePage receivePage
                 self.Navigation.InsertPageBefore(navNewReceivePage, self)
                 let! _ = Async.AwaitTask (self.Navigation.PopAsync())
