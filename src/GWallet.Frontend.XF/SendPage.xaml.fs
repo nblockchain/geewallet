@@ -133,6 +133,11 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
             // workaround so that controls are not lumped together on GTK
             mainLayout.RowSpacing <- 5.0
 #endif
+#if !XAMARIN && GTK
+            // on Maui/Gtk set spacing between "Amount:" label and amount value like it is on other platforms
+            let equivalenAmountLabel = mainLayout.FindByName<Label> "equivalentAmountInAlternativeCurrency"
+            equivalenAmountLabel.Padding <- Microsoft.Maui.Thickness(5.0, 0.0, 0.0, 0.0)
+#endif
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = SendPage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
