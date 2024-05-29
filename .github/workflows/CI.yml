@@ -12,6 +12,8 @@ on:
 env:
   # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
   FSXC_VERSION: 0.5.9.1
+  GtkSharpVersion: 3.24.24.95
+  DotNetVersionForMauiGtk: 6.0.400
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
@@ -216,33 +218,16 @@ jobs:
 
   linux-github--dotnet-and-mono:
     runs-on: ubuntu-22.04
-    env:
-      GtkSharpVersion: 3.24.24.95
-      DotnetVersion: 6.0.400
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: true
-    - name: Setup .NET SDK ${{ env.DotnetVersion }}
+    - name: Setup .NET SDK ${{ env.DotNetVersionForMauiGtk }}
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: ${{ env.DotnetVersion }}
-    - name: Install gtk workload
-      run: |
-        wget -O gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg https://globalcdn.nuget.org/packages/gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.$GtkSharpVersion.nupkg
-        DOTNET_DIR=/home/runner/.dotnet
-        WORKLOAD_MANIFEST_DIR=$DOTNET_DIR/sdk-manifests/${{ env.DotnetVersion }}/gtksharp.net.sdk.gtk
-        mkdir -p $WORKLOAD_MANIFEST_DIR/
-        unzip -j gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg "data/*" -d $WORKLOAD_MANIFEST_DIR/
-        rm gtksharp.net.sdk.gtk.manifest-${{ env.DotnetVersion }}.nupkg
-        # otherwise we get System.UnauthorizedAccessException: Access to the path '/home/runner/.dotnet/sdk-manifests/6.0.300/gtksharp.net.sdk.gtk/WorkloadManifest.json' is denied.
-        chmod 764 $WORKLOAD_MANIFEST_DIR/*
-        dotnet workload search
-        dotnet workload install gtk --skip-manifest-update
-    - name: Add Maui Nuget source
-      run: |
-        cd dependencies/maui
-        dotnet nuget add source --name nuget https://api.nuget.org/v3/index.json
+        dotnet-version: ${{ env.DotNetVersionForMauiGtk }}
+    - name: Install gtk workload & add Maui Nuget source
+      run: ./scripts/prepare_maui_gtk.sh
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
@@ -655,18 +640,15 @@ jobs:
     - conventions
 
     runs-on: ubuntu-22.04
-    env:
-      GtkSharpVersion: 3.24.24.95
-      DotnetVersion: 6.0.400
     steps:
     - uses: actions/checkout@v1
     - name: Install snap tools
       run: ./scripts/install_snapcraft.sh maui
         
-    - name: Setup .NET SDK ${{ env.DotnetVersion }}
+    - name: Setup .NET SDK ${{ env.DotNetVersionForMauiGtk }}
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: ${{ env.DotnetVersion }}
+        dotnet-version: ${{ env.DotNetVersionForMauiGtk }}
     
     - name: Bump snap version
       run: |
