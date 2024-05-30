@@ -19,6 +19,10 @@ open Fsdk.Process
 #load "fsxHelper.fs"
 open GWallet.Scripting
 
+type Frontend =
+    | Console
+    | XamarinForms
+
 let argsToThisFsxScript = Misc.FsxOnlyArguments()
 if argsToThisFsxScript.Any(fun arg -> arg = "--from-configure") then
     Console.WriteLine " found"
@@ -240,13 +244,6 @@ let version = Misc.GetCurrentVersion(rootDir)
 
 let repoInfo = Git.GetRepoInfo()
 
-let frontend =
-    if areGtkLibsAbsentOrDoesNotApply then
-        "Console"
-    else
-        "Xamarin.Forms"
-
-
 Console.WriteLine()
 Console.WriteLine(sprintf
                       "\tConfiguration summary for geewallet %s %s"
@@ -267,9 +264,26 @@ match legacyBuildTool with
 | Some cmd -> Console.WriteLine(sprintf "\t* Legacy build tool: %s" cmd)
 | None -> ()
 
-Console.WriteLine(sprintf
-                      "\t* Frontend: %s"
-                      frontend)
 Console.WriteLine()
 
+let baseFrontend = Frontend.Console
+let buildableFrontends, defaultFrontend =
+    let extraFrontends, defaultFrontend =
+        if areGtkLibsAbsentOrDoesNotApply then
+            List.Empty, baseFrontend
+        else
+            Frontend.XamarinForms::List.Empty, Frontend.XamarinForms
+    baseFrontend::extraFrontends, defaultFrontend
+
+Console.WriteLine(sprintf
+                      "\t* Frontend(s): %s"
+                      (String.Join(", ",
+                          seq { for frontend in buildableFrontends do yield sprintf "%A" frontend }
+                      ))
+                 )
+Console.WriteLine(sprintf
+                      "\t* Default Frontend: %A"
+                      defaultFrontend)
+
+Console.WriteLine()
 Console.WriteLine "Configuration succeeded, you can now run `make`"
