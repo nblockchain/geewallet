@@ -16,7 +16,7 @@ type AppDelegate () =
         ZXing.Net.Mobile.Forms.iOS.Platform.Init()
 
         this.LoadApplication (new GWallet.Frontend.XF.App())
-        base.FinishedLaunching(app, options)
+        base.FinishedLaunchingg(app, options)
 
 module Main =
     [<EntryPoint>]
