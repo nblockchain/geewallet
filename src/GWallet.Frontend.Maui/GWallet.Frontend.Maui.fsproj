@@ -4,7 +4,7 @@
     <!-- NOTE: when making changes to the lines below, maybe remove CheckEolWorkloads tag too -->
     <TargetFrameworks>net8.0-android;net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks> 
-    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('linux'))">net6.0-gtk</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('linux'))">net8.0-gtk</TargetFrameworks>
     <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
     <!-- <TargetFrameworks>$(TargetFrameworks);net6.0-tizen</TargetFrameworks> -->
 
@@ -215,6 +215,7 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="6.0.3" />
     <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.21" />
+    <PackageReference Update="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
   </ItemGroup>
   
   <ItemGroup Condition="$(TargetPlatformIdentifier) != 'gtk'">
