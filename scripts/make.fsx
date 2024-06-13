@@ -401,7 +401,7 @@ let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
             | _ -> FrontendApp.Console
         | Some "dotnet", _ when maybeConfigFrontend |> Option.exists (fun value -> value.StartsWith "Maui") ->
             if maybeConfigFrontend = Some "Maui/Gtk" then
-                BuildMauiProject binaryConfig "net6.0-gtk"
+                BuildMauiProject binaryConfig "net8.0-gtk"
             else
                 BuildMauiProject binaryConfig "net8.0-android"
 
@@ -457,7 +457,7 @@ let GetPathToFrontend (frontend: FrontendApp) (binaryConfig: BinaryConfig): Dire
             "bin",
             binaryConfig.ToString()
 #if !LEGACY_FRAMEWORK
-            , "net6.0"
+            , "net8.0"
 #endif
         ) |> DirectoryInfo
 

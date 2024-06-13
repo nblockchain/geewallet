@@ -12,8 +12,8 @@ on:
 env:
   # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
   FSXC_VERSION: 0.5.9.1
-  GtkSharpVersion: 3.24.24.95
-  DotNetVersionForMauiGtk: 6.0.400
+  GtkSharpVersion: 3.24.24.117-develop
+  DotNetVersionForMauiGtk: 8.0.200
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
@@ -69,6 +69,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -95,12 +97,16 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  macOS--dotnet6-only:
+  macOS--dotnet8-only:
     runs-on: macOS-12
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
+    - name: Setup .NET SDK 8.0.x
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '8.0.300'
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
     - name: configure
@@ -122,19 +128,23 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  windows--dotnet6-and-legacyFramework:
+  windows--dotnet8-and-legacyFramework:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
+    - name: Setup .NET SDK 8.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.x'
+        dotnet-version: '8.0.x'
+    - name: install maui workloads
+      run: dotnet workload install maui
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -155,6 +165,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -181,18 +193,20 @@ jobs:
     - name: integration tests
       run: .\make update-servers
 
-  windows--dotnet6-only:
+  windows--dotnet8-only:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
+    - name: Setup .NET SDK 8.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: '8.0.x'
     - name: HACK to emulate legacy .NETFramework uninstall
       run: del $(& "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\\**\\Bin\\MSBuild.exe)
+    - name: install maui workloads
+      run: dotnet workload install maui
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -213,6 +227,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -251,6 +267,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -288,6 +306,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -331,7 +351,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux-vanilla--stockdotnet6-only:
+  linux-vanilla--stockdotnet8-only:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -344,7 +364,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet8
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -369,10 +389,12 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux-vanilla--stockdotnet6-and-newmono:
+  linux-vanilla--stockdotnet8-and-newmono:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -385,7 +407,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet8
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -412,10 +434,12 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux-vanilla--stockdotnet6-and-stockmono:
+  linux-vanilla--stockdotnet8-and-stockmono:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -428,7 +452,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6 mono-xbuild fsharp
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet8 mono-xbuild fsharp
     - name: install GTK libs (dependency of GTK frontend)
       run: sudo apt install --yes libgtk2.0-cil-dev
     # workaround for https://github.com/actions/runner/issues/2033
@@ -454,6 +478,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -507,15 +533,15 @@ jobs:
     - linux-github--dotnet-and-newmono
     - linux-vanilla--stockmono-only
     - linux-vanilla--newmono-only
-    - linux-vanilla--stockdotnet6-only
-    - linux-vanilla--stockdotnet6-and-stockmono
-    - linux-vanilla--stockdotnet6-and-newmono
-    - windows--dotnet6-and-legacyFramework
+    - linux-vanilla--stockdotnet8-only
+    - linux-vanilla--stockdotnet8-and-stockmono
+    - linux-vanilla--stockdotnet8-and-newmono
+    - windows--dotnet8-and-legacyFramework
     - windows--legacyFramework-only
-    - windows--dotnet6-only
+    - windows--dotnet8-only
     - macOS--dotnet8-and-mono
     - macOS--mono-only
-    - macOS--dotnet6-only
+    - macOS--dotnet8-only
 
     steps:
     - uses: actions/checkout@v1
