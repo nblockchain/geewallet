@@ -268,12 +268,7 @@ let version = Misc.GetCurrentVersion(rootDir)
 let repoInfo = Git.GetRepoInfo()
 
 if not (List.isEmpty mauiWorkloads) then
-    let globalJsonFile =
-        if frontend = "Maui/Gtk" then
-            "global-net6.json"
-        else
-            "global-net8.json"
-    
+    let globalJsonFile = "global-net8.json"
     File.Copy(globalJsonFile, "global.json")
 
 Console.WriteLine()
