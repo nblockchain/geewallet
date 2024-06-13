@@ -22,7 +22,7 @@ type internal TransactionOutpoint =
     member self.ToCoin (): Coin =
         Coin(self.Transaction, uint32 self.OutputIndex)
 
-type internal IUtxoAccount =
+type IUtxoAccount =
     inherit IAccount
 
     abstract member PublicKey: PubKey with get
@@ -77,7 +77,7 @@ module Account =
             .GetScriptPubKey(ScriptPubKeyType.SegwitP2SH)
             .GetDestinationAddress(GetNetwork currency)
 
-    let internal GetNativeSegwitPublicAddressFromPublicKey currency (publicKey: PubKey): BitcoinAddress =
+    let GetNativeSegwitPublicAddressFromPublicKey currency (publicKey: PubKey): BitcoinAddress =
         publicKey
             .GetScriptPubKey(ScriptPubKeyType.Segwit)
             .GetDestinationAddress(GetNetwork currency)
@@ -210,11 +210,11 @@ module Account =
             //so this is unreachable.
             failwith "Unreachable: unrecognized scriptPubKey"
 
-    let private CreateTransactionAndCoinsToBeSigned (account: IUtxoAccount)
-                                                    (transactionInputs: List<TransactionInputOutpointInfo>)
-                                                    (destination: string)
-                                                    (amount: TransferAmount)
-                                                        : TransactionBuilder =
+    let CreateTransactionAndCoinsToBeSigned (account: IUtxoAccount)
+                                            (transactionInputs: List<TransactionInputOutpointInfo>)
+                                            (destination: string)
+                                            (amount: TransferAmount)
+                                                : TransactionBuilder =
         let coins = List.map (ConvertToICoin account) transactionInputs
 
         let transactionBuilder = (GetNetwork account.Currency).CreateTransactionBuilder()
@@ -449,7 +449,7 @@ module Account =
             failwith <| SPrintF1 "Something went wrong when verifying transaction: %A" errors
         finalTransaction
 
-    let internal GetPrivateKey (account: NormalAccount) password =
+    let GetPrivateKey (account: NormalAccount) password =
         let encryptedPrivateKey = account.GetEncryptedPrivateKey()
         let encryptedSecret = BitcoinEncryptedSecretNoEC(encryptedPrivateKey, GetNetwork (account:>IAccount).Currency)
         try
@@ -458,11 +458,11 @@ module Account =
         | :? SecurityException ->
             raise (InvalidPassword)
 
-    let internal SignTransaction (account: NormalUtxoAccount)
-                                 (txMetadata: TransactionMetadata)
-                                 (destination: string)
-                                 (amount: TransferAmount)
-                                 (password: string) =
+    let SignTransaction (account: NormalUtxoAccount)
+                        (txMetadata: TransactionMetadata)
+                        (destination: string)
+                        (amount: TransferAmount)
+                        (password: string) =
 
         let privateKey = GetPrivateKey account password
 
@@ -521,13 +521,12 @@ module Account =
         // and show the info from the RawTx, using NBitcoin to extract it
         BroadcastRawTransaction currency transaction.RawTransaction
 
-    let internal SendPayment (account: NormalUtxoAccount)
-                             (txMetadata: TransactionMetadata)
-                             (destination: string)
-                             (amount: TransferAmount)
-                             (password: string)
-                             (ignoreHigherMinerFeeThanAmount: bool)
-                    =
+    let SendPayment (account: NormalUtxoAccount)
+                    (txMetadata: TransactionMetadata)
+                    (destination: string)
+                    (amount: TransferAmount)
+                    (password: string)
+                    (ignoreHigherMinerFeeThanAmount: bool) =
         let baseAccount = account :> IAccount
         if (baseAccount.PublicAddress.Equals(destination, StringComparison.InvariantCultureIgnoreCase)) then
             raise DestinationEqualToOrigin
