@@ -536,12 +536,21 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         self.BalanceRefreshCancelSources <- Seq.empty
 
     member private self.Init () =
-#if XAMARIN
-        if Device.RuntimePlatform = Device.GTK then
-            // workaround layout issues in Xamarin.Forms/GTK
-            mainLayout.RowDefinitions.[1] <- RowDefinition(
-                Height = GridLength 550.0
-            )
+#if GTK
+        // workaround layout issues on GTK
+        mainLayout.RowDefinitions.[1] <- RowDefinition(
+#if XAMARIN            
+            Height = GridLength 550.0
+#else
+            Height = GridLength 350.0
+#endif
+        )
+#endif
+
+#if !XAMARIN && GTK
+        // Default LineBreakMode (WordWrap) value leads to layout issues on Maui/Gtk, so change it to NoWrap
+        totalFiatAmountLabel.LineBreakMode <- LineBreakMode.NoWrap
+        totalReadOnlyFiatAmountLabel.LineBreakMode <- LineBreakMode.NoWrap
 #endif
         
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
