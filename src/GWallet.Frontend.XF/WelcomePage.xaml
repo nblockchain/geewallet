@@ -53,20 +53,22 @@
                Grid.Row="3"
             />
 
-        <StackLayout
-            Orientation="Horizontal"
+        <Grid
+            ColumnDefinitions="*,*"
             Grid.Row="4"
             >
             <Label Text="Date of Birth (d/m/y):"
                    FontSize="Small"
                    HorizontalOptions="Start"
-                   VerticalOptions="Center" />
+                   VerticalOptions="Center"
+                   Grid.Column="0"/>
             <DatePicker x:Name="dobDatePicker"
                         Format="dd/MM/yyyy"
                         HorizontalOptions="End"
                         VerticalOptions="Center"
-                        DateSelected="OnDobDateChanged" />
-        </StackLayout>
+                        DateSelected="OnDobDateChanged"
+                        Grid.Column="1"/>
+        </Grid>
                
         <Entry x:Name="emailEntry" IsPassword="false"
                Placeholder="E-mail address"
