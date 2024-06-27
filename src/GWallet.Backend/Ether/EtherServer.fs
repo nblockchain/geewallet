@@ -82,6 +82,7 @@ module Server =
 
     let HttpRequestExceptionMatchesErrorCode (ex: Http.HttpRequestException) (errorCode: int): bool =
         ex.Message.StartsWith(SPrintF1 "%i " errorCode) || ex.Message.Contains(SPrintF1 " %i " errorCode)
+            || ex.Message.Contains(SPrintF1 " %i." errorCode)
 
     let exMsg = "Could not communicate with EtherServer"
     let PerformEtherRemoteCallWithTimeout<'T,'R> (job: Async<'R>): Async<'R> = async {
