@@ -3,6 +3,7 @@
 open System
 open System.IO
 open System.Linq
+open System.Text.RegularExpressions
 
 #if !LEGACY_FRAMEWORK
 #r "nuget: Fsdk, Version=0.6.0--date20231031-0834.git-2737eea"
@@ -202,9 +203,35 @@ let AddToDefinedConstants (constant: string) (configMap: Map<string, string>) =
         configMap
         |> Map.add configKey (sprintf "%s;%s" previousConstants constant)
     
+// Either maui-* or gtk, as for Maui/Gtk Maui sources are used directly instead of maui-gtk workload
+let mauiWorkloads =
+    match buildTool with
+    | Some "dotnet" ->
+        let workloadListResult =
+            Process
+                .Execute({ Command = "dotnet"; Arguments = "workload list" }, Echo.All)
+                .Unwrap("dotnet workload list command failed")
+        Regex.Matches(workloadListResult, "^(gtk|maui[a-zA-Z0-9\\-]*)", RegexOptions.Multiline).Cast<Match>()
+        |> Seq.map (fun each -> each.Value)
+        |> Seq.toList
+    | _ -> List.Empty
+
+let frontend =
+    if not (List.isEmpty mauiWorkloads) then
+        if mauiWorkloads |> List.exists (fun workload -> workload.Contains "gtk") then
+            "Maui/Gtk"
+        else
+            "Maui"
+    elif areGtkLibsAbsentOrDoesNotApply then
+        "Console"
+    else
+        "Xamarin.Forms"
 
 let configFileToBeWritten =
-    let initialConfigFile = Map.empty.Add("Prefix", prefix.FullName)
+    let initialConfigFile = 
+        Map.empty
+            .Add("Prefix", prefix.FullName)
+            .Add("Frontend", frontend)
 
     let configFileStageTwo =
         match legacyBuildTool with
@@ -240,12 +267,9 @@ let version = Misc.GetCurrentVersion(rootDir)
 
 let repoInfo = Git.GetRepoInfo()
 
-let frontend =
-    if areGtkLibsAbsentOrDoesNotApply then
-        "Console"
-    else
-        "Xamarin.Forms"
-
+if not (List.isEmpty mauiWorkloads) then
+    let globalJsonFile = "global-net8.json"
+    File.Copy(globalJsonFile, "global.json")
 
 Console.WriteLine()
 Console.WriteLine(sprintf

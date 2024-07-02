@@ -97,3 +97,12 @@ fabric.properties
 .fake
 .ionide
 
+# Maui generated code
+src/GWallet.Frontend.Maui/WelcomePage.xaml
+src/GWallet.Frontend.Maui/WelcomePage2.xaml
+src/GWallet.Frontend.Maui/LoadingPage.xaml
+src/GWallet.Frontend.Maui/BalancesPage.xaml
+src/GWallet.Frontend.Maui/PairingFromPage.xaml
+src/GWallet.Frontend.Maui/PairingToPage.xaml
+src/GWallet.Frontend.Maui/SendPage.xaml
+src/GWallet.Frontend.Maui/ReceivePage.xaml
