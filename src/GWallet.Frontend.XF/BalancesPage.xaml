@@ -85,10 +85,13 @@
                Margin="0"
                Padding="0"
         >
-            <Label
-                x:Name="footerLabel"
-                Text="www.geewallet.com"
-            />
+            <!-- workaround for Maui/Gtk: this StackLayout is needed because otherwise label will be at the left edge -->
+            <StackLayout Orientation="Vertical" HorizontalOptions="Center">
+                <Label
+                    x:Name="footerLabel"
+                    Text="www.geewallet.com"
+                />
+            </StackLayout>
         </Frame>
     </Grid>
 </ContentPage>
