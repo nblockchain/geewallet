@@ -43,11 +43,13 @@ type NotEnoughAvailableException =
                                                           numberOfConsistentResultsRequired)
         }
 
-type ResultInconsistencyException (totalNumberOfSuccesfulResultsObtained: uint32,
+type ResultInconsistencyException (totalNumberOfFailedServers: uint32,
+                                   totalNumberOfSuccesfulResultsObtained: uint32,
                                    maxNumberOfConsistentResultsObtained: int,
                                    numberOfConsistentResultsRequired: uint32) =
     inherit Exception ("Results obtained were not enough to be considered consistent" +
-                           SPrintF3 " (received: %i, consistent: %i, required: %i)"
+                           SPrintF4 " (unavailable: %i, received: %i, consistent: %i, required: %i)"
+                                  totalNumberOfFailedServers
                                   totalNumberOfSuccesfulResultsObtained
                                   maxNumberOfConsistentResultsObtained
                                   numberOfConsistentResultsRequired)
@@ -629,7 +631,8 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                     | (_,maxNumberOfConsistentResultsObtained)::_ ->
                         if (retriesForInconsistency = settings.NumberOfRetriesForInconsistency) then
                             if totalNumberOfSuccesfulResultsObtained >= numberOfConsistentResponsesRequired then
-                                return raise (ResultInconsistencyException(totalNumberOfSuccesfulResultsObtained,
+                                return raise (ResultInconsistencyException(uint32 failedFuncs.Length,
+                                                                           totalNumberOfSuccesfulResultsObtained,
                                                                            maxNumberOfConsistentResultsObtained,
                                                                            numberOfConsistentResponsesRequired))
                             else
