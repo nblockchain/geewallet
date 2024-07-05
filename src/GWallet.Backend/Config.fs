@@ -50,6 +50,9 @@ module Config =
     let IsMacPlatform() =
         RuntimeInformation.IsOSPlatform OSPlatform.OSX
 
+    let IsLinuxPlatform() =
+        RuntimeInformation.IsOSPlatform OSPlatform.Linux
+
     let GetMonoVersion(): Option<Version> =
         FSharpUtil.option {
             // this gives None on MS.NET (e.g. UWP/WPF)
