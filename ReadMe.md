@@ -83,7 +83,7 @@ This list is the (intended) order of preference for new features:
 (See: https://www.reddit.com/r/Bitcoin/comments/7hsq6m/symbol_for_a_bit_0000001btc/ or in case we end up using sats, this "1 over 2" idea is interesting: 
 https://twitter.com/Parman_Public/status/1603698639947599873 )
 - MimbleWimble(LTC) support (WIP, see https://github.com/nblockchain/NLitecoin/pull/2 ).
-- Multi-sig support via Threshold signatures (or asynchronous ones? see https://twitter.com/real_or_random/status/1523964246945636352 ) with Canary wallets (https://twitter.com/_benkaufman/status/1788601994451562695).
+- Multi-sig support via Threshold signatures (or asynchronous ones? see https://twitter.com/real_or_random/status/1523964246945636352 or rather modern ones: https://x.com/n1ckler/status/1810408548813213820 -> https://github.com/BlockstreamResearch/bip-frost-dkg) with Canary wallets (https://twitter.com/_benkaufman/status/1788601994451562695).
 - Use deniable encryption to allow for a duress password/passphrase/pin.
 - BIP352: Silent Payments (as an extra justification against BIP32: e.g. gap limits), see https://twitter.com/reardencode/status/1788577217884364861 .
 - Bech32m support, see https://x.com/murchandamus/status/1794014556513046721 .
