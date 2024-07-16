@@ -10,9 +10,6 @@ type ITransactionDetails =
 
 type internal SignedTransactionDetails =
     {
-#if !NATIVE_SEGWIT
-        [<JsonProperty(PropertyName = "OriginAddress")>]
-#endif
         OriginMainAddress: string
 
         Amount: decimal
@@ -27,9 +24,6 @@ type internal SignedTransactionDetails =
 
 type UnsignedTransactionProposal =
     {
-#if !NATIVE_SEGWIT
-        [<JsonProperty(PropertyName = "OriginAddress")>]
-#endif
         OriginMainAddress: string
 
         Amount: TransferAmount;

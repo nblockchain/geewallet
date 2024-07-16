@@ -217,14 +217,9 @@ let configFileToBeWritten =
         | None -> configFileStageTwo
 
     let finalConfigFile =
-        let nativeSegwitEnabled =
-            argsToThisFsxScript
-            |> List.contains "--native-segwit"
-        if nativeSegwitEnabled then
-            configFileStageThree
-            |> AddToDefinedConstants "NATIVE_SEGWIT"
-        else
-            configFileStageThree
+        // native segwit is enabled by default
+        configFileStageThree
+        |> AddToDefinedConstants "NATIVE_SEGWIT"
 
     finalConfigFile
 
