@@ -211,15 +211,10 @@ let configFileToBeWritten =
         | Some theTool -> initialConfigFile.Add("LegacyBuildTool", theTool)
         | None -> initialConfigFile
 
-    let configFileStageThree =
+    let finalConfigFile =
         match buildTool with
         | Some theTool -> configFileStageTwo.Add("BuildTool", theTool)
         | None -> configFileStageTwo
-
-    let finalConfigFile =
-        // native segwit is enabled by default
-        configFileStageThree
-        |> AddToDefinedConstants "NATIVE_SEGWIT"
 
     finalConfigFile
 

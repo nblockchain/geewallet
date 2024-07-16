@@ -38,11 +38,7 @@ module Config =
     let internal NoNetworkBalanceForDebuggingPurposes = false
 
     let internal UseNativeSegwit =
-#if NATIVE_SEGWIT
         true
-#else
-        false
-#endif
 
     let IsWindowsPlatform() =
         RuntimeInformation.IsOSPlatform OSPlatform.Windows
