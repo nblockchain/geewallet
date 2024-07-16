@@ -7,6 +7,8 @@ open System.Threading.Tasks
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
+open NBitcoin
+
 // this exception, if it happens, it would cause a crash because we don't handle it yet
 type UnhandledCurrencyServerException(currency: Currency,
                                       innerException: Exception) =
@@ -393,6 +395,43 @@ module Account =
         CreateArchivedAccount currency privateKeyAsString
         |> ignore<ArchivedAccount>
         Config.RemoveNormalAccount account
+
+    let CreateEphemeralAccountFromSeedMenmonic (mnemonic: string) : UtxoCoin.EphemeralUtxoAccount =
+        let standardBip84DerivationPath = KeyPath("m/84'/0'/0'")
+        let rootKey = Mnemonic(mnemonic).DeriveExtKey().Derive(standardBip84DerivationPath)
+        let firstReceivingAddressKey = rootKey.Derive(0u).Derive(0u)
+        
+        let currency = Currency.BTC
+        let network = UtxoCoin.Account.GetNetwork currency
+        let privateKeyString =
+            firstReceivingAddressKey.PrivateKey.GetWif(network).ToWif()
+
+        let fromPublicKeyToPublicAddress (publicKey: PubKey) =
+            publicKey.GetAddress(ScriptPubKeyType.Segwit, network).ToString()
+
+        let fromAccountFileToPrivateKey (accountConfigFile: FileRepresentation) =
+            Key.Parse(accountConfigFile.Content(), network)
+
+        let fromAccountFileToPublicAddress (accountConfigFile: FileRepresentation) =
+            fromPublicKeyToPublicAddress(fromAccountFileToPrivateKey(accountConfigFile).PubKey)
+
+        let fromAccountFileToPublicKey (accountConfigFile: FileRepresentation) =
+            fromAccountFileToPrivateKey(accountConfigFile).PubKey
+
+        let fileName = fromPublicKeyToPublicAddress(firstReceivingAddressKey.GetPublicKey())
+        let accountFileRepresentation = { Name = fileName; Content = fun _ -> privateKeyString }
+
+        UtxoCoin.EphemeralUtxoAccount(
+            currency, 
+            accountFileRepresentation,
+            fromAccountFileToPublicAddress,
+            fromAccountFileToPublicKey
+        )
+
+    let ConvertEphemeralAccountToArchivedAccount (ephemeralAccount: UtxoCoin.EphemeralUtxoAccount) (currency: Currency) : unit  =
+        // no need for removing account since we don't create any file to begin with (see CreateEphemeralAccountFromSeedMenmonic)
+        let privateKeyAsString = ephemeralAccount.GetUnencryptedPrivateKey()
+        CreateArchivedAccount currency privateKeyAsString |> ignore<ArchivedAccount>
 
     let SweepArchivedFunds (account: ArchivedAccount)
                            (balance: decimal)

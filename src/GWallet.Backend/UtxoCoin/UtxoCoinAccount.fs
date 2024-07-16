@@ -52,6 +52,15 @@ type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     interface IUtxoAccount with
         member val PublicKey = fromAccountFileToPublicKey accountFile with get
 
+/// Inherits from ArchivedUtxoAccount because SweepArchivedFunds expects ArchivedUtxoAccount instance
+/// and sweep funds functionality is needed for this kind of account.
+type EphemeralUtxoAccount(currency: Currency, accountFile: FileRepresentation,
+                          fromAccountFileToPublicAddress: FileRepresentation -> string,
+                          fromAccountFileToPublicKey: FileRepresentation -> PubKey) =
+    inherit ArchivedUtxoAccount(currency, accountFile, fromAccountFileToPublicAddress, fromAccountFileToPublicKey)
+
+    override self.Kind = AccountKind.Ephemeral
+
 module Account =
 
     let internal GetNetwork (currency: Currency) =

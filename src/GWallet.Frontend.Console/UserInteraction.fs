@@ -178,7 +178,7 @@ module UserInteraction =
                 password
 
     // FIXME: share code between Frontend.Console and Frontend.XF
-    let private BalanceInUsdString balance maybeUsdValue =
+    let internal BalanceInUsdString balance maybeUsdValue =
         match maybeUsdValue with
         | NotFresh(NotAvailable) -> Presentation.ExchangeRateUnreachableMsg
         | Fresh(usdValue) ->
@@ -260,7 +260,7 @@ module UserInteraction =
             return (account,balance,usdValue)
         }
 
-    let private GetAccountBalance (account: IAccount): Async<MaybeCached<decimal>*MaybeCached<decimal>> =
+    let internal GetAccountBalance (account: IAccount): Async<MaybeCached<decimal>*MaybeCached<decimal>> =
         async {
             let! (_, balance, maybeUsdValue) = GetAccountBalanceInner account false
             return (balance, maybeUsdValue)
