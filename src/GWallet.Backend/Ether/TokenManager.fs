@@ -15,7 +15,6 @@ module TokenManager =
     let GetTokenContractAddress currency =
         match currency with
         | Currency.DAI -> "0x6B175474E89094C44Da98b954EedeAC495271d0F"
-        | Currency.SAI -> "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359"
         | _ -> raise <| invalidOp (SPrintF1 "%A has no contract address" currency)
 
     type TokenServiceWrapper(web3, currency: Currency) =

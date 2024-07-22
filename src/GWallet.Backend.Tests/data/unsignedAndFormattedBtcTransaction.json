@@ -33,15 +33,15 @@
     "Cache": {
       "UsdPrice": {
         "BTC": 9156.19,
+        "DAI": 1.00376,
         "ETC": 19.8644,
         "ETH": 691.52,
-        "LTC": 173.592,
-        "SAI": 1.00376
+        "LTC": 173.592
       },
       "Addresses": {
         "0xba766d6d13E2Cc921Bf6e896319D32502af9e37E": [
           "ETH",
-          "SAI",
+          "DAI",
           "ETC"
         ],
         "3Buz1evVsQeHtDfQAmwfAKQsUzAt3f4TuR": [
@@ -53,10 +53,10 @@
       },
       "Balances": {
         "BTC": 0.0,
+        "DAI": 1.0,
         "ETC": 8.0,
         "ETH": 7.08,
-        "LTC": 0.0,
-        "SAI": 1.0
+        "LTC": 0.0
       }
     }
   }

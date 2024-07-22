@@ -1011,8 +1011,7 @@ module FiatValueEstimation =
             | Currency.BTC,_ -> "bitcoin"
             | Currency.LTC,_ -> "litecoin"
 
-            // NOTE: don't worry, a second calculation will be performed for SAI, see https://github.com/nblockchain/geewallet/commit/bb7f59271b21d1ab278e4d4dcd9e12a3bdd49ba9
-            | Currency.ETH,_ | Currency.SAI,_ -> "ethereum"
+            | Currency.ETH,_ -> "ethereum"
 
             | Currency.ETC,_ -> "ethereum-classic"
             | Currency.DAI,PriceProvider.CoinCap -> "multi-collateral-dai"
@@ -1195,12 +1194,7 @@ module FiatValueEstimation =
         let realResult =
             match result with
             | Some price ->
-                let realPrice =
-                    if currency = Currency.SAI then
-                        let ethMultiplied = price * 0.0053m
-                        ethMultiplied
-                    else
-                        price
+                let realPrice = price
                 Caching.Instance.StoreLastFiatUsdPrice(currency, realPrice)
                 realPrice |> Some
             | None -> None
