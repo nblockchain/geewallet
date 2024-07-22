@@ -291,7 +291,7 @@ module Account =
 
     let private CalculateSilentPaymentDestination (account: IUtxoAccount)
                                                   (transactionInputs: List<TransactionInputOutpointInfo>)
-                                                  (destination: string)
+                                                  (reusableAddress: string)
                                                   (privateKey: Key) =
         // Since we can only receive P2WPKH-P2SH or P2WPKH transactions, and
         // non-compressed keys are not accepted as default policy
@@ -302,15 +302,8 @@ module Account =
         let outpoints = 
             transactionInputs
             |> List.map (fun input -> (ConvertToICoin account input).Outpoint)
-
-        let privateKeys = 
-            outpoints 
-            |> List.map (fun _ -> (privateKey, false))
-
-        let output = SilentPayments.createOutput privateKeys outpoints (SilentPaymentAddress.Decode destination)
-        let taprootAddress = TaprootAddress(TaprootPubKey(output.GetEncoded()), GetNetwork (account:>IAccount).Currency)
-
-        taprootAddress.ToString()
+        
+        SilentPayments.GetFinalDestination privateKey outpoints reusableAddress (GetNetwork (account:>IAccount).Currency)
 
     let private CheckSilentPaymentTransactionInputValidity (finalTransaction: Transaction) 
                                                            (txMetadataInputs: List<TransactionInputOutpointInfo>) =
@@ -324,11 +317,11 @@ module Account =
                 | None -> failwith (SPrintF1 "Could not find output with index=%d in txMetadataInputs" input.PrevOut.N)
             let scriptPubKey =
                 Script(NBitcoin.DataEncoders.Encoders.Hex.DecodeData inputOutpointInfo.DestinationInHex)
-            match SilentPayments.convertToSilentPaymentInput scriptPubKey (input.ScriptSig.ToBytes()) (Some input.WitScript) with
+            match SilentPayments.ConvertToSilentPaymentInput scriptPubKey (input.ScriptSig.ToBytes()) (Some input.WitScript) with
             | InputForSharedSecretDerivation _ -> ()
             | _ -> 
                 let errorMessage = SPrintF1 "One of the inputs is not valid for shared secret derivation: %A" inputOutpointInfo
-                failwith ("Error creating silent payment transaction:\n" + errorMessage)
+                failwith (SPrintF1 "Error creating silent payment transaction: %s" errorMessage)
 
     let internal EstimateTransferFee
         (account: IUtxoAccount)
@@ -427,7 +420,7 @@ module Account =
                 raise <| Exception(SPrintF1 "Could not create fee rate from %s btc per KB"
                                            (btcPerKiloByteForFastTrans.ToString()), ex)
         
-        let destination = 
+        let finalDestination = 
             if SilentPaymentAddress.IsSilentPaymentAddress destination then
                 // calculate bogus silent payment destinantion using throwaway private key,
                 // as it will only be used for fee estimation
@@ -438,7 +431,7 @@ module Account =
 
         let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
                                                                      initiallyUsedInputs
-                                                                     destination
+                                                                     finalDestination
                                                                      amount
 
         try
@@ -486,13 +479,13 @@ module Account =
 
         let isSilentPayment = SilentPaymentAddress.IsSilentPaymentAddress destination
 
-        let destination =
+        let finalDestination =
             if isSilentPayment then
                 CalculateSilentPaymentDestination account txMetadata.Inputs destination privateKey
             else
                 destination
 
-        let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs destination amount
+        let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs finalDestination amount
 
         finalTransactionBuilder.AddKeys privateKey |> ignore
         finalTransactionBuilder.SendFees (Money.Satoshis btcMinerFee.EstimatedFeeInSatoshis)
@@ -725,8 +718,9 @@ module Account =
                 // (FIXME: this is only valid for the first version of segwit, fix it!)
                 Fixed [ 42u; 62u ]
             | Currency.BTC, _ when SilentPaymentAddress.IsSilentPaymentAddress address ->
-                // https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki#address-encoding
-                Variable { Minimum = 116u; Maximum = 1023u }
+                Variable 
+                    { Minimum = SilentPaymentAddress.MinimumEncodedLength
+                      Maximum = SilentPaymentAddress.MaximumEncodedLength }
             | Currency.LTC, _ when address.StartsWith LITECOIN_ADDRESS_BECH32_PREFIX ->
                 // taken from https://coin.space/all-about-address-types/, e.g. ltc1q3qkpj5s4ru3cx9t7dt27pdfmz5aqy3wplamkns
                 // FIXME: hopefully someone replies/documents https://bitcoin.stackexchange.com/questions/110975/how-long-can-bech32-addresses-be-in-the-litecoin-mainnet

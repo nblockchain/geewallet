@@ -29,6 +29,10 @@ type SilentPaymentAddress =
     static member MainNetPrefix = "sp"
     static member TestNetPrefix = "tsp"
 
+    // https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki#address-encoding
+    static member MinimumEncodedLength = 116u
+    static member MaximumEncodedLength = 1023u
+
     static member private GetEncoder(chainName: ChainName) =
         let hrp =
             if chainName = ChainName.Mainnet then
@@ -81,20 +85,20 @@ type SilentPaymentInput =
     | InputJustForSpending
 
 module SilentPayments =
-    let private secp256k1 = EC.CustomNamedCurves.GetByName("secp256k1")
+    let private secp256k1 = EC.CustomNamedCurves.GetByName "secp256k1"
     
     let private scalarOrder = BigInteger("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 
-    let private NUMS_H_bytes = 
+    let private NUMS_H_BYTES = 
         [| 0x50uy; 0x92uy; 0x9buy; 0x74uy; 0xc1uy; 0xa0uy; 0x49uy; 0x54uy; 0xb7uy; 0x8buy; 0x4buy; 0x60uy; 0x35uy; 0xe9uy; 0x7auy; 0x5euy;
            0x07uy; 0x8auy; 0x5auy; 0x0fuy; 0x28uy; 0xecuy; 0x96uy; 0xd5uy; 0x47uy; 0xbfuy; 0xeeuy; 0x9auy; 0xceuy; 0x80uy; 0x3auy; 0xc0uy; |]
 
-    type BigInteger with
-        static member FromByteArrayUnsigned (bytes: array<byte>) =
+    module BigInteger =
+        let FromByteArrayUnsigned (bytes: array<byte>) =
             BigInteger(1, bytes)
 
     // see https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki#selecting-inputs
-    let convertToSilentPaymentInput (scriptPubKey: Script) (scriptSig: array<byte>) (witness: Option<WitScript>): SilentPaymentInput =
+    let ConvertToSilentPaymentInput (scriptPubKey: Script) (scriptSig: array<byte>) (witness: Option<WitScript>): SilentPaymentInput =
         if scriptPubKey.IsScriptType ScriptType.P2PKH then
             // skip the first 3 op_codes and grab the 20 byte hash
             // from the scriptPubKey
@@ -144,7 +148,7 @@ module SilentPayments =
                         let controlBlock = witnessStack.Peek()
                         //  controlBlock is <control byte> <32 byte internal key> and 0 or more <32 byte hash>
                         let internalKey = controlBlock.[1..32]
-                        internalKey = NUMS_H_bytes
+                        internalKey = NUMS_H_BYTES
                     else
                         false
                 if internalKeyIsH then
@@ -165,7 +169,7 @@ module SilentPayments =
         else
             InvalidInput
 
-    let taggedHash (tag: string) (data: array<byte>) : array<byte> =
+    let TaggedHash (tag: string) (data: array<byte>) : array<byte> =
         let sha256 = Digests.Sha256Digest()
         
         let tag = Text.ASCIIEncoding.ASCII.GetBytes tag
@@ -181,12 +185,12 @@ module SilentPayments =
         sha256.DoFinal(result, 0) |> ignore
         result
 
-    let getInputHash (outpoints: List<OutPoint>) (sumInputPubKeys: EC.ECPoint) : array<byte> =
+    let GetInputHash (outpoints: List<OutPoint>) (sumInputPubKeys: EC.ECPoint) : array<byte> =
         let lowestOutpoint = outpoints |> List.map (fun outpoint -> outpoint.ToBytes()) |> List.min
         let hashInput = Array.append lowestOutpoint (sumInputPubKeys.GetEncoded true)
-        taggedHash "BIP0352/Inputs" hashInput
+        TaggedHash "BIP0352/Inputs" hashInput
 
-    let createOutput (privateKeys: List<Key * bool>) (outpoints: List<OutPoint>) (spAddress: SilentPaymentAddress) =
+    let CreateOutput (privateKeys: List<Key * bool>) (outpoints: List<OutPoint>) (spAddress: SilentPaymentAddress) =
         if privateKeys.IsEmpty then
             failwith "privateKeys should not be empty"
 
@@ -211,7 +215,7 @@ module SilentPayments =
         if aSum = BigInteger.Zero then
             failwith "Input privkeys sum is zero"
 
-        let inputHash = getInputHash outpoints (secp256k1.G.Multiply aSum)
+        let inputHash = GetInputHash outpoints (secp256k1.G.Multiply aSum)
 
         let tweak = BigInteger.FromByteArrayUnsigned inputHash
         let tweakedSumSeckey = aSum.Multiply(tweak).Mod(scalarOrder)
@@ -220,11 +224,21 @@ module SilentPayments =
 
         let k = 0u
         let tK =
-            taggedHash
+            TaggedHash
                 "BIP0352/SharedSecret"
                 (Array.append (ecdhSharedSecret.GetEncoded true) (BitConverter.GetBytes k))
                 |> BigInteger.FromByteArrayUnsigned
-        let Bm = secp256k1.Curve.DecodePoint <| spAddress.SpendPublicKey.ToBytes()
-        let sharedSecret = Bm.Add(secp256k1.G.Multiply tK)
+        let spendPublicKey = secp256k1.Curve.DecodePoint <| spAddress.SpendPublicKey.ToBytes()
+        let sharedSecret = spendPublicKey.Add(secp256k1.G.Multiply tK)
 
         sharedSecret.Normalize().AffineXCoord
+
+    let GetFinalDestination (privateKey: Key) (outpoints: List<OutPoint>) (destination: string) (network: Network) : string =
+        let privateKeys = 
+            outpoints 
+            |> List.map (fun _ -> (privateKey, false))
+
+        let output = CreateOutput privateKeys outpoints (SilentPaymentAddress.Decode destination)
+        let taprootAddress = TaprootAddress(TaprootPubKey(output.GetEncoded()), network)
+
+        taprootAddress.ToString()

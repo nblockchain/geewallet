@@ -76,7 +76,7 @@ type SilentPayments() =
                                     let stream = BitcoinStream(DataEncoders.Encoders.Hex.DecodeData hex)
                                     Some <| WitScript.Load stream
                             let spInput =
-                                SilentPayments.convertToSilentPaymentInput 
+                                SilentPayments.ConvertToSilentPaymentInput 
                                     (Script.FromHex input.ScriptPubKey) 
                                     (DataEncoders.Encoders.Hex.DecodeData input.ScriptSig)
                                     witness
@@ -104,9 +104,9 @@ type SilentPayments() =
                 | [], Some _ ->
                     Assert.Fail(sprintf "No inputs for shared secret derivation in test case '%s'" testCaseName)
                 | _, Some expectedOutputString ->
-                    let output = SilentPayments.createOutput privateKeys outpoints recipients.[0]
+                    let output = SilentPayments.CreateOutput privateKeys outpoints recipients.[0]
                     let outputString = output.GetEncoded() |> DataEncoders.Encoders.Hex.EncodeData
                     Assert.AreEqual(expectedOutputString, outputString, sprintf "Failure in test case '%s'" testCaseName)
                 | _, None ->
-                    Assert.Throws(fun () -> SilentPayments.createOutput privateKeys outpoints recipients.[0] |> ignore)
+                    Assert.Throws(fun () -> SilentPayments.CreateOutput privateKeys outpoints recipients.[0] |> ignore)
                     |> ignore
