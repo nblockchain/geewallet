@@ -84,7 +84,7 @@
       <HintPath>..\..\packages\System.Buffers.4.5.1\lib\netstandard2.0\System.Buffers.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin">
-      <HintPath>..\..\packages\NBitcoin.6.0.17\lib\netstandard2.1\NBitcoin.dll</HintPath>
+      <HintPath>..\..\packages\NBitcoin.7.0.13\lib\netstandard2.1\NBitcoin.dll</HintPath>
     </Reference>
     <Reference Include="NBitcoin.Altcoins">
       <HintPath>..\..\packages\NBitcoin.Altcoins.3.0.8\lib\netstandard2.1\NBitcoin.Altcoins.dll</HintPath>

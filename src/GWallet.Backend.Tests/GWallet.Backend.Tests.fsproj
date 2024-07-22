@@ -25,6 +25,7 @@
     <Compile Include="Deserialization.fs" />
     <Compile Include="ExceptionMarshalling.fs" />
     <Compile Include="MetaMarshalling.fs" />
+    <Compile Include="SilentPayments.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
@@ -38,6 +39,7 @@
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="data\send_and_receive_test_vectors.json" />
     <EmbeddedResource Include="data\basicException.json" />
     <EmbeddedResource Include="data\customFSharpException.json" />
     <EmbeddedResource Include="data\realException.json" />
