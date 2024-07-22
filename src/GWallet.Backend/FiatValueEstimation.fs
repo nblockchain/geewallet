@@ -1016,6 +1016,7 @@ module FiatValueEstimation =
             | Currency.ETC,_ -> "ethereum-classic"
             | Currency.DAI,PriceProvider.CoinCap -> "multi-collateral-dai"
             | Currency.DAI,_ -> "dai"
+            | Currency.LUSD,_ -> "liquity-usd"
 
         try
             let baseUrl =

@@ -21,7 +21,7 @@ module BlockExplorer =
               | Currency.ETC ->
                   // maybe blockscout is better? minergate.com seems to only show blocks, not addresses
                   "https://etcblockexplorer.com/address/addr/"
-              | Currency.DAI ->
+              | Currency.LUSD | Currency.DAI ->
                   SPrintF1 "https://etherscan.io/token/%s?a=" (TokenManager.GetTokenContractAddress account.Currency)
         Uri(baseUrl + account.PublicAddress)
 
@@ -36,6 +36,6 @@ module BlockExplorer =
                   "https://etherscan.io/tx/"
               | Currency.ETC ->
                   "https://etcblockexplorer.com/tx/"
-              | Currency.DAI ->
+              | Currency.DAI | Currency.LUSD ->
                   "https://etherscan.io/tx/"
         Uri(baseUrl + txHash)

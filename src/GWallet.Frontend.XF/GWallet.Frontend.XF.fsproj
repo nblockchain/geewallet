@@ -37,6 +37,18 @@
     <EmbeddedResource Include="..\..\img\dai_red_120x120.png">
       <Link>img\dai_red_120x120.png</Link>
     </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\lusd_grey_60x60.png">
+      <Link>img\lusd_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\lusd_grey_120x120.png">
+      <Link>img\lusd_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\lusd_red_60x60.png">
+      <Link>img\lusd_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\lusd_red_120x120.png">
+      <Link>img\lusd_red_120x120.png</Link>
+    </EmbeddedResource>
     <EmbeddedResource Include="..\..\img\etc_grey_60x60.png">
       <Link>img\etc_grey_60x60.png</Link>
     </EmbeddedResource>

@@ -224,7 +224,7 @@ module internal Account =
 
         let baseCurrency =
             match account.Currency with
-            | DAI -> ETH
+            | DAI | LUSD -> ETH
             | _ -> failwith <| SPrintF1 "Unknown token %A" account.Currency
 
         let! tokenTransferFee = Ether.Server.EstimateTokenTransferFee account amount destination
@@ -467,7 +467,7 @@ module internal Account =
     let GetSignedTransactionDetails (signedTransaction: SignedTransaction<'T>): ITransactionDetails =
 
         match signedTransaction.TransactionInfo.Proposal.Amount.Currency with
-        | DAI ->
+        | LUSD | DAI ->
             // FIXME: derive the transaction details from the raw transaction so that we can remove the proposal from
             //        the SignedTransaction type (as it's redundant); and when we remove it, we can also rename
             //        IBlockchainFeeInfo's Currency to "FeeCurrency", or change "Metadata" members whose type is
