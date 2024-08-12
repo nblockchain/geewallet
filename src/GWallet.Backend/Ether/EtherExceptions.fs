@@ -95,3 +95,10 @@ type UnhandledWebException =
         }
     new (info: SerializationInfo, context: StreamingContext) =
         { inherit Exception (info, context) }
+
+/// Exception indicating that response JSON contains null value where it should not.
+/// E.g. {"jsonrpc":"2.0","id":1,"result":null}
+type AbnormalNullValueInJsonResponseException(message: string) =
+    inherit CommunicationUnsuccessfulException(message)
+
+    static member BalanceJobErrorMessage = "Abnormal null response from balance job"

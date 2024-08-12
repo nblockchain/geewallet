@@ -543,7 +543,9 @@ module Server =
                                 return! Async.AwaitTask task
                             }
                     if Object.ReferenceEquals(balance, null) then
-                        failwith "Weird null response from balance job"
+                        raise <| 
+                            AbnormalNullValueInJsonResponseException 
+                                AbnormalNullValueInJsonResponseException.BalanceJobErrorMessage
                     return UnitConversion.Convert.FromWei(balance.Value, UnitConversion.EthUnit.Ether)
                 }
                 GetRandomizedFuncs currency web3Func
