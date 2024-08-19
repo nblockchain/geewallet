@@ -464,7 +464,10 @@ module Server =
                             let! cancelToken = Async.CancellationToken
                             let task =
                                 web3.Eth.Transactions.GetTransactionCount.SendRequestAsync(address, null, cancelToken)
-                            return! Async.AwaitTask task
+                            let! txCount = Async.AwaitTask task
+                            if isNull txCount then
+                                raise <| AbnormalNullValueInJsonResponseException "Abnormal null response from tx count job"
+                            return txCount
                         }
                 GetRandomizedFuncs currency web3Func
             return! faultTolerantEtherClient.Query
@@ -480,7 +483,7 @@ module Server =
                 web3.Eth.Blocks.GetBlockNumber.SendRequestAsync (null, cancelToken)
                     |> Async.AwaitTask
             if isNull latestBlock then
-                failwith "latestBlock somehow is null"
+                raise <| AbnormalNullValueInJsonResponseException "latestBlock somehow is null"
 
             let blockToCheck = BigInteger.Subtract(latestBlock.Value,
                                                    NUMBER_OF_CONFIRMATIONS_TO_CONSIDER_BALANCE_CONFIRMED)
@@ -575,7 +578,7 @@ module Server =
 
             let contractHandler = web3.Eth.GetContractHandler contractAddress
             if isNull contractHandler then
-                failwith "contractHandler somehow is null"
+                raise <| AbnormalNullValueInJsonResponseException "contractHandler somehow is null"
 
             let! cancelToken = Async.CancellationToken
             cancelToken.ThrowIfCancellationRequested()
@@ -637,7 +640,10 @@ module Server =
                             let! cancelToken = Async.CancellationToken
                             let task =
                                 contractHandler.EstimateGasAsync<TransferFunction>(transferFunctionMsg, cancelToken)
-                            return! Async.AwaitTask task
+                            let! fee = Async.AwaitTask task
+                            if isNull fee then
+                                raise <| AbnormalNullValueInJsonResponseException "Abnormal null response from transfer fee job"
+                            return fee
                     }
                 GetRandomizedFuncs account.Currency web3Func
             return! faultTolerantEtherClient.Query
@@ -660,6 +666,8 @@ module Server =
                             let! cancelToken = Async.CancellationToken
                             let task = web3.Eth.GasPrice.SendRequestAsync(null, cancelToken)
                             let! hexBigInteger = Async.AwaitTask task
+                            if isNull hexBigInteger then
+                                raise <| AbnormalNullValueInJsonResponseException "Abnormal null response from gas price job"
                             if hexBigInteger.Value = BigInteger 0 then
                                 return failwith "Some server returned zero for gas price, which is invalid"
                             return hexBigInteger
@@ -690,7 +698,12 @@ module Server =
                             let! cancelToken = Async.CancellationToken
                             let task =
                                 web3.Eth.Transactions.SendRawTransaction.SendRequestAsync(transaction, null, cancelToken)
-                            return! Async.AwaitTask task
+                            let! response = Async.AwaitTask task
+                            if isNull response then
+                                raise <|
+                                    AbnormalNullValueInJsonResponseException
+                                        "Abnormal null response from broadcast transaction job"
+                            return response
                         }
                 GetRandomizedFuncs currency web3Func
             try
@@ -721,6 +734,10 @@ module Server =
                         let task =
                             web3.TransactionManager.TransactionReceiptService.PollForReceiptAsync(txHash, cancelToken)
                         let! transactionReceipt = Async.AwaitTask task
+                        if isNull transactionReceipt || isNull transactionReceipt.GasUsed || isNull transactionReceipt.Status then
+                            raise <| 
+                                AbnormalNullValueInJsonResponseException
+                                    (SPrintF1 "Abnormal null response when getting details from tx receipt (%A)" transactionReceipt)
                         return {
                             GasUsed = transactionReceipt.GasUsed.Value
                             Status = transactionReceipt.Status.Value
