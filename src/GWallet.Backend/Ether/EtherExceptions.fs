@@ -33,6 +33,7 @@ type RpcErrorCode =
     | CannotFulfillRequest = -32046
     | ResourceNotFound = -32001
     | InternalError = -32603
+    | UnparsableResponseType = -39000
 
 type ServerCannotBeResolvedException =
     inherit CommunicationUnsuccessfulException

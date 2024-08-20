@@ -226,6 +226,8 @@ module Server =
                     raise <| ServerMisconfiguredException(exMsg, rpcResponseEx)
                 | i when i = int RpcErrorCode.InternalError ->
                     raise <| ServerFaultException(exMsg, rpcResponseEx)
+                | j when j = int RpcErrorCode.UnparsableResponseType ->
+                    raise <| ServerFaultException(exMsg, rpcResponseEx)
                 | _ ->
                     raise
                     <| Exception (SPrintF3 "RpcResponseException with RpcError Code <%i> and Message '%s' (%s)"
