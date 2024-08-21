@@ -136,6 +136,8 @@ module Server =
                 raise <| ServerTimedOutException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginUnreachable) then
                 raise <| ServerTimedOutException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.RequestTimeout) then
+                raise <| ServerTimedOutException(exMsg, httpReqEx)
 
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int CloudFlareError.OriginSslHandshakeError) then
                 raise <| ServerChannelNegotiationException(exMsg, CloudFlareError.OriginSslHandshakeError, httpReqEx)
