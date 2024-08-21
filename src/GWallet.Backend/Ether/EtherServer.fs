@@ -549,7 +549,7 @@ module Server =
                                 let task = web3.Eth.GetBalance.SendRequestAsync (address, null, cancelToken)
                                 return! Async.AwaitTask task
                             }
-                    if Object.ReferenceEquals(balance, null) then
+                    if isNull balance then
                         raise <| 
                             AbnormalNullValueInJsonResponseException 
                                 AbnormalNullValueInJsonResponseException.BalanceJobErrorMessage
