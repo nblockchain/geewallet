@@ -128,6 +128,10 @@ module ServerManager =
                 let web3Func (web3: Ether.SomeWeb3): Async<decimal> =
                     async {
                         let! balance = Async.AwaitTask (web3.Eth.GetBalance.SendRequestAsync ETH_GENESISBLOCK_ADDRESS)
+                        if isNull balance then
+                            raise <| 
+                                Ether.AbnormalNullValueInJsonResponseException 
+                                    Ether.AbnormalNullValueInJsonResponseException.BalanceJobErrorMessage
                         return balance.Value |> decimal
                     }
 
