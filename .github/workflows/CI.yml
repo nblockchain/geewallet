@@ -96,6 +96,13 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: compile .fsx scripts
+      run: |
+        dotnet new tool-manifest
+
+        dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   windows--dotnet6-and-legacyFramework:
     runs-on: windows-latest
@@ -212,6 +219,13 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: compile .fsx scripts
+      run: |
+        dotnet new tool-manifest
+
+        dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux-github--dotnet-and-newmono:
     runs-on: ubuntu-22.04
@@ -242,6 +256,13 @@ jobs:
       run: git clean -fdx && ./configure.sh && make release
     - name: integration tests
       run: make update-servers
+    - name: compile .fsx scripts
+      run: |
+        dotnet new tool-manifest
+
+        dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+
+        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux-vanilla--stockmono-only:
     runs-on: ubuntu-22.04
