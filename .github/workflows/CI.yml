@@ -9,6 +9,9 @@ on:
   schedule:
     - cron: "0 0 * * *"
 
+env:
+  # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
+  FSXC_VERSION: 0.5.9.1
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
@@ -44,8 +47,7 @@ jobs:
       run: |
         dotnet new tool-manifest
 
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
+        dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -124,8 +126,7 @@ jobs:
       run: |
         dotnet new tool-manifest
 
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
+        dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -183,8 +184,7 @@ jobs:
       run: |
         dotnet new tool-manifest
 
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
+        dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -320,8 +320,7 @@ jobs:
       run: |
         dotnet new tool-manifest
 
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
+        dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -364,8 +363,7 @@ jobs:
       run: |
         dotnet new tool-manifest
 
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
+        dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -407,8 +405,7 @@ jobs:
       run: |
         dotnet new tool-manifest
 
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
+        dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
