@@ -11,7 +11,7 @@ on:
 
 env:
   # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-  FSXC_VERSION: 0.6.0--date20230818-0412.git-2cc3227
+  FSXC_VERSION: 0.6.0--date20230821-0554.git-304fc20
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
