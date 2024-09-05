@@ -5,7 +5,6 @@ open System.IO
 
 #if !LEGACY_FRAMEWORK
 failwith "This script is not prepared yet for dotnet6 or higher, it assumes old mono is installed. If you intended to use this for mono, then run it with fsharpi --define:LEGACY_FRAMEWORK instead of dotnet fsi."
-0
 #else
 #r "System.Configuration"
 open System.Configuration
