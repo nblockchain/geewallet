@@ -38,11 +38,7 @@ module Config =
     let internal NoNetworkBalanceForDebuggingPurposes = false
 
     let internal UseNativeSegwit =
-#if NATIVE_SEGWIT
         true
-#else
-        false
-#endif
 
     let IsWindowsPlatform() =
         RuntimeInformation.IsOSPlatform OSPlatform.Windows
@@ -114,6 +110,8 @@ module Config =
                 Path.Combine(accountConfigDir, "readonly")
             | AccountKind.Archived ->
                 Path.Combine(accountConfigDir, "archived")
+            | AccountKind.Ephemeral ->
+                failwith "Ephemeral accounts are not supposed to be stored in file"
 
         let configDir = Path.Combine(baseConfigDir, currency.ToString()) |> DirectoryInfo
         if not configDir.Exists then
