@@ -132,7 +132,20 @@ module Caching =
         Object.ReferenceEquals(x, null)
 
     let private LoadFromDisk (files: CacheFiles): bool*CachedNetworkData*ServerRanking =
-        let maybeNetworkData = LoadFromDiskInternal<CachedNetworkData> files.CachedNetworkData
+        let networkDataBackup = SPrintF1 "%s.bak" files.CachedNetworkData.FullName |> FileInfo
+        let maybeNetworkData =
+            try
+                LoadFromDiskInternal<CachedNetworkData> files.CachedNetworkData
+            with
+            // data become corrupted somehow
+            | InvalidJson _ ->
+                if networkDataBackup.Exists then
+                    let res = LoadFromDiskInternal<CachedNetworkData> networkDataBackup
+                    networkDataBackup.CopyTo(files.CachedNetworkData.FullName, true) |> ignore<FileInfo>
+                    res
+                else
+                    reraise()
+
         let maybeFirstRun,resultingNetworkData =
             match maybeNetworkData with
             | None ->
@@ -142,13 +155,27 @@ module Caching =
                     Infrastructure.LogError droppedCachedMsgWarning
                     true,CachedNetworkData.Empty
                 else
+                    files.CachedNetworkData.CopyTo(networkDataBackup.FullName, true) |> ignore<FileInfo>
                     false,networkData
 
-        let maybeServerStats = LoadFromDiskInternal<ServerRanking> files.ServerStats
+        let serverStatsBackup = SPrintF1 "%s.bak" files.ServerStats.FullName |> FileInfo
+        let maybeServerStats =
+            try
+                LoadFromDiskInternal<ServerRanking> files.ServerStats
+            with
+            // data become corrupted somehow
+            | InvalidJson _ ->
+                if serverStatsBackup.Exists then
+                    let res = LoadFromDiskInternal<ServerRanking> serverStatsBackup
+                    serverStatsBackup.CopyTo(files.CachedNetworkData.FullName, true) |> ignore<FileInfo>
+                    res
+                else
+                    reraise()
         match maybeServerStats with
         | None ->
             maybeFirstRun,resultingNetworkData,Map.empty
         | Some serverStats ->
+            files.ServerStats.CopyTo(serverStatsBackup.FullName, true) |> ignore<FileInfo>
             false,resultingNetworkData,serverStats
 
     let rec private MergeRatesInternal (oldMap: Map<'K, CachedValue<'V>>)
