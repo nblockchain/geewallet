@@ -20,6 +20,10 @@
     <MonoAndroidAssetsPrefix>Assets</MonoAndroidAssetsPrefix>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <SelectedDevice>pixel_4a_-_api_31</SelectedDevice>
+    <SelectedPlatformGroup>Emulator</SelectedPlatformGroup>
+    <ActiveDebugProfile>Pixel 4a - API 31 (Android 12.0 - API 31)</ActiveDebugProfile>
+    <DefaultDevice>pixel_4a_-_api_31</DefaultDevice>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -512,7 +516,7 @@
       <Name>GWallet.Frontend.XF</Name>
     </ProjectReference>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj">
-      <Project>{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}</Project>	
+      <Project>{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}</Project>
       <Name>GWallet.Backend</Name>
     </ProjectReference>
   </ItemGroup>
@@ -671,7 +675,6 @@
   <Import Project="..\..\packages\Xamarin.AndroidX.Concurrent.Futures.1.1.0.3\build\monoandroid90\Xamarin.AndroidX.Concurrent.Futures.targets" Condition="Exists('..\..\packages\Xamarin.AndroidX.Concurrent.Futures.1.1.0.3\build\monoandroid90\Xamarin.AndroidX.Concurrent.Futures.targets')" />
   <Import Project="..\..\packages\Xamarin.AndroidX.Browser.1.3.0.6\build\monoandroid90\Xamarin.AndroidX.Browser.targets" Condition="Exists('..\..\packages\Xamarin.AndroidX.Browser.1.3.0.6\build\monoandroid90\Xamarin.AndroidX.Browser.targets')" />
   <Import Project="..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets" Condition="Exists('..\..\packages\Xamarin.Forms.5.0.0.2515\build\Xamarin.Forms.targets')" />
-
   <!-- we got some annoying warnings(as errors) since we enabled MSBuildTreatWarningsAsErrors, so let's disable here the specific one I didn't manage to fix (yet):
 
 /Applications/Visual Studio.app/Contents/MonoBundle/MSBuild/Current/bin/Microsoft.Common.CurrentVersion.targets(5,5): Error MSB3277: Found conflicts between different versions of "System.Runtime" that could not be resolved.
