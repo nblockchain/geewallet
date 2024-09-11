@@ -71,6 +71,12 @@ type BlockchainTransactionBroadcastResult =
         Result: string;
     }
 
+type BlockchainBlockHeaderResult =
+    {
+        Id: int;
+        Result: string;
+    }
+
 type ErrorInnerResult =
     {
         Message: string;
@@ -215,6 +221,19 @@ type StratumClient (jsonRpcClient: JsonRpcTcpClient) =
             raise <| ServerMisconfiguredException(SPrintF1 "Server's reply was not valid json: %s" result)
         | true ->
             StratumClient.DeserializeInternal result
+
+    member self.BlockchainBlockHeader (height: uint64): Async<BlockchainBlockHeaderResult> =
+        let obj = {
+            Id = 0;
+            Method = "blockchain.block.header";
+            Params = [height]
+        }
+        let json = Serialize obj
+
+        async {
+            let! resObj,_ = self.Request<BlockchainBlockHeaderResult> json
+            return resObj
+        }
 
     member self.BlockchainScriptHashGetBalance address: Async<BlockchainScriptHashGetBalanceResult> =
         let obj = {
