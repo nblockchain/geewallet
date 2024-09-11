@@ -24,22 +24,20 @@ let supportedProtocolVersion = "1.3"
 let private Query<'R when 'R: equality> (job: Async<UtxoCoin.StratumClient>->Async<'R>) : Async<'R> =
     UtxoCoin.Server.Query Currency.BTC (UtxoCoin.QuerySettings.Default ServerSelectionMode.Fast) job None
 
-let AddMethods (jsonRpc: JsonRpc) =
-    jsonRpc.AddLocalRpcMethod(
-        "server.version", 
-        new Func<string, string, string>(fun _clientVersion _protocolVersion -> supportedProtocolVersion))
-    jsonRpc.AddLocalRpcMethod(
-        "server.ping", 
-        new Func<unit>(fun () -> ()))
-    jsonRpc.AddLocalRpcMethod(
-        "blockchain.block.header", 
-        new Func<uint64, Task<string>>(
-            fun height -> 
-                Query 
-                    (fun asyncClient -> async {
-                        let! client = asyncClient
-                        let! result = client.BlockchainBlockHeader height
-                        return result.Result
-                    } )
-                |> Async.StartAsTask
-            ))
+type ElectrumProxyServer() =
+    [<JsonRpcMethod("server.version")>]
+    member self.ServerVersion (_clientVersion: string) (_protocolVersion: string) = 
+        supportedProtocolVersion
+
+    [<JsonRpcMethod("server.ping")>]
+    member self.ServerPing () = ()
+
+    [<JsonRpcMethod("blockchain.block.header")>]
+    member self.BlockchainBlockHeader (height: uint64) : Task<string> =
+        Query
+            (fun asyncClient -> async {
+                let! client = asyncClient
+                let! result = client.BlockchainBlockHeader height
+                return result.Result
+            } )
+        |> Async.StartAsTask

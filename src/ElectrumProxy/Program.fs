@@ -21,15 +21,13 @@ let main (args: string[]) =
             use handler = new NewLineDelimitedMessageHandler(networkStream, networkStream, formatter)
             formatter.JsonSerializerOptions.PropertyNamingPolicy <- Server.PascalCaseToSnakeCaseNamingPolicy()
 
-            use jsonRpc = new JsonRpc(handler)
+            use jsonRpc = new JsonRpc(handler, Server.ElectrumProxyServer())
             
 #if DEBUG
             jsonRpc.TraceSource.Listeners.Add(new System.Diagnostics.TextWriterTraceListener(System.Console.OpenStandardError()))
             |> ignore
             jsonRpc.TraceSource.Switch.Level <- System.Diagnostics.SourceLevels.All
-#endif            
-
-            Server.AddMethods jsonRpc
+#endif
 
             jsonRpc.Disconnected.Add(fun args -> 
                 eprintfn "Disconnected. Reason=%A; Description=%A; Exception=%A" args.Reason args.Description args.Exception)
