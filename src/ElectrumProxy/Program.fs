@@ -21,7 +21,10 @@ let main (args: string[]) =
             use handler = new NewLineDelimitedMessageHandler(networkStream, networkStream, formatter)
             formatter.JsonSerializerOptions.PropertyNamingPolicy <- Server.PascalCaseToSnakeCaseNamingPolicy()
 
-            use jsonRpc = new JsonRpc(handler, Server.ElectrumProxyServer())
+            use jsonRpc = new JsonRpc(handler)
+            use server = new Server.ElectrumProxyServer()
+            let serverOptions = JsonRpcTargetOptions(EventNameTransform=System.Func<_, _>(server.EventNameTransform))
+            jsonRpc.AddLocalRpcTarget(server, serverOptions)
             
 #if DEBUG
             jsonRpc.TraceSource.Listeners.Add(new System.Diagnostics.TextWriterTraceListener(System.Console.OpenStandardError()))
