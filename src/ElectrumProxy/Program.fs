@@ -12,6 +12,8 @@ let main (args: string[]) =
     let listener = new TcpListener(System.Net.IPAddress.Any, port)
     listener.Start();
 
+    GWallet.Backend.Caching.Instance.SaveServerRankingsToDiskOnEachUpdate <- false
+
     async {
         while true do
             use! tcpClient = listener.AcceptTcpClientAsync() |> Async.AwaitTask
@@ -39,5 +41,7 @@ let main (args: string[]) =
             do! jsonRpc.Completion |> Async.AwaitTask
     }
     |> Async.RunSynchronously
+
+    GWallet.Backend.Caching.Instance.SaveServerStatsToDisk()
 
     0
