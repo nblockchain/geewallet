@@ -165,6 +165,8 @@ module Server =
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
             if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.NotFound) then
                 raise <| ServerUnavailableException(exMsg, httpReqEx)
+            if HttpRequestExceptionMatchesErrorCode httpReqEx (int HttpStatusCode.Gone) then
+                raise <| ServerUnavailableException(exMsg, httpReqEx)
 
             // this happened once with ETC (www.ethercluster.com/etc) when trying to broadcast a transaction
             // (not sure if it's correct to ignore it but I can't fathom how the tx could be a bad request:
