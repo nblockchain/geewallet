@@ -562,8 +562,7 @@ module Caching =
                     | None -> Seq.empty
                     | Some servers -> servers
 
-                let newServersForCurrency =
-                    Seq.append (seq { yield newServerDetails }) serversForCurrency
+                let newServersForCurrency = ServerRegistry.AddServer newServerDetails serversForCurrency
 
                 let newServerList = sessionServerRanking.Add(currency, newServersForCurrency)
 
