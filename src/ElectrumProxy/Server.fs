@@ -111,3 +111,13 @@ type ElectrumProxyServer() as self =
                 return result.Result
             } )
         |> Async.StartAsTask
+
+    [<JsonRpcMethod("blockchain.transaction.broadcast")>]
+    member self.BlockchainTransactionBroadcast (rawTx: string) : Task<string> =
+        Query
+            (fun asyncClient -> async {
+                let! client = asyncClient
+                let! result = client.BlockchainTransactionBroadcast rawTx
+                return result.Result
+            } )
+        |> Async.StartAsTask
