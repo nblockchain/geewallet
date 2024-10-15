@@ -21,7 +21,7 @@ module Server =
         | ServerSelectionMode.Fast -> 3u
         | ServerSelectionMode.Analysis -> 2u
 
-    let private FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode)
+    let FaultTolerantParallelClientDefaultSettings (mode: ServerSelectionMode)
                                                            maybeConsistencyConfig =
         let consistencyConfig =
             match maybeConsistencyConfig with
@@ -93,7 +93,7 @@ module Server =
                      electrumServers
         serverFuncs
 
-    let private GetRandomizedFuncs<'R> (currency: Currency)
+    let GetRandomizedFuncs<'R> (currency: Currency)
                                        (electrumClientFunc: Async<StratumClient>->Async<'R>)
                                               : List<Server<ServerDetails,'R>> =
 
