@@ -62,6 +62,11 @@ type ElectrumProxyServer() as self =
 
     let bitcoreNodeAddress = "https://api.bitcore.io"
     let bitcoreNodeClient = new BitcoreNodeClient(bitcoreNodeAddress)
+
+    // Cache results of "blockchain.scripthash.get_history" requests. Invalidate cache only when
+    // new block(s) are added to the blockchain.
+    let mutable blockchainHeight = 0UL
+    let mutable scripthashHistoryCache = Map.empty<string, array<UtxoCoin.BlockchainScriptHashGetHistoryInnerResult>>
     
     interface IDisposable with
         override self.Dispose() =
@@ -123,9 +128,19 @@ type ElectrumProxyServer() as self =
                 }
             }
             
-        QueryMultiple
-            electrumJob
-            (List.singleton bitcoreNodeServer)
+        async {
+            match scripthashHistoryCache |> Map.tryFind scripthash with
+            | Some value -> return value
+            | None ->
+                let! result = 
+                    QueryMultiple
+                        electrumJob
+                        (List.singleton bitcoreNodeServer)
+                lock 
+                    scripthashHistoryCache 
+                    (fun () -> scripthashHistoryCache <- scripthashHistoryCache |> Map.add scripthash result)
+                return result
+        }
         |> Async.StartAsTask
 
     member private self.GetBlockchainTip() : Async<UtxoCoin.BlockchainHeadersSubscribeInnerResult> =
@@ -133,6 +148,12 @@ type ElectrumProxyServer() as self =
             (fun asyncClient -> async {
                 let! client = asyncClient
                 let! result = client.BlockchainHeadersSubscribe()
+                let height = result.Result.Height
+                if height > blockchainHeight then
+                    blockchainHeight <- height
+                    lock
+                        scripthashHistoryCache
+                        (fun () -> scripthashHistoryCache <- Map.empty)
                 return result.Result
             } )
 
