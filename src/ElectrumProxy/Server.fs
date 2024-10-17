@@ -122,7 +122,7 @@ type ElectrumProxyServer() as self =
                     } 
                     CommunicationHistory = None
                 }
-                Retrieval = async {
+                Retrieval = fun _timeout -> async {
                     let address = ScriptHashToAddress scripthash
                     return! bitcoreNodeClient.GetAddressTransactions (address.ToString())
                 }

@@ -195,7 +195,7 @@ module ServerRegistry =
 [<CustomEquality; NoComparison>]
 type Server<'K,'R when 'K: equality and 'K :> ICommunicationHistory> =
     { Details: 'K
-      Retrieval: Async<'R> }
+      Retrieval: NetworkTimeouts -> Async<'R> }
     override self.Equals yObj =
         match yObj with
         | :? Server<'K,'R> as y ->

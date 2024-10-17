@@ -85,8 +85,8 @@ module Server =
             || ex.Message.Contains(SPrintF1 " %i." errorCode)
 
     let exMsg = "Could not communicate with EtherServer"
-    let PerformEtherRemoteCallWithTimeout<'T,'R> (job: Async<'R>): Async<'R> = async {
-        let! maybeResult = FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT job
+    let PerformEtherRemoteCallWithTimeout<'T,'R> (job: Async<'R>) (timeout: TimeSpan): Async<'R> = async {
+        let! maybeResult = FSharpUtil.WithTimeout timeout job
         match maybeResult with
         | None ->
             return raise <| ServerTimedOutException("Timeout when trying to communicate with Ether server")
@@ -411,12 +411,13 @@ module Server =
     let Web3ServerToRetrievalFunc (server: ServerDetails)
                                   (web3ClientFunc: SomeWeb3->Async<'R>)
                                   currency
+                                  (timeouts: NetworkTimeouts)
                                       : Async<'R> =
 
         let HandlePossibleEtherFailures (job: Async<'R>): Async<'R> =
             async {
                 try
-                    let! result = PerformEtherRemoteCallWithTimeout job
+                    let! result = PerformEtherRemoteCallWithTimeout job timeouts.Timeout
                     return result
                 with
                 | ex ->
@@ -428,9 +429,9 @@ module Server =
         let connectionTimeout =
             match currency with
             | Currency.ETC when etcEcosystemIsMomentarilyCentralized ->
-                Config.DEFAULT_NETWORK_TIMEOUT + Config.DEFAULT_NETWORK_TIMEOUT
+                timeouts.Double().Timeout
             | _ ->
-                Config.DEFAULT_NETWORK_TIMEOUT
+                timeouts.Timeout
 
         async {
             let web3Server = Web3Server (connectionTimeout, server)

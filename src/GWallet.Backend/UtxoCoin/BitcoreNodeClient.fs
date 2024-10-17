@@ -13,7 +13,7 @@ open GWallet.Backend.FSharpUtil.UwpHacks
 
 // https://github.com/bitpay/bitcore/blob/master/packages/bitcore-node/docs/api-documentation.md
 type BitcoreNodeClient(serverAddress: string) =
-    let httpClient = new HttpClient(BaseAddress=Uri serverAddress, Timeout=Config.DEFAULT_NETWORK_TIMEOUT)
+    let httpClient = new HttpClient(BaseAddress=Uri serverAddress, Timeout=Config.DEFAULT_NETWORK_TIMEOUTS.Timeout)
 
     let mutable lastRequestTime = DateTime.Now
     let minTimeBetweenRequests = 0.1
@@ -23,6 +23,10 @@ type BitcoreNodeClient(serverAddress: string) =
         override self.Dispose (): unit = 
             httpClient.Dispose()
             semaphore.Dispose()
+
+    member self.Timeout
+        with get() = httpClient.Timeout
+        and set(newTimeout) = httpClient.Timeout <- newTimeout
     
     member private self.Request(request: string): Async<string> =
         async {
