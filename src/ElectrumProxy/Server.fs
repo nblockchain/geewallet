@@ -62,6 +62,12 @@ type ElectrumProxyServer() as self =
 
     let bitcoreNodeAddress = "https://api.bitcore.io"
     let bitcoreNodeClient = new BitcoreNodeClient(bitcoreNodeAddress)
+    let blockbokClients = 
+        [ 
+            for i=1 to 5 do 
+                let address = sprintf "https://btc%d.trezor.io" i
+                yield address, lazy(new BlockbookClient(address)) 
+        ]
 
     // Cache results of "blockchain.scripthash.get_history" requests. Invalidate cache only when
     // new block(s) are added to the blockchain.
@@ -71,6 +77,8 @@ type ElectrumProxyServer() as self =
     interface IDisposable with
         override self.Dispose() =
             (bitcoreNodeClient :> IDisposable).Dispose()
+            for _, lazyClient in blockbokClients do
+                if lazyClient.IsValueCreated then (lazyClient.Value :> IDisposable).Dispose()
             cts.Cancel()
 
     member self.EventNameTransform (name: string): string =
@@ -122,11 +130,29 @@ type ElectrumProxyServer() as self =
                     } 
                     CommunicationHistory = None
                 }
-                Retrieval = fun _timeout -> async {
+                Retrieval = fun _timeouts -> async {
                     let address = ScriptHashToAddress scripthash
                     return! bitcoreNodeClient.GetAddressTransactions (address.ToString())
                 }
             }
+
+        let blockbookServers = 
+            [
+                for serverAddress, lazyClient in blockbokClients do
+                    yield {
+                        Details = { 
+                            ServerInfo = { 
+                                NetworkPath = serverAddress
+                                ConnectionType = { ConnectionType.Encrypted = true; Protocol = Protocol.Http } 
+                            } 
+                            CommunicationHistory = None
+                        }
+                        Retrieval = fun _timeouts -> async {
+                            let address = ScriptHashToAddress scripthash
+                            return! lazyClient.Value.GetAddressTransactions (address.ToString())
+                        }
+                    }
+            ]
             
         async {
             match scripthashHistoryCache |> Map.tryFind scripthash with
@@ -135,7 +161,7 @@ type ElectrumProxyServer() as self =
                 let! result = 
                     QueryMultiple
                         electrumJob
-                        (List.singleton bitcoreNodeServer)
+                        (bitcoreNodeServer :: blockbookServers)
                 lock 
                     scripthashHistoryCache 
                     (fun () -> scripthashHistoryCache <- scripthashHistoryCache |> Map.add scripthash result)

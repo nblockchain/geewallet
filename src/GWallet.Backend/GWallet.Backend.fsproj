@@ -35,7 +35,9 @@
     <Compile Include="UtxoCoin\ElectrumServer.fs" />
     <Compile Include="UtxoCoin\StratumClient.fs" />
     <Compile Include="UtxoCoin\ElectrumClient.fs" />
+    <Compile Include="UtxoCoin\RestApiClient.fs" />
     <Compile Include="UtxoCoin\BitcoreNodeClient.fs" />
+    <Compile Include="UtxoCoin\BlockbookClient.fs" />
     <Compile Include="UtxoCoin\UtxoCoinServer.fs" />
     <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
     <Compile Include="UtxoCoin\TransactionTypes.fs" />
