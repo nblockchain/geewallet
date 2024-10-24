@@ -28,7 +28,7 @@ type ParallelizationAndOptimization() =
                         }
                     CommunicationHistory = None
                 }
-            Retrieval = job
+            Retrieval = fun _timeout -> job
         }
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ _ -> ())
 
@@ -232,7 +232,7 @@ type ParallelizationAndOptimization() =
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult1 }
+                          Retrieval = fun _ -> async { return someResult1 }
                       }
         let server2 = {
                           Details =
@@ -246,7 +246,7 @@ type ParallelizationAndOptimization() =
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult2 }
+                          Retrieval = fun _ -> async { return someResult2 }
                       }
         let retrievedData = (FaultTolerantParallelClient<ServerDetails, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -301,7 +301,7 @@ type ParallelizationAndOptimization() =
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return raise SomeExceptionDuringParallelWork }
+                          Retrieval = fun _ -> async { return raise SomeExceptionDuringParallelWork }
                       }
         let server2 = {
                           Details =
@@ -315,7 +315,7 @@ type ParallelizationAndOptimization() =
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult2 }
+                          Retrieval = fun _ -> async { return someResult2 }
                       }
         let server3 = {
                           Details =
@@ -327,7 +327,7 @@ type ParallelizationAndOptimization() =
                                       }
                                   CommunicationHistory = None
                               }
-                          Retrieval = async { return someResult3 }
+                          Retrieval = fun _ -> async { return someResult3 }
                       }
 
         let defaultSettings = FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries None

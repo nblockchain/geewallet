@@ -510,7 +510,7 @@ type ServerReference() =
                 Assert.Fail "https server should be fault, not successful"
 
     [<Test>]
-    member __.``duplicate servers are removed``() =
+    member __.``no duplicate servers are in the collection``() =
         let sameRandomHostname = "xfoihror3uo3wmio"
         let serverA =
             {
@@ -532,16 +532,14 @@ type ServerReference() =
             }
         let servers = Map.empty.Add
                                 (dummy_currency_because_irrelevant_for_this_test,
-                                seq { yield serverA; yield serverB })
-        let serverDetails = ServerRegistry.Serialize servers
-        let deserializedServers =
-            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
-                |> List.ofSeq
+                                seq { yield serverA } |> ServerRegistry.AddServer serverB)
 
-        Assert.That(deserializedServers.Length, Is.EqualTo 1)
+        let serversForCurrency = servers.[dummy_currency_because_irrelevant_for_this_test]
+        
+        Assert.That(serversForCurrency |> Seq.length, Is.EqualTo 1)
 
     [<Test>]
-    member __.``non-duplicate servers are not removed``() =
+    member __.``non-duplicate servers are added to colection``() =
         let serverA =
             {
                 ServerInfo =
@@ -562,16 +560,15 @@ type ServerReference() =
             }
 
         let servers = Map.empty.Add
-                                (dummy_currency_because_irrelevant_for_this_test, seq { yield serverA; yield serverB })
-        let serverDetails = ServerRegistry.Serialize servers
-        let deserializedServers =
-            ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value
-                |> List.ofSeq
+                                (dummy_currency_because_irrelevant_for_this_test, 
+                                 seq { yield serverA } |> ServerRegistry.AddServer serverB)
 
-        Assert.That(deserializedServers.Length, Is.EqualTo 2)
+        let serversForCurrency = servers.[dummy_currency_because_irrelevant_for_this_test]
+        
+        Assert.That(serversForCurrency |> Seq.length, Is.EqualTo 2)
 
     member private __.SerializeAndDeserialize (serverA: ServerDetails) (serverB: ServerDetails): List<ServerDetails> =
-        let servers = seq { yield serverA; yield serverB }
+        let servers = seq { yield serverA } |> ServerRegistry.AddServer serverB
         let serverRanking = Map.empty.Add (dummy_currency_because_irrelevant_for_this_test, servers)
         let serverDetails = ServerRegistry.Serialize serverRanking
         ((ServerRegistry.Deserialize serverDetails).TryFind dummy_currency_because_irrelevant_for_this_test).Value

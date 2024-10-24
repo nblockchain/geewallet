@@ -90,33 +90,21 @@ module ServerRegistry =
         let listMap = Map.toList map
         tryFind listMap serverPredicate
 
-    let internal RemoveDupes (servers: seq<ServerDetails>) =
-        let rec removeDupesInternal (servers: seq<ServerDetails>) (serversMap: Map<string,ServerDetails>) =
-            match Seq.tryHead servers with
-            | None -> Seq.empty
-            | Some server ->
-                let tail = Seq.tail servers
-                match serversMap.TryGetValue server.ServerInfo.NetworkPath with
-                | false,_ ->
-                    removeDupesInternal tail serversMap
-                | true,serverInMap ->
-                    let serverToAppend =
-                        match server.CommunicationHistory,serverInMap.CommunicationHistory with
-                        | None,_ -> serverInMap
-                        | _,None -> server
-                        | Some (_, lastComm),Some (_, lastCommInMap) ->
-                            if lastComm > lastCommInMap then
-                                server
-                            else
-                                serverInMap
-                    let newMap = serversMap.Remove serverToAppend.ServerInfo.NetworkPath
-                    Seq.append (seq { yield serverToAppend }) (removeDupesInternal tail newMap)
-
-        let initialServersMap =
-            servers
-                |> Seq.map (fun server -> server.ServerInfo.NetworkPath, server)
-                |> Map.ofSeq
-        removeDupesInternal servers initialServersMap
+    let AddServer (newServer: ServerDetails) (servers: seq<ServerDetails>) : seq<ServerDetails> =
+        let serversArray = Seq.toArray servers
+        match Array.tryFindIndex (fun each -> each.ServerInfo.NetworkPath = newServer.ServerInfo.NetworkPath) serversArray with
+        | Some index ->
+            let existingServer = serversArray.[index]
+            match newServer.CommunicationHistory, existingServer.CommunicationHistory with
+            | None, _ -> ()
+            | _, None -> 
+                serversArray.[index] <- newServer
+            | Some (_, newLastComm),Some (_, existingLastCommInMap) when newLastComm > existingLastCommInMap ->
+                serversArray.[index] <- newServer
+            | _ -> ()
+            serversArray :> seq<ServerDetails>
+        | None -> 
+            Array.append serversArray (Array.singleton newServer) :> seq<ServerDetails>
 
     let internal RemoveBlackListed (cs: Currency*seq<ServerDetails>): seq<ServerDetails> =
         let isBlackListed currency server =
@@ -134,7 +122,7 @@ module ServerRegistry =
         Seq.filter (fun server -> not (isBlackListed currency server)) servers
 
     let RemoveCruft (cs: Currency*seq<ServerDetails>): seq<ServerDetails> =
-        cs |> RemoveBlackListed |> RemoveDupes
+        cs |> RemoveBlackListed
 
     let internal Sort (servers: seq<ServerDetails>): seq<ServerDetails> =
         let sort server =
@@ -186,7 +174,12 @@ module ServerRegistry =
                     | None -> Seq.empty
                     | Some servers ->
                         servers
-                let allServers = (currency, Seq.append allServersFrom1 allServersFrom2)
+                let mergedServers = 
+                    Seq.fold 
+                        (fun servers newServer -> AddServer newServer servers)
+                        allServersFrom1
+                        allServersFrom2
+                let allServers = (currency, mergedServers)
                                  |> RemoveCruft
                                  |> Sort
 
@@ -202,7 +195,7 @@ module ServerRegistry =
 [<CustomEquality; NoComparison>]
 type Server<'K,'R when 'K: equality and 'K :> ICommunicationHistory> =
     { Details: 'K
-      Retrieval: Async<'R> }
+      Retrieval: NetworkTimeouts -> Async<'R> }
     override self.Equals yObj =
         match yObj with
         | :? Server<'K,'R> as y ->

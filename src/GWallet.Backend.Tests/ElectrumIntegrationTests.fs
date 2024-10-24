@@ -61,7 +61,8 @@ type ElectrumIntegrationTests() =
             // because we want the server incompatibilities to show up here (even if GWallet clients bypass
             // them in order not to crash)
             try
-                let stratumClient = ElectrumClient.StratumServer server
+                let timeout = { Timeout = TimeSpan.FromSeconds 5.0; ConnectTimeout = TimeSpan.FromSeconds 10.0 }
+                let stratumClient = ElectrumClient.StratumServer server timeout
                 let result = query stratumClient
                                   |> Async.RunSynchronously
 
