@@ -22,45 +22,11 @@
             Grid.Row="0"
         >
 
-            <!-- we add {V|H}Options=Center* not only to the Label, as a workaround to
-            https://github.com/xamarin/Xamarin.Forms/issues/4655 -->
-            <Frame x:Name="totalFiatAmountFrame" 
-                   HasShadow="false"
-                   BackgroundColor="Transparent"
-                   BorderColor="Transparent"
-                   VerticalOptions="Center"
-                   Padding="0"
-                   Margin="0,0,10,0"
-            >
-                <Label Text="..." x:Name="totalFiatAmountLabel"
-                           Margin="0,0,0,0"
-                           FontSize="22" />
-            </Frame>
-
-            <!-- keep this frame&label below almost same as previous! -->
-            <Frame x:Name="totalReadOnlyFiatAmountFrame"
-                   HasShadow="false"
-                   IsVisible="false"
-                   BackgroundColor="Transparent"
-                   BorderColor="Transparent"
-                   VerticalOptions="Center"
-                   Padding="0"
-                   Margin="0,0,10,0"
-            >
-                <Label Text="..." x:Name="totalReadOnlyFiatAmountLabel"
-                           Margin="0,0,0,0"
-                           FontSize="22"
-                           TextColor="DarkBlue" />
-            </Frame>
-
-            <controls:CircleChartView x:Name="normalChartView"
+            <controls:HoopChartView x:Name="normalChartView"
                                      HorizontalOptions="FillAndExpand"
-                                     VerticalOptions="FillAndExpand"
-                                     FlexLayout.Grow="1.0"
-                                     FlexLayout.AlignSelf="Stretch"
-            />
+                                     VerticalOptions="FillAndExpand"/>
 
-            <controls:CircleChartView x:Name="readonlyChartView"
+            <controls:HoopChartView x:Name="readonlyChartView"
                                      IsVisible="False"
                                      HorizontalOptions="FillAndExpand"
                                      VerticalOptions="FillAndExpand"
