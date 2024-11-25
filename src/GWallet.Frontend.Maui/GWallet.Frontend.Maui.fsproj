@@ -48,22 +48,19 @@
 
   <PropertyGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
     <UseMaui>false</UseMaui>
-    <MauiSubmodulePath>$(MSBuildProjectDirectory)\..\..\dependencies\maui\</MauiSubmodulePath>
-    <_MauiBuildTasksLocation>$(MauiSubmodulePath).nuspec\</_MauiBuildTasksLocation>
     <GtkProjectFolder>Platforms\Gtk\</GtkProjectFolder>
   </PropertyGroup>
 
   <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.5" />
-    <ProjectReference Include="$(MauiSubmodulePath)src\BlazorWebView\src\Maui\Microsoft.AspNetCore.Components.WebView.Maui.csproj" />
-    <ProjectReference Include="$(MauiSubmodulePath)src\Essentials\src\Essentials.csproj" />
-    <ProjectReference Include="$(MauiSubmodulePath)src\Controls\src\Core\Controls.Core.csproj" />
-    <ProjectReference Include="$(MauiSubmodulePath)src\Controls\src\Xaml\Controls.Xaml.csproj" />
-    <ProjectReference Include="$(MauiSubmodulePath)src\Core\src\Core.csproj" />
-    <ProjectReference Include="$(MauiSubmodulePath)src\Compatibility\Core\src\Compatibility.csproj" />
-    <ProjectReference Include="$(MauiSubmodulePath)src\Controls\Foldable\src\Controls.Foldable.csproj" />
-    <ProjectReference Include="$(MauiSubmodulePath)src\Controls\Maps\src\Controls.Maps.csproj" />
+    <PackageReference Include="Mali.AspNetCore.Components.WebView" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Essentials" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Controls.Core" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Controls.Xaml" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Core" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Controls.Compatibility" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Controls.Foldable" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -224,8 +221,8 @@
   </ItemGroup>
   
   <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
-    <ProjectReference Include="$(MauiSubmodulePath)src\ZXing.Net.Maui\ZXing.Net.MAUI\ZXing.Net.MAUI.csproj" />
-    <ProjectReference Include="$(MauiSubmodulePath)src\ZXing.Net.Maui\ZXing.Net.MAUI.Controls\ZXing.Net.MAUI.Controls.csproj" />
+    <PackageReference Include="Mali.ZXing" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.ZXing.Controls" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
   </ItemGroup>
 
   <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
@@ -275,7 +272,5 @@
   <ItemGroup>
     <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj" />
   </ItemGroup>
-  
-  <Import Condition="$(TargetPlatformIdentifier) == 'gtk'" Project="$(MauiSubmodulePath)src\Maui.InTree.props" />
 
 </Project>
