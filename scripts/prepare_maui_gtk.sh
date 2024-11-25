@@ -13,7 +13,3 @@ chmod 764 $WORKLOAD_MANIFEST_DIR/*
 dotnet workload search
 dotnet workload install gtk --skip-manifest-update
 
-#Add Maui Nuget source
-cd dependencies/maui
-dotnet nuget add source --name nuget https://api.nuget.org/v3/index.json
-cd ../..
