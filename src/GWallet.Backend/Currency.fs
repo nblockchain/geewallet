@@ -14,7 +14,7 @@ type Currency =
     | ETH
     | ETC
     | DAI
-    | SAI
+    | LUSD
     // </NOTE>
 
 #if STRICTER_COMPILATION_BUT_WITH_REFLECTION_AT_RUNTIME
@@ -33,7 +33,7 @@ type Currency =
             yield ETH
             yield ETC
             yield DAI
-            yield SAI
+            yield LUSD
         }
 #endif
 
@@ -43,7 +43,7 @@ type Currency =
     member self.IsEther() =
         self = Currency.ETC || self = Currency.ETH
     member self.IsEthToken() =
-        self = Currency.DAI || self = Currency.SAI
+        self = Currency.DAI || self = Currency.LUSD
     member self.IsEtherBased() =
         self.IsEther() || self.IsEthToken()
     member self.IsUtxo() =
@@ -54,7 +54,7 @@ type Currency =
             8
         elif self.IsEther() then
             18
-        elif self = Currency.SAI || self = Currency.DAI then
+        elif self = Currency.LUSD || self = Currency.DAI then
             18
         else
             failwith <| SPrintF1 "Unable to determine decimal places for %A" self
@@ -70,7 +70,7 @@ type Currency =
         | LTC -> "LTC"
         | ETH -> "ETH"
         | ETC -> "ETC"
-        | SAI -> "SAI"
+        | LUSD -> "LUSD"
         | DAI -> "DAI"
 #endif
 
