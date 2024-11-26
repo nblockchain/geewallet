@@ -6,7 +6,7 @@ open System.Linq
 open System.Diagnostics
 
 #if !LEGACY_FRAMEWORK
-#r "nuget: Fsdk, Version=0.6.0--date20230818-1152.git-83d671b"
+#r "nuget: Fsdk, Version=0.6.0--date20240306-1035.git-a0a5c67"
 #else
 #r "System.Configuration"
 open System.Configuration
@@ -29,6 +29,8 @@ let XF_FRONTEND_LIB = sprintf "%s.Frontend.XF" PASCALCASE_NAME
 let GTK_FRONTEND_APP = sprintf "%s.Frontend.XF.Gtk" PASCALCASE_NAME
 let CONSOLE_FRONTEND_APP = sprintf "%s.Frontend.ConsoleApp" PASCALCASE_NAME
 let BACKEND_LIB = sprintf "%s.Backend" PASCALCASE_NAME
+
+let currentVersion = Misc.GetCurrentVersion FsxHelper.RootDir
 
 type FrontendProject =
     | XF
@@ -172,19 +174,7 @@ let PrintNugetVersion () =
             Console.Out.Flush()
             failwith "nuget process' output contained errors ^"
 
-let BuildSolutionOrProject
-    (buildToolAndBuildArg: string*string)
-    (file: FileInfo)
-    (binaryConfig: BinaryConfig)
-    (maybeConstant: Option<string>)
-    (extraOptions: string)
-    =
-#if LEGACY_FRAMEWORK
-    NugetRestore file
-#endif
-
-    let buildTool,buildArg = buildToolAndBuildArg
-
+let GetBuildFlags (buildTool: string) (binaryConfig) (maybeConstant: Option<string>) =
     let configOption =
         if buildTool.StartsWith "dotnet" then
             sprintf "--configuration %s" (binaryConfig.ToString())
@@ -233,6 +223,24 @@ let BuildSolutionOrProject
                 sprintf "%s -property:DefineConstants=\\\"%s\\\"" configOption (String.Join(semiColon, defineConstants))
         else
             configOption
+
+    configOptions
+
+let BuildSolutionOrProject
+    (buildToolAndBuildArg: string*string)
+    (file: FileInfo)
+    (binaryConfig: BinaryConfig)
+    (maybeConstant: Option<string>)
+    (extraOptions: string)
+    =
+#if LEGACY_FRAMEWORK
+    NugetRestore file
+#endif
+
+    let buildTool,buildArg = buildToolAndBuildArg
+
+    let configOptions = GetBuildFlags buildTool binaryConfig maybeConstant
+
     let buildArgs = sprintf "%s %s %s %s"
                             buildArg
                             file.FullName
@@ -403,6 +411,7 @@ let GetPathToFrontend (frontend: FrontendApp) (binaryConfig: BinaryConfig): Dire
 
 let GetPathToBackend () =
     Path.Combine (FsxHelper.RootDir.FullName, "src", BACKEND_LIB)
+    |> DirectoryInfo
 
 let MakeAll (maybeConstant: Option<string>) =
 #if LEGACY_FRAMEWORK
@@ -463,14 +472,12 @@ match maybeTarget with
     let zipCommand = "zip"
     MakeCheckCommand zipCommand
 
-    let version = (Misc.GetCurrentVersion FsxHelper.RootDir).ToString()
-
     let release = BinaryConfig.Release
     let frontend,script = JustBuild release None
     let binDir = "bin"
     Directory.CreateDirectory(binDir) |> ignore
 
-    let zipNameWithoutExtension = sprintf "%s-v%s" script.Name version
+    let zipNameWithoutExtension = sprintf "%s-v%s" script.Name (currentVersion.ToString())
     let zipName = sprintf "%s.zip" zipNameWithoutExtension
     let pathToZip = Path.Combine(binDir, zipName)
     if (File.Exists (pathToZip)) then
@@ -623,7 +630,7 @@ match maybeTarget with
 
 | Some "update-servers" ->
     let _,buildConfig = MakeAll None
-    Directory.SetCurrentDirectory (GetPathToBackend())
+    Directory.SetCurrentDirectory (GetPathToBackend().FullName)
     let proc1 = RunFrontend FrontendApp.Console buildConfig (Some "--update-servers-file")
     if proc1.ExitCode <> 0 then
         Environment.Exit proc1.ExitCode
@@ -662,6 +669,115 @@ match maybeTarget with
         },
         Echo.All
     ).UnwrapDefault() |> ignore<string>
+
+| Some "push" ->
+#if LEGACY_FRAMEWORK
+    Console.Error.WriteLine "Pushing a nuget package is not supported with .NET legacy or Mono"
+    Environment.Exit 1
+#else
+    let githubRef = Environment.GetEnvironmentVariable "GITHUB_REF"
+    if isNull githubRef then
+        Console.Error.WriteLine "Pushing a nuget package is only meant for GitHub CI jobs"
+        Environment.Exit 1
+
+    let tagPrefix = "refs/tags/"
+    let masterBranchRef = "refs/heads/master"
+    let isTag =
+        githubRef.StartsWith tagPrefix
+
+    let backendDir = GetPathToBackend()
+    let backendProj = Path.Combine(backendDir.FullName, BACKEND_LIB + ".fsproj")
+
+    let createNugetPackageFile versionToPack =
+        let binaryConfig =
+            if isTag then
+                BinaryConfig.Release
+            else
+                BinaryConfig.Debug
+        let buildFlags = GetBuildFlags "dotnet" binaryConfig None
+        let allBuildFlags = sprintf "%s -property:Version=%s" buildFlags versionToPack
+        let maybeWarnAsError =
+            if currentVersion.Minor % 2 = 0 then
+                "-warnaserror"
+            else
+                String.Empty
+        Process.Execute(
+            {
+                Command = "dotnet"
+                Arguments = sprintf "pack %s %s %s" maybeWarnAsError allBuildFlags backendProj
+            },
+            Echo.All
+        ).UnwrapDefault() |> ignore<string>
+
+        Directory.GetFiles(backendDir.FullName, "*.nupkg", SearchOption.AllDirectories)
+        |> Seq.tryExactlyOne
+
+    // try first to create a non-prerelease package (as we want to fail fast instead of just fail at git tag push)
+    let maybeNupkg = createNugetPackageFile (currentVersion.ToString())
+    let nupkg =
+        match maybeNupkg with
+        | None -> failwith "File *.nupkg not found, did `dotnet pack` work properly?"
+        | Some nupkg ->
+            if isTag then
+                nupkg
+            else
+                File.Delete nupkg
+                let nugetVersion = Network.GetNugetPrereleaseVersionFromBaseVersion (currentVersion.ToString())
+                match createNugetPackageFile nugetVersion with
+                | None ->
+                    failwith "File *.nupkg not found (prerelease), did `dotnet pack` work properly?"
+                | Some nupkg ->
+                    nupkg
+
+    let nugetApiKey = Environment.GetEnvironmentVariable "NUGET_API_KEY"
+    if String.IsNullOrEmpty nugetApiKey then
+        Console.WriteLine "NUGET_API_KEY not found, skipping push"
+        Environment.Exit 0
+    else
+        let push() =
+            Process.Execute(
+                {
+                    Command = "dotnet"
+                    Arguments = sprintf "nuget push --api-key %s %s" nugetApiKey nupkg
+                },
+                Echo.All
+            ).UnwrapDefault() |> ignore<string>
+
+        let eventName = Environment.GetEnvironmentVariable "GITHUB_EVENT_NAME"
+        if isNull eventName then
+            failwith "Env var 'GITHUB_EVENT_NAME' not set; not running as GitHubActions job?"
+        if eventName <> "push" then
+            Console.WriteLine "GitHubActions event not 'push', skipping..."
+            Environment.Exit 0
+
+        if isTag then
+            push()
+        else
+            if githubRef <> masterBranchRef then
+                Console.WriteLine "Pushed to non-master branch, skipping..."
+                Environment.Exit 0
+
+            let commitHash = Environment.GetEnvironmentVariable "GITHUB_SHA"
+            if isNull commitHash then
+                failwith "Env var 'GITHUB_SHA' not set; not running as GitHubActions job?"
+            let gitArgs = sprintf "describe --exact-match --tags %s" commitHash
+            let gitProcRes =
+                Process.Execute(
+                    {
+                        Command = "git"
+                        Arguments = gitArgs
+                    },
+                    Echo.All
+                ).Result
+            match gitProcRes with
+            | ProcessResultState.Success _ ->
+                Console.WriteLine "Commit mapped to a tag, skipping pushing prerelease..."
+                Environment.Exit 0
+            | ProcessResultState.Error _ ->
+                push()
+            | _ ->
+                failwith "warning from git command?"
+#endif
 
 | Some(someOtherTarget) ->
     Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
