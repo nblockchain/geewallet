@@ -52,6 +52,15 @@ type ArchivedUtxoAccount(currency: Currency, accountFile: FileRepresentation,
     interface IUtxoAccount with
         member val PublicKey = fromAccountFileToPublicKey accountFile with get
 
+/// Inherits from ArchivedUtxoAccount because SweepArchivedFunds expects ArchivedUtxoAccount instance
+/// and sweep funds functionality is needed for this kind of account.
+type EphemeralUtxoAccount(currency: Currency, accountFile: FileRepresentation,
+                          fromAccountFileToPublicAddress: FileRepresentation -> string,
+                          fromAccountFileToPublicKey: FileRepresentation -> PubKey) =
+    inherit ArchivedUtxoAccount(currency, accountFile, fromAccountFileToPublicAddress, fromAccountFileToPublicKey)
+
+    override self.Kind = AccountKind.Ephemeral
+
 module Account =
 
     let internal GetNetwork (currency: Currency) =
@@ -699,38 +708,6 @@ module Account =
             }
             Config.AddAccount conceptAccountForReadOnlyAccount AccountKind.ReadOnly
             |> ignore<FileRepresentation>
-
-#if NATIVE_SEGWIT
-    let internal MigrateReadOnlyAccountsToNativeSegWit (readOnlyUtxoAccounts: seq<ReadOnlyAccount>): unit =
-        let utxoAccountsToMigrate =
-            seq {
-                for utxoAccount in readOnlyUtxoAccounts do
-                    let accountFile = utxoAccount.AccountFile
-                    let prefix =
-                        match (utxoAccount :> IAccount).Currency with
-                        | Currency.BTC ->
-                            BITCOIN_ADDRESS_BECH32_PREFIX
-                        | Currency.LTC ->
-                            LITECOIN_ADDRESS_BECH32_PREFIX
-                        | otherCurrency -> failwith <| SPrintF1 "Missed UTXO currency %A when implementing NativeSegwit migration?" otherCurrency
-                    if not (accountFile.Name.StartsWith prefix) then
-                        yield utxoAccount
-            }
-
-        let utxoPublicKeys =
-            seq {
-                for utxoReadOnlyAccount in utxoAccountsToMigrate do
-                    let accountFile = utxoReadOnlyAccount.AccountFile
-                    let utxoPublicKey = accountFile.Content()
-                    yield utxoPublicKey
-            } |> Set.ofSeq
-
-        for utxoPublicKey in utxoPublicKeys do
-            CreateReadOnlyAccounts utxoPublicKey
-
-        for utxoReadOnlyAccount in utxoAccountsToMigrate do
-            Config.RemoveReadOnlyAccount utxoReadOnlyAccount
-#endif
 
     let GetSignedTransactionDetails<'T when 'T :> IBlockchainFeeInfo>(rawTransaction: string)
                                                                      (currency: Currency)
