@@ -175,7 +175,7 @@ module Marshalling =
         if (String.IsNullOrWhiteSpace(json)) then
             raise (ArgumentException("empty or whitespace json", "json"))
         if not (IsValidJson json) then
-            raise <| InvalidJson
+            raise <| InvalidJson json
 
         let deserialized =
             try
