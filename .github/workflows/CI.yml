@@ -20,7 +20,7 @@ env:
 
 jobs:
   macOS--dotnet6-and-mono:
-    runs-on: macOS-12
+    runs-on: macOS-13
     steps:
     - uses: actions/checkout@v1
       with:
@@ -29,6 +29,17 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: '6.0.113'
+    - name: Install specific Xamarin.iOS and Xamarin.Android versions
+      run: |
+        wget https://download.visualstudio.microsoft.com/download/pr/81c41aaa-a3d7-4875-8416-d04b472379b7/21d9f6c5ad3a6bc2479b2ec4b0685b6c/xamarin.ios-16.0.0.72.pkg
+        sudo installer -pkg xamarin.ios-16.0.0.72.pkg -target /
+        wget https://aka.ms/xamarin-android-commercial-d17-3-macos --output-document=xamarin.android-13.0.0.0.pkg
+        sudo installer -pkg xamarin.android-13.0.0.0.pkg -target /
+    - name: Check versions
+      run: |
+        mono --version
+        /Library/Frameworks/Xamarin.iOS.framework/Versions/Current/bin/mtouch --version
+        ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -52,13 +63,24 @@ jobs:
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   macOS--mono-only:
-    runs-on: macOS-12
+    runs-on: macOS-13
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
     - name: HACK to emulate dotnet uninstall
       run: sudo rm -f `which dotnet`
+    - name: Install specific Xamarin.iOS and Xamarin.Android versions
+      run: |
+        wget https://download.visualstudio.microsoft.com/download/pr/81c41aaa-a3d7-4875-8416-d04b472379b7/21d9f6c5ad3a6bc2479b2ec4b0685b6c/xamarin.ios-16.0.0.72.pkg
+        sudo installer -pkg xamarin.ios-16.0.0.72.pkg -target /
+        wget https://aka.ms/xamarin-android-commercial-d17-3-macos --output-document=xamarin.android-13.0.0.0.pkg
+        sudo installer -pkg xamarin.android-13.0.0.0.pkg -target /
+    - name: Check versions
+      run: |
+        mono --version
+        /Library/Frameworks/Xamarin.iOS.framework/Versions/Current/bin/mtouch --version
+        ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -75,11 +97,15 @@ jobs:
       run: make update-servers
 
   macOS--dotnet6-only:
-    runs-on: macOS-12
+    runs-on: macOS-13
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
+    - name: Setup .NET SDK 6.0.x
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: '6.0.113'        
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
     - name: configure
