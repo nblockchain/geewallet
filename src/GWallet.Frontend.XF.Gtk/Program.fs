@@ -44,6 +44,10 @@ module Main =
     let main argv =
         match argv.Length with
         | 0 ->
+            if GWallet.Backend.Config.IsLinuxPlatform() && Environment.UserName = "root" then
+                Console.Error.WriteLine "Running the GTK GUI as root is not supported"
+                Environment.Exit 1
+
             NormalStartWithNoParameters()
         | 1 when argv.[0] = "--version" ->
             Console.WriteLine (
