@@ -8,12 +8,14 @@
           HorizontalOptions="FillAndExpand"
           RowSpacing="0"
           RowDefinitions="Auto,Auto,*,Auto,*,Auto,*,Auto,Auto"
+          ColumnDefinitions="*,Auto,*"
     >
         <StackLayout x:Name="transactionLayout"
                      Orientation="Horizontal"
                      HorizontalOptions="FillAndExpand"
                      IsVisible="false"
                      Grid.Row="0"
+                     Grid.ColumnSpan="3"
         >
             <Label x:Name="transactionLabel"
                    Text="Transaction proposal:"
@@ -41,11 +43,13 @@
                TextChanged="OnTransactionEntryTextChanged"
                IsVisible="false"
                Grid.Row="1"
+               Grid.ColumnSpan="3"
                />
 
         <StackLayout Orientation="Horizontal"
                      HorizontalOptions="FillAndExpand"
                      Grid.Row="2"
+                     Grid.ColumnSpan="3"
                      >
             <Label Text="Destination address:"
                    HorizontalOptions="Start"
@@ -73,12 +77,14 @@
                IsSpellCheckEnabled="false"
                IsTextPredictionEnabled="false"
                Grid.Row="3"
+               Grid.ColumnSpan="3"
                 />
 
         <Grid ColumnDefinitions="Auto,*,Auto"
                     HorizontalOptions="FillAndExpand"
                     Padding="0,10,0,0"
                     Grid.Row="4"
+                    Grid.ColumnSpan="3"
         >
             <Label Text="Amount:"
                    HorizontalOptions="Start"
@@ -114,6 +120,7 @@
         <Grid x:Name="amountToSendLayout"
               HorizontalOptions="FillAndExpand"
               Grid.Row="5"
+              Grid.ColumnSpan="3"
         >
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
@@ -137,6 +144,7 @@
         <Grid
             RowDefinitions="*,Auto"
             Grid.Row="6"
+            Grid.ColumnSpan="3"
         >
             <Label
                 x:Name="passwordLabel"
@@ -157,6 +165,7 @@
                 HorizontalOptions="Center"
                 Clicked="OnSendOrSignButtonClicked"
                 Grid.Row="7"
+                Grid.Column="1"
         />
         <Button x:Name="cancelButton"
                 Text="Cancel"
@@ -164,6 +173,7 @@
                 HorizontalOptions="Center"
                 Clicked="OnCancelButtonClicked"
                 Grid.Row="8"
+                Grid.Column="1"
         />
     </Grid>
 </ContentPage>

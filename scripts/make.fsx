@@ -27,17 +27,20 @@ let PASCALCASE_NAME = "GWallet"
 
 let XF_FRONTEND_LIB = sprintf "%s.Frontend.XF" PASCALCASE_NAME
 let GTK_FRONTEND_APP = sprintf "%s.Frontend.XF.Gtk" PASCALCASE_NAME
+let MAUI_FRONTEND_APP = sprintf "%s.Frontend.Maui" PASCALCASE_NAME
 let CONSOLE_FRONTEND_APP = sprintf "%s.Frontend.ConsoleApp" PASCALCASE_NAME
 let BACKEND_LIB = sprintf "%s.Backend" PASCALCASE_NAME
 
 type FrontendProject =
     | XF
     | Gtk
+    | Maui
     member self.GetProjectFile(): FileInfo =
         let projName =
             match self with
             | Gtk -> GTK_FRONTEND_APP
             | XF -> XF_FRONTEND_LIB
+            | Maui -> MAUI_FRONTEND_APP
 
         let prjFile =
             let projFileName = sprintf "%s.fsproj" projName
@@ -50,14 +53,17 @@ type FrontendProject =
 type FrontendApp =
     | Console
     | Gtk
+    | Maui
     member self.GetProjectName() =
         match self with
         | Console -> CONSOLE_FRONTEND_APP
         | Gtk -> GTK_FRONTEND_APP
+        | Maui -> MAUI_FRONTEND_APP
     member self.GetExecutableName() =
         match self with
         | Console -> CONSOLE_FRONTEND_APP
         | Gtk -> UNIX_NAME
+        | Maui -> MAUI_FRONTEND_APP
     override self.ToString() =
         sprintf "%A" self
 
@@ -201,6 +207,11 @@ let BuildSolutionOrProject
             Seq.append ["LEGACY_FRAMEWORK"] defineConstantsFromBuildConfig
         else
             defineConstantsFromBuildConfig
+    let defineConstantsSoFar =
+        if not(file.FullName.EndsWith "maui.sln") then
+            Seq.append ["XAMARIN"] defineConstantsSoFar
+        else
+            defineConstantsSoFar
     let allDefineConstants =
         match maybeConstant with
         | Some constant -> Seq.append [constant] defineConstantsSoFar
@@ -249,9 +260,69 @@ let BuildSolutionOrProject
         Environment.Exit 1
     | _ -> ()
 
+// TODO: we have to change this function to be the other way around (i.e. copy from Maui to XF) once we
+//       have a finished version of Maui and we consider XF as legacy.
+let CopyXamlFiles() = 
+    let files = 
+        [| 
+            "WelcomePage.xaml"
+            "WelcomePage2.xaml"
+            "LoadingPage.xaml"
+            "BalancesPage.xaml"
+            "PairingFromPage.xaml"
+            "PairingToPage.xaml" 
+            "ReceivePage.xaml"
+            "SendPage.xaml"
+        |]
+    for file in files do
+        let sourcePath = Path.Combine("src", "GWallet.Frontend.XF", file)
+        let destPath = Path.Combine("src", "GWallet.Frontend.Maui", file)
+            
+        File.Copy(sourcePath, destPath, true)
+        let fileText = File.ReadAllText(destPath)
+        File.WriteAllText(
+            destPath,
+            fileText
+                .Replace("http://xamarin.com/schemas/2014/forms","http://schemas.microsoft.com/dotnet/2021/maui")
+                .Replace("clr-namespace:ZXing.Net.Mobile.Forms;assembly=ZXing.Net.Mobile.Forms","clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls")
+                .Replace("GWallet.Frontend.XF", "GWallet.Frontend.Maui")
+                .Replace("ZXingBarcodeImageView", "BarcodeGeneratorView")
+        )
+
+        
+
+let DotNetBuild
+    (solutionProjectFileName: string)
+    (binaryConfig: BinaryConfig)
+    (args: string)
+    (ignoreError: bool)
+    =
+    let configOption = sprintf "-c %s" (binaryConfig.ToString())
+    let buildArgs = (sprintf "build %s %s %s" configOption solutionProjectFileName args)
+    let buildProcess = Process.Execute ({ Command = "dotnet"; Arguments = buildArgs }, Echo.All)
+    match buildProcess.Result with
+    | Error _ ->
+        if not ignoreError then
+            Console.WriteLine()
+            Console.Error.WriteLine "dotnet build failed"
+#if LEGACY_FRAMEWORK
+            PrintNugetVersion() |> ignore
+#endif
+            Environment.Exit 1
+        else
+            ()
+    | _ -> ()
+
+let BuildMauiProject (binaryConfig: BinaryConfig) (frameworkIdentifier: string) =
+    let mauiProjectFilePath = FrontendProject.Maui.GetProjectFile().FullName
+    DotNetBuild mauiProjectFilePath binaryConfig (sprintf "--framework %s" frameworkIdentifier) false
+
 let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
+    CopyXamlFiles()
+
     let maybeBuildTool = Map.tryFind "BuildTool" buildConfigContents
     let maybeLegacyBuildTool = Map.tryFind "LegacyBuildTool" buildConfigContents
+    let maybeConfigFrontend = Map.tryFind "Frontend" buildConfigContents
 
     let solutionFile = FsxHelper.GetSolution SolutionFile.Default
     let getBuildToolAndArgs(buildTool: string) =
@@ -328,6 +399,13 @@ let JustBuild binaryConfig maybeConstant: FrontendApp*FileInfo =
                     FrontendApp.Console
 
             | _ -> FrontendApp.Console
+        | Some "dotnet", _ when maybeConfigFrontend |> Option.exists (fun value -> value.StartsWith "Maui") ->
+            if maybeConfigFrontend = Some "Maui/Gtk" then
+                BuildMauiProject binaryConfig "net8.0-gtk"
+            else
+                BuildMauiProject binaryConfig "net8.0-android"
+
+            FrontendApp.Maui
         | Some buildTool, Some legacyBuildTool when buildTool = "dotnet" && legacyBuildTool = "xbuild" ->
             if FsxHelper.AreGtkLibsPresent Echo.All then
                 BuildSolutionOrProject
@@ -379,7 +457,7 @@ let GetPathToFrontend (frontend: FrontendApp) (binaryConfig: BinaryConfig): Dire
             "bin",
             binaryConfig.ToString()
 #if !LEGACY_FRAMEWORK
-            , "net6.0"
+            , "net8.0"
 #endif
         ) |> DirectoryInfo
 

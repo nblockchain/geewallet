@@ -12,6 +12,8 @@ on:
 env:
   # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
   FSXC_VERSION: 0.5.9.1
+  GtkSharpVersion: 3.24.24.117-develop
+  DotNetVersionForMauiGtk: 8.0.200
 
 # FIXME: figure out why we need to clean after make if we
 # want 'make strict' target to really happen without
@@ -19,16 +21,19 @@ env:
 # (msbuild bug?)
 
 jobs:
-  macOS--dotnet6-and-mono:
+  macOS--dotnet8-and-mono:
     runs-on: macOS-13
+    env:
+      # make it work with newer .NET
+      DOTNET_ROLL_FORWARD: 'Major'
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
+    - name: Setup .NET SDK 8.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: '8.0.300'     
     - name: Install specific Xamarin.iOS and Xamarin.Android versions
       run: |
         wget https://download.visualstudio.microsoft.com/download/pr/81c41aaa-a3d7-4875-8416-d04b472379b7/21d9f6c5ad3a6bc2479b2ec4b0685b6c/xamarin.ios-16.0.0.72.pkg
@@ -39,11 +44,30 @@ jobs:
       run: |
         mono --version
         /Library/Frameworks/Xamarin.iOS.framework/Versions/Current/bin/mtouch --version
-        ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/
+        ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/ 
+    - name: install maui workload
+      run: dotnet workload install maui
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
       run: make
+    - name: Build Android APK
+      run: dotnet publish src/GWallet.Frontend.Maui/GWallet.Frontend.Maui.fsproj --framework net8.0-android --configuration Release
+    # Upload artifact fails with "permission denied" error without this
+    - name: Fix permissions
+      run: sudo chmod -R 755 src/GWallet.Frontend.Maui/bin/Release/net8.0-android/publish
+    - name: Find the APK file's path and name
+      id: find_apk_file
+      run: |
+        FILEPATH=$(ls src/GWallet.Frontend.Maui/bin/Release/net8.0-android/publish/*.apk)
+        FILENAME=$(basename $FILEPATH)
+        echo "file_path=$FILEPATH" >> $GITHUB_OUTPUT
+        echo "file_name=$FILENAME" >> $GITHUB_OUTPUT
+    - name: Upload APK as CI artifact
+      uses: actions/upload-artifact@v3
+      with:
+        path: ${{ steps.find_apk_file.outputs.file_path }}
+        name: ${{ steps.find_apk_file.outputs.file_name }}
     - name: sanity check
       run: make sanitycheck
     - name: unit tests
@@ -96,16 +120,16 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  macOS--dotnet6-only:
+  macOS--dotnet8-only:
     runs-on: macOS-13
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
+    - name: Setup .NET SDK 8.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'        
+        dotnet-version: '8.0.300'
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
     - name: configure
@@ -127,19 +151,23 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  windows--dotnet6-and-legacyFramework:
+  windows--dotnet8-and-legacyFramework:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
+    - name: Setup .NET SDK 8.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: '8.0.x'
+    - name: install maui workloads
+      run: dotnet workload install maui
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -160,6 +188,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -186,18 +216,20 @@ jobs:
     - name: integration tests
       run: .\make update-servers
 
-  windows--dotnet6-only:
+  windows--dotnet8-only:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
-    - name: Setup .NET SDK 6.0.x
+    - name: Setup .NET SDK 8.0.x
       uses: actions/setup-dotnet@v1.7.2
       with:
-        dotnet-version: '6.0.113'
+        dotnet-version: '8.0.x'
     - name: HACK to emulate legacy .NETFramework uninstall
       run: del $(& "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\\**\\Bin\\MSBuild.exe)
+    - name: install maui workloads
+      run: dotnet workload install maui
     - name: configure
       run: .\configure.bat
     - name: build in DEBUG mode
@@ -218,6 +250,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -226,7 +260,13 @@ jobs:
     steps:
     - uses: actions/checkout@v1
       with:
-        submodules: false
+        submodules: true
+    - name: Setup .NET SDK ${{ env.DotNetVersionForMauiGtk }}
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{ env.DotNetVersionForMauiGtk }}
+    - name: Install gtk workload & add Maui Nuget source
+      run: ./scripts/prepare_maui_gtk.sh
     - name: install missing dependencies
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
@@ -250,8 +290,11 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+        # ignore scripts/fsx submodule as compiling scripts there will result in error
+        find . -type f -name "*.fsx" ! -path "./scripts/fsx/*" | xargs -t -I {} dotnet fsxc {}
 
   linux-github--dotnet-and-newmono:
     runs-on: ubuntu-22.04
@@ -287,6 +330,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -330,7 +375,7 @@ jobs:
     - name: integration tests
       run: make update-servers
 
-  linux-vanilla--stockdotnet6-only:
+  linux-vanilla--stockdotnet8-only:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -343,7 +388,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet8
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -368,10 +413,12 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux-vanilla--stockdotnet6-and-newmono:
+  linux-vanilla--stockdotnet8-and-newmono:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -384,7 +431,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet8
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -411,10 +458,12 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
-  linux-vanilla--stockdotnet6-and-stockmono:
+  linux-vanilla--stockdotnet8-and-stockmono:
     runs-on: ubuntu-22.04
     container:
       image: "ubuntu:22.04"
@@ -427,7 +476,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet6 mono-xbuild fsharp
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make dotnet8 mono-xbuild fsharp
     - name: install GTK libs (dependency of GTK frontend)
       run: sudo apt install --yes libgtk2.0-cil-dev
     # workaround for https://github.com/actions/runner/issues/2033
@@ -453,6 +502,8 @@ jobs:
         dotnet new tool-manifest
 
         dotnet tool install fsxc --version ${{ env.FSXC_VERSION }}
+        # make it work with newer .NET
+        export DOTNET_ROLL_FORWARD=Major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -506,15 +557,15 @@ jobs:
     - linux-github--dotnet-and-newmono
     - linux-vanilla--stockmono-only
     - linux-vanilla--newmono-only
-    - linux-vanilla--stockdotnet6-only
-    - linux-vanilla--stockdotnet6-and-stockmono
-    - linux-vanilla--stockdotnet6-and-newmono
-    - windows--dotnet6-and-legacyFramework
+    - linux-vanilla--stockdotnet8-only
+    - linux-vanilla--stockdotnet8-and-stockmono
+    - linux-vanilla--stockdotnet8-and-newmono
+    - windows--dotnet8-and-legacyFramework
     - windows--legacyFramework-only
-    - windows--dotnet6-only
-    - macOS--dotnet6-and-mono
+    - windows--dotnet8-only
+    - macOS--dotnet8-and-mono
     - macOS--mono-only
-    - macOS--dotnet6-only
+    - macOS--dotnet8-only
 
     steps:
     - uses: actions/checkout@v1
@@ -551,9 +602,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install snap tools
-      run: |
-        sudo apt update
-        ./scripts/install_snapcraft.sh
+      run: ./scripts/install_snapcraft.sh
 
     # hack to disable msbuild detection
     # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
@@ -596,9 +645,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Install snap tools
-      run: |
-        sudo apt update
-        ./scripts/install_snapcraft.sh
+      run: ./scripts/install_snapcraft.sh
 
     # hack to disable msbuild detection
     # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install msbuild,
@@ -636,3 +683,47 @@ jobs:
       run: |
         sudo apt update
         ./scripts/snap_release.sh beta
+
+  snap_alpha:
+  
+    needs:
+    - conventions
+
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install snap tools
+      run: ./scripts/install_snapcraft.sh maui
+        
+    - name: Setup .NET SDK ${{ env.DotNetVersionForMauiGtk }}
+      uses: actions/setup-dotnet@v1.7.2
+      with:
+        dotnet-version: ${{ env.DotNetVersionForMauiGtk }}
+    
+    - name: Bump snap version
+      run: |
+        git submodule foreach git fetch --all && git submodule sync --recursive && git submodule update --init --recursive
+        dotnet fsi ./scripts/snap_bump.fsx
+
+    - name: Generate snap package
+      run: ./scripts/snap_build_maui.sh || (cat /home/runner/.local/state/snapcraft/log/*.log && exit 1)
+
+    - name: Install snap
+      # dangerous because it's a local snap (not one from the SnapStore)
+      run: sudo snap install --dangerous *.snap
+
+    - name: Test snap
+      run: gee-maui-preview.geewallet --version
+
+    - uses: actions/upload-artifact@v3
+      name: Upload snap package as artifact
+      with:
+        name: snap_alpha
+        path: ./*.snap
+    
+    - name: Upload snap package to Snap Store
+      env:
+        SNAPCRAFT_STORE_CREDENTIALS: ${{secrets.SNAPCRAFT_LOGIN}}
+      run: |
+        sudo apt update
+        ./scripts/snap_release.sh edge

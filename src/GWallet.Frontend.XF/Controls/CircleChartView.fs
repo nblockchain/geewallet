@@ -1,11 +1,24 @@
-﻿namespace GWallet.Frontend.XF.Controls
+﻿#if XAMARIN
+namespace GWallet.Frontend.XF.Controls
+#else
+namespace GWallet.Frontend.Maui.Controls
+// added because of deprecated expansion options for StackLayout in using LayoutOptions.FillAndExpand
+#nowarn "44"
+#endif
 
 open System
 open System.Linq
 open System.Globalization
 
+#if !XAMARIN
+open Microsoft.Maui
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Graphics
+open Microsoft.Maui.Controls.Shapes
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Shapes
+#endif
 
 type SegmentInfo =
     {
@@ -16,7 +29,8 @@ type SegmentInfo =
 type CircleChartView () =
     inherit ContentView () 
 
-    let shapesPath = @"M{0},{1} A{2},{2} 0 {3} 1 {4} {5} L {6} {7}"
+    // "Z" closes the shape. Without it, our shape would not be drawn in Maui.
+    let shapesPath = @"M{0},{1} A{2},{2} 0 {3} 1 {4} {5} L {6} {7}Z"
 
     static let segmentsSourceProperty =
         BindableProperty.Create("SegmentsSource",
@@ -30,7 +44,13 @@ type CircleChartView () =
                                 typeof<float>, typeof<CircleChartView>, 0.)
     static let separatorColorProperty =
         BindableProperty.Create("SeparatorColor",
-                                typeof<Color>, typeof<CircleChartView>, Color.Transparent)
+                                typeof<Color>, typeof<CircleChartView>,
+#if XAMARIN                                
+                                Color.Transparent
+#else
+                                Colors.Transparent
+#endif
+                                )
     static let defaultImageSourceProperty =
         BindableProperty.Create("DefaultImageSource",
                                 typeof<ImageSource>, typeof<CircleChartView>, null)
@@ -106,34 +126,46 @@ type CircleChartView () =
                     let endCoordinatesX = x + (radius * Math.Cos(2.0 * Math.PI * endPercentage))
                     let endCoordinatesY = y + (radius * Math.Sin(2.0 * Math.PI * endPercentage))
                     
-                    let arc =
-                        if item.Percentage > 0.5 then
-                            "1"
-                        else
-                            "0"
-                    
-                    let path =
-                        String.Format (
-                            shapesPath,
-                            startCoordinatesX.ToString nfi,
-                            startCoordinatesY.ToString nfi,
-                            radius.ToString nfi,
-                            arc,
-                            endCoordinatesX.ToString nfi,
-                            endCoordinatesY.ToString nfi,
-                            x.ToString nfi,
-                            y.ToString nfi
-                        )                    
+                    let sectorIsTooSmall =
+#if !XAMARIN && GTK                        
+                        let arcLength = item.Percentage * 2.0 * Math.PI * radius
+                        arcLength < 1.0
+#else
+                        false
+#endif
+                    if not sectorIsTooSmall then
+                        let arc =
+                            if item.Percentage > 0.5 then
+                                "1"
+                            else
+                                "0"
+                        
+                        let path =
+                            String.Format (
+                                shapesPath,
+                                startCoordinatesX.ToString nfi,
+                                startCoordinatesY.ToString nfi,
+                                radius.ToString nfi,
+                                arc,
+                                endCoordinatesX.ToString nfi,
+                                endCoordinatesY.ToString nfi,
+                                x.ToString nfi,
+                                y.ToString nfi
+                            )                    
 
-                    let pathGeometry = converter.ConvertFromInvariantString path :?> Geometry
-                    let helperView =
-                        Path (
-                            Data = pathGeometry,
-                            Fill = SolidColorBrush item.Color,
-                            StrokeThickness = 0.,
-                            Stroke = null
-                        )
-                    gridLayout.Children.Add helperView
+                        let pathGeometry = converter.ConvertFromInvariantString path :?> Geometry
+                        let helperView =
+                            Path (
+                                Data = pathGeometry,
+                                Fill = SolidColorBrush item.Color,
+                                StrokeThickness = 0.,
+                                Stroke = null
+                            )
+#if !XAMARIN
+                        // workaround for https://github.com/dotnet/maui/issues/9089
+                        helperView.Aspect <- enum 4
+#endif
+                        gridLayout.Children.Add helperView
 
                     addSliceToView tail endPercentage
                    
@@ -147,11 +179,19 @@ type CircleChartView () =
         if not (self.Content :? Image) then
             let image =
                 Image (
+                    // TODO: [FS0044] This construct is deprecated. The StackLayout expansion options are deprecated; please use a Grid instead.
                     HorizontalOptions = LayoutOptions.FillAndExpand,
                     VerticalOptions = LayoutOptions.FillAndExpand,
                     Aspect = Aspect.AspectFit,
                     Source = imageSource
                 )
+#if !XAMARIN && GTK
+            // TODO: We should revert this when Image.Aspect is fixed for Maui/Gtk
+            // see https://github.com/jsuarezruiz/maui-linux/issues/69
+            let size = min self.Width self.Height
+            image.WidthRequest <- size
+            image.HeightRequest <- size
+#endif
             self.Content <- image
 
     member self.Draw () =

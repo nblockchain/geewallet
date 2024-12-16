@@ -1,0 +1,276 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- NOTE: when making changes to the lines below, maybe remove CheckEolWorkloads tag too -->
+    <TargetFrameworks>net8.0-android;net8.0-ios;net8.0-maccatalyst</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net8.0-windows10.0.19041.0</TargetFrameworks> 
+    <TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('linux'))">net8.0-gtk</TargetFrameworks>
+    <!-- Uncomment to also build the tizen app. You will need to install tizen by following this: https://github.com/Samsung/Tizen.NET -->
+    <!-- <TargetFrameworks>$(TargetFrameworks);net6.0-tizen</TargetFrameworks> -->
+
+
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GWallet.Frontend.Maui</RootNamespace>
+    <UseMaui>true</UseMaui>
+    <SingleProject>true</SingleProject>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <DisableImplicitFSharpCoreReference>true</DisableImplicitFSharpCoreReference>
+
+    <!-- Display name -->
+    <ApplicationTitle>geewallet</ApplicationTitle>
+
+    <!-- App Identifier -->
+    <ApplicationId>com.geewallet</ApplicationId>
+    <ApplicationIdGuid>2F160DBF-529A-4906-A490-C58F706241BF</ApplicationIdGuid>
+
+    <!-- Versions -->
+    <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+
+    <TargetPlatformIdentifier Condition=" $(TargetPlatformIdentifier) == '' ">$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)'))</TargetPlatformIdentifier>
+
+    <SupportedOSPlatformVersion Condition="$(TargetPlatformIdentifier) == 'ios'">14.2</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$(TargetPlatformIdentifier) == 'maccatalyst'">14.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$(TargetPlatformIdentifier) == 'android'">21.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion Condition="$(TargetPlatformIdentifier) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+    <TargetPlatformMinVersion Condition="$(TargetPlatformIdentifier) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion Condition="$(TargetPlatformIdentifier) == 'tizen'">6.5</SupportedOSPlatformVersion>
+
+    <!-- .NET 6 workloads are out of support, but are still used in this project -->
+    <CheckEolWorkloads>false</CheckEolWorkloads>
+  </PropertyGroup>
+
+  <!-- workaround for https://github.com/dotnet/maui/discussions/15540 (VS4Mac build, not happening in CI) -->
+  <PropertyGroup>
+    <MtouchLink>SdkOnly</MtouchLink>
+    <MtouchExtraArgs>$(MtouchExtraArgs) --weak-framework=NewsstandKit</MtouchExtraArgs>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
+    <UseMaui>false</UseMaui>
+    <GtkProjectFolder>Platforms\Gtk\</GtkProjectFolder>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="3.1.5" />
+    <PackageReference Include="Mali.AspNetCore.Components.WebView" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Essentials" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Controls.Core" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Controls.Xaml" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Core" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Controls.Compatibility" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.Controls.Foldable" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\img\btc_grey_60x60.png">
+      <Link>img\btc_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\btc_red_60x60.png">
+      <Link>img\btc_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\btc_red_120x120.png">
+      <Link>img\btc_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\btc_grey_120x120.png">
+      <Link>img\btc_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\dai_grey_60x60.png">
+      <Link>img\dai_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\dai_grey_120x120.png">
+      <Link>img\dai_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\dai_red_60x60.png">
+      <Link>img\dai_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\dai_red_120x120.png">
+      <Link>img\dai_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\sai_grey_60x60.png">
+      <Link>img\sai_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\sai_grey_120x120.png">
+      <Link>img\sai_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\sai_red_60x60.png">
+      <Link>img\sai_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\sai_red_120x120.png">
+      <Link>img\sai_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\etc_grey_60x60.png">
+      <Link>img\etc_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\etc_grey_120x120.png">
+      <Link>img\etc_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\etc_red_60x60.png">
+      <Link>img\etc_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\etc_red_120x120.png">
+      <Link>img\etc_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\eth_grey_60x60.png">
+      <Link>img\eth_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\eth_grey_120x120.png">
+      <Link>img\eth_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\eth_red_60x60.png">
+      <Link>img\eth_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\eth_red_120x120.png">
+      <Link>img\eth_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\ltc_grey_60x60.png">
+      <Link>img\ltc_grey_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\ltc_grey_120x120.png">
+      <Link>img\ltc_grey_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\ltc_red_60x60.png">
+      <Link>img\ltc_red_60x60.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\ltc_red_120x120.png">
+      <Link>img\ltc_red_120x120.png</Link>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\img\logo_512x512.png">
+      <Link>img\logo_512x512.png</Link>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="PairingFromPage.xaml" />
+    <EmbeddedResource Include="PairingToPage.xaml" />
+    <EmbeddedResource Include="SendPage.xaml" />
+    <EmbeddedResource Include="ReceivePage.xaml" />
+    <EmbeddedResource Include="BalancesPage.xaml" />
+    <EmbeddedResource Include="LoadingPage.xaml" />
+    <EmbeddedResource Include="WelcomePage.xaml" />
+    <EmbeddedResource Include="WelcomePage2.xaml" />
+    <Compile Include="..\GWallet.Frontend.XF\Controls\CircleChartView.fs" />
+    <Compile Include="..\GWallet.Frontend.XF\FrontendHelpers.fs" />
+    <Compile Include="..\GWallet.Frontend.XF\GlobalState.fs" />
+    <Compile Include="..\GWallet.Frontend.XF\PairingFromPage.xaml.fs">
+      <DependentUpon>PairingFromPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\PairingToPage.xaml.fs">
+      <DependentUpon>PairingToPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\SendPage.xaml.fs">
+      <DependentUpon>SendPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\ReceivePage.xaml.fs">
+      <DependentUpon>ReceivePage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\BalancesPage.xaml.fs">
+      <DependentUpon>BalancesPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\LoadingPage.xaml.fs">
+      <DependentUpon>LoadingPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\WelcomePage2.xaml.fs">
+      <DependentUpon>WelcomePage2.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\WelcomePage.xaml.fs">
+      <DependentUpon>WelcomePage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="..\GWallet.Frontend.XF\Initialization.fs" />
+    <EmbeddedResource Include="App.xaml" />
+    <Compile Include="App.xaml.fs">
+      <DependentUpon>App.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="MauiProgram.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- App Icon -->
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
+
+    <!-- Custom Fonts -->
+    <MauiFont Include="Resources\Fonts\*" />
+
+    <!-- Images -->
+    <MauiImage Include="Resources\Images\*" />
+    <MauiImage Update="Resources\Images\dotnet_bot.svg" BaseSize="168,208" />
+
+    <!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
+    <MauiAsset Include="Resources\Raw\*" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+
+    <!-- Splash Screen -->
+    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#512BD4" BaseSize="128,128" />
+
+    <!-- Styles -->
+    <EmbeddedResource Include="Resources\Styles\*" Exclude="Resources\Styles\Styles.fs" />
+    <Compile Include="Resources\Styles\Styles.fs" />
+  </ItemGroup>
+
+  <ItemGroup />
+
+  <ItemGroup>
+    <PackageReference Include="FSharp.Core" Version="6.0.3" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="8.0.21" />
+    <PackageReference Update="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="$(TargetPlatformIdentifier) != 'gtk'">
+    <PackageReference Include="ZXing.Net.Maui" Version="0.2.0-preview.2" />
+    <PackageReference Include="ZXing.Net.Maui.Controls" Version="0.2.0-preview.2" />
+  </ItemGroup>
+  
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
+    <PackageReference Include="Mali.ZXing" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+    <PackageReference Include="Mali.ZXing.Controls" Version="8.0.41--date20241204-0106.git-8c7b4d5" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'gtk'">
+    <Compile Include="$(GtkProjectFolder)GtkApp.fs" />
+    <Compile Include="$(GtkProjectFolder)Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'android'">
+    <AndroidResource Include="$(MonoAndroidResourcePrefix)/*/*" />
+    <AndroidResource Remove="$(MonoAndroidResourcePrefix)/raw/.*" />
+    <AndroidResource Update="$(MonoAndroidResourcePrefix)/raw/*" />
+    <AndroidAsset Include="$(MonoAndroidAssetsPrefix)/**/*" Exclude="$(MonoAndroidAssetsPrefix)/**/.*/**" />
+    <AndroidManifest Include="$(AndroidProjectFolder)AndroidManifest.xml" />
+    <Compile Include="$(AndroidProjectFolder)MainActivity.fs" />
+    <Compile Include="$(AndroidProjectFolder)MainApplication.fs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'ios'">
+    <None Include="$(iOSProjectFolder)Info.plist" />
+    <Compile Include="$(iOSProjectFolder)AppDelegate.fs" />
+    <Compile Include="$(iOSProjectFolder)Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'maccatalyst'">
+    <None Include="$(MacCatalystProjectFolder)Info.plist" />
+    <Compile Include="$(MacCatalystProjectFolder)AppDelegate.fs" />
+    <Compile Include="$(MacCatalystProjectFolder)Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'windows'">
+    <Manifest Include="$(WindowsProjectFolder)app.manifest" />
+    <AppxManifest Include="$(WindowsProjectFolder)Package.appxmanifest" />
+    <ApplicationDefinition Include="$(WindowsProjectFolder)App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+    </ApplicationDefinition>
+    <Compile Include="$(WindowsProjectFolder)App.xaml.fs">
+      <DependentUpon>$(WindowsProjectFolder)App.xaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup Condition="$(TargetPlatformIdentifier) == 'tizen'">
+    <TizenManifestFile Include="$(TizenProjectFolder)tizen-manifest.xml" />
+    <Compile Include="$(TizenProjectFolder)Main.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GWallet.Backend\GWallet.Backend.fsproj" />
+  </ItemGroup>
+
+</Project>
