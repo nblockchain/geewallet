@@ -548,6 +548,8 @@ jobs:
     - conventions
 
     runs-on: ubuntu-22.04
+    outputs:
+      upload_url: ${{ steps.prepare.outputs.upload_url }}
     steps:
     - uses: actions/checkout@v1
     - name: Install snap tools
@@ -566,6 +568,14 @@ jobs:
       run: |
         # retry 3 times because of flakey nuget; TODO: remove retry when we migrate to .NET6 (removing LEGACY_FRAMEWORK support)
         ./scripts/snap_build.sh || ./scripts/snap_build.sh || ./scripts/snap_build.sh || ./scripts/snap_build.sh
+
+    - name: Find the snap file's path and name
+      id: find_snap_file
+      run: |
+        FILEPATH=$(ls *.snap)
+        FILENAME=$(basename $FILEPATH)
+        echo "file_path=$FILEPATH" >> $GITHUB_OUTPUT
+        echo "file_name=$FILENAME" >> $GITHUB_OUTPUT
 
     - name: Install snap
       # dangerous because it's a local snap (not one from the SnapStore)
@@ -587,10 +597,34 @@ jobs:
         sudo apt update
         ./scripts/snap_release.sh
 
+    - name: Prepare release
+      id: prepare
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+    - name: Upload snap package As Release Asset
+      id: upload_snap_asset
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.prepare.outputs.upload_url }}
+        asset_path: ${{ steps.find_snap_file.outputs.file_path }}
+        asset_name: ${{ steps.find_snap_file.outputs.file_name }}
+        asset_content_type: application/octet-stream
+
   snap_pkg_beta:
 
     needs:
-    - conventions
+    - snap_pkg
 
     runs-on: ubuntu-22.04
     steps:
@@ -617,6 +651,14 @@ jobs:
         # retry 3 times because of flakey nuget; TODO: remove retry when we migrate to .NET6 (removing LEGACY_FRAMEWORK support)
         ./scripts/snap_build.sh --native-segwit || ./scripts/snap_build.sh --native-segwit || ./scripts/snap_build.sh --native-segwit || ./scripts/snap_build.sh --native-segwit
 
+    - name: Find the snap file's path and name
+      id: find_snap_beta_file
+      run: |
+        FILEPATH=$(ls *.snap)
+        FILENAME=$(basename $FILEPATH)
+        echo "file_path=$FILEPATH" >> $GITHUB_OUTPUT
+        echo "file_name=$FILENAME" >> $GITHUB_OUTPUT
+
     - name: Install snap
       # dangerous because it's a local snap (not one from the SnapStore)
       run: sudo snap install --dangerous *.snap
@@ -636,3 +678,15 @@ jobs:
       run: |
         sudo apt update
         ./scripts/snap_release.sh beta
+
+    - name: Upload snap beta package As Release Asset
+      id: upload_snap_beta_asset
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.snap_pkg.outputs.upload_url }}
+        asset_path: ${{ steps.find_snap_beta_file.outputs.file_path }}
+        asset_name: ${{ steps.find_snap_beta_file.outputs.file_name }}
+        asset_content_type: application/octet-stream
