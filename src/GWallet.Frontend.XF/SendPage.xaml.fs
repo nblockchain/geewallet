@@ -1,14 +1,29 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if XAMARIN
+namespace GWallet.Frontend.XF
+#else
+namespace GWallet.Frontend.Maui
+#endif
 
 open System
 open System.Linq
 open System.Threading
 open System.Threading.Tasks
 
+#if !XAMARIN
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.ApplicationModel
+open Microsoft.Maui.Networking
+open Microsoft.Maui.Devices
+
+open ZXing.Net.Maui
+open ZXing.Net.Maui.Controls
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
 open ZXing.Net.Mobile.Forms
+#endif
 
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
@@ -57,7 +72,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     let transactionLayout = mainLayout.FindByName<StackLayout> "transactionLayout"
     let transactionLabel = mainLayout.FindByName<Label> "transactionLabel"
     let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
+#if !XAMARIN
+    let defaultTransactionEntryTextColor = transactionEntry.TextColor
+#endif
     let amountToSendEntry = mainLayout.FindByName<Entry> "amountToSend"
+#if !XAMARIN
+    let defaultAmountToSendTextColor = amountToSendEntry.TextColor
+#endif
     let destinationAddressEntry = mainLayout.FindByName<Entry> "destinationAddressEntry"
     let allBalanceButton = mainLayout.FindByName<Button> "allBalance"
     let passwordEntry = mainLayout.FindByName<Entry> "passwordEntry"
@@ -101,7 +122,7 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
                 (self :> FrontendHelpers.IAugmentablePayPage).AddTransactionScanner()
             self.AdjustWidgetsStateAccordingToConnectivity()
-
+#if XAMARIN
         if Device.RuntimePlatform = Device.GTK then
 
             // workaround bug on Xamarin.Forms/GTK about currency selection
@@ -111,6 +132,12 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
 
             // workaround so that controls are not lumped together on GTK
             mainLayout.RowSpacing <- 5.0
+#endif
+#if !XAMARIN && GTK
+            // on Maui/Gtk set spacing between "Amount:" label and amount value like it is on other platforms
+            let equivalenAmountLabel = mainLayout.FindByName<Label> "equivalentAmountInAlternativeCurrency"
+            equivalenAmountLabel.Padding <- Microsoft.Maui.Thickness(5.0, 0.0, 0.0, 0.0)
+#endif
 
     [<Obsolete(DummyPageConstructorHelper.Warning)>]
     new() = SendPage(ReadOnlyAccount(Currency.BTC, { Name = "dummy"; Content = fun _ -> "" }, fun _ -> ""),
@@ -128,18 +155,16 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     member self.OnTransactionScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
         let mainLayout = base.FindByName<Grid> "mainLayout"
         let transactionEntry = mainLayout.FindByName<Entry> "transactionEntry"
+        let scanPage = 
+            FrontendHelpers.GetBarcodeScannerPage 
+                (fun barcodeString ->
+                    MainThread.BeginInvokeOnMainThread(fun _ ->
+                        // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
+                        //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
+                        let task = FrontendHelpers.TryPopModalAsync self
+                        transactionEntry.Text <- barcodeString
+                        task |> FrontendHelpers.DoubleCheckCompletionNonGeneric) )
 
-        let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
-        scanPage.add_OnScanResult(fun (result:ZXing.Result) ->
-            scanPage.IsScanning <- false
-            MainThread.BeginInvokeOnMainThread(fun _ ->
-                // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
-                //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
-                let task = self.Navigation.PopModalAsync()
-                transactionEntry.Text <- result.Text
-                task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-            )
-        )
         MainThread.BeginInvokeOnMainThread(fun _ ->
             // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
             //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
@@ -150,24 +175,21 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
     member self.OnScanQrCodeButtonClicked(_sender: Object, _args: EventArgs): unit =
         let mainLayout = base.FindByName<Grid> "mainLayout"
 
-        let scanPage = ZXingScannerPage FrontendHelpers.BarCodeScanningOptions
-        scanPage.add_OnScanResult(fun result ->
-            if isNull result || String.IsNullOrEmpty result.Text then
+        let onScan barcodeText =
+            if String.IsNullOrEmpty barcodeText then
                 failwith "result of scanning was null(?)"
-
-            scanPage.IsScanning <- false
 
             MainThread.BeginInvokeOnMainThread(fun _ ->
                 // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
                 //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
-                let task = self.Navigation.PopModalAsync()
+                let task = FrontendHelpers.TryPopModalAsync self
 
                 let address,maybeAmount =
                     match account.Currency with
                     | Currency.BTC
                     | Currency.LTC ->
-                        UtxoCoin.Account.ParseAddressOrUrl result.Text account.Currency
-                    | _ -> result.Text,None
+                        UtxoCoin.Account.ParseAddressOrUrl barcodeText account.Currency
+                    | _ -> barcodeText,None
 
                 destinationAddressEntry.Text <- address
                 match maybeAmount with
@@ -188,7 +210,9 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                             |> FrontendHelpers.DoubleCheckCompletionNonGeneric
                 task |> FrontendHelpers.DoubleCheckCompletionNonGeneric
             )
-        )
+        
+        let scanPage = FrontendHelpers.GetBarcodeScannerPage onScan
+
         // NOTE: modal because otherwise we would see a 2nd topbar added below the 1st topbar when scanning
         //       (saw this behaviour on Android using Xamarin.Forms 3.0.x, re-test/file bug later?)
         self.Navigation.PushModalAsync scanPage
@@ -300,8 +324,13 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                 let navNewReceivePage = NavigationPage(newReceivePage)
                 do! Async.AwaitTask displayTask
                 do! Async.SwitchToContext mainThreadSynchContext
+#if XAMARIN
                 NavigationPage.SetHasNavigationBar(newReceivePage, false)
                 NavigationPage.SetHasNavigationBar(navNewReceivePage, false)
+#else
+                NavigationPage.SetHasNavigationBar(newReceivePage, true)
+                NavigationPage.SetHasNavigationBar(navNewReceivePage, true)
+#endif
                 receivePage.Navigation.RemovePage receivePage
                 self.Navigation.InsertPageBefore(navNewReceivePage, self)
                 let! _ = Async.AwaitTask (self.Navigation.PopAsync())
@@ -443,7 +472,11 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                     )
 
                     MainThread.BeginInvokeOnMainThread(fun _ ->
+#if XAMARIN
                         transactionEntry.TextColor <- Color.Default
+#else
+                        transactionEntry.TextColor <- defaultTransactionEntryTextColor
+#endif
                         destinationAddressEntry.Text <- unsignedTransaction.Proposal.DestinationAddress
                         amountToSendEntry.Text <- unsignedTransaction.Proposal.Amount.ValueToSend.ToString()
                         passwordEntry.Focus() |> ignore
@@ -468,7 +501,11 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         transaction <- (ColdStorageRemoteControl (Some signedTransaction))
                     )
                     MainThread.BeginInvokeOnMainThread(fun _ ->
+#if XAMARIN
                         transactionEntry.TextColor <- Color.Default
+#else
+                        transactionEntry.TextColor <- defaultTransactionEntryTextColor
+#endif
                         sendOrSignButton.IsEnabled <- true
                     )
         ()
@@ -518,10 +555,15 @@ type SendPage(account: IAccount, receivePage: Page, newReceivePageFunc: unit->Pa
                         )
                         return false
                     else
+#if XAMARIN
                         MainThread.BeginInvokeOnMainThread(fun _ ->
                             amountToSend.TextColor <- Color.Default
                         )
-
+#else
+                        MainThread.BeginInvokeOnMainThread(fun _ ->
+                            amountToSend.TextColor <- defaultAmountToSendTextColor
+                        )
+#endif
                         match usdRate with
                         | NotFresh NotAvailable ->
                             return true

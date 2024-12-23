@@ -1,19 +1,41 @@
-﻿namespace GWallet.Frontend.XF
+﻿#if XAMARIN
+namespace GWallet.Frontend.XF
+#else
+namespace GWallet.Frontend.Maui
+// We have unused variables because they are in the #XAMARIN sections.
+// this should be removed once we fully integrate this code.
+#nowarn "1182"
+#endif
 
 open System
 open System.Linq
 open System.Threading
 open System.Threading.Tasks
 
+#if !XAMARIN
+open Microsoft.Maui
+open Microsoft.Maui.Controls
+open Microsoft.Maui.Controls.Xaml
+open Microsoft.Maui.ApplicationModel
+open Microsoft.Maui.Networking
+#else
 open Xamarin.Forms
 open Xamarin.Forms.Xaml
 open Xamarin.Essentials
+#endif
+
 open Fsdk
 
+#if XAMARIN
 open GWallet.Frontend.XF.Controls
+#else
+open GWallet.Frontend.Maui.Controls
+#endif
 open GWallet.Backend
 open GWallet.Backend.FSharpUtil.UwpHacks
 
+
+type FiatAmountFrameTapHandler = unit -> unit
 
 // this type allows us to represent the idea that if we have, for example, 3 LTC and an unknown number of ETC (might
 // be because all ETC servers are unresponsive), then it means we have AT LEAST 3LTC; as opposed to when we know for
@@ -217,7 +239,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         let activeCurrencyClassId,inactiveCurrencyClassId =
             FrontendHelpers.GetActiveAndInactiveCurrencyClassIds readOnly
 
-        let contentLayoutChildrenList = (contentLayout.Children |> List.ofSeq)
+        let contentLayoutChildrenList =
+#if XAMARIN
+            (contentLayout.Children |> List.ofSeq)
+#else
+            contentLayout.Children |> Seq.choose (function :? View as view -> Some view | _ -> None) |> List.ofSeq
+#endif
 
         let activeCryptoBalances = FindCryptoBalances activeCurrencyClassId 
                                                       contentLayout 
@@ -256,10 +283,12 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 let frame = balanceSet.Widgets.Frame
                 frame.GestureRecognizers.Add tapGestureRecognizer
                 contentLayout.Children.Add frame
-
+#if XAMARIN
                 Grid.SetRow(frame, balanceIndex)
+#else
+                contentLayout.SetRow(frame, balanceIndex)
+#endif
             )
-
         contentLayout.BatchCommit()
 
     member __.UpdateGlobalFiatBalanceSum (fiatBalancesList: List<MaybeCached<decimal>>) totalFiatAmountLabel =
@@ -370,7 +399,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                 //Avoid cases when user changes timezone in device settings
                 TimeSpan.Zero
                 
-        Device.StartTimer(timerInterval + timerStartDelay, fun _ ->
+        FrontendHelpers.StartTimer(timerInterval + timerStartDelay, fun _ ->
             if not cancellationToken.IsCancellationRequested then
                 async {
                     try
@@ -394,7 +423,7 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             cancelSource.Cancel()
             cancelSource.Dispose()
 
-    member private self.ConfigureFiatAmountFrame (readOnly: bool): TapGestureRecognizer =
+    member private self.ConfigureFiatAmountFrame (readOnly: bool): FiatAmountFrameTapHandler =
         let totalCurrentFiatAmountFrameName,totalOtherFiatAmountFrameName =
             if readOnly then
                 "totalReadOnlyFiatAmountFrame","totalFiatAmountFrame"
@@ -418,8 +447,8 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
             mainLayout.FindByName<CircleChartView> otherChartViewName
 
         let tapGestureRecognizer = TapGestureRecognizer()
-        tapGestureRecognizer.Tapped.Add(fun _ ->
 
+        let tapHandler () =
             let shouldNotOpenNewPage =
                 if switchingToReadOnly then
                     readOnlyAccountsBalanceSets.Any()
@@ -465,21 +494,22 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
                             PairingFromPage(self, "Copy wallet info to clipboard", walletInfoJson, None)
                                 :> Page
                         FrontendHelpers.SwitchToNewPage self page true
-
-        )
+        
+        tapGestureRecognizer.Tapped.Add(fun _ -> tapHandler())
+        
         totalCurrentFiatAmountFrame.GestureRecognizers.Add tapGestureRecognizer
-        tapGestureRecognizer
+        tapHandler
 
     member self.PopulateGridInitially () =
 
-        let tapper = self.ConfigureFiatAmountFrame false
+        let tapHandler = self.ConfigureFiatAmountFrame false
         self.ConfigureFiatAmountFrame true |> ignore
 
         self.PopulateBalances false normalBalanceStates
         RedrawCircleView false normalBalanceStates
 
         if startWithReadOnlyAccounts then
-            tapper.SendTapped null
+            tapHandler()
 
     member private __.AssignColorLabels (readOnly: bool) =
         let labels,color =
@@ -506,23 +536,41 @@ type BalancesPage(state: FrontendHelpers.IGlobalAppState,
         self.BalanceRefreshCancelSources <- Seq.empty
 
     member private self.Init () =
-        if Device.RuntimePlatform = Device.GTK then
-            // workaround layout issues in Xamarin.Forms/GTK
-            mainLayout.RowDefinitions.[1] <- RowDefinition(
-                Height = GridLength 550.0
-            )
+#if GTK
+        // workaround layout issues on GTK
+        mainLayout.RowDefinitions.[1] <- RowDefinition(
+#if XAMARIN            
+            Height = GridLength 550.0
+#else
+            Height = GridLength 350.0
+#endif
+        )
+#endif
+
+#if !XAMARIN && GTK
+        // Default LineBreakMode (WordWrap) value leads to layout issues on Maui/Gtk, so change it to NoWrap
+        totalFiatAmountLabel.LineBreakMode <- LineBreakMode.NoWrap
+        totalReadOnlyFiatAmountLabel.LineBreakMode <- LineBreakMode.NoWrap
+#endif
         
         normalChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
         readonlyChartView.DefaultImageSource <- FrontendHelpers.GetSizedImageSource "logo" 512
 
         let tapGestureRecognizer = TapGestureRecognizer()
-        tapGestureRecognizer.Tapped.Subscribe(fun _ ->
+        tapGestureRecognizer.Tapped.Add(fun _ ->
             Uri "http://www.geewallet.com"
-                |> Xamarin.Essentials.Launcher.OpenAsync
+                |> Launcher.OpenAsync
                 |> FrontendHelpers.DoubleCheckCompletionNonGeneric
-        ) |> ignore
+        )
+// On Maui/GTK, adding gesture recognizer directly to label doesn't work, 
+// so we add it to encompassing frame as a workaround.
+#if !XAMARIN
+        let footerLabelFrame = mainLayout.FindByName<Frame> "footerLabelFrame"
+        footerLabelFrame.GestureRecognizers.Add tapGestureRecognizer
+#else        
         let footerLabel = mainLayout.FindByName<Label> "footerLabel"
         footerLabel.GestureRecognizers.Add tapGestureRecognizer
+#endif        
 
         let allNormalAccountFiatBalances =
             normalBalanceStates.Select(fun balanceState -> balanceState.FiatAmount) |> List.ofSeq

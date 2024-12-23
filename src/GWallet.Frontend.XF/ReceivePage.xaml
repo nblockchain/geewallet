@@ -5,24 +5,29 @@
              xmlns:zx="clr-namespace:ZXing.Net.Mobile.Forms;assembly=ZXing.Net.Mobile.Forms"
              xmlns:zxcm="clr-namespace:ZXing.Common;assembly=zxing">
     <Grid x:Name="mainLayout"
-          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+          ColumnDefinitions="*,Auto,*"
           Padding="10,10,10,10"
           VerticalOptions="Center"
+          HorizontalOptions="Center"
     >
         <Label x:Name="balanceLabel"
                Text="..."
                HorizontalOptions="Center"
                Grid.Row="0"
+               Grid.ColumnSpan="3"
         />
         <Image
             x:Name="currencyImage"
             IsVisible="false"
             Grid.Row="1"
+            Grid.ColumnSpan="3"
         />
         <Label x:Name="fiatBalanceLabel"
                Text="..."
                HorizontalOptions="Center"
                Grid.Row="2"
+               Grid.ColumnSpan="3"
         />
         <Button x:Name="paymentButton"
                 Text="..."
@@ -30,6 +35,7 @@
                 HorizontalOptions="Center"
                 Clicked="OnSendPaymentClicked"
                 Grid.Row="3"
+                Grid.Column="1"
         />
         <Button x:Name="copyToClipboardButton"
                 Text="Copy address to clipboard"
@@ -37,6 +43,7 @@
                 HorizontalOptions="Center"
                 Clicked="OnCopyToClipboardClicked"
                 Grid.Row="4"
+                Grid.Column="1"
         />
         <zx:ZXingBarcodeImageView
             x:Name="qrCode"
@@ -46,7 +53,8 @@
             WidthRequest="200"
             HeightRequest="200"
             Grid.Row="5"
-            >
+            Grid.ColumnSpan="3"
+        >
         </zx:ZXingBarcodeImageView>
         <Button
             x:Name="viewTransactionHistoryButton"
@@ -55,6 +63,7 @@
             HorizontalOptions="Center"
             Clicked="OnViewTransactionHistoryClicked"
             Grid.Row="6"
-            />
+            Grid.Column="1"
+        />
     </Grid>
 </ContentPage>
