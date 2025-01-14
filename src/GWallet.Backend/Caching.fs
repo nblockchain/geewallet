@@ -14,6 +14,7 @@ type CachedNetworkData =
         UsdPrice: Map<Currency,CachedValue<decimal>>;
         Balances: Map<Currency,Map<PublicAddress,CachedValue<decimal>>>;
         OutgoingTransactions: Map<Currency,Map<PublicAddress,Map<string,CachedValue<decimal>>>>;
+        UnconfirmedTransactions: Map<Currency,list<string * int64>>
     }
     member self.GetLeastOldDate() =
         let allDates =
@@ -35,6 +36,7 @@ type CachedNetworkData =
             UsdPrice = Map.empty
             Balances = Map.empty
             OutgoingTransactions = Map.empty
+            UnconfirmedTransactions = Map.empty
         }
 
     static member FromDietCache (dietCache: DietCache): CachedNetworkData =
@@ -52,7 +54,8 @@ type CachedNetworkData =
                             yield (Currency.Parse currencyStr),Map.empty.Add(address,(balance,now))
             } |> Map.ofSeq
         { UsdPrice = fiatPrices; Balances = balances
-          OutgoingTransactions = Map.empty; }
+          OutgoingTransactions = Map.empty;
+          UnconfirmedTransactions = Map.empty }
 
     member self.ToDietCache(readOnlyAccounts: seq<ReadOnlyAccount>) =
         let rec extractAddressesFromAccounts (acc: Map<PublicAddress,List<DietCurrency>>) (accounts: List<IAccount>)
@@ -646,5 +649,35 @@ module Caching =
 
         member __.FirstRun
             with get() = firstRun
+
+        member self.StoreUnconfirmedTransaction (currency: Currency) (txHash: string) (gasLimit: int64) =
+            lock cacheFiles.CachedNetworkData (fun _ ->
+                let newTransactions =
+                    match sessionCachedNetworkData.UnconfirmedTransactions |> Map.tryFind currency with
+                    | Some transactionsForCurrency -> (txHash, gasLimit) :: transactionsForCurrency
+                    | None -> List.singleton (txHash, gasLimit)
+                let newCachedData = 
+                    { sessionCachedNetworkData with
+                        UnconfirmedTransactions = 
+                            sessionCachedNetworkData.UnconfirmedTransactions
+                            |> Map.add currency newTransactions }
+                SaveNetworkDataToDisk newCachedData
+            )
+
+        member self.RemoveUnconfirmedTransaction (currency: Currency) (txHash: string) =
+            lock cacheFiles.CachedNetworkData (fun _ ->
+                match sessionCachedNetworkData.UnconfirmedTransactions |> Map.tryFind currency with
+                | Some transactionsForCurrency ->
+                    let newTransactionForCurrency = 
+                        transactionsForCurrency 
+                        |> List.filter (fun (hash, _) -> hash <> txHash)
+                    let newCachedData = 
+                        { sessionCachedNetworkData with
+                            UnconfirmedTransactions = 
+                                sessionCachedNetworkData.UnconfirmedTransactions
+                                |> Map.add currency newTransactionForCurrency }
+                    SaveNetworkDataToDisk newCachedData
+                | None -> ()
+            )
 
     let Instance = MainCache (None, TimeSpan.FromDays 1.0)

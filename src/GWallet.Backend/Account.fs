@@ -248,7 +248,11 @@ module Account =
             txId
             amountTransferredPlusFeeIfCurrencyFeeMatches
             fee.FeeValue
-    
+        match fee with
+        | :? Ether.TransactionMetadata as etherTxMetadata ->
+            Caching.Instance.StoreUnconfirmedTransaction fee.Currency txId etherTxMetadata.Fee.GasLimit
+        | _ -> ()
+
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultTolerantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
     // broadcast it even if you sent it

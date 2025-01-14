@@ -352,6 +352,24 @@ module UserInteraction =
                     // All balances are fetched and their currency names printed, put a dot at the end of "Retrieving balances... " line.
                     Console.Write '.'
 
+                    let unconfirmedStatuses = ResizeArray<string>()
+                    for account in accounts do
+                        if account.Currency.IsEtherBased() then
+                            let cache = Caching.Instance.GetLastCachedData()
+                            match cache.UnconfirmedTransactions |> Map.tryFind account.Currency with
+                            | Some unconfirmedTransactions ->
+                                for txHash, gasSpent in unconfirmedTransactions do
+                                    try
+                                        let! isOutOfGas = Ether.Server.IsOutOfGas account.Currency txHash gasSpent
+                                        if isOutOfGas then
+                                            unconfirmedStatuses.Add(sprintf "Transaction ran out of gas: 0x%s" txHash)
+                                        else
+                                            Caching.Instance.RemoveUnconfirmedTransaction account.Currency txHash
+                                    with
+                                    | :? TimeoutException ->
+                                        unconfirmedStatuses.Add(sprintf "Timed out when checking transaction 0x%s" txHash)
+                            | None -> ()
+
                     let maybeTotalInUsd, totals = displayTotalAndSumFiatBalance currencyTotals
                     return
                         seq {
@@ -362,6 +380,7 @@ module UserInteraction =
                                     seq {
                                         yield! statuses
                                         yield! totals
+                                        yield! unconfirmedStatuses
                                         yield String.Empty // this ends up being simply an Environment.NewLine
                                         yield sprintf "Total estimated value in USD: %s"
                                                       (Formatting.DecimalAmountRounding CurrencyType.Fiat totalInUsd)
