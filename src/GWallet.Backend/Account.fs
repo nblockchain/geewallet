@@ -248,24 +248,10 @@ module Account =
             txId
             amountTransferredPlusFeeIfCurrencyFeeMatches
             fee.FeeValue
-
-    // FIXME: if out of gas, miner fee is still spent, we should inspect GasUsed and use it for the call to
-    //        SaveOutgoingTransactionInCache
-    let private CheckIfOutOfGas (transactionMetadata: IBlockchainFeeInfo) (txHash: string)
-                       : Async<unit> =
-        async {
-            match transactionMetadata with
-            | :? Ether.TransactionMetadata as etherTxMetadata ->
-                try
-                    let! outOfGas = Ether.Server.IsOutOfGas transactionMetadata.Currency txHash etherTxMetadata.Fee.GasLimit
-                    if outOfGas then
-                        return failwith <| SPrintF1 "Transaction ran out of gas: %s" txHash
-                with
-                | ex ->
-                    return raise <| Exception(SPrintF1 "An issue occurred while trying to check if the following transaction ran out of gas: %s" txHash, ex)
-            | _ ->
-                ()
-        }
+        match fee with
+        | :? Ether.TransactionMetadata as etherTxMetadata ->
+            Caching.Instance.StoreUnconfirmedTransaction fee.Currency txId etherTxMetadata.Fee.GasLimit
+        | _ -> ()
 
     // FIXME: broadcasting shouldn't just get N consistent replies from FaultTolerantClient,
     // but send it to as many as possible, otherwise it could happen that some server doesn't
@@ -274,6 +260,9 @@ module Account =
         async {
             let currency = trans.TransactionInfo.Proposal.Amount.Currency
 
+            if currency.IsEtherBased() then
+                do! Ether.Server.CheckIfAddressIsAValidPaymentDestination Currency.ETH trans.TransactionInfo.Proposal.DestinationAddress
+
             let! txId =
                 if currency.IsEtherBased() then
                     Ether.Account.BroadcastTransaction trans ignoreHigherMinerFeeThanAmount
@@ -281,8 +270,6 @@ module Account =
                     UtxoCoin.Account.BroadcastTransaction currency trans ignoreHigherMinerFeeThanAmount
                 else
                     failwith <| SPrintF1 "Unknown currency %A" currency
-
-            do! CheckIfOutOfGas trans.TransactionInfo.Metadata txId
 
             SaveOutgoingTransactionInCache trans.TransactionInfo.Proposal trans.TransactionInfo.Metadata txId
 
@@ -441,6 +428,9 @@ module Account =
         async {
             do! ValidateAddress currency destination
 
+            if currency.IsEtherBased() then
+                do! Ether.Server.CheckIfAddressIsAValidPaymentDestination Currency.ETH destination
+
             let! txId =
                 match txMetadata with
                 | :? UtxoCoin.TransactionMetadata as btcTxMetadata ->
@@ -459,8 +449,6 @@ module Account =
                     Ether.Account.SendPayment account etherTxMetadata destination amount password ignoreHigherMinerFeeThanAmount
                 | _ ->
                     failwith "Unknown tx metadata type"
-
-            do! CheckIfOutOfGas txMetadata txId
 
             let transactionProposal =
                 {
