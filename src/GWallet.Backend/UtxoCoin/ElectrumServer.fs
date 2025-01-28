@@ -134,7 +134,7 @@ module ElectrumServerSeedList =
 
         let urlToElectrumJsonFile =
             match currency with
-            | Currency.BTC -> "https://raw.githubusercontent.com/spesmilo/electrum/master/electrum/servers.json"
+            | Currency.BTC -> "https://raw.githubusercontent.com/spesmilo/electrum/master/electrum/chains/servers.json"
             | Currency.LTC -> "https://raw.githubusercontent.com/pooler/electrum-ltc/master/electrum_ltc/servers.json"
             | _ -> failwith <| SPrintF1 "UTXO currency unknown to this algorithm: %A" currency
 
