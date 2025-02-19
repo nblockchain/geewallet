@@ -288,6 +288,41 @@ module Account =
                     return! EstimateFees newTxBuilder feeRate account newInputs tail
         }
 
+
+    let private CalculateSilentPaymentDestination (account: IUtxoAccount)
+                                                  (transactionInputs: List<TransactionInputOutpointInfo>)
+                                                  (reusableAddress: string)
+                                                  (privateKey: Key) =
+        // Since we can only receive P2WPKH-P2SH or P2WPKH transactions, and
+        // non-compressed keys are not accepted as default policy
+        // (see https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki#restrictions-on-public-key-type),
+        // assume all inputs to be valid for shared secret derivation.
+        // https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki#selecting-inputs
+        // But we check input validity after transaction is constructed just to be sure.
+        let outpoints = 
+            transactionInputs
+            |> List.map (fun input -> (ConvertToICoin account input).Outpoint)
+        
+        SilentPayments.GetFinalDestination privateKey outpoints reusableAddress (GetNetwork (account:>IAccount).Currency)
+
+    let private CheckSilentPaymentTransactionInputValidity (finalTransaction: Transaction) 
+                                                           (txMetadataInputs: List<TransactionInputOutpointInfo>) =
+        for input in finalTransaction.Inputs do
+            let inputOutpointInfo =
+                let maybeInputOutputInfo =
+                    txMetadataInputs
+                    |> List.tryFind (fun ioInfo -> uint32 ioInfo.OutputIndex = input.PrevOut.N)
+                match maybeInputOutputInfo with
+                | Some value -> value
+                | None -> failwith (SPrintF1 "Could not find output with index=%d in txMetadataInputs" input.PrevOut.N)
+            let scriptPubKey =
+                Script(NBitcoin.DataEncoders.Encoders.Hex.DecodeData inputOutpointInfo.DestinationInHex)
+            match SilentPayments.ConvertToSilentPaymentInput scriptPubKey (input.ScriptSig.ToBytes()) (Some input.WitScript) with
+            | InputForSharedSecretDerivation _ -> ()
+            | _ -> 
+                let errorMessage = SPrintF1 "One of the inputs is not valid for shared secret derivation: %A" inputOutpointInfo
+                failwith (SPrintF1 "Error creating silent payment transaction: %s" errorMessage)
+
     let internal EstimateTransferFee
         (account: IUtxoAccount)
         (amount: TransferAmount)
@@ -384,10 +419,19 @@ module Account =
                 // we need more info in case this bug shows again: https://gitlab.com/nblockchain/geewallet/issues/43
                 raise <| Exception(SPrintF1 "Could not create fee rate from %s btc per KB"
                                            (btcPerKiloByteForFastTrans.ToString()), ex)
+        
+        let finalDestination = 
+            if SilentPaymentAddress.IsSilentPaymentAddress destination then
+                // calculate bogus silent payment destinantion using throwaway private key,
+                // as it will only be used for fee estimation
+                use throwawayPrivateKey = new Key()
+                CalculateSilentPaymentDestination account initiallyUsedInputs destination throwawayPrivateKey
+            else
+                destination
 
         let transactionBuilder = CreateTransactionAndCoinsToBeSigned account
                                                                      initiallyUsedInputs
-                                                                     destination
+                                                                     finalDestination
                                                                      amount
 
         try
@@ -433,7 +477,15 @@ module Account =
 
         let btcMinerFee = txMetadata.Fee
 
-        let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs destination amount
+        let isSilentPayment = SilentPaymentAddress.IsSilentPaymentAddress destination
+
+        let finalDestination =
+            if isSilentPayment then
+                CalculateSilentPaymentDestination account txMetadata.Inputs destination privateKey
+            else
+                destination
+
+        let finalTransactionBuilder = CreateTransactionAndCoinsToBeSigned account txMetadata.Inputs finalDestination amount
 
         finalTransactionBuilder.AddKeys privateKey |> ignore
         finalTransactionBuilder.SendFees (Money.Satoshis btcMinerFee.EstimatedFeeInSatoshis)
@@ -447,6 +499,10 @@ module Account =
         let success, errors = finalTransactionBuilder.Verify finalTransaction
         if not success then
             failwith <| SPrintF1 "Something went wrong when verifying transaction: %A" errors
+
+        if isSilentPayment then
+            CheckSilentPaymentTransactionInputValidity finalTransaction txMetadata.Inputs
+
         finalTransaction
 
     let internal GetPrivateKey (account: NormalAccount) password =
@@ -580,8 +636,10 @@ module Account =
             }
         }
 
-    let MaybeReportWarningsForUnknownParameters addressOrUrl (unknownParams: System.Collections.Generic.Dictionary<string, string>) =
+    let MaybeReportWarningsForUnknownParameters addressOrUrl (unknownParams: System.Collections.Generic.IReadOnlyDictionary<string, string>) =
         if not (isNull unknownParams) && unknownParams.Any() then
+            // convert unknownParams to mutable dictionary since we may have to remove keys from it
+            let unknownParams = dict <| seq { for pair in unknownParams -> pair.Key, pair.Value }
 
             let unknownToUs =
 
@@ -607,8 +665,7 @@ module Account =
         if addressOrUrl.StartsWith "bitcoin:" || addressOrUrl.StartsWith "litecoin:" then
             let uriBuilder = BitcoinUrlBuilder (addressOrUrl, network)
 
-            // FIXME: fix typo "UnknowParameters" in NBitcoin
-            MaybeReportWarningsForUnknownParameters addressOrUrl uriBuilder.UnknowParameters
+            MaybeReportWarningsForUnknownParameters addressOrUrl uriBuilder.UnknownParameters
 
             if null = uriBuilder.Address then
                 failwith <| SPrintF1 "Address started with 'bitcoin:' but an address could not be extracted: %s" addressOrUrl
@@ -639,6 +696,7 @@ module Account =
                     BITCOIN_ADDRESS_PUBKEYHASH_PREFIX
                     BITCOIN_ADDRESS_SCRIPTHASH_PREFIX
                     BITCOIN_ADDRESS_BECH32_PREFIX
+                    SilentPaymentAddress.MainNetPrefix
                 ]
             | LTC ->
                 let LITECOIN_ADDRESS_PUBKEYHASH_PREFIX = "L"
@@ -659,6 +717,10 @@ module Account =
                 // taken from https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
                 // (FIXME: this is only valid for the first version of segwit, fix it!)
                 Fixed [ 42u; 62u ]
+            | Currency.BTC, _ when SilentPaymentAddress.IsSilentPaymentAddress address ->
+                Variable 
+                    { Minimum = SilentPaymentAddress.MinimumEncodedLength
+                      Maximum = SilentPaymentAddress.MaximumEncodedLength }
             | Currency.LTC, _ when address.StartsWith LITECOIN_ADDRESS_BECH32_PREFIX ->
                 // taken from https://coin.space/all-about-address-types/, e.g. ltc1q3qkpj5s4ru3cx9t7dt27pdfmz5aqy3wplamkns
                 // FIXME: hopefully someone replies/documents https://bitcoin.stackexchange.com/questions/110975/how-long-can-bech32-addresses-be-in-the-litecoin-mainnet
@@ -678,8 +740,11 @@ module Account =
 
         let network = GetNetwork currency
         try
-            BitcoinAddress.Create(address, network)
-            |> ignore<BitcoinAddress>
+            if SilentPaymentAddress.IsSilentPaymentAddress address then
+                SilentPaymentAddress.Decode address |> ignore<SilentPaymentAddress>
+            else
+                BitcoinAddress.Create(address, network)
+                |> ignore<BitcoinAddress>
         with
         // TODO: propose to NBitcoin upstream to generate an NBitcoin exception instead
         | :? FormatException ->

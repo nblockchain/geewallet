@@ -38,6 +38,7 @@
     <Compile Include="UtxoCoin\UtxoCoinServer.fs" />
     <Compile Include="UtxoCoin\UtxoCoinMinerFee.fs" />
     <Compile Include="UtxoCoin\TransactionTypes.fs" />
+    <Compile Include="UtxoCoin\SilentPayments.fs" />
     <Compile Include="UtxoCoin\UtxoCoinAccount.fs" />
     <Compile Include="Ether\EtherExceptions.fs" />
     <Compile Include="Ether\EtherMinerFee.fs" />
@@ -62,7 +63,7 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
-    <PackageReference Include="NBitcoin" Version="6.0.17">
+    <PackageReference Include="NBitcoin" Version="7.0.13">
       <GeneratePathProperty></GeneratePathProperty>
     </PackageReference>
     <PackageReference Include="NBitcoin.Altcoins" Version="3.0.8">
