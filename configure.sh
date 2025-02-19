@@ -14,16 +14,7 @@ else
 
     cp NuGet-legacy.config NuGet.config
 
-    if [ ! -f scripts/fsx/configure.sh ]; then
-        if ! which git >/dev/null 2>&1; then
-            echo "checking for git... not found" $'\n'
-
-            echo "$0" $'failed, please install "git" (to populate submodule) first'
-            exit 1
-        fi
-        echo "Populating sub-fsx module..."
-        git submodule sync --recursive && git submodule update --init --recursive
-    fi
+    ./scripts/populate_gitsubmodules.sh
 
     FSX_CHECK_MSG="checking for fsx..."
     if ! which fsharpi >/dev/null 2>&1; then
