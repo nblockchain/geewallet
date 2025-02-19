@@ -41,11 +41,11 @@ module MapHelper =
         map |> Map.toSeq |> Seq.map fst
 
     let MergeIntoMap<'K,'V when 'K: comparison> (from: seq<'K*'V>): Map<'K,seq<'V>> =
-        let keys = from.Select (fun (k, v) -> k)
+        let keys = from.Select (fun (k, _v) -> k)
         let keyValuePairs =
             seq {
                 for key in keys do
-                    let valsForKey = (from.Where (fun (k, v) -> key = k)).Select (fun (k, v) -> v) |> seq
+                    let valsForKey = (from.Where (fun (k, _v) -> key = k)).Select (fun (_k, v) -> v) |> seq
                     yield key,valsForKey
             }
         keyValuePairs |> Map.ofSeq
@@ -288,7 +288,8 @@ let SanityCheckNugetPackages () =
                         yield packageDirNameThatShouldExist, prjs
             } |> Map.ofSeq
 
-        let findExcessPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): seq<string> =
+        // unused for now, we might use it later
+        let _findExcessPackageDirs (solDir: DirectoryInfo) (idealPackageDirs: Map<string,seq<DependencyHolder>>): seq<string> =
             solDir.Refresh ()
             if not (FsxHelper.NugetSolutionPackagesDir.Exists) then
                 failwithf "'%s' subdir under solution dir %s doesn't exist, run `make` first"
