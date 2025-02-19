@@ -75,15 +75,19 @@ module Config =
 
     let internal GetConfigDirForThisProgram() =
         let configPath =
-(* NOTE: we used to support UWP via the Xamarin.Essentials code below, but MAUI is a higher priority than resurrecting UWP now:
-            if (not isWindows) || Xamarin.Essentials.DeviceInfo.Platform <> Xamarin.Essentials.DevicePlatform.UWP then
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-            else //UWP
-                Xamarin.Essentials.FileSystem.AppDataDirectory
-*)
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-
-        // TODO: rename to "geewallet", following a similar approach as DAI->SAI rename
+            match Environment.GetEnvironmentVariable "SNAP" with
+            | snapVar when not (String.IsNullOrEmpty snapVar) -> 
+                match Environment.GetEnvironmentVariable "HOME" with
+                | homeVar when not (String.IsNullOrEmpty homeVar) ->
+                    homeVar + snapVar + ".config"
+                | _ -> failwith "$HOME environment variable is absent or empty"
+            (* NOTE: we used to support UWP via the Xamarin.Essentials code below, but MAUI is a higher priority than resurrecting UWP now:
+                        if (not isWindows) || Xamarin.Essentials.DeviceInfo.Platform <> Xamarin.Essentials.DevicePlatform.UWP then
+                            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+                        else //UWP
+                            Xamarin.Essentials.FileSystem.AppDataDirectory
+            *)
+            | _ -> Environment.GetFolderPath Environment.SpecialFolder.ApplicationData
         let configDir = DirectoryInfo(Path.Combine(configPath, "gwallet"))
         if not configDir.Exists then
             configDir.Create()

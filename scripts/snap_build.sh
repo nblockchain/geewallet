@@ -10,6 +10,10 @@ rm -rf ./staging
 
 ./configure.sh --prefix=./staging "$@"
 make
+if [ `which dotnet` ]
+then
+    make publish
+fi
 make install
 
 snapcraft --destructive-mode

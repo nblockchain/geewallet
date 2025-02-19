@@ -9,6 +9,9 @@ check:
 
 release:
 	@./scripts/make.sh release
+	
+publish:
+	@./scripts/make.sh publish
 
 zip:
 	@./scripts/make.sh zip

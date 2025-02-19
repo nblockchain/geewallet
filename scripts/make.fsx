@@ -4,6 +4,8 @@ open System
 open System.IO
 open System.Linq
 open System.Diagnostics
+open System.Runtime.InteropServices
+
 
 #if !LEGACY_FRAMEWORK
 #r "nuget: Fsdk, Version=0.6.0--date20230818-1152.git-83d671b"
@@ -117,6 +119,17 @@ let prefix = buildConfigContents |> GetOrExplain "Prefix"
 let libPrefixDir = DirectoryInfo (Path.Combine (prefix, "lib", UNIX_NAME))
 let binPrefixDir = DirectoryInfo (Path.Combine (prefix, "bin"))
 
+
+let GetRuntimeId () =
+    let osName =
+        match Misc.GuessPlatform() with
+        | Misc.Platform.Linux -> "linux"
+        | Misc.Platform.Windows -> "win"
+        | Misc.Platform.Mac -> "osx"
+    let archName = RuntimeInformation.ProcessArchitecture.ToString().ToLower()
+    sprintf "%s-%s" osName archName
+
+#if LEGACY_FRAMEWORK
 let wrapperScript = """#!/usr/bin/env bash
 set -eo pipefail
 
@@ -133,6 +146,19 @@ DIR_OF_THIS_SCRIPT=$(dirname "$(realpath "$0")")
 FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT.exe"
 exec mono "$FRONTEND_PATH" "$@"
 """
+#else
+let wrapperScript = """#!/usr/bin/env bash
+set -eo pipefail
+DIR_OF_THIS_SCRIPT=$(dirname "$(realpath "$0")")
+FRONTEND_PATH="$DIR_OF_THIS_SCRIPT/../lib/$UNIX_NAME/$GWALLET_PROJECT"
+arch=$(uname -i)
+if [ "$arch" != 'x86_64' ]; then
+    echo "$arch not supported (only x86_64 is supported for now), please file a bug"
+    exit 1
+fi
+exec "$FRONTEND_PATH" "$@"
+"""
+#endif
 
 let NugetRestore (projectOrSolution: FileInfo) =
     let nugetArgs =
@@ -581,6 +607,33 @@ match maybeTarget with
     | _ ->
         ()
 #endif
+| Some "publish" ->
+#if LEGACY_FRAMEWORK
+    failwith "Legacy frameworks don't support publish command"
+#else
+    let buildConfig = BinaryConfig.Release
+    let frontend,_ = JustBuild buildConfig None
+
+    let projectFile =
+        Path.Combine (
+            FsxHelper.RootDir.FullName,
+            "src",
+            frontend.GetProjectName(),
+            frontend.GetProjectName() + ".fsproj")
+        |> FileInfo
+    let runtimeId = GetRuntimeId()
+    let publishCommand =
+        {
+            Command = "dotnet"
+            Arguments =
+                sprintf
+                    "publish --configuration Release -property:PublishSingleFile=true --self-contained true --runtime %s %s"
+                    runtimeId
+                    projectFile.FullName
+        }
+    Process.Execute(publishCommand, Echo.All).UnwrapDefault()
+    |> ignore<string>
+#endif
 
 | Some("install") ->
     let buildConfig = BinaryConfig.Release
@@ -608,7 +661,18 @@ match maybeTarget with
 
     Console.WriteLine "Installing..."
     Console.WriteLine ()
-    Misc.CopyDirectoryRecursively (mainBinariesDir buildConfig, libDestDir, [])
+    
+    let publishDir =
+        Path.Combine ((mainBinariesDir buildConfig).FullName, "net6.0", GetRuntimeId(), "publish") 
+        |> DirectoryInfo
+    if publishDir.Exists then
+        // single-file app
+        let executable = Path.Combine(publishDir.FullName, frontend.GetProjectName()) |> FileInfo
+        if not libDestDir.Exists then
+            libDestDir.Create()
+        executable.CopyTo(Path.Combine(libDestDir.FullName, frontend.GetProjectName()), true) |> ignore
+    else
+        Misc.CopyDirectoryRecursively (mainBinariesDir buildConfig, libDestDir, List.Empty)
 
     let finalLauncherScriptInDestDir = Path.Combine(binDestDir.FullName, launcherScriptFile.Name) |> FileInfo
     if not (Directory.Exists(finalLauncherScriptInDestDir.Directory.FullName)) then
