@@ -23,7 +23,7 @@ exception AccountAlreadyAdded
 
 exception InvalidDestinationAddress of msg: string
 
-exception InvalidJson
+exception InvalidJson of content: string
 
 exception TransactionAlreadySigned
 exception TransactionNotSignedYet

@@ -246,7 +246,7 @@ module Program =
                 Marshalling.Deserialize watchWalletInfoJson
                 |> Some
             with
-            | InvalidJson ->
+            | InvalidJson _content ->
                 None
 
         match watchWalletInfoOpt with
