@@ -102,16 +102,15 @@ module FrontendHelpers =
         match currency with
         | Currency.BTC -> Color.FromRgb(245, 146, 47)
 
-        // looks very similar to BTC (orangish)... so let's use SAI color when we phase it out?
-        | Currency.DAI -> Color.FromRgb(250, 176, 28)
+        | Currency.DAI -> Color.FromRgb(254, 205, 83)
 
-        | Currency.SAI -> Color.FromRgb(254, 205, 83)
+        | Currency.LUSD -> Color.FromRgb(46, 182, 234)
         | Currency.ETC -> Color.FromRgb(14, 119, 52)
         | Currency.ETH -> Color.FromRgb(130, 131, 132)
         | Currency.LTC -> Color.FromRgb(54, 94, 155)
 
     let UpdateBalance (balance: MaybeCached<decimal>) currency usdRate
-                      (maybeFrame: Option<Frame>) (balanceLabel: Label) (fiatBalanceLabel: Label)
+                      (_maybeFrame: Option<Frame>) (balanceLabel: Label) (fiatBalanceLabel: Label)
                       (cryptoSubUnit: Option<UtxoCoin.SubUnit>)
                           : MaybeCached<decimal> =
         let maybeBalanceAmount =
@@ -121,12 +120,6 @@ module FrontendHelpers =
             | NotFresh(Cached(amount,_)) ->
                 Some amount
             | Fresh(amount) ->
-                match maybeFrame, currency, amount with
-                | Some frame, Currency.SAI, 0m ->
-                    MainThread.BeginInvokeOnMainThread(fun _ ->
-                        frame.IsVisible <- false
-                    )
-                | _ -> ()
                 Some amount
         let balanceAmountStr,fiatAmount,fiatAmountStr =
             match maybeBalanceAmount with

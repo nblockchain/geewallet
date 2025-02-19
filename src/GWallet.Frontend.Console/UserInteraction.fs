@@ -228,13 +228,7 @@ module UserInteraction =
                                            (maybeBalance: MaybeCached<decimal>)
                                             maybeUsdValue
                                                 : seq<string> =
-        match account.Currency, maybeBalance with
-        | Currency.SAI, NotFresh (Cached (0m, _time)) ->
-            Seq.empty
-        | Currency.SAI, Fresh 0m ->
-            Seq.empty
-        | _ ->
-            DisplayAccountStatusInner accountNumber account maybeBalance maybeUsdValue
+        DisplayAccountStatusInner accountNumber account maybeBalance maybeUsdValue
 
     let private GetAccountBalanceInner (account: IAccount) (showProgress: bool): Async<IAccount*MaybeCached<decimal>*MaybeCached<decimal>> =
         async {
@@ -324,7 +318,6 @@ module UserInteraction =
                     for KeyValue(currency, balance) in currenciesToBalances do
                         match currency, balance with
                         | _, None -> ()
-                        | SAI, Some (0m, _) -> ()
                         | _, Some (onlineBalance, maybeUsdValue) ->
                             match maybeUsdValue with
                             | NotFresh(NotAvailable) -> yield None, None

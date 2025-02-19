@@ -179,10 +179,10 @@ type Deserialization() =
                     Is.EqualTo(2))
 
     [<Test>]
-    member __.``unsigned SAI transaction import``() =
+    member __.``unsigned DAI transaction import``() =
         let deserializedUnsignedTrans: UnsignedTransaction<IBlockchainFeeInfo> =
             Account.ImportUnsignedTransactionFromJson
-                MarshallingData.UnsignedSaiTransactionExampleInJson
+                MarshallingData.UnsignedDaiTransactionExampleInJson
 
         Assert.That(deserializedUnsignedTrans, Is.Not.Null)
         Assert.That(deserializedUnsignedTrans.Proposal, Is.Not.Null)
@@ -192,16 +192,16 @@ type Deserialization() =
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.ValueToSend, Is.EqualTo(1m))
         Assert.That(deserializedUnsignedTrans.Proposal.Amount.BalanceAtTheMomentOfSending,
                     Is.EqualTo 7.08m)
-        Assert.That(deserializedUnsignedTrans.Proposal.Amount.Currency, Is.EqualTo Currency.SAI)
+        Assert.That(deserializedUnsignedTrans.Proposal.Amount.Currency, Is.EqualTo Currency.DAI)
         Assert.That(deserializedUnsignedTrans.Proposal.DestinationAddress,
                     Is.EqualTo("0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b"))
         Assert.That(deserializedUnsignedTrans.Proposal.OriginMainAddress,
                     Is.EqualTo("0xba766d6d13E2Cc921Bf6e896319D32502af9e37E"))
 
-        let saiTxMetadata = deserializedUnsignedTrans.Metadata :?> Ether.TransactionMetadata
-        Assert.That(saiTxMetadata.TransactionCount, Is.EqualTo(7))
-        Assert.That(saiTxMetadata.Fee.Currency, Is.EqualTo(Currency.ETH))
-        Assert.That(saiTxMetadata.Fee.GasPriceInWei, Is.EqualTo(3343750000L))
+        let daiTxMetadata = deserializedUnsignedTrans.Metadata :?> Ether.TransactionMetadata
+        Assert.That(daiTxMetadata.TransactionCount, Is.EqualTo(7))
+        Assert.That(daiTxMetadata.Fee.Currency, Is.EqualTo(Currency.ETH))
+        Assert.That(daiTxMetadata.Fee.GasPriceInWei, Is.EqualTo(3343750000L))
         Assert.That(deserializedUnsignedTrans.Metadata.FeeEstimationTime,
                     Is.EqualTo MarshallingData.SomeDate)
 
@@ -209,11 +209,11 @@ type Deserialization() =
         Assert.That(deserializedUnsignedTrans.Cache.UsdPrice.Count, Is.EqualTo(5))
 
     [<Test>]
-    member __.``signed SAI transaction import``() =
+    member __.``signed DAI transaction import``() =
 
         let deserializedSignedTrans: SignedTransaction<IBlockchainFeeInfo> =
             Account.ImportSignedTransactionFromJson
-                MarshallingData.SignedSaiTransactionExampleInJson
+                MarshallingData.SignedDaiTransactionExampleInJson
 
         Assert.That(deserializedSignedTrans, Is.Not.Null)
 
@@ -230,7 +230,7 @@ type Deserialization() =
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.BalanceAtTheMomentOfSending,
                     Is.EqualTo 7.08m)
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.Amount.Currency,
-                    Is.EqualTo Currency.SAI)
+                    Is.EqualTo Currency.DAI)
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.DestinationAddress,
                     Is.EqualTo("0xDb0381B1a380d8db2724A9Ca2d33E0C6C044bE3b"))
         Assert.That(deserializedSignedTrans.TransactionInfo.Proposal.OriginMainAddress,

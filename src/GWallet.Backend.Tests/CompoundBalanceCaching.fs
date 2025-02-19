@@ -291,12 +291,12 @@ type CompoundBalanceCaching() =
             File.Delete cacheFiles.ServerStats.FullName
 
     [<Test>]
-    member __.``substracting both currency X(e.g. SAI) and the currency Y(e.g.ETH) where fees are spent``() =
+    member __.``substracting both currency X(e.g. DAI) and the currency Y(e.g.ETH) where fees are spent``() =
         let cache,cacheFiles =
             SpawnNewCacheInstanceToTest high_expiration_span_because_this_test_doesnt_involve_timing
 
         try
-            let someTokenCurrency = Currency.SAI
+            let someTokenCurrency = Currency.DAI
             let someTokenBalance = 10m
             let someEthCurrency = Currency.ETH
             let someEthBalance = 5m

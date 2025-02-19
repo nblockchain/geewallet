@@ -43,12 +43,12 @@
     <EmbeddedResource Include="data\realException.json" />
     <EmbeddedResource Include="data\signedAndFormattedEtherTransaction.json" />
     <EmbeddedResource Include="data\customException.json" />
-    <EmbeddedResource Include="data\unsignedAndFormattedSaiTransaction.json" />
+    <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedBtcTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedEtherTransaction.json" />
     <EmbeddedResource Include="data\fullException.json" />
     <EmbeddedResource Include="data\signedAndFormattedBtcTransaction.json" />
-    <EmbeddedResource Include="data\signedAndFormattedSaiTransaction.json" />
+    <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
     <EmbeddedResource Include="data\innerException.json" />
   </ItemGroup>
 </Project>

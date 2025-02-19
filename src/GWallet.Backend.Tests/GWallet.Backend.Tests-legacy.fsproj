@@ -63,8 +63,8 @@
     <Compile Include="StratumParsing.fs" />
     <Content Include="packages.config" />
     <EmbeddedResource Include="data\signedAndFormattedBtcTransaction.json" />
-    <EmbeddedResource Include="data\signedAndFormattedSaiTransaction.json" />
-    <EmbeddedResource Include="data\unsignedAndFormattedSaiTransaction.json" />
+    <EmbeddedResource Include="data\signedAndFormattedDaiTransaction.json" />
+    <EmbeddedResource Include="data\unsignedAndFormattedDaiTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedBtcTransaction.json" />
     <EmbeddedResource Include="data\signedAndFormattedEtherTransaction.json" />
     <EmbeddedResource Include="data\unsignedAndFormattedEtherTransaction.json" />
