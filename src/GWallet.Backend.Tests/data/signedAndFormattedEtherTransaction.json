@@ -4,7 +4,7 @@
   "Value": {
     "TransactionInfo": {
       "Proposal": {
-        "OriginAddress": "0xf3j4m0rjx94sushh03j",
+        "OriginMainAddress": "0xf3j4m0rjx94sushh03j",
         "Amount": {
           "ValueToSend": 10.01,
           "BalanceAtTheMomentOfSending": 12.02,

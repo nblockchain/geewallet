@@ -2,9 +2,11 @@ namespace GWallet.Backend
 
 open System.IO
 
+type UtxoPublicKey = string
+
 type WatchWalletInfo =
     {
-        UtxoCoinPublicKey: string
+        UtxoCoinPublicKey: UtxoPublicKey
         EtherPublicAddress: string
     }
 
@@ -30,6 +32,7 @@ type AccountKind =
     | Normal
     | ReadOnly
     | Archived
+    | Ephemeral
     static member All() =
         seq {
             yield Normal

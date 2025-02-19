@@ -211,20 +211,10 @@ let configFileToBeWritten =
         | Some theTool -> initialConfigFile.Add("LegacyBuildTool", theTool)
         | None -> initialConfigFile
 
-    let configFileStageThree =
+    let finalConfigFile =
         match buildTool with
         | Some theTool -> configFileStageTwo.Add("BuildTool", theTool)
         | None -> configFileStageTwo
-
-    let finalConfigFile =
-        let nativeSegwitEnabled =
-            argsToThisFsxScript
-            |> List.contains "--native-segwit"
-        if nativeSegwitEnabled then
-            configFileStageThree
-            |> AddToDefinedConstants "NATIVE_SEGWIT"
-        else
-            configFileStageThree
 
     finalConfigFile
 

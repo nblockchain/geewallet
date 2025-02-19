@@ -326,6 +326,7 @@ module Program =
         | TestPaymentPassword
         | TestSeedPassphrase
         | WipeWallet
+        | TransferFundsFromWalletUsingMenmonic
 
     let rec TestPaymentPassword () =
         let password = UserInteraction.AskPassword false
@@ -348,6 +349,103 @@ module Program =
             Account.WipeAll()
         else
             ()
+    
+    let TransferFundsFromWalletUsingMenmonic() =
+        let rec askForMnemonic() : UtxoCoin.EphemeralUtxoAccount =
+            Console.WriteLine "Enter mnemonic seed phrase (12, 15, 18, 21 or 24 words):"
+            let mnemonic = Console.ReadLine()
+            try
+                Account.CreateEphemeralAccountFromSeedMenmonic mnemonic
+            with
+            | :? FormatException as exn ->
+                printfn "Error reading mnemonic seed phrase: %s" exn.Message
+                askForMnemonic()
+
+        let importedAccount = askForMnemonic()
+        let currency = BTC
+
+        Console.WriteLine()
+
+        let maybeTotalBalance, maybeUsdValue = UserInteraction.GetAccountBalance importedAccount |> Async.RunSynchronously
+        match maybeTotalBalance with
+        | NotFresh _ ->
+            Console.WriteLine "Could not retrieve balance."
+            UserInteraction.PressAnyKeyToContinue()
+        | Fresh 0.0m ->
+            Console.WriteLine "Balance on imported account is zero. No funds to transfer."
+            UserInteraction.PressAnyKeyToContinue()
+        | Fresh balance ->
+            printfn "Imported account address: %s" (importedAccount :> IAccount).PublicAddress
+            printfn
+                "Balance on imported account: %s BTC (%s)"
+                    (balance.ToString())
+                    (UserInteraction.BalanceInUsdString balance maybeUsdValue)
+            Console.WriteLine()
+
+            let rec chooseAccount() =
+                Console.WriteLine "Choose account to send funds to:"
+                Console.WriteLine()
+                let allAccounts = Account.GetAllActiveAccounts() |> Seq.toList
+                let btcAccounts = allAccounts |> List.filter (fun acc -> acc.Currency = currency)
+                
+                match btcAccounts with
+                | [ singleAccount ] -> Some singleAccount
+                | [] -> 
+                    printfn "No BTC accounts found."
+                    None
+                | _ ->
+                    allAccounts |> Seq.iteri (fun i account ->
+                        if account.Currency = currency then
+                            let balance, maybeUsdValue = 
+                                UserInteraction.GetAccountBalance account
+                                |> Async.RunSynchronously
+                            UserInteraction.DisplayAccountStatus (i + 1) account balance maybeUsdValue
+                                |> Seq.iter Console.WriteLine
+                    )
+
+                    Console.Write "Write the account number (or 0 to cancel): "
+                    let accountNumber = Console.ReadLine()
+                    match Int32.TryParse accountNumber with
+                    | false, _ -> chooseAccount()
+                    | true, 0 -> None
+                    | true, accountParsed ->
+                        let theAccountChosen =
+                            try
+                                let selectedAccount = allAccounts.[accountParsed - 1]
+                                if selectedAccount.Currency = BTC then
+                                    Some selectedAccount
+                                else
+                                    chooseAccount()
+                            with
+                            | _ -> chooseAccount()
+                        theAccountChosen
+
+            match chooseAccount() with
+            | Some targetAccount ->
+                let destination = targetAccount.PublicAddress
+                let transferAmount = TransferAmount(balance, balance, currency) // send all funds
+                let maybeFee = UserInteraction.AskFee importedAccount transferAmount destination
+                match maybeFee with
+                | None -> ()
+                | Some fee ->
+                    let txId = 
+                        Account.SweepArchivedFunds 
+                            importedAccount
+                            balance
+                            targetAccount
+                            fee
+                            false
+                        |>  Async.RunSynchronously
+                    let uri = BlockExplorer.GetTransaction currency txId
+                    printfn "Transaction successful:"
+                    printfn "%s" (uri.ToString())
+                    Console.WriteLine()
+                    printf "Archiving imported account..."
+                    Account.ConvertEphemeralAccountToArchivedAccount importedAccount currency
+                    printfn " done."
+                    UserInteraction.PressAnyKeyToContinue()
+            | None ->
+                UserInteraction.PressAnyKeyToContinue()
 
     let WalletOptions(): unit =
         let rec AskWalletOption(): GenericWalletOption =
@@ -355,6 +453,7 @@ module Program =
             Console.WriteLine "1. Check you still remember your payment password"
             Console.WriteLine "2. Check you still remember your secret recovery phrase"
             Console.WriteLine "3. Wipe your current wallet, in order to start from scratch"
+            Console.WriteLine "4. Transfer all funds from another wallet (given mnemonic code)"
             Console.Write "Choose an option from the ones above: "
             let optIntroduced = Console.ReadLine ()
             match UInt32.TryParse optIntroduced with
@@ -365,6 +464,7 @@ module Program =
                 | 1u -> GenericWalletOption.TestPaymentPassword
                 | 2u -> GenericWalletOption.TestSeedPassphrase
                 | 3u -> GenericWalletOption.WipeWallet
+                | 4u -> GenericWalletOption.TransferFundsFromWalletUsingMenmonic
                 | _ -> AskWalletOption()
 
         let walletOption = AskWalletOption()
@@ -377,6 +477,8 @@ module Program =
             Console.WriteLine "Success!"
         | GenericWalletOption.WipeWallet ->
             WipeWallet()
+        | GenericWalletOption.TransferFundsFromWalletUsingMenmonic ->
+            TransferFundsFromWalletUsingMenmonic()
         | _ -> ()
 
     let rec PerformOperation (numActiveAccounts: uint32) (numHotAccounts: uint32) =

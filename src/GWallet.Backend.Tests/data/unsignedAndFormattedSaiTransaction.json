@@ -3,7 +3,7 @@
   "TypeName": "GWallet.Backend.UnsignedTransaction`1[GWallet.Backend.Ether.TransactionMetadata]",
   "Value": {
     "Proposal": {
-      "OriginAddress": "0xba766d6d13E2Cc921Bf6e896319D32502af9e37E",
+      "OriginMainAddress": "0xba766d6d13E2Cc921Bf6e896319D32502af9e37E",
       "Amount": {
         "ValueToSend": 1.0,
         "BalanceAtTheMomentOfSending": 7.08,
