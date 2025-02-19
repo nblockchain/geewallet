@@ -10,6 +10,17 @@ open Fsdk
 
 open GWallet.Backend.FSharpUtil.UwpHacks
 
+type NetworkTimeouts =
+    {
+        Timeout: TimeSpan
+        ConnectTimeout: TimeSpan
+    }
+    member self.Double() =
+        {
+            Timeout = self.Timeout + self.Timeout
+            ConnectTimeout = self.ConnectTimeout + self.ConnectTimeout
+        }
+
 // TODO: make internal when tests don't depend on this anymore
 module Config =
 
@@ -63,10 +74,7 @@ module Config =
             return simpleVersion
         }
 
-    // FIXME: make FaultTolerantParallelClient accept funcs that receive this as an arg, maybe 2x-ing it when a full
-    //        round of failures has happened, as in, all servers failed
-    let internal DEFAULT_NETWORK_TIMEOUT = TimeSpan.FromSeconds 30.0
-    let internal DEFAULT_NETWORK_CONNECT_TIMEOUT = TimeSpan.FromSeconds 5.0
+    let internal DEFAULT_NETWORK_TIMEOUTS = { Timeout = TimeSpan.FromSeconds 5.0; ConnectTimeout = TimeSpan.FromSeconds 1.0 }
 
     let internal NUMBER_OF_RETRIES_TO_SAME_SERVERS = 3u
 

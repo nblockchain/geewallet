@@ -35,7 +35,7 @@ type ServerNameResolvedToInvalidAddressException =
         { inherit CommunicationUnsuccessfulException (info, context) }
 
 
-type JsonRpcTcpClient (host: string, port: uint32) =
+type JsonRpcTcpClient (host: string, port: uint32, timeouts: NetworkTimeouts) =
 
     let ResolveAsync (hostName: string): Async<Option<IPAddress>> = async {
         // FIXME: loop over all addresses?
@@ -47,7 +47,7 @@ type JsonRpcTcpClient (host: string, port: uint32) =
 
     let ResolveHost(): Async<IPAddress> = async {
         try
-            let! maybeTimedOutipAddress = ResolveAsync host |> FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT
+            let! maybeTimedOutipAddress = ResolveAsync host |> FSharpUtil.WithTimeout timeouts.Timeout
             match maybeTimedOutipAddress with
             | Some ipAddressOption ->
                 match ipAddressOption with
@@ -77,14 +77,14 @@ type JsonRpcTcpClient (host: string, port: uint32) =
 
     let rpcTcpClientInnerRequest =
             let tcpClient =
-                JsonRpcSharp.TcpClient.JsonRpcClient(ResolveHost, int port, Config.DEFAULT_NETWORK_CONNECT_TIMEOUT)
+                JsonRpcSharp.TcpClient.JsonRpcClient(ResolveHost, int port, timeouts.ConnectTimeout)
             fun jsonRequest -> tcpClient.RequestAsync jsonRequest
 
     member __.Host with get() = host
 
     member __.Request (request: string): Async<string> = async {
         try
-            let! stringOption = rpcTcpClientInnerRequest request |> FSharpUtil.WithTimeout Config.DEFAULT_NETWORK_TIMEOUT
+            let! stringOption = rpcTcpClientInnerRequest request |> FSharpUtil.WithTimeout timeouts.Timeout
             let str =
                 match stringOption with
                 | Some s -> s

@@ -1,27 +1,26 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27130.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35201.131
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend", "src\GWallet.Backend\GWallet.Backend.fsproj", "{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Backend", "src\GWallet.Backend\GWallet.Backend.fsproj", "{96F9B3E5-11F8-4F5F-AADC-51D0D995B3D2}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Backend.Tests", "src\GWallet.Backend.Tests\GWallet.Backend.Tests.fsproj", "{F9448076-88BE-4045-8704-A652D133E036}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Backend.Tests", "src\GWallet.Backend.Tests\GWallet.Backend.Tests.fsproj", "{F9448076-88BE-4045-8704-A652D133E036}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.Console", "src\GWallet.Frontend.Console\GWallet.Frontend.Console.fsproj", "{8413EEF5-69F5-499F-AE01-754E9541EF90}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.Console", "src\GWallet.Frontend.Console\GWallet.Frontend.Console.fsproj", "{8413EEF5-69F5-499F-AE01-754E9541EF90}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{9DFD61F8-2CED-47F1-BB3A-48A383D4751D}"
 	ProjectSection(SolutionItems) = preProject
-		configure.sh = configure.sh
-		Makefile = Makefile
+		scripts\bump.fsx = scripts\bump.fsx
 		scripts\configure.fsx = scripts\configure.fsx
+		configure.sh = configure.sh
+		scripts\find.fsx = scripts\find.fsx
+		scripts\fsxHelper.fs = scripts\fsxHelper.fs
+		scripts\githubActions.fs = scripts\githubActions.fs
 		scripts\make.fsx = scripts\make.fsx
 		scripts\make.sh = scripts\make.sh
-		scripts\bump.fsx = scripts\bump.fsx
+		Makefile = Makefile
 		scripts\sanitycheck.fsx = scripts\sanitycheck.fsx
-		scripts\fsxHelper.fs = scripts\fsxHelper.fs
 		scripts\snap_release.fsx = scripts\snap_release.fsx
-		scripts\githubActions.fs = scripts\githubActions.fs
-		scripts\find.fsx = scripts\find.fsx
-		scripts\bump.fsx = scripts\bump.fsx
 	EndProjectSection
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.Mac", "src\GWallet.Frontend.XF.Mac\GWallet.Frontend.XF.Mac.fsproj", "{9E020D62-9160-49AC-A9CD-476CADAE0B87}"
@@ -44,14 +43,16 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.XF.iOS", "
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Fsdk", "Fsdk", "{6EE07541-91A1-42C2-A21F-2809BBDC2F50}"
 	ProjectSection(SolutionItems) = preProject
-		scripts\fsx\Fsdk\Misc.fs = scripts\fsx\Fsdk\Misc.fs
-		scripts\fsx\Fsdk\Unix.fs = scripts\fsx\Fsdk\Unix.fs
-		scripts\fsx\Fsdk\Process.fs = scripts\fsx\Fsdk\Process.fs
-		scripts\fsx\Fsdk\Network.fs = scripts\fsx\Fsdk\Network.fs
 		scripts\fsx\Fsdk\Git.fs = scripts\fsx\Fsdk\Git.fs
+		scripts\fsx\Fsdk\Misc.fs = scripts\fsx\Fsdk\Misc.fs
+		scripts\fsx\Fsdk\Network.fs = scripts\fsx\Fsdk\Network.fs
+		scripts\fsx\Fsdk\Process.fs = scripts\fsx\Fsdk\Process.fs
+		scripts\fsx\Fsdk\Unix.fs = scripts\fsx\Fsdk\Unix.fs
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "GWallet.Frontend.ConsoleApp", "src\GWallet.Frontend.ConsoleApp\GWallet.Frontend.ConsoleApp.fsproj", "{EFACE810-A402-4673-B8B5-4517E698EACE}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "GWallet.Frontend.ConsoleApp", "src\GWallet.Frontend.ConsoleApp\GWallet.Frontend.ConsoleApp.fsproj", "{EFACE810-A402-4673-B8B5-4517E698EACE}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ElectrumProxy", "ElectrumProxy\ElectrumProxy.fsproj", "{2CE9C122-CB05-4143-9070-78968074E6CC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -306,6 +307,30 @@ Global
 		{EFACE810-A402-4673-B8B5-4517E698EACE}.Release|x64.Build.0 = Release|Any CPU
 		{EFACE810-A402-4673-B8B5-4517E698EACE}.Release|x86.ActiveCfg = Release|Any CPU
 		{EFACE810-A402-4673-B8B5-4517E698EACE}.Release|x86.Build.0 = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|ARM.Build.0 = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|iPhone.ActiveCfg = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|iPhone.Build.0 = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|iPhoneSimulator.ActiveCfg = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|iPhoneSimulator.Build.0 = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|x64.Build.0 = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Debug|x86.Build.0 = Debug|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|ARM.ActiveCfg = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|ARM.Build.0 = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|iPhone.ActiveCfg = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|iPhone.Build.0 = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|iPhoneSimulator.ActiveCfg = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|iPhoneSimulator.Build.0 = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|x64.ActiveCfg = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|x64.Build.0 = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|x86.ActiveCfg = Release|Any CPU
+		{2CE9C122-CB05-4143-9070-78968074E6CC}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

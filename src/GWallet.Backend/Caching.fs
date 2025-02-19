@@ -316,6 +316,11 @@ module Caching =
                                                         address
                                                         newCache))
 
+        // When saving server rankings to disk, removal of duplicates and serializing/deserializing is performed,
+        // which puts load on CPU. This is acceptable for geewallet, since request rate is low, but not for
+        // ElectrumProxy, which has to process hundreds of request at a time.
+        member val SaveServerRankingsToDiskOnEachUpdate = true with get, set
+
         member __.ClearAll () =
             SaveNetworkDataToDisk CachedNetworkData.Empty
             SaveServerRankingsToDisk Map.empty
@@ -522,7 +527,7 @@ module Caching =
             if transactionCurrency <> feeCurrency && (not Config.EthTokenEstimationCouldBeBuggyAsInNotAccurate) then
                 self.StoreTransactionRecord address feeCurrency txId feeAmount
 
-        member __.SaveServerLastStat (serverMatchFunc: ServerDetails->bool)
+        member self.SaveServerLastStat (serverMatchFunc: ServerDetails->bool)
                                      (stat: HistoryFact): unit =
             lock cacheFiles.ServerStats (fun _ ->
                 let currency,serverInfo,previousLastSuccessfulCommunication =
@@ -557,14 +562,20 @@ module Caching =
                     | None -> Seq.empty
                     | Some servers -> servers
 
-                let newServersForCurrency =
-                    Seq.append (seq { yield newServerDetails }) serversForCurrency
+                let newServersForCurrency = ServerRegistry.AddServer newServerDetails serversForCurrency
 
                 let newServerList = sessionServerRanking.Add(currency, newServersForCurrency)
 
-                let newCachedValue = SaveServerRankingsToDisk newServerList
+                let newCachedValue = 
+                    if self.SaveServerRankingsToDiskOnEachUpdate then
+                        SaveServerRankingsToDisk newServerList
+                    else
+                        newServerList
                 sessionServerRanking <- newCachedValue
             )
+
+        member __.SaveServerStatsToDisk(): unit =
+            SaveServerRankingsToDisk sessionServerRanking |> ignore<ServerRanking>
 
         member __.GetServers (currency: Currency): seq<ServerDetails> =
             lock cacheFiles.ServerStats (fun _ ->

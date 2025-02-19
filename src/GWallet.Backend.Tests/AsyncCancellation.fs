@@ -27,7 +27,7 @@ type FaultTolerantParallelClientAsyncCancellation() =
                         }
                     CommunicationHistory = None
                 }
-            Retrieval = job
+            Retrieval = fun _timeout -> job
         }
     let dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test = (fun _ _ -> ())
 

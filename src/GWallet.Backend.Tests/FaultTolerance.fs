@@ -69,7 +69,7 @@ type FaultTolerance() =
                         }
                     CommunicationHistory = None
                 }
-            Retrieval = job
+            Retrieval = fun  _timeout -> job
         }
 
     [<Test>]
@@ -629,7 +629,7 @@ type FaultTolerance() =
                                       Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
                                             dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult1 }
+                          Retrieval =  fun _ -> async { return someResult1 }
                       }
         let server2 = {
                           Details =
@@ -643,7 +643,7 @@ type FaultTolerance() =
                                                                  TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                                 dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult2 }
+                          Retrieval = fun _ -> async { return someResult2 }
                       }
         let retrievedData = (FaultTolerantParallelClient<ServerDetails,DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -678,7 +678,7 @@ type FaultTolerance() =
                                   CommunicationHistory = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                                dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult1 }
+                          Retrieval = fun _ -> async { return someResult1 }
                       }
         let server2 = {
                           Details =
@@ -691,7 +691,7 @@ type FaultTolerance() =
                                   CommunicationHistory = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                                dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult2 }
+                          Retrieval = fun _ -> async { return someResult2 }
                       }
         let retrievedData = (FaultTolerantParallelClient<ServerDetails, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -726,7 +726,7 @@ type FaultTolerance() =
                                                                  TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                                dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult1 }
+                          Retrieval = fun _ -> async { return someResult1 }
                       }
         let server2 = {
                           Details =
@@ -738,7 +738,7 @@ type FaultTolerance() =
                                       }
                                   CommunicationHistory = None
                               }
-                          Retrieval = async { return someResult2 }
+                          Retrieval = fun _ -> async { return someResult2 }
                       }
         let retrievedData = (FaultTolerantParallelClient<ServerDetails, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -773,7 +773,7 @@ type FaultTolerance() =
                                   CommunicationHistory = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                                dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult1 }
+                          Retrieval = fun _ -> async { return someResult1 }
                       }
         let server2 = {
                           Details =
@@ -785,7 +785,7 @@ type FaultTolerance() =
                                       }
                                   CommunicationHistory = None
                               }
-                          Retrieval = async { return someResult2 }
+                          Retrieval = fun _ -> async { return someResult2 }
                       }
         let retrievedData = (FaultTolerantParallelClient<ServerDetails, DummyIrrelevantToThisTestException>
                                 dummy_func_to_not_save_server_because_it_is_irrelevant_for_this_test).Query
@@ -821,7 +821,7 @@ type FaultTolerance() =
                                   CommunicationHistory = Some ({ Status = fault; TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                                dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult1 }
+                          Retrieval = fun _ -> async { return someResult1 }
                       }
         let server2 = {
                           Details =
@@ -833,7 +833,7 @@ type FaultTolerance() =
                                       }
                                   CommunicationHistory = None
                               }
-                          Retrieval = async { return someResult2 }
+                          Retrieval = fun _ -> async { return someResult2 }
                       }
         let server3 = {
                           Details =
@@ -847,7 +847,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult3 }
+                          Retrieval = fun _ -> async { return someResult3 }
                       }
 
         let defaultSettings = FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries None
@@ -897,7 +897,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return raise SomeSpecificException }
+                          Retrieval = fun _ -> async { return raise SomeSpecificException }
                       }
         let server2 = {
                           Details =
@@ -911,7 +911,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return raise SomeSpecificException }
+                          Retrieval = fun _ -> async { return raise SomeSpecificException }
                       }
         let server3 = {
                           Details =
@@ -925,7 +925,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 3.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult3 }
+                          Retrieval = fun _ -> async { return someResult3 }
                       }
         let fault = some_fault_with_no_last_successful_comm_because_irrelevant_for_this_test
         let server4 = {
@@ -940,7 +940,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult4 }
+                          Retrieval = fun _ -> async { return someResult4 }
                       }
 
 
@@ -991,7 +991,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 1.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return raise SomeSpecificException }
+                          Retrieval = fun _ -> async { return raise SomeSpecificException }
                       }
         let server2 = {
                           Details =
@@ -1005,7 +1005,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 2.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return raise SomeSpecificException }
+                          Retrieval = fun _ -> async { return raise SomeSpecificException }
                       }
         let server3 = {
                           Details =
@@ -1019,7 +1019,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 3.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return raise SomeSpecificException }
+                          Retrieval = fun _ -> async { return raise SomeSpecificException }
                       }
 
         let server4 = {
@@ -1034,7 +1034,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 4.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult4 }
+                          Retrieval = fun _ -> async { return someResult4 }
                       }
         let server5 = {
                           Details =
@@ -1048,7 +1048,7 @@ type FaultTolerance() =
                                                                 TimeSpan = TimeSpan.FromSeconds 5.0 },
                                                               dummy_date_for_cache)
                               }
-                          Retrieval = async { return someResult5 }
+                          Retrieval = fun _ -> async { return someResult5 }
                       }
 
         let defaultSettings = FaultTolerance.DefaultSettingsForNoConsistencyNoParallelismAndNoRetries None

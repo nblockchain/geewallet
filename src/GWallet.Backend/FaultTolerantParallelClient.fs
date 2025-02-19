@@ -153,11 +153,12 @@ type internal Runner<'Resource when 'Resource: equality> =
                       (cancelState: ClientCancelState)
                       (shouldReportUncanceledJobs: bool)
                       (maybeExceptionHandler: Option<Exception->unit>)
+                      (timeouts: NetworkTimeouts)
                           : Async<Either<'Resource,Exception>> =
         async {
             try
                 try
-                    let! res = server.Retrieval
+                    let! res = server.Retrieval timeouts
                     return SuccessfulValue res
                 finally
                     stopwatch.Stop()
@@ -196,13 +197,14 @@ type internal Runner<'Resource when 'Resource: equality> =
                                          (cancelState: ClientCancelState)
                                          (updateServer: ('K->bool)->HistoryFact->unit)
                                          (server: Server<'K,'Resource>)
+                                         (timeouts: NetworkTimeouts)
                                              : ServerJob<'K,'Resource> =
         let job = async {
             let stopwatch = Stopwatch()
             stopwatch.Start()
 
             let! runResult =
-                Runner.Run<'K,'Ex> server stopwatch cancelState shouldReportUncanceledJobs exceptionHandler
+                Runner.Run<'K,'Ex> server stopwatch cancelState shouldReportUncanceledJobs exceptionHandler timeouts
 
             match runResult with
             | SuccessfulValue result ->
@@ -234,13 +236,14 @@ type internal Runner<'Resource when 'Resource: equality> =
                              (updateServerFunc: ('K->bool)->HistoryFact->unit)
                              (funcs: List<Server<'K,'Resource>>)
                              (cancelState: ClientCancelState)
+                             (timeouts: NetworkTimeouts)
                                  : List<ServerJob<'K,'Resource>>*List<ServerJob<'K,'Resource>> =
         let launchFunc = Runner.CreateAsyncJobFromFunc<'K,'Ex> shouldReportUncanceledJobs
                                                                exceptionHandler
                                                                cancelState
                                                                updateServerFunc
         let jobs = funcs
-                   |> Seq.map launchFunc
+                   |> Seq.map (fun each -> launchFunc each timeouts)
                    |> List.ofSeq
         if parallelJobs < uint32 jobs.Length then
             List.splitAt (int parallelJobs) jobs
@@ -288,6 +291,9 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
     do
         if typeof<'E> = typeof<Exception> then
             raise (ArgumentException("'E cannot be System.Exception, use a derived one", "'E"))
+
+    /// it is doubled when all servers have failed
+    let mutable timeouts = Config.DEFAULT_NETWORK_TIMEOUTS
 
     let MeasureConsistency (results: List<'R>) =
         results |> Seq.countBy id |> Seq.sortByDescending (fun (_,count: int) -> count) |> List.ofSeq
@@ -483,6 +489,7 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                                                      updateServer
                                                      funcs
                                                      cancelState
+                                                     timeouts
         )
 
         let startedTasks,jobsToLaunchLater =
@@ -763,8 +770,13 @@ type FaultTolerantParallelClient<'K,'E when 'K: equality and 'K :> ICommunicatio
                       0u
                       cancellationTokenSourceOption
         async {
-            let! res = job
-            return res
+            try
+                let! res = job
+                return res
+            with
+            | ex when FSharpUtil.FindException<NoneAvailableException>(ex).IsSome ->
+                timeouts <- timeouts.Double()
+                return raise <| FSharpUtil.ReRaise ex
         }
 
     member self.QueryWithCancellation<'R when 'R : equality>
