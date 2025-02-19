@@ -1,9 +1,27 @@
 ﻿namespace GWallet.Backend
 
+open System
 open System.Linq
 open System.ComponentModel
 
 open GWallet.Backend.FSharpUtil.UwpHacks
+
+module TrustMinimizedEstimation =
+    let AverageBetween3DiscardingOutlier (one: decimal) (two: decimal) (three: decimal): decimal =
+        let sorted = List.sort [one; two; three]
+        let first = sorted.Item 0
+        let last = sorted.Item 2
+        let higher = Math.Max(first, last)
+        let intermediate = sorted.Item 1
+        let lower = Math.Min(first, last)
+
+        if (higher - intermediate = intermediate - lower) then
+            (higher + intermediate + lower) / 3m
+        // choose the two that are closest
+        elif (higher - intermediate) < (intermediate - lower) then
+            (higher + intermediate) / 2m
+        else
+            (lower + intermediate) / 2m
 
 // this attribute below is for Json.NET (Newtonsoft.Json) to be able to deserialize this as a dict key
 [<TypeConverter(typeof<StringTypeConverter>)>]

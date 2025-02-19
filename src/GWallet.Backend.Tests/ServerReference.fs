@@ -51,6 +51,33 @@ type ServerReference() =
         },dummy_now) |> Some
 
     [<Test>]
+    member __.``averageBetween3DiscardingOutlier: basic test``() =
+        let res = TrustMinimizedEstimation.AverageBetween3DiscardingOutlier 1m 2m 3m
+        Assert.That(res, Is.EqualTo 2m)
+        ()
+
+    [<Test>]
+    member __.``averageBetween3DiscardingOutlier: nuanced tests``() =
+        let res = TrustMinimizedEstimation.AverageBetween3DiscardingOutlier 0m 2m 3m
+        Assert.That(res, Is.EqualTo 2.5m)
+
+        let res = TrustMinimizedEstimation.AverageBetween3DiscardingOutlier 2m 0m 3m
+        Assert.That(res, Is.EqualTo 2.5m)
+        ()
+
+        let res = TrustMinimizedEstimation.AverageBetween3DiscardingOutlier 0m 3m 2m
+        Assert.That(res, Is.EqualTo 2.5m)
+        ()
+
+        let res = TrustMinimizedEstimation.AverageBetween3DiscardingOutlier 3m 0m 2m
+        Assert.That(res, Is.EqualTo 2.5m)
+        ()
+
+        let res = TrustMinimizedEstimation.AverageBetween3DiscardingOutlier 3m 2m 0m
+        Assert.That(res, Is.EqualTo 2.5m)
+        ()
+
+    [<Test>]
     member __.``order of servers is kept if non-hostname details are same``() =
         let serverWithHighestPriority =
             {

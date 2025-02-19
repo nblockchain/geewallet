@@ -126,6 +126,21 @@ type ServerMisconfiguredException =
 
 module Networking =
 
+    let QueryRestApi (uri: Uri) =
+        async {
+            use webClient = new WebClient()
+            try
+                let task = webClient.DownloadStringTaskAsync uri
+                let! result = Async.AwaitTask task
+                return Some result
+            with
+            | ex ->
+                if (FSharpUtil.FindException<WebException> ex).IsSome then
+                    return None
+                else
+                    return raise <| FSharpUtil.ReRaise ex
+        }
+
     let FindExceptionToRethrow (ex: Exception) (newExceptionMsg): Option<Exception> =
         match FSharpUtil.FindException<SocketException> ex with
         | None ->
