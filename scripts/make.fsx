@@ -384,6 +384,9 @@ match maybeTarget with
             testProjectName,
             testProjectName + ".fsproj"
         ) |> FileInfo
+
+    // somehow sometimes the binary is seen by NUnit as 6.0, while we already have a .NET8.0 (or newer) runtime
+    Environment.SetEnvironmentVariable("DOTNET_ROLL_FORWARD", "major")
 #else
     // so that we get file names in stack traces
     Environment.SetEnvironmentVariable("MONO_ENV_OPTIONS", "--debug")
