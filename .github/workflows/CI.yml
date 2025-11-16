@@ -221,7 +221,7 @@ jobs:
       with:
         submodules: false
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: check mono version
       run: mono --version
     - name: configure
@@ -246,7 +246,7 @@ jobs:
       with:
         submodules: false
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
     - name: check mono version
@@ -476,7 +476,7 @@ jobs:
       with:
         submodules: false
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: check mono version
       run: mono --version
     - name: configure
@@ -499,7 +499,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: install missing dependencies
-      run: sudo apt install --yes fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
     - name: check mono version
@@ -532,7 +532,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo apt install --yes git make curl fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -568,7 +568,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo apt install --yes git make curl fsharp nunit-console
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -625,7 +625,7 @@ jobs:
         which sudo 2>/dev/null || (apt update && apt install --yes sudo)
         sudo apt update
 
-        sudo apt install --yes git npm curl
+        sudo DEBIAN_FRONTEND=noninteractive apt install --yes git npm curl
         sudo npm install --global n
         sudo n lts
     # workaround for https://github.com/actions/runner/issues/2033
@@ -684,5 +684,5 @@ jobs:
         SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
       run: |
         sudo apt update
-        sudo apt install --yes fsharp
+        sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp
         ./scripts/snap_release.sh
