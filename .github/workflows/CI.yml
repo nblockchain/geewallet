@@ -693,7 +693,7 @@ jobs:
     - name: Test snap
       run: gwallet --version
 
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       name: Upload snap package as artifact
       with:
         name: snap
