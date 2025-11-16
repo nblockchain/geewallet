@@ -60,6 +60,9 @@ jobs:
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   macOS--mono-only:
@@ -155,6 +158,9 @@ jobs:
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   windows--legacyFramework-only:
@@ -213,6 +219,9 @@ jobs:
 
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
+
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
@@ -344,6 +353,9 @@ jobs:
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux24-vanilla--stockdotnet-and-newmono:
@@ -388,6 +400,9 @@ jobs:
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
 
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
+
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
   linux24-vanilla--stockdotnet-and-stockmono:
@@ -429,6 +444,9 @@ jobs:
 
         # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
         dotnet tool install fsxc --version 0.5.9.1
+
+        # fsxc was built with .NET6.x
+        export DOTNET_ROLL_FORWARD=major
 
         find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
 
