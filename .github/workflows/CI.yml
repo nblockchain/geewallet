@@ -222,8 +222,8 @@ jobs:
         submodules: false
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
-    - name: check mono version
-      run: mono --version
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -249,8 +249,8 @@ jobs:
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
-    - name: check mono version
-      run: mono --version
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -285,7 +285,7 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: check mono version
+    - name: check runtime version(s)
       run: mono --version
     - name: configure
       run: ./configure.sh
@@ -451,7 +451,7 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: check mono version
+    - name: check runtime version(s)
       run: mono --version
     - name: configure
       run: ./configure.sh
@@ -477,8 +477,8 @@ jobs:
         submodules: false
     - name: install missing dependencies
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
-    - name: check mono version
-      run: mono --version
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -502,8 +502,8 @@ jobs:
       run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes fsharp nunit-console
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
-    - name: check mono version
-      run: mono --version
+    - name: check runtime version(s)
+      run: mono --version; dotnet --version
     - name: configure
       run: ./configure.sh
     - name: build in DEBUG mode
@@ -538,7 +538,7 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: check mono version
+    - name: check runtime version(s)
       run: mono --version
     - name: configure
       run: ./configure.sh
@@ -576,7 +576,7 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: check mono version
+    - name: check runtime version(s)
       run: mono --version
     - name: configure
       run: ./configure.sh
