@@ -116,7 +116,7 @@ jobs:
     - name: run
       run: .\configure.bat && .\make.bat run
 
-  linux22-github--dotnet-and-mono:
+  linux22-github--dotnet6-and-mono:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
@@ -133,7 +133,7 @@ jobs:
     - name: run
       run: ./configure.sh && make run
 
-  linux22-github--dotnet-and-newmono:
+  linux22-github--dotnet6-and-newmono:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
