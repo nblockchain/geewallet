@@ -325,3 +325,8 @@ match maybeTarget with
     let buildConfig = MakeAll None
     RunFrontend buildConfig None
         |> ignore
+
+| Some(someOtherTarget) ->
+    Console.Error.WriteLine("Unrecognized target: " + someOtherTarget)
+    Environment.Exit 2
+
