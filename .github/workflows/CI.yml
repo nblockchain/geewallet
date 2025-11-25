@@ -330,7 +330,7 @@ jobs:
     - name: run
       run: ./configure.sh && make run
 
-  linux24-vanilla--stockdotnet7-only:
+  linux24-vanilla--stockdotnet8-only:
     runs-on: ubuntu-24.04
     container:
       image: "ubuntu:24.04"
@@ -343,7 +343,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet7
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet8
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
@@ -352,7 +352,7 @@ jobs:
     - name: run
       run: ./configure.sh && make run
 
-  linux24-vanilla--stockdotnet7-and-newmono:
+  linux24-vanilla--stockdotnet8-and-newmono:
     runs-on: ubuntu-24.04
     container:
       image: "ubuntu:24.04"
@@ -365,7 +365,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet7
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet8
     - name: install last version of mono (Microsoft APT repositories)
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
 
@@ -376,7 +376,7 @@ jobs:
     - name: run
       run: ./configure.sh && make run
 
-  linux24-vanilla--stockdotnet7-and-stockmono:
+  linux24-vanilla--stockdotnet8-and-stockmono:
     runs-on: ubuntu-24.04
     container:
       image: "ubuntu:24.04"
@@ -389,7 +389,7 @@ jobs:
     - name: install sudo
       run: apt update && apt install --yes sudo
     - name: install all dependencies
-      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet7 mono-xbuild
+      run: sudo DEBIAN_FRONTEND=noninteractive apt install --yes git make curl dotnet8 mono-xbuild
 
     # workaround for https://github.com/actions/runner/issues/2033
     - name: ownership workaround
