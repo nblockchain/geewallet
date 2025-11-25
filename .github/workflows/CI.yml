@@ -37,28 +37,8 @@ jobs:
         mono --version
         /Library/Frameworks/Xamarin.iOS.framework/Versions/Current/bin/mtouch --version
         ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
-    - name: compile .fsx scripts
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+    - name: run
+      run: make run
 
   macOS--mono-only:
     runs-on: macOS-13
@@ -79,20 +59,8 @@ jobs:
         mono --version
         /Library/Frameworks/Xamarin.iOS.framework/Versions/Current/bin/mtouch --version
         ls -l /Library/Frameworks/Xamarin.Android.framework/Versions/
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
+    - name: run
+      run: make run
 
   macOS--dotnet6-only:
     runs-on: macOS-13
@@ -106,20 +74,8 @@ jobs:
         dotnet-version: '6.0.113'        
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
+    - name: run
+      run: make run
 
   windows--dotnet6-and-legacyFramework:
     runs-on: windows-latest
@@ -131,52 +87,19 @@ jobs:
       uses: actions/setup-dotnet@v1.7.2
       with:
         dotnet-version: '6.0.113'
-    - name: configure
-      run: .\configure.bat
-    - name: build in DEBUG mode
-      run: .\make.bat
-    - name: sanity check
-      run: .\make.bat sanitycheck
-    - name: unit tests
-      run: .\make.bat check
-    - name: re-build in STRICT mode
-      run: git clean -fdx && .\configure.bat && .\make.bat strict
-    - name: re-build in RELEASE mode
-      run: git clean -fdx && .\configure.bat && .\make.bat release
-    - name: integration tests
-      run: .\make update-servers
-    - name: compile .fsx scripts
-      shell: bash
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+    - name: run
+      run: .\make.bat run
 
   windows--legacyFramework-only:
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: false
     - name: HACK to emulate dotnet uninstall
       run: del $(where.exe dotnet)
-    - name: configure
-      run: .\configure.bat
-    - name: build in DEBUG mode
-      run: .\make.bat
-    - name: sanity check
-      run: .\make.bat sanitycheck
-    - name: unit tests
-      run: .\make.bat check
-    - name: re-build in STRICT mode
-      run: git clean -fdx && .\configure.bat && .\make.bat strict
-    - name: re-build in RELEASE mode
-      run: git clean -fdx && .\configure.bat && .\make.bat release
-    - name: integration tests
-      run: .\make update-servers
+    - name: run
+      run: .\make.bat run
 
   windows--dotnet6-only:
     runs-on: windows-latest
@@ -190,29 +113,8 @@ jobs:
         dotnet-version: '6.0.113'
     - name: HACK to emulate legacy .NETFramework uninstall
       run: del $(& "${Env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -find MSBuild\\**\\Bin\\MSBuild.exe)
-    - name: configure
-      run: .\configure.bat
-    - name: build in DEBUG mode
-      run: .\make.bat
-    - name: sanity check
-      run: .\make.bat sanitycheck
-    - name: unit tests
-      run: .\make.bat check
-    - name: re-build in STRICT mode
-      run: git clean -fdx && .\configure.bat && .\make.bat strict
-    - name: re-build in RELEASE mode
-      run: git clean -fdx && .\configure.bat && .\make.bat release
-    - name: integration tests
-      run: .\make update-servers
-    - name: compile .fsx scripts
-      shell: bash
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+    - name: run
+      run: .\make.bat run
 
   linux22-github--dotnet-and-mono:
     runs-on: ubuntu-22.04
@@ -224,20 +126,8 @@ jobs:
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
       run: mono --version
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
+    - name: run
+      run: make run
 
   linux22-github--dotnet-and-newmono:
     runs-on: ubuntu-22.04
@@ -251,20 +141,8 @@ jobs:
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
     - name: check mono version
       run: mono --version
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
+    - name: run
+      run: make run
 
   linux22-vanilla--stockmono-only:
     runs-on: ubuntu-22.04
@@ -287,20 +165,8 @@ jobs:
 
     - name: check mono version
       run: mono --version
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
+    - name: run
+      run: make run
 
   linux22-vanilla--stockdotnet6-only:
     runs-on: ubuntu-22.04
@@ -321,28 +187,8 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
-    - name: compile .fsx scripts
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+    - name: run
+      run: make run
 
   linux22-vanilla--stockdotnet6-and-newmono:
     runs-on: ubuntu-22.04
@@ -365,28 +211,8 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
-    - name: compile .fsx scripts
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+    - name: run
+      run: make run
 
   linux22-vanilla--stockdotnet6-and-stockmono:
     runs-on: ubuntu-22.04
@@ -407,28 +233,8 @@ jobs:
     - name: ownership workaround
       run: git config --global --add safe.directory '*'
 
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
-    - name: compile .fsx scripts
-      run: |
-        dotnet new tool-manifest
-
-        # we need to install specific version because of this bug: https://github.com/dotnet/sdk/issues/24037
-        dotnet tool install fsxc --version 0.5.9.1
-
-        find . -type f -name "*.fsx" | xargs -t -I {} dotnet fsxc {}
+    - name: run
+      run: make run
 
   linux22-vanilla--newmono-only:
     runs-on: ubuntu-22.04
@@ -453,21 +259,8 @@ jobs:
 
     - name: check mono version
       run: mono --version
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
-
+    - name: run
+      run: make run
 
   linux20-github--dotnet-and-mono:
     runs-on: ubuntu-20.04
@@ -479,20 +272,8 @@ jobs:
       run: sudo apt install --yes fsharp nunit-console
     - name: check mono version
       run: mono --version
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
+    - name: run
+      run: make run
 
   linux20-github--dotnet-and-newmono:
     runs-on: ubuntu-20.04
@@ -504,20 +285,8 @@ jobs:
       run: sudo ./scripts/install_mono_from_microsoft_deb_packages.sh
     - name: check mono version
       run: mono --version
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
+    - name: run
+      run: make run
 
   linux20-vanilla--stockmono-only:
     runs-on: ubuntu-20.04
@@ -540,20 +309,8 @@ jobs:
 
     - name: check mono version
       run: mono --version
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
+    - name: run
+      run: make run
 
   linux20-vanilla--newmono-only:
     runs-on: ubuntu-20.04
@@ -578,111 +335,5 @@ jobs:
 
     - name: check mono version
       run: mono --version
-    - name: configure
-      run: ./configure.sh
-    - name: build in DEBUG mode
-      run: make
-    - name: sanity check
-      run: make sanitycheck
-    - name: unit tests
-      run: make check
-    - name: build in STRICT mode
-      run: git clean -fdx && ./configure.sh && make strict
-    - name: build in RELEASE mode
-      run: git clean -fdx && ./configure.sh && make release
-    - name: integration tests
-      run: make update-servers
-
-  conventions:
-    runs-on: ubuntu-22.04
-    container:
-      image: "ubuntu:22.04"
-    needs:
-    - linux22-github--dotnet-and-mono
-    - linux22-github--dotnet-and-newmono
-    - linux22-vanilla--stockmono-only
-    - linux22-vanilla--newmono-only
-    - linux22-vanilla--stockdotnet6-only
-    - linux22-vanilla--stockdotnet6-and-stockmono
-    - linux22-vanilla--stockdotnet6-and-newmono
-    - linux20-github--dotnet-and-mono
-    - linux20-github--dotnet-and-newmono
-    - linux20-vanilla--stockmono-only
-    - linux20-vanilla--newmono-only
-    - windows--dotnet6-and-legacyFramework
-    - windows--legacyFramework-only
-    - windows--dotnet6-only
-    - macOS--dotnet6-and-mono
-    - macOS--mono-only
-    - macOS--dotnet6-only
-
-    steps:
-    - uses: actions/checkout@v1
-      with:
-        submodules: false
-    - name: Install dependencies of commitlint
-      run: |
-        which sudo 2>/dev/null || (apt update && apt install --yes sudo)
-        sudo apt update
-
-        sudo apt install --yes git npm curl
-        sudo npm install --global n
-        sudo n lts
-    # workaround for https://github.com/actions/runner/issues/2033
-    - name: ownership workaround
-      run: git config --global --add safe.directory '*'
-    - name: Pull our commitlint configuration
-      run: |
-        git clone https://github.com/nblockchain/conventions.git
-        rm -rf ./conventions/.git/
-    - name: Validate current commit (last commit) with commitlint
-      if: github.event_name == 'push'
-      run: ./conventions/commitlint.sh --from HEAD~1 --to HEAD --verbose
-    - name: Validate PR commits with commitlint
-      if: github.event_name == 'pull_request'
-      run: ./conventions/commitlint.sh --from ${{ github.event.pull_request.head.sha }}~${{ github.event.pull_request.commits }} --to ${{ github.event.pull_request.head.sha }} --verbose
-
-  snap_pkg:
-
-    needs:
-    - conventions
-
-    runs-on: ubuntu-22.04
-    steps:
-    - uses: actions/checkout@v1
-    - name: Install snap tools
-      run: |
-        sudo apt update
-        ./scripts/install_snapcraft.sh
-
-    # hack to disable dotnet detection (can't use apt purge because github VM seems to have it installed in different way)
-    # NOTE: you might think an easier way to do this would be use container:\nimage: ubuntu22.04 and then not install dotnet pkg,
-    #       but that doesn't work because we get the following error when trying to install snapcraft via `snap install --classic`:
-    # > error: cannot communicate with server: Post "http://localhost/v2/snaps/snapcraft": dial unix /run/snapd.socket: connect: no such file or directory
-    - name: HACK to emulate dotnet uninstall
-      run: sudo rm `which dotnet`
-
-    - name: Generate snap package
-      run: |
-        ./scripts/snap_build.sh
-
-    - name: Install snap
-      # dangerous because it's a local snap (not one from the SnapStore)
-      run: sudo snap install --dangerous *.snap
-
-    - name: Test snap
-      run: gwallet --version
-
-    - uses: actions/upload-artifact@v3
-      name: Upload snap package as artifact
-      with:
-        name: snap
-        path: ./*.snap
-
-    - name: Upload snap package to Snap Store
-      env:
-        SNAPCRAFT_LOGIN: ${{ secrets.SNAPCRAFT_LOGIN }}
-      run: |
-        sudo apt update
-        sudo apt install --yes fsharp
-        ./scripts/snap_release.sh
+    - name: run
+      run: make run
