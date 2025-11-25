@@ -75,7 +75,7 @@ jobs:
     - name: HACK to emulate mono uninstall
       run: sudo rm -f `which mono` && sudo rm -f `which msbuild`
     - name: run
-      run: configure.sh && make run
+      run: ./configure.sh && make run
 
   windows--dotnet6-and-legacyFramework:
     runs-on: windows-latest

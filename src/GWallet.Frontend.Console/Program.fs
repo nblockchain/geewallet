@@ -511,3 +511,4 @@ let UpdateServersStats () =
 [<EntryPoint>]
 let main argv =
     Console.WriteLine "hello"
+    0
