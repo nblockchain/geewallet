@@ -512,18 +512,13 @@ let UpdateServersStats () =
 let main argv =
     match argv.Length with
     | 0 ->
-        NormalStartWithNoParameters()
+        failwith "No args"
     | 1 when argv.[0] = "hello" ->
         Console.WriteLine "hello"
         let helloFile = Path.Combine(Environment.GetCurrenDirectory(), "hello.txt") |> FileInfo
         File.WriteAllText(helloFile.FullName, "hallo")
         Console.WriteLine "bye"
-    | 1 when argv.[0] = "--version" ->
-        Console.WriteLine (sprintf "geewallet v%s" VersionHelper.CURRENT_VERSION)
         0
-    | 1 when argv.[0] = "--update-servers-file" ->
-        UpdateServersFile()
-    | 1 when argv.[0] = "--update-servers-stats" ->
-        UpdateServersStats()
     | _ ->
         failwith "Arguments not recognized"
+
