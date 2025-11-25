@@ -514,8 +514,15 @@ let main argv =
     | 0 ->
         failwith "No args"
     | 1 when argv.[0] = "hello" ->
+
+        let appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+        let userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+        let myDocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        let personal = Environment.GetFolderPath(Environment.SpecialFolder.Personal)
+        let hello = sprintf "appData= %s ; userProfile= %s ; myDocs= %s ; personal= %s" appData userProfile myDocs personal
+
         Console.WriteLine "hello"
-        let helloFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "hello.txt") |> FileInfo
+        let helloFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), hello) |> FileInfo
         File.WriteAllText(helloFile.FullName, "hallo")
         Console.WriteLine "bye"
         0
