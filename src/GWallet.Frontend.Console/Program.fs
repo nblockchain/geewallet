@@ -515,7 +515,7 @@ let main argv =
         failwith "No args"
     | 1 when argv.[0] = "hello" ->
         Console.WriteLine "hello"
-        let helloFile = Path.Combine(Environment.GetCurrenDirectory(), "hello.txt") |> FileInfo
+        let helloFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), "hello.txt") |> FileInfo
         File.WriteAllText(helloFile.FullName, "hallo")
         Console.WriteLine "bye"
         0
